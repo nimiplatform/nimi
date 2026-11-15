@@ -16,6 +16,7 @@ export function ZhiyuAgentActivityReferences({ agentHandle, navigationKey }: { r
   return <AgentActivityReferences key={agentHandle ?? 'none'} {...state} navigationKey={navigationKey} copy={{
     title: '与这位伙伴相关的应用消息', loading: '正在读取应用消息…',
     unavailable: '应用消息暂时不可用。', incomplete: '当前显示已读取的部分消息。',
+    sourceUnavailable: '来源暂不可用',
     open: '在来源应用中查看', opening: '正在打开…',
     openFailed: '来源应用或对象暂时无法打开，请稍后重试。', retry: '重试', more: '更多应用消息',
   }} />;

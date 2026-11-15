@@ -42,8 +42,6 @@ function DesktopMainSurface(props: {
             <DesktopRendererBindingProvider bindings={props.bindings}>
               <AppearanceEffects />
               <AppProviders
-                agentVisibleProjections={props.resources.agentVisibleProjections}
-                anchorBindings={props.resources.anchorBindings}
                 attention={props.resources.attention}
                 chatUploadPlaceholders={props.resources.chatUploadPlaceholders}
                 i18n={props.resources.i18n}

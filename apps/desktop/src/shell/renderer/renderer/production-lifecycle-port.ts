@@ -2,7 +2,6 @@ import { productionAppStore } from '../app-shell/providers/production-app-store.
 import { productionQueryClient } from '../infra/query-client/production-query-client.js';
 import { createDesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { productionDesktopI18n } from '../i18n/index.js';
-import { createAgentConversationAnchorBindingStore } from '../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 
 /**
  * Transitional production host composition. Canonical factory invocations
@@ -12,5 +11,4 @@ export const productionRendererLifecyclePort = createDesktopRendererLifecyclePor
   productionAppStore,
   productionQueryClient,
   (key, options) => String(productionDesktopI18n.instance.t(key, options)),
-  createAgentConversationAnchorBindingStore(Date.now),
 );

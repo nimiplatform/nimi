@@ -8,7 +8,7 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-test('the desktop-owned chat layout preserves a full-height chain for every mode', () => {
+test('the desktop-owned chat layout preserves a full-height chain for Nimi Chat and human communications', () => {
   const panelStackSource = readDesktopFile(
     'src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx',
   );
@@ -39,7 +39,7 @@ test('the desktop-owned chat layout preserves a full-height chain for every mode
   );
   assert.match(
     panelStackSource,
-    /<MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">/u,
+    /<MotionPanelFrame panelId=\{activeTab\} className="flex h-full min-h-0 flex-1">/u,
   );
   assert.match(
     chatPageSource,
@@ -76,8 +76,6 @@ test('agent-conversation-launcher requires the canonical handle and Conversation
         greeting: null,
         builtinDocsContext: null,
       },
-      navigation: createHomeNavigation(),
-      setAgentConversationTargetSnapshot: () => {},
     }),
     /Canonical Agent target requires agentHandle and Conversation anchor/,
   );
@@ -88,43 +86,35 @@ test('agent conversation launcher can prefill composer without authoring a threa
   const { launchAgentConversationFromDisplay } = await import(
     '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
   );
-  const observedEffects = new Set<string>();
+  const globals = globalThis as Record<string, unknown>;
+  const before = [globals.window, globals.__NIMI_ELECTRON_RUNTIME__];
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  globals.window = { __NIMI_HTML_BOOT_ID__: 'zhiyu-launch-test' };
+  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, payload: unknown) => {
+    if (command === 'log_renderer_event') return {};
+    calls.push({ command, payload }); return { opened: true };
+  } };
   const navigation = createHomeNavigation();
-  let pendingPrefill: { agentHandle: string; text: string } | null = null;
-
-  await launchAgentConversationFromDisplay({
-    target: {
-      ownerUserId: 'user-1',
-	  runtimeSourceRef: '',
-	  localAgentRef: 'agent_anchor_01TEST',
-	  agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      conversationAnchorId: 'anchor-agent-1',
-      displayName: 'Runtime Source',
-      handle: 'runtime-source',
-      avatarUrl: null,
-      worldId: 'world-1',
-      worldName: 'World',
-      bio: null,
-      ownershipType: null,
-      greeting: null,
-      builtinDocsContext: null,
-    },
-    initialComposerText: '  他为什么被称为阳明学派思想家与朝廷重臣？  ',
-    setPendingAgentComposerPrefill: (input) => {
-      observedEffects.add('prefill');
-      pendingPrefill = input;
-    },
-    navigation,
-    setAgentConversationTargetSnapshot: () => { observedEffects.add('snapshot'); },
-  });
-
-  assert.deepEqual(pendingPrefill, {
-    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    text: '他为什么被称为阳明学派思想家与朝廷重臣？',
-  });
-  assert.deepEqual(
-    observedEffects,
-    new Set(['snapshot', 'prefill']),
-  );
-  assert.equal(navigation.getSnapshot().current.destination.chat?.conversationAnchorId, 'anchor-agent-1');
+  try {
+    await navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+    const origin = navigation.getSnapshot().current;
+    const result = await launchAgentConversationFromDisplay({
+      target: { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-agent-1', displayName: 'Partner' } as never,
+      initialComposerText: '  Preserve spacing in this unsent draft.  ', messageId: 'reply-1',
+    });
+    assert.equal(result.routedSurface, 'zhiyu');
+    assert.deepEqual(calls, [{ command: 'bundled_zhiyu_open', payload: { target: {
+      conversationAnchorId: 'anchor-agent-1', messageId: 'reply-1', text: '  Preserve spacing in this unsent draft.  ',
+    } } }]);
+    assert.equal(navigation.getSnapshot().current, origin);
+    globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string) => command === 'log_renderer_event' ? {} : { opened: false } };
+    await assert.rejects(launchAgentConversationFromDisplay({ target: { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-agent-1' } as never,
+      initialComposerText: 'retry me' }), /did not open/);
+    assert.equal(navigation.getSnapshot().current, origin, 'a refused handoff leaves its source usable');
+  } finally {
+    navigation.dispose();
+    for (const [key, value] of [['window', before[0]], ['__NIMI_ELECTRON_RUNTIME__', before[1]]] as const) {
+      if (value === undefined) delete globals[key]; else globals[key] = value;
+    }
+  }
 });

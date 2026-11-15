@@ -28,19 +28,17 @@ test('the in-task connector creation and the Cloud page share one form implement
 });
 
 test('consumer entries open the shared setup task instead of the legacy pages', async () => {
-  const [appsSection, chatSettings, agentSettings, chatPage] = await Promise.all([
+  const [appsSection, chatSettings, agentSettings] = await Promise.all([
     readFeature('apps/apps-ai-config-section.tsx'),
     readFeature('chat/chat-shared-settings-panel.tsx'),
-    readFeature('chat/chat-agent-shell-presentation-settings.tsx'),
-    readFeature('chat/chat-page.tsx'),
+    readFeature('agents/partner-details.tsx'),
   ]);
   for (const [name, source] of [
     ['apps-ai-config-section', appsSection],
     ['chat-shared-settings-panel', chatSettings],
-    ['chat-agent-shell-presentation-settings', agentSettings],
-    ['chat-page', chatPage],
+    ['partner-details', agentSettings],
   ] as const) {
-    const helper = name === 'chat-agent-shell-presentation-settings'
+    const helper = name === 'partner-details' || name === 'chat-shared-settings-panel'
       ? /openRuntimeSetupTaskFromEntry/u : /openOrCreateRuntimeSetupTask/u;
     assert.match(source, helper, `${name} must route through its shared setup task entry helper`);
     assert.match(source, /runtimeConfigNavigation\.openSetupTask/u, `${name} must open the task via the navigation intent`);
@@ -53,7 +51,7 @@ test('consumer entries open the shared setup task instead of the legacy pages', 
   assert.match(chatSettings, /ownerAppId: DESKTOP_NIMI_APP_ID/u);
   // Voice creation uses the consuming App; companion playback uses LocalAgent.
   assert.match(agentSettings, /kind: creation \? 'app' : 'local-agent'/u);
-  assert.match(agentSettings, /creation \? \{ ownerAppId: sdk\.appId\(\) \} : \{\}/u);
+  assert.match(agentSettings, /creation \? \{ ownerAppId: bindings\.sdk\.appId\(\) \} : \{\}/u);
   const open = await readFeature('runtime-config/runtime-setup-task-open.ts');
   assert.match(open, /return openOrCreateRuntimeSetupTask\(store, \{ \.\.\.input, source \}\)/u);
 });

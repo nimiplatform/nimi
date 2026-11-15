@@ -17,7 +17,6 @@ import {
 import { createDesktopQueryClient } from '../src/shell/renderer/infra/query-client/query-client.js';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
 import { AppProviders } from '../src/shell/renderer/app-shell/providers/app-providers.js';
-import { createAgentConversationAnchorBindingStore } from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import { createIdleAppAttentionState } from '../src/shell/renderer/app-shell/providers/app-attention-state.js';
 import {
   createNimiCanonicalRendererHostBindings,
@@ -52,7 +51,6 @@ import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/r
 import { createHomeNavigation, type HomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 
 import { createWorldFollowStore } from '../src/shell/renderer/features/world/world-follow-store.js';
-import { createAgentVisibleProjectionStore } from '../src/shell/renderer/features/chat/chat-agent-visible-projection-store.js';
 import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
 import { createLocalModelCenterProgressCache } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 import { createRealmSocialData } from '../src/shell/renderer/features/social/data/realm-social-data.js';
@@ -87,46 +85,6 @@ test('createAppStore owns independent state and injected effects per renderer in
   assert.equal(second.getState().chatThinkingPreference, 'off');
   assert.deepEqual(firstEffects.preferences, ['on']);
   assert.deepEqual(secondEffects.preferences, []);
-});
-
-test('Agent target refresh reconciles the current reference without adding history', async () => {
-  const store = createAppStore(createDependencies({ preferences: [] }));
-  store.getState().setAuthSession({ id: 'account-a' });
-  const staleHandle = `agent_ref_${'a'.repeat(43)}`;
-  const currentHandle = `agent_ref_${'b'.repeat(43)}`;
-  const baseTarget = {
-    conversationAnchorId: 'agent_anchor_current',
-    displayName: 'Current Agent',
-    handle: '',
-    avatarUrl: null,
-    worldId: null,
-    worldName: null,
-    bio: null,
-    ownershipType: null,
-    greeting: null,
-    builtinDocsContext: null,
-  } as const;
-
-  store.getState().setAgentConversationTargetSnapshot({
-    ...baseTarget,
-    agentHandle: staleHandle,
-  });
-  await store.navigation.push({ id: 'chat', chat: { mode: 'agent', agentHandle: staleHandle, conversationAnchorId: baseTarget.conversationAnchorId, targetId: staleHandle } });
-  store.getState().setAgentConversationTargetSnapshot({
-    ...baseTarget,
-    agentHandle: currentHandle,
-  });
-
-  const state = store.getState();
-  assert.deepEqual(Object.keys(state.agentConversationTargetByHandle), [currentHandle]);
-  assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, {
-    mode: 'agent',
-    agentHandle: currentHandle,
-    conversationAnchorId: baseTarget.conversationAnchorId,
-    targetId: currentHandle,
-  });
-  await store.navigation.back();
-  assert.equal(store.navigation.getSnapshot().current.destination.id, 'home');
 });
 
 test('AppStoreProvider resolves the store belonging to the current renderer tree', () => {
@@ -184,8 +142,6 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   ) => renderToStaticMarkup(createElement(
     AppProviders,
     {
-      agentVisibleProjections: createAgentVisibleProjectionStore(),
-      anchorBindings: createAgentConversationAnchorBindingStore(() => 1),
       chatUploadPlaceholders: createChatUploadPlaceholderStore(() => 1),
       attention: {
         getSnapshot: createIdleAppAttentionState,
@@ -347,6 +303,7 @@ function createCanonicalBindings(input: {
         menuBarShellEnabled: () => false,
         resourceBaseUrl: () => 'https://renderer-test.invalid/',
         walletCheckoutBaseUrl: () => 'https://renderer-test.invalid/',
+        runtimeManagerEntry: () => null,
       }),
       commands: Object.freeze({
         productUpdate: Object.freeze({

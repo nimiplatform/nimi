@@ -4,7 +4,7 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 // @nimi-authority: rule.nimi.runtime.protected-session.r017
 export async function recoverRuntimeAppSession(input: {
   lifecycle: Pick<DesktopRendererLifecyclePort,
-    'auth' | 'invalidateQueries' | 'clearAgentConversationAnchorBindings'>;
+    'auth' | 'invalidateQueries'>;
   readStatus: () => Promise<{ sessionBound: boolean; reasonCode: string }>;
   isCurrent: () => boolean;
 }): Promise<boolean> {
@@ -20,7 +20,6 @@ export async function recoverRuntimeAppSession(input: {
     || current.user?.realmEnvironmentId !== account.user.realmEnvironmentId
     || current.authorizationRevision !== account.authorizationRevision) return false;
   if (!status.sessionBound) throw new Error(`App session unavailable: ${status.reasonCode}`);
-  input.lifecycle.clearAgentConversationAnchorBindings();
   // Refetch mounted read projections, including App AIConfig and fresh Agent
   // handles. The query cache does not restore old session authority.
   logRendererEvent({

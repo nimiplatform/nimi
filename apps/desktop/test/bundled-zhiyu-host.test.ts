@@ -5,7 +5,7 @@ import test from 'node:test';
 // Exercise native-window lifetime without running a second Electron process.
 // Actual renderer, protected session and model acceptance run separately in Home.
 const mockUrl = `data:text/javascript,${encodeURIComponent(`
-export const state = { windows: [], owners: [], bridges: [], placement: null, chromeApp: null };
+export const state = { windows: [], owners: [], bridges: [], placement: null, chromeApp: null, handlers: new Map(), listeners: new Map() };
 export class BrowserWindow {
   constructor() { this.destroyed=false; this.listeners=new Map(); state.windows.push(this); this.webContents={mainFrame:{url:'nimi-app://zhiyu/index.html'},setWindowOpenHandler(){},on(){},send(){}}; }
   isDestroyed(){return this.destroyed;} isMinimized(){return false;} restore(){} show(){} focus(){}
@@ -16,7 +16,7 @@ export class BrowserWindow {
 }
 export const app={getPath(){return 'C:/test-home';}};
 export const dialog={}; export const Menu={}; export const webContents={}; export const shell={showItemInFolder(){}};
-export const ipcMain={on(){},removeListener(){}};
+export const ipcMain={on(channel,fn){state.listeners.set(channel,fn);},removeListener(channel){state.listeners.delete(channel);},handle(channel,fn){state.handlers.set(channel,fn);},removeHandler(channel){state.handlers.delete(channel);}};
 export const session={fromPartition(){return {protocol:{handle(){}},webRequest:{},setPermissionRequestHandler(){},setPermissionCheckHandler(){}};}};
 export function createNimiElectronAppChromeWindowOptions(){return {};}
 export function createNimiElectronAppChromeHost(input){state.chromeApp=input.app;return {bindWindow(){},dispose(){}};}
@@ -87,4 +87,28 @@ test('closing during placement startup disposes the late Host instead of leaking
   assert.equal(placementClosed, 1);
   assert.equal(appHost.isOpen(), false);
   await appHost.shutdown();
+});
+
+
+test('only the active Zhiyu main frame can read or acknowledge a target', async () => {
+  state.placement = async () => ({ async shutdown() {} });
+  const appHost = host();
+  await appHost.open();
+  const sender = state.windows.at(-1).webContents;
+  const event = { sender, senderFrame: sender.mainFrame };
+  const read = state.handlers.get('nimi:zhiyu:conversation-open:read');
+  const acknowledge = state.listeners.get('nimi:zhiyu:conversation-open:ack');
+  const pending = appHost.openConversation({ conversationAnchorId: 'anchor-a' });
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const request = read(event);
+  assert.ok(request);
+  assert.equal(read({ sender: {}, senderFrame: sender.mainFrame }), null);
+  assert.equal(read({ sender, senderFrame: {} }), null);
+  acknowledge({ sender, senderFrame: {} }, { requestId: request.requestId, status: 'opened' });
+  assert.equal(read(event), request);
+  acknowledge(event, { requestId: request.requestId, status: 'opened' });
+  await pending;
+  assert.equal(read(event), null);
+  await appHost.shutdown();
+  assert.equal(state.handlers.has('nimi:zhiyu:conversation-open:read'), false);
 });

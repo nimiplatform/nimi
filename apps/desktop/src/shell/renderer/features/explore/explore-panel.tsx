@@ -16,7 +16,6 @@ import { useWorldAtlasLeadWorlds } from '../world/world-atlas-data.js';
 import { selectWorldCatalogWorlds } from '../world/world-list-catalog-model.js';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import { useWorldFavorites } from '../world/use-world-favorites.js';
-import { PartnerDirectory } from '../agents/partner-directory.js';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r002
 export function ExplorePanel(props: {
@@ -35,7 +34,7 @@ export function ExplorePanel(props: {
     {props.activeSection === 'worlds' && !characters ? null : <header className="flex flex-wrap items-center justify-between gap-3 px-1">
       {sectionNav}
     </header>}
-    {props.activeSection === 'partners' ? <PartnerDirectory /> : characters ? <CharacterDiscovery /> : <WorldDiscovery headerLeading={sectionNav} headerTrailing={partnerAction} />}
+    {characters ? <CharacterDiscovery /> : <WorldDiscovery headerLeading={sectionNav} headerTrailing={partnerAction} />}
   </div>;
 }
 

@@ -6,12 +6,11 @@ import { ExploreSectionNav } from '../src/shell/renderer/features/explore/explor
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n/index.js';
 (globalThis as { React?: typeof React }).React = React;
 
-test('Explore exposes Worlds and actual My partners as its only primary sections', async () => {
+test('Explore keeps World discovery without duplicating My partners', async () => {
   await initI18n(); await changeLocale('zh');
-  const html = renderToStaticMarkup(<ExploreSectionNav active="partners" onSelect={() => {}} />);
-  assert.match(html, /我的伙伴/);
+  const html = renderToStaticMarkup(<ExploreSectionNav active="worlds" onSelect={() => {}} />);
   assert.match(html, /explore-section-tab-worlds/);
-  assert.match(html, /explore-section-tab-partners/);
-  assert.equal((html.match(/role="tab"/g) ?? []).length, 2);
+  assert.doesNotMatch(html, /explore-section-tab-partners/);
+  assert.equal((html.match(/role="tab"/g) ?? []).length, 1);
   assert.doesNotMatch(html, /explore-section-tab-personas|Persona/);
 });

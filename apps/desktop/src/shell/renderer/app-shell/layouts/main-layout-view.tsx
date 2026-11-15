@@ -135,7 +135,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     .some(record => record.userView.unread), [messageActivity.pending, messageActivity.recent]);
   const humanChats = useHumanChatList(props.authStatus);
   const hasUnreadCompanion = useMemo(() => unreadCompanionReplies(messageActivity.recent.records).size > 0, [messageActivity.recent.records]);
-  const hasUnreadChat = hasUnreadCompanion || humanChats.data?.items.some(chat => chat.unreadCount > 0);
+  const hasUnreadHumanChat = humanChats.data?.items.some(chat => chat.unreadCount > 0);
   const hasUnreadMessages = (unreadCountQuery.data?.total ?? 0) > 0 || activityUnread;
   const integrationsRailActive = props.activeTab === 'home' && homeEntryDestination === 'integrations';
 
@@ -320,7 +320,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       item={item}
                       active={navigationColumn === item.id}
                       collapsed
-                      badge={item.id === 'chat' && hasUnreadChat ? t('Chat.rail.unreadChats') : undefined}
+                      badge={item.id === 'partners' && hasUnreadCompanion ? t('Chat.rail.unreadChats') : undefined}
                       onClick={() => props.onNav(item.id)}
                     />
                   ))}
@@ -335,6 +335,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   {quickNavItems.map((item) => (
                     <NavLink
                       key={item.id}
+                      badge={item.id === 'friends' && hasUnreadHumanChat ? t('Chat.rail.unreadChats') : undefined}
                       item={item}
                       active={navigationColumn === item.id}
                       collapsed
@@ -418,7 +419,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
             onExploreSectionChange={section => void navigation.push({ ...destination, id: 'explore', exploreSection: section,
-              ...(section === 'worlds' ? { partner: undefined } : {}), search: destination.search ?? '' })}
+              search: destination.search ?? '' })}
             onExploreSearchTextChange={search => void navigation.replace({ ...destination, id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search })}
           />
         </div>

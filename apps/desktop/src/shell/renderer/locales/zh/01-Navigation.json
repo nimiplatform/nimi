@@ -1,6 +1,6 @@
 {
   "home": "首页",
-  "chat": "聊天",
+  "chat": "Nimi Chat",
   "explore": "探索",
   "apps": "应用",
   "runtime": "AI 能力",
@@ -11,5 +11,8 @@
   "cloud": "云服务",
   "downloads": "下载",
   "diagnostics": "高级与诊断",
-  "activity": "动态"
+  "activity": "动态",
+  "partners": "我的伙伴",
+  "connections": "连接与接入",
+  "friends": "好友与聊天"
 }

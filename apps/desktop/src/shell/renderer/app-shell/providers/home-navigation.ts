@@ -22,6 +22,8 @@ export type HomeRuntimePosition = {
   readonly pane?: RuntimeAdvancedDiagnosticsPane;
 };
 
+export type HomeAppSection = NimiDesktopOpenAppsSection | 'overview' | 'access';
+
 export type HomeDestination = {
   readonly id: AppTab;
   readonly homeSection?: 'overview' | 'integrations' | 'ai-activity';
@@ -29,10 +31,15 @@ export type HomeDestination = {
   readonly sourceRef?: CharacterSourceRefV3;
   readonly worldId?: string;
   readonly worldSubpage?: WorldDetailInitialSubpage;
-  readonly exploreSection?: 'worlds' | 'partners';
+  readonly exploreSection?: 'worlds';
+  readonly partnerManagerAnchorId?: string;
+  readonly partnerManagerSection?: AgentCenterSectionId;
+  readonly connectionAppId?: string;
+  readonly connectionSourceId?: string;
   readonly exploreSearchKind?: 'worlds' | 'characters';
   readonly partnerQuery?: string;
-  readonly partner?: { readonly localAgentRef: string; readonly settingsSection?: AgentCenterSectionId };
+  readonly partner?: { readonly localAgentRef: string; readonly settingsSection?: AgentCenterSectionId;
+    readonly activity?: { readonly sourceRef?: string; readonly pendingOnly?: boolean } };
   readonly search?: string;
   readonly exploreWorldId?: string;
   readonly worldSearch?: string;
@@ -40,7 +47,7 @@ export type HomeDestination = {
   readonly worldCollection?: 'favorites';
   readonly appId?: string;
   readonly appEntryKey?: string;
-  readonly appSection?: NimiDesktopOpenAppsSection;
+  readonly appSection?: HomeAppSection;
   readonly settingsSection?: string;
   readonly messageFilter?: 'all' | 'unread' | 'pending';
   readonly messageSource?: string;
@@ -48,19 +55,14 @@ export type HomeDestination = {
   readonly runtime?: HomeRuntimePosition;
 };
 export type HomeChatPosition = {
-  readonly mode: 'ai' | 'human' | 'agent';
+  readonly mode: 'ai' | 'human';
   readonly contactsSection?: 'conversations' | 'friends' | 'received' | 'sent' | 'blocked';
   readonly targetId?: string;
   readonly threadId?: string;
-  readonly agentHandle?: string;
-  /** An open chat sidebar and its presentation-only section. */
-  readonly agentCenterSection?: AgentCenterSectionId;
-  readonly conversationAnchorId?: string;
-  /** Pending management navigation only; never an admitted Agent selector. */
-  readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'exploreSearchKind', 'partnerQuery', 'partner', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
+  home: ['homeSection'], chat: ['chat'], friends: ['chat'], explore: ['exploreSection', 'exploreSearchKind', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
+  partners: ['partnerQuery', 'partner', 'partnerManagerAnchorId', 'partnerManagerSection'], connections: ['connectionAppId', 'connectionSourceId'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -89,11 +91,15 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   }
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
   closed('homeSection', ['overview', 'integrations', 'ai-activity']);
-  closed('exploreSection', ['worlds', 'partners']);
+  closed('exploreSection', ['worlds']);
+  closed('partnerManagerSection', ['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced']);
+  if (result.partnerManagerAnchorId && result.partner) throw new Error('Conflicting partner selections.');
+  if (result.partnerManagerSection && !result.partnerManagerAnchorId) throw new Error('Manager section requires its correlation.');
+  for (const key of ['partnerManagerAnchorId', 'connectionAppId', 'connectionSourceId']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
   closed('exploreSearchKind', ['worlds', 'characters']);
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer', 'reader']);
-  closed('appSection', ['overview', 'ai-models']);
+  closed('appSection', ['overview', 'access', 'ai-models']);
   closed('settingsSection', SETTINGS_SECTIONS);
   closed('messageFilter', ['all', 'unread', 'pending']);
   if (result.messageSource !== undefined) result.messageSource = stringRef(result.messageSource);
@@ -102,10 +108,19 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (result.partnerQuery !== undefined && typeof result.partnerQuery !== 'string') throw new Error('Invalid Home partner search.');
   if (result.partner !== undefined) {
     const partner = result.partner as Record<string, unknown>;
-    if (result.exploreSection !== 'partners' || !partner || typeof partner !== 'object' || Array.isArray(partner)
-      || Object.keys(partner).some(key => !['localAgentRef', 'settingsSection'].includes(key))
+    if (id !== 'partners' || !partner || typeof partner !== 'object' || Array.isArray(partner)
+      || Object.keys(partner).some(key => !['localAgentRef', 'settingsSection', 'activity'].includes(key))
       || (partner.settingsSection !== undefined && !['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced'].includes(partner.settingsSection as string))) throw new Error('Invalid Home partner position.');
-    result.partner = { localAgentRef: stringRef(partner.localAgentRef), ...(partner.settingsSection ? { settingsSection: partner.settingsSection } : {}) };
+    let activity: { sourceRef?: string; pendingOnly?: boolean } | undefined;
+    if (partner.activity !== undefined) {
+      const value = partner.activity as Record<string, unknown>;
+      if (!value || typeof value !== 'object' || Array.isArray(value) || partner.settingsSection
+        || Object.keys(value).some(key => !['sourceRef', 'pendingOnly'].includes(key))
+        || (value.pendingOnly !== undefined && typeof value.pendingOnly !== 'boolean')) throw new Error('Invalid partner activity position.');
+      activity = { ...(value.sourceRef === undefined ? {} : { sourceRef: stringRef(value.sourceRef) }),
+        ...(value.pendingOnly === undefined ? {} : { pendingOnly: value.pendingOnly }) };
+    }
+    result.partner = { localAgentRef: stringRef(partner.localAgentRef), ...(partner.settingsSection ? { settingsSection: partner.settingsSection } : {}), ...(activity ? { activity } : {}) };
   }
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
   if (id === 'home') result.homeSection ??= 'overview';
@@ -150,26 +165,22 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     }
     result.runtime = normalized;
   }
-  if (id === 'chat') {
-    const chat = result.chat ?? { mode: 'ai', targetId: 'ai:assistant' };
+  if (id === 'chat' || id === 'friends') {
+    const chat = result.chat ?? (id === 'friends' ? { mode: 'human', contactsSection: 'conversations' } : { mode: 'ai', targetId: 'ai:assistant' });
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
-    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', 'agentCenterSection']
-      : fields.mode === 'human' ? ['mode', 'targetId', 'threadId', 'contactsSection'] : ['mode', 'targetId', 'threadId'];
-    if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
+    if (fields.mode !== (id === 'friends' ? 'human' : 'ai')) throw new Error('Conversation mode does not belong to this destination.');
+    const keys = fields.mode === 'human' ? ['mode', 'targetId', 'threadId', 'contactsSection'] : ['mode', 'targetId', 'threadId'];
+    if (Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
     for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);
-    if (fields.mode === 'agent' && Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId)) throw new Error('Agent conversation position requires its proven handle and Conversation anchor together.');
-    if (normalized.agentCenterSection !== undefined && !['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced'].includes(normalized.agentCenterSection as string)) throw new Error('Invalid Agent Center section.');
     if (normalized.contactsSection !== undefined && !['conversations', 'friends', 'received', 'sent', 'blocked'].includes(normalized.contactsSection as string)) throw new Error('Invalid contacts section.');
-    result.chat = fields.mode === 'agent' && !normalized.targetId && !normalized.agentHandle && !normalized.managerAnchorId
-      ? { mode: 'ai', targetId: 'ai:assistant' } : normalized;
+    result.chat = normalized;
   }
   return result as HomeDestination;
 }
 export type HomeNavigation = NimiNavigationController<HomeDestination> & {
   readonly registerLeaveGuard: (guard: NimiNavigationLeaveGuard<HomeDestination>) => () => void;
-  readonly switchChatSide: (side: 'human' | 'companion') => ReturnType<NimiNavigationController<HomeDestination>['replace']>;
 };
 export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRuntimePosition = {}): HomeDestination {
   return { id: page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
@@ -198,11 +209,6 @@ export function createHomeNavigation(): HomeNavigation {
   });
   return Object.freeze({
     ...navigation,
-    // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
-    switchChatSide(side: 'human' | 'companion') {
-      return navigation.replace({ id: 'chat', chat: side === 'human'
-        ? { mode: 'human', contactsSection: 'conversations' } : { mode: 'ai', targetId: 'ai:assistant' } });
-    },
     registerLeaveGuard(guard: NimiNavigationLeaveGuard<HomeDestination>) {
       guards.add(guard);
       return () => { guards.delete(guard); };

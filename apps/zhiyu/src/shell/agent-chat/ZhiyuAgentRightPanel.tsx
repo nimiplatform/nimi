@@ -5,7 +5,8 @@ import {
   type AgentCenterSession,
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
-import { Globe2, RotateCcw, Settings2, X } from 'lucide-react';
+import { Button } from '@nimiplatform/kit/ui';
+import { ExternalLink, Globe2, RotateCcw, Settings2, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
@@ -20,6 +21,7 @@ export type VisibleRightPanelMode = Exclude<RightPanelMode, 'closed'>;
 export type AgentPanelTab = AgentCenterSectionId;
 
 type RightAgentPanelProps = {
+  readonly onOpenHomePartner?: () => void;
   readonly mode: VisibleRightPanelMode;
   readonly evidence: ZhiyuEvidence;
   readonly currentPartnerName: string;
@@ -60,7 +62,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       data-zhiyu-agent-panel-tab={props.activeTab}
       aria-label="伙伴中心"
     >
-      {moodLabel || activityLabel || agentCenterWorld ? (
+      {moodLabel || activityLabel || agentCenterWorld || props.onOpenHomePartner ? (
         <div
           className="zhiyu-agent-center__context flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 px-1"
           data-zhiyu-agent-center-host-context="true"
@@ -81,6 +83,11 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
               <span className="truncate">{agentCenterWorld}</span>
             </span>
           ) : null}
+          {props.onOpenHomePartner ? <Button size="sm" tone="ghost" className="ml-auto"
+            leadingIcon={<ExternalLink size={14} aria-hidden />}
+            aria-label={`在 Home 管理${props.currentPartnerName}`} onClick={props.onOpenHomePartner}>
+            在 Home 管理
+          </Button> : null}
         </div>
       ) : null}
       {props.activeTab === 'advanced' && props.evidence.chat.state === 'failed' ? (

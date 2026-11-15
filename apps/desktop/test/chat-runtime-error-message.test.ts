@@ -1,5 +1,3 @@
-import { AgentSubmissionSaveError } from '@nimiplatform/kit/features/chat/headless';
-import { localAgentReplyFailureMessage, toChatAgentRuntimeError } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -128,24 +126,4 @@ test('LocalAgent configuration errors name the integration and point to Agent Ce
   assert.match(result.message,/Agent Center/);
   assert.doesNotMatch(result.message,/model does not support|AI Capabilities|private prompt/);
  }
-});
-
-
-test('a real LENGTH terminal explains the output limit without parsing private error text', () => {
- assert.match(localAgentReplyFailureMessage('AI_OUTPUT_INVALID','length',i18n.t), /output limit/);
- assert.equal(localAgentReplyFailureMessage('UNKNOWN_REASON','',i18n.t), 'The reply did not complete.');
-});
-
-test('explicit user Stop is distinct from provider and timeout failures', () => {
-  assert.equal(localAgentReplyFailureMessage('AI_STREAM_BROKEN','user_cancel',i18n.t), 'Generation stopped.');
-  assert.notEqual(localAgentReplyFailureMessage('AI_PROVIDER_TIMEOUT','timeout',i18n.t), 'Generation stopped.');
-});
-
-
-test('submission save failure says not sent and retains quota diagnostics without model advice', () => {
- const cause=Object.assign(new Error('quota'),{reasonCode:'APP_STORAGE_QUOTA_EXCEEDED'});
- const result=toChatAgentRuntimeError(new AgentSubmissionSaveError(cause),i18n.t);
- assert.equal(result.code,'APP_STORAGE_QUOTA_EXCEEDED');
- assert.match(result.message,/Message not sent/);
- assert.doesNotMatch(result.message,/model|sign in|runtime status/i);
 });

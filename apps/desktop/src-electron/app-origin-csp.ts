@@ -1,4 +1,4 @@
-// Content policies for the installed Home and Avatar pages, sent with their
+// Content policies for installed Home, Avatar and Zhiyu pages, sent with their
 // HTML from the nimi-app protocol. They apply on top of any meta policy a page
 // carries (a load must satisfy both), so a development page keeps its dev
 // server connections while an installed page cannot reach loopback ports.
@@ -38,7 +38,9 @@ export const ZHIYU_APP_CONTENT_SECURITY_POLICY = [
   "script-src 'self' blob: 'wasm-unsafe-eval'",
   "worker-src 'self' blob:",
   "img-src 'self' https: data: blob: nimi-app-asset:",
-  "media-src 'self' data: blob: nimi-app-asset:",
+  // Partner introductions carry Realm-managed HTTPS voice previews. The
+  // protected App-asset protocol continues to carry private conversation media.
+  "media-src 'self' https: data: blob: nimi-app-asset:",
   "font-src 'self' data:",
   "connect-src 'self' https: data: blob: nimi-app-asset:",
 ].join('; ');

@@ -10,9 +10,9 @@ test('live human attachment files survive flip but are released on account scope
   const cache = createHumanAttachmentDrafts(navigation, url => revoked.push(url));
   const file = { previewUrl: 'blob:alice', name: 'photo.png' } as PendingAttachment;
   cache.set('alice', [file]);
-  await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: 'alice', threadId: 'chat-a' } });
-  await navigation.switchChatSide('companion');
-  await navigation.switchChatSide('human');
+  await navigation.push({ id: 'friends', chat: { mode: 'human', targetId: 'alice', threadId: 'chat-a' } });
+  await navigation.push({ id: 'chat' });
+  await navigation.push({ id: 'friends' });
   assert.equal(cache.get('alice')[0], file);
   assert.deepEqual(cache.get('bob'), []);
   assert.deepEqual(revoked, []);

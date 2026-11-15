@@ -5,6 +5,7 @@ table_family: product_catalog
 owner: platform
 catalog_id: platform_desktop_open_intent_golden_vectors
 entries:
+  - world-exact-source
   - explore-personas-select-partner
   - explore-worlds-discover
   - explore-worlds-section-only
@@ -44,6 +45,15 @@ authority_refs:
   - P-DOPEN-007
   - P-DOPEN-009
 accepted:
+  - id: world-exact-source
+    envelope:
+      schemaVersion: 2
+      sourceApp: nimi.zhiyu
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-zhiyu-world-0001
+      intent:
+        kind: open-world
+        worldId: world_123
   - id: explore-personas-select-partner
     envelope:
       schemaVersion: 2
@@ -51,9 +61,7 @@ accepted:
       sourceHost: desktop-electron-local-app-host
       requestId: desktop-open-20260708-0001
       intent:
-        kind: open-explore
-        section: partners
-        productIntent: select-partner
+        kind: open-partners
   - id: explore-worlds-discover
     envelope:
       schemaVersion: 2
@@ -91,9 +99,7 @@ accepted:
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0014
       intent:
-        kind: open-explore
-        section: partners
-        productIntent: select-partner
+        kind: open-partners
   - id: runtime-cloud-add-connector
     envelope:
       schemaVersion: 2
@@ -121,10 +127,8 @@ accepted:
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0004
       intent:
-        kind: open-explore
-        section: partners
+        kind: open-partners
         query: mentor
-        productIntent: select-partner
   - id: apps-surface
     envelope:
       schemaVersion: 2

@@ -1,3 +1,5 @@
+import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
+import { subscribeZhiyuConversationOpen, acknowledgeZhiyuConversationOpen, resolveZhiyuConversationOpen } from './conversation-open-bridge.js';
 import type { NimiAppRuntimeClient } from '@nimiplatform/sdk/app';
 import {
   createNimiCanonicalRendererHostBindings,
@@ -166,6 +168,7 @@ export function createZhiyuProductionBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
+        resolveConversationOpen: (request: import('../shell/app/conversation-open.js').ZhiyuConversationOpenRequest, isCurrent: () => boolean) => resolveZhiyuConversationOpen(client, request, isCurrent),
         agentCenterBinding: (handle: Parameters<typeof resolveZhiyuProductionAgentCenterBinding>[0]) => resolveZhiyuProductionAgentCenterBinding(handle, client),
         loadHome: (
           input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
@@ -175,6 +178,8 @@ export function createZhiyuProductionBindings(
         resolveResourcePackPlacementTarget: resolveZhiyuResourcePackPlacementTarget,
       }),
       commands: Object.freeze({
+        characters: () => client.agents,
+        acknowledgeConversationOpen: acknowledgeZhiyuConversationOpen,
         async allocateTurnRequestId() {
           return createZhiyuProductionTurnRequestId();
         },
@@ -187,6 +192,13 @@ export function createZhiyuProductionBindings(
           await requestZhiyuDesktopOpenRuntimeSettings();
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
+        ...(typeof window !== 'undefined' && window.__nimiZhiyuConversationOpen ? { openDesktopWorld: async (worldId: string) => {
+          const result = await openDesktopIntent({ intent: { kind: 'open-world', worldId } });
+          if (result.status !== 'accepted') throw new Error('暂时无法在 Nimi Home 打开这个世界。');
+        }, openDesktopPartner: async (conversationAnchorId: string) => {
+          const result = await openDesktopIntent({ intent: { kind: 'open-agent-center', conversationAnchorId } });
+          if (result.status !== 'accepted') throw new Error('暂时无法在 Nimi Home 打开这位伙伴。');
+        } } : {}),
         launchAvatar: ({ evidence, action, confirmSwitch }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action, confirmSwitch, hostPort: avatarHostPort }),
         acknowledgeResourcePackPlacement: acknowledgeZhiyuResourcePackPlacement,
       }),
@@ -200,6 +212,7 @@ export function createZhiyuProductionBindings(
             onStatus: input.onStatus,
           });
         },
+        subscribeConversationOpen: subscribeZhiyuConversationOpen,
         subscribeResourcePackPlacement: subscribeZhiyuResourcePackPlacement,
       }),
     },

@@ -2,7 +2,7 @@ import type {
   RuntimeSetupTask,
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store.js';
-import { validateHomeDestination, type HomeChatPosition, type HomeDestination, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
+import { validateHomeDestination, type HomeDestination, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 
 /**
  * Consumer entry helper: Apps/Chat open (or reuse) a setup task for the exact
@@ -147,8 +147,6 @@ export function resolveRuntimeSetupReturnTarget(returnFocus: string | undefined)
   if (value.startsWith('home:')) {
     try {
       const destination = validateHomeDestination(JSON.parse(decodeURIComponent(value.slice(5))));
-      // Persist only a correlation, never replay a previous App session's handle.
-      if (destination.id === 'chat' && destination.chat?.mode === 'agent' && destination.chat.agentHandle) return null;
       return { kind: 'destination', destination };
     }
     catch { return null; }
@@ -156,7 +154,7 @@ export function resolveRuntimeSetupReturnTarget(returnFocus: string | undefined)
   if (value === 'apps' || value.startsWith('app:') || value.startsWith('apps:')) {
     return { kind: 'tab', tab: 'apps' };
   }
-  if (value === 'chat' || value.startsWith('chat:')) {
+  if (value === 'chat') {
     return { kind: 'tab', tab: 'chat' };
   }
   if (value.startsWith('runtime')) {
@@ -165,12 +163,7 @@ export function resolveRuntimeSetupReturnTarget(returnFocus: string | undefined)
   return null;
 }
 
-export function agentCenterSetupReturnFocus(position: HomeChatPosition | undefined): string {
-  if (position?.mode !== 'agent' || !position.agentHandle || !position.conversationAnchorId) throw new Error('Agent Center requires a current Conversation.');
-  const destination: HomeDestination = { id: 'chat', chat: { mode: 'agent',
-    managerAnchorId: position.conversationAnchorId, agentCenterSection: position.agentCenterSection ?? 'overview' } };
-  return 'home:' + encodeURIComponent(JSON.stringify(destination));
-}
+
 
 /** Finish this setup detour through the existing navigation owner. */
 export async function returnFromRuntimeSetup(navigation: HomeNavigation, destination: HomeDestination) {

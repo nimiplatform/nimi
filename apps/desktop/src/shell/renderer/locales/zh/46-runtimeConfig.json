@@ -886,7 +886,7 @@
     "greetingWithName": "{{greeting}}，{{name}}",
     "recentChats": {
       "title": "最近对话",
-      "openAll": "打开全部对话",
+      "openAll": "打开织羽",
       "replyLabel": "回复 {{name}}",
       "replyPlaceholder": "回复 {{name}}…",
       "replySend": "带草稿打开对话",
@@ -986,7 +986,10 @@
         "setupState": "需要处理",
         "updateState": "可更新",
         "updateTitle": "{{app}} 可更新",
-        "updateDetail": "新版本 {{version}}"
+        "updateDetail": "新版本 {{version}}",
+        "access": "接入请求",
+        "accessState": "等待你确认",
+        "accessUnavailable": "接入请求暂不可用，其他消息仍可查看。"
       },
       "realmSource": "社交与账号",
       "pendingRequest": "待处理",
@@ -3207,7 +3210,7 @@
     "choose": "选择一位伙伴，查看资料或管理设置",
     "settings": "伙伴设置",
     "manage": "管理伙伴",
-    "chat": "开始聊天",
+    "chat": "在织羽中交流",
     "source": "来源角色：{{name}}",
     "sourceLoading": "正在读取来源资料…",
     "sourceUnavailable": "来源资料暂不可用",
@@ -3290,6 +3293,38 @@
       "ready": "可用",
       "empty": "暂无记忆",
       "failed": "读取失败"
+    },
+    "profile": "伙伴资料",
+    "activity": {
+      "title": "应用活动",
+      "description": "来自应用主动分享的结果和待办。",
+      "filter": "活动筛选",
+      "all": "全部",
+      "pending": "待处理",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "source": "活动来源",
+      "allSources": "全部来源",
+      "selectedSource": "所选来源",
+      "loading": "正在读取应用活动…",
+      "unavailable": "当前无法读取这位伙伴的应用活动。",
+      "incomplete": "还有较早的活动尚未读取。",
+      "empty": "暂无符合条件的已发布活动。",
+      "pendingEmpty": "暂无符合条件的已发布待办。",
+      "open": "在来源应用中查看",
+      "opening": "正在打开…",
+      "openFailed": "来源应用或对象暂时无法打开，请稍后重试。",
+      "loadMore": "加载更早的活动",
+      "moreFailed": "较早的活动读取失败，可以再次加载。",
+      "sourceUnavailable": "来源暂不可用"
+    },
+    "avatar": {
+      "open": "打开桌面形象",
+      "configure": "设置桌面形象",
+      "retry": "重试读取形象",
+      "opened": "已打开此伙伴的桌面形象。",
+      "notOpened": "未打开桌面形象，当前伙伴保持不变。",
+      "failed": "桌面形象未能打开，请检查外观设置后重试。"
     }
   },
   "mediaStorage": {

@@ -116,14 +116,26 @@ async function run(surface, posture = 'missing', action = 'open') {
     characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage,
     openPartnerConversation, captureAccountActionScope, captureHomeNavigationScope, characterSourceRefKey, launchAgentConversationFromDisplay,
     logRendererEvent: () => {},
-    setAgentConversationTargetSnapshot: () => {}, setPendingAgentComposerPrefill: () => {},
     setFeedback: (feedback) => events.push(`feedback:${feedback.kind}`),
   };
   const handler = surface === 'source-detail'
     ? loadHandler(path.join(renderer, 'features/source-detail/source-detail-panel.tsx'), ['ensureCharacterSourceReady', action === 'create' ? 'handlePrimaryAction' : 'handleStartChat'], env)
     : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['handleViewCharacter'], env);
-  if (surface === 'source-detail' && action === 'select') await handler(undefined, 'local-agent:second');
-  else await handler(surface === 'source-detail' ? undefined : source);
+  const previous = [globalThis.window, globalThis.__NIMI_ELECTRON_RUNTIME__];
+  globalThis.window = { __NIMI_HTML_BOOT_ID__: 'source-detail-test' };
+  globalThis.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command, payload) => {
+    if (command === 'log_renderer_event') return {};
+    assert.equal(command, 'bundled_zhiyu_open');
+    events.push(`ZHIYU:${payload.target.conversationAnchorId}`); return { opened: true };
+  } };
+  try {
+    if (surface === 'source-detail' && action === 'select') await handler(undefined, 'local-agent:second');
+    else await handler(surface === 'source-detail' ? undefined : source);
+  } finally {
+    for (const [key, value] of [['window', previous[0]], ['__NIMI_ELECTRON_RUNTIME__', previous[1]]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
   return { surface, posture, events, materialized, navigation, opened: events.some((event) => event.startsWith('OPEN_CONVERSATION:')) };
 }
 
@@ -141,7 +153,8 @@ test('Source Detail Open uses the sole current target without creation', async (
   assert.equal(result.opened, true);
   assert.equal(result.events.filter((event) => event.startsWith('OPEN_CONVERSATION:')).length, 1);
   assert.equal(result.events.includes('feedback:error'), false);
-  assert.equal(result.navigation.getSnapshot().current.destination.chat.conversationAnchorId, 'anchor-new');
+  assert.equal(result.events.includes('ZHIYU:anchor-new'), true);
+  assert.equal(result.navigation.getSnapshot().current.destination.id, 'home');
 });
 test('conflicting partner records cannot open an arbitrarily selected instance', async () => {
   const result = await run('source-detail', 'ambiguous', 'select');

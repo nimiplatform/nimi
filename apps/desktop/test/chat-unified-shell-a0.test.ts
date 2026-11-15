@@ -35,7 +35,7 @@ function createUiSliceHarness(): { getState: () => AppStoreState } {
   };
 }
 
-test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
+test('A0 ui slice keeps mode-scoped thread state for AI and human', () => {
   const harness = createUiSliceHarness();
   const state = harness.getState();
 
@@ -43,7 +43,6 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   assert.deepEqual(state.lastSelectedThreadByMode, {
     ai: null,
     human: null,
-    agent: null,
   });
   state.setLastSelectedThreadForMode('human', 'human-thread-1');
   assert.equal(harness.getState().lastSelectedThreadByMode.human, 'human-thread-1');
@@ -56,47 +55,4 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
 
   state.setChatSetupState('ai', createReadyConversationSetupState('ai'));
   assert.deepEqual(harness.getState().chatSetupState.ai, createReadyConversationSetupState('ai'));
-});
-
-test('A0 ui slice stages agent composer prefill as one-shot local UI state', () => {
-  const harness = createUiSliceHarness();
-  const state = harness.getState();
-
-  assert.equal(state.pendingAgentComposerPrefill, null);
-
-  state.setPendingAgentComposerPrefill({
-    agentHandle: ' agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA ',
-    text: '  他为什么被称为阳明学派思想家与朝廷重臣？  ',
-  });
-
-  assert.deepEqual(harness.getState().pendingAgentComposerPrefill, {
-    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    text: '他为什么被称为阳明学派思想家与朝廷重臣？',
-    requestId: 1,
-  });
-
-  harness.getState().clearPendingAgentComposerPrefill(99);
-  assert.equal(harness.getState().pendingAgentComposerPrefill?.requestId, 1);
-
-  harness.getState().clearPendingAgentComposerPrefill(1);
-  assert.equal(harness.getState().pendingAgentComposerPrefill, null);
-});
-
-test('A0 ui slice stages agent composer prefill by character source key', () => {
-  const harness = createUiSliceHarness();
-  const state = harness.getState();
-
-  state.setPendingAgentComposerPrefill({
-    sourceKey: ' worldCharacter:world-1:source-1:entity-1:hash ',
-    text: '  他为什么被称为边塞诗人、七绝圣手？  ',
-  });
-
-  assert.deepEqual(harness.getState().pendingAgentComposerPrefill, {
-    sourceKey: 'worldCharacter:world-1:source-1:entity-1:hash',
-    text: '他为什么被称为边塞诗人、七绝圣手？',
-    requestId: 1,
-  });
-
-  harness.getState().setPendingAgentComposerPrefill({ text: 'no routing key at all' });
-  assert.equal(harness.getState().pendingAgentComposerPrefill, null);
 });

@@ -3,16 +3,17 @@ import { createNimiNavigation } from '@nimiplatform/kit/core/navigation';
 import { NimiNavigationProvider } from '@nimiplatform/kit/ui/app-chrome';
 import { AGENT_CENTER_SECTIONS, type AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
-export type ZhiyuDestination = { id: 'partner'; agentHandle?: NimiLocalAppAgentHandle; conversationAnchorId?: string; panel?: AgentCenterSectionId };
+export type ZhiyuDestination = { id: 'partner' | 'discover'; query?: string; sourceKey?: string; agentHandle?: NimiLocalAppAgentHandle; conversationAnchorId?: string; panel?: AgentCenterSectionId };
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r027
 export function createZhiyuNavigation() {
   return createNimiNavigation<ZhiyuDestination>({ initial: { id: 'partner' }, validate(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid Zhiyu position.');
     const input = value as Record<string, unknown>;
-    if (input.id !== 'partner' || Object.keys(input).some(key => !['id', 'agentHandle', 'conversationAnchorId', 'panel'].includes(key))) throw new Error('Unknown Zhiyu destination.');
+    if (!['partner', 'discover'].includes(String(input.id)) || Object.keys(input).some(key => !['id', 'agentHandle', 'conversationAnchorId', 'panel', 'query', 'sourceKey'].includes(key))) throw new Error('Unknown Zhiyu destination.');
     for (const key of ['agentHandle', 'conversationAnchorId']) if (input[key] !== undefined && (typeof input[key] !== 'string' || !(input[key] as string).trim() || (input[key] as string).length > 512)) throw new Error('Invalid partner reference.');
     if (input.conversationAnchorId && !input.agentHandle || input.panel !== undefined && !AGENT_CENTER_SECTIONS.includes(input.panel as AgentCenterSectionId)) throw new Error('Invalid partner panel position.');
-    return { id: 'partner', ...(input.agentHandle === undefined ? {} : { agentHandle: input.agentHandle as NimiLocalAppAgentHandle }), ...(input.conversationAnchorId === undefined ? {} : { conversationAnchorId: input.conversationAnchorId as string }), ...(input.panel === undefined ? {} : { panel: input.panel as AgentCenterSectionId }) };
+    if (input.query !== undefined && (input.id !== 'discover' || typeof input.query !== 'string' || input.query.length > 256) || input.sourceKey !== undefined && (input.id !== 'discover' || typeof input.sourceKey !== 'string' || input.sourceKey.length > 1200)) throw new Error('Invalid discovery position.');
+    return { id: input.id as 'partner' | 'discover', ...(input.query === undefined ? {} : { query: input.query as string }), ...(input.sourceKey === undefined ? {} : { sourceKey: input.sourceKey as string }), ...(input.agentHandle === undefined ? {} : { agentHandle: input.agentHandle as NimiLocalAppAgentHandle }), ...(input.conversationAnchorId === undefined ? {} : { conversationAnchorId: input.conversationAnchorId as string }), ...(input.panel === undefined ? {} : { panel: input.panel as AgentCenterSectionId }) };
   } });
 }
 type Owner = { navigation: ReturnType<typeof createZhiyuNavigation>; ready: boolean; setReady(value: boolean): void; sidebarVisible: boolean; setSidebarVisible(value: boolean): void; hasSidebar: boolean; setHasSidebar(value: boolean): void };

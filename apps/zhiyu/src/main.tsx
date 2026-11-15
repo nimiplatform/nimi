@@ -1,6 +1,8 @@
 import { createDesktopNimiAppSession } from '@nimiplatform/kit/auth/app/desktop';
-import { NimiAppSessionProvider, NimiAppAccessGate, NimiAccountControl } from '@nimiplatform/kit/auth/app';
-import React from 'react';
+import { NimiAppSessionProvider, NimiAppAccessGate, useNimiAppSession } from '@nimiplatform/kit/auth/app';
+import type { NimiAppCommand } from '@nimiplatform/kit/core/app-commands';
+import type { NimiAppRuntimeClient } from '@nimiplatform/sdk/app';
+import React, { useMemo } from 'react';
 import { ZhiyuFrame } from './production/surface.js';
 import { createRoot } from 'react-dom/client';
 import {
@@ -50,6 +52,20 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
 });
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-app-chrome
+function DesktopZhiyuFrame({ client }: { client: NimiAppRuntimeClient }) {
+  const { session, snapshot } = useNimiAppSession();
+  const account = session.account;
+  const name = snapshot.identity.status === 'signed-in' ? snapshot.identity.user?.displayName : null;
+  const commands = useMemo<readonly NimiAppCommand[]>(() => account.kind === 'home-managed' ? [{
+    id: 'zhiyu.account.manage', menu: 'file', group: 'account', order: 10,
+    label: name ? `在 Home 管理账号 · ${name}` : '在 Home 管理账号',
+    state: () => ({ visible: true, enabled: true }),
+    execute: () => account.openAccountOwner(),
+  }] : [], [account, name]);
+  return <ZhiyuFrame host={rendererHost.facade} client={client} commands={commands} />;
+}
+
 createRoot(root).render(
   <React.StrictMode>
     <NimiRendererHostProvider binding={rendererHost}>
@@ -58,10 +74,7 @@ createRoot(root).render(
           <NimiAppSessionProvider session={appSession}>
             <NimiAppAccessGate title="织羽">{scope => (
               <ZhiyuNavigationOwner>
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="flex shrink-0 justify-end px-4 py-1"><NimiAccountControl hideSignedOut /></div>
-                  <ZhiyuFrame host={rendererHost.facade} client={scope.client} />
-                </div>
+                <DesktopZhiyuFrame client={scope.client} />
               </ZhiyuNavigationOwner>
             )}</NimiAppAccessGate>
           </NimiAppSessionProvider>

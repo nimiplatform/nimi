@@ -18,7 +18,8 @@ export function pendingSummary(messages: HomeMessages, sourceKey: string | null 
   const domain = messageDomainOfGroup(sourceKey);
   const count = messages.messages.filter(message => isPendingMessage(message) && (!sourceKey || messageCenterSourceKey(message) === sourceKey)).length;
   const complete = (domain !== null && domain !== 'app' || pending.complete)
-    && (domain !== null && domain !== 'realm' || messages.realm.requests.complete);
+    && (domain !== null && domain !== 'realm' || messages.realm.requests.complete)
+    && messages.systemSources.filter(source => source.kind === 'access' && (!sourceKey || sourceKey === 'system:access')).every(source => source.status === 'ready');
   return { count, more: !complete, known: complete || count > 0 };
 }
 
@@ -113,7 +114,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
     }),
   };
   const pending = pendingSummary(messages);
-  const systemSources = status === 'all' && type !== 'todo' ? messages.systemSources : [];
+  const systemSources = messages.systemSources.filter(source => status !== 'unread' && (source.kind === 'access' ? type !== 'message' : status === 'all' && type !== 'todo'));
   const loading = !groups || appLoading(messages)
     || (!groups.length && systemSources.some(source => source.status === 'loading'));
   const appComplete = status === 'pending' ? messages.app.pending.complete

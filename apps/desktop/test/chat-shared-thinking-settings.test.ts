@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   CHAT_THINKING_PREFERENCE_STORAGE_KEY,
-  createDefaultAgentChatExperienceSettings,
   loadStoredChatThinkingPreference,
   persistStoredChatThinkingPreference,
 } from '../src/shell/renderer/features/chat/chat-settings-storage.js';
@@ -56,29 +55,7 @@ test('chat thinking settings persist globally with off as the default', () => {
   }
 });
 
-test('agent chat behavior settings start from process-local defaults without localStorage', () => {
-  const previousStorage = globalThis.localStorage;
-  const localStorageMock = createStorage();
-  Object.defineProperty(globalThis, 'localStorage', {
-    configurable: true,
-    value: localStorageMock,
-  });
-
-  try {
-    localStorageMock.setItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY, 'on');
-    assert.deepEqual(createDefaultAgentChatExperienceSettings(), {
-      thinkingPreference: 'off',
-      maxOutputTokensOverride: null,
-    });
-  } finally {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: previousStorage,
-    });
-  }
-});
-
-test('global chat thinking persistence does not create an agent behavior record', () => {
+test('chat thinking persistence writes only its own preference', () => {
   const previousStorage = globalThis.localStorage;
   const localStorageMock = createStorage();
   Object.defineProperty(globalThis, 'localStorage', {

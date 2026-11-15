@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Avatar, Button, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { AgentCenter, type AgentCenterI18n } from '@nimiplatform/kit/features/agent-center';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
-import { BookOpen, Globe, MessageCircle, Settings } from 'lucide-react';
+import { BookOpen, Globe, MessageCircle, Settings, List } from 'lucide-react';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { useDesktopAgentCenterSession } from '../chat/chat-agent-shell-adapter-runtime.js';
+import { useDesktopAgentCenterSession } from './agent-center-session.js';
 import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 import { fetchSourceDisplayDetail, sourceDisplayDetailQueryKey } from '../source-detail/source-detail-queries.js';
 import { CharacterSourceDetailPage } from '../source-detail/source-detail-world-character-view.js';
@@ -16,6 +16,8 @@ import { openRuntimeSetupTaskFromEntry } from '../runtime-config/runtime-setup-t
 import { projectPartnerRecord } from './partner-directory-model.js';
 import { usePartnerChat } from './use-partner-chat.js';
 import { PartnerStatus } from './partner-status.js';
+import { PartnerActivity } from './partner-activity.js';
+import { PartnerAvatarAction } from './partner-avatar-action.js';
 
 const P = 'runtimeConfig.partners';
 
@@ -36,6 +38,7 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
   const reference = useQuery({ queryKey: ['home-partner-reference', accountId, scopeKey, localAgentRef],
     queryFn: () => bindings.sdk.resolveDesktopAgentReference({ localAgentRef }), enabled: active, staleTime: 0, gcTime: 0, networkMode: 'always' });
   const settings = destination.partner?.settingsSection;
+  const showActivity = Boolean(destination.partner?.activity);
   const session = useDesktopAgentCenterSession({ agentHandle: active && !reference.isError ? reference.data?.reference?.agentHandle : null });
   const source = useQuery({ queryKey: ['partner-current-source', accountId, scopeKey, localAgentRef, partner?.sourceRef],
     queryFn: () => resolveCurrentPartnerSource(bindings.sdk.realm(), partner!.sourceRef!),
@@ -63,7 +66,10 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
   if (selected.isPending) return <LoadingSkeleton lines={4} />;
   if (selected.isError || !partner) return <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void selected.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.unavailable`)}</InlineAlert>;
   const actions = <div className="flex flex-wrap gap-2"><Button tone="secondary" disabled={!active || reference.isPending || reference.isError} onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } }); }}><Settings size={16} />{t(`${P}.manage`)}</Button>
-          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t(`${P}.chat`)}</Button></div>;
+          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t(`${P}.chat`)}</Button>
+          <Button tone="secondary" onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, ...(showActivity ? {} : { activity: {} }) } }); }}><List size={16} />{t(showActivity ? `${P}.profile` : `${P}.activity.title`)}</Button>
+          {session && active ? <PartnerAvatarAction session={session} accountId={accountId} localAgentRef={localAgentRef}
+            onConfigure={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'appearance' } }); }} /> : null}</div>;
   const statusContent = <div className="space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--nimi-text-secondary)]">
       <span>{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleDateString() }) : t(`${P}.creationUnknown`)}</span>
@@ -74,7 +80,7 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
   </div>;
   const publicProfile = !source.isError && !profile.isError ? profile.data?.source : null;
   return <div className="space-y-5" data-testid="partner-details">
-    {!settings && publicProfile ? <CharacterSourceDetailPage source={publicProfile}
+    {!settings && !showActivity && publicProfile ? <CharacterSourceDetailPage source={publicProfile}
       onOpenWorld={() => { void navigation.push({ id: 'world-detail', worldId: publicProfile.worldId }); }}
       onPrimaryAction={() => { void chat.openChat(partner); }}
       partner={{ displayName: partner.displayName, avatarUrl: reference.data?.reference?.avatarUrl,
@@ -100,9 +106,13 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
       </div>
       {source.data?.updated && !source.isError ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
     </header>}
-    {!settings && !publicProfile ? <div className="space-y-4 px-6">{statusContent}
+    {!settings && !showActivity && !publicProfile ? <div className="space-y-4 px-6">{statusContent}
       {source.isError || profile.isError ? <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void source.refetch(); void profile.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.sourceUnavailable`)}</InlineAlert> : partner.sourceRef ? <LoadingSkeleton lines={4} /> : null}
     </div> : null}
+    {showActivity ? !active || reference.isError || (!reference.isPending && !reference.data?.reference?.agentHandle)
+      ? <InlineAlert tone="warning">{t(`${P}.activity.unavailable`)}</InlineAlert>
+      : reference.isPending ? <LoadingSkeleton lines={4} />
+        : <PartnerActivity key={reference.data!.reference!.agentHandle} agentHandle={reference.data!.reference!.agentHandle} /> : null}
     {settings && session ? <>{settings === 'ai-config' ? <p className="text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sharedAI`)}</p> : null}
       <AgentCenter session={session} activeSection={settings} chrome="standalone" identity={{ displayName: partner.displayName, avatarUrl: reference.data?.reference?.avatarUrl }} i18n={copy}
         onSectionChange={settingsSection => { void navigation.replace({ ...destination, partner: { localAgentRef, settingsSection } }); }}

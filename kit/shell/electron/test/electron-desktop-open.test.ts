@@ -53,7 +53,7 @@ describe('Electron Desktop Open Intent host client', () => {
                   confirmation: 'desktop-accepted',
                   bridgeId: 'desktop-open-20260708-bridge',
                   requestId: 'desktop-open-20260708-request',
-                  appliedTarget: 'open-explore',
+                  appliedTarget: 'open-partners',
                 }),
               };
             },
@@ -66,7 +66,7 @@ describe('Electron Desktop Open Intent host client', () => {
         payload: {
           payload: {
             requestId: 'desktop-open-20260708-request',
-            intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+            intent: { kind: 'open-partners', },
           },
         },
       });
@@ -75,7 +75,7 @@ describe('Electron Desktop Open Intent host client', () => {
         confirmation: 'desktop-accepted',
         bridgeId: 'desktop-open-20260708-bridge',
         requestId: 'desktop-open-20260708-request',
-        appliedTarget: 'open-explore',
+        appliedTarget: 'open-partners',
       });
       expect(fetchCalls).toHaveLength(1);
       expect(fetchCalls[0]?.url).toBe('http://127.0.0.1:49152/v1/open-intent');
@@ -84,14 +84,14 @@ describe('Electron Desktop Open Intent host client', () => {
         sourceApp: 'nimi.zhiyu',
         sourceHost: 'desktop-electron-local-app-host',
         requestId: 'desktop-open-20260708-request',
-        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+        intent: { kind: 'open-partners', },
       });
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
             sourceHost: 'electron-standard-shell',
-            intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+            intent: { kind: 'open-partners', },
           },
         },
       })).resolves.toEqual({
@@ -118,7 +118,7 @@ describe('Electron Desktop Open Intent host client', () => {
           confirmation: 'desktop-accepted',
           bridgeId: 'desktop-open-20260708-bridge',
           requestId: 'desktop-open-20260708-other',
-          appliedTarget: 'open-explore',
+          appliedTarget: 'open-partners',
         },
         {
           status: 'accepted',
@@ -157,7 +157,7 @@ describe('Electron Desktop Open Intent host client', () => {
           payload: {
             payload: {
               requestId: 'desktop-open-20260708-request',
-              intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+              intent: { kind: 'open-partners', },
             },
           },
         });

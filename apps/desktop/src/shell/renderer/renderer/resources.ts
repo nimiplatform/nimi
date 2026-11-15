@@ -9,11 +9,9 @@ import { createDesktopRouteProvider } from './route-provider.js';
 import { createStreamController } from '../features/turns/stream-controller.js';
 import { createScenarioJobController } from '../features/turns/scenario-job-controller.js';
 import { createRealmSocialData } from '../features/social/data/realm-social-data.js';
-import { createAgentConversationAnchorBindingStore } from '../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import { createRuntimeConfigConnectorSdkService } from '../features/runtime-config/runtime-config-connector-sdk-service.js';
 import { createRealmHumanChatData } from '../features/chat/data/realm-human-chat-data.js';
 import { createWorldFollowStore } from '../features/world/world-follow-store.js';
-import { createAgentVisibleProjectionStore } from '../features/chat/chat-agent-visible-projection-store.js';
 import { createChatUploadPlaceholderStore } from '../features/turns/chat-upload-placeholder-store.js';
 import { createLocalModelCenterProgressCache } from '../features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 
@@ -49,8 +47,6 @@ export function createDesktopRendererResources(
   const Router = createDesktopRouteProvider(bindings.route);
   const streamController = createStreamController(bindings.clock);
   const scenarioJobController = createScenarioJobController(bindings.clock);
-  const anchorBindings = createAgentConversationAnchorBindingStore(bindings.clock.now);
-  const agentVisibleProjections = createAgentVisibleProjectionStore();
   const chatUploadPlaceholders = createChatUploadPlaceholderStore(bindings.clock.now);
   const localModelCenterProgress = createLocalModelCenterProgressCache(
     bindings.app.commands.localModelProgress,
@@ -72,14 +68,11 @@ export function createDesktopRendererResources(
     store,
     queryClient,
     (key, options) => String(i18n.instance.t(key, options)),
-    anchorBindings,
   );
   const disconnectLifecycle = bindings.app.events.connectLifecycle(lifecycle);
   let disposed = false;
 
   return Object.freeze({
-    agentVisibleProjections,
-    anchorBindings,
     attention,
     chatUploadPlaceholders,
     i18n,
@@ -98,8 +91,6 @@ export function createDesktopRendererResources(
       disposed = true;
       store.navigation.dispose();
       disconnectLifecycle();
-      anchorBindings.dispose();
-      agentVisibleProjections.dispose();
       chatUploadPlaceholders.dispose();
       localModelCenterProgress.clear();
       runtimeConnectorSdk.clearCaches();

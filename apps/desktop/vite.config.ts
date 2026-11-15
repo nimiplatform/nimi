@@ -130,6 +130,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
       'import.meta.env.NIMI_WEB_URL': JSON.stringify(String(env.NIMI_WEB_URL || process.env.NIMI_WEB_URL || '').trim()),
+      'import.meta.env.NIMI_RUNTIME_MANAGER_WEB_URL': JSON.stringify(String(env.NIMI_RUNTIME_MANAGER_WEB_URL || process.env.NIMI_RUNTIME_MANAGER_WEB_URL || '').trim()),
     },
     publicDir: path.resolve(import.meta.dirname, 'src/shell/renderer/public'),
     optimizeDeps: {

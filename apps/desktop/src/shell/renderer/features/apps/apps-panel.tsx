@@ -42,7 +42,10 @@ export function dispatchAppsPanelCardAction(input: {
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
 }): void {
   if (input.action === 'details' || input.action === 'open-ai-config') {
-    void input.navigation.push({ id: 'apps', appId: input.appId, appSection: input.action === 'open-ai-config' ? 'ai-models' : undefined, appEntryKey: input.entryKey });
+    const origin = input.navigation.getSnapshot().current.destination;
+    const section = input.action === 'open-ai-config' ? 'ai-models'
+      : origin.id === 'apps' && origin.appId === input.appId && !origin.appEntryKey ? origin.appSection : undefined;
+    void input.navigation.push({ id: 'apps', appId: input.appId, appSection: section, appEntryKey: input.entryKey });
     return;
   }
   input.runCardAction(input.entryKey, input.action);

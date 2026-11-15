@@ -1,3 +1,7 @@
+import { useHomeRemoteAccessQuery, useHomePrimaryRuntimeQuery } from '../settings/home-remote-access-query.js';
+import { RemoteSourceAccessState } from '@nimiplatform/sdk/runtime/wire-types';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { systemMessage } from './home-messages-model.js';
 import { useMemo } from 'react';
 import { useHomeRealmMessages, type HomeRealmMessages } from './use-home-realm-messages.js';
 
@@ -12,7 +16,7 @@ export type HomeMessagePlacement = 'shown' | 'hidden' | 'source-off';
 
 /** Downloads and updates depend on asynchronous owner listings. Setup tasks are a synchronous snapshot. */
 export type HomeSystemListing = Readonly<{
-  kind: 'download' | 'update';
+  kind: 'download' | 'update' | 'access';
   status: 'loading' | 'ready' | 'unavailable';
   retry?: () => void;
 }>;
@@ -54,6 +58,17 @@ export function useHomeMessages(input: Readonly<{
 }>): HomeMessages {
   const sdk = useDesktopRendererSdk();
 
+  const access = useHomeRemoteAccessQuery();
+  const navigation = useHomeNavigation();
+  const primary = useHomePrimaryRuntimeQuery();
+  const currentAccess = primary.isSuccess && primary.data.thisRuntime && primary.data.bindingId === access.data?.bindingId;
+  const accessMessages = useMemo(() => (currentAccess ? access.data?.sources ?? [] : []).filter(source =>
+    source.state === RemoteSourceAccessState.PENDING || source.state === RemoteSourceAccessState.CHANGED).map(source => systemMessage({
+      kind: 'access', id: (access.data?.bindingId ?? '') + ':' + source.clientId + ':' + source.pendingRequestId,
+      title: source.displayName, detail: source.origin, progress: null, time: null, app: null,
+      open: () => { void navigation.push({ id: 'connections', connectionAppId: source.appId || undefined, connectionSourceId: source.clientId }); },
+    })), [access.data, currentAccess, navigation]);
+  const accessListing: HomeSystemListing = { kind: 'access', status: access.isError || primary.isError ? 'unavailable' : access.isPending || primary.isPending ? 'loading' : 'ready', retry: () => { void access.refetch(); void primary.refetch(); } };
   const app = useHomeAppActivity();
   const realm = useHomeRealmMessages();
   const storage = useMemo<HomeMessagePreferencesStorage>(() => ({
@@ -64,10 +79,10 @@ export function useHomeMessages(input: Readonly<{
   const ready = preferences.state.status === 'ready' ? preferences.state.preferences : null;
 
   const messages = useMemo<HomeMessage[]>(() => [
-    ...input.systemMessages,
+    ...input.systemMessages, ...accessMessages,
     ...realm.messages,
     ...messageCenterActivities(app.pending, app.recent).map(activityMessage),
-  ], [app.pending, app.recent, input.systemMessages, realm.messages]);
+  ], [app.pending, app.recent, input.systemMessages, realm.messages, accessMessages]);
 
   const { homeMessages, offHomeCount } = useMemo(() => {
     if (preferences.state.status === 'loading') return { homeMessages: null, offHomeCount: 0 };
@@ -85,7 +100,7 @@ export function useHomeMessages(input: Readonly<{
     offHomeCount,
     app,
     realm,
-    systemSources: input.systemSources,
+    systemSources: [...input.systemSources, accessListing],
     preferences,
     placement: (message) => placementOf(message, ready),
     open: (message) => {

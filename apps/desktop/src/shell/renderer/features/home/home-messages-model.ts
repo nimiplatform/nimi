@@ -24,7 +24,7 @@ export function quickFilterSelection(filter: HomeTimelineQuickFilter): Readonly<
 
 export function timelineType(message: HomeMessage): Exclude<HomeTimelineType, 'all'> {
   if (message.sourceKind === 'realm') return message.request ? 'todo' : 'message';
-  if (message.sourceKind === 'system') return message.system.kind === 'setup' ? 'todo' : 'message';
+  if (message.sourceKind === 'system') return (message.system.kind === 'setup' || message.system.kind === 'access') ? 'todo' : 'message';
   if (message.record.kind === 'todo') return 'todo';
   return 'message';
 }
@@ -35,7 +35,7 @@ export function filterTimelineMessages(messages: readonly HomeMessage[], type: H
       : isUnreadMessage(message))));
 }
 
-export type HomeSystemMessageKind = 'download' | 'setup' | 'update';
+export type HomeSystemMessageKind = 'download' | 'setup' | 'update' | 'access';
 
 /** A Desktop system item projected from its existing owner; never republished as App activity. */
 export type HomeSystemMessage = Readonly<{
@@ -115,7 +115,7 @@ export function systemMessage(system: HomeSystemMessage): HomeSystemItemMessage 
 
 /** Open todos (read or not) and unresolved system items; activity summaries never are. */
 export function isPendingMessage(message: HomeMessage): boolean {
-  if (message.sourceKind === 'system') return message.system.kind === 'setup';
+  if (message.sourceKind === 'system') return (message.system.kind === 'setup' || message.system.kind === 'access');
   if (message.sourceKind === 'realm') return Boolean(message.request);
   return isPendingTodo(message.record);
 }

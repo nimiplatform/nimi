@@ -475,6 +475,10 @@
       "label": "本地 Agent",
       "description": "声明与 Nimi 提供的本地 Agent 能力交互。"
     },
+    "agentAcquire": {
+      "label": "发现角色和建立伙伴",
+      "description": "浏览公开角色，为当前账号建立伙伴或复用已有伙伴；不包含角色创作或伙伴删除。"
+    },
     "agentConfigure": {
       "label": "Agent 配置",
       "description": "声明使用 Nimi 提供的受支持 Agent 配置能力。"

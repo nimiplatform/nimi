@@ -1,9 +1,8 @@
 import type { RuntimeDefaults } from '../../bridge';
-import type { ConversationMode, ConversationSourceFilter, ConversationSetupState, ConversationViewMode } from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationSourceFilter, ConversationSetupState, ConversationViewMode } from '@nimiplatform/kit/features/chat/headless';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
-import type { AgentComposerPrefill, ChatSetupStateByMode, LastSelectedThreadByMode, ViewModeBySourceTarget } from '../../features/chat/chat-shell-types';
+import type { HomeChatMode, ChatSetupStateByMode, LastSelectedThreadByMode, ViewModeBySourceTarget } from '../../features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
-import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export type AuthStatus =
@@ -18,11 +17,6 @@ export type AuthStatus =
   | 'logging-out'
   | 'unavailable';
 
-export type SuspendedAgentSelection = {
-  readonly accountId: string;
-  readonly conversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
-};
-
 export type RuntimeAccountAuthProjection = {
   status: Exclude<AuthStatus, 'bootstrapping'>;
   sequence: string;
@@ -36,7 +30,10 @@ export type RuntimeAccountAuthProjection = {
 export type AppTab =
   | 'home'
   | 'chat'
+  | 'friends'
   | 'explore'
+  | 'partners'
+  | 'connections'
   | 'apps'
   | 'runtime'
   | 'cloud'
@@ -88,23 +85,13 @@ export type AppStoreState = {
   chatSourceFilter: ConversationSourceFilter;
   viewModeBySourceTarget: ViewModeBySourceTarget;
   lastSelectedThreadByMode: LastSelectedThreadByMode;
-  agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
   /**
-   * The partner and conversation that were open when Runtime stopped proving
-   * the account. They stay hidden while it is unavailable and come back only
-   * when the same account is confirmed again.
-   */
-  suspendedAgentSelection: SuspendedAgentSelection | null;
-  pendingAgentComposerPrefill: AgentComposerPrefill | null;
-  agentComposerPrefillSerial: number;
-  /**
-   * Unsent partner-chat text by account and Agent handle. It outlives route
+   * Unsent Home shortcut text by account and view-local partner reference. It outlives route
    * changes and a temporary Runtime/account outage; ending the session clears it.
    */
-  agentComposerDrafts: Readonly<Record<string, string>>;
-  agentComposerAttachments: Readonly<Record<string, readonly import('../../features/turns/turn-input-attachments.js').PendingAttachment[]>>;
-  setAgentComposerAttachments: (accountId: string, threadId: string, attachments: readonly import('../../features/turns/turn-input-attachments.js').PendingAttachment[]) => void;
+  homePartnerDrafts: Readonly<Record<string, string>>;
   /** Text typed on Home that Nimi Chat opens a new conversation with. */
+  nimiComposerPrefillSerial: number;
   pendingNimiComposerPrefill: { text: string; requestId: number } | null;
   chatSetupState: ChatSetupStateByMode;
   profileDetailOverlayOpen: boolean;
@@ -126,18 +113,15 @@ export type AppStoreState = {
   setChatThinkingPreference: (preference: ChatThinkingPreference) => void;
   setChatSourceFilter: (filter: ConversationSourceFilter) => void;
   setChatViewMode: (
-    source: ConversationMode,
+    source: HomeChatMode,
     targetId: string,
     mode: ConversationViewMode,
   ) => void;
-  setLastSelectedThreadForMode: (mode: ConversationMode, threadId: string | null) => void;
-  setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
-  setPendingAgentComposerPrefill: (input: { agentHandle?: string | null; sourceKey?: string | null; text: string }) => void;
-  clearPendingAgentComposerPrefill: (requestId: number) => void;
-  setAgentComposerDraft: (accountId: string, agentHandle: string, text: string) => void;
+  setLastSelectedThreadForMode: (mode: HomeChatMode, threadId: string | null) => void;
+  setHomePartnerDraft: (accountId: string, partnerRef: string, text: string) => void;
   setPendingNimiComposerPrefill: (text: string) => void;
   clearPendingNimiComposerPrefill: (requestId: number) => void;
-  setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
+  setChatSetupState: (mode: HomeChatMode, setupState: ConversationSetupState | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };

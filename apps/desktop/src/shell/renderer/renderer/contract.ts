@@ -59,6 +59,7 @@ export interface DesktopRendererProjectionPort {
   menuBarShellEnabled(): boolean;
   walletCheckoutBaseUrl(): string;
   resourceBaseUrl(): string;
+  runtimeManagerEntry(): Readonly<{ url: string; localOnly: boolean }> | null;
 }
 
 export interface DesktopRendererCommandPort {
@@ -90,7 +91,7 @@ export interface DesktopRendererCommandPort {
     readonly title: string;
   }): Promise<void> | void;
   writeClipboardText(value: string): Promise<void>;
-  openAccountManagement(): Promise<void>;
+  openAccountManagement(page?: 'security' | 'runtime'): Promise<void>;
   openWalletCheckout(url: string): Promise<{ readonly opened: boolean; readonly reason?: string }>;
   exportRuntimeAuditJson(input: {
     readonly filename: string;

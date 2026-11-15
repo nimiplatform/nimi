@@ -27,8 +27,7 @@ export function usePartnerChat(accountId: string) {
     setOpeningRef(partner.localAgentRef); setFailed(false);
     try {
       const target = await openPartnerConversation({ sdk: bindings.sdk, accountId, localAgentRef: partner.localAgentRef, isCurrent });
-      if (target && isCurrent()) await launchAgentConversationFromDisplay({ navigation,
-        setAgentConversationTargetSnapshot: store.getState().setAgentConversationTargetSnapshot, target });
+      if (target && isCurrent()) await launchAgentConversationFromDisplay({ target });
     } catch { if (isCurrent()) setFailed(true); }
     finally {
       scope.dispose(); position.dispose(); pending.current = false;

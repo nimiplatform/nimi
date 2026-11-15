@@ -6,6 +6,9 @@ import { resolveAccountManagementUrl } from '../src/shell/renderer/features/sett
 test('account management opens the canonical Web account path', () => {
   assert.equal(resolveAccountManagementUrl('https://nimi.example/path?ignored=1'), 'https://nimi.example/account/security');
   assert.equal(resolveAccountManagementUrl('http://127.0.0.1:3000'), 'http://127.0.0.1:3000/account/security');
+  assert.equal(resolveAccountManagementUrl('https://localhost:3443', 'runtime'), 'https://localhost:3443/account/runtime');
+  assert.equal(resolveAccountManagementUrl('https://nimi.ai', 'runtime'), 'https://nimi.ai/account/runtime');
+  assert.throws(() => resolveAccountManagementUrl('http://localhost:3000', 'runtime'), /admitted HTTPS/);
 });
 
 test('account management rejects credentials, fragments, and insecure remote origins', () => {

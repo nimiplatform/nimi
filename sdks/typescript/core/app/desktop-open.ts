@@ -22,11 +22,10 @@ export type NimiDesktopOpenParseReasonCode =
   | 'desktop-open-intent-invalid'
   | 'desktop-open-target-unsupported';
 
-export type NimiDesktopOpenExploreSection = 'worlds' | 'partners';
+export type NimiDesktopOpenExploreSection = 'worlds';
 export type NimiDesktopOpenExploreProductIntent =
   | 'discover-worlds'
-  | 'discover-characters'
-  | 'select-partner';
+  | 'discover-characters';
 export type NimiDesktopOpenRuntimeConfigPage = 'cloud' | 'models';
 export type NimiDesktopOpenRuntimeConfigAction = 'add-connector' | 'install-model';
 export type NimiDesktopOpenSettingsSection = 'profile';
@@ -64,6 +63,8 @@ export type NimiDesktopOpenIntegrationsIntent = {
 };
 
 export type NimiDesktopOpenIntent =
+  | { readonly kind: 'open-world'; readonly worldId: string }
+  | { readonly kind: 'open-partners'; readonly query?: string }
   | NimiDesktopOpenExploreIntent
   | NimiDesktopOpenRuntimeConfigIntent
   | NimiDesktopOpenAppsIntent
@@ -256,6 +257,17 @@ export function parseNimiDesktopOpenIntent(value: unknown): NimiDesktopOpenInten
   const record = asRecord(value, 'DesktopOpenIntent intent');
   const kind = requireString(record.kind, 'intent.kind');
   switch (kind) {
+    case 'open-world': {
+      assertAllowedFields(record, ['kind', 'worldId'], 'DesktopOpenIntent world intent');
+      const worldId = requireString(record.worldId, 'intent.worldId');
+      if (!/^[A-Za-z0-9_-]{1,256}$/u.test(worldId)) throw invalid('Invalid world reference.', 'intent.worldId');
+      return { kind: 'open-world', worldId };
+    }
+    case 'open-partners': {
+      assertAllowedFields(record, ['kind', 'query'], 'DesktopOpenIntent partners intent');
+      const query = parseOptionalQuery(record.query, 'intent.query');
+      return { kind: 'open-partners', ...(query ? { query } : {}) };
+    }
     case 'open-explore':
       return parseExploreIntent(record);
     case 'open-runtime-config':
@@ -291,7 +303,7 @@ export function isNimiDesktopOpenResultReasonCode(value: unknown): value is Nimi
 function parseExploreIntent(record: Record<string, unknown>): NimiDesktopOpenExploreIntent {
   assertAllowedFields(record, ['kind', 'section', 'productIntent', 'query'], 'DesktopOpenIntent explore intent');
   const section = requireString(record.section, 'intent.section');
-  if (section !== 'worlds' && section !== 'partners') {
+  if (section !== 'worlds') {
     throw unsupported(`DesktopOpenIntent explore section is not admitted: ${section}.`, 'intent.section');
   }
   const productIntent = requireString(record.productIntent, 'intent.productIntent');
@@ -352,7 +364,9 @@ function parseSettingsIntent(record: Record<string, unknown>): NimiDesktopOpenSe
 function parseIntentKind(value: unknown, field: string): NimiDesktopOpenIntentKind {
   const kind = requireString(value, field);
   if (
-    kind === 'open-explore'
+    kind === 'open-world'
+    || kind === 'open-partners'
+    || kind === 'open-explore'
     || kind === 'open-runtime-config'
     || kind === 'open-apps'
     || kind === 'open-settings'
@@ -383,9 +397,6 @@ function isExploreProductIntentAdmitted(
 ): productIntent is NimiDesktopOpenExploreProductIntent {
   if (section === 'worlds') {
     return productIntent === 'discover-worlds' || productIntent === 'discover-characters';
-  }
-  if (section === 'partners') {
-    return productIntent === 'select-partner';
   }
   return false;
 }

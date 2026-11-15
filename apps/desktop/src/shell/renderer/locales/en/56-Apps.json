@@ -475,6 +475,10 @@
       "label": "Local agents",
       "description": "Declares interaction with local agent capabilities exposed by Nimi."
     },
+    "agentAcquire": {
+      "label": "Discover characters and add partners",
+      "description": "Browse public characters and establish or reuse partners for your account, without source authoring or partner deletion."
+    },
     "agentConfigure": {
       "label": "Agent configuration",
       "description": "Declares use of supported agent configuration capabilities exposed by Nimi."

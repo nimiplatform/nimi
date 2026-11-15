@@ -886,7 +886,7 @@
     "greetingWithName": "{{greeting}}, {{name}}",
     "recentChats": {
       "title": "Recent chats",
-      "openAll": "Open all chats",
+      "openAll": "Open Zhiyu",
       "replyLabel": "Reply to {{name}}",
       "replyPlaceholder": "Reply to {{name}}…",
       "replySend": "Open chat with draft",
@@ -986,7 +986,10 @@
         "setupState": "Needs action",
         "updateState": "Update available",
         "updateTitle": "{{app}} has an update",
-        "updateDetail": "Version {{version}}"
+        "updateDetail": "Version {{version}}",
+        "access": "Access request",
+        "accessState": "Awaiting confirmation",
+        "accessUnavailable": "Access requests unavailable. Other messages remain available."
       },
       "realmSource": "People & account",
       "pendingRequest": "Needs action",
@@ -3207,7 +3210,7 @@
     "choose": "Choose a partner to view or manage",
     "settings": "Partner settings",
     "manage": "Manage partner",
-    "chat": "Chat",
+    "chat": "Chat in Zhiyu",
     "source": "Source character: {{name}}",
     "sourceLoading": "Reading source profile…",
     "sourceUnavailable": "Source profile unavailable",
@@ -3290,6 +3293,38 @@
       "ready": "Available",
       "empty": "No memories yet",
       "failed": "Could not read"
+    },
+    "profile": "Partner profile",
+    "activity": {
+      "title": "App activity",
+      "description": "Results and to-dos shared by apps.",
+      "filter": "Activity filter",
+      "all": "All",
+      "pending": "To do",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "source": "Activity source",
+      "allSources": "All sources",
+      "selectedSource": "Selected source",
+      "loading": "Loading app activity…",
+      "unavailable": "App activity for this partner could not be loaded.",
+      "incomplete": "Earlier activity has not been loaded yet.",
+      "empty": "No matching published activity.",
+      "pendingEmpty": "No matching published to-dos.",
+      "open": "View in source app",
+      "opening": "Opening…",
+      "openFailed": "The source app or object could not be opened. Please try again.",
+      "loadMore": "Load earlier activity",
+      "moreFailed": "Earlier activity could not be loaded. Try loading again.",
+      "sourceUnavailable": "Source unavailable"
+    },
+    "avatar": {
+      "open": "Open desktop avatar",
+      "configure": "Set up desktop avatar",
+      "retry": "Retry avatar details",
+      "opened": "This partner’s desktop avatar is open.",
+      "notOpened": "The desktop avatar was not opened. The current companion is unchanged.",
+      "failed": "The desktop avatar could not be opened. Check its appearance settings and try again."
     }
   },
   "mediaStorage": {

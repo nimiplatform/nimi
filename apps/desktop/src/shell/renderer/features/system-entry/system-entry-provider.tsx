@@ -46,7 +46,6 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
   const { scheme: colorScheme } = useNimiTheme();
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id ?? ''));
   const authenticated = useAppStore((state) => state.auth.status === 'authenticated' || state.auth.status === 'refresh-pending');
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [hostContext, setHostContext] = useState<SystemEntryContext | null>(null);
   const [homeVisible, setHomeVisible] = useState(true);
   useEffect(() => { onHomeVisibility?.(homeVisible); }, [homeVisible, onHomeVisibility]);
@@ -211,7 +210,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
     navigation, sdk: bindings.sdk, ownerUserId,
     appEntries: appsReadScope === scope && apps.data?.status === 'loaded' ? apps.data.entries : [],
     agents: agentList, activityRecords: mergeActivitySnapshots(activity.pending, activity.recent), openActivity: activityOwner.openActivity,
-    notifications, reading, setAgentConversationTargetSnapshot, refresh,
+    notifications, reading, refresh,
   });
   useEffect(() => {
     if (!nativeEnabled) return;

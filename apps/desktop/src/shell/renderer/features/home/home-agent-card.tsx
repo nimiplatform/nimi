@@ -1,3 +1,7 @@
+import { homePartnerDraftKey } from './home-partner-draft.js';
+import { captureHomeNavigationScope } from '../../app-shell/providers/home-navigation.js';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { MediaImage } from '@nimiplatform/kit/features/media';
@@ -36,6 +40,8 @@ export type HomeAgentCardViewProps = {
   formatTime: (updatedAtMs: number) => string;
   onSelectPartner: (id: string) => void;
   /** Opens a conversation with an optional draft; this does not send it. */
+  draftText: string;
+  onDraftChange: (text: string) => void;
   onOpenChat: (text: string) => void;
   onOpenPartner: (id: string) => void;
   onOpenAll: () => void;
@@ -93,18 +99,19 @@ function PartnerTile({ partner, selected, onSelect }: {
 }
 
 /** One shallow container: recent message on the left, capsule reply on the right. */
-function MiniChatBar({ partner, formatTime, onOpenChat, onOpenPartner }: {
+function MiniChatBar({ partner, formatTime, text, onDraftChange, onOpenChat, onOpenPartner }: {
   partner: HomeRecentChatPartner;
+  text: string;
+  onDraftChange: (text: string) => void;
   formatTime: (updatedAtMs: number) => string;
   onOpenChat: (text: string) => void;
   onOpenPartner: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const [text, setText] = useState('');
   const hasDraft = text.trim().length > 0;
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onOpenChat(text.trim());
+    onOpenChat(hasDraft ? text : '');
   };
   const message = partner.lastMessageText ?? partner.conversationTitle ?? (partner.updatedAtMs !== null
     ? t('runtimeConfig.overview.agentCard.continueChat')
@@ -132,7 +139,7 @@ function MiniChatBar({ partner, formatTime, onOpenChat, onOpenPartner }: {
           <input
             id="home-agent-composer-input"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => onDraftChange(event.target.value)}
             placeholder={t('runtimeConfig.overview.recentChats.replyPlaceholder', { name: partner.displayName })}
             className="min-w-0 flex-1 bg-transparent text-sm leading-6 text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
           />
@@ -152,7 +159,7 @@ function MiniChatBar({ partner, formatTime, onOpenChat, onOpenPartner }: {
 }
 
 /** Recent-chat composition; partner selection is local composition state, not Runtime agent state. */
-export function HomeAgentCardView({ state, partners, partnersPending, selectedId, visibleCount, stripRef, formatTime, onSelectPartner, onOpenChat, onOpenPartner, onOpenAll, onExplore }: HomeAgentCardViewProps) {
+export function HomeAgentCardView({ state, partners, partnersPending, selectedId, visibleCount, stripRef, formatTime, onSelectPartner, draftText, onDraftChange, onOpenChat, onOpenPartner, onOpenAll, onExplore }: HomeAgentCardViewProps) {
   const { t } = useTranslation();
   if (state === 'loading') {
     return (
@@ -209,6 +216,8 @@ export function HomeAgentCardView({ state, partners, partnersPending, selectedId
             <MiniChatBar
               key={selected.localAgentRef}
               partner={selected}
+              text={draftText}
+              onDraftChange={onDraftChange}
               formatTime={formatTime}
               onOpenChat={onOpenChat}
               onOpenPartner={onOpenPartner}
@@ -237,8 +246,6 @@ export function HomeAgentCard() {
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
   const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const enabled = authStatus === 'authenticated' && Boolean(ownerUserId);
   const [selection, setSelection] = useState<{ ownerUserId: string; id: string } | null>(null);
 
@@ -273,6 +280,12 @@ export function HomeAgentCard() {
     : []);
   const partnersPending = enabled && agentList.length > 0 && recent.isPending;
   const selected = partners.find((partner) => selection?.ownerUserId === ownerUserId && partner.localAgentRef === selection.id) ?? partners[0] ?? null;
+  // The Home shortcut keeps its own input across partner switches and management returns.
+  // It never consumes or rewrites the destination App's persistent draft.
+  const draftScope = selected ? JSON.stringify(['home', realmBaseUrl, selected.localAgentRef]) : '';
+  const draftKey = homePartnerDraftKey(ownerUserId, draftScope);
+  const draftText = useAppStore(state => draftKey ? state.homePartnerDrafts[draftKey] ?? '' : '');
+  const setHomePartnerDraft = useAppStore(state => state.setHomePartnerDraft);
   const { ref: stripRef, capacity } = useHomeRowCapacity({
     tileWidth: HOME_PARTNER_TILE_WIDTH,
     tileGap: HOME_PARTNER_TILE_GAP,
@@ -317,39 +330,35 @@ export function HomeAgentCard() {
 
   const openConversation = useCallback(async (selectedItem: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
     if (!selectedItem) return;
-    const generation = navigation.getSnapshot().generation;
-    const target = await resolveAgentTargetSnapshotForSourceRef({
-      sourceRef: selectedItem.sourceRef,
-      ownerUserId,
-      sdk: bindings.sdk,
-    }).catch(() => null);
-    if (navigation.getSnapshot().generation !== generation) return;
-    if (target) {
-      await launchAgentConversationFromDisplay({
-        target,
-        initialComposerText: initialComposerText ?? null,
-        navigation,
-
-        setAgentConversationTargetSnapshot,
-        setPendingAgentComposerPrefill,
-      });
-      return;
-    }
-    // Fall back to the agent chat list; it states unavailability explicitly.
-    // The typed text is still prefilled by source key so it is not lost.
-    if (initialComposerText) {
-      setPendingAgentComposerPrefill({ sourceKey: selectedItem.sourceKey, text: initialComposerText });
-    }
-    void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
+    const position = captureHomeNavigationScope(navigation);
+    try {
+      const target = await resolveAgentTargetSnapshotForSourceRef({
+        sourceRef: selectedItem.sourceRef,
+        selectedLocalAgentRef: selectedItem.localAgentRef,
+        ownerUserId,
+        sdk: bindings.sdk,
+      }).catch(() => null);
+      if (!position.isCurrent()) return;
+      if (target) {
+        const preview = partners.find(partner => partner.localAgentRef === selectedItem.localAgentRef);
+        const latest = preview?.hasUnread && !initialComposerText && target.agentHandle && target.conversationAnchorId
+          ? await bindings.sdk.conversation().snapshot({ agentHandle: target.agentHandle as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle, conversationAnchorId: target.conversationAnchorId }) : null;
+        if (!position.isCurrent()) return;
+        const messageId = latest?.messages.filter(message => message.role === 'assistant').at(-1)?.messageId;
+        await launchAgentConversationFromDisplay({
+          messageId,
+          target,
+          initialComposerText: initialComposerText ?? null,
+        });
+        return;
+      }
+      emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.partners.unavailable') });
+    } finally { position.dispose(); }
   }, [
     bindings.sdk,
+    partners, t,
     ownerUserId,
     navigation,
-
-    setAgentConversationTargetSnapshot,
-
-    setPendingAgentComposerPrefill,
-
   ]);
 
   const state: HomeAgentCardState = !enabled || agents.isPending
@@ -370,10 +379,12 @@ export function HomeAgentCard() {
       stripRef={stripRef}
       formatTime={formatTime}
       onSelectPartner={(id) => setSelection({ ownerUserId, id })}
-      onOpenChat={(text) => void openConversation(selected ? agentItemsByRef.get(selected.localAgentRef) : null, text)}
-      onOpenPartner={(id) => void openConversation(agentItemsByRef.get(id))}
-      onOpenAll={() => navigation.push({ id: 'chat', chat: { mode: 'agent' } })}
-      onExplore={() => navigation.push({ id: 'explore' })}
+      draftText={draftText}
+      onDraftChange={text => setHomePartnerDraft(ownerUserId, draftScope, text)}
+      onOpenChat={(text) => void openConversation(selected ? agentItemsByRef.get(selected.localAgentRef) : null, text).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
+      onOpenPartner={(id) => void openConversation(agentItemsByRef.get(id)).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
+      onOpenAll={() => { void invokeChecked('bundled_zhiyu_open', {}, value => value).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) })); }}
+      onExplore={() => navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
     />
   );
 }

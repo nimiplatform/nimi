@@ -146,7 +146,7 @@ export function useAiConversationModeHost(
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;
     }
-    const copy = getChatThinkingUnsupportedCopy(thinkingSupport.reason);
+    const copy = getChatThinkingUnsupportedCopy();
     return t(copy.key, { defaultValue: copy.defaultValue });
   }, [t, thinkingSupport]);
 

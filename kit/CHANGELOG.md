@@ -2,6 +2,18 @@
 
 # Changelog
 
+## Unreleased — Character discovery (next 0.x minor)
+
+Native and remote App carriers support the SDK Character discovery and acquisition operations. Custom native bindings must implement `localAppCharacterSourceList` and `localAppCharacterSourceConnect`; custom standard shells must expose `agents.listCharacters` and `agents.connectCharacter`. Update matching Runtime, SDK, Kit and native packages together. `open-world` carries one public world reference to Home; no generic URL or account authority is transferred. This source change is not published.
+
+## Unreleased — Partner activity pagination (next 0.x minor)
+
+`useAgentActivityReferences` exposes continuation and page-read state and accepts source/open-todo filters while retaining exact Agent correlation and source-object opening. `AgentActivityReferences` also supports a full partner-context panel with empty, partial and todo states. Reading still does not mark records read or resume source work.
+
+## Unreleased — Home partner navigation (next 0.x minor)
+
+Use `open-partners` with an optional display `query` to open Home partner management. The former `open-explore` / `partners` / `select-partner` pairing rejects; update App callers and the matching SDK, Kit and Desktop together. `open-agent-center` retains its Conversation correlation input and opens Home management without entering Chat. This is a source change, not a published release.
+
 ## Unreleased — Native Agent Utopia (next 0.x minor)
 
 Native App sessions can observe Utopia with `agent.utopia.read` and change settings with `agent.utopia.manage`. Update Kit, SDK, Runtime and the native binding together. Custom native bindings must implement the two Utopia methods. Conversation keeps its own `agent.local` access.

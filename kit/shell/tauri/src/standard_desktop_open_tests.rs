@@ -160,21 +160,19 @@ fn query_length_counts_unicode_scalar_values() {
         "nimi.tauri",
         json!({
             "intent": {
-                "kind": "open-explore",
-                "section": "partners", "productIntent": "select-partner",
+                "kind": "open-partners",
                 "query": admitted_query,
             }
         }),
     )
     .expect("160 Unicode scalar values should parse");
-    assert_eq!(accepted["intent"]["kind"], "open-explore");
+    assert_eq!(accepted["intent"]["kind"], "open-partners");
 
     let error = compose_envelope_for_source(
         "nimi.tauri",
         json!({
             "intent": {
-                "kind": "open-explore",
-                "section": "partners", "productIntent": "select-partner",
+                "kind": "open-partners",
                 "query": "😀".repeat(161),
             }
         }),
@@ -314,7 +312,7 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
         ),
         "invalid-query-too-long" => (
             "nimi.tauri",
-            json!({ "intent": { "kind": "open-explore", "section": "partners", "productIntent": "select-partner", "query": "x".repeat(161) } }),
+            json!({ "intent": { "kind": "open-partners", "query": "x".repeat(161) } }),
         ),
         "developer-tools-settings-target-v1" => (
             "nimi.tauri",

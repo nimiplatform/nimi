@@ -34,7 +34,7 @@ const rejectedGoldenPayloads: Record<string, unknown> = {
   'invalid-source-host': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'unknown-shell', requestId: 'desktop-open-reject-7', intent: { kind: 'open-settings', section: 'profile' } },
   'invalid-request-id': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open--reject-7b', intent: { kind: 'open-settings', section: 'profile' } },
   'invalid-app-id': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-8', intent: { kind: 'open-apps', appId: 'Nimi.Bad' } },
-  'invalid-query-too-long': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-9', intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: 'x'.repeat(161) } },
+  'invalid-query-too-long': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-9', intent: { kind: 'open-partners', query: 'x'.repeat(161) } },
   'developer-tools-settings-target-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-10', intent: { kind: 'open-settings', section: 'developer-tools' } },
   'retired-agents-target-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-11', intent: { kind: 'open-agents', view: 'inventory' } },
   'runtime-profiles-manage-profile-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-15', intent: { kind: 'open-runtime-config', page: 'profiles', action: 'manage-profile' } },
@@ -53,10 +53,10 @@ describe('kit core desktop-open', () => {
   it('reuses the SDK parser for renderer request validation', () => {
     expect(parseNimiDesktopOpenRendererRequest({
       requestId: 'desktop-open-20260708-kit',
-      intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+      intent: { kind: 'open-partners', },
     })).toEqual({
       requestId: 'desktop-open-20260708-kit',
-      intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+      intent: { kind: 'open-partners', },
     });
 
     expect(() => parseNimiDesktopOpenRendererRequest({

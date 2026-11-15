@@ -13,9 +13,7 @@ export const ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_REQUEST = {
     stage: 'agent-required',
     actionHint: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
   }) ?? {
-    kind: 'open-explore',
-    section: 'partners',
-    productIntent: 'select-partner',
+    kind: 'open-partners',
   },
 } satisfies NimiDesktopOpenRendererRequest;
 
@@ -58,9 +56,7 @@ export function zhiyuDesktopOpenIntentForProductGap(
       || reasonCode.includes('local-agent')
   ) {
     return {
-      kind: 'open-explore',
-      section: 'partners',
-      productIntent: 'select-partner',
+      kind: 'open-partners',
     };
   }
   return null;
@@ -82,8 +78,8 @@ export async function requestZhiyuDesktopOpenSelectPartner(
         state: 'accepted',
         actionId: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
         reasonCode: 'desktop-open-accepted',
-        actionHint: 'wait_for_desktop_explore',
-        message: 'Nimi 桌面端已接收请求，请在「探索」中选择伙伴。',
+        actionHint: 'wait_for_desktop_partners',
+        message: 'Nimi Home 已接收请求，请在「我的伙伴」中选择伙伴。',
       };
     }
     return projectRejectedDesktopOpenResult(result);
@@ -120,19 +116,19 @@ function projectDesktopOpenFailure(error: unknown): ZhiyuDesktopOpenActionResult
 function desktopOpenReasonCopy(reasonCode: string): string {
   switch (reasonCode) {
     case 'desktop-open-desktop-not-running':
-      return '请先打开 Nimi 桌面端；织羽不会代替你启动桌面端。';
+      return '请先打开 Nimi Home，再前往「我的伙伴」选择伙伴。';
     case 'desktop-open-desktop-not-ready':
-      return 'Nimi 桌面端正在加载，请稍后重试。';
+      return 'Nimi Home 正在加载，请稍后重试。';
     case 'desktop-open-host-unavailable':
     case 'renderer-standard-shell-host-unavailable':
-      return '当前环境无法自动打开 Nimi 桌面端。请手动打开桌面端「探索」页，继续选择伙伴来源。';
+      return '当前环境无法自动打开 Nimi Home。请手动前往「我的伙伴」选择已有伙伴；发现新角色可使用织羽的「发现角色」。';
     case 'desktop-open-bridge-auth-failed':
-      return 'Nimi 桌面端连接校验失败，请重启桌面端后重试。';
+      return 'Nimi Home 连接校验失败，请重启 Nimi Home 后重试。';
     case 'desktop-open-intent-invalid':
     case 'desktop-open-target-unsupported':
-      return '当前环境不支持自动打开目标页面。请手动前往 Nimi 桌面端「探索」页。';
+      return '当前环境不支持自动打开目标页面。请手动前往 Nimi Home「我的伙伴」。';
     default:
-      return '暂时无法自动打开 Nimi 桌面端。请手动前往桌面端「探索」页。';
+      return '暂时无法自动打开 Nimi Home。请手动前往「我的伙伴」。';
   }
 }
 

@@ -15,6 +15,13 @@ import {
 const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {
     schemaVersion: 2,
+    sourceApp: 'nimi.zhiyu',
+    sourceHost: 'desktop-electron-local-app-host',
+    requestId: 'desktop-open-world',
+    intent: { kind: 'open-world', worldId: 'world-selected' },
+  },
+  {
+    schemaVersion: 2,
     sourceApp: 'nimi.lab',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20261015-context',
@@ -25,7 +32,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     sourceApp: 'nimi.zhiyu',
     sourceHost: 'desktop-electron-local-app-host',
     requestId: 'desktop-open-20260708-0001',
-    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+    intent: { kind: 'open-partners', },
   },
   {
     schemaVersion: 2,
@@ -53,7 +60,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0014',
-    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+    intent: { kind: 'open-partners', },
   },
   {
     schemaVersion: 2,
@@ -74,7 +81,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0004',
-    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: 'mentor' },
+    intent: { kind: 'open-partners', query: 'mentor' },
   },
   {
     schemaVersion: 2,
@@ -170,15 +177,15 @@ describe('Desktop Open Intent SDK parser', () => {
     assert.deepEqual(
       parseNimiDesktopOpenIntentEnvelope({
         ...acceptedVectors[0],
-        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: admittedQuery },
+        intent: { kind: 'open-partners', query: admittedQuery },
       }).intent,
-      { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: admittedQuery },
+      { kind: 'open-partners', query: admittedQuery },
     );
 
     assertRejects(
       {
         ...acceptedVectors[0],
-        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: '😀'.repeat(161) },
+        intent: { kind: 'open-partners', query: '😀'.repeat(161) },
       },
       'desktop-open-intent-invalid',
     );
@@ -209,8 +216,7 @@ describe('Desktop Open Intent SDK parser', () => {
       {
         ...acceptedVectors[0],
         intent: {
-          kind: 'open-explore',
-          section: 'partners', productIntent: 'select-partner',
+          kind: 'open-partners',
           query: 'x'.repeat(161),
         },
       },
@@ -264,11 +270,11 @@ describe('Desktop Open Intent SDK parser', () => {
     assert.deepEqual(
       parseNimiDesktopOpenRendererRequest({
         requestId: 'desktop-open-20260708-renderer',
-        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+        intent: { kind: 'open-partners', },
       }),
       {
         requestId: 'desktop-open-20260708-renderer',
-        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
+        intent: { kind: 'open-partners', },
       },
     );
 
@@ -309,6 +315,14 @@ describe('Desktop Open Intent SDK parser', () => {
   });
 
   it('parses Desktop Open result envelopes without admitting undefined reason codes', () => {
+    for (const envelope of acceptedVectors) {
+      const result = {
+        status: 'accepted', confirmation: 'desktop-accepted',
+        bridgeId: 'desktop-open-result-bridge', requestId: envelope.requestId,
+        appliedTarget: envelope.intent.kind,
+      };
+      assert.deepEqual(parseNimiDesktopOpenResult(result), result);
+    }
     assert.deepEqual(
       parseNimiDesktopOpenResult({
         status: 'accepted',
@@ -381,4 +395,10 @@ it('rejects a creator trial target without changing the admitted Desktop targets
 
 it('rejects deferred Realm activity before a Desktop open request', () => {
   assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }));
+});
+
+it('rejects the retired Explore partner pair without an alias or implicit selection', () => {
+  assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'partners', productIntent: 'select-partner' }));
+  assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-partners', agentHandle: 'foreign' }));
+  assert.deepEqual(parseNimiDesktopOpenIntent({ kind: 'open-partners', query: 'mentor' }), { kind: 'open-partners', query: 'mentor' });
 });

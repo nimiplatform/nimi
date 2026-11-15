@@ -53,3 +53,17 @@ contextBridge.exposeInMainWorld('__nimiZhiyuResourcePackPlacement', {
     });
   },
 });
+
+// Only the supervised Host may offer an open target; the renderer cannot issue one here.
+contextBridge.exposeInMainWorld('__nimiZhiyuConversationOpen', {
+  subscribe(listener: (value: unknown) => void) {
+    let active = true;
+    const read = () => { void ipcRenderer.invoke('nimi:zhiyu:conversation-open:read').then(value => {
+      if (active) listener(value);
+    }).catch(() => undefined); };
+    ipcRenderer.on('nimi:zhiyu:conversation-open:event', read);
+    read();
+    return () => { active = false; ipcRenderer.removeListener('nimi:zhiyu:conversation-open:event', read); };
+  },
+  acknowledge(value: unknown) { ipcRenderer.send('nimi:zhiyu:conversation-open:ack', value); },
+});

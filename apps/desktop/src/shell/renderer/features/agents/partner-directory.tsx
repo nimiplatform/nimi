@@ -71,7 +71,7 @@ export function PartnerDirectory() {
         {visible.map(partner => <PartnerDirectoryRow key={`${accountId}:${realm}:${auth.authorizationRevision}:${partner.localAgentRef}`} partner={partner}
           accountId={accountId} scopeKey={`${realm}:${auth.authorizationRevision}`} enabled={auth.status === 'authenticated'} selected={selectedRef === partner.localAgentRef}
           onSelect={() => { void navigation.push({ ...destination, partner: { localAgentRef: partner.localAgentRef } }); }} />)}
-        {!inventory.isPending && !inventory.isError && !partners.length && !inventory.hasNextPage ? <EmptyState title={t(`${P}.empty`)} action={<Button onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds' }); }}>{t(`${P}.discover`)}</Button>} /> : null}
+        {!inventory.isPending && !inventory.isError && !partners.length && !inventory.hasNextPage ? <EmptyState title={t(`${P}.empty`)} action={<Button onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }); }}>{t(`${P}.discover`)}</Button>} /> : null}
         {partners.length > 0 && !visible.length ? <p className="p-3 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.noMatch`)}</p> : null}
         {inventory.hasNextPage ? <div className="px-3 pt-3 text-xs text-[var(--nimi-text-secondary)]"><p>{t(`${P}.partial`, { count: partners.length })}</p>
           <Button size="sm" disabled={inventory.isFetchingNextPage} onClick={() => { void inventory.fetchNextPage(); }}>{t(`${P}.loadMore`)}</Button></div> : null}

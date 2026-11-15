@@ -2,9 +2,7 @@ import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
 
 export type ChatThinkingPreference = 'off' | 'on';
 
-export type ChatThinkingSupportReason =
-  | 'thinking_unsupported'
-  | 'agent_execution_unsupported';
+export type ChatThinkingSupportReason = 'thinking_unsupported';
 
 export type ChatThinkingSupport = {
   supported: boolean;
@@ -13,13 +11,6 @@ export type ChatThinkingSupport = {
 
 export function normalizeChatThinkingPreference(value: unknown): ChatThinkingPreference {
   return value === 'on' ? 'on' : 'off';
-}
-
-export function resolveAgentChatThinkingSupport(): ChatThinkingSupport {
-  return {
-    supported: false,
-    reason: 'agent_execution_unsupported',
-  };
 }
 
 export function resolveChatThinkingConfig(
@@ -39,15 +30,7 @@ export function resolveChatThinkingConfig(
   };
 }
 
-export function getChatThinkingUnsupportedCopy(
-  reason: ChatThinkingSupportReason | null,
-): { key: string; defaultValue: string } {
-  if (reason === 'agent_execution_unsupported') {
-    return {
-      key: 'Chat.settingsThinkingUnsupportedAgentExecution',
-      defaultValue: 'Agent chat uses Runtime-owned execution, which does not expose thinking controls here.',
-    };
-  }
+export function getChatThinkingUnsupportedCopy(): { key: string; defaultValue: string } {
   return {
     key: 'Chat.settingsThinkingUnsupportedCapability',
     defaultValue: 'Thinking is unavailable for this capability intent.',

@@ -1,3 +1,4 @@
+import type { HomeChatMode } from './chat-shell-types.js';
 import type { ReactNode } from 'react';
 import type {
   CanonicalStagePanelProps,
@@ -8,14 +9,13 @@ import type {
 import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,
-  ConversationMode,
   ConversationModeAvailability,
   ConversationShellAdapter,
   ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 
 export type DesktopConversationModeHost = {
-  mode: ConversationMode;
+  mode: HomeChatMode;
   availability: ConversationModeAvailability;
   adapter: ConversationShellAdapter<unknown>;
   activeThreadId: string | null;
@@ -56,14 +56,6 @@ export type DesktopConversationModeHost = {
   onSelectThread?: (threadId: string) => void;
   /** Content rendered in the new right panel (between conversation pane and contact rail). */
   rightPanelContent?: ReactNode;
-  /** Voice hands-free session state for the right panel. */
-  handsFreeState?: {
-    mode: 'push-to-talk' | 'hands-free';
-    status: 'idle' | 'listening' | 'transcribing' | 'failed';
-    disabled: boolean;
-    onEnter: () => void;
-    onExit: () => void;
-  };
-  /** Create a new thread/session. Used by AI and group mode entry surfaces. */
+  /** Create a new thread/session. Used by the Nimi Chat entry. */
   onCreateThread?: () => Promise<void>;
 };

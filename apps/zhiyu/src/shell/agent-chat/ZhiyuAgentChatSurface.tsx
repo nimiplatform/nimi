@@ -82,6 +82,11 @@ import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/pre
 import { ZhiyuAgentActivityReferences } from './ZhiyuAgentActivityReferences';
 
 export type ZhiyuAgentChatSurfaceProps = {
+  readonly discovery?: import('react').ReactNode;
+  readonly onDiscover?: () => void;
+  readonly onOpenHomePartner?: () => void;
+  readonly openRequest?: { readonly requestId: string; readonly messageId?: string } | null;
+  readonly onOpenRequestReady?: () => void;
   readonly evidence: ZhiyuEvidence;
   readonly product: ZhiyuHomeProductState;
   readonly draft: string;
@@ -124,7 +129,11 @@ export type ZhiyuAgentChatSurfaceProps = {
 };
 
 export function ZhiyuAgentChatSurface({
+  discovery, onDiscover,
   evidence,
+  onOpenHomePartner,
+  openRequest,
+  onOpenRequestReady,
   product,
   draft,
   submitEnabled,
@@ -161,9 +170,6 @@ export function ZhiyuAgentChatSurface({
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(request => boundClient.agents.getIntroduction(request), []);
   const { introduction, unavailable: introductionUnavailable, retry: retryIntroduction } = useAgentIntroduction({ agentHandle: hasCurrentPartner ? evidence.localAgent.agentHandle : null, getIntroduction: readIntroduction });
-  const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
-  const [desktopOpenPending, setDesktopOpenPending] = useState(false);
-  const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
     : hasLocalPartners
@@ -172,8 +178,8 @@ export function ZhiyuAgentChatSurface({
   const emptyDescription = hasCurrentPartner
     ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。'
     : hasLocalPartners
-      ? '如果想添加更多伙伴，请到 Nimi Home 的「探索」中选择角色。'
-      : '从世界中选择一位角色加入本地后，就可以和他开始对话。';
+      ? '从左侧选择伙伴，或发现一位新角色。'
+      : '发现来自不同世界的角色，成为伙伴后就可以开始对话。';
   const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners ? (
     <section
       className="zhiyu-no-local-partner-empty"
@@ -189,33 +195,18 @@ export function ZhiyuAgentChatSurface({
         <button
           type="button"
           className="zhiyu-no-local-partner-empty__action"
-          data-zhiyu-no-local-partner-action="desktop-open-select-partner"
-          data-zhiyu-desktop-open-action="desktop_open_select_partner"
-          data-zhiyu-no-local-partner-action-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
-          aria-expanded={showNoPartnerGuidance}
-          aria-controls="zhiyu-no-local-partner-guidance"
-          onClick={() => {
-            setShowNoPartnerGuidance(true);
-            void handleDesktopOpenSelectPartner();
-          }}
-          disabled={desktopOpenPending}
+          data-zhiyu-no-local-partner-action="discover-characters"
+          onClick={onDiscover}
+          disabled={!evidence.inventory.ready}
         >
-          <span>{desktopOpenPending ? '打开中' : '去探索伙伴'}</span>
+          <span>发现角色</span>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
         <p className="zhiyu-no-local-partner-empty__assurance">
           <ShieldCheck size={14} aria-hidden="true" />
           <span>本地伙伴会保留角色来源与身份设定。</span>
         </p>
-        {showNoPartnerGuidance ? (
-          <p
-            id="zhiyu-no-local-partner-guidance"
-            className="zhiyu-no-local-partner-empty__handoff"
-            data-zhiyu-no-local-partner-guidance="desktop-explore"
-          >
-            {desktopOpenResult?.message ?? '请打开 Nimi 桌面端「探索」页，选择角色并加入本地；织羽会在本地伙伴出现后显示在左侧。'}
-          </p>
-        ) : null}
+
       </div>
     </section>
   ) : null;
@@ -245,6 +236,17 @@ export function ZhiyuAgentChatSurface({
     liveProjection: evidence.chat.canonicalProjection ?? null,
     capturePosition: () => readPosition.current,
   });
+  const locatedOpen = useRef('');
+  useEffect(() => {
+    if (!openRequest || !evidence.conversation.ready || connectionStatus !== 'ready') return;
+    if (openRequest.messageId && locatedOpen.current !== openRequest.requestId) {
+      locatedOpen.current = openRequest.requestId;
+      void historyView.locate(openRequest.messageId);
+      return;
+    }
+    if (!openRequest.messageId || historyView.positionRequest?.messageId === openRequest.messageId) onOpenRequestReady?.();
+  }, [openRequest, evidence.conversation.ready, connectionStatus, historyView.positionRequest, historyView.locate, onOpenRequestReady]);
+
   const [historyMediaRevision, setHistoryMediaRevision] = useState(0);
   const historyMedia = useMemo(() => {
     const agentHandle = evidence.conversation.agentHandle;
@@ -510,22 +512,6 @@ export function ZhiyuAgentChatSurface({
   const openAgentOverview = () => {
     openPanel('overview');
   };
-  const handleDesktopOpenSelectPartner = async () => {
-    if (desktopOpenPending) {
-      return;
-    }
-    setDesktopOpenPending(true);
-    try {
-      const result = await onDesktopOpenSelectPartner();
-      setDesktopOpenResult(result);
-      nimiToast.show({
-        tone: result.state === 'accepted' ? 'info' : 'warning',
-        message: result.message,
-      });
-    } finally {
-      setDesktopOpenPending(false);
-    }
-  };
   return (
     <main
       className="zhiyu-agent-chat"
@@ -541,12 +527,13 @@ export function ZhiyuAgentChatSurface({
         data-zhiyu-primary-ui="true"
       >
       <div
-        className={`zhiyu-agent-chat__layout${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
+        className={`zhiyu-agent-chat__layout${discovery || rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
         data-zhiyu-side-panel-state={rightPanelMode}
-        data-zhiyu-rail-visible={sidebarVisible && hasLocalPartners}
+        data-zhiyu-rail-visible={sidebarVisible && evidence.auth.ready}
         data-zhiyu-relationship-rail-state={hasLocalPartners ? 'available' : 'empty'}
       >
-        {sidebarVisible && hasLocalPartners ? <DesktopPresenceRail
+        {sidebarVisible && evidence.auth.ready ? <DesktopPresenceRail
+          onDiscover={onDiscover} discovering={Boolean(discovery)}
           agents={evidence.inventory.localAgents.map((agent) => ({
             itemKey: agent.agentHandle,
             agentHandle: agent.agentHandle,
@@ -566,7 +553,7 @@ export function ZhiyuAgentChatSurface({
           }}
         /> : null}
 
-        <ZhiyuResourcePackSurface
+        {discovery ?? <ZhiyuResourcePackSurface
           className="zhiyu-chat-canvas"
           effectiveSource={resourcePackPresentation.effectiveSource}
           phase={resourcePackPresentation.phase}
@@ -756,10 +743,11 @@ export function ZhiyuAgentChatSurface({
                 </div>
               </div>
             </div>
-        </ZhiyuResourcePackSurface>
+        </ZhiyuResourcePackSurface>}
 
-        {rightPanelMode !== 'closed' ? (
+        {!discovery && rightPanelMode !== 'closed' ? (
           <RightAgentPanel
+            onOpenHomePartner={onOpenHomePartner}
             mode={rightPanelMode}
             evidence={evidence}
             currentPartnerName={currentPartnerName}

@@ -384,7 +384,7 @@ export function NimiOverview() {
             onOpenAI={() => void navigation.push({ id: 'runtime' })}
             onOpenCloud={() => void navigation.push({ id: 'cloud' })}
             onOpenChat={openChat}
-            onExplore={() => void navigation.push({ id: 'explore' })}
+            onExplore={() => void navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
             onOpenApps={() => void navigation.push({ id: 'apps' })}
           />
         ) : null}

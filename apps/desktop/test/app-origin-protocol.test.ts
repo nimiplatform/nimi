@@ -86,3 +86,18 @@ test('installed Home and Avatar pages carry their own content policy; other asse
   assert.equal(script.headers.get('content-security-policy'), null);
   assert.equal(script.headers.get('x-content-type-options'), 'nosniff');
 });
+
+test('bundled Zhiyu admits HTTPS introduction media alongside protected conversation assets', async () => {
+  const roots = await fixture();
+  const capture = protocolCapture();
+  createDesktopAppOriginProtocol({ protocol: capture.protocol as never, roots: { zhiyu: roots.desktop } }).register();
+  const response = await capture.handler()(new Request('nimi-app://zhiyu/index.html'));
+  assert.equal(response.status, 200);
+  const policy = response.headers.get('content-security-policy') ?? '';
+  const media = policy.split(';').map(directive => directive.trim().split(/\s+/)).find(directive => directive[0] === 'media-src')!;
+  assert.ok(media.includes('https:'), 'the actual HTML response must admit the introduction voice URL');
+  assert.ok(media.includes('nimi-app-asset:'), 'private conversation playback keeps its protected carrier');
+  assert.ok(!media.includes('http:') && !media.includes('*') && !media.includes('file:'));
+  assert.match(policy, /object-src 'none'/);
+  assert.match(policy, /frame-ancestors 'none'/);
+});

@@ -58,7 +58,7 @@ export function ProfilePanel() {
           <ProfileDetailView profile={profile} isOwnProfile={isOwnProfile} loading={false} error={false}
             hideBackButton externalScrollContainerRef={scroll} onClose={navigation.back} {...actions.props}
             onEditProfile={isOwnProfile ? () => { void openHomeSettings(navigation, 'profile'); } : undefined}
-            onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'chat', chat: { mode: 'human' } }); } : undefined}
+            onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'friends', chat: { mode: 'human' } }); } : undefined}
             onOpenPrivacy={isOwnProfile ? () => { void openHomeSettings(navigation, 'privacy'); } : undefined} />
         </section>
       </ScrollArea> : <p className="p-5 text-sm text-[var(--nimi-text-secondary)]">{i18n.t('Profile.noProfileDataAvailable')}</p>}

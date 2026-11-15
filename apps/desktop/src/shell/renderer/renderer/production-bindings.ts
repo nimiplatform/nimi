@@ -83,6 +83,10 @@ export function createDesktopProductionBindings(
 ): DesktopCanonicalRendererBindings {
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
+  const accountManagementUrl = (page: 'security' | 'runtime' = 'security') => resolveAccountManagementUrl(String(
+    (page === 'runtime' ? (import.meta as { env?: { NIMI_RUNTIME_MANAGER_WEB_URL?: string } }).env?.NIMI_RUNTIME_MANAGER_WEB_URL : '')
+      || (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
+  ), page);
   const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort(() => {
     if (!connectedLifecycle) throw new Error('Home navigation owner is not connected.');
     return connectedLifecycle.navigation;
@@ -163,6 +167,13 @@ export function createDesktopProductionBindings(
         titlebarDragEnabled: () => getShellFeatureFlags().enableTitlebarDrag,
         menuBarShellEnabled: () => getShellFeatureFlags().enableMenuBarShell,
         resourceBaseUrl: () => window.location.href,
+        runtimeManagerEntry() {
+          try {
+            const url = accountManagementUrl('runtime');
+            const hostname = new URL(url).hostname;
+            return { url, localOnly: hostname === 'localhost' || hostname.endsWith('.localhost') || hostname === '[::1]' || /^127\./u.test(hostname) };
+          } catch { return null; }
+        },
         walletCheckoutBaseUrl() {
           const configured = String(
             (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
@@ -227,11 +238,8 @@ export function createDesktopProductionBindings(
           document.documentElement.lang = lang;
           document.title = title;
         },
-        async openAccountManagement() {
-          const configured = String(
-            (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
-          );
-          const result = await desktopBridge.openExternalUrl(resolveAccountManagementUrl(configured));
+        async openAccountManagement(page: 'security' | 'runtime' = 'security') {
+          const result = await desktopBridge.openExternalUrl(accountManagementUrl(page));
           if (!result.opened) throw new Error('Nimi Web account management could not be opened.');
         },
         openWalletCheckout: (url: string) => desktopBridge.openExternalUrl(url),

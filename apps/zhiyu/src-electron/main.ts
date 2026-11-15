@@ -43,7 +43,10 @@ const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
 const appPackage = JSON.parse(readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { version: string };
-const chromeHost = createNimiElectronAppChromeHost({ metadata: { name: '织羽', version: appPackage.version }, allowedRendererUrls: allowedRendererUrls(), app, menu: Menu });
+const chromeHost = createNimiElectronAppChromeHost({
+  metadata: { name: '织羽', version: appPackage.version }, allowedRendererUrls: allowedRendererUrls(), app, menu: Menu,
+  appCommands: [{ id: 'zhiyu.account.manage', menu: 'file', labels: { en: 'Manage account in Home', zh: '在 Home 管理账号' } }],
+});
 let registeredAppBridge: ReturnType<typeof registerNimiElectronAppBridge> | undefined;
 let resettingRenderer = false;
 let quitting = false;

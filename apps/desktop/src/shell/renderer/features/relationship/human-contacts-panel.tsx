@@ -40,7 +40,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
   const tab = useHomeDestination().chat?.contactsSection ?? 'friends';
   const pageTitle = tab === 'conversations' ? t('Relationship.contacts.tabs.conversations') : t('Relationship.contacts.title');
   const setTab = (contactsSection: ContactSection) => {
-    void navigation.replace({ id: 'chat', chat: { mode: 'human', contactsSection } });
+    void navigation.replace({ id: 'friends', chat: { mode: 'human', contactsSection } });
     setSelectedBlocked(null); setFeedback(null);
   };
   const requests = useReceivedFriendRequests();
@@ -114,7 +114,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
       if (!opened?.chatId) throw new Error(t('Relationship.openChatFailed'));
       if (operation.current?.isCurrent() && navigation.getSnapshot().current.key === origin) {
         void queryClient.invalidateQueries({ queryKey: ['chats'] });
-        await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: row.id, threadId: opened.chatId } });
+        await navigation.push({ id: 'friends', chat: { mode: 'human', targetId: row.id, threadId: opened.chatId } });
       }
     }, t('Relationship.contacts.chatOpened'));
   };
@@ -156,7 +156,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
       {conversations.isError ? <div className="space-y-2"><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button tone="secondary" onClick={() => { void conversations.refetch(); }}>{t('Common.retry')}</Button></div> : null}
       {conversations.data?.items.length ? <>
         <ul className="divide-y divide-[var(--nimi-border-subtle)]">{conversations.data.items.map(item => <li key={item.id}>
-          <button type="button" onClick={() => { void navigation.push({ id: 'chat', chat: { mode: 'human', targetId: item.otherUser.id, threadId: item.id } }); }} className="flex w-full items-start gap-3 rounded-lg px-2 py-4 text-left hover:bg-[var(--nimi-surface-active)]">
+          <button type="button" onClick={() => { void navigation.push({ id: 'friends', chat: { mode: 'human', targetId: item.otherUser.id, threadId: item.id } }); }} className="flex w-full items-start gap-3 rounded-lg px-2 py-4 text-left hover:bg-[var(--nimi-surface-active)]">
             <EntityAvatar name={item.otherUser.displayName || item.otherUser.handle} imageUrl={item.otherUser.avatarUrl} media={item.otherUser.avatarMedia} kind="human" sizeClassName="h-10 w-10 shrink-0" />
             <span className="min-w-0 flex-1"><span className="block truncate font-medium">{item.otherUser.displayName || item.otherUser.handle}</span><span className="mt-1 block text-sm text-[var(--nimi-text-secondary)]">{item.lastMessage ? t('Relationship.contacts.messagePreview') : t('Chat.noMessages')}</span></span>
             <span className="shrink-0 text-right"><time dateTime={item.lastMessageAt || item.updatedAt} className="block text-xs text-[var(--nimi-text-secondary)]">{i18n.formatDate(item.lastMessageAt || item.updatedAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>{item.unreadCount > 0 ? <span className="mt-1 inline-block rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-xs text-[var(--nimi-action-primary-text)]" aria-label={t('Relationship.contacts.unreadMessages', { count: item.unreadCount })}>{item.unreadCount}</span> : null}</span>

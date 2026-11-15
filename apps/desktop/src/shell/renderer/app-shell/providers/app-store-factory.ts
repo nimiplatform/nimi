@@ -25,11 +25,6 @@ export function createAppStore(dependencies: AppStoreDependencies): AppStoreApi 
   store.subscribe(state => {
     const scope = scopeOf(state);
     if (scope.every((value, index) => value === previousScope[index])) {
-      const current = navigation.getSnapshot().current.destination.chat;
-      if (current?.mode === 'agent' && current.conversationAnchorId && state.auth.status === 'authenticated') {
-        const refreshed = Object.values(state.agentConversationTargetByHandle).find(target => target.conversationAnchorId === current.conversationAnchorId);
-        if (refreshed?.agentHandle && refreshed.agentHandle !== current.agentHandle) void navigation.replace({ id: 'chat', chat: { ...current, agentHandle: refreshed.agentHandle, targetId: refreshed.agentHandle } });
-      }
       return;
     }
     const previous = previousScope; previousScope = scope;

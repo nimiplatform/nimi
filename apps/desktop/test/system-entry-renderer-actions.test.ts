@@ -23,7 +23,7 @@ function setup() {
     openActivity: async () => { opened += 1; throw new Error('unexpected-open'); },
     notifications: { enabled: false, pausedUntil: 0, pause: async () => { pause += 1; }, resume: async () => { pause += 1; } },
     reading: { openAIActivity: async () => { await navigation.push({ id: 'home', homeSection: 'ai-activity' }); } },
-    setAgentConversationTargetSnapshot: () => {}, refresh: async () => {},
+    refresh: async () => {},
   };
   return { input, projection, counts: () => ({ pause, opened }) };
 }
@@ -173,10 +173,48 @@ test('continue chat does not open after its deadline expires during reference re
   assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
 });
 
-test('continue chat resolves only the selected LocalAgent when two share a character source', async () => {
+test('view all recent partner chats opens Zhiyu without redirecting Home to Nimi Chat', async () => {
+  const globals = globalThis as Record<string, unknown>;
+  const before = [globals.window, globals.__NIMI_ELECTRON_RUNTIME__];
+  const calls: unknown[] = [];
+  globals.window = { __NIMI_HTML_BOOT_ID__: 'system-entry-all-chat-test' };
+  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, payload: unknown) => {
+    if (command === 'log_renderer_event') return {};
+    assert.equal(command, 'bundled_zhiyu_open'); calls.push(payload); return { opened: true };
+  } };
+  const value = setup();
+  try {
+    await executeSystemEntryRendererAction({ requestId: 'all-chats', generation: 'account-a', revision: 1, action: { kind: 'chat' } }, value.input);
+    assert.deepEqual(calls, [{}]);
+    assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
+  } finally {
+    value.input.navigation.dispose();
+    for (const [key, old] of [['window', before[0]], ['__NIMI_ELECTRON_RUNTIME__', before[1]]] as const) {
+      if (old === undefined) delete globals[key]; else globals[key] = old;
+    }
+  }
+});
+
+test('continue chat resolves only the selected LocalAgent and opens its anchor in Zhiyu', async () => {
+  const globals = globalThis as Record<string, unknown>;
+  const before = [globals.window, globals.__NIMI_ELECTRON_RUNTIME__];
+  const targets: unknown[] = [];
+  globals.window = { __NIMI_HTML_BOOT_ID__: 'system-entry-chat-test' };
+  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, payload: unknown) => {
+    if (command === 'log_renderer_event') return {};
+    assert.equal(command, 'bundled_zhiyu_open'); targets.push(payload); return { opened: true };
+  } };
   const value = chatSetup();
-  await executeSystemEntryRendererAction(value.request, value.input);
-  assert.deepEqual(value.resolved, ['local-agent:agent-b']);
-  assert.deepEqual(value.opened, ['agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB']);
-  assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'chat');
+  try {
+    await executeSystemEntryRendererAction(value.request, value.input);
+    assert.deepEqual(value.resolved, ['local-agent:agent-b']);
+    assert.deepEqual(value.opened, ['agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB']);
+    assert.deepEqual(targets, [{ target: { conversationAnchorId: 'anchor-b' } }]);
+    assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
+  } finally {
+    value.input.navigation.dispose();
+    for (const [key, old] of [['window', before[0]], ['__NIMI_ELECTRON_RUNTIME__', before[1]]] as const) {
+      if (old === undefined) delete globals[key]; else globals[key] = old;
+    }
+  }
 });

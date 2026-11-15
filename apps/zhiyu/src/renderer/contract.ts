@@ -1,3 +1,4 @@
+import type { ZhiyuConversationOpenRequest } from '../shell/app/conversation-open.js';
 import type {
   AnyNimiCanonicalRendererHostBindingsV1,
   NimiRendererHostFacadeV1,
@@ -42,6 +43,7 @@ export type ZhiyuAgentCenterBinding = Readonly<{
 }>;
 
 export interface ZhiyuRendererProjectionPort {
+  resolveConversationOpen?(request: ZhiyuConversationOpenRequest, isCurrent: () => boolean): Promise<{ agentHandle: NimiLocalAppAgentHandle; conversationAnchorId: string }>;
   agentCenterBinding(
     agentHandle: NimiLocalAppAgentHandle | null,
   ): ZhiyuAgentCenterBinding | null;
@@ -62,6 +64,9 @@ export interface ZhiyuRendererProjectionPort {
 }
 
 export interface ZhiyuRendererCommandPort {
+  characters(): import('@nimiplatform/sdk/app').NimiAppCharacterDiscoveryClient;
+  openDesktopWorld?(worldId: string): Promise<void>;
+  acknowledgeConversationOpen?(value: { requestId: string; status: 'opened' | 'failed' }): void;
   allocateTurnRequestId(): Promise<string>;
   conversation(): NimiLocalAppClient['conversation'];
   draftClient(): Pick<NimiAppRuntimeClient, 'agents' | 'storage'>;
@@ -73,6 +78,7 @@ export interface ZhiyuRendererCommandPort {
     readonly audioBytes: Uint8Array;
   }, options?: { readonly signal?: AbortSignal }): Promise<{ readonly text: string }>;
   openDesktopRuntimeSettings(): Promise<void>;
+  openDesktopPartner?(conversationAnchorId: string): Promise<void>;
   openDesktopSelectPartner(): Promise<ZhiyuDesktopOpenActionResult>;
   launchAvatar(input: {
     readonly evidence: ZhiyuEvidence;
@@ -83,6 +89,7 @@ export interface ZhiyuRendererCommandPort {
 }
 
 export interface ZhiyuRendererEventPort {
+  subscribeConversationOpen?(listener: (request: ZhiyuConversationOpenRequest | null) => void): () => void;
   onProjectionChanged?(projection: ZhiyuEvidence): void;
   subscribeConversation(input: {
     readonly agentHandle: NimiLocalAppAgentHandle;

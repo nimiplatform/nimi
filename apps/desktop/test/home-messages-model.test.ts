@@ -247,3 +247,16 @@ test('only an explicit missing document reads as no preferences; the document ro
   assert.throws(() => parseHomeMessagePreferences({ version: 1, hiddenActivities: { act_1: 0 }, hiddenRealmPosts: [], appSourcesOffHome: [], realmPostsOnHome: true }));
   assert.throws(() => parseHomeMessagePreferences({ version: 2 }));
 });
+
+test('source confirmation is pending without inventing unread state or approving on navigation', () => {
+  let opens = 0;
+  const message = systemMessage({ kind: 'access', id: 'binding:source:request', title: 'Zhiyu', detail: 'https://example.test',
+    progress: null, time: null, app: null, open: () => { opens++; } });
+  assert.equal(isPendingMessage(message), true);
+  assert.deepEqual(filterCenterMessages([message], 'pending', null), [message]);
+  assert.deepEqual(filterCenterMessages([message], 'unread', null), []);
+  assert.equal(opens, 0);
+  message.system.open();
+  assert.equal(opens, 1);
+  assert.equal(isPendingMessage(message), true);
+});

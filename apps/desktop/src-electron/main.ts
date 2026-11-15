@@ -1,3 +1,4 @@
+import { parseZhiyuConversationOpenTarget } from '../../zhiyu/src/shell/app/conversation-open.js';
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { writeDesktopStderr } from './stderr-log.js';
 import { DesktopProductUpdateHost } from './product-update-host.js';
@@ -1038,9 +1039,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
         // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
         bundled_zhiyu_open: async ({ payload, event }) => {
-          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).length !== 0) throw new Error('bundled-zhiyu-home-request-required');
+          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).some(key => key !== 'target')) throw new Error('bundled-zhiyu-home-request-required');
           if (!bundledZhiyuHost) throw new Error('bundled-zhiyu-host-unavailable');
-          await bundledZhiyuHost.open();
+          if (payload.target === undefined) await bundledZhiyuHost.open();
+          else await bundledZhiyuHost.openConversation(parseZhiyuConversationOpenTarget(payload.target));
           return { opened: true };
         },
         // @nimi-authority: rule.nimi.runtime.agent-participation.r197

@@ -1,10 +1,10 @@
+import type { HomeChatMode } from './chat-shell-types.js';
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import type { ChatCopy } from '@nimiplatform/kit/features/chat/ui';
 import { cn } from '@nimiplatform/kit/ui';
 import type {
-  ConversationMode,
   ConversationSetupAction,
   ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -24,7 +24,7 @@ import { ChatSideSheet } from './chat-shared-side-sheet';
 import { useChatReadPosition } from './use-chat-read-position.js';
 
 export type ChatCanonicalModeFrameProps = {
-  mode: ConversationMode;
+  mode: HomeChatMode;
   host: DesktopConversationModeHost;
   allTargets: readonly ConversationTargetSummary[];
   selectedTargetId: string | null;

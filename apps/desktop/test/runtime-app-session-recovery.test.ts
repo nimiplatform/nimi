@@ -20,7 +20,6 @@ function fixture() {
     expire() { current = false; },
     lifecycle: {
       auth: () => auth,
-      clearAgentConversationAnchorBindings: () => { events.push('clear-handles'); },
       invalidateQueries: async (keys: readonly (readonly unknown[])[]) => { events.push(['read', keys]); },
     },
     isCurrent: () => current,
@@ -33,7 +32,7 @@ test('re-login probes the formal session before refreshing failed App reads', as
     f.events.push('rebind-status');
     return { sessionBound: true, reasonCode: 'action-executed' };
   } });
-  assert.deepEqual(f.events, ['rebind-status', 'clear-handles', ['read', [[]]]]);
+  assert.deepEqual(f.events, ['rebind-status', ['read', [[]]]]);
 });
 
 type AccountTestSnapshot = {
@@ -48,7 +47,6 @@ type AccountTestSnapshot = {
 function watcherFixture(initial: Partial<AccountTestSnapshot> = {}) {
   const f = fixture();
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-  const anchors = new Map<string, string>();
   const diagnostics: { details?: Record<string, unknown> }[] = [];
   let snapshot: AccountTestSnapshot = { state: 'authenticated', sequence: '1', authorizationRevision: 'authorization-a',
     reasonCode: 0, accountReasonCode: 0,
@@ -82,7 +80,6 @@ function watcherFixture(initial: Partial<AccountTestSnapshot> = {}) {
     (id: number) => timers.delete(id),
   );
   const lifecycle = { ...f.lifecycle, applyRuntimeAccountProjection: f.changeAuth,
-    clearAgentConversationAnchorBindings() { f.lifecycle.clearAgentConversationAnchorBindings(); anchors.clear(); },
     async invalidateQueries(keys: readonly (readonly unknown[])[]) {
       await f.lifecycle.invalidateQueries(keys);
       await Promise.all(keys.map(queryKey => queryClient.invalidateQueries({ queryKey })));
@@ -91,7 +88,7 @@ function watcherFixture(initial: Partial<AccountTestSnapshot> = {}) {
     setStatusBanner() {}, translate: (key: string) => key,
   };
   const settle = () => new Promise<void>(resolve => setImmediate(resolve));
-  return { ...f, queryClient, anchors, diagnostics, settle, lifecycle,
+  return { ...f, queryClient, diagnostics, settle, lifecycle,
     get probes() { return probes; },
     setProbe(next: typeof probe) { probe = next; },
     async start() { watcher.startAuthStateWatcher(lifecycle); await settle(); },
@@ -111,7 +108,7 @@ function watcherFixture(initial: Partial<AccountTestSnapshot> = {}) {
   };
 }
 
-test('a proven same-authorization refresh keeps Account-driven queries and Agent anchors intact', async () => {
+test('a proven same-authorization refresh keeps Account-driven queries intact', async () => {
   const f = watcherFixture();
   try {
     await f.start(); await f.snapshotEvent();
@@ -119,7 +116,6 @@ test('a proven same-authorization refresh keeps Account-driven queries and Agent
     const key = ['runtime', 'capability-inventory'];
     const cached = { status: 'existing-ready-projection' };
     f.queryClient.setQueryData(key, cached);
-    f.anchors.set('agent-reference', 'conversation-anchor');
     const events = f.events.length;
     await f.emit({ state: 'refresh-pending' });
     await f.emit({ state: 'authenticated' });
@@ -127,7 +123,6 @@ test('a proven same-authorization refresh keeps Account-driven queries and Agent
     assert.equal(f.events.length, events);
     assert.equal(f.queryClient.getQueryData(key), cached);
     assert.equal(f.queryClient.getQueryState(key)?.isInvalidated, false);
-    assert.equal(f.anchors.get('agent-reference'), 'conversation-anchor');
     assert.ok(f.diagnostics.some(entry => entry.details?.recoveryCause === 'same-authorization-refresh'));
     assert.doesNotMatch(JSON.stringify(f.diagnostics), /authorization-a|account-a|conversation-anchor/u);
   } finally { await f.close(); }
@@ -139,11 +134,10 @@ test('changed authorization without an intermediate expiry event still performs 
     try {
       await f.start(); await f.snapshotEvent();
       const key = ['runtime', 'capability-inventory'];
-      f.queryClient.setQueryData(key, {}); f.anchors.set('agent', 'old-anchor');
+      f.queryClient.setQueryData(key, {});
       if (pendingFirst) await f.emit({ state: 'refresh-pending' });
       await f.emit({ state: 'authenticated', authorizationRevision: 'authorization-replaced' });
       assert.equal(f.probes, 2);
-      assert.equal(f.anchors.size, 0);
       assert.equal(f.queryClient.getQueryState(key)?.isInvalidated, true);
       assert.ok(f.diagnostics.some(entry => entry.details?.revisionChanged === true && entry.details?.recoveryCause === 'authorization-changed'));
       await f.emit({ state: 'refresh-pending' }); await f.emit({ state: 'authenticated' });
@@ -179,7 +173,7 @@ test('startup pending has no successful recovery to reuse even if it already car
       assert.equal(f.probes, 0);
       await f.emit({ state: 'authenticated', authorizationRevision: 'authorization-a' });
       assert.equal(f.probes, 1);
-      assert.deepEqual(f.events, ['clear-handles', ['read', [[]]]]);
+      assert.deepEqual(f.events, [['read', [[]]]]);
     } finally { await f.close(); }
   }
 });
@@ -203,11 +197,11 @@ test('a failed forced retry cannot reuse an older successful Account recovery', 
     f.setProbe(async () => { throw new Error('session-invalid'); });
     await f.retry(); await f.snapshotEvent();
     assert.equal(f.probes, 2);
-    assert.equal(f.events.filter(event => event === 'clear-handles').length, 1);
+    assert.equal(f.events.filter(event => Array.isArray(event) && event[0] === 'read').length, 1);
     f.setProbe(async () => ({ sessionBound: true, reasonCode: 'action-executed' }));
     await f.emit({ state: 'refresh-pending' }); await f.emit({ state: 'authenticated' });
     assert.equal(f.probes, 3, 'the failed forced recovery retired its earlier success baseline');
-    assert.equal(f.events.filter(event => event === 'clear-handles').length, 2);
+    assert.equal(f.events.filter(event => Array.isArray(event) && event[0] === 'read').length, 2);
   } finally { await f.close(); }
 });
 
@@ -239,7 +233,7 @@ test('terminal loss and principal changes require full recovery even if a suppli
         accountId: change === 'switch' ? 'account-b' : 'account-a', realmEnvironmentId: change === 'realm' ? 'another-realm' : 'realm', displayName: 'Current',
       } });
       assert.equal(f.probes, 2);
-      assert.equal(f.events.filter(event => event === 'clear-handles').length, 2);
+      assert.equal(f.events.filter(event => Array.isArray(event) && event[0] === 'read').length, 2);
     } finally { await f.close(); }
   }
 });
@@ -337,7 +331,7 @@ test('the production account watcher restores App readiness on startup and reaut
     await new Promise(setImmediate);
     assert.equal(probes, 2, 'reauthentication must recover the protected App session');
     assert.equal(f.lifecycle.auth().status, 'authenticated');
-    assert.equal(f.events.filter((event) => event === 'clear-handles').length, 2);
+    assert.equal(f.events.filter((event) => Array.isArray(event) && event[0] === 'read').length, 2);
   } finally {
     watcher.stopAuthStateWatcher();
   }

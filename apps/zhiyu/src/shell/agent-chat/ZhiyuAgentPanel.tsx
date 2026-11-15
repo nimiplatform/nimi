@@ -1,8 +1,11 @@
+import { Compass } from 'lucide-react';
 import zhiyuLogoImage from '../assets/logo.png';
 import { ZhiyuPartnerAvatarCard } from './ZhiyuPartnerAvatarCard';
 import type { NimiLocalAppAgentHandle, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 
 type DesktopPresenceRailProps = {
+  readonly onDiscover?: () => void;
+  readonly discovering?: boolean;
   readonly agents: readonly {
     readonly itemKey: string;
     readonly agentHandle: NimiLocalAppAgentHandle | null;
@@ -19,7 +22,7 @@ type DesktopPresenceRailProps = {
 };
 
 export function DesktopPresenceRail({
-  agents,
+  agents, onDiscover, discovering,
   currentAgentHandle,
   currentPartnerName,
   hasCurrentPartner,
@@ -34,6 +37,7 @@ export function DesktopPresenceRail({
       <div className="zhiyu-agent-rail__logo" data-zhiyu-desktop-logo-image="zhiyu">
         <img src={zhiyuLogoImage} alt="织羽" />
       </div>
+      <button type="button" className="zhiyu-agent-rail__discover" aria-label="发现角色" title="发现角色" aria-pressed={Boolean(discovering)} onClick={onDiscover}><Compass size={21} aria-hidden="true" /></button>
       <div
         className="zhiyu-agent-rail__agents"
         data-zhiyu-region="relationship-rail"

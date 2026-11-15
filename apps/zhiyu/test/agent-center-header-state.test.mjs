@@ -216,6 +216,9 @@ async function importRightPanelModule() {
             export function AppCardSurface({ children, as: Tag = 'div', ...props }) {
               return createElement(Tag, props, children);
             }
+            export function Button({ children, leadingIcon, size, tone, ...props }) {
+              return createElement('button', props, leadingIcon, children);
+            }
           `,
         }));
         buildApi.onResolve({ filter: /^lucide-react$/ }, () => ({ path: 'lucide', namespace: 'panel-stub' }));
@@ -224,6 +227,7 @@ async function importRightPanelModule() {
           contents: `
             import { createElement } from 'react';
             export function Globe2() { return createElement('svg'); }
+            export function ExternalLink() { return createElement('svg'); }
             export function RotateCcw() { return createElement('svg'); }
             export function Settings2() { return createElement('svg'); }
             export function X() { return createElement('svg'); }

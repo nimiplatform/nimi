@@ -34,15 +34,6 @@ async function loadRuntimeStreamFooter() {
   return module.RuntimeStreamFooter;
 }
 
-async function loadRuntimeAgentDebugMessageAccessory() {
-  Object.defineProperty(globalThis, 'React', {
-    value: React,
-    configurable: true,
-  });
-  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
-  return module.RuntimeAgentDebugMessageAccessory;
-}
-
 function buildCanonicalMessage(overrides: Partial<ConversationCanonicalMessage> = {}): ConversationCanonicalMessage {
   return {
     id: 'message-image-1',
@@ -185,79 +176,6 @@ test('runtime stream footer shows the non-terminal waiting warning with Stop ava
   assert.match(markup, /aria-label="Stop generating"/u);
   assert.doesNotMatch(markup, /Interrupted/u);
 });
-
-for (const locale of ['en', 'zh'] as const) {
-test(`runtime agent debug accessory renders localized labels and runtime.agent.turns anchor evidence in ${locale}`, async () => {
-  const RuntimeAgentDebugMessageAccessory = await loadRuntimeAgentDebugMessageAccessory();
-  const { initI18n, changeLocale, i18n } = await import('../src/shell/renderer/i18n/index.js');
-  await initI18n();
-  await changeLocale(locale);
-  const t = i18n.getFixedT(locale);
-  const markup = renderToStaticMarkup(
-    <RuntimeAgentDebugMessageAccessory
-      message={buildCanonicalMessage({
-        role: 'assistant',
-        text: 'Reused runtime session.',
-        kind: 'text',
-        metadata: {
-          debugType: 'agent-text-turn',
-          prompt: 'Messages:\n[]',
-          systemPrompt: 'Be concise.',
-          rawModelOutput: null,
-          normalizedModelOutput: null,
-          statusCue: null,
-          followUpInstruction: null,
-          followUpTurn: true,
-          chainId: 'chain-rt-1',
-          followUpDepth: null,
-          maxFollowUpTurns: null,
-          followUpCanceledByUser: false,
-          followUpSourceActionId: null,
-          followUpDelayMs: null,
-          runtimeAgentTurns: {
-            transport: 'runtime.agent.turns',
-            conversationAnchorId: 'anchor-rt-1',
-            runtimeTurnId: 'turn-rt-1',
-            runtimeStreamId: 'stream-rt-1',
-            route: 'local',
-            modelId: 'kimi-k2',
-            connectorId: null,
-            traceId: 'trace-rt-1',
-            modelResolved: 'kimi-k2',
-            routeDecision: 'local',
-          },
-        },
-      })}
-      debugVisible={true}
-      summaryLabel="Debug"
-      copyLabel="Copy"
-      copiedLabel="Copied"
-      followUpLabel="Follow-up"
-      followUpInstructionLabel="Follow-up instruction"
-      followUpChainLabel={t('Chat.agentDebugFollowUpChainLabel')}
-      runtimeAgentTurnsLabel={t('Chat.agentDebugRuntimeAgentTurnsLabel')}
-      promptLabel="Prompt"
-      systemPromptLabel="System prompt"
-      rawOutputLabel="Raw output"
-      normalizedOutputLabel="Normalized output"
-    />,
-  );
-
-  assert.match(markup, locale === 'en' ? /Follow-up chain/u : /跟进链路/u);
-  assert.match(markup, locale === 'en' ? /Runtime Agent Turns/u : /Runtime Agent 轮次/u);
-  assert.match(markup, /chainId=chain-rt-1/u);
-  assert.match(markup, /conversationAnchorId=anchor-rt-1/u);
-  assert.match(markup, /runtimeTurnId=turn-rt-1/u);
-  assert.match(markup, /runtimeStreamId=stream-rt-1/u);
-  assert.match(markup, /traceId=trace-rt-1/u);
-  assert.doesNotMatch(markup, /route=/u);
-  assert.doesNotMatch(markup, /modelId=/u);
-  assert.doesNotMatch(markup, /connectorId=/u);
-  assert.doesNotMatch(markup, /modelResolved=/u);
-  assert.doesNotMatch(markup, /routeDecision=/u);
-});
-}
-
 
 test('image failures retain readable content and keep diagnostic codes collapsed', async () => {
   const RuntimeImageMessageContent = await loadRuntimeImageMessageContent();

@@ -22,6 +22,8 @@ pnpm dev:desktop
 
 Once launched, sign in through Nimi Home (which routes through your default browser) before launching supervised Nimi Apps. See [LOCAL_DEVELOPMENT.md](../../LOCAL_DEVELOPMENT.md) for full development setup across Windows and macOS.
 
+Connections & access opens the official account site's `/account/runtime` page. When its admitted HTTPS manager is deployed separately from the login site, set `NIMI_RUNTIME_MANAGER_WEB_URL` to that manager's base URL; otherwise the entry uses `NIMI_WEB_URL`. HTTP login-only deployments are not remote manager entries. Loopback URLs are labeled local development previews, and do not serve another device. This configuration does not start a website, register a source or grant access. Account security continues to use `NIMI_WEB_URL`.
+
 ### Validation & Testing
 
 Run workspace checks from the repository root:

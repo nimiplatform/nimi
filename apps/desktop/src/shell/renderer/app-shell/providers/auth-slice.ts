@@ -6,7 +6,6 @@ import type { AppStoreSet, AppStoreState, RuntimeAccountAuthProjection } from '.
 
 type AuthSlice = Pick<AppStoreState,
   'auth'
-  | 'suspendedAgentSelection'
   | 'setAuthBootstrapping'
   | 'applyRuntimeAccountProjection'
   | 'setAuthSession'
@@ -29,16 +28,8 @@ function preservesProfile(previous: AppStoreState['auth'], next: RuntimeAccountA
     && Boolean(previous.authorizationRevision.trim()) && previous.authorizationRevision === next.authorizationRevision;
 }
 
-function releaseAttachmentDrafts(state: AppStoreState) {
-  for (const items of Object.values(state.agentComposerAttachments)) {
-    for (const item of items) URL.revokeObjectURL(item.previewUrl);
-  }
-  return { agentComposerAttachments: {} };
-}
-
 export function createAuthSlice(set: AppStoreSet): AuthSlice {
   return {
-    suspendedAgentSelection: null,
     auth: {
       status: 'bootstrapping',
       user: null,
@@ -76,41 +67,13 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
             ? { failureDetail: projection.failureDetail }
             : {}),
         };
-        if (projection.status === 'unavailable') {
-          // Identity is unproven: hide the open partner and conversation, but
-          // remember them for the account that had them open.
-          const accountId = state.auth.status === 'authenticated' ? accountIdOf(state.auth.user) : '';
-          return {
-            auth,
-            suspendedAgentSelection: accountId
-              ? {
-                accountId,
-                conversationTargetByHandle: state.agentConversationTargetByHandle,
-              }
-              : state.suspendedAgentSelection,
-            lastSelectedThreadByMode: {
-              ...state.lastSelectedThreadByMode,
-              agent: null,
-            },
-            agentConversationTargetByHandle: {},
-          };
-        }
-        const suspended = state.suspendedAgentSelection;
-        if (projection.status === 'authenticated' && suspended) {
-          if (suspended.accountId !== accountIdOf(projection.user)) return { auth, suspendedAgentSelection: null, ...releaseAttachmentDrafts(state) };
-          return {
-            auth,
-            suspendedAgentSelection: null,
-            agentConversationTargetByHandle: suspended.conversationTargetByHandle,
-          };
-        }
         if (projection.status === 'anonymous' || projection.status === 'switching') {
-          return { auth, suspendedAgentSelection: null, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null, ...releaseAttachmentDrafts(state) };
+          return { auth, pendingNimiComposerPrefill: null, homePartnerDrafts: {} };
         }
         if (projection.status === 'authenticated' && accountIdOf(state.auth.user) && accountIdOf(state.auth.user) !== accountIdOf(projection.user)) {
-          return { auth, agentConversationTargetByHandle: {}, pendingAgentComposerPrefill: null, pendingNimiComposerPrefill: null, ...releaseAttachmentDrafts(state) };
+          return { auth, pendingNimiComposerPrefill: null };
         }
-        return { auth };
+        return { auth, ...(projection.status === 'unavailable' ? { pendingNimiComposerPrefill: null } : {}) };
       }),
     applyCurrentUserProfile: (profile, realmEnvironmentId) => set((state) => {
       const current = state.auth.user;
@@ -134,7 +97,6 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
       })),
     clearAuthSession: () =>
       set((state) => ({
-        suspendedAgentSelection: null,
         auth: {
           status: 'anonymous',
           user: null,
@@ -150,15 +112,12 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         lastSelectedThreadByMode: {
           ...state.lastSelectedThreadByMode,
           human: null,
-          agent: null,
         },
-        agentConversationTargetByHandle: {},
-        agentComposerDrafts: {},
-        ...releaseAttachmentDrafts(state),
+        homePartnerDrafts: {},
+        pendingNimiComposerPrefill: null,
         chatSetupState: {
           ...state.chatSetupState,
           human: null,
-          agent: null,
         },
       })),
   };

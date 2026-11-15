@@ -26,9 +26,7 @@ const envelope: NimiDesktopOpenIntentEnvelope = {
   sourceHost: 'desktop-electron-local-app-host',
   requestId: 'desktop-open-zhiyu-test-1',
   intent: {
-    kind: 'open-explore',
-    section: 'partners',
-    productIntent: 'select-partner',
+    kind: 'open-partners',
   },
 };
 

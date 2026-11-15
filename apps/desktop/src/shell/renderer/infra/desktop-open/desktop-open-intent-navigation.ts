@@ -49,15 +49,21 @@ export function applyDesktopOpenIntentToAppStore(
 ): void {
   const { runtimeConfigNavigation, store } = input;
   switch (intent.kind) {
+    case 'open-world': {
+      void store.push({ id: 'world-detail', worldId: intent.worldId });
+      return;
+    }
     case 'open-agent-center': {
-      void store.push({ id: 'chat', chat: { mode: 'agent', managerAnchorId: intent.conversationAnchorId } });
+      void store.push({ id: 'partners', partnerManagerAnchorId: intent.conversationAnchorId });
+      return;
+    }
+    case 'open-partners': {
+      void store.push({ id: 'partners', partnerQuery: intent.query ?? '' });
       return;
     }
     case 'open-explore': {
-      void store.push(intent.section === 'partners'
-        ? { id: 'explore', exploreSection: 'partners', partnerQuery: intent.query ?? '' }
-        : { id: 'explore', exploreSection: 'worlds', exploreSearchKind: intent.productIntent === 'discover-characters' ? 'characters' : 'worlds',
-            ...(intent.productIntent === 'discover-characters' ? { search: intent.query ?? '' } : { worldSearch: intent.query ?? '' }) });
+      void store.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: intent.productIntent === 'discover-characters' ? 'characters' : 'worlds',
+        ...(intent.productIntent === 'discover-characters' ? { search: intent.query ?? '' } : { worldSearch: intent.query ?? '' }) });
       return;
     }
     case 'open-runtime-config': {

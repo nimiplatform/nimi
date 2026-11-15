@@ -5,6 +5,7 @@
   "localConfigurationRequired": "当前任务所需的本地模型尚未就绪。请前往「AI 能力」完成相应配置后重试。",
   "textBehaviorUnsupported": "当前配置与接入组合暂时无法处理此请求。请前往「AI 能力」选择其他配置后重试。",
   "appReferences": {
+    "sourceUnavailable": "来源暂不可用",
     "title": "与这位伙伴相关的应用消息",
     "loading": "正在读取应用消息…",
     "unavailable": "应用消息暂时不可用。",

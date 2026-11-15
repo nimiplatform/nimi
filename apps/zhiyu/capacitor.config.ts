@@ -1,4 +1,4 @@
-import { readMobileConfiguration } from './mobile-config.js';
+import { readMobileConfiguration } from './mobile-config';
 
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.android-entry
 const { config, mobileAccess, mobileRelease } = readMobileConfiguration();

@@ -548,3 +548,13 @@ test('a collapsed stack only expands, and a group hide covers exactly its shown 
     }
   }
 });
+
+test('pending access read failure remains visible without affecting unrelated source filters', async () => {
+  await initI18n(); await changeLocale('en');
+  const unavailable = { ...controller({ messages: [] }), systemSources: [{ kind: 'access' as const, status: 'unavailable' as const, retry: noop }] };
+  const pending = renderCenter(unavailable, 'pending');
+  assert.match(pending, /Access requests unavailable/);
+  assert.doesNotMatch(pending, /Nothing pending/);
+  assert.match(renderCenter(unavailable, 'all', 'system:download'), />No messages</);
+  assert.match(renderCenter(unavailable, 'unread'), /No unread messages/);
+});

@@ -41,8 +41,6 @@ export function SourceDetailPanel({
   const storeSelectedSourceRef = useHomeDestination().sourceRef ?? null;
   const selectedSourceRef = sourceRefProp === undefined ? storeSelectedSourceRef : sourceRefProp;
 
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const setFeedback = emitFeedbackToast;
   // Only track an in-flight action. Availability belongs to current owner data.
   const [sourceMaterialization, setSourceMaterialization] = useState<{
@@ -91,7 +89,7 @@ export function SourceDetailPanel({
   }, [source, ownerUserId, localAgentListQuery.isPending, localAgentListQuery.isError, matchingPartners]);
   const openPartner = (localAgentRef: string) => {
     if (!matchingPartners.some(partner => partner.localAgentRef === localAgentRef)) return;
-    void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef } });
+    void navigation.push({ id: 'partners', partner: { localAgentRef } });
   };
 
   const stats = useMemo(() => {
@@ -138,7 +136,7 @@ export function SourceDetailPanel({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added.' }),
       });
-      void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: createdRef } });
+      void navigation.push({ id: 'partners', partner: { localAgentRef: createdRef } });
     } catch (error) {
       if (!isCurrent()) return;
       void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
@@ -151,7 +149,7 @@ export function SourceDetailPanel({
         // returning to a creation button here could duplicate this partner.
         void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
         void queryClient.invalidateQueries({ queryKey: ['home-partners', ownerUserId] });
-        void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: error.localAgentRef } });
+        void navigation.push({ id: 'partners', partner: { localAgentRef: error.localAgentRef } });
       }
     } finally {
       scope.dispose(); position.dispose();
@@ -179,14 +177,9 @@ export function SourceDetailPanel({
         await launchAgentConversationFromDisplay({
           target: conversationTarget,
           initialComposerText: prefillText || null,
-          navigation,
-
-          setAgentConversationTargetSnapshot,
-          setPendingAgentComposerPrefill,
         });
         return;
       }
-      setPendingAgentComposerPrefill({ text: '' });
 
       setFeedback({
         kind: 'error',

@@ -9,7 +9,7 @@ import {
   type ReactElement,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import type { HomeAppSection } from '../../app-shell/providers/home-navigation.js';
 import { AppsAttentionSection } from './apps-attention-section.js';
 import { BundledZhiyuEntry } from './bundled-zhiyu-entry.js';
 import { AppsActionErrorAlert } from './apps-action-error.js';
@@ -103,7 +103,7 @@ export interface AppsPanelViewProps {
   readonly searchQuery: string;
   readonly onSearchChange: (query: string) => void;
   readonly selectedEntryKey: string | null;
-  readonly requestedDetailSection: NimiDesktopOpenAppsSection | null;
+  readonly requestedDetailSection: HomeAppSection | null;
   readonly navigationEntryKey: string;
   readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onBack: () => void;

@@ -15,7 +15,7 @@ import { bundleQueryKey, THREADS_QUERY_KEY } from '../src/shell/renderer/feature
 import { useAiConversationHostActions } from '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.js';
 import { createPlainTextMessageContent } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 
-for (const route of ['side flip', 'direct switch', 'direct switch with empty draft'] as const) {
+for (const route of ['leave for friends', 'direct switch', 'direct switch with empty draft'] as const) {
 for (const outcome of ['success', 'failure'] as const) {
   test(`after a ${route}, a historical thread owns the send and its ${outcome} cleanup`, async (t) => {
     const dataRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-chat-routing-'));
@@ -88,9 +88,9 @@ for (const outcome of ['success', 'failure'] as const) {
     const temporaryText = route === 'direct switch with empty draft' ? '' : 'Keep this unsent temporary draft';
     retainedDraft.current = temporaryText;
     const temporaryBundle = client.getQueryData(bundleQueryKey(temporary.id));
-    if (route === 'side flip') {
-      await navigation.switchChatSide('human');
-      await navigation.switchChatSide('companion');
+    if (route === 'leave for friends') {
+      await navigation.push({ id: 'friends' });
+      await navigation.push({ id: 'chat' });
       assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, undefined);
     }
     await actions().handleSelectThread(history.id);

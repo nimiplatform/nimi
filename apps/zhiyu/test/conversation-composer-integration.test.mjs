@@ -94,7 +94,7 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
     const initial = createInitialZhiyuEvidence();
     const inventory = { ...initial.inventory, ready: true, count: agents.length, localAgents: agents };
     const records = new Map([[draftPath(agents[0]), { version: 1, draft: options.draft ?? '原来的问题', submission: options.pending ?? null }]]);
-    const calls = { send: [], interrupt: [], avatar: [], accessInvalidations: [], openSettings: 0 };
+    const calls = { send: [], interrupt: [], avatar: [], accessInvalidations: [], openSettings: 0, homePartners: [] };
     const currentAnchor = options.anchor ?? anchor;
     const conversation = {
       async send(request) { calls.send.push(request); return options.send ? options.send(request) : { turnId: 'accepted-turn' }; },
@@ -127,6 +127,7 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         projectTurnReadiness(conversation) { return { ...initial.turn, ...conversation, ready: true }; },
       },
       commands: {
+        ...(options.homePartner ? { openDesktopPartner: async anchor => { calls.homePartners.push(anchor); } } : {}),
         async allocateTurnRequestId() { if (options.allocateError) throw options.allocateError; return 'request-test'; },
         conversation: () => conversation,
         draftClient: () => ({ agents: { async listReferences() { return agents; } }, storage: {
@@ -171,6 +172,21 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
     const switched = { command: 'launch', state: 'present', avatarInstanceRef: 'avatar:switched',
       switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null };
     const activeSwitchDialog = () => document.querySelector('[role="dialog"][data-state="open"]');
+
+    await t.test('Home partner management stays in the partner panel and follows the current conversation', async () => {
+      const view = await mount({ homePartner: true });
+      try {
+        assert.equal([...view.node.querySelectorAll('button')].some(button => button.textContent === '在 Home 管理'), false);
+        await act(async () => view.node.querySelector('[data-zhiyu-composer-tool="agent"]').click());
+        await settle(() => view.node.querySelector('[data-zhiyu-region="agent-panel"]'));
+        await clickText(view.node.querySelector('[data-zhiyu-region="agent-panel"]'), '在 Home 管理');
+        assert.deepEqual(view.calls.homePartners, ['anchor-A']);
+        await act(async () => view.navigation.push({ id: 'partner', agentHandle: agents[1].agentHandle, panel: 'overview' }));
+        await settle(() => view.node.querySelector('[data-zhiyu-agent-handle="' + agents[1].agentHandle + '"][data-zhiyu-local-agent-candidate-active="true"]'));
+        await clickText(view.node.querySelector('[data-zhiyu-region="agent-panel"]'), '在 Home 管理');
+        assert.deepEqual(view.calls.homePartners, ['anchor-A', 'anchor-B']);
+      } finally { await view.close(); }
+    });
 
     await t.test('an unconfigured partner opens setup from the header without attempting a Host launch', async () => {
       const view = await mount({ avatarReady: true, presentation: async () => ({

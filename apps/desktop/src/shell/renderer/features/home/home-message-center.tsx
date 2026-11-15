@@ -43,9 +43,8 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
   const appRelevant = domain === null || domain === 'app' || (domain === 'runtime-agent' && filter !== 'pending');
   const realmRelevant = domain === null || domain === 'realm';
   const realmNotificationsRelevant = realmRelevant && filter !== 'pending';
-  const systemSources = filter === 'all'
-    ? messages.systemSources.filter(source => !sourceKey || sourceKey === `system:${source.kind}`)
-    : [];
+  const systemSources = messages.systemSources.filter(source =>
+    filter !== 'unread' && (filter === 'all' || source.kind === 'access') && (!sourceKey || sourceKey === `system:${source.kind}`));
   const incomplete = systemSources.some(source => source.status !== 'ready')
     || appRelevant && !appView.complete || realmRelevant && !messages.realm.requests.complete
     || realmNotificationsRelevant && !messages.realm.notifications.complete;

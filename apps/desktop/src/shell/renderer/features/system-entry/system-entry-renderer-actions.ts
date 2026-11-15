@@ -3,7 +3,6 @@ import type { NimiAppActivityOpenResult, NimiAppActivityRecord } from '@nimiplat
 import type { SystemEntryActionDispatch, SystemEntryContext, SystemEntryProjection } from '../../../shared/system-entry-types.js';
 import { isSystemEntryActionOffered, SYSTEM_ENTRY_ACTION_DISPATCH_MS } from '../../../shared/system-entry-types.js';
 import type { HomeNavigation, HomeDestination } from '../../app-shell/providers/home-navigation.js';
-import type { AppStoreState } from '../../app-shell/providers/store-types.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
@@ -35,7 +34,6 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
   openActivity(record: NimiAppActivityRecord): Promise<NimiAppActivityOpenResult>;
   notifications: SystemEntryNotificationControls;
   reading: SystemEntryReadingNavigation;
-  setAgentConversationTargetSnapshot: AppStoreState['setAgentConversationTargetSnapshot'];
   refresh(): Promise<void>;
   now?: () => number;
 }): Promise<void> {
@@ -73,7 +71,10 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
     case 'settings': { const result = await openHomeSettings(input.navigation); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'notification-settings': { const result = await openHomeSettings(input.navigation, 'notifications'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'support': { const result = await openHomeSettings(input.navigation, 'troubleshooting'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
-    case 'chat': return navigate({ id: 'chat', chat: { mode: 'agent' } });
+    case 'chat':
+      await invokeChecked('bundled_zhiyu_open', {}, value => value);
+      guard();
+      return;
     case 'pause-notifications':
       if (!input.notifications.enabled) throw new Error('system-entry-notifications-disabled');
       await input.notifications.pause(); guard(); return;
@@ -100,7 +101,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
       });
       guard();
       if (!target) throw new Error('system-entry-chat-unavailable');
-      await launchAgentConversationFromDisplay({ target, navigation: input.navigation, setAgentConversationTargetSnapshot: input.setAgentConversationTargetSnapshot });
+      await launchAgentConversationFromDisplay({ target });
       guard();
       return;
     }

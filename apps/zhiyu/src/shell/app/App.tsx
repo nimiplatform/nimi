@@ -1,3 +1,5 @@
+import { ZhiyuCharacterDiscovery, type ZhiyuCharacterCache } from '../discovery/ZhiyuCharacterDiscovery.js';
+import type { ZhiyuConversationOpenRequest } from './conversation-open.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { ConfirmDialog } from '@nimiplatform/kit/ui';
@@ -53,12 +55,19 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const snapshot = useNimiNavigationSnapshot<ZhiyuDestination>();
   const destination = snapshot.current.destination;
   const selectedAgentHandle = destination.agentHandle ?? null;
+  const characterCache = useMemo<ZhiyuCharacterCache>(() => new Map(), [bindings, evidence.auth.accountId, evidence.auth.ready]);
+  const characterInventoryKey = JSON.stringify(evidence.inventory.localAgents.map(agent => agent.agentHandle).sort());
   const draftByPartner = useRef(new Map<string, string>());
   const draftRef = useRef('');
   const previousPosition = useRef<ZhiyuDestination | null>(null);
   const draftKey = destination.agentHandle ?? 'unselected';
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
+  const [pendingOpen, setPendingOpen] = useState<(ZhiyuConversationOpenRequest & { agentHandle: NimiLocalAppAgentHandle; draftHandled: boolean; entryKey: string; navigationGeneration: number }) | null>(null);
+  const [draftOffer, setDraftOffer] = useState<{ text: string; anchor: string } | null>(null);
+  const openGeneration = useRef(0);
+  const lastOpenId = useRef('');
+
   const [pendingResourcePackPlacement, setPendingResourcePackPlacement] = useState<PendingResourcePackPlacement | null>(null);
   const observationRef = useRef<ReturnType<typeof bindings.app.events.subscribeConversation> | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -130,6 +139,70 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     isCurrent: () => currentScope.current === scopeKey && evidence.conversation.ready,
     onRestored: () => setDraft(composerDraft.current),
   });
+  useEffect(() => {
+    const subscribe = bindings.app.events.subscribeConversationOpen;
+    const resolve = bindings.app.projection.resolveConversationOpen;
+    if (!subscribe || !resolve || !evidence.auth.ready || !evidence.inventory.ready) return;
+    let active = true;
+    let stopWatchingOrigin: (() => void) | undefined;
+    const unsubscribe = subscribe(request => {
+      if (!request) { stopWatchingOrigin?.(); openGeneration.current++; setPendingOpen(null); return; }
+      if (lastOpenId.current === request.requestId) return;
+      lastOpenId.current = request.requestId;
+      stopWatchingOrigin?.();
+      const generation = ++openGeneration.current;
+      const origin = navigation.getSnapshot();
+      let departed = false;
+      const stopOrigin = navigation.subscribe(() => {
+        const current = navigation.getSnapshot();
+        if (current.generation !== origin.generation || current.current.key !== origin.current.key) departed = true;
+      });
+      stopWatchingOrigin = stopOrigin;
+      const isCurrent = () => active && !departed && generation === openGeneration.current;
+      setPendingOpen(null);
+      void resolve(request, isCurrent).then(async target => {
+        if (!isCurrent()) throw new Error('Conversation opening superseded.');
+        stopOrigin();
+        const result = await navigation.push({ id: 'partner', ...target });
+        if (!active || generation !== openGeneration.current || !['committed', 'unchanged'].includes(result.status)) throw new Error('Conversation opening superseded.');
+        const reached = navigation.getSnapshot();
+        setPendingOpen({ ...request, agentHandle: target.agentHandle, draftHandled: false, entryKey: reached.current.key, navigationGeneration: reached.generation });
+      }).catch(() => { if (active) bindings.app.commands.acknowledgeConversationOpen?.({ requestId: request.requestId, status: 'failed' }); }).finally(stopOrigin);
+    });
+    return () => { active = false; stopWatchingOrigin?.(); openGeneration.current++; unsubscribe(); };
+  }, [bindings, navigation, evidence.auth.ready, evidence.auth.accountId, evidence.inventory.ready]);
+  useEffect(() => {
+    if (!pendingOpen) return;
+    const cancelOnDeparture = () => {
+      const current = navigation.getSnapshot();
+      if (current.current.key === pendingOpen.entryKey && current.generation === pendingOpen.navigationGeneration) return;
+      openGeneration.current++;
+      bindings.app.commands.acknowledgeConversationOpen?.({ requestId: pendingOpen.requestId, status: 'failed' });
+      setPendingOpen(null);
+    };
+    const unsubscribe = navigation.subscribe(cancelOnDeparture);
+    cancelOnDeparture();
+    return unsubscribe;
+  }, [pendingOpen, navigation, bindings]);
+  useEffect(() => {
+    if (!pendingOpen || pendingOpen.draftHandled || !evidence.conversation.ready
+      || evidence.conversation.agentHandle !== pendingOpen.agentHandle || evidence.conversation.conversationAnchorId !== pendingOpen.conversationAnchorId
+      || persistence.status !== 'saved') return;
+    const text = pendingOpen.text ?? '';
+    if (text && text !== composerDraft.current) {
+      if (composerDraft.current || quote.draftRef.current || persistence.submission) setDraftOffer({ text, anchor: pendingOpen.conversationAnchorId });
+      else { composerDraft.current = text; setDraft(text); }
+    }
+    setPendingOpen(current => current?.requestId === pendingOpen.requestId ? { ...current, draftHandled: true } : current);
+  }, [pendingOpen, evidence.conversation, persistence.status, persistence.submission, composerDraft, quote.draftRef]);
+  useEffect(() => {
+    if (draftOffer && draftOffer.anchor !== destination.conversationAnchorId) setDraftOffer(null);
+  }, [destination.conversationAnchorId, draftOffer]);
+  const finishConversationOpen = useCallback(() => {
+    if (!pendingOpen || !pendingOpen.draftHandled || persistence.status !== 'saved') return;
+    bindings.app.commands.acknowledgeConversationOpen?.({ requestId: pendingOpen.requestId, status: 'opened' });
+    setPendingOpen(null);
+  }, [pendingOpen, persistence.status, bindings]);
   draftRef.current = draft;
   useLayoutEffect(() => {
     const previous = previousPosition.current;
@@ -144,7 +217,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useLayoutEffect(() => {
     setEvidence(current => ({ ...createInitialZhiyuEvidence(), runtime: current.runtime, auth: current.auth, inventory: current.inventory }));
   }, [selectedAgentHandle]);
-  useEffect(() => { owner.setHasSidebar(evidence.inventory.localAgents.length > 0); }, [evidence.inventory.localAgents.length, owner.setHasSidebar]);
+  useEffect(() => { owner.setHasSidebar(evidence.auth.ready); }, [evidence.auth.ready, owner.setHasSidebar]);
   const resourcePackPlacementGenerationRef = useRef(0);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = evidence;
@@ -567,7 +640,33 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   return (
     <>
+    <ConfirmDialog
+      open={Boolean(draftOffer)}
+      title="保留当前草稿，还是追加新文字？"
+      message={<><p>Home 带来了一份文字，当前草稿保持不变。</p><p className="mt-3 whitespace-pre-wrap break-words">{draftOffer?.text}</p></>}
+      confirmLabel="追加到当前草稿"
+      cancelLabel="保留当前草稿"
+      confirmTone="primary"
+      onConfirm={() => {
+        if (!draftOffer) return;
+        const text = composerDraft.current ? composerDraft.current + '\n\n' + draftOffer.text : draftOffer.text;
+        composerDraft.current = text; setDraft(text); setDraftOffer(null);
+      }}
+      onClose={() => setDraftOffer(null)}
+    />
     <ZhiyuAgentChatSurface
+      onDiscover={() => void navigation.push({ id: 'discover', agentHandle: destination.agentHandle, conversationAnchorId: destination.conversationAnchorId, query: '' })}
+      discovery={destination.id === 'discover' ? <ZhiyuCharacterDiscovery client={bindings.app.commands.characters()} cache={characterCache} inventoryKey={characterInventoryKey} query={destination.query ?? ''} selectedKey={destination.sourceKey}
+        onSearch={query => void navigation.replace({ ...destination, query, sourceKey: undefined })}
+        onSelect={sourceKey => void navigation.push({ ...destination, sourceKey })}
+        onPartner={partner => handleSelectLocalAgent(partner.agentHandle)}
+        onBack={() => void navigation.push({ id: 'partner', agentHandle: destination.agentHandle, conversationAnchorId: destination.conversationAnchorId })}
+        openWorld={bindings.app.commands.openDesktopWorld} /> : undefined}
+      onOpenHomePartner={bindings.app.commands.openDesktopPartner && evidence.conversation.ready ? () => {
+        void bindings.app.commands.openDesktopPartner!(evidence.conversation.conversationAnchorId!).catch(error => setSubmissionError(error instanceof Error ? error.message : String(error)));
+      } : undefined}
+      openRequest={pendingOpen?.draftHandled && evidence.conversation.conversationAnchorId === pendingOpen.conversationAnchorId ? pendingOpen : null}
+      onOpenRequestReady={finishConversationOpen}
       evidence={renderEvidence}
       product={product}
       draft={draft}

@@ -4,6 +4,12 @@
 
 织羽默认使用 Nimi 账号，与既有伙伴的身份、Conversation、记忆及配置交互。Web 和 Desktop 共享产品 renderer，通过 SDK／Kit 的不同平台入口接入；应用不保管 Nimi 账号凭据，也不建立另一套伙伴或用户系统。
 
+## 角色发现
+
+发现页使用公开 `agents.listCharacters` / `agents.connectCharacter`。声明中的 `agent.acquire` 与原有 `agent.local` 分开：前者只承接 Realm 公开目录和 Runtime 建立／复用伙伴，后者承接已有伙伴交流。更新时需要匹配的 Runtime、SDK、Kit 和 native binding；不得把 Home 的 account-product client 注入普通 App。
+
+远程来源也必须在其正式登记中声明 `agent.acquire`；修改 `nimi.app.yaml` 不会自动扩大已登记 Web/Android 的范围。来源声明变更需新 revision 和 Home 重新确认。开发配置和本地验收不代表公开发布；当前没有公开织羽网页或 Android 下载入口。
+
 ## Web 开发
 
 需要 Node/pnpm、匹配的 SDK／Kit／App Tools 和已安装 Nimi。普通开发使用官方 Realm；在 `local_development.web` 填入实际获准的 HTTPS origin、回调和 client_id 后运行 `pnpm dev:web`。初始空值表示尚未配置，不能借用官方 manager 身份。主机 Home 需登录、启用远程接入并准备伙伴，网页设备不需安装 Runtime。显式本地联调使用以下 local 配置：

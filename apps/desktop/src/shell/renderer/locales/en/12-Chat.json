@@ -5,6 +5,7 @@
   "localConfigurationRequired": "No local model is ready for this task. Finish setting one up in AI Capabilities, then try again.",
   "textBehaviorUnsupported": "This configuration and integration cannot handle this request yet. Choose another configuration in AI Capabilities, then try again.",
   "appReferences": {
+    "sourceUnavailable": "Source unavailable",
     "title": "App messages for this partner",
     "loading": "Loading App messages…",
     "unavailable": "App messages are unavailable.",

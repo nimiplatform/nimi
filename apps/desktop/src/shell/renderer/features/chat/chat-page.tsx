@@ -1,19 +1,13 @@
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
-import { DESKTOP_NIMI_APP_ID } from './chat-nimi-app-ai-config';
-import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
-import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
-import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
-import { openAgentTargetSnapshotFromSummary, useChatSidebarData } from './chat-sidebar-targets';
+import { useChatSidebarData } from './chat-sidebar-targets';
 import { createChatTargetNavigation } from './chat-target-navigation.js';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
@@ -41,15 +35,6 @@ const ChatNimiModeContent = lazy(async () => {
     return { default: mod.ChatNimiModeContent };
   } catch (error) {
     throw createLazyImportError('chat:nimi-mode-content', error);
-  }
-});
-
-const ChatAgentModeContent = lazy(async () => {
-  try {
-    const mod = await import('./chat-agent-mode-content');
-    return { default: mod.ChatAgentModeContent };
-  } catch (error) {
-    throw createLazyImportError('chat:agent-mode-content', error);
   }
 });
 
@@ -107,7 +92,6 @@ class ChatModeSurfaceErrorBoundary extends Component<
 
 function ChatModeUnavailable({ mode }: { mode: string }) {
   const copyByMode: Record<string, string> = {
-    Agent: 'Agent mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
     Human: 'Human mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
     Nimi: 'Nimi mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
   };
@@ -119,83 +103,18 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
 }
 
 export function ChatPage() {
-  const { t } = useTranslation();
   const homeChat = useHomeChatPosition();
   const navigation = useHomeNavigation();
-  const sdk = useDesktopRendererSdk();
   const humanChatData = useRealmHumanChatData();
-  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = homeChat.mode;
   const storeSelectedTargetId = homeChat.targetId;
-  const openChatMode = homeChat.openMode;
 
-  const selectAgentConversation = homeChat.selectAgentConversation;
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const agentConversationTargetByHandle = useAppStore((state) => state.agentConversationTargetByHandle);
-
-  const [otherSettingsOpen, setOtherSettingsOpen] = useState(false);
-  const chatSettingsOpen = chatMode === 'agent' ? Boolean(homeChat.agentCenterSection) : otherSettingsOpen;
-  const setChatSettingsOpen = useCallback((open: boolean) => {
-    if (chatMode === 'agent') homeChat.setAgentCenterSection(open ? homeChat.agentCenterSection ?? 'overview' : undefined);
-    else setOtherSettingsOpen(open);
-  }, [chatMode, homeChat.agentCenterSection, homeChat.setAgentCenterSection]);
+  const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
-
-  const { targets: allTargets, agentsReady } = useChatSidebarData(authStatus);
-
-  useEffect(() => {
-    if (chatMode !== 'agent' || !storeSelectedTargetId) {
-      return;
-    }
-    const selected = allTargets.find((target) => (
-      target.source === 'agent' && target.id === storeSelectedTargetId
-    ));
-    if (!selected && agentsReady && !homeChat.managerAnchorId) {
-      emitFeedbackToast({ kind: 'info', message: t('Chat.rail.agentUnavailable') });
-      void navigation.replace({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
-      return;
-    }
-    const existing = selected
-      ? agentConversationTargetByHandle[String(selected.metadata?.agentHandle || '').trim()]
-      : null;
-    if (existing?.agentHandle && existing.conversationAnchorId) {
-      selectAgentConversation({
-        agentHandle: existing.agentHandle,
-        conversationAnchorId: existing.conversationAnchorId,
-        targetId: existing.agentHandle,
-      });
-      return;
-    }
-    let cancelled = false;
-    void openAgentTargetSnapshotFromSummary(selected, sdk.conversation()).then((snapshot) => {
-      if (!cancelled && snapshot) {
-        setAgentConversationTargetSnapshot(snapshot);
-        selectAgentConversation({
-          agentHandle: snapshot.agentHandle || null,
-          conversationAnchorId: snapshot.conversationAnchorId || null,
-          targetId: snapshot.agentHandle || null,
-        });
-      }
-    }).catch((error) => {
-      if (cancelled) return;
-      logRendererEvent({
-        level: 'warn', area: 'chat', message: 'action:canonical-agent-open:failed',
-        details: { error: error instanceof Error ? error.message : String(error || '') },
-      });
-    });
-    return () => { cancelled = true; };
-  }, [
-    allTargets, agentsReady, homeChat.managerAnchorId, navigation, t,
-    agentConversationTargetByHandle,
-    chatMode,
-
-    setAgentConversationTargetSnapshot,
-    sdk,
-    storeSelectedTargetId,
-  ]);
-
+  const { targets } = useChatSidebarData(authStatus);
+  const allTargets = useMemo(() => targets.filter(target => target.source === (chatMode === 'human' ? 'human' : 'ai')), [targets, chatMode]);
   const toggleChatSettings = useCallback(() => {
     setChatSettingsOpen(!chatSettingsOpen);
     setNimiThreadListOpen(false);
@@ -212,7 +131,7 @@ export function ChatPage() {
   }, [setChatSettingsOpen]);
 
   useLayoutEffect(() => {
-    setOtherSettingsOpen(false);
+    setChatSettingsOpen(false);
   }, [chatMode, storeSelectedTargetId]);
 
   useEffect(() => {
@@ -223,47 +142,9 @@ export function ChatPage() {
   }, [chatMode]);
 
   const handleSetupAction = useCallback((action: ConversationSetupAction) => {
-    if (action.kind === 'sign-in') {
-      openChatMode(action.returnToMode || chatMode);
-      void navigate('/login', {
-        state: { returnToChat: true },
-      });
-      return;
-    }
-    if (chatMode === 'ai' || chatMode === 'agent' || action.returnToMode === 'ai' || action.returnToMode === 'agent') {
-      const returnMode = action.returnToMode || chatMode;
-      if (returnMode === 'agent') {
-        // Opening setup in the current Agent must retain its proven Conversation.
-        if (chatMode === 'agent') setChatSettingsOpen(true);
-        else homeChat.open({ mode: 'agent', agentCenterSection: 'overview' });
-      } else {
-        openChatMode(returnMode);
-        setOtherSettingsOpen(true);
-      }
-      setNimiThreadListOpen(false);
-      return;
-    }
-    openChatMode(action.returnToMode || chatMode);
-    // The conversation setup action opens the shared setup task for the exact
-    // Nimi app owner instead of the legacy overview page; the original input
-    // is never re-sent.
-    void currentDesktopAccountIdForSetup().then((accountId) => {
-      openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
-        capabilityContract: 'text.generate',
-        source: {
-          kind: 'app',
-          ownerAppId: DESKTOP_NIMI_APP_ID,
-          accountId,
-          returnFocus: 'chat',
-        },
-        openTask: (taskId) => {
-
-          runtimeConfigNavigation.openSetupTask(taskId);
-        },
-      });
-    });
-  }, [chatMode, navigate, runtimeConfigNavigation, navigation, openChatMode, homeChat.open, setChatSettingsOpen]);
-
+    if (action.kind === 'sign-in') { void navigate('/login', { state: { returnToChat: chatMode === 'ai' } }); return; }
+    setChatSettingsOpen(true); setNimiThreadListOpen(false);
+  }, [navigate, chatMode]);
   const targetNavigation = useRef<ReturnType<typeof createChatTargetNavigation> | null>(null);
   useEffect(() => {
     const controller = createChatTargetNavigation({
@@ -274,17 +155,15 @@ export function ChatPage() {
         if (!chatId) throw new Error('Chat could not be opened.');
         return chatId;
       },
-      openAgent: target => openAgentTargetSnapshotFromSummary(target, sdk.conversation()),
-      rememberAgent: setAgentConversationTargetSnapshot,
       onError: error => {
         emitFeedbackToast({ kind: 'error', message: error instanceof Error ? error.message : String(error) });
-        logRendererEvent({ level: 'warn', area: 'chat', message: 'action:canonical-agent-open:failed',
+        logRendererEvent({ level: 'warn', area: 'chat', message: 'action:human-chat-open:failed',
           details: { error: error instanceof Error ? error.message : String(error) } });
       },
     });
     targetNavigation.current = controller;
     return () => { controller.dispose(); };
-  }, [navigation, sdk, humanChatData, setAgentConversationTargetSnapshot, authStatus]);
+  }, [navigation, humanChatData, authStatus]);
 
   const handleSelectTarget = useCallback((targetId: string) => {
     const target = allTargets.find((t) => t.id === targetId);
@@ -345,17 +224,6 @@ export function ChatPage() {
               threadListOpen={nimiThreadListOpen}
               onCloseThreadList={() => setNimiThreadListOpen(false)}
             />
-          </Suspense>
-        </ChatModeSurfaceErrorBoundary>
-      ) : null}
-      {chatMode === 'agent' ? (
-        <ChatModeSurfaceErrorBoundary
-          mode="agent"
-          resetKey={surfaceResetKey}
-          fallback={<ChatModeUnavailable mode="Agent" />}
-        >
-          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
-            <ChatAgentModeContent {...sharedProps} />
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
       ) : null}

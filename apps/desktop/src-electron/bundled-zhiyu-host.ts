@@ -1,3 +1,5 @@
+import { createZhiyuConversationDelivery } from './zhiyu-conversation-delivery.js';
+import { ZHIYU_CONVERSATION_OPEN_EVENT, ZHIYU_CONVERSATION_OPEN_READ, ZHIYU_CONVERSATION_OPEN_ACK, type ZhiyuConversationOpenTarget } from '../../zhiyu/src/shell/app/conversation-open.js';
 import path from 'node:path';
 import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell, webContents } from 'electron';
 import {
@@ -44,6 +46,12 @@ export function createDesktopBundledZhiyuHost(input: {
   let opening: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
 
+  const conversationDelivery = createZhiyuConversationDelivery(() => current?.window.webContents.send(ZHIYU_CONVERSATION_OPEN_EVENT));
+  const ownsSender = (event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => Boolean(current && input.canOpen()
+    && event.sender === current.window.webContents && event.senderFrame === event.sender.mainFrame);
+  ipcMain.handle(ZHIYU_CONVERSATION_OPEN_READ, event => ownsSender(event) ? conversationDelivery.read() : null);
+  const acknowledgeConversation = (event: Electron.IpcMainEvent, value: unknown) => { if (ownsSender(event)) conversationDelivery.acknowledge(value); };
+  ipcMain.on(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
   const focus = async () => {
     if (!current || current.window.isDestroyed()) throw new Error('bundled-zhiyu-window-unavailable');
     if (current.window.isMinimized()) current.window.restore();
@@ -51,6 +59,7 @@ export function createDesktopBundledZhiyuHost(input: {
   };
   const close = (): Promise<void> => {
     if (closing) return closing;
+    conversationDelivery.close();
     const record = current;
     if (!record) return Promise.resolve();
     current = undefined;
@@ -83,6 +92,7 @@ export function createDesktopBundledZhiyuHost(input: {
       const owner = createNimiElectronBundledAppLocalHostOwner({ appId: 'nimi.zhiyu', revealInOs: target => shell.showItemInFolder(target) });
       const chrome = createNimiElectronAppChromeHost({
         metadata: { name: '织羽', version: input.version }, allowedRendererUrls: [rendererUrl],
+        appCommands: [{ id: 'zhiyu.account.manage', menu: 'file', labels: { en: 'Manage account in Home', zh: '在 Home 管理账号' } }],
         app: { quit: () => { void close().catch(input.reportError); } }, menu: Menu,
       });
       const media = createNimiElectronLocalAppAssetMediaHost({
@@ -146,12 +156,20 @@ export function createDesktopBundledZhiyuHost(input: {
   };
   return {
     open,
+    async openConversation(target: ZhiyuConversationOpenTarget) {
+      await open();
+      if (!current || !input.canOpen()) throw new Error('Zhiyu opening is unavailable.');
+      await conversationDelivery.deliver(target);
+      await focus();
+    },
     isOpen: () => Boolean(current),
     close,
     async shutdown() {
       if (opening) await opening.catch(() => undefined);
       await close();
       ipcMain.removeListener(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
+      ipcMain.removeListener(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
+      ipcMain.removeHandler(ZHIYU_CONVERSATION_OPEN_READ);
     },
   };
 }

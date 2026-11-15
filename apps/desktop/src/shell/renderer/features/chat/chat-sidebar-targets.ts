@@ -19,8 +19,6 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { useHumanChatList } from './use-human-chat-list.js';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
 import { isConversationReply, unreadCompanionReplies } from '../home/home-app-activity-model.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
@@ -229,7 +227,6 @@ export function chatSidebarQueryAuthStatus(authStatus: AuthStatus, ownerUserId: 
 export function useChatSidebarData(
   authStatus: AuthStatus,
 ) {
-  const sdk = useDesktopRendererSdk();
   const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
@@ -237,11 +234,9 @@ export function useChatSidebarData(
   const realmEnvironmentId = useAppStore((state) => state.auth.user?.realmEnvironmentId);
   const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl);
   const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
-  const queryAuthStatus = chatSidebarQueryAuthStatus(authStatus, ownerUserId);
   const canRead = authStatus === 'authenticated' && Boolean(ownerUserId);
 
   const humanChatsQuery = useHumanChatList(authStatus);
-  const { recent } = useHomeAppActivity();
   const position = useHomeDestination().chat;
   const selectedChatId = position?.mode === 'human' ? position.threadId : undefined;
   const selectedChat = useQuery({
@@ -255,13 +250,6 @@ export function useChatSidebarData(
     queryFn: async () => realmSocialData.loadSocialSnapshot() as Promise<SocialSnapshot>,
     enabled: canRead,
     staleTime: 30_000,
-  });
-
-  const localAgentReferencesQuery = useQuery({
-    queryKey: ['desktop-local-app-agent-references', queryAuthStatus, ownerUserId],
-    queryFn: async () => sdk.appProduct().agents.listReferences(),
-    enabled: canRead,
-    staleTime: 15_000,
   });
 
   const humanTargets = useMemo(() => {
@@ -278,10 +266,6 @@ export function useChatSidebarData(
     });
     return mergeHumanChatTargetsWithFriendTargets(chatTargets, friendTargets);
   }, [humanChatsQuery.data, selectedChat.data, socialSnapshotQuery.data, t]);
-
-  const agentTargets = useMemo(() => {
-    return toRecentAgentTargets(localAgentReferencesQuery.data ?? [], recent.records);
-  }, [localAgentReferencesQuery.data, recent.records]);
 
   const aiTarget = useMemo((): ConversationTargetSummary => ({
     id: 'ai:assistant',
@@ -300,7 +284,7 @@ export function useChatSidebarData(
     metadata: {},
   }), [t]);
 
-  const targets = useMemo(() => [...humanTargets, aiTarget, ...agentTargets], [humanTargets, aiTarget, agentTargets]);
-  return { targets, agentsReady: canRead && localAgentReferencesQuery.isSuccess && !localAgentReferencesQuery.isFetching };
+  const targets = useMemo(() => [...humanTargets, aiTarget], [humanTargets, aiTarget]);
+  return { targets };
 
 }

@@ -3,7 +3,7 @@ import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { DEFAULT_CHAT_SOURCE_FILTER, DEFAULT_CHAT_SETUP_STATE, DEFAULT_LAST_SELECTED_THREAD_BY_MODE, DEFAULT_VIEW_MODE_BY_SOURCE_TARGET } from '../../features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { agentComposerDraftKey } from '../../features/chat/chat-agent-composer-draft.js';
+import { homePartnerDraftKey } from '../../features/home/home-partner-draft.js';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
 export type UiSliceDependencies = {
@@ -19,12 +19,8 @@ type UiSlice = Pick<AppStoreState,
   | 'chatSourceFilter'
   | 'viewModeBySourceTarget'
   | 'lastSelectedThreadByMode'
-  | 'agentConversationTargetByHandle'
-  | 'pendingAgentComposerPrefill'
-  | 'agentComposerPrefillSerial'
-  | 'agentComposerDrafts'
-  | 'agentComposerAttachments'
-  | 'setAgentComposerAttachments'
+  | 'nimiComposerPrefillSerial'
+  | 'homePartnerDrafts'
   | 'pendingNimiComposerPrefill'
   | 'chatSetupState'
   | 'profileDetailOverlayOpen'
@@ -39,10 +35,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setChatSourceFilter'
   | 'setChatViewMode'
   | 'setLastSelectedThreadForMode'
-  | 'setAgentConversationTargetSnapshot'
-  | 'setPendingAgentComposerPrefill'
-  | 'clearPendingAgentComposerPrefill'
-  | 'setAgentComposerDraft'
+  | 'setHomePartnerDraft'
   | 'setPendingNimiComposerPrefill'
   | 'clearPendingNimiComposerPrefill'
   | 'setChatSetupState'
@@ -61,12 +54,9 @@ export function createUiSlice(
     chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
     viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
     lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
-    agentConversationTargetByHandle: {},
-    pendingAgentComposerPrefill: null,
     pendingNimiComposerPrefill: null,
-    agentComposerPrefillSerial: 0,
-    agentComposerDrafts: {},
-    agentComposerAttachments: {},
+    nimiComposerPrefillSerial: 0,
+    homePartnerDrafts: {},
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     profileDetailOverlayOpen: false,
     primaryRailVisible: true,
@@ -100,73 +90,19 @@ export function createUiSlice(
           [mode]: threadId,
         },
       })),
-    setAgentConversationTargetSnapshot: (target) =>
+    setHomePartnerDraft: (accountId, partnerRef, text) =>
       set((state) => {
-        const agentHandle = String(target.agentHandle || '').trim();
-        const conversationAnchorId = String(target.conversationAnchorId || '').trim();
-        if (!agentHandle || !conversationAnchorId) {
-          throw new Error('Desktop Agent Conversation target requires canonical handle and anchor.');
-        }
-        const replacedHandles = Object.entries(state.agentConversationTargetByHandle)
-          .filter(([existingHandle, existing]) => (
-            existingHandle !== agentHandle
-            && String(existing.conversationAnchorId || '').trim() === conversationAnchorId
-          ))
-          .map(([existingHandle]) => existingHandle);
-        const nextTargets = { ...state.agentConversationTargetByHandle };
-        for (const replacedHandle of replacedHandles) delete nextTargets[replacedHandle];
-        nextTargets[agentHandle] = target;
-        return {
-          agentConversationTargetByHandle: nextTargets,
-        };
+        const key = homePartnerDraftKey(accountId, partnerRef);
+        if (!key || (state.homePartnerDrafts[key] ?? '') === text) return {};
+        const { [key]: _previous, ...rest } = state.homePartnerDrafts;
+        return { homePartnerDrafts: text ? { ...rest, [key]: text } : rest };
       }),
-    setPendingAgentComposerPrefill: (input) =>
-      set((state) => {
-        const agentHandle = String(input.agentHandle || '').trim();
-        const sourceKey = String(input.sourceKey || '').trim();
-        const text = String(input.text || '').trim();
-        const requestId = state.agentComposerPrefillSerial + 1;
-        return {
-          agentComposerPrefillSerial: requestId,
-          pendingAgentComposerPrefill: text && (agentHandle || sourceKey)
-            ? {
-                ...(agentHandle ? { agentHandle } : {}),
-                ...(sourceKey ? { sourceKey } : {}),
-                text,
-                requestId,
-              }
-            : null,
-        };
-      }),
-    clearPendingAgentComposerPrefill: (requestId) =>
-      set((state) =>
-        state.pendingAgentComposerPrefill?.requestId === requestId
-          ? { pendingAgentComposerPrefill: null }
-          : {},
-      ),
-    setAgentComposerDraft: (accountId, agentHandle, text) =>
-      set((state) => {
-        const key = agentComposerDraftKey(accountId, agentHandle);
-        if (!key || (state.agentComposerDrafts[key] ?? '') === text) return {};
-        const { [key]: _previous, ...rest } = state.agentComposerDrafts;
-        return { agentComposerDrafts: text ? { ...rest, [key]: text } : rest };
-      }),
-    setAgentComposerAttachments: (accountId, threadId, attachments) => set(state => {
-      const key = agentComposerDraftKey(accountId, threadId);
-      if (!key) return {};
-      const nextUrls = new Set(attachments.map(item => item.previewUrl));
-      for (const item of state.agentComposerAttachments[key] ?? []) {
-        if (!nextUrls.has(item.previewUrl)) URL.revokeObjectURL(item.previewUrl);
-      }
-      const { [key]: _previous, ...rest } = state.agentComposerAttachments;
-      return { agentComposerAttachments: attachments.length ? { ...rest, [key]: [...attachments] } : rest };
-    }),
     setPendingNimiComposerPrefill: (input) =>
       set((state) => {
         const text = String(input || '').trim();
-        const requestId = state.agentComposerPrefillSerial + 1;
+        const requestId = state.nimiComposerPrefillSerial + 1;
         return {
-          agentComposerPrefillSerial: requestId,
+          nimiComposerPrefillSerial: requestId,
           pendingNimiComposerPrefill: text ? { text, requestId } : null,
         };
       }),

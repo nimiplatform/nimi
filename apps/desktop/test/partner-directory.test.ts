@@ -63,7 +63,7 @@ test('only explicit chat opens the exact revalidated partner and a stale or paus
 });
 
 test('partner management has a navigation-only position with no conversation or foreign handle', () => {
-  const target = { id: 'explore', exploreSection: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'cognition' } };
+  const target = { id: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'cognition' } };
   assert.equal(validateHomeDestination(target).partner?.settingsSection, 'cognition');
   assert.throws(() => validateHomeDestination({ ...target, partner: { ...target.partner, agentHandle: 'foreign' } }));
   assert.throws(() => validateHomeDestination({ ...target, exploreSection: 'worlds' }));
@@ -72,12 +72,19 @@ test('partner management has a navigation-only position with no conversation or 
 
 test('late partner actions cannot reclaim a page after switching sections or returning with Back', async () => {
   const navigation = createHomeNavigation();
-  await navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+  await navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
   const pending = captureHomeNavigationScope(navigation);
   assert.equal(pending.isCurrent(), true);
-  await navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'cognition' } });
+  await navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'cognition' } });
   assert.equal(pending.isCurrent(), false);
   await navigation.back();
   assert.equal(pending.isCurrent(), false);
   pending.dispose();
+});
+
+ test('retired Explore partner position is rejected and connection navigation is display-only', () => {
+  assert.throws(() => validateHomeDestination({ id: 'explore', exploreSection: 'partners' }));
+  assert.throws(() => validateHomeDestination({ id: 'partners', partnerManagerSection: 'ai-config' }));
+  assert.deepEqual(validateHomeDestination({ id: 'connections', connectionAppId: 'nimi.zhiyu', connectionSourceId: 'web-source' }),
+    { id: 'connections', connectionAppId: 'nimi.zhiyu', connectionSourceId: 'web-source' });
 });

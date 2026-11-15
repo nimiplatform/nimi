@@ -81,6 +81,9 @@ test('source removal confirms the exact sibling without changing the open source
   const { createRoot } = await import('react-dom/client');
   const { TooltipProvider } = await import('@nimiplatform/kit/ui');
   const { AppsDetailView } = await import('../src/shell/renderer/features/apps/apps-detail-view.js');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   const { changeLocale, initI18n } = await import('../src/shell/renderer/i18n/index.js');
   await initI18n(); await changeLocale('zh');
   const first = entry();
@@ -89,7 +92,7 @@ test('source removal confirms the exact sibling without changing the open source
   const calls: string[] = [];
   const props = {
     entry: installed, sourceEntries: [first, second], requestedSection: null,
-    requestedNavigationRevision: 0, onBack() {}, onOpenEntry(key: string) { calls.push(key+':details'); },
+    navigationEntryKey: 'entry-current', onBack() {}, onOpenEntry(key: string) { calls.push(key+':details'); },
     onAction(action: string) { calls.push(installed.identity.entryKey+':'+action); },
     onRemoveSource(key: string) { calls.push(key+':remove'); },
     activeAction: null, actionsDisabled: false, actionError: null, onAIConfigChanged() {},
@@ -97,7 +100,7 @@ test('source removal confirms the exact sibling without changing the open source
   const root = createRoot(dom.window.document.getElementById('root')!);
   const button = () => dom.window.document.querySelector<HTMLButtonElement>(`[data-testid="apps-remove-source-${second.identity.entryKey}"]`)!;
   try {
-    await act(async () => root.render(<TooltipProvider><AppsDetailView {...props} /></TooltipProvider>));
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsDetailView {...props} /></TooltipProvider></AppStoreProvider>));
     await act(async () => button().click());
     assert.deepEqual(calls, []);
     const dialog = () => dom.window.document.querySelector('[role="alertdialog"], [role="dialog"]')!;
@@ -107,10 +110,11 @@ test('source removal confirms the exact sibling without changing the open source
     await act(async () => button().click());
     await act(async () => [...dialog().querySelectorAll('button')].find(b => b.textContent === '移除注册')!.click());
     assert.deepEqual(calls, [`${second.identity.entryKey}:remove`]);
-    await act(async () => root.render(<TooltipProvider><AppsDetailView {...props} actionsDisabled /></TooltipProvider>));
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsDetailView {...props} actionsDisabled /></TooltipProvider></AppStoreProvider>));
     assert.equal(button().disabled, true);
   } finally {
     await act(async () => root.unmount());
+    store.navigation.dispose();
     // Radix dispatches its unmount autofocus event on the next task. Keep the
     // window's Event constructors alive until that real cleanup has settled.
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0));

@@ -181,6 +181,33 @@ describe('Desktop Apps controller action boundary', () => {
     assert.equal(navigation.getSnapshot().current.destination.appSection, 'ai-models');
   });
 
+  it('retains an external destination when its App source is selected, without carrying it to another App', async () => {
+    const navigation = createHomeNavigation();
+    const origin = { id: 'apps', appId: 'nimi.lab', appSection: 'ai-models' } as const;
+    for (const appId of ['nimi.lab', 'nimi.parentos']) {
+      await navigation.push(origin);
+      dispatchAppsPanelCardAction({ entryKey: `local_development:${appId}:source`, appId,
+        action: 'details', navigation, runCardAction: () => assert.fail('navigation is not a lifecycle action') });
+      assert.deepEqual(navigation.getSnapshot().current.destination, {
+        id: 'apps', appId, appEntryKey: `local_development:${appId}:source`,
+        ...(appId === 'nimi.lab' ? { appSection: 'ai-models' } : {}),
+      });
+      await navigation.back();
+      assert.deepEqual(navigation.getSnapshot().current.destination, origin);
+    }
+    navigation.dispose();
+  });
+
+  it('returns from connections to the selected App access section and exact source', async () => {
+    const navigation = createHomeNavigation();
+    const origin = { id: 'apps', appId: 'nimi.lab', appEntryKey: 'local_development:nimi.lab:source', appSection: 'access' } as const;
+    await navigation.push(origin);
+    await navigation.push({ id: 'connections', connectionAppId: 'nimi.lab' });
+    await navigation.back();
+    assert.deepEqual(navigation.getSnapshot().current.destination, origin);
+    navigation.dispose();
+  });
+
   it('acknowledges AIConfig only on the exact source entry', () => {
     const entry = (entryKey: string, sourceClass: DesktopAppsEntry['identity']['sourceClass']): DesktopAppsEntry => ({
       identity: {

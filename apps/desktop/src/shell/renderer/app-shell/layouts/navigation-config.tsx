@@ -1,4 +1,4 @@
-import { Cloud } from 'lucide-react';
+import { Cloud, UsersRound, Network } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
@@ -147,7 +147,10 @@ const ICON_SUPPORT = (
 // @nimi-authority: rule.nimi.desktop.shell-ui.r008
 export function renderShellNavIcon(icon: string): ReactNode {
   const normalized = String(icon || '').trim().toLowerCase();
+  if (normalized === 'partners') return <UsersRound size={18} />;
+  if (normalized === 'connections') return <Network size={18} />;
   if (normalized === 'home') return ICON_HOME;
+  if (normalized === 'friends') return <UsersRound size={18} />;
   if (normalized === 'chat') return ICON_CHAT;
   if (normalized === 'explore') return ICON_EXPLORE;
   if (normalized === 'runtime') return ICON_RUNTIME;
@@ -172,11 +175,13 @@ export function renderShellNavIcon(icon: string): ReactNode {
 // @nimi-authority: rule.nimi.desktop.shell-ui.r001
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
-  { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
+  { id: 'chat', label: 'Nimi Chat', icon: renderShellNavIcon('chat') },
+  { id: 'partners', label: 'My partners', icon: renderShellNavIcon('partners') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'AI Capabilities', icon: renderShellNavIcon('runtime') },
   { id: 'cloud', label: 'Cloud Services', icon: renderShellNavIcon('cloud') },
+  { id: 'connections', label: 'Connections & access', icon: renderShellNavIcon('connections') },
 ];
 
 export function getCoreNavItems(): NavItem[] {
@@ -184,7 +189,7 @@ export function getCoreNavItems(): NavItem[] {
 }
 
 export function getQuickNavItems(): NavItem[] {
-  return [];
+  return [{ id: 'friends', label: 'Friends & chat', icon: renderShellNavIcon('friends') }];
 }
 
 export function NavLink({

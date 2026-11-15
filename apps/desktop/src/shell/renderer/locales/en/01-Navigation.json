@@ -1,6 +1,6 @@
 {
   "home": "Home",
-  "chat": "Chat",
+  "chat": "Nimi Chat",
   "explore": "Explore",
   "apps": "Apps",
   "runtime": "AI Capabilities",
@@ -11,5 +11,8 @@
   "cloud": "Cloud Services",
   "downloads": "Downloads",
   "diagnostics": "Advanced & Diagnostics",
-  "activity": "Activity"
+  "activity": "Activity",
+  "partners": "My partners",
+  "connections": "Connections & access",
+  "friends": "Friends & chat"
 }

@@ -1,3 +1,5 @@
+import { AppStoreProvider, useHomeDestination } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 /**
  * Apps panel home/detail render proof.
  *
@@ -211,7 +213,14 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
 }
 
 function renderView(props: AppsPanelViewProps): string {
-  return renderToStaticMarkup(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>);
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  try { return renderToStaticMarkup(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>); }
+  finally { store.navigation.dispose(); }
+}
+
+function NavigationBoundView(props: AppsPanelViewProps) {
+  const destination = useHomeDestination();
+  return <AppsPanelView {...props} requestedDetailSection={destination.appSection ?? props.requestedDetailSection} />;
 }
 
 test('Nimi Access recognizes integration consumption and preserves unknown declarations in both locales', async () => {
@@ -240,6 +249,7 @@ test('Nimi Access recognizes integration consumption and preserves unknown decla
     { ...installed, packageJob: null, committedRelease: { ...installed.committedRelease!, appAccess } },
   ];
   const root = createRoot(dom.window.document.getElementById('root')!);
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   try {
     for (const locale of ['en', 'zh'] as const) {
       await act(async () => changeLocale(locale));
@@ -248,11 +258,15 @@ test('Nimi Access recognizes integration consumption and preserves unknown decla
           projection: { status: 'loaded', entries: [source], catalogStatus: 'loaded', runtimeError: null },
           selectedEntryKey: source.identity.entryKey,
         });
-        await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
+        await act(async () => {
+          await store.navigation.push({ id: 'apps', appId: source.identity.appId, appEntryKey: source.identity.entryKey });
+          root.render(<AppStoreProvider store={store}><TooltipProvider><NavigationBoundView {...props} /></TooltipProvider></AppStoreProvider>);
+        });
         const accessTab = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
           .find((tab) => tab.textContent === 'Nimi Access');
         assert.ok(accessTab);
         await act(async () => accessTab.click());
+        assert.equal(store.navigation.getSnapshot().current.destination.appSection, 'access');
         const access = dom.window.document.querySelector('[data-testid="apps-detail-app-access"]');
         assert.ok(access);
         const integration = access.querySelector('[data-app-access="integration.consume"]');
@@ -275,6 +289,7 @@ test('Nimi Access recognizes integration consumption and preserves unknown decla
     }
   } finally {
     await act(async () => root.unmount());
+    store.navigation.dispose();
     await changeLocale('zh');
     dom.window.close();
     for (const [key, descriptor] of previous) {
@@ -319,8 +334,9 @@ test('automatic update prompts wait until the current install confirmation close
     installConfirmation: snapshotAppsInstallIntent(catalog.catalogTarget!),
   });
   const root = createRoot(dom.window.document.getElementById('root')!);
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   try {
-    await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>));
     assert.deepEqual(calls, []);
     assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, null);
     await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} installConfirmation={null} /></TooltipProvider>));
@@ -328,6 +344,7 @@ test('automatic update prompts wait until the current install confirmation close
     assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, '2.0.0');
   } finally {
     await act(async () => root.unmount());
+    store.navigation.dispose();
     dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);

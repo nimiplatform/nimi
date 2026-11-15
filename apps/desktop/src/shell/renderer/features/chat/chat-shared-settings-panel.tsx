@@ -7,7 +7,8 @@ import { ModelConfigAIConfigSurface, type ModelConfigCopy } from '@nimiplatform/
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { DESKTOP_NIMI_APP_ID, useDesktopNimiAppAIConfig, useOverwriteDesktopNimiAppAIConfig } from './chat-nimi-app-ai-config.js';
 import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
-import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
+import { openRuntimeSetupTaskFromEntry } from '../runtime-config/runtime-setup-task-open.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
 import { resolveChatSettingsCapabilityDescription, resolveChatSettingsCapabilityLabel } from './chat-model-config-copy.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
@@ -224,22 +225,16 @@ function AiModeSettings(props: {
   }, [props.onDiagnosticsVisibilityChange]);
 
   const openMachineLoadout = useCallback((capabilityContract: string) => {
-    void currentDesktopAccountIdForSetup().then((accountId) => {
-      openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
-        capabilityContract,
-        source: {
-          kind: 'app',
-          ownerAppId: DESKTOP_NIMI_APP_ID,
-          accountId,
-          returnFocus: 'chat',
-        },
-        openTask: (taskId) => {
-
-          runtimeConfigNavigation.openSetupTask(taskId);
-        },
-      });
-    });
-  }, [runtimeConfigNavigation, navigation]);
+    void openRuntimeSetupTaskFromEntry(getRuntimeSetupTaskStore(), {
+      navigation, capabilityContract,
+      loadSource: async origin => ({
+        kind: 'app', ownerAppId: DESKTOP_NIMI_APP_ID,
+        accountId: await currentDesktopAccountIdForSetup(),
+        returnFocus: 'home:' + encodeURIComponent(JSON.stringify(origin)),
+      }),
+      openTask: taskId => runtimeConfigNavigation.openSetupTask(taskId),
+    }).catch(error => emitFeedbackToast({ kind: 'error', message: toChatUserFacingRuntimeError(error, copy.loadFailed || t('Chat.settingsAppAIConfigUnavailable'), t).message }));
+  }, [runtimeConfigNavigation, navigation, copy.loadFailed, t]);
 
   const footer = props.showDiagnosticsFooter === false ? null : (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">

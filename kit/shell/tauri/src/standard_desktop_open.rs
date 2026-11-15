@@ -441,12 +441,29 @@ fn is_valid_app_id(value: &str) -> bool {
         })
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-003
 fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHostParseError> {
     let record = value
         .as_object()
         .ok_or_else(|| invalid_parse("DesktopOpenIntent intent must be an object"))?;
     let kind = required_string(record.get("kind"), "intent.kind")?;
     match kind.as_str() {
+        "open-world" => {
+            assert_allowed_fields(record, &["kind", "worldId"], "world intent")?;
+            let world = required_string(record.get("worldId"), "intent.worldId")?;
+            if world.len() > 256 || !world.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-') { return Err(invalid_parse("Invalid world reference")); }
+            Ok(json!({ "kind": "open-world", "worldId": world }))
+        }
+        "open-partners" => {
+            assert_allowed_fields(record, &["kind", "query"], "partners intent")?;
+            let query = optional_string(record.get("query"), "intent.query")?;
+            if query.as_ref().is_some_and(|value| value.chars().count() > 160) {
+                return Err(invalid_parse("DesktopOpenIntent query must be 160 characters or fewer"));
+            }
+            let mut output = json!({ "kind": "open-partners" });
+            if let Some(value) = query { output["query"] = Value::String(value); }
+            Ok(output)
+        }
         "open-explore" => parse_explore_intent(record),
         "open-runtime-config" => parse_runtime_config_intent(record),
         "open-apps" => parse_apps_intent(record),
@@ -492,7 +509,7 @@ fn parse_explore_intent(
         "explore intent",
     )?;
     let section = required_string(record.get("section"), "intent.section")?;
-    if !matches!(section.as_str(), "worlds" | "partners") {
+    if !matches!(section.as_str(), "worlds") {
         return Err(unsupported_parse(
             "DesktopOpenIntent explore section is not admitted",
         ));
@@ -500,7 +517,6 @@ fn parse_explore_intent(
     let product_intent = required_string(record.get("productIntent"), "intent.productIntent")?;
         let admitted = match section.as_str() {
             "worlds" => product_intent == "discover-worlds" || product_intent == "discover-characters",
-            "partners" => product_intent == "select-partner",
             _ => false,
         };
         if !admitted {
@@ -662,6 +678,8 @@ fn parse_bridge_result(
             if !matches!(
                 applied_target.as_str(),
                 "open-explore"
+                    | "open-partners"
+                    | "open-world"
                     | "open-runtime-config"
                     | "open-apps"
                     | "open-settings"

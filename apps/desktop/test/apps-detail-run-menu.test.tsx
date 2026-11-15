@@ -83,6 +83,9 @@ test('a local-development build keeps 停止 beside 启动中 and in the overflo
   const { TooltipProvider } = await import('@nimiplatform/kit/ui');
   const { changeLocale, initI18n } = await import('../src/shell/renderer/i18n');
   const { AppsPanelView } = await import('../src/shell/renderer/features/apps/apps-panel-view');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   await initI18n();
   await changeLocale('zh');
 
@@ -110,7 +113,7 @@ test('a local-development build keeps 停止 beside 启动中 and in the overflo
   };
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
-    await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>));
     const document = dom.window.document;
     assert.ok(document.querySelector('[data-testid="apps-detail-starting"]'), 'header shows 启动中');
     const headerStop = document.querySelector<HTMLButtonElement>('[data-testid="apps-detail-stop"]');
@@ -128,6 +131,7 @@ test('a local-development build keeps 停止 beside 启动中 and in the overflo
     assert.deepEqual(actions, [`${entry.identity.entryKey}:stop`, `${entry.identity.entryKey}:stop`]);
   } finally {
     await act(async () => root.unmount());
+    store.navigation.dispose();
     // Radix focus scopes dispatch their unmount events on a timer; let them
     // land on jsdom before the Node globals come back.
     await new Promise((resolve) => setTimeout(resolve, 50));

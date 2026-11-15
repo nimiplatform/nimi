@@ -24,6 +24,8 @@ function view(overrides: Partial<HomeAgentCardViewProps> = {}) {
     stripRef: noop,
     formatTime: (ms) => `t:${ms}`,
     onSelectPartner: noop,
+    draftText: '',
+    onDraftChange: noop,
     onOpenChat: noop,
     onOpenPartner: noop,
     onOpenAll: noop,
@@ -67,7 +69,7 @@ test('ready state renders the recent-chats header, compact strip, and one merged
   const html = render();
   assert.match(html, /data-state="ready"/);
   assert.match(html, /data-testid="home-recent-chats-title">最近对话/);
-  assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>打开全部对话/);
+  assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>打开织羽/);
   // The open-all action renders as a ghost button without a trailing chevron.
   assert.doesNotMatch(html, /lucide-chevron-right/);
   assert.match(html, /data-testid="home-recent-chat:lumi"/);
@@ -189,4 +191,49 @@ test('loading and unavailable states do not offer a conversation with stale agen
     assert.doesNotMatch(html, /home-agent-composer|data-testid="home-agent-send"|home-recent-chats-strip/);
     if (state === 'unavailable') assert.match(html, /Agent status is temporarily unavailable/);
   }
+});
+
+
+test('Home passes the complete unsent draft and leaves clearing to the source owner', async () => {
+  await initI18n();
+  const draft = '  Keep this text, including its spacing.  ';
+  const opened: string[] = [];
+  const edits: string[] = [];
+  await withMountedView({ draftText: draft, onDraftChange: text => edits.push(text), onOpenChat: text => opened.push(text) }, document => {
+    const input = document.querySelector<HTMLInputElement>('#home-agent-composer-input')!;
+    assert.equal(input.value, draft);
+    act(() => document.querySelector('form')!.dispatchEvent(new document.defaultView!.Event('submit', { bubbles: true, cancelable: true })));
+    assert.deepEqual(opened, [draft]);
+    assert.deepEqual(edits, []);
+    assert.equal(input.value, draft);
+  });
+});
+
+test('Home shortcut drafts keep their partner and account through navigation and an outage', async () => {
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { homePartnerDraftKey } = await import('../src/shell/renderer/features/home/home-partner-draft.js');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  const first = JSON.stringify(['home', 'realm-a', 'local-agent:a']);
+  const second = JSON.stringify(['home', 'realm-a', 'local-agent:b']);
+  const read = (account: string, partner: string) => store.getState().homePartnerDrafts[homePartnerDraftKey(account, partner)!];
+  const project = (account: string | null) => store.getState().applyRuntimeAccountProjection({
+    status: account ? 'authenticated' : 'unavailable', user: account ? { id: account, realmEnvironmentId: 'realm-a' } : null,
+    sequence: '1', authorizationRevision: account ? 'authorized' : '', reasonCode: 0, accountReasonCode: 0,
+  });
+  try {
+    project('account-a');
+    store.getState().setHomePartnerDraft('account-a', first, '  Original draft  ');
+    store.getState().setHomePartnerDraft('account-a', second, 'Another partner');
+    await store.navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+    await store.navigation.back();
+    assert.equal(read('account-a', first), '  Original draft  ');
+    assert.equal(read('account-a', second), 'Another partner');
+    project(null);
+    project('account-b');
+    assert.equal(read('account-b', first), undefined);
+    project('account-a');
+    assert.equal(read('account-a', first), '  Original draft  ');
+    store.getState().clearAuthSession();
+    assert.deepEqual(store.getState().homePartnerDrafts, {});
+  } finally { store.navigation.dispose(); }
 });

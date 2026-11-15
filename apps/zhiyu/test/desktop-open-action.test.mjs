@@ -38,15 +38,13 @@ test('Zhiyu desktop_open_select_partner sends the standard DesktopOpenIntent', a
       confirmation: 'desktop-accepted',
       bridgeId: 'desktop-open-20260708-bridge',
       requestId: 'desktop-open-20260708-zhiyu',
-      appliedTarget: 'open-explore',
+      appliedTarget: 'open-partners',
     };
   });
 
   assert.deepEqual(calls, [{
     intent: {
-      kind: 'open-explore',
-      section: 'partners',
-      productIntent: 'select-partner',
+      kind: 'open-partners',
     },
   }]);
   assert.equal(module.ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION, 'desktop_open_select_partner');
@@ -66,7 +64,7 @@ test('Zhiyu desktop_open_select_partner reports running-only not-running honestl
   assert.equal(result.state, 'rejected');
   assert.equal(result.reasonCode, 'desktop-open-desktop-not-running');
   assert.equal(result.actionHint, 'open_desktop_first');
-  assert.match(result.message, /不会代替你启动桌面端/);
+  assert.match(result.message, /请先打开 Nimi Home/);
 });
 
 test('Zhiyu desktop_open_select_partner keeps host exception details in diagnostics only', async () => {
@@ -86,7 +84,7 @@ test('Zhiyu desktop_open_select_partner keeps host exception details in diagnost
   assert.equal(result.state, 'failed');
   assert.equal(result.reasonCode, 'renderer-standard-shell-host-unavailable');
   assert.equal(result.actionHint, 'open_desktop_manually');
-  assert.match(result.message, /手动打开桌面端「探索」页/);
+  assert.match(result.message, /Nimi Home.*「我的伙伴」/);
   assert.doesNotMatch(result.message, /Electron|standard shell|command|nimi\.shell/u);
 });
 
@@ -96,16 +94,12 @@ test('Zhiyu desktop-open mapping covers only partner-selection gaps', async () =
   assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
     stage: 'source-required',
   }), {
-    kind: 'open-explore',
-    section: 'partners',
-    productIntent: 'select-partner',
+    kind: 'open-partners',
   });
   assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
     stage: 'agent-required',
   }), {
-    kind: 'open-explore',
-    section: 'partners',
-    productIntent: 'select-partner',
+    kind: 'open-partners',
   });
 });
 

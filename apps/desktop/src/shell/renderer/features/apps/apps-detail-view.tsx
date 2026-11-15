@@ -1,8 +1,9 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import type { HomeAppSection } from '../../app-shell/providers/home-navigation.js';
 import { AppsActionErrorAlert } from './apps-action-error.js';
 import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
@@ -80,6 +81,7 @@ const APP_ACCESS_COPY_KEYS = Object.freeze({
   'runtime.consume': 'runtimeConsume',
   'integration.consume': 'integrationConsume',
   'agent.local': 'agentLocal',
+  'agent.acquire': 'agentAcquire',
   'agent.configure': 'agentConfigure',
 } as const);
 
@@ -93,6 +95,7 @@ const APP_ACCESS_FEATURE_ICON = Object.freeze({
   'runtime.consume': Sparkles,
   'integration.consume': Plug,
   'agent.local': Bot,
+  'agent.acquire': Bot,
   'agent.configure': SlidersHorizontal,
 } as const);
 
@@ -102,7 +105,7 @@ export interface AppsDetailViewProps {
   readonly iconUrl?: string | null;
   /** Other sources of the same App, for cross-source management. */
   readonly sourceEntries: readonly DesktopAppsEntry[];
-  readonly requestedSection: NimiDesktopOpenAppsSection | null;
+  readonly requestedSection: HomeAppSection | null;
   readonly navigationEntryKey: string;
   readonly onBack: () => void;
   readonly onOpenEntry: (entryKey: string) => void;
@@ -129,7 +132,6 @@ function LocalDevelopmentAppsDetailView({
   iconUrl = entry.iconUrl,
   sourceEntries,
   requestedSection,
-  navigationEntryKey,
   onBack,
   onOpenEntry,
   onRemoveSource,
@@ -140,7 +142,7 @@ function LocalDevelopmentAppsDetailView({
   onAIConfigChanged,
 }: AppsDetailViewProps): ReactElement {
   const { t, i18n } = useTranslation();
-  const [activeTab, setActiveTab] = useState<AppsDetailTab>('overview');
+  const navigation = useHomeNavigation();
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [copiedAppId, setCopiedAppId] = useState(false);
@@ -150,6 +152,7 @@ function LocalDevelopmentAppsDetailView({
   const { identity } = entry;
   const aiConfigCapabilityContracts = appsAIConfigCapabilityContracts(registration.appAccess);
   const aiModelsAvailable = aiConfigCapabilityContracts.length > 0;
+  const activeTab = requestedSection === 'access' || requestedSection === 'ai-models' && aiModelsAvailable ? requestedSection : 'overview';
   const actionPlan = actionPlanForEntry(entry);
   const runVisual = appRunVisualState(entry.run?.state ?? null);
   const runTransition = appRunTransition(runVisual, activeAction);
@@ -157,10 +160,6 @@ function LocalDevelopmentAppsDetailView({
 
   const liveBridge = useMemo(() => createDesktopAppsLiveBridge(), []);
   const [readme, setReadme] = useState<ProjectReadmeState>({ status: 'loading' });
-
-  useEffect(() => {
-    setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
-  }, [aiModelsAvailable, identity.appId, navigationEntryKey, requestedSection]);
 
   useEffect(() => {
     let alive = true;
@@ -365,7 +364,7 @@ function LocalDevelopmentAppsDetailView({
             className="mt-4"
             items={tabItems}
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
+            onValueChange={(value) => { void navigation.replace({ id: 'apps', appId: identity.appId, appEntryKey: identity.entryKey, appSection: value as AppsDetailTab }); }}
             ariaLabel={t('Apps.detail.tabsLabel')}
           />
         </header>
@@ -396,6 +395,7 @@ function LocalDevelopmentAppsDetailView({
           {activeTab === 'access' ? (
             <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsAccessTabSections
+                appId={registration.appId}
                 appAccess={registration.appAccess}
                 aiModelsAvailable={aiModelsAvailable}
                 runRequirementsDescription={t('Apps.detail.runRequirementsLocalDescription')}
@@ -447,7 +447,6 @@ function InstalledAppsDetailView({
   iconUrl = entry.iconUrl,
   sourceEntries,
   requestedSection,
-  navigationEntryKey,
   onBack,
   onOpenEntry,
   onRemoveSource,
@@ -459,6 +458,7 @@ function InstalledAppsDetailView({
   readPackageInfo,
 }: AppsDetailViewProps): ReactElement {
   const { t } = useTranslation();
+  const navigation = useHomeNavigation();
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
   const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
@@ -467,12 +467,7 @@ function InstalledAppsDetailView({
   const [copiedAppId, setCopiedAppId] = useState(false);
   const copyResetTimerRef = useRef<number | null>(null);
   const aiModelsAvailable = appsAIConfigCapabilityContracts(release?.appAccess ?? []).length > 0;
-  const [activeTab, setActiveTab] = useState<AppsDetailTab>(
-    requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview',
-  );
-  useEffect(() => {
-    setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
-  }, [aiModelsAvailable, entry.identity.entryKey, navigationEntryKey, requestedSection]);
+  const activeTab = requestedSection === 'access' || requestedSection === 'ai-models' && aiModelsAvailable ? requestedSection : 'overview';
 
   useEffect(() => () => {
     if (copyResetTimerRef.current !== null) {
@@ -769,7 +764,7 @@ function InstalledAppsDetailView({
             className="mt-4"
             items={tabItems}
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
+            onValueChange={(value) => { void navigation.replace({ id: 'apps', appId: entry.identity.appId, appEntryKey: entry.identity.entryKey, appSection: value as AppsDetailTab }); }}
             ariaLabel={t('Apps.detail.tabsLabel')}
           />
         </header>
@@ -804,6 +799,7 @@ function InstalledAppsDetailView({
           {activeTab === 'access' ? (
             <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsAccessTabSections
+                appId={entry.identity.appId}
                 appAccess={declaredAppAccess}
                 aiModelsAvailable={aiModelsAvailable}
                 runRequirementsDescription={t('Apps.detail.runRequirementsInstalledDescription')}
@@ -1138,14 +1134,17 @@ function AppsReadmeSection({ readme }: { readonly readme: ProjectReadmeState }):
  * their registration declaration; installed and Registry Apps pass the
  * release or catalog declaration.
  */
-function AppsAccessTabSections({ appAccess, aiModelsAvailable, runRequirementsDescription }: {
+function AppsAccessTabSections({ appId, appAccess, aiModelsAvailable, runRequirementsDescription }: {
+  readonly appId: string;
   readonly appAccess: readonly string[];
   readonly aiModelsAvailable: boolean;
   readonly runRequirementsDescription: string;
 }): ReactElement {
   const { t } = useTranslation();
+  const navigation = useHomeNavigation();
   return (
     <>
+      <Button tone="secondary" onClick={() => { void navigation.push({ id: 'connections', connectionAppId: appId }); }}>{t('Navigation.connections')}</Button>
       <DetailSection title={t('Apps.detail.accessTitle')} description={t('Apps.detail.accessDescription')}>
         <InlineAlert
           tone="info"
