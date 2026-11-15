@@ -9,6 +9,10 @@ const repoRoot = path.resolve(scriptDir, '..');
 const SCANNED_ROOTS = ['apps', 'gateways'];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+// Vite mobile outputs and Capacitor's copied WebView payload are derived
+// bundles. Match complete App-relative destinations so authored mobile code
+// and other Android assets remain in the source scan.
+const GENERATED_MOBILE_DIRECTORY = /^apps\/[^/]+\/(?:dist-mobile(?:-release)?|android\/app\/src\/main\/assets\/public)(?:\/|$)/u;
 const IGNORED_DIRS = new Set([
   'dist',
   'dist-web',
@@ -102,7 +106,8 @@ async function walk(dir, visitor) {
     }
 
     if (isDirectory) {
-      if (IGNORED_DIRS.has(entry.name)) {
+      const relativePath = path.relative(repoRoot, fullPath).split(path.sep).join('/');
+      if (IGNORED_DIRS.has(entry.name) || GENERATED_MOBILE_DIRECTORY.test(relativePath)) {
         continue;
       }
       await walk(fullPath, visitor);
