@@ -1518,6 +1518,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmRealtimeSubscriptionClose: record('localAppRealmRealtimeSubscriptionClose', {}),
     localAppRealmRealtimeChannelClose: record('localAppRealmRealtimeChannelClose', {}),
     localAppAgentIntroductionGet: record('localAppAgentIntroductionGet', {worldName:null,era:null,role:null,greeting:null,referenceImageUrl:null,voiceSampleUrl:null,voicePreviewUrl:null,voiceSampleContentHash:null,voiceSampleMimeType:null,voiceSampleDurationSec:null,questionTopics:[]}),
+    localAppCharacterSourceList: record('localAppCharacterSourceList', { items: [], nextCursor: '' }),
+    localAppCharacterSourceConnect: record('localAppCharacterSourceConnect', {}),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',

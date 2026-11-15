@@ -115,6 +115,8 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: AppOperationIDAgentRealtimeClose, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: "runtime.agent.introduction.get", class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: "runtime.agent.reference.list", class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.character-source.list", class: AuthorityClassAppAccess, domain: "agent.acquire"},
+		{id: "runtime.agent.character-source.connect", class: AuthorityClassAppAccess, domain: "agent.acquire"},
 		{id: "runtime.agent.conversation.open", class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: "runtime.agent.conversation.turn.send", class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: "runtime.agent.conversation.turn.interrupt", class: AuthorityClassAppAccess, domain: "agent.local"},

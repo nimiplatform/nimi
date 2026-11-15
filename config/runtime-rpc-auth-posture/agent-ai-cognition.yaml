@@ -16,6 +16,10 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget

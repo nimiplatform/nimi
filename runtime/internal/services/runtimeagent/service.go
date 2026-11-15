@@ -76,6 +76,7 @@ type Service struct {
 	accountTerminationFencedAccounts         map[string]bool
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
 	realmCharacterPublicIntroduction         realmCharacterPublicIntroductionResolver
+	realmCharacterDiscovery                  realmCharacterDiscoveryReader
 	localAppIngressRevalidator               localAppIngressRevalidator
 	localAppWorkExecutions                   map[string]*localAppWorkExecution
 	localAppWorkActiveByAgent                map[string]string

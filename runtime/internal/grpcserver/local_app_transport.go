@@ -64,6 +64,8 @@ const (
 	protectedAdoptLocalAppArtifactMethod          = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	protectedAgentIntroductionGetMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction"
 	protectedAgentReferenceListMethod             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	protectedCharacterSourceListMethod            = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources"
+	protectedCharacterSourceConnectMethod         = "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource"
 	protectedDesktopAgentReferenceResolveMethod   = "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference"
 	protectedAvatarHostTargetResolveMethod        = "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget"
 	protectedAvatarHostTargetRevalidateMethod     = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
@@ -83,8 +85,8 @@ const (
 	protectedOverwriteSharedAIConfigMethod        = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	protectedListSharedAIConfigOptionsMethod      = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
 	protectedAgentManagerSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
-	protectedAgentUtopiaSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot"
-	protectedAgentUtopiaUpdateMethod             = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings"
+	protectedAgentUtopiaSnapshotMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot"
+	protectedAgentUtopiaUpdateMethod              = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings"
 	protectedAutonomySnapshotMethod               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedConversationFollowUpMethod           = "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp"
@@ -199,6 +201,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAdoptLocalAppArtifactMethod:          localAppSessionMethodPolicy(),
 	protectedAgentIntroductionGetMethod:           localAppSessionMethodPolicy(),
 	protectedAgentReferenceListMethod:             localAppSessionMethodPolicy(),
+	protectedCharacterSourceListMethod:            localAppSessionMethodPolicy(),
+	protectedCharacterSourceConnectMethod:         localAppSessionMethodPolicy(),
 	protectedAvatarHostTargetResolveMethod:        localAppSessionMethodPolicy(),
 	protectedAvatarHostTargetRevalidateMethod:     localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:               localAppSessionMethodPolicy(),
@@ -215,8 +219,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedOverwriteSharedAIConfigMethod:        localAppSessionMethodPolicy(),
 	protectedListSharedAIConfigOptionsMethod:      localAppSessionMethodPolicy(),
 	protectedAgentManagerSnapshotMethod:           localAppSessionMethodPolicy(),
-	protectedAgentUtopiaSnapshotMethod:           localAppSessionMethodPolicy(),
-	protectedAgentUtopiaUpdateMethod:             localAppSessionMethodPolicy(),
+	protectedAgentUtopiaSnapshotMethod:            localAppSessionMethodPolicy(),
+	protectedAgentUtopiaUpdateMethod:              localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:                 localAppSessionMethodPolicy(),
 	protectedConversationFollowUpMethod:           localAppSessionMethodPolicy(),
@@ -627,6 +631,10 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressVoiceAssetsDelete
 	case protectedAgentIntroductionGetMethod:
 		return localappop.IngressAgentIntroductionGet
+	case protectedCharacterSourceListMethod:
+		return localappop.IngressCharacterSourceList
+	case protectedCharacterSourceConnectMethod:
+		return localappop.IngressCharacterSourceConnect
 	case protectedAgentReferenceListMethod, protectedDesktopAgentReferenceResolveMethod:
 		return localappop.IngressAgentReferenceList
 	case protectedAvatarHostTargetResolveMethod:
@@ -796,6 +804,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod, protectedDeleteLocalAppVoiceAssetMethod,
 		protectedAgentIntroductionGetMethod, protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
+		protectedCharacterSourceListMethod, protectedCharacterSourceConnectMethod,
 		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,

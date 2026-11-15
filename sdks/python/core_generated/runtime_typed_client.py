@@ -2056,6 +2056,16 @@ class ConfirmRemoteSourceResponse:
     audit_diagnostic: ErrorInfo | None = None
 
 @dataclass(frozen=True)
+class ConnectLocalAppCharacterSourceRequest:
+    source_ref: CharacterSourceRefV3 | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class ConnectLocalAppCharacterSourceResponse:
+    partner: LocalAppAgentReference | None = None
+    created: bool | None = None
+
+@dataclass(frozen=True)
 class Connector:
     connector_id: str | None = None
     kind: ConnectorKind | None = None
@@ -2533,6 +2543,15 @@ class DiscardLocalAppPackageRequest:
 @dataclass(frozen=True)
 class DiscardLocalAppPackageResponse:
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class DisconnectRemoteConnectionRequest:
+    connection_id: str | None = None
+    expected_binding_id: str | None = None
+
+@dataclass(frozen=True)
+class DisconnectRemoteConnectionResponse:
+    state: GetRemoteAccessStateResponse | None = None
 
 @dataclass(frozen=True)
 class EmbeddingVector:
@@ -3103,6 +3122,7 @@ class GetRemoteAccessStateResponse:
     sources: tuple[RemoteAccessSource, ...] = field(default_factory=tuple)
     connected_peers: int | None = None
     reason_code: str | None = None
+    connections: tuple[RemoteAccessConnection, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class GetRuntimeHealthRequest:
@@ -3784,6 +3804,17 @@ class ListLocalAppAssetsResponse:
     assets: tuple[LocalAppAssetRecord, ...] = field(default_factory=tuple)
     next_cursor: str | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppCharacterSourcesRequest:
+    query: str | None = None
+    cursor: str | None = None
+    page_size: int | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppCharacterSourcesResponse:
+    items: tuple[LocalAppCharacterSource, ...] = field(default_factory=tuple)
+    next_cursor: str | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsRequest:
@@ -4547,6 +4578,19 @@ class LocalAppAudioInfo:
 class LocalAppCanonicalAudioPreparation:
     target_sample_rate_hz: int | None = None
     channel_mode: CanonicalChannelMode | None = None
+
+@dataclass(frozen=True)
+class LocalAppCharacterSource:
+    source_ref: CharacterSourceRefV3 | None = None
+    display_name: str | None = None
+    summary: str | None = None
+    world_name: str | None = None
+    avatar_url: str | None = None
+    disposition: str | None = None
+    traits: tuple[str, ...] = field(default_factory=tuple)
+    topics: tuple[str, ...] = field(default_factory=tuple)
+    connectable: bool | None = None
+    existing_partner: LocalAppAgentReference | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationAction:
@@ -6503,6 +6547,12 @@ class RejectRemoteSourceResponse:
     state: GetRemoteAccessStateResponse | None = None
 
 @dataclass(frozen=True)
+class RemoteAccessConnection:
+    connection_id: str | None = None
+    client_id: str | None = None
+    connected_at: str | None = None
+
+@dataclass(frozen=True)
 class RemoteAccessSource:
     client_id: str | None = None
     app_id: str | None = None
@@ -8445,6 +8495,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentCommitPresentationResponse, raw)
 
+    async def connect_local_app_character_source(self, request: ConnectLocalAppCharacterSourceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ConnectLocalAppCharacterSourceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ConnectLocalAppCharacterSourceResponse, raw)
+
     async def correct_local_app_agent_memory(self, request: CorrectLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CorrectLocalAppAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CorrectLocalAppAgentMemoryResponse, raw)
@@ -8592,6 +8646,10 @@ class RuntimeTypedClient:
     async def list_local_app_agent_work_tool_calls(self, request: ListLocalAppAgentWorkToolCallsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentWorkToolCallsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppAgentWorkToolCallsResponse, raw)
+
+    async def list_local_app_character_sources(self, request: ListLocalAppCharacterSourcesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppCharacterSourcesResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppCharacterSourcesResponse, raw)
 
     async def list_local_app_shared_local_agent_aiconfig_options(self, request: ListLocalAppSharedLocalAgentAIConfigOptionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -9515,6 +9573,10 @@ class RuntimeTypedClient:
     async def confirm_remote_source(self, request: ConfirmRemoteSourceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ConfirmRemoteSourceResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ConfirmRemoteSourceResponse, raw)
+
+    async def disconnect_remote_connection(self, request: DisconnectRemoteConnectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisconnectRemoteConnectionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DisconnectRemoteConnectionResponse, raw)
 
     async def get_remote_access_state(self, request: GetRemoteAccessStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRemoteAccessStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

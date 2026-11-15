@@ -194,6 +194,8 @@ const (
 	IngressAgentRealtimeOutputInterrupt
 	IngressAgentRealtimeClose
 	IngressAgentReferenceList
+	IngressCharacterSourceList
+	IngressCharacterSourceConnect
 	IngressAgentIntroductionGet
 	IngressConversationOpen
 	IngressConversationTurnSend
@@ -329,6 +331,8 @@ const (
 	OperationAgentRealtimeOutputInterrupt
 	OperationAgentRealtimeClose
 	OperationAgentReferenceList
+	OperationCharacterSourceList
+	OperationCharacterSourceConnect
 	OperationAgentIntroductionGet
 	OperationConversationOpen
 	OperationConversationTurnSend
@@ -510,6 +514,8 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentRealtimeClose, OperationAgentRealtimeClose, AppOperationIDAgentRealtimeClose, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentIntroductionGet, OperationAgentIntroductionGet, "runtime.agent.introduction.get", AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
+	{IngressCharacterSourceList, OperationCharacterSourceList, "runtime.agent.character-source.list", AuthorityClassAppAccess, "agent.acquire"},
+	{IngressCharacterSourceConnect, OperationCharacterSourceConnect, "runtime.agent.character-source.connect", AuthorityClassAppAccess, "agent.acquire"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},

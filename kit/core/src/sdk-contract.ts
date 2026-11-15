@@ -457,3 +457,6 @@ export type { RemoteRuntimeAppConnection, RemoteRuntimeConnectOptions } from '@n
 
 export type { NimiLocalAppAssetsClient } from '@nimiplatform/sdk/app';
 export type { NimiAppRuntimeClient } from '@nimiplatform/sdk/app';
+
+export { createNimiAppCharacterDiscoveryRuntimeClient, validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from '@nimiplatform/sdk/app';
+export type { NimiAppCharacterDiscoveryShell } from '@nimiplatform/sdk/app';

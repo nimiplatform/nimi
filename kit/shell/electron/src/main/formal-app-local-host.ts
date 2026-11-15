@@ -1,3 +1,4 @@
+import { createNimiAppCharacterDiscoveryRuntimeClient } from '@nimiplatform/kit/core/sdk-contract';
 import { createNimiLocalAppAgentWorkRuntimeClient, createNimiLocalAppIntegrationRuntimeShell } from '@nimiplatform/kit/core/sdk-contract';
 import { nimiLocalAppTextDecideSpecFromShell, validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { exactNimiLocalAppBytes, isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
@@ -155,6 +156,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   };
   const runtime = createNimiHostRuntimeTypedClient(profileTransport(input.control, input.profile, maintainFormalSession, trackOperation, trackStream));
   const agents = createNimiLocalAppAgentReferencesRuntimeClient(runtime);
+  const discovery = createNimiAppCharacterDiscoveryRuntimeClient(runtime);
   const introduction = createNimiLocalAppAgentIntroductionRuntimeClient(runtime);
   const conversation = createNimiLocalAppConversationRuntimeClient(runtime);
   const agentWork = createNimiLocalAppAgentWorkRuntimeClient(runtime);
@@ -645,6 +647,8 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     realmRealtimeAck: async record => ({ ack: await realmRealtime.ack(record as never) }),
     realmRealtimeSubscriptionClose: async record => ({ ack: await realmRealtime.closeSubscription(record as never) }),
     realmRealtimeChannelClose: async record => ({ ack: await realmRealtime.closeChannel(record as never) }),
+    characterSourceList: record => discovery.listCharacters(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
+    characterSourceConnect: record => discovery.connectCharacter(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentIntroductionGet: (record) => introduction.getIntroduction(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentReferenceList: () => agents.listReferences() as Promise<readonly NimiElectronLocalAppRecord[]>,
     avatarHostTargetResolve: async (record) => {

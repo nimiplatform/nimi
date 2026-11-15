@@ -144,6 +144,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LocalAppAgentCommitPresentationResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+        service: "RuntimeAgentService",
+        method: "ConnectLocalAppCharacterSource",
+        kind: "unary",
+        request_type: "ConnectLocalAppCharacterSourceRequest",
+        response_type: "ConnectLocalAppCharacterSourceResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
         service: "RuntimeAgentService",
         method: "CorrectLocalAppAgentMemory",
@@ -438,6 +446,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListLocalAppAgentWorkToolCallsRequest",
         response_type: "ListLocalAppAgentWorkToolCallsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+        service: "RuntimeAgentService",
+        method: "ListLocalAppCharacterSources",
+        kind: "unary",
+        request_type: "ListLocalAppCharacterSourcesRequest",
+        response_type: "ListLocalAppCharacterSourcesResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -2326,6 +2342,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ConfirmRemoteSourceRequest",
         response_type: "ConfirmRemoteSourceResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
+        service: "RuntimeRemoteAccessService",
+        method: "DisconnectRemoteConnection",
+        kind: "unary",
+        request_type: "DisconnectRemoteConnectionRequest",
+        response_type: "DisconnectRemoteConnectionResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",

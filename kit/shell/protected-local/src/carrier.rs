@@ -2052,6 +2052,8 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
     >;
 
+    fn character_source_list(&self, input: JsonValue) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn character_source_connect(&self, input: JsonValue) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn agent_introduction_get(
         &self,
         request: LocalAppAgentHandleRequest,

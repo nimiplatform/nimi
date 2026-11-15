@@ -1,4 +1,5 @@
 import { FinishReason, type RuntimeTypedClient } from '../core-generated/runtime-typed-client.js';
+import { createNimiAppCharacterDiscoveryRuntimeClient } from '../core/app/local-app-character-discovery.js';
 import type { LocalAppAssetRecord, WriteLocalAppAssetRequest } from '../core-generated/runtime-protobuf/runtime/v1/app.js';
 import { createNimiError } from '../types/index.js';
 import { createTextCandidateClient } from '../core/app/local-app-text-candidate.js';
@@ -32,7 +33,7 @@ export function createRemoteRuntimeAppClients(runtime: RuntimeTypedClient, appId
     ai: Object.freeze({ ...ai, text: Object.freeze({ ...ai.text, ...candidate }) }),
     aiConfig: createNimiLocalAppAIConfigRuntimeClient({ appId, runtime }),
     storage: createRemoteRuntimeStorage(runtime),
-    agents: Object.freeze({ ...createNimiLocalAppAgentReferencesRuntimeClient(runtime), ...createNimiLocalAppAgentIntroductionRuntimeClient(runtime) }),
+    agents: Object.freeze({ ...createNimiLocalAppAgentReferencesRuntimeClient(runtime), ...createNimiLocalAppAgentIntroductionRuntimeClient(runtime), ...createNimiAppCharacterDiscoveryRuntimeClient(runtime) }),
     conversation: createNimiLocalAppConversationRuntimeClient(runtime),
     embodiment: createNimiLocalAppEmbodimentRuntimeClient(runtime),
     activity: createRemoteActivity(runtime),

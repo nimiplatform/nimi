@@ -4,6 +4,7 @@ export const APP_ACCESS_DOMAINS = Object.freeze([
   'realm.data',
   'runtime.consume',
   'agent.local',
+  'agent.acquire',
   'agent.configure',
   'agent.utopia.read',
   'agent.utopia.manage',

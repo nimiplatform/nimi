@@ -147,7 +147,7 @@ func projectLocalAppAgentReferences(
 }
 
 func projectLocalAppAgentReferencesForOperation(decision accountservice.LocalAppCallerDecision, inventory []accountservice.LocalAgentOwnerProjection, operation accountservice.LocalAppOperation) ([]*runtimev1.LocalAppAgentReference, bool) {
-	if operation != accountservice.LocalAppOperationReferenceList && operation != localappop.OperationAgentWorkReferenceList {
+	if operation != accountservice.LocalAppOperationReferenceList && operation != localappop.OperationAgentWorkReferenceList && operation != localappop.OperationCharacterSourceList && operation != localappop.OperationCharacterSourceConnect {
 		return nil, false
 	}
 	classification, err := localappop.ClassifyOperation(operation)

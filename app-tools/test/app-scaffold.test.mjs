@@ -2585,6 +2585,7 @@ test('App access declaration activates the closed canonical domains and keeps un
     'realm.data',
     'runtime.consume',
     'agent.local',
+    'agent.acquire',
     'agent.configure',
     'agent.utopia.read',
     'agent.utopia.manage',

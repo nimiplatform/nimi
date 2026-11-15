@@ -143,6 +143,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LocalAppAgentCommitPresentationResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+    "service": "RuntimeAgentService",
+    "method": "ConnectLocalAppCharacterSource",
+    "kind": "unary",
+    "requestType": "ConnectLocalAppCharacterSourceRequest",
+    "responseType": "ConnectLocalAppCharacterSourceResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
     "service": "RuntimeAgentService",
     "method": "CorrectLocalAppAgentMemory",
@@ -437,6 +445,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListLocalAppAgentWorkToolCallsRequest",
     "responseType": "ListLocalAppAgentWorkToolCallsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppCharacterSources",
+    "kind": "unary",
+    "requestType": "ListLocalAppCharacterSourcesRequest",
+    "responseType": "ListLocalAppCharacterSourcesResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -2365,6 +2381,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ConfirmRemoteSourceRequest",
     "responseType": "ConfirmRemoteSourceResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
+    "service": "RuntimeRemoteAccessService",
+    "method": "DisconnectRemoteConnection",
+    "kind": "unary",
+    "requestType": "DisconnectRemoteConnectionRequest",
+    "responseType": "DisconnectRemoteConnectionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",

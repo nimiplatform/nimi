@@ -524,3 +524,6 @@ export type { NimiLocalAppConversationState, NimiLocalAppConversationFollowUpCan
 export type { NimiLocalAppAgentLifePhase, NimiLocalAppAgentLifeFrame, NimiLocalAppAgentLifeActivity, NimiLocalAppAgentLife } from './local-app-runtime-platform-life.js';
 export type { NimiAppRuntimeClient } from './portable-client.js';
 export type { NimiUtopiaPreset, NimiUtopiaSettingsIntent, NimiUtopiaSettingsUpdate, NimiUtopiaTime, NimiUtopiaSettings, NimiUtopiaFrame, NimiUtopiaResident, NimiUtopiaSharedActivity, NimiUtopiaSnapshot, NimiLocalAppUtopiaShell, NimiLocalAppUtopiaClient } from './local-app-runtime-platform-utopia.js';
+
+export { createNimiAppCharacterDiscoveryClient, createNimiAppCharacterDiscoveryRuntimeClient, validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from './local-app-character-discovery.js';
+export type { NimiAppCharacterSourceRef, NimiAppCharacterSource, NimiAppCharacterQuery, NimiAppCharacterConnectInput, NimiAppCharacterDiscoveryClient, NimiAppCharacterDiscoveryShell } from './local-app-character-discovery.js';

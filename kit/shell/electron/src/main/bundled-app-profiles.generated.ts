@@ -117,6 +117,8 @@ const methods: Record<NimiElectronBundledAppId, Readonly<Record<string, 'unary' 
 "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory": "unary",
 "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction": "unary",
 "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences": "unary",
+"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources": "unary",
+"/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource": "unary",
 "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget": "unary",
 "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation": "unary",
 "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn": "unary",

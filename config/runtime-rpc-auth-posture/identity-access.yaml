@@ -4,6 +4,8 @@ version: 1
 methods:
   - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource

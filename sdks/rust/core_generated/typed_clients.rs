@@ -7407,6 +7407,18 @@ pub struct ConfirmRemoteSourceResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectLocalAppCharacterSourceRequest {
+    pub source_ref: Option<Box<CharacterSourceRefV3>>,
+    pub request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectLocalAppCharacterSourceResponse {
+    pub partner: Option<Box<LocalAppAgentReference>>,
+    pub created: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Connector {
     pub connector_id: Option<String>,
     pub kind: Option<ConnectorKind>,
@@ -8043,6 +8055,17 @@ pub struct DiscardLocalAppPackageRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DiscardLocalAppPackageResponse {
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DisconnectRemoteConnectionRequest {
+    pub connection_id: Option<String>,
+    pub expected_binding_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DisconnectRemoteConnectionResponse {
+    pub state: Option<Box<GetRemoteAccessStateResponse>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9179,6 +9202,7 @@ pub struct GetRemoteAccessStateResponse {
     pub sources: Vec<Box<RemoteAccessSource>>,
     pub connected_peers: Option<u32>,
     pub reason_code: Option<String>,
+    pub connections: Vec<Box<RemoteAccessConnection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -10328,6 +10352,19 @@ pub struct ListLocalAppAssetsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppCharacterSourcesRequest {
+    pub query: Option<String>,
+    pub cursor: Option<String>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppCharacterSourcesResponse {
+    pub items: Vec<Box<LocalAppCharacterSource>>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
@@ -11190,6 +11227,20 @@ pub struct LocalAppAudioInfo {
 pub struct LocalAppCanonicalAudioPreparation {
     pub target_sample_rate_hz: Option<u32>,
     pub channel_mode: Option<CanonicalChannelMode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppCharacterSource {
+    pub source_ref: Option<Box<CharacterSourceRefV3>>,
+    pub display_name: Option<String>,
+    pub summary: Option<String>,
+    pub world_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub disposition: Option<String>,
+    pub traits: Vec<String>,
+    pub topics: Vec<String>,
+    pub connectable: Option<bool>,
+    pub existing_partner: Option<Box<LocalAppAgentReference>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13859,6 +13910,13 @@ pub struct RejectRemoteSourceRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RejectRemoteSourceResponse {
     pub state: Option<Box<GetRemoteAccessStateResponse>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoteAccessConnection {
+    pub connection_id: Option<String>,
+    pub client_id: Option<String>,
+    pub connected_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -137,6 +137,13 @@ func TestRemoteLabCarrierDoesNotExposeNativeOrManagerAuthority(t *testing.T) {
 	}
 }
 
+func TestSingleConnectionEndRemainsHomeOnly(t *testing.T) {
+	method := "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection"
+	if remoteAppMethodSupported(method) || remoteManagerMethodSupported(method) {
+		t.Fatal("a remote caller acquired Home connection termination")
+	}
+}
+
 func TestRemoteMediaBoundaryPreservesBusinessContentAndOwnedArtifacts(t *testing.T) {
 	business, err := structpb.NewStruct(map[string]any{"url": "http://192.168.1.1/private", "nested": map[string]any{"image_url": "https://business.example"}})
 	if err != nil {

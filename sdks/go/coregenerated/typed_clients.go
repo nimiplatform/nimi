@@ -4222,6 +4222,16 @@ type ConfirmRemoteSourceResponse struct {
 	AuditDiagnostic *ErrorInfo                    `json:"audit_diagnostic,omitempty"`
 }
 
+type ConnectLocalAppCharacterSourceRequest struct {
+	SourceRef *CharacterSourceRefV3 `json:"source_ref,omitempty"`
+	RequestId string                `json:"request_id,omitempty"`
+}
+
+type ConnectLocalAppCharacterSourceResponse struct {
+	Partner *LocalAppAgentReference `json:"partner,omitempty"`
+	Created bool                    `json:"created,omitempty"`
+}
+
 type Connector struct {
 	ConnectorId         string                       `json:"connector_id,omitempty"`
 	Kind                ConnectorKind                `json:"kind,omitempty"`
@@ -4697,6 +4707,15 @@ type DiscardLocalAppPackageRequest struct {
 
 type DiscardLocalAppPackageResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type DisconnectRemoteConnectionRequest struct {
+	ConnectionId      string `json:"connection_id,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+}
+
+type DisconnectRemoteConnectionResponse struct {
+	State *GetRemoteAccessStateResponse `json:"state,omitempty"`
 }
 
 type EmbeddingVector struct {
@@ -5255,6 +5274,7 @@ type GetRemoteAccessStateResponse struct {
 	Sources         []RemoteAccessSource        `json:"sources,omitempty"`
 	ConnectedPeers  uint32                      `json:"connected_peers,omitempty"`
 	ReasonCode      string                      `json:"reason_code,omitempty"`
+	Connections     []RemoteAccessConnection    `json:"connections,omitempty"`
 }
 
 type GetRuntimeHealthRequest struct {
@@ -5923,6 +5943,17 @@ type ListLocalAppAssetsResponse struct {
 	Assets     []LocalAppAssetRecord `json:"assets,omitempty"`
 	NextCursor string                `json:"next_cursor,omitempty"`
 	ReasonCode ReasonCode            `json:"reason_code,omitempty"`
+}
+
+type ListLocalAppCharacterSourcesRequest struct {
+	Query    string `json:"query,omitempty"`
+	Cursor   string `json:"cursor,omitempty"`
+	PageSize uint32 `json:"page_size,omitempty"`
+}
+
+type ListLocalAppCharacterSourcesResponse struct {
+	Items      []LocalAppCharacterSource `json:"items,omitempty"`
+	NextCursor string                    `json:"next_cursor,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
@@ -6682,6 +6713,19 @@ type LocalAppAudioInfo struct {
 type LocalAppCanonicalAudioPreparation struct {
 	TargetSampleRateHz uint32               `json:"target_sample_rate_hz,omitempty"`
 	ChannelMode        CanonicalChannelMode `json:"channel_mode,omitempty"`
+}
+
+type LocalAppCharacterSource struct {
+	SourceRef       *CharacterSourceRefV3   `json:"source_ref,omitempty"`
+	DisplayName     string                  `json:"display_name,omitempty"`
+	Summary         string                  `json:"summary,omitempty"`
+	WorldName       string                  `json:"world_name,omitempty"`
+	AvatarUrl       *string                 `json:"avatar_url,omitempty"`
+	Disposition     string                  `json:"disposition,omitempty"`
+	Traits          []string                `json:"traits,omitempty"`
+	Topics          []string                `json:"topics,omitempty"`
+	Connectable     bool                    `json:"connectable,omitempty"`
+	ExistingPartner *LocalAppAgentReference `json:"existing_partner,omitempty"`
 }
 
 type LocalAppConversationAction struct {
@@ -8630,6 +8674,12 @@ type RejectRemoteSourceRequest struct {
 
 type RejectRemoteSourceResponse struct {
 	State *GetRemoteAccessStateResponse `json:"state,omitempty"`
+}
+
+type RemoteAccessConnection struct {
+	ConnectionId string `json:"connection_id,omitempty"`
+	ClientId     string `json:"client_id,omitempty"`
+	ConnectedAt  string `json:"connected_at,omitempty"`
 }
 
 type RemoteAccessSource struct {
@@ -10692,6 +10742,14 @@ func (c RuntimeTypedClient) CommitLocalAppAgentPresentation(ctx context.Context,
 	return decodeRuntimeTypedResponse[LocalAppAgentCommitPresentationResponse](raw, "LocalAppAgentCommitPresentationResponse")
 }
 
+func (c RuntimeTypedClient) ConnectLocalAppCharacterSource(ctx context.Context, request ConnectLocalAppCharacterSourceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ConnectLocalAppCharacterSourceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource", request, metadata, timeoutMS)
+	if err != nil {
+		return ConnectLocalAppCharacterSourceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ConnectLocalAppCharacterSourceResponse](raw, "ConnectLocalAppCharacterSourceResponse")
+}
+
 func (c RuntimeTypedClient) CorrectLocalAppAgentMemory(ctx context.Context, request CorrectLocalAppAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CorrectLocalAppAgentMemoryResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory", request, metadata, timeoutMS)
 	if err != nil {
@@ -10986,6 +11044,14 @@ func (c RuntimeTypedClient) ListLocalAppAgentWorkToolCalls(ctx context.Context, 
 		return ListLocalAppAgentWorkToolCallsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListLocalAppAgentWorkToolCallsResponse](raw, "ListLocalAppAgentWorkToolCallsResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalAppCharacterSources(ctx context.Context, request ListLocalAppCharacterSourcesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppCharacterSourcesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppCharacterSourcesResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppCharacterSourcesResponse](raw, "ListLocalAppCharacterSourcesResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalAppSharedLocalAgentAIConfigOptions(ctx context.Context, request ListLocalAppSharedLocalAgentAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error) {
@@ -12866,6 +12932,14 @@ func (c RuntimeTypedClient) ConfirmRemoteSource(ctx context.Context, request Con
 		return ConfirmRemoteSourceResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ConfirmRemoteSourceResponse](raw, "ConfirmRemoteSourceResponse")
+}
+
+func (c RuntimeTypedClient) DisconnectRemoteConnection(ctx context.Context, request DisconnectRemoteConnectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisconnectRemoteConnectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return DisconnectRemoteConnectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DisconnectRemoteConnectionResponse](raw, "DisconnectRemoteConnectionResponse")
 }
 
 func (c RuntimeTypedClient) GetRemoteAccessState(ctx context.Context, request GetRemoteAccessStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRemoteAccessStateResponse, error) {

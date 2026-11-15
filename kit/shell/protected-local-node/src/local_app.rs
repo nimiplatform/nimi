@@ -1377,6 +1377,15 @@ pub async fn local_app_agent_introduction_get(input: NativeAgentHandleInput) -> 
     .await
 }
 
+#[napi(js_name = "localAppCharacterSourceList")]
+pub async fn local_app_character_source_list(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.character_source_list(input).await }).await
+}
+#[napi(js_name = "localAppCharacterSourceConnect")]
+pub async fn local_app_character_source_connect(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.character_source_connect(input).await }).await
+}
+
 #[napi(js_name = "localAppAgentReferenceList")]
 pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
     invoke_agent(|session| async move {

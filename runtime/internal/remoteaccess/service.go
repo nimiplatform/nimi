@@ -609,9 +609,12 @@ func (s *Service) state(ctx context.Context, p protectedprincipal.Principal) (*r
 			result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE
 			result.ReasonCode = "PRIMARY_RUNTIME_UNAVAILABLE"
 		}
-		for _, peer := range run.peers {
-			if peer.Ready() {
+		for id, peer := range run.peers {
+			if info, connectedAt, live := peer.ConnectionSnapshot(); live {
 				result.ConnectedPeers++
+				result.Connections = append(result.Connections, &runtimev1.RemoteAccessConnection{
+					ConnectionId: id, ClientId: info.Source.ClientID, ConnectedAt: timestamppb.New(connectedAt),
+				})
 			}
 		}
 		for id, pending := range run.pending {
@@ -632,10 +635,62 @@ func (s *Service) state(ctx context.Context, p protectedprincipal.Principal) (*r
 		result.Sources = append(result.Sources, row)
 	}
 	sort.Slice(result.Sources, func(i, j int) bool { return result.Sources[i].ClientId < result.Sources[j].ClientId })
+	sort.Slice(result.Connections, func(i, j int) bool { return result.Connections[i].ConnectionId < result.Connections[j].ConnectionId })
 	if !p.Valid() {
 		return nil, denied()
 	}
 	return result, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.remote-access.connection-management
+func (s *Service) DisconnectRemoteConnection(ctx context.Context, request *runtimev1.DisconnectRemoteConnectionRequest) (*runtimev1.DisconnectRemoteConnectionResponse, error) {
+	p, err := s.caller(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	if request == nil || request.ConnectionId == "" || len(request.ConnectionId) > 256 || request.ExpectedBindingId == "" {
+		return nil, status.Error(codes.InvalidArgument, "a current connection and primary binding are required")
+	}
+	scope := localappkernel.RemoteAccessScope{RealmEnvironmentID: p.RealmEnvironment, AccountID: p.AccountID, BindingID: request.ExpectedBindingId}
+	var peer *Peer
+	accepted, err := s.account.CommitAuthenticatedRuntimeGeneration(ctx, p.AccountID, p.RealmEnvironment, p.AccountGeneration, func() error {
+		var takeErr error
+		peer, takeErr = s.takeConnection(scope, p.AccountGeneration, request.ConnectionId)
+		return takeErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !accepted {
+		return nil, denied()
+	}
+	peer.Close()
+	s.changed()
+	state, err := s.state(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.DisconnectRemoteConnectionResponse{State: state}, nil
+}
+
+func (s *Service) takeConnection(scope localappkernel.RemoteAccessScope, generation uint64, id string) (*Peer, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	run := s.run
+	if run == nil || run.ctx.Err() != nil || run.scope != scope {
+		return nil, denied()
+	}
+	peer := run.peers[id]
+	if peer == nil {
+		return nil, status.Error(codes.NotFound, "remote connection is no longer available")
+	}
+	info, live := peer.Snapshot()
+	if !live || info.AccountGeneration != generation {
+		return nil, status.Error(codes.NotFound, "remote connection is no longer available")
+	}
+	delete(run.peers, id)
+	delete(run.pending, id)
+	return peer, nil
 }
 
 func (s *Service) commit(ctx context.Context, p protectedprincipal.Principal, operation string, fields map[string]any, action func() error) (*runtimev1.ErrorInfo, error) {

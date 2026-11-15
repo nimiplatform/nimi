@@ -23516,6 +23516,60 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
+/// Public Realm display information; source identity is not a LocalAgent selector.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppCharacterSource {
+    #[prost(message, optional, tag = "1")]
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub summary: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub world_name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub avatar_url: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub disposition: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "7")]
+    pub traits: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "8")]
+    pub topics: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "9")]
+    pub connectable: bool,
+    #[prost(message, optional, tag = "10")]
+    pub existing_partner: ::core::option::Option<LocalAppAgentReference>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppCharacterSourcesRequest {
+    #[prost(string, tag = "1")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub cursor: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub page_size: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppCharacterSourcesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<LocalAppCharacterSource>,
+    #[prost(string, tag = "2")]
+    pub next_cursor: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConnectLocalAppCharacterSourceRequest {
+    #[prost(message, optional, tag = "1")]
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConnectLocalAppCharacterSourceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub partner: ::core::option::Option<LocalAppAgentReference>,
+    #[prost(bool, tag = "2")]
+    pub created: bool,
+}
 /// Read-only source display projection shared by every covered formal App.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentIntroductionRequest {
@@ -26268,6 +26322,66 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_character_sources(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppCharacterSourcesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppCharacterSourcesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppCharacterSources",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn connect_local_app_character_source(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ConnectLocalAppCharacterSourceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ConnectLocalAppCharacterSourceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ConnectLocalAppCharacterSource",
                     ),
                 );
             self.inner.unary(req, path, codec).await

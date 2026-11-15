@@ -10,10 +10,11 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// MaterializeRealmSource is the sole public Realm source ingress. Every Realm
+// MaterializeRealmSource is the account-product Realm source ingress. Every Realm
 // credential, challenge, Packet, proof, JWKS document and closure byte is
 // acquired through the private issuer's authenticated first-party operation and
-// never accepted from the caller. No app permission or grant participates.
+// never accepted from the caller. The account-product ingress remains separate
+// from the explicitly admitted App character acquisition operation.
 func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.MaterializeRealmSourceRequest) (*runtimev1.MaterializeRealmSourceResponse, error) {
 	request, err := validateRealmSourceMaterializationRequestV3(ctx, req)
 	if err != nil {
@@ -24,6 +25,12 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 	} else if protected && !principal.Owns(request.AccountID) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
+	return s.materializeRealmSource(ctx, request, nil)
+}
+
+type realmSourceCommitGuard func(context.Context, RealmSourceMaterializationAccountLease, func(context.Context) error) error
+
+func (s *Service) materializeRealmSource(ctx context.Context, request realmSourceMaterializationRequestV3, commitGuard realmSourceCommitGuard) (*runtimev1.MaterializeRealmSourceResponse, error) {
 	if s == nil || s.isClosed() {
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureIssuerUnavailableV3), nil
 	}
@@ -237,25 +244,32 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		sourceStatus  *runtimev1.LocalAgentSourceContextStatus
 		prepared      *preparedRealmSourceMaterializationProductV3
 	)
+	stage = "generate-local-agent-ref"
+	generatedRef, err := generateRuntimeLocalAgentRef()
+	if err != nil {
+		return fail(sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "generate LocalAgent identity: %v", err))
+	}
+	localAgentRef = generatedRef
+	stage = "prepare-product"
+	preparedProduct, statusProjection, err := s.prepareRealmSourceMaterializationProductV3(ctx, request.AccountID, localAgentRef, verified)
+	if err != nil {
+		return fail(sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "prepare LocalAgent product: %v", err))
+	}
+	prepared = preparedProduct
+	sourceStatus = statusProjection
 	stage = "commit-guard"
-	guardErr := issuer.WithCurrentRealmSourceMaterializationAccount(ctx, acquisition.AccountLease, func() error {
+	if commitGuard == nil {
+		commitGuard = func(ctx context.Context, lease RealmSourceMaterializationAccountLease, commit func(context.Context) error) error {
+			return s.backend.WithSerializedWriter(ctx, func(writerCtx context.Context) error {
+				return issuer.WithCurrentRealmSourceMaterializationAccount(writerCtx, lease, func() error { return commit(writerCtx) })
+			})
+		}
+	}
+	guardErr := commitGuard(ctx, acquisition.AccountLease, func(ctx context.Context) error {
 		stage = "transition-committing"
 		if err := repository.transitionAttempt(ctx, request.AccountID, request.RequestID, realmSourceMaterializationAttemptVerifyingV3, realmSourceMaterializationAttemptCommittingV3, verified.Packet.PacketHash, s.sourceMaterializationClock()().UTC()); err != nil {
 			return err
 		}
-		stage = "generate-local-agent-ref"
-		generatedRef, err := generateRuntimeLocalAgentRef()
-		if err != nil {
-			return sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "generate LocalAgent identity: %v", err)
-		}
-		localAgentRef = generatedRef
-		stage = "prepare-product"
-		preparedProduct, statusProjection, err := s.prepareRealmSourceMaterializationProductV3(ctx, request.AccountID, localAgentRef, verified)
-		if err != nil {
-			return sourceMaterializationV3Error(sourceMaterializationFailurePersistenceV3, "prepare LocalAgent product: %v", err)
-		}
-		prepared = preparedProduct
-		sourceStatus = statusProjection
 		stage = "finish-commit"
 		commitErr := repository.finishCommit(ctx, attempt, realmSourceMaterializationReplayV3{
 			RuntimeInstanceID: runtimeInstanceID, Issuer: verified.Packet.Issuer,

@@ -458,7 +458,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         closeChannel: touched('realm.realtime.closeChannel'),
       },
     },
-    agents: { listReferences: touched('agents.listReferences'), getIntroduction: touched('agents.getIntroduction') },
+    agents: { listReferences: touched('agents.listReferences'), getIntroduction: touched('agents.getIntroduction'), listCharacters: touched('agents.listCharacters'), connectCharacter: touched('agents.connectCharacter') },
     agentWork: {
       listReferences: touched('agentWork.listReferences'),
       start: touched('agentWork.start'),

@@ -178,6 +178,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource":
@@ -726,6 +728,10 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":
@@ -866,6 +872,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource", Kind: FirstPartyMethodUnary},
@@ -1143,6 +1150,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", Kind: FirstPartyMethodUnary},

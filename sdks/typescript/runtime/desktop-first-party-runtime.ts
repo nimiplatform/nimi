@@ -125,7 +125,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
 
 export type NimiDesktopAccountProductRuntimeClient = {
   readonly primaryRuntime: Pick<DesktopAccountProductRuntimeMethods, 'getPrimaryRuntimeState' | 'preparePrimaryRuntime'>;
-  readonly remoteAccess: Pick<DesktopAccountProductRuntimeMethods, 'getRemoteAccessState' | 'setRemoteAccessEnabled' | 'confirmRemoteSource' | 'rejectRemoteSource' | 'setRemoteSourcePaused'>;
+  readonly remoteAccess: Pick<DesktopAccountProductRuntimeMethods, 'getRemoteAccessState' | 'disconnectRemoteConnection' | 'setRemoteAccessEnabled' | 'confirmRemoteSource' | 'rejectRemoteSource' | 'setRemoteSourcePaused'>;
   readonly audit: Pick<DesktopAccountProductRuntimeMethods,
     | 'getDesktopAIActivitySnapshot'
     | 'subscribeDesktopAIActivity'
@@ -551,6 +551,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
       remoteAccess: Object.freeze({
         getRemoteAccessState: protectedGenerated.getRemoteAccessState.bind(protectedGenerated),
+        disconnectRemoteConnection: protectedGenerated.disconnectRemoteConnection.bind(protectedGenerated),
         setRemoteAccessEnabled: protectedGenerated.setRemoteAccessEnabled.bind(protectedGenerated),
         confirmRemoteSource: protectedGenerated.confirmRemoteSource.bind(protectedGenerated),
         rejectRemoteSource: protectedGenerated.rejectRemoteSource.bind(protectedGenerated),

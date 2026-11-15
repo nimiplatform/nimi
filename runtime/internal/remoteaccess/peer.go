@@ -68,6 +68,7 @@ type Peer struct {
 	info        PeerInfo
 	dc          *webrtc.DataChannel
 	ready       bool
+	connectedAt time.Time
 	closed      bool
 	lastRequest uint32
 	assembling  *incomingCall
@@ -135,6 +136,9 @@ func newPeer(ctx context.Context, negotiation context.Context, api *webrtc.API, 
 			}
 			p.mu.Lock()
 			p.ready = !p.closed
+			if p.ready {
+				p.connectedAt = time.Now().UTC()
+			}
 			p.mu.Unlock()
 		})
 		channel.OnClose(func() { go p.Close() })
@@ -188,6 +192,9 @@ func newPeer(ctx context.Context, negotiation context.Context, api *webrtc.API, 
 func (p *Peer) Snapshot() (PeerInfo, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	return p.snapshotLocked()
+}
+func (p *Peer) snapshotLocked() (PeerInfo, bool) {
 	if p.closed || p.ctx.Err() != nil || !accountservice.PrimaryRuntimeDeadlineLive(p.info.Deadline) {
 		return PeerInfo{}, false
 	}
@@ -197,6 +204,14 @@ func (p *Peer) Snapshot() (PeerInfo, bool) {
 	default:
 	}
 	return p.info, true
+}
+
+// @nimi-authority: rule.nimi.runtime.remote-access.connection-management
+func (p *Peer) ConnectionSnapshot() (PeerInfo, time.Time, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	info, live := p.snapshotLocked()
+	return info, p.connectedAt, live && p.ready
 }
 func (p *Peer) Live() bool            { _, live := p.Snapshot(); return live }
 func (p *Peer) Done() <-chan struct{} { return p.ctx.Done() }
@@ -249,6 +264,7 @@ func (p *Peer) watchLifetime() {
 		}
 	}
 }
+
 // @nimi-authority: rule.nimi.runtime.remote-access.connection-lifetime
 func (p *Peer) Close() {
 	p.closeOnce.Do(func() {

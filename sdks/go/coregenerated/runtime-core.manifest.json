@@ -203,6 +203,24 @@
           "response_stream": false
         },
         {
+          "name": "ListLocalAppCharacterSources",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+          "kind": "unary",
+          "request_type": "ListLocalAppCharacterSourcesRequest",
+          "response_type": "ListLocalAppCharacterSourcesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ConnectLocalAppCharacterSource",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+          "kind": "unary",
+          "request_type": "ConnectLocalAppCharacterSourceRequest",
+          "response_type": "ConnectLocalAppCharacterSourceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetLocalAppAgentUtopiaSnapshot",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
           "kind": "unary",
@@ -2756,6 +2774,15 @@
           "response_stream": false
         },
         {
+          "name": "DisconnectRemoteConnection",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
+          "kind": "unary",
+          "request_type": "DisconnectRemoteConnectionRequest",
+          "response_type": "DisconnectRemoteConnectionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "SetRemoteAccessEnabled",
           "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
           "kind": "unary",
@@ -2835,6 +2862,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
     "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+    "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
     "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
@@ -2872,6 +2900,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
+    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
@@ -3108,6 +3137,7 @@
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
     "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
     "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
     "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
     "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
@@ -3243,6 +3273,14 @@
       "kind": "unary",
       "request_type": "CommitLocalAppAgentPresentationRequest",
       "response_type": "LocalAppAgentCommitPresentationResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+      "service": "RuntimeAgentService",
+      "method": "ConnectLocalAppCharacterSource",
+      "kind": "unary",
+      "request_type": "ConnectLocalAppCharacterSourceRequest",
+      "response_type": "ConnectLocalAppCharacterSourceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
@@ -3539,6 +3577,14 @@
       "kind": "unary",
       "request_type": "ListLocalAppAgentWorkToolCallsRequest",
       "response_type": "ListLocalAppAgentWorkToolCallsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppCharacterSources",
+      "kind": "unary",
+      "request_type": "ListLocalAppCharacterSourcesRequest",
+      "response_type": "ListLocalAppCharacterSourcesResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -5427,6 +5473,14 @@
       "kind": "unary",
       "request_type": "ConfirmRemoteSourceRequest",
       "response_type": "ConfirmRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
+      "service": "RuntimeRemoteAccessService",
+      "method": "DisconnectRemoteConnection",
+      "kind": "unary",
+      "request_type": "DisconnectRemoteConnectionRequest",
+      "response_type": "DisconnectRemoteConnectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
@@ -5607,6 +5661,14 @@
       "response_type": "LocalAppAgentCommitPresentationResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource",
+      "service": "RuntimeAgentService",
+      "method": "ConnectLocalAppCharacterSource",
+      "kind": "unary",
+      "request_type": "ConnectLocalAppCharacterSourceRequest",
+      "response_type": "ConnectLocalAppCharacterSourceResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
       "service": "RuntimeAgentService",
       "method": "CorrectLocalAppAgentMemory",
@@ -5901,6 +5963,14 @@
       "kind": "unary",
       "request_type": "ListLocalAppAgentWorkToolCallsRequest",
       "response_type": "ListLocalAppAgentWorkToolCallsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppCharacterSources",
+      "kind": "unary",
+      "request_type": "ListLocalAppCharacterSourcesRequest",
+      "response_type": "ListLocalAppCharacterSourcesResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -7789,6 +7859,14 @@
       "kind": "unary",
       "request_type": "ConfirmRemoteSourceRequest",
       "response_type": "ConfirmRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection",
+      "service": "RuntimeRemoteAccessService",
+      "method": "DisconnectRemoteConnection",
+      "kind": "unary",
+      "request_type": "DisconnectRemoteConnectionRequest",
+      "response_type": "DisconnectRemoteConnectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
@@ -8081,6 +8159,8 @@
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "ConfirmRemoteSourceRequest",
       "ConfirmRemoteSourceResponse",
+      "ConnectLocalAppCharacterSourceRequest",
+      "ConnectLocalAppCharacterSourceResponse",
       "Connector",
       "ConnectorAzureDeployment",
       "ConnectorAzureDeployments",
@@ -8142,6 +8222,8 @@
       "DisableAutonomyResponse",
       "DiscardLocalAppPackageRequest",
       "DiscardLocalAppPackageResponse",
+      "DisconnectRemoteConnectionRequest",
+      "DisconnectRemoteConnectionResponse",
       "EmbeddingVector",
       "EnableAutonomyRequest",
       "EnableAutonomyResponse",
@@ -8363,6 +8445,8 @@
       "ListLocalAppAgentWorkToolCallsResponse",
       "ListLocalAppAssetsRequest",
       "ListLocalAppAssetsResponse",
+      "ListLocalAppCharacterSourcesRequest",
+      "ListLocalAppCharacterSourcesResponse",
       "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
       "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
       "ListLocalAppVoiceAssetsRequest",
@@ -8465,6 +8549,7 @@
       "LocalAppAssetRecord",
       "LocalAppAudioInfo",
       "LocalAppCanonicalAudioPreparation",
+      "LocalAppCharacterSource",
       "LocalAppConversationAction",
       "LocalAppConversationActionEvent",
       "LocalAppConversationArtifactPart",
@@ -8705,6 +8790,7 @@
       "RegisterLocalDevelopmentProjectResponse",
       "RejectRemoteSourceRequest",
       "RejectRemoteSourceResponse",
+      "RemoteAccessConnection",
       "RemoteAccessSource",
       "RemoteTransportFrame",
       "RemoveIntegrationConnectionRequest",
@@ -18129,6 +18215,46 @@
         "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
+        "name": "ConnectLocalAppCharacterSourceRequest",
+        "fields": [
+          {
+            "name": "source_ref",
+            "type": "CharacterSourceRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ConnectLocalAppCharacterSourceResponse",
+        "fields": [
+          {
+            "name": "partner",
+            "type": "LocalAppAgentReference",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "created",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "Connector",
         "fields": [
           {
@@ -20551,6 +20677,39 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "DisconnectRemoteConnectionRequest",
+        "fields": [
+          {
+            "name": "connection_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "DisconnectRemoteConnectionResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "GetRemoteAccessStateResponse",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
         "name": "EmbeddingVector",
         "fields": [
           {
@@ -22835,6 +22994,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "connections",
+            "type": "RemoteAccessConnection",
+            "repeated": true,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/remote_access.proto"
@@ -25791,6 +25957,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListLocalAppCharacterSourcesRequest",
+        "fields": [
+          {
+            "name": "query",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_size",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListLocalAppCharacterSourcesResponse",
+        "fields": [
+          {
+            "name": "items",
+            "type": "LocalAppCharacterSource",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
@@ -29570,6 +29783,82 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppCharacterSource",
+        "fields": [
+          {
+            "name": "source_ref",
+            "type": "CharacterSourceRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "world_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "avatar_url",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "disposition",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "traits",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "topics",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "connectable",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "existing_partner",
+            "type": "LocalAppAgentReference",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppConversationAction",
@@ -39603,6 +39892,33 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteAccessConnection",
+        "fields": [
+          {
+            "name": "connection_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "client_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "connected_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/remote_access.proto"

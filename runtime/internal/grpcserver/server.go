@@ -824,6 +824,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
+	agentSvc.SetRealmCharacterDiscoveryReader(accountSvc)
 	agentSvc.SetRealmCharacterPublicIntroductionResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)

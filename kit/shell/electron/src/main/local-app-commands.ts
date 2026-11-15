@@ -1,3 +1,4 @@
+import { validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppAgentWorkStart, validateNimiLocalAppAgentWorkScope, validateNimiLocalAppAgentWorkToolResult, validateNimiLocalAppAgentWorkSubscribe, validateNimiLocalAppIntegrationInput, type NimiLocalAppIntegrationMethod } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppVoiceConvertSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
@@ -125,6 +126,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscriptionClose'], 'realmRealtimeSubscriptionClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeChannelClose'], 'realmRealtimeChannelClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentIntroductionGet'], 'agentIntroductionGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.characterSourceList'], 'characterSourceList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.characterSourceConnect'], 'characterSourceConnect'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkReferenceList'], 'agentWorkReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkStart'], 'agentWorkStart'],
@@ -961,6 +964,10 @@ function validatePayload(
           : { conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH) }),
       };
     }
+    case 'characterSourceList':
+      validateNimiAppCharacterQuery(payload); return payload as NimiElectronLocalAppRecord;
+    case 'characterSourceConnect':
+      validateNimiAppCharacterConnect(payload as never); return payload as NimiElectronLocalAppRecord;
     case 'agentIntroductionGet':
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':

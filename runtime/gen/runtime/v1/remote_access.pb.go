@@ -9,6 +9,7 @@ package runtimev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -360,6 +361,67 @@ func (*GetRemoteAccessStateRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{1}
 }
 
+type RemoteAccessConnection struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ephemeral reference for this connection, not a device or credential.
+	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	ClientId      string                 `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	ConnectedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoteAccessConnection) Reset() {
+	*x = RemoteAccessConnection{}
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoteAccessConnection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoteAccessConnection) ProtoMessage() {}
+
+func (x *RemoteAccessConnection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoteAccessConnection.ProtoReflect.Descriptor instead.
+func (*RemoteAccessConnection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RemoteAccessConnection) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+func (x *RemoteAccessConnection) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+func (x *RemoteAccessConnection) GetConnectedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ConnectedAt
+	}
+	return nil
+}
+
 type GetRemoteAccessStateResponse struct {
 	state           protoimpl.MessageState      `protogen:"open.v1"`
 	Enabled         bool                        `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -368,13 +430,14 @@ type GetRemoteAccessStateResponse struct {
 	Sources         []*RemoteAccessSource       `protobuf:"bytes,4,rep,name=sources,proto3" json:"sources,omitempty"`
 	ConnectedPeers  uint32                      `protobuf:"varint,5,opt,name=connected_peers,json=connectedPeers,proto3" json:"connected_peers,omitempty"`
 	ReasonCode      string                      `protobuf:"bytes,6,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Connections     []*RemoteAccessConnection   `protobuf:"bytes,7,rep,name=connections,proto3" json:"connections,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetRemoteAccessStateResponse) Reset() {
 	*x = GetRemoteAccessStateResponse{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[2]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -386,7 +449,7 @@ func (x *GetRemoteAccessStateResponse) String() string {
 func (*GetRemoteAccessStateResponse) ProtoMessage() {}
 
 func (x *GetRemoteAccessStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[2]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -399,7 +462,7 @@ func (x *GetRemoteAccessStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRemoteAccessStateResponse.ProtoReflect.Descriptor instead.
 func (*GetRemoteAccessStateResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRemoteAccessStateResponse) GetEnabled() bool {
@@ -444,6 +507,109 @@ func (x *GetRemoteAccessStateResponse) GetReasonCode() string {
 	return ""
 }
 
+func (x *GetRemoteAccessStateResponse) GetConnections() []*RemoteAccessConnection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+type DisconnectRemoteConnectionRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionId      string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	ExpectedBindingId string                 `protobuf:"bytes,2,opt,name=expected_binding_id,json=expectedBindingId,proto3" json:"expected_binding_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *DisconnectRemoteConnectionRequest) Reset() {
+	*x = DisconnectRemoteConnectionRequest{}
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectRemoteConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectRemoteConnectionRequest) ProtoMessage() {}
+
+func (x *DisconnectRemoteConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectRemoteConnectionRequest.ProtoReflect.Descriptor instead.
+func (*DisconnectRemoteConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DisconnectRemoteConnectionRequest) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+func (x *DisconnectRemoteConnectionRequest) GetExpectedBindingId() string {
+	if x != nil {
+		return x.ExpectedBindingId
+	}
+	return ""
+}
+
+type DisconnectRemoteConnectionResponse struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	State         *GetRemoteAccessStateResponse `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectRemoteConnectionResponse) Reset() {
+	*x = DisconnectRemoteConnectionResponse{}
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectRemoteConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectRemoteConnectionResponse) ProtoMessage() {}
+
+func (x *DisconnectRemoteConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectRemoteConnectionResponse.ProtoReflect.Descriptor instead.
+func (*DisconnectRemoteConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DisconnectRemoteConnectionResponse) GetState() *GetRemoteAccessStateResponse {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
 type SetRemoteAccessEnabledRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Enabled           bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -454,7 +620,7 @@ type SetRemoteAccessEnabledRequest struct {
 
 func (x *SetRemoteAccessEnabledRequest) Reset() {
 	*x = SetRemoteAccessEnabledRequest{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[3]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -466,7 +632,7 @@ func (x *SetRemoteAccessEnabledRequest) String() string {
 func (*SetRemoteAccessEnabledRequest) ProtoMessage() {}
 
 func (x *SetRemoteAccessEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[3]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -479,7 +645,7 @@ func (x *SetRemoteAccessEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRemoteAccessEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetRemoteAccessEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SetRemoteAccessEnabledRequest) GetEnabled() bool {
@@ -506,7 +672,7 @@ type SetRemoteAccessEnabledResponse struct {
 
 func (x *SetRemoteAccessEnabledResponse) Reset() {
 	*x = SetRemoteAccessEnabledResponse{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[4]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +684,7 @@ func (x *SetRemoteAccessEnabledResponse) String() string {
 func (*SetRemoteAccessEnabledResponse) ProtoMessage() {}
 
 func (x *SetRemoteAccessEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[4]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +697,7 @@ func (x *SetRemoteAccessEnabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRemoteAccessEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetRemoteAccessEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SetRemoteAccessEnabledResponse) GetState() *GetRemoteAccessStateResponse {
@@ -558,7 +724,7 @@ type ConfirmRemoteSourceRequest struct {
 
 func (x *ConfirmRemoteSourceRequest) Reset() {
 	*x = ConfirmRemoteSourceRequest{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[5]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +736,7 @@ func (x *ConfirmRemoteSourceRequest) String() string {
 func (*ConfirmRemoteSourceRequest) ProtoMessage() {}
 
 func (x *ConfirmRemoteSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[5]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +749,7 @@ func (x *ConfirmRemoteSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmRemoteSourceRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmRemoteSourceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ConfirmRemoteSourceRequest) GetPendingRequestId() string {
@@ -610,7 +776,7 @@ type ConfirmRemoteSourceResponse struct {
 
 func (x *ConfirmRemoteSourceResponse) Reset() {
 	*x = ConfirmRemoteSourceResponse{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[6]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +788,7 @@ func (x *ConfirmRemoteSourceResponse) String() string {
 func (*ConfirmRemoteSourceResponse) ProtoMessage() {}
 
 func (x *ConfirmRemoteSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[6]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +801,7 @@ func (x *ConfirmRemoteSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmRemoteSourceResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmRemoteSourceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ConfirmRemoteSourceResponse) GetState() *GetRemoteAccessStateResponse {
@@ -662,7 +828,7 @@ type RejectRemoteSourceRequest struct {
 
 func (x *RejectRemoteSourceRequest) Reset() {
 	*x = RejectRemoteSourceRequest{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[7]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -674,7 +840,7 @@ func (x *RejectRemoteSourceRequest) String() string {
 func (*RejectRemoteSourceRequest) ProtoMessage() {}
 
 func (x *RejectRemoteSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[7]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -687,7 +853,7 @@ func (x *RejectRemoteSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectRemoteSourceRequest.ProtoReflect.Descriptor instead.
 func (*RejectRemoteSourceRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RejectRemoteSourceRequest) GetPendingRequestId() string {
@@ -713,7 +879,7 @@ type RejectRemoteSourceResponse struct {
 
 func (x *RejectRemoteSourceResponse) Reset() {
 	*x = RejectRemoteSourceResponse{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[8]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -725,7 +891,7 @@ func (x *RejectRemoteSourceResponse) String() string {
 func (*RejectRemoteSourceResponse) ProtoMessage() {}
 
 func (x *RejectRemoteSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[8]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -738,7 +904,7 @@ func (x *RejectRemoteSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectRemoteSourceResponse.ProtoReflect.Descriptor instead.
 func (*RejectRemoteSourceResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RejectRemoteSourceResponse) GetState() *GetRemoteAccessStateResponse {
@@ -759,7 +925,7 @@ type SetRemoteSourcePausedRequest struct {
 
 func (x *SetRemoteSourcePausedRequest) Reset() {
 	*x = SetRemoteSourcePausedRequest{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[9]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -771,7 +937,7 @@ func (x *SetRemoteSourcePausedRequest) String() string {
 func (*SetRemoteSourcePausedRequest) ProtoMessage() {}
 
 func (x *SetRemoteSourcePausedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[9]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -784,7 +950,7 @@ func (x *SetRemoteSourcePausedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRemoteSourcePausedRequest.ProtoReflect.Descriptor instead.
 func (*SetRemoteSourcePausedRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetRemoteSourcePausedRequest) GetClientId() string {
@@ -818,7 +984,7 @@ type SetRemoteSourcePausedResponse struct {
 
 func (x *SetRemoteSourcePausedResponse) Reset() {
 	*x = SetRemoteSourcePausedResponse{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[10]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +996,7 @@ func (x *SetRemoteSourcePausedResponse) String() string {
 func (*SetRemoteSourcePausedResponse) ProtoMessage() {}
 
 func (x *SetRemoteSourcePausedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[10]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +1009,7 @@ func (x *SetRemoteSourcePausedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRemoteSourcePausedResponse.ProtoReflect.Descriptor instead.
 func (*SetRemoteSourcePausedResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetRemoteSourcePausedResponse) GetState() *GetRemoteAccessStateResponse {
@@ -884,7 +1050,7 @@ type RemoteTransportFrame struct {
 
 func (x *RemoteTransportFrame) Reset() {
 	*x = RemoteTransportFrame{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[11]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +1062,7 @@ func (x *RemoteTransportFrame) String() string {
 func (*RemoteTransportFrame) ProtoMessage() {}
 
 func (x *RemoteTransportFrame) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[11]
+	mi := &file_runtime_v1_remote_access_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +1075,7 @@ func (x *RemoteTransportFrame) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteTransportFrame.ProtoReflect.Descriptor instead.
 func (*RemoteTransportFrame) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RemoteTransportFrame) GetKind() RemoteTransportFrameKind {
@@ -1000,7 +1166,7 @@ var File_runtime_v1_remote_access_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"\n" +
-	"\x1eruntime/v1/remote_access.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\x9e\x03\n" +
+	"\x1eruntime/v1/remote_access.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\x03\n" +
 	"\x12RemoteAccessSource\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x15\n" +
 	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12!\n" +
@@ -1014,7 +1180,11 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"\x05state\x18\t \x01(\x0e2(.nimi.runtime.v1.RemoteSourceAccessStateR\x05state\x12,\n" +
 	"\x12pending_request_id\x18\n" +
 	" \x01(\tR\x10pendingRequestId\"\x1d\n" +
-	"\x1bGetRemoteAccessStateRequest\"\xb9\x02\n" +
+	"\x1bGetRemoteAccessStateRequest\"\x99\x01\n" +
+	"\x16RemoteAccessConnection\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12\x1b\n" +
+	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12=\n" +
+	"\fconnected_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vconnectedAt\"\x84\x03\n" +
 	"\x1cGetRemoteAccessStateResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1d\n" +
 	"\n" +
@@ -1023,7 +1193,13 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"\asources\x18\x04 \x03(\v2#.nimi.runtime.v1.RemoteAccessSourceR\asources\x12'\n" +
 	"\x0fconnected_peers\x18\x05 \x01(\rR\x0econnectedPeers\x12\x1f\n" +
 	"\vreason_code\x18\x06 \x01(\tR\n" +
-	"reasonCode\"i\n" +
+	"reasonCode\x12I\n" +
+	"\vconnections\x18\a \x03(\v2'.nimi.runtime.v1.RemoteAccessConnectionR\vconnections\"x\n" +
+	"!DisconnectRemoteConnectionRequest\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12.\n" +
+	"\x13expected_binding_id\x18\x02 \x01(\tR\x11expectedBindingId\"i\n" +
+	"\"DisconnectRemoteConnectionResponse\x12C\n" +
+	"\x05state\x18\x01 \x01(\v2-.nimi.runtime.v1.GetRemoteAccessStateResponseR\x05state\"i\n" +
 	"\x1dSetRemoteAccessEnabledRequest\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12.\n" +
 	"\x13expected_binding_id\x18\x02 \x01(\tR\x11expectedBindingId\"\xac\x01\n" +
@@ -1089,9 +1265,10 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	".REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA\x10\b\x121\n" +
 	"-REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END\x10\t\x124\n" +
 	"0REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT\x10\n" +
-	"2\xe5\x04\n" +
+	"2\xed\x05\n" +
 	"\x1aRuntimeRemoteAccessService\x12s\n" +
-	"\x14GetRemoteAccessState\x12,.nimi.runtime.v1.GetRemoteAccessStateRequest\x1a-.nimi.runtime.v1.GetRemoteAccessStateResponse\x12y\n" +
+	"\x14GetRemoteAccessState\x12,.nimi.runtime.v1.GetRemoteAccessStateRequest\x1a-.nimi.runtime.v1.GetRemoteAccessStateResponse\x12\x85\x01\n" +
+	"\x1aDisconnectRemoteConnection\x122.nimi.runtime.v1.DisconnectRemoteConnectionRequest\x1a3.nimi.runtime.v1.DisconnectRemoteConnectionResponse\x12y\n" +
 	"\x16SetRemoteAccessEnabled\x12..nimi.runtime.v1.SetRemoteAccessEnabledRequest\x1a/.nimi.runtime.v1.SetRemoteAccessEnabledResponse\x12p\n" +
 	"\x13ConfirmRemoteSource\x12+.nimi.runtime.v1.ConfirmRemoteSourceRequest\x1a,.nimi.runtime.v1.ConfirmRemoteSourceResponse\x12m\n" +
 	"\x12RejectRemoteSource\x12*.nimi.runtime.v1.RejectRemoteSourceRequest\x1a+.nimi.runtime.v1.RejectRemoteSourceResponse\x12v\n" +
@@ -1110,53 +1287,62 @@ func file_runtime_v1_remote_access_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_remote_access_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runtime_v1_remote_access_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_runtime_v1_remote_access_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_runtime_v1_remote_access_proto_goTypes = []any{
-	(RemoteAccessConnectionState)(0),       // 0: nimi.runtime.v1.RemoteAccessConnectionState
-	(RemoteSourceAccessState)(0),           // 1: nimi.runtime.v1.RemoteSourceAccessState
-	(RemoteTransportFrameKind)(0),          // 2: nimi.runtime.v1.RemoteTransportFrameKind
-	(*RemoteAccessSource)(nil),             // 3: nimi.runtime.v1.RemoteAccessSource
-	(*GetRemoteAccessStateRequest)(nil),    // 4: nimi.runtime.v1.GetRemoteAccessStateRequest
-	(*GetRemoteAccessStateResponse)(nil),   // 5: nimi.runtime.v1.GetRemoteAccessStateResponse
-	(*SetRemoteAccessEnabledRequest)(nil),  // 6: nimi.runtime.v1.SetRemoteAccessEnabledRequest
-	(*SetRemoteAccessEnabledResponse)(nil), // 7: nimi.runtime.v1.SetRemoteAccessEnabledResponse
-	(*ConfirmRemoteSourceRequest)(nil),     // 8: nimi.runtime.v1.ConfirmRemoteSourceRequest
-	(*ConfirmRemoteSourceResponse)(nil),    // 9: nimi.runtime.v1.ConfirmRemoteSourceResponse
-	(*RejectRemoteSourceRequest)(nil),      // 10: nimi.runtime.v1.RejectRemoteSourceRequest
-	(*RejectRemoteSourceResponse)(nil),     // 11: nimi.runtime.v1.RejectRemoteSourceResponse
-	(*SetRemoteSourcePausedRequest)(nil),   // 12: nimi.runtime.v1.SetRemoteSourcePausedRequest
-	(*SetRemoteSourcePausedResponse)(nil),  // 13: nimi.runtime.v1.SetRemoteSourcePausedResponse
-	(*RemoteTransportFrame)(nil),           // 14: nimi.runtime.v1.RemoteTransportFrame
-	(*ErrorInfo)(nil),                      // 15: nimi.runtime.v1.ErrorInfo
+	(RemoteAccessConnectionState)(0),           // 0: nimi.runtime.v1.RemoteAccessConnectionState
+	(RemoteSourceAccessState)(0),               // 1: nimi.runtime.v1.RemoteSourceAccessState
+	(RemoteTransportFrameKind)(0),              // 2: nimi.runtime.v1.RemoteTransportFrameKind
+	(*RemoteAccessSource)(nil),                 // 3: nimi.runtime.v1.RemoteAccessSource
+	(*GetRemoteAccessStateRequest)(nil),        // 4: nimi.runtime.v1.GetRemoteAccessStateRequest
+	(*RemoteAccessConnection)(nil),             // 5: nimi.runtime.v1.RemoteAccessConnection
+	(*GetRemoteAccessStateResponse)(nil),       // 6: nimi.runtime.v1.GetRemoteAccessStateResponse
+	(*DisconnectRemoteConnectionRequest)(nil),  // 7: nimi.runtime.v1.DisconnectRemoteConnectionRequest
+	(*DisconnectRemoteConnectionResponse)(nil), // 8: nimi.runtime.v1.DisconnectRemoteConnectionResponse
+	(*SetRemoteAccessEnabledRequest)(nil),      // 9: nimi.runtime.v1.SetRemoteAccessEnabledRequest
+	(*SetRemoteAccessEnabledResponse)(nil),     // 10: nimi.runtime.v1.SetRemoteAccessEnabledResponse
+	(*ConfirmRemoteSourceRequest)(nil),         // 11: nimi.runtime.v1.ConfirmRemoteSourceRequest
+	(*ConfirmRemoteSourceResponse)(nil),        // 12: nimi.runtime.v1.ConfirmRemoteSourceResponse
+	(*RejectRemoteSourceRequest)(nil),          // 13: nimi.runtime.v1.RejectRemoteSourceRequest
+	(*RejectRemoteSourceResponse)(nil),         // 14: nimi.runtime.v1.RejectRemoteSourceResponse
+	(*SetRemoteSourcePausedRequest)(nil),       // 15: nimi.runtime.v1.SetRemoteSourcePausedRequest
+	(*SetRemoteSourcePausedResponse)(nil),      // 16: nimi.runtime.v1.SetRemoteSourcePausedResponse
+	(*RemoteTransportFrame)(nil),               // 17: nimi.runtime.v1.RemoteTransportFrame
+	(*timestamppb.Timestamp)(nil),              // 18: google.protobuf.Timestamp
+	(*ErrorInfo)(nil),                          // 19: nimi.runtime.v1.ErrorInfo
 }
 var file_runtime_v1_remote_access_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.RemoteAccessSource.state:type_name -> nimi.runtime.v1.RemoteSourceAccessState
-	0,  // 1: nimi.runtime.v1.GetRemoteAccessStateResponse.connection_state:type_name -> nimi.runtime.v1.RemoteAccessConnectionState
-	3,  // 2: nimi.runtime.v1.GetRemoteAccessStateResponse.sources:type_name -> nimi.runtime.v1.RemoteAccessSource
-	5,  // 3: nimi.runtime.v1.SetRemoteAccessEnabledResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	15, // 4: nimi.runtime.v1.SetRemoteAccessEnabledResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
-	5,  // 5: nimi.runtime.v1.ConfirmRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	15, // 6: nimi.runtime.v1.ConfirmRemoteSourceResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
-	5,  // 7: nimi.runtime.v1.RejectRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	5,  // 8: nimi.runtime.v1.SetRemoteSourcePausedResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	15, // 9: nimi.runtime.v1.SetRemoteSourcePausedResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
-	2,  // 10: nimi.runtime.v1.RemoteTransportFrame.kind:type_name -> nimi.runtime.v1.RemoteTransportFrameKind
-	15, // 11: nimi.runtime.v1.RemoteTransportFrame.error_info:type_name -> nimi.runtime.v1.ErrorInfo
-	4,  // 12: nimi.runtime.v1.RuntimeRemoteAccessService.GetRemoteAccessState:input_type -> nimi.runtime.v1.GetRemoteAccessStateRequest
-	6,  // 13: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteAccessEnabled:input_type -> nimi.runtime.v1.SetRemoteAccessEnabledRequest
-	8,  // 14: nimi.runtime.v1.RuntimeRemoteAccessService.ConfirmRemoteSource:input_type -> nimi.runtime.v1.ConfirmRemoteSourceRequest
-	10, // 15: nimi.runtime.v1.RuntimeRemoteAccessService.RejectRemoteSource:input_type -> nimi.runtime.v1.RejectRemoteSourceRequest
-	12, // 16: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteSourcePaused:input_type -> nimi.runtime.v1.SetRemoteSourcePausedRequest
-	5,  // 17: nimi.runtime.v1.RuntimeRemoteAccessService.GetRemoteAccessState:output_type -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	7,  // 18: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteAccessEnabled:output_type -> nimi.runtime.v1.SetRemoteAccessEnabledResponse
-	9,  // 19: nimi.runtime.v1.RuntimeRemoteAccessService.ConfirmRemoteSource:output_type -> nimi.runtime.v1.ConfirmRemoteSourceResponse
-	11, // 20: nimi.runtime.v1.RuntimeRemoteAccessService.RejectRemoteSource:output_type -> nimi.runtime.v1.RejectRemoteSourceResponse
-	13, // 21: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteSourcePaused:output_type -> nimi.runtime.v1.SetRemoteSourcePausedResponse
-	17, // [17:22] is the sub-list for method output_type
-	12, // [12:17] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	18, // 1: nimi.runtime.v1.RemoteAccessConnection.connected_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: nimi.runtime.v1.GetRemoteAccessStateResponse.connection_state:type_name -> nimi.runtime.v1.RemoteAccessConnectionState
+	3,  // 3: nimi.runtime.v1.GetRemoteAccessStateResponse.sources:type_name -> nimi.runtime.v1.RemoteAccessSource
+	5,  // 4: nimi.runtime.v1.GetRemoteAccessStateResponse.connections:type_name -> nimi.runtime.v1.RemoteAccessConnection
+	6,  // 5: nimi.runtime.v1.DisconnectRemoteConnectionResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	6,  // 6: nimi.runtime.v1.SetRemoteAccessEnabledResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	19, // 7: nimi.runtime.v1.SetRemoteAccessEnabledResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	6,  // 8: nimi.runtime.v1.ConfirmRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	19, // 9: nimi.runtime.v1.ConfirmRemoteSourceResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	6,  // 10: nimi.runtime.v1.RejectRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	6,  // 11: nimi.runtime.v1.SetRemoteSourcePausedResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	19, // 12: nimi.runtime.v1.SetRemoteSourcePausedResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	2,  // 13: nimi.runtime.v1.RemoteTransportFrame.kind:type_name -> nimi.runtime.v1.RemoteTransportFrameKind
+	19, // 14: nimi.runtime.v1.RemoteTransportFrame.error_info:type_name -> nimi.runtime.v1.ErrorInfo
+	4,  // 15: nimi.runtime.v1.RuntimeRemoteAccessService.GetRemoteAccessState:input_type -> nimi.runtime.v1.GetRemoteAccessStateRequest
+	7,  // 16: nimi.runtime.v1.RuntimeRemoteAccessService.DisconnectRemoteConnection:input_type -> nimi.runtime.v1.DisconnectRemoteConnectionRequest
+	9,  // 17: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteAccessEnabled:input_type -> nimi.runtime.v1.SetRemoteAccessEnabledRequest
+	11, // 18: nimi.runtime.v1.RuntimeRemoteAccessService.ConfirmRemoteSource:input_type -> nimi.runtime.v1.ConfirmRemoteSourceRequest
+	13, // 19: nimi.runtime.v1.RuntimeRemoteAccessService.RejectRemoteSource:input_type -> nimi.runtime.v1.RejectRemoteSourceRequest
+	15, // 20: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteSourcePaused:input_type -> nimi.runtime.v1.SetRemoteSourcePausedRequest
+	6,  // 21: nimi.runtime.v1.RuntimeRemoteAccessService.GetRemoteAccessState:output_type -> nimi.runtime.v1.GetRemoteAccessStateResponse
+	8,  // 22: nimi.runtime.v1.RuntimeRemoteAccessService.DisconnectRemoteConnection:output_type -> nimi.runtime.v1.DisconnectRemoteConnectionResponse
+	10, // 23: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteAccessEnabled:output_type -> nimi.runtime.v1.SetRemoteAccessEnabledResponse
+	12, // 24: nimi.runtime.v1.RuntimeRemoteAccessService.ConfirmRemoteSource:output_type -> nimi.runtime.v1.ConfirmRemoteSourceResponse
+	14, // 25: nimi.runtime.v1.RuntimeRemoteAccessService.RejectRemoteSource:output_type -> nimi.runtime.v1.RejectRemoteSourceResponse
+	16, // 26: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteSourcePaused:output_type -> nimi.runtime.v1.SetRemoteSourcePausedResponse
+	21, // [21:27] is the sub-list for method output_type
+	15, // [15:21] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_remote_access_proto_init() }
@@ -1171,7 +1357,7 @@ func file_runtime_v1_remote_access_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_remote_access_proto_rawDesc), len(file_runtime_v1_remote_access_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   12,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

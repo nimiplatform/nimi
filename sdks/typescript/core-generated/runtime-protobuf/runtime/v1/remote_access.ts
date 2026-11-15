@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { ErrorInfo } from "./common";
+import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.RemoteAccessSource
  */
@@ -63,6 +64,25 @@ export interface RemoteAccessSource {
 export interface GetRemoteAccessStateRequest {
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.RemoteAccessConnection
+ */
+export interface RemoteAccessConnection {
+    /**
+     * Ephemeral reference for this connection, not a device or credential.
+     *
+     * @generated from protobuf field: string connection_id = 1
+     */
+    connectionId: string;
+    /**
+     * @generated from protobuf field: string client_id = 2
+     */
+    clientId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp connected_at = 3
+     */
+    connectedAt?: Timestamp;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetRemoteAccessStateResponse
  */
 export interface GetRemoteAccessStateResponse {
@@ -90,6 +110,32 @@ export interface GetRemoteAccessStateResponse {
      * @generated from protobuf field: string reason_code = 6
      */
     reasonCode: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RemoteAccessConnection connections = 7
+     */
+    connections: RemoteAccessConnection[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DisconnectRemoteConnectionRequest
+ */
+export interface DisconnectRemoteConnectionRequest {
+    /**
+     * @generated from protobuf field: string connection_id = 1
+     */
+    connectionId: string;
+    /**
+     * @generated from protobuf field: string expected_binding_id = 2
+     */
+    expectedBindingId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DisconnectRemoteConnectionResponse
+ */
+export interface DisconnectRemoteConnectionResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.GetRemoteAccessStateResponse state = 1
+     */
+    state?: GetRemoteAccessStateResponse;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetRemoteAccessEnabledRequest
@@ -517,6 +563,68 @@ class GetRemoteAccessStateRequest$Type extends MessageType<GetRemoteAccessStateR
  */
 export const GetRemoteAccessStateRequest = new GetRemoteAccessStateRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RemoteAccessConnection$Type extends MessageType<RemoteAccessConnection> {
+    constructor() {
+        super("nimi.runtime.v1.RemoteAccessConnection", [
+            { no: 1, name: "connection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "client_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "connected_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<RemoteAccessConnection>): RemoteAccessConnection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectionId = "";
+        message.clientId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoteAccessConnection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoteAccessConnection): RemoteAccessConnection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connection_id */ 1:
+                    message.connectionId = reader.string();
+                    break;
+                case /* string client_id */ 2:
+                    message.clientId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp connected_at */ 3:
+                    message.connectedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.connectedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoteAccessConnection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connection_id = 1; */
+        if (message.connectionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectionId);
+        /* string client_id = 2; */
+        if (message.clientId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.clientId);
+        /* google.protobuf.Timestamp connected_at = 3; */
+        if (message.connectedAt)
+            Timestamp.internalBinaryWrite(message.connectedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoteAccessConnection
+ */
+export const RemoteAccessConnection = new RemoteAccessConnection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessStateResponse> {
     constructor() {
         super("nimi.runtime.v1.GetRemoteAccessStateResponse", [
@@ -525,7 +633,8 @@ class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessState
             { no: 3, name: "connection_state", kind: "enum", T: () => ["nimi.runtime.v1.RemoteAccessConnectionState", RemoteAccessConnectionState, "REMOTE_ACCESS_CONNECTION_STATE_"] },
             { no: 4, name: "sources", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RemoteAccessSource },
             { no: 5, name: "connected_peers", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 6, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "connections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RemoteAccessConnection }
         ]);
     }
     create(value?: PartialMessage<GetRemoteAccessStateResponse>): GetRemoteAccessStateResponse {
@@ -536,6 +645,7 @@ class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessState
         message.sources = [];
         message.connectedPeers = 0;
         message.reasonCode = "";
+        message.connections = [];
         if (value !== undefined)
             reflectionMergePartial<GetRemoteAccessStateResponse>(this, message, value);
         return message;
@@ -562,6 +672,9 @@ class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessState
                     break;
                 case /* string reason_code */ 6:
                     message.reasonCode = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.RemoteAccessConnection connections */ 7:
+                    message.connections.push(RemoteAccessConnection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -593,6 +706,9 @@ class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessState
         /* string reason_code = 6; */
         if (message.reasonCode !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.reasonCode);
+        /* repeated nimi.runtime.v1.RemoteAccessConnection connections = 7; */
+        for (let i = 0; i < message.connections.length; i++)
+            RemoteAccessConnection.internalBinaryWrite(message.connections[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -603,6 +719,107 @@ class GetRemoteAccessStateResponse$Type extends MessageType<GetRemoteAccessState
  * @generated MessageType for protobuf message nimi.runtime.v1.GetRemoteAccessStateResponse
  */
 export const GetRemoteAccessStateResponse = new GetRemoteAccessStateResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DisconnectRemoteConnectionRequest$Type extends MessageType<DisconnectRemoteConnectionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DisconnectRemoteConnectionRequest", [
+            { no: 1, name: "connection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DisconnectRemoteConnectionRequest>): DisconnectRemoteConnectionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.connectionId = "";
+        message.expectedBindingId = "";
+        if (value !== undefined)
+            reflectionMergePartial<DisconnectRemoteConnectionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DisconnectRemoteConnectionRequest): DisconnectRemoteConnectionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string connection_id */ 1:
+                    message.connectionId = reader.string();
+                    break;
+                case /* string expected_binding_id */ 2:
+                    message.expectedBindingId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DisconnectRemoteConnectionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string connection_id = 1; */
+        if (message.connectionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.connectionId);
+        /* string expected_binding_id = 2; */
+        if (message.expectedBindingId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedBindingId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DisconnectRemoteConnectionRequest
+ */
+export const DisconnectRemoteConnectionRequest = new DisconnectRemoteConnectionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DisconnectRemoteConnectionResponse$Type extends MessageType<DisconnectRemoteConnectionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DisconnectRemoteConnectionResponse", [
+            { no: 1, name: "state", kind: "message", T: () => GetRemoteAccessStateResponse }
+        ]);
+    }
+    create(value?: PartialMessage<DisconnectRemoteConnectionResponse>): DisconnectRemoteConnectionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DisconnectRemoteConnectionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DisconnectRemoteConnectionResponse): DisconnectRemoteConnectionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.GetRemoteAccessStateResponse state */ 1:
+                    message.state = GetRemoteAccessStateResponse.internalBinaryRead(reader, reader.uint32(), options, message.state);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DisconnectRemoteConnectionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.GetRemoteAccessStateResponse state = 1; */
+        if (message.state)
+            GetRemoteAccessStateResponse.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DisconnectRemoteConnectionResponse
+ */
+export const DisconnectRemoteConnectionResponse = new DisconnectRemoteConnectionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SetRemoteAccessEnabledRequest$Type extends MessageType<SetRemoteAccessEnabledRequest> {
     constructor() {

@@ -596,7 +596,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly closeChannel: (input: JsonObject) => Promise<JsonObject>;
     };
   };
-  readonly agents: {
+  readonly agents: import('@nimiplatform/kit/core/sdk-contract').NimiAppCharacterDiscoveryShell & {
     readonly getIntroduction: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
     readonly listReferences: () => Promise<readonly NimiLocalAppAgentReference[]>;
   };
@@ -735,6 +735,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       },
     },
     agents: {
+      listCharacters: input => { const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.characterSourceList']; return invokeChecked(command, input, value => parseOpaquePersonaProjection(value, command)); },
+      connectCharacter: input => { const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.characterSourceConnect']; return invokeChecked(command, input, value => parseOpaquePersonaProjection(value, command)); },
       getIntroduction: (input) => {
         const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentIntroductionGet'];
         return invokeChecked(command, input, (value) => parseOpaquePersonaProjection(value, command));

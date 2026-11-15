@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeRemoteAccessService_GetRemoteAccessState_FullMethodName   = "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState"
-	RuntimeRemoteAccessService_SetRemoteAccessEnabled_FullMethodName = "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled"
-	RuntimeRemoteAccessService_ConfirmRemoteSource_FullMethodName    = "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource"
-	RuntimeRemoteAccessService_RejectRemoteSource_FullMethodName     = "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource"
-	RuntimeRemoteAccessService_SetRemoteSourcePaused_FullMethodName  = "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused"
+	RuntimeRemoteAccessService_GetRemoteAccessState_FullMethodName       = "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState"
+	RuntimeRemoteAccessService_DisconnectRemoteConnection_FullMethodName = "/nimi.runtime.v1.RuntimeRemoteAccessService/DisconnectRemoteConnection"
+	RuntimeRemoteAccessService_SetRemoteAccessEnabled_FullMethodName     = "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled"
+	RuntimeRemoteAccessService_ConfirmRemoteSource_FullMethodName        = "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource"
+	RuntimeRemoteAccessService_RejectRemoteSource_FullMethodName         = "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource"
+	RuntimeRemoteAccessService_SetRemoteSourcePaused_FullMethodName      = "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused"
 )
 
 // RuntimeRemoteAccessServiceClient is the client API for RuntimeRemoteAccessService service.
@@ -31,6 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeRemoteAccessServiceClient interface {
 	GetRemoteAccessState(ctx context.Context, in *GetRemoteAccessStateRequest, opts ...grpc.CallOption) (*GetRemoteAccessStateResponse, error)
+	DisconnectRemoteConnection(ctx context.Context, in *DisconnectRemoteConnectionRequest, opts ...grpc.CallOption) (*DisconnectRemoteConnectionResponse, error)
 	SetRemoteAccessEnabled(ctx context.Context, in *SetRemoteAccessEnabledRequest, opts ...grpc.CallOption) (*SetRemoteAccessEnabledResponse, error)
 	ConfirmRemoteSource(ctx context.Context, in *ConfirmRemoteSourceRequest, opts ...grpc.CallOption) (*ConfirmRemoteSourceResponse, error)
 	RejectRemoteSource(ctx context.Context, in *RejectRemoteSourceRequest, opts ...grpc.CallOption) (*RejectRemoteSourceResponse, error)
@@ -49,6 +51,16 @@ func (c *runtimeRemoteAccessServiceClient) GetRemoteAccessState(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRemoteAccessStateResponse)
 	err := c.cc.Invoke(ctx, RuntimeRemoteAccessService_GetRemoteAccessState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeRemoteAccessServiceClient) DisconnectRemoteConnection(ctx context.Context, in *DisconnectRemoteConnectionRequest, opts ...grpc.CallOption) (*DisconnectRemoteConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DisconnectRemoteConnectionResponse)
+	err := c.cc.Invoke(ctx, RuntimeRemoteAccessService_DisconnectRemoteConnection_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +112,7 @@ func (c *runtimeRemoteAccessServiceClient) SetRemoteSourcePaused(ctx context.Con
 // for forward compatibility.
 type RuntimeRemoteAccessServiceServer interface {
 	GetRemoteAccessState(context.Context, *GetRemoteAccessStateRequest) (*GetRemoteAccessStateResponse, error)
+	DisconnectRemoteConnection(context.Context, *DisconnectRemoteConnectionRequest) (*DisconnectRemoteConnectionResponse, error)
 	SetRemoteAccessEnabled(context.Context, *SetRemoteAccessEnabledRequest) (*SetRemoteAccessEnabledResponse, error)
 	ConfirmRemoteSource(context.Context, *ConfirmRemoteSourceRequest) (*ConfirmRemoteSourceResponse, error)
 	RejectRemoteSource(context.Context, *RejectRemoteSourceRequest) (*RejectRemoteSourceResponse, error)
@@ -115,6 +128,9 @@ type UnimplementedRuntimeRemoteAccessServiceServer struct{}
 
 func (UnimplementedRuntimeRemoteAccessServiceServer) GetRemoteAccessState(context.Context, *GetRemoteAccessStateRequest) (*GetRemoteAccessStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRemoteAccessState not implemented")
+}
+func (UnimplementedRuntimeRemoteAccessServiceServer) DisconnectRemoteConnection(context.Context, *DisconnectRemoteConnectionRequest) (*DisconnectRemoteConnectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisconnectRemoteConnection not implemented")
 }
 func (UnimplementedRuntimeRemoteAccessServiceServer) SetRemoteAccessEnabled(context.Context, *SetRemoteAccessEnabledRequest) (*SetRemoteAccessEnabledResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetRemoteAccessEnabled not implemented")
@@ -162,6 +178,24 @@ func _RuntimeRemoteAccessService_GetRemoteAccessState_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeRemoteAccessServiceServer).GetRemoteAccessState(ctx, req.(*GetRemoteAccessStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeRemoteAccessService_DisconnectRemoteConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisconnectRemoteConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeRemoteAccessServiceServer).DisconnectRemoteConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeRemoteAccessService_DisconnectRemoteConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeRemoteAccessServiceServer).DisconnectRemoteConnection(ctx, req.(*DisconnectRemoteConnectionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -248,6 +282,10 @@ var RuntimeRemoteAccessService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRemoteAccessState",
 			Handler:    _RuntimeRemoteAccessService_GetRemoteAccessState_Handler,
+		},
+		{
+			MethodName: "DisconnectRemoteConnection",
+			Handler:    _RuntimeRemoteAccessService_DisconnectRemoteConnection_Handler,
 		},
 		{
 			MethodName: "SetRemoteAccessEnabled",

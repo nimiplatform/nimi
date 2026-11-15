@@ -245,6 +245,10 @@ func BundledAppMethod(appID, marker, methodID string) (BundledAppMethodProfile, 
 			return BundledAppMethodProfile{AppID: "nimi.zhiyu", ProfileID: "bundled_zhiyu_v1", Kind: FirstPartyMethodUnary, Capability: ""}, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
 			return BundledAppMethodProfile{AppID: "nimi.zhiyu", ProfileID: "bundled_zhiyu_v1", Kind: FirstPartyMethodUnary, Capability: ""}, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources":
+			return BundledAppMethodProfile{AppID: "nimi.zhiyu", ProfileID: "bundled_zhiyu_v1", Kind: FirstPartyMethodUnary, Capability: ""}, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource":
+			return BundledAppMethodProfile{AppID: "nimi.zhiyu", ProfileID: "bundled_zhiyu_v1", Kind: FirstPartyMethodUnary, Capability: ""}, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget":
 			return BundledAppMethodProfile{AppID: "nimi.zhiyu", ProfileID: "bundled_zhiyu_v1", Kind: FirstPartyMethodUnary, Capability: ""}, true
 		case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":

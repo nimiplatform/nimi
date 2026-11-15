@@ -19,6 +19,7 @@ mod realm_realtime;
 mod realm_world_core;
 mod realtime;
 mod reference;
+mod character_discovery;
 mod scenario;
 #[cfg(all(test, target_os = "macos"))]
 mod session_rebind_tests;
@@ -860,6 +861,12 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn character_source_list(&self, input: serde_json::Value) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; character_discovery::list(self.checked_channel()?, input).await })
+    }
+    fn character_source_connect(&self, input: serde_json::Value) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; character_discovery::connect(self.checked_channel()?, input).await })
+    }
     fn agent_introduction_get(
         &self,
         request: LocalAppAgentHandleRequest,

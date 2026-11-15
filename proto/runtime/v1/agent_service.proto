@@ -485,6 +485,37 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
+// Public Realm display information; source identity is not a LocalAgent selector.
+message LocalAppCharacterSource {
+  CharacterSourceRefV3 source_ref = 1;
+  string display_name = 2;
+  string summary = 3;
+  string world_name = 4;
+  optional string avatar_url = 5;
+  string disposition = 6;
+  repeated string traits = 7;
+  repeated string topics = 8;
+  bool connectable = 9;
+  LocalAppAgentReference existing_partner = 10;
+}
+message ListLocalAppCharacterSourcesRequest {
+  string query = 1;
+  string cursor = 2;
+  uint32 page_size = 3;
+}
+message ListLocalAppCharacterSourcesResponse {
+  repeated LocalAppCharacterSource items = 1;
+  string next_cursor = 2;
+}
+message ConnectLocalAppCharacterSourceRequest {
+  CharacterSourceRefV3 source_ref = 1;
+  string request_id = 2;
+}
+message ConnectLocalAppCharacterSourceResponse {
+  LocalAppAgentReference partner = 1;
+  bool created = 2;
+}
+
 // Read-only source display projection shared by every covered formal App.
 message GetLocalAppAgentIntroductionRequest {
   string agent_handle = 1;
@@ -1255,6 +1286,8 @@ service RuntimeAgentService {
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc GetLocalAppAgentIntroduction(GetLocalAppAgentIntroductionRequest) returns (GetLocalAppAgentIntroductionResponse);
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc ListLocalAppCharacterSources(ListLocalAppCharacterSourcesRequest) returns (ListLocalAppCharacterSourcesResponse);
+  rpc ConnectLocalAppCharacterSource(ConnectLocalAppCharacterSourceRequest) returns (ConnectLocalAppCharacterSourceResponse);
   rpc GetLocalAppAgentUtopiaSnapshot(GetLocalAppAgentUtopiaSnapshotRequest) returns (GetLocalAppAgentUtopiaSnapshotResponse);
   rpc UpdateLocalAppAgentUtopiaSettings(UpdateLocalAppAgentUtopiaSettingsRequest) returns (UpdateLocalAppAgentUtopiaSettingsResponse);
   rpc ResolveDesktopAgentReference(ResolveDesktopAgentReferenceRequest) returns (ResolveDesktopAgentReferenceResponse);

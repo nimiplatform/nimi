@@ -2,6 +2,18 @@
 
 # SDK migration notes
 
+## Unreleased — Character discovery (next 0.x minor)
+
+Formal App clients expose `agents.listCharacters` and `agents.connectCharacter` under the separate `agent.acquire` declaration. They return public Realm source display and ordinary current-session partner references; existing partners are reused by stable Character identity. Conversation continues to require `agent.local`. Custom standard shells must provide both methods; update Runtime, SDK, Kit and native bindings together. Remote declarations need a new admitted source revision, not an implicit grant expansion. `open-world` opens Home's exact public `worldId`. This is source work, not a release.
+
+## Unreleased — Home remote connections
+
+`accountProduct.remoteAccess.getRemoteAccessState` includes current established `connections` with source references and channel-open times. Home can end one exact connection through `disconnectRemoteConnection` with its expected primary binding. Source allowance, other connections and durable job ownership remain separate. This method is Home-only; it is not exposed to remote Apps or remote management clients. Use matching Runtime, SDK, Kit native profiles and Home builds. This is source work, not a published release.
+
+## Unreleased — Home partner navigation (next 0.x minor)
+
+Use `open-partners` with an optional display `query` to open Home partner management. The former `open-explore` / `partners` / `select-partner` pairing rejects; update App callers and the matching SDK, Kit and Desktop together. `open-agent-center` retains its Conversation correlation input and opens Home management without entering Chat. This is a source change, not a published release.
+
 ## Unreleased — Native Agent Utopia (next 0.x minor)
 
 The native App client exposes `utopia.snapshot` and `utopia.update`. Custom `NimiLocalAppStandardShell` implementations must provide both methods in the `utopia` namespace. Use matching Kit, native binding and Runtime builds for protected Utopia operations.

@@ -25,6 +25,8 @@ const (
 	RuntimeAgentService_ListAgents_FullMethodName                                  = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
 	RuntimeAgentService_GetLocalAppAgentIntroduction_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction"
 	RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	RuntimeAgentService_ListLocalAppCharacterSources_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppCharacterSources"
+	RuntimeAgentService_ConnectLocalAppCharacterSource_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ConnectLocalAppCharacterSource"
 	RuntimeAgentService_GetLocalAppAgentUtopiaSnapshot_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot"
 	RuntimeAgentService_UpdateLocalAppAgentUtopiaSettings_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings"
 	RuntimeAgentService_ResolveDesktopAgentReference_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference"
@@ -113,6 +115,8 @@ type RuntimeAgentServiceClient interface {
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	GetLocalAppAgentIntroduction(ctx context.Context, in *GetLocalAppAgentIntroductionRequest, opts ...grpc.CallOption) (*GetLocalAppAgentIntroductionResponse, error)
 	ListLocalAppAgentReferences(ctx context.Context, in *ListLocalAppAgentReferencesRequest, opts ...grpc.CallOption) (*ListLocalAppAgentReferencesResponse, error)
+	ListLocalAppCharacterSources(ctx context.Context, in *ListLocalAppCharacterSourcesRequest, opts ...grpc.CallOption) (*ListLocalAppCharacterSourcesResponse, error)
+	ConnectLocalAppCharacterSource(ctx context.Context, in *ConnectLocalAppCharacterSourceRequest, opts ...grpc.CallOption) (*ConnectLocalAppCharacterSourceResponse, error)
 	GetLocalAppAgentUtopiaSnapshot(ctx context.Context, in *GetLocalAppAgentUtopiaSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppAgentUtopiaSnapshotResponse, error)
 	UpdateLocalAppAgentUtopiaSettings(ctx context.Context, in *UpdateLocalAppAgentUtopiaSettingsRequest, opts ...grpc.CallOption) (*UpdateLocalAppAgentUtopiaSettingsResponse, error)
 	ResolveDesktopAgentReference(ctx context.Context, in *ResolveDesktopAgentReferenceRequest, opts ...grpc.CallOption) (*ResolveDesktopAgentReferenceResponse, error)
@@ -254,6 +258,26 @@ func (c *runtimeAgentServiceClient) ListLocalAppAgentReferences(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListLocalAppAgentReferencesResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListLocalAppCharacterSources(ctx context.Context, in *ListLocalAppCharacterSourcesRequest, opts ...grpc.CallOption) (*ListLocalAppCharacterSourcesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppCharacterSourcesResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppCharacterSources_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ConnectLocalAppCharacterSource(ctx context.Context, in *ConnectLocalAppCharacterSourceRequest, opts ...grpc.CallOption) (*ConnectLocalAppCharacterSourceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConnectLocalAppCharacterSourceResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ConnectLocalAppCharacterSource_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1039,6 +1063,8 @@ type RuntimeAgentServiceServer interface {
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	GetLocalAppAgentIntroduction(context.Context, *GetLocalAppAgentIntroductionRequest) (*GetLocalAppAgentIntroductionResponse, error)
 	ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error)
+	ListLocalAppCharacterSources(context.Context, *ListLocalAppCharacterSourcesRequest) (*ListLocalAppCharacterSourcesResponse, error)
+	ConnectLocalAppCharacterSource(context.Context, *ConnectLocalAppCharacterSourceRequest) (*ConnectLocalAppCharacterSourceResponse, error)
 	GetLocalAppAgentUtopiaSnapshot(context.Context, *GetLocalAppAgentUtopiaSnapshotRequest) (*GetLocalAppAgentUtopiaSnapshotResponse, error)
 	UpdateLocalAppAgentUtopiaSettings(context.Context, *UpdateLocalAppAgentUtopiaSettingsRequest) (*UpdateLocalAppAgentUtopiaSettingsResponse, error)
 	ResolveDesktopAgentReference(context.Context, *ResolveDesktopAgentReferenceRequest) (*ResolveDesktopAgentReferenceResponse, error)
@@ -1142,6 +1168,12 @@ func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentIntroduction(conte
 }
 func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentReferences not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListLocalAppCharacterSources(context.Context, *ListLocalAppCharacterSourcesRequest) (*ListLocalAppCharacterSourcesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppCharacterSources not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ConnectLocalAppCharacterSource(context.Context, *ConnectLocalAppCharacterSourceRequest) (*ConnectLocalAppCharacterSourceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConnectLocalAppCharacterSource not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentUtopiaSnapshot(context.Context, *GetLocalAppAgentUtopiaSnapshotRequest) (*GetLocalAppAgentUtopiaSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetLocalAppAgentUtopiaSnapshot not implemented")
@@ -1486,6 +1518,42 @@ func _RuntimeAgentService_ListLocalAppAgentReferences_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentReferences(ctx, req.(*ListLocalAppAgentReferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListLocalAppCharacterSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppCharacterSourcesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppCharacterSources(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListLocalAppCharacterSources_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppCharacterSources(ctx, req.(*ListLocalAppCharacterSourcesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ConnectLocalAppCharacterSource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectLocalAppCharacterSourceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ConnectLocalAppCharacterSource(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ConnectLocalAppCharacterSource_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ConnectLocalAppCharacterSource(ctx, req.(*ConnectLocalAppCharacterSourceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2806,6 +2874,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListLocalAppAgentReferences",
 			Handler:    _RuntimeAgentService_ListLocalAppAgentReferences_Handler,
+		},
+		{
+			MethodName: "ListLocalAppCharacterSources",
+			Handler:    _RuntimeAgentService_ListLocalAppCharacterSources_Handler,
+		},
+		{
+			MethodName: "ConnectLocalAppCharacterSource",
+			Handler:    _RuntimeAgentService_ConnectLocalAppCharacterSource_Handler,
 		},
 		{
 			MethodName: "GetLocalAppAgentUtopiaSnapshot",

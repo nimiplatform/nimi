@@ -78,6 +78,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppRealmRealtimeSubscriptionClose',
   'localAppRealmRealtimeChannelClose',
   'localAppAgentIntroductionGet',
+  'localAppCharacterSourceList',
+  'localAppCharacterSourceConnect',
   'localAppAgentReferenceList',
   'localAppAvatarHostTargetResolve',
   'localAppStorageReadJson',
@@ -475,6 +477,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppRealmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmChatList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppCharacterSourceList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppCharacterSourceConnect: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentIntroductionGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAvatarHostTargetResolve: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -629,6 +633,8 @@ export type NimiElectronLocalAppHost = {
   readonly realmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmChatList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly characterSourceList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly characterSourceConnect: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentIntroductionGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   /** Host-only Avatar correlation; never dispatched through local-app commands. */
@@ -1242,6 +1248,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       personaCharacterId,
     );
   }
+
+  characterSourceList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppCharacterSourceList(input)); }
+
+  characterSourceConnect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppCharacterSourceConnect(input)); }
 
   agentIntroductionGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     if (!hasExactKeys(input, ['agentHandle'])) throw untrustedRuntimeError();
@@ -1868,6 +1878,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   realmPersonaCharacterDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().realmPersonaCharacterDelete(input);
   }
+
+  characterSourceList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().characterSourceList(input); }
+
+  characterSourceConnect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().characterSourceConnect(input); }
 
   agentIntroductionGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentIntroductionGet(input);

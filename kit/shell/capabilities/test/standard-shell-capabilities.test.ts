@@ -198,6 +198,8 @@ describe('standard shell capabilities', () => {
       'local-app.voiceAssetsList',
       'local-app.voiceAssetsDelete',
       'local-app.agentIntroductionGet',
+      'local-app.characterSourceList',
+      'local-app.characterSourceConnect',
       'local-app.agentReferenceList',
       'local-app.agentWorkReferenceList',
       'local-app.agentWorkStart',

@@ -925,6 +925,8 @@ func appOperationCapability(admission localappop.Admission) (string, bool) {
 		localappop.OperationIntegrationConnectionSetupSubmit,
 		localappop.OperationIntegrationConnectionSetupCancel,
 		localappop.OperationAgentIntroductionGet,
+		localappop.OperationCharacterSourceList,
+		localappop.OperationCharacterSourceConnect,
 		localappop.OperationAgentReferenceList,
 		localappop.OperationConversationOpen,
 		localappop.OperationConversationTurnSend,
