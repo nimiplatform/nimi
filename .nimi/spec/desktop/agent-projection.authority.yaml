@@ -4,8 +4,8 @@ scope: desktop.agent-projection
 units:
   - id: definition.nimi.desktop.agent-projection.agent-chat
     kind: definition
-    title: Desktop LocalAgent Conversation projection
-    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, context-capacity, and optional Memory status rendering, explicit unavailable states, App-private composer drafts and submission copies, and ephemeral view state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, context planning, state, voice, continuity, and lifecycle and executes AI Jobs required by Cognition pipelines; Cognition owns Memory and Knowledge semantic admission and canonical state plus its private source corpus and generation lifecycle, and Knowledge V1 has no active Desktop projection.
+    title: Home LocalAgent management and conversation handoff
+    meaning: Home owns LocalAgent inventory, partner management, source navigation, bounded Runtime conversation summaries and ephemeral shortcut drafts. Explicit full conversation, recorded voice, media interaction and transient Realtime belong to the admitted Zhiyu App surface. Home transfers only the Runtime-issued conversation correlation and bounded navigation or draft input through the supervised Host. Runtime retains LocalAgent identity, execution, Conversation, summary, voice, continuity and lifecycle; Cognition retains Memory and Knowledge semantics and canonical state, with Knowledge V1 inactive.
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
@@ -29,31 +29,31 @@ units:
     reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product instead of retaining a future Desktop projection.
   - id: rule.nimi.desktop.agent-projection.r001
     kind: rule
-    title: LocalAgent Conversation accepts typed user intent only
+    title: Home hands off explicit partner conversation intent
     modality: must
-    statement: Desktop submits canonical typed current-user LocalAgent intent through the same standard SDK and Runtime seam as every formal App, uses a session-scoped agentHandle as the only Agent selector and a Runtime-issued Conversation anchor only as a revalidated continuity fence, contains zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part for durable turn send and optionally one canonical message quotation selector validated and resolved by Runtime, and never attaches raw media bytes to Conversation operations, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
-    condition: Whenever Desktop starts or continues a LocalAgent Conversation.
-    failure: Reject untyped, unauthorized, or context-bearing input before execution.
+    statement: Home resolves the selected current-account partner through its own admitted client and hands only a Runtime-issued Conversation anchor, optional committed message reference and bounded unsent text to bundled Zhiyu through the verified Host. The destination resolves its own current-session Agent reference and confirms arrival; Home sends no LocalAgent turn, attachment, microphone input, provider choice, execution context, credential or caller handle.
+    condition: Whenever Home opens or continues a partner conversation.
+    failure: Keep the source input and report unavailable or not reached without selecting another partner or submitting a turn.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r002
     kind: rule
-    title: Desktop consumes Runtime LocalAgent truth
+    title: Home reads bounded Runtime LocalAgent projections
     modality: must
-    statement: Desktop renders the canonical rich sanitized Runtime LocalAgent live union including turn, text delta, reasoning status without private content, action, tool, committed response, interrupted, and failed state together with committed text and image messages, image-action lifecycle and artifact references, final voice sidecars, presentation, continuity, and canonical failures using the same typed SDK, stable identities, event sequence, reducer, and bounded snapshot semantics as every other formal App; Desktop-specific placement, capture, playback, and rendering roles create no different selector, wire, event union, or execution truth, and UI state, local history, optimistic output, or cached events never becomes Runtime truth.
-    condition: Whenever Desktop renders or replays LocalAgent state.
-    failure: Reject local semantic reconstruction and use the Runtime projection or explicit unavailable state.
+    statement: Home renders authorized Runtime LocalAgent inventory, management state, bounded conversation summaries and typed failures through public SDK and Kit projections. It owns no full LocalAgent transcript, live conversation reducer, playback or send controller; the admitted Zhiyu surface consumes those canonical operations independently. UI state and cached projections never become Runtime truth.
+    condition: Whenever Home renders LocalAgent information.
+    failure: Use the owner projection or an explicit unavailable state without reconstructing conversation or execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r003
     kind: rule
-    title: Unavailable LocalAgent Conversation stays explicit
+    title: Home partner availability and handoff failures stay explicit
     modality: must
-    statement: Missing Runtime, authorization, LocalAgent, Conversation, route, Text, STT, TTS, or evidence required by the requested operation renders a typed unavailable, blocked, pending, failed, or refused state; an unavailable optional Memory projection remains independently typed without blocking LocalAgent Conversation, and inactive Knowledge V1 is not approximated as a required or available projection.
-    condition: Whenever a LocalAgent Conversation projection cannot operate.
-    failure: Display the owning failure without fallback execution or fake success.
+    statement: Home keeps missing or unavailable Runtime, account, partner, source and destination states distinct for the requested read, management or handoff action. Optional source, Cognition or appearance failures remain local; missing AI execution preparation does not by itself forbid reading partner management or opening an existing conversation in Zhiyu.
+    condition: Whenever a Home partner projection or handoff cannot operate.
+    failure: Display the owning failure without fallback execution, false empty state or fake arrival.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -107,16 +107,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
-  - id: rule.nimi.desktop.agent-projection.r011
-    kind: rule
-    title: Explicit voice input uses Runtime STT
-    modality: must
-    statement: Desktop stops explicit voice capture at the first of the five-minute duration bound or a payload exceeding the 6 MiB byte bound, rejects the over-bound recording with typed AI_AUDIO_INPUT_TOO_LARGE, sends only admitted user-recorded voice input through the audio.transcribe route committed in the shared LocalAgent AIConfig, using the current machine-selected Loadout for Local or the exact Connector reference plus Cloud implementation-target committed for Cloud, and submits only the resulting typed text intent to the selected LocalAgent Conversation. Runtime captures that exact composition at Job admission, and Desktop treats only AbortError or a typed Canceled result as cancellation and never classifies cancellation from human-readable error text.
-    condition: Whenever the user explicitly requests voice input.
-    failure: Stop and reject over-bound capture, surface every non-cancellation failure, and reject App-local provider transcription, hidden capture, message-inferred cancellation, and fabricated transcript.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r012
     kind: rule
     title: Derived admission does not grant execution authority
@@ -124,16 +114,6 @@ units:
     statement: Desktop uses a derived admission reason, UI state, cached projection, local source display, process state, or correlation metadata to invent LocalAgent actions, prompts, routing, machine selection, output, or product success.
     condition: Whenever Desktop decides which LocalAgent controls or outcomes to render.
     failure: Require the admitted Runtime operation and its typed result.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.agent-projection.conversation-capability
-  - id: rule.nimi.desktop.agent-projection.r014
-    kind: rule
-    title: Voice playback consumes Runtime output
-    modality: must
-    statement: Desktop requests and plays only authorized Runtime-generated LocalAgent voice output under the route committed in the shared LocalAgent AIConfig, its exact Job-time Local or Cloud composition, policy, Quota, and Budget.
-    condition: Whenever the user requests LocalAgent voice playback.
-    failure: Keep the output text-only or unavailable without direct provider calls.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.conversation-capability
@@ -169,10 +149,10 @@ units:
         target: definition.nimi.desktop.agent-projection.avatar-surface
   - id: rule.nimi.desktop.agent-projection.r018
     kind: rule
-    title: Composer state is ephemeral UI state
+    title: Home shortcut text remains unsent UI state
     modality: must
-    statement: User-entered LocalAgent Conversation composer text remains Desktop UI state and does not become Runtime Conversation, Memory, Knowledge, recovery, or execution truth before an admitted submission commits.
-    condition: Whenever Desktop holds an unsubmitted composer value.
+    statement: Home partner shortcut text belongs to the current account and selected partner as ephemeral UI state. A handoff offers it to Zhiyu as a draft, never sends it automatically, never silently overwrites the destination draft, and never turns it into Runtime Conversation, Memory, Knowledge, recovery or execution truth.
+    condition: Whenever Home edits or hands off partner shortcut text.
     failure: Discard or keep it only as UI state without semantic promotion.
     relations:
       - type: applies_to
@@ -209,10 +189,10 @@ units:
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r025
     kind: rule
-    title: LocalAgent and Conversation selection are explicit
+    title: Home partner and conversation targeting remain explicit
     modality: must
-    statement: Desktop selects an explicit authorized LocalAgent reference-list entry through its session-scoped agentHandle and uses only the Runtime-issued, revalidated Conversation anchor for that Agent's single canonical Conversation rather than accepting raw localAgentId, deriving a platform default LocalAgent, or merging all Conversations for one Character Source. A saved App-scoped agentBinding may narrow the current reference list to one candidate after technical-session rotation; Desktop then revalidates the existing anchor with that fresh handle. The hint grants no authority, absence or ambiguity does not trigger a name match or all-Agent snapshot search, and no new Agent or Conversation is inferred.
-    condition: Whenever Desktop opens or switches a LocalAgent Conversation.
+    statement: Home resolves an explicitly selected current-account partner through its own authorized Agent reference and uses only the Runtime-issued Conversation anchor for that partner. An incoming open-agent-center correlation is resolved under Home authority for management; it neither transfers a caller handle nor mounts a conversation. Home never guesses a default partner, matches by display name, merges conversations for a source or restores a retired Home chat destination.
+    condition: Whenever Home selects a partner or resolves a partner management or conversation handoff target.
     failure: Require explicit selection and keep the surface unavailable when it cannot be resolved.
     relations:
       - type: applies_to
@@ -229,11 +209,11 @@ units:
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r029
     kind: rule
-    title: Selected Conversation recovers from Runtime
+    title: Home conversation continuation reads owner summaries
     modality: must
-    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and later ordered canonical live projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation; reload or Runtime restart recovers admitted input and durable public partial text with explicit completeness through Agent-owned snapshot and terminal semantics, without raw event replay or treating a partial answer as completed history; request correlation is matched only within the current originating App, and media reads cannot block available text projection. The Home LocalAgent send path confirms only durable admission; one canonical Conversation subscription remains alive during submission and projects text occupancy, messages and independent media tails. A new text request does not cancel a preceding media tail. Stop-generating addresses the current text turn, while an explicit media stop addresses that original live turn and local playback remains separate.
-    condition: Whenever Desktop reloads or reattaches to a LocalAgent Conversation.
-    failure: Reject Desktop-local transcript reconstruction.
+    statement: Home reads bounded Runtime conversation summaries and, when explicitly targeting a reply, its committed message reference. It hands off the exact correlation to Zhiyu and preserves the source position and input when arrival fails. Home does not restore a transcript, subscribe to a full LocalAgent conversation, recover a submission or replay a model request; canonical conversation continuity remains Runtime-owned and is consumed by the destination App.
+    condition: Whenever Home offers a partner conversation continuation or reply action.
+    failure: Report a missing or unreadable target without fabricating history, replaying work or equating window launch with conversation arrival.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -244,16 +224,6 @@ units:
     statement: An App may use general Runtime AI consume for its own product chat, but that UI does not become a Runtime LocalAgent, LocalAgent Conversation, Memory, Knowledge, lifecycle, or owner merely because it streams text or uses tools.
     condition: Whenever a generic App chat and LocalAgent Conversation are compared or composed.
     failure: Reject ontology or ownership inferred from similar UI.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.agent-projection.agent-chat
-  - id: rule.nimi.desktop.agent-projection.r034
-    kind: rule
-    title: Desktop Agent Realtime uses the canonical media API
-    modality: must
-    statement: Desktop opens and consumes Agent-owned Realtime only through the canonical runtime.agent.realtime SDK methods, supplies bounded user text or OS-admitted microphone frames and explicit outputTrack or existing Agent-turn interrupt intent, and renders the same transient pressure, speech, transcript, outputTrack, audio, health, lifecycle, and terminal union as every formal App; Desktop owns OS permission prompts, device capture and change observation, playback, and rendering, Runtime Agent Service owns AIConfig resolution, transcript-to-turn composition, execution of AI Jobs required by Cognition pipelines, action, tool, final Conversation text, optional artifact, and any Agent-turn interruption decision, and Cognition owns Memory and Knowledge semantic admission and canonical state while inactive Knowledge V1 creates no Desktop Realtime feature.
-    condition: Whenever Desktop starts, drives, interrupts, closes, or renders an Agent-owned Realtime session.
-    failure: Preserve the typed permission, device, admission, route, Driver, pressure, or terminal failure and never use a Desktop-only protocol, direct provider, recorded STT, static TTS, text-only fallback, ordinary Agent voice chunk, or mock success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -304,26 +274,16 @@ units:
         target: definition.nimi.desktop.agent-projection.companion-panel
   - id: rule.nimi.desktop.agent-projection.r201
     kind: rule
-    title: Character source chat consumes the shared profile projection
+    title: Character-backed Home display uses the shared source profile
     modality: must
-    statement: Desktop LocalAgent Conversation derives PersonaCharacter and WorldCharacter greeting and other shared character context from the same shared Realm character profile consumer projection, while Runtime-owned LocalAgent identity, materialization context, and non-null Runtime conversation fields remain Runtime projections and are not erased by absent source-contact fields.
-    condition: Whenever Desktop builds or merges a LocalAgent Conversation target backed by a PersonaCharacter or WorldCharacter source.
+    statement: Home source and partner display use the shared Realm Character profile projection for PersonaCharacter and WorldCharacter public fields. Runtime LocalAgent identity, immutable materialization context and non-null conversation correlations retain their Runtime provenance; absent Realm source-contact fields never erase them, and source display never supplies execution context to a conversation handoff.
+    condition: Whenever Home composes Character-backed partner display or a conversation handoff target.
     failure: Reject a WorldCharacter-only greeting path, source-kind-specific shared-context parser, legacy Core fallback, or null source-contact field that overwrites an available Runtime conversation field.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.character-profile-projection
-  - id: rule.nimi.desktop.agent-projection.r202
-    kind: rule
-    title: Desktop attachment composer preserves Runtime custody and one-item bounds
-    modality: must
-    statement: Desktop stages at most one pending LocalAgent image attachment per turn across file selection, repeated selection, paste, retry restoration, and thread switching, uses only the Runtime attachment upload and artifact-reference path or its authority-equivalent first-party facade, and submits only the resulting artifact id with optional bounded text; selected bytes, display name, preview URL, capture state, and retry draft remain ephemeral UI state until Runtime commits one user message, and Desktop never creates an App-local artifact store, durable candidate, ownership proof, mime truth, multi-attachment turn, or generic artifact read authority.
-    condition: Whenever Desktop selects, pastes, replaces, retries, submits, clears, or restores a LocalAgent attachment.
-    failure: Reject a second staged attachment, raw-byte turn input, caller-authored artifact metadata, stale or foreign artifact reference, or local custody claim and keep the composer non-authoritative until Runtime commit.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r203
     kind: rule
     title: Cognition status is non-blocking and owner attributed
@@ -346,11 +306,11 @@ units:
         target: definition.nimi.desktop.agent-projection.agent-chat
   - id: rule.nimi.desktop.agent-projection.r205
     kind: rule
-    title: Desktop App Product Plane uses the canonical Agent paths
+    title: Home App Product Plane uses canonical management and handoff paths
     modality: must
-    statement: Desktop LocalAgent Conversation, recorded transcription, manual voice consumption, AI Consume, and the complete AgentCenter use the same canonical agentHandle-addressed SDK operations, agent.configure App client, AgentCenter factory, Manager Session, section and action availability, typed results, and typed errors as every equally covered protected App; Desktop preserves Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition, and Diagnostics or Advanced capabilities during convergence and owns only Nimi Home placement, navigation, OS file or microphone selection, bounded temporary custody, native preview or playback, and other Host mechanics that neither carry raw LocalAgent, source, or account identity into the App Product Plane nor decide product eligibility, state, commit, result, or error semantics.
-    condition: Whenever Desktop opens, switches, renders, or invokes a LocalAgent Conversation, voice, AI Consume, or AgentCenter product capability.
-    failure: Fail the cutover on a Desktop-only SDK, direct Runtime product operation, raw identity sideband, hidden first-party bridge, second Manager or factory, stale-handle mutation, capability loss, section or action removal, empty shell, permanent unavailable state, protected-App lower-denominator convergence, or retirement before an equivalent canonical replacement is active.
+    statement: Home AI Consume and the complete AgentCenter use the same public SDK, agent.configure App client, AgentCenter factory, Manager Session, action availability, typed results and errors as every equally covered protected App. Home preserves Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition and Diagnostics or Advanced management and delegates full LocalAgent conversation and voice interaction to Zhiyu. Home owns navigation, OS file selection, native preview and other admitted Host mechanics, without raw identity sidebands, private product clients or a second Manager.
+    condition: Whenever Home renders or invokes AI Consume, partner management or a partner handoff.
+    failure: Reject private product paths, raw authority sidebands, stale-handle mutation, a second Manager or a lost supported management capability; keep conversation in its admitted App owner.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -384,11 +344,11 @@ units:
         target: definition.nimi.desktop.agent-projection.avatar-surface
   - id: rule.nimi.desktop.agent-projection.business-reference
     kind: rule
-    title: Chat shows published App references and bounded resource contention
+    title: Home partners show published App references
     modality: must
-    statement: Desktop chat composes authorized source-labeled App Activity references beside canonical Conversation without promoting them into chat messages, automatic model context or Memory. The primary action explicitly opens the source App object and does not resume it. While an Agent is occupied, the chat preserves unsent input, presents bounded busy status and an honest wait or retry choice and never reads business contents or cancels another execution to explain or resolve contention.
-    condition: Whenever Desktop chat presents App activity or competes with business execution.
-    failure: Show unavailable or busy truth without task mutation, content leakage, lost input or false chat acceptance.
+    statement: Home partner details compose authorized source-labeled App Activity references, summaries and todo state without promoting them into conversation messages, model context, Memory or a registry of every App using the partner. The explicit primary action opens the exact source App object through activity.open; reading or opening never resumes, completes or cancels source work.
+    condition: Whenever Home presents partner App activity.
+    failure: Show unavailable or incomplete owner data honestly without task mutation, content leakage or false object arrival.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -400,7 +360,7 @@ units:
     kind: rule
     title: Home consumes the shared Agent introduction
     modality: must
-    statement: Home LocalAgent Conversation introduction consumes the same agentHandle-addressed SDK operation and Kit display mapping as every formal App, including missing-data and playback behavior; it does not fetch Realm source detail or use a source identity sideband to populate the chat empty state.
+    statement: When Home consumes a handle-addressed LocalAgent introduction, it uses the same public SDK operation and Kit mapping as every equally covered formal App, including missing-data and preview behavior. The separately owned Realm source-detail reader remains source display and never substitutes source identity or content for a LocalAgent introduction or execution authority.
     condition: Whenever this surface consumes or renders a LocalAgent introduction.
     failure: Reject divergent private data paths, fabricated source facts or execution authority in display code.
     relations:
@@ -408,11 +368,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-introduction
   - id: rule.nimi.desktop.agent-projection.composer-draft
     kind: rule
-    title: Home partner drafts use protected App storage
+    title: Home shortcut drafts remain account and partner scoped
     modality: must
-    statement: Home persists its own current partner text draft through protected App JSON storage scoped by the current account and App, addresses durable drafts by Runtime-issued stable agentBinding, and resolves fresh agent handles for current operations. Reads cannot replace newer edits, writes are serialized and retired scope callbacks cannot write or acknowledge another account or target, and only confirmed storage success may be shown as saved. Draft or storage failure leaves current text available for copying and does not disable an independently available Conversation. New input retains its protected submission copy before Send; regeneration of Runtime-owned durable input keeps a stable in-memory request ID and original retry reference, attempts the Home copy without making storage success a precondition, and never automatically resends. Explicit recovery uses the same request ID to find or continue the original submission, explains that a previously unaccepted request can incur model cost, and does not require a successful bounded snapshot first; read-only lookup remains optional.
-    condition: Whenever Home restores, edits, saves, or retires a LocalAgent composer draft.
-    failure: Reject cross-scope draft adoption, stale-handle persistence identity, false save acknowledgement, a second local transcript or database, and automatic model calls as a storage retry.
+    statement: Home keeps its shortcut text in account-and-partner-scoped in-memory UI state across partner selection and navigation, retains it through a temporary account-read outage and clears it on session end. A handoff preserves the Home input and offers a separate destination draft; it creates no Home submission ledger, durable LocalAgent transcript, saved-state claim or automatic retry. Zhiyu retains its own protected App draft and submission storage, and historical Home-only remnants use a one-time local export rather than a compatibility path.
+    condition: Whenever Home restores, edits, hands off or retires partner shortcut text.
+    failure: Reject cross-account or cross-partner draft adoption, silent destination overwrite, false save acknowledgement and automatic message submission.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat

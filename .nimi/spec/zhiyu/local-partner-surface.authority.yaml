@@ -168,7 +168,7 @@ units:
     kind: rule
     title: Zhiyu parity is presentation parity
     modality: must
-    statement: Any parity with Nimi Home LocalAgent Conversation covers product copy, layout, input, selection, rendering, failure, and diagnostics presentation while shared typed SDK or Kit state mapping remains the only projection path.
+    statement: Zhiyu is the bundled primary LocalAgent conversation experience reached from Home. It retains existing text, media, message interaction and shared settings behavior through canonical SDK and Kit state mapping. Home remains a manager and summary consumer; presentation reuse never creates app-local transport, execution, provider, Memory or authorization truth.
     condition: Whenever Zhiyu aligns with another LocalAgent Conversation surface.
     failure: Reject App-local transport, execution, provider, model, Memory, Knowledge, Avatar, voice, or authorization truth.
     relations:
@@ -252,7 +252,7 @@ units:
     kind: rule
     title: Partner navigation is ephemeral position
     modality: must
-    statement: Zhiyu consumes standard Kit window-local navigation for explicit partner and settings-panel positions, storing only current-session opaque references and revalidating them through Runtime inventory and Conversation reads. The left partner rail alone participates in optional fold; right Agent configuration is a separate business panel. Navigation and fold neither construct continuity nor send a turn; drafts and resource-pack placement acknowledgement remain Zhiyu-owned, and scope invalidation clears old history before new work.
+    statement: Zhiyu consumes standard Kit window-local navigation for explicit partner, Character discovery query and selection, and settings-panel positions, storing only current-session opaque references and revalidating them through Runtime inventory and Conversation reads. The left partner rail alone participates in optional fold; right Agent configuration is a separate business panel. Navigation and fold neither construct continuity nor send a turn; drafts and resource-pack placement acknowledgement remain Zhiyu-owned, and scope invalidation clears old history before new work.
     condition: Whenever an App consumes standard Kit navigation or chrome.
     failure: Reject the invalid declaration or transition before executing it; retain the previous valid state and surface the typed failure.
     relations:
@@ -272,5 +272,27 @@ units:
         target: definition.nimi.runtime.remote-access.source-plane
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.conversation-open
+    kind: rule
+    title: Home partner handoff reaches the exact Zhiyu conversation
+    modality: must
+    statement: An explicit Home action may open or focus bundled Zhiyu through its verified Desktop Host, carrying only a Runtime-issued Conversation correlation, an optional committed message reference and bounded draft text. The Host keeps a single disposable navigation request, binds read and completion to the supervised destination renderer, retires it on close, replacement or timeout, and reports opened only after the destination has resolved its own current-session Agent reference, read the requested conversation and reached the requested content. Caller handles and account authority are not transferred. Incoming text is only a draft; existing draft or quote conflicts require an explicit destination choice and never overwrite silently or send automatically. Existing conversation, original Home storage and destination drafts retain their owners; historical Home-only remnants use a one-time local export rather than a permanent compatibility chat. Navigation or account loss retires pending work without replay. The same partner can return to Home management through the existing anchor-based open-agent-center intent.
+    condition: When Home hands a partner conversation, reply or user text to bundled Zhiyu.
+    failure: Preserve the source input and report the target unavailable or not reached; never substitute a partner, acknowledge a request from another renderer, or promote window launch into conversation arrival.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.character-discovery
+    kind: rule
+    title: Zhiyu discovers ecosystem Characters and continues canonical partner conversation
+    modality: must
+    statement: Zhiyu offers contextual discovery of Realm public Characters through the standard agent.acquire App operations on native and admitted remote carriers. It preserves the source world and Character identity, distinguishes an existing partner from a source available for acquisition, and uses an explicit become-partner or continue action to obtain the Runtime-owned current-session Agent reference before opening the existing canonical Conversation without automatically sending a turn. Empty inventory leads to the same discovery task; search, pagination, source reading, failure and return use the existing product style and navigation, preserve conversation drafts and discard late results after departure or scope loss. Full world reading and partner management remain Home responsibilities; the native Home world action targets the exact public world and leaves Zhiyu position intact, while unsupported remote Host actions are not advertised as usable. Zhiyu owns no private Character, partner inventory, materialization, source publication, account authority or alternate Conversation.
+    condition: Whenever Zhiyu discovers, acquires, reuses or opens a Character-backed partner.
+    failure: Preserve the user position and any committed partner, expose the actual unavailable step, and reject duplicated identity, silent draft loss, automatic message submission, generic Home arrival presented as exact target arrival or development use presented as release.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.product-surface

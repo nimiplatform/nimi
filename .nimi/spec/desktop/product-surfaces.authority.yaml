@@ -15,7 +15,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.explore
     kind: definition
     title: Desktop Explore product surface
-    meaning: Desktop Explore combines Realm World and Character discovery with a current-account, current-device Runtime partner directory. Worlds owns World browsing, world-scoped characters and cross-world Character search; My partners owns selection and management entry for already-owned LocalAgents. The shell owns presentation and navigation only, never Realm source, Runtime inventory, Conversation or AI-execution truth.
+    meaning: Desktop Explore presents Realm World browsing and Character discovery, including cross-world Character search. My partners is an independent Home destination for current-account current-device Runtime inventory and management. Home owns presentation and navigation only, never Realm source, Runtime inventory, Conversation or AI-execution truth.
   - id: definition.nimi.desktop.product-surfaces.home-feed
     kind: definition
     title: Desktop activity feed
@@ -36,7 +36,7 @@ units:
     kind: rule
     title: Explore is the unified Realm discovery surface
     modality: must
-    statement: Explore is the single ordinary Desktop discovery and partner-directory surface. Worlds contains admitted World browsing and typed PersonaCharacter and WorldCharacter discovery within Worlds or through the Realm-owned cross-world Character catalog; My partners presents this device's current-account Runtime inventory independently from source readiness. Apps retains App discovery; Realm public activity, publishing and social search or recommendation remain deferred.
+    statement: Explore is the ordinary Desktop World and Character discovery surface. My partners independently presents current-account current-device Runtime inventory and management regardless of source readiness. Apps retains App discovery; Realm public activity, publishing and social search or recommendation remain deferred.
     condition: Whenever Desktop exposes ordinary Realm discovery or constructs its ordinary navigation destinations.
     failure: Reject a standalone primary World destination, App discovery in Explore, an additional Explore section, or another ordinary Realm discovery owner.
     relations:
@@ -46,7 +46,7 @@ units:
     kind: rule
     title: Explore sections are closed
     modality: must
-    statement: Explore has exactly Worlds and My partners, represented by worlds and partners. Worlds contains World browsing and an explicit worlds or characters search task; My partners contains current-account current-device LocalAgents and their management detail. One Home navigation controller owns the section, query, selection and management position; no parallel local section switch, Personas primary catalog or third section remains.
+    statement: Explore retains Worlds with explicit worlds or characters discovery. My partners is an independent partners destination with its own query, exact partner selection and management position. The existing Home navigation controller owns both destinations; partners is rejected as an Explore section. First-partner actions from Home and an empty partner directory enter the same Character discovery task.
     condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
     failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
     relations:
@@ -166,7 +166,7 @@ units:
     kind: rule
     title: Explore Open targets are closed
     modality: must
-    statement: Explore Open requires an explicit productIntent and accepts exactly worlds with discover-worlds or discover-characters, and partners with select-partner. The retired personas section, discover-personas, activity and view-activity reject. Character materialization remains behind selected source detail and adds no section or productIntent pair; opening the partner directory never implicitly selects an instance or creates a Conversation.
+    statement: Explore Open accepts exactly worlds with discover-worlds or discover-characters. The independent open-partners intent accepts only an optional display query and opens My partners without selecting or authorizing an Agent or creating a Conversation. The former Explore partners/select-partner pair rejects instead of redirecting. Source materialization remains behind selected source detail; retired personas and activity targets reject.
     condition: Whenever Desktop applies an Explore Open Intent section and productIntent pairing.
     failure: Reject an invalid pairing as desktop-open-target-unsupported and never create WorldCore, PersonaCharacter, Packet v3, or LocalAgent truth while opening Explore.
     relations:
@@ -176,7 +176,7 @@ units:
     kind: rule
     title: Home presents the personal AI overview
     modality: must
-    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, and one Messages column over the same source-qualified collection used by the global Message center. Its bounded chronological preview includes Realm social notifications and current received friend requests, App events and independently actionable items, downloads, unresolved setup failures and available App updates. The header offers pending and local type/status filters and More to the same Message center reached by the global bell. Only consecutive same-source, same-type activity within a short time window may collapse; progress and pending never override Home chronology. Pending counts exclude normal downloads and optional updates. Deferred Realm feed and Create Post surfaces have no entry; missing scoped data is not zero and raw maintenance panels are not embedded as the overview.
+    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, and one Messages column over the same source-qualified collection used by the global Message center. Its bounded chronological preview includes Realm social notifications and current received friend requests, App events and independently actionable items, downloads, unresolved setup failures, current remote-source confirmation requests and available App updates. The header offers pending and local type/status filters and More to the same Message center reached by the global bell. Only consecutive same-source, same-type activity within a short time window may collapse; progress and pending never override Home chronology. Pending counts exclude normal downloads and optional updates. Deferred Realm feed and Create Post surfaces have no entry; missing scoped data is not zero and raw maintenance panels are not embedded as the overview.
     condition: Whenever Desktop renders or routes the Home primary-navigation tab.
     failure: Keep independent sections and message sources usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the Message center, existing use surfaces.
     relations:
@@ -425,7 +425,7 @@ units:
     kind: rule
     title: The global Message center unifies existing owner projections
     modality: must
-    statement: The existing global bell, Home More and system-entry Messages action open one Message center at the notification navigation destination and select the bell; ordinary Home entry still opens the overview. The old standalone Realm notification page and Home-only center route are removed. The center offers All, Unread and Pending plus source filters whose position belongs to the existing Home navigation so Back restores the prior filter, one chronological loaded list and source-qualified continuation without a new cross-owner cursor or subscription. Pending includes current received friend requests, App open todos whether read or not, and setup failures requiring action; ongoing downloads and optional updates remain available in All. The bell uses a dot for known unread Realm or eligible App activity records rather than summing incomplete owner counts into a global number. Known partial data and source failures remain visible. Realm profile/chat targets use their structured owner references, requests open the official received-request page, and App/system actions retain their existing formal targets. Unsupported actions are not simulated.
+    statement: The existing global bell, Home More and system-entry Messages action open one Message center at the notification navigation destination and select the bell; ordinary Home entry still opens the overview. The old standalone Realm notification page and Home-only center route are removed. The center offers All, Unread and Pending plus source filters whose position belongs to the existing Home navigation so Back restores the prior filter, one chronological loaded list and source-qualified continuation without a new cross-owner cursor or subscription. Pending includes current received friend requests, App open todos whether read or not, setup failures requiring action and current remote-source confirmation requests; ongoing downloads and optional updates remain available in All. The bell uses a dot for known unread Realm or eligible App activity records rather than summing incomplete owner counts into a global number. Known partial data and source failures remain visible. Realm profile/chat targets use their structured owner references, requests open the official received-request page, and App/system actions retain their existing formal targets. Unsupported actions are not simulated.
     condition: Whenever Desktop renders, filters, paginates, or navigates from the Home Messages column or the Message center.
     failure: Reject split all-message inboxes, pending inferred from an old notification, a successful list read presented as complete while continuation remains, invented aggregate unread totals, lost independent source errors, and navigation that executes business work.
     relations:
@@ -507,3 +507,31 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: definition.nimi.desktop.product-surfaces.connections
+    kind: definition
+    title: Home connections and access
+    meaning: Home connects users to the existing service-PC binding and remote-source management through an independent destination, without owning account, permission, connection or execution truth.
+  - id: rule.nimi.desktop.product-surfaces.connections
+    kind: rule
+    title: Connections and access is directly reachable
+    modality: must
+    statement: Home exposes connections and access independently of Settings security, reusing primary Runtime and remote access owner operations. Account login sessions and credential management remain in security. App details may focus sources for the exact App and Home pending items may focus the exact current source request; navigation never confirms access. Home displays the owner's current individual connections under their sources and may explicitly end one selected connection while preserving other connections and source allowance. Source allowance, actual connections and accepted work remain distinct; connection references and times never imply stable device identity. Web and mobile entry information follows actual publisher delivery and admitted sources, labels development previews explicitly, and never treats an origin or login callback as a published launch or download URL. Missing published clients remain unavailable without fabricated links. Pending-source or connection read failures remain local and cannot produce complete empty claims or a new read/permission state.
+    condition: Whenever Home exposes, opens or summarizes connections and remote access.
+    failure: Keep other sources usable and reject implicit approval, guessed App/source association, duplicated permission truth or a source pause presented as single-connection or business-task cancellation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.connections
+  - id: rule.nimi.desktop.product-surfaces.partner-activity-and-use
+    kind: rule
+    title: Home partners expose published App activity and admitted use entries
+    modality: must
+    statement: Home partner details expose current-account App-published activity through the selected current-session Agent reference and its non-authorizing activity correlation, with source and open-todo filtering, bounded pages and explicit continuation. Published source, time, summary and todo state remain distinct from execution status; loading, incomplete, unavailable and complete empty results remain distinct. Reading this view does not mark activities read or mutate source work. An explicit object action uses the public activity.open operation and succeeds only when the source App reaches its object. Home retains the partner and filter on cross-App departure. The native Avatar entry reuses the protected launch-or-focus handoff for the same partner, directs missing presentation prerequisites to that partner's appearance settings, and preserves existing explicit companion-switch confirmation. Published activity and an Avatar launch result never imply a registry of every App using the partner or unrestricted live execution visibility.
+    condition: When Home presents a partner's App activity or opens a companion experience from partner context.
+    failure: Keep the selected partner and usable published results; reject guessed App or Agent associations, raw publisher payload display, automatic work replay or completion, false empty claims, and silently substituting the active desktop companion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-open
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record

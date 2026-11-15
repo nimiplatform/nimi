@@ -311,7 +311,7 @@ units:
     kind: rule
     title: Built-in chat AIConfig owners remain distinct
     modality: must
-    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Desktop Agent Chat is a projection of Runtime LocalAgent Conversation using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires an explicit route and, for Cloud, exact current-environment references plus expected owner revision without waiting for execution readiness.
+    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Home partner interaction opens Zhiyu, a Runtime LocalAgent Conversation consumer using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires an explicit route and, for Cloud, exact current-environment references plus expected owner revision without waiting for execution readiness.
     condition: Whenever built-in Nimi chat or a Runtime LocalAgent AIConfig is initialized or reconfigured.
     failure: Reject owner conflation, per-Agent AIConfig, Profile Apply commit, guessed resource references, and implicit execution materialization without changing Product Control readiness.
     relations:
@@ -326,7 +326,7 @@ units:
     kind: rule
     title: Built-in config has no inferred success or fallback owner
     modality: must_not
-    statement: Desktop synthesizes AIConfig, route, Cloud target, current-account Connector, Loadout, machine selection, binding, admission, or Job truth from renderer state, selected tab, Conversation state, inventory, process health, caller-provided LocalAgent identity, or execution references; shares fallback across Desktop Nimi Chat and Desktop Agent Chat; creates a chat-specific or per-Agent owner; or hardcodes provider, engine, model, or configuration identity.
+    statement: Desktop synthesizes AIConfig, route, Cloud target, current-account Connector, Loadout, machine selection, binding, admission, or Job truth from renderer state, selected tab, Conversation state, inventory, process health, caller-provided LocalAgent identity, or execution references; shares fallback across Desktop Nimi Chat and LocalAgent Conversation; creates a chat-specific or per-Agent owner; or hardcodes provider, engine, model, or configuration identity.
     condition: Whenever built-in chat configuration or execution admission is evaluated.
     failure: Preserve the canonical Desktop App or shared LocalAgent AIConfig owner and return the typed admission reason.
     relations:

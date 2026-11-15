@@ -80,3 +80,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.remote-access.source-plane
+  - id: rule.nimi.runtime.remote-access.connection-management
+    kind: rule
+    title: Home inspects and ends one current direct connection
+    modality: must
+    statement: Remote access state projects established live connections with an opaque connection reference, the existing source client reference and the actual channel-open time. These are connection facts, not stable device identity, credentials or business execution status. Only the current verified Home account product may explicitly disconnect a selected connection under its expected primary binding and Account generation. The owner removes and closes that exact peer before acknowledging completion; another connection, source allowance, account login and already accepted durable jobs retain their existing owners and state. A later explicit reconnect receives a new connection reference under normal admission, with no business replay. The operation uses the existing Account generation and peer lifetime boundaries and creates no persistent device grant or connection history.
+    condition: When Home lists or explicitly ends an individual remote connection.
+    failure: Reject an untrusted caller, changed Account or primary binding, or a missing or no-longer-live connection without ending another peer or reporting a source pause or task cancellation as connection completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.remote-access.source-plane

@@ -1115,3 +1115,13 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.character-discovery
+    kind: rule
+    title: Character discovery uses the same typed App carrier
+    modality: must
+    statement: Native and admitted remote App clients expose agents.listCharacters and agents.connectCharacter as the same bounded Runtime-owned character-source operations. SDK and Kit preserve exact typed public source display, cursor and request identity, current-session opaque partner reference and created result, without account-product factories, raw Realm access, private credentials, fake native proof or business replay. Native Host adapters only carry these operations; unavailable sources and scope loss remain explicit failures.
+    condition: Whenever a formal App consumes Character discovery or partner acquisition.
+    failure: Reject invalid input or projection and unavailable admission instead of using a private or first-party fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

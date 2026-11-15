@@ -192,7 +192,7 @@ units:
     kind: rule
     title: App interaction access creates no materialization authority
     modality: must
-    statement: Declaration-derived Third-party App access to reference or interact with an existing LocalAgent never creates authority to create, materialize, rematerialize, replace, terminate, or take ownership of a LocalAgent.
+    statement: Declaration-derived Third-party App access to reference or interact with an existing LocalAgent never creates lifecycle authority. The separate agent.acquire domain admits only the bounded character-source discovery and connect operations; it does not grant rematerialization, replacement, termination, source authorship, or ownership of a LocalAgent.
     condition: Whenever Third-party App access or LocalAgent lifecycle operations are evaluated.
     failure: Reject lifecycle authority inferred from interaction access.
     relations:
@@ -336,3 +336,13 @@ units:
         target: definition.nimi.platform.core-protocol.app-activity-record
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.character-discovery
+    kind: rule
+    title: Formal Apps discover and acquire Character-backed partners through Runtime
+    modality: must
+    statement: The two exact runtime.agent.character-source.list and runtime.agent.character-source.connect operations require separately declared agent.acquire coverage on a current native or admitted remote App session. Listing reads only Realm's authenticated public Character catalog with bounded query and cursor pagination and projects public source identity, display fields and current-session existing-partner references. Explicit connect accepts only the selected Realm CharacterSourceRefV3 and an App-scoped request identity, reuses the same active current-account partner by stable Character identity independently of sourceHash, or invokes the singular verified Realm-source materialization owner when none exists. The original account-product ingress remains separate. Runtime returns only its ordinary opaque Agent reference and whether creation occurred; Conversation still requires agent.local. Realm retains source visibility, acquisition and content truth, and the existing required owning-World verification, atomic uniqueness, request ledger and cleanup remain authoritative. Final App creation commits under current account, source declaration and technical session fences; revoked or changed scopes cannot publish. A concurrent successful acquisition is resolved by reading the existing partner, never by replaying the creation. No App obtains raw Runtime identity, credentials, proof, packet, source editing or destructive lifecycle control.
+    condition: Whenever a formal App discovers a Character or explicitly establishes a partner from it.
+    failure: Deny absent agent.acquire, stale scope, unavailable or conflicting source, invalid packet or non-active partner; preserve any committed partner without fabricating conversation arrival or deleting existing history.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
