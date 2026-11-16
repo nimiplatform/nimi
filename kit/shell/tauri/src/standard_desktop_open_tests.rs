@@ -346,6 +346,10 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
             "nimi.tauri",
             json!({ "intent": { "kind": "open-runtime-config", "page": "models", "action": "install-model", "providerApiKey": "secret" } }),
         ),
+        "invalid-partner-conversation-draft-too-long" => (
+            "nimi.tauri",
+            json!({ "intent": { "kind": "open-partner-conversation", "conversationAnchorId": "anchor_1", "text": "x".repeat(8001) } }),
+        ),
         _ => return None,
     })
 }

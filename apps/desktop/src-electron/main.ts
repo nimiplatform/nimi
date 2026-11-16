@@ -900,6 +900,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       emitIntent: emitDesktopOpenIntent,
       avatarHostHandoff: bundledAvatarHost.hostHandoff,
       appActivitySourceLaunch,
+      openPartnerConversation: async (target) => {
+        if (!bundledZhiyuHost) throw new Error('bundled-zhiyu-host-unavailable');
+        await bundledZhiyuHost.openConversation(parseZhiyuConversationOpenTarget(target));
+      },
       zhiyuResourcePackPlacement: (request) => requestRunningZhiyuResourcePackPlacement({
         homeDirectory: app.getPath('home'),
         request,

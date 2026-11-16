@@ -86,6 +86,10 @@ export function applyDesktopOpenIntentToAppStore(
       void store.push({ id: 'home', homeSection: 'integrations' });
       return;
     }
+    case 'open-partner-conversation': {
+      // Dispatched directly to bundled Zhiyu by ElectronDesktopOpenIntentHost.
+      return;
+    }
   }
 }
 

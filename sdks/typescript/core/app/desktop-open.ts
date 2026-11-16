@@ -62,6 +62,12 @@ export type NimiDesktopOpenIntegrationsIntent = {
   readonly kind: 'open-integrations';
 };
 
+export type NimiDesktopOpenPartnerConversationIntent = {
+  readonly kind: 'open-partner-conversation';
+  readonly conversationAnchorId: string;
+  readonly text?: string;
+};
+
 export type NimiDesktopOpenIntent =
   | { readonly kind: 'open-world'; readonly worldId: string }
   | { readonly kind: 'open-partners'; readonly query?: string }
@@ -70,7 +76,8 @@ export type NimiDesktopOpenIntent =
   | NimiDesktopOpenAppsIntent
   | NimiDesktopOpenSettingsIntent
   | NimiDesktopOpenIntegrationsIntent
-  | { readonly kind: 'open-agent-center'; readonly conversationAnchorId: string };
+  | { readonly kind: 'open-agent-center'; readonly conversationAnchorId: string }
+  | NimiDesktopOpenPartnerConversationIntent;
 
 export type NimiDesktopOpenIntentKind = NimiDesktopOpenIntent['kind'];
 
@@ -130,6 +137,7 @@ const REQUEST_ID_PATTERN = /^desktop-open-[A-Za-z0-9][A-Za-z0-9._:-]{0,114}$/u;
 const MAX_APP_ID_LENGTH = 96;
 const MAX_REQUEST_ID_LENGTH = 128;
 const MAX_QUERY_LENGTH = 160;
+const MAX_CONVERSATION_DRAFT_LENGTH = 8000;
 
 export class NimiDesktopOpenIntentParseError extends Error {
   readonly reasonCode: NimiDesktopOpenParseReasonCode;
@@ -285,6 +293,19 @@ export function parseNimiDesktopOpenIntent(value: unknown): NimiDesktopOpenInten
       if (conversationAnchorId.length > 256 || !/^[A-Za-z0-9_-]+$/u.test(conversationAnchorId)) throw invalid('Invalid Conversation correlation.', 'intent.conversationAnchorId');
       return { kind: 'open-agent-center', conversationAnchorId };
     }
+    case 'open-partner-conversation': {
+      assertAllowedFields(record, ['kind', 'conversationAnchorId', 'text'], 'DesktopOpenIntent partner conversation intent');
+      const conversationAnchorId = requireString(record.conversationAnchorId, 'intent.conversationAnchorId');
+      if (conversationAnchorId.length > 256 || !/^[A-Za-z0-9_-]+$/u.test(conversationAnchorId)) {
+        throw invalid('Invalid Conversation correlation.', 'intent.conversationAnchorId');
+      }
+      const text = parseOptionalConversationDraft(record.text, 'intent.text');
+      return {
+        kind: 'open-partner-conversation',
+        conversationAnchorId,
+        ...(text ? { text } : {}),
+      };
+    }
     case 'open-url':
       throw invalid('DesktopOpenIntent does not admit raw URL payloads.', 'intent.kind');
     default:
@@ -372,6 +393,7 @@ function parseIntentKind(value: unknown, field: string): NimiDesktopOpenIntentKi
     || kind === 'open-settings'
     || kind === 'open-integrations'
     || kind === 'open-agent-center'
+    || kind === 'open-partner-conversation'
   ) {
     return kind;
   }
@@ -448,6 +470,17 @@ function parseOptionalQuery(value: unknown, field: string): string | undefined {
     throw invalid(`DesktopOpenIntent query must be ${MAX_QUERY_LENGTH} characters or fewer.`, field);
   }
   return query;
+}
+
+function parseOptionalConversationDraft(value: unknown, field: string): string | undefined {
+  const text = parseOptionalString(value, field);
+  if (text === undefined) {
+    return undefined;
+  }
+  if (text.includes('\0') || Array.from(text).length > MAX_CONVERSATION_DRAFT_LENGTH) {
+    throw invalid(`DesktopOpenIntent draft text must be ${MAX_CONVERSATION_DRAFT_LENGTH} characters or fewer without NUL.`, field);
+  }
+  return text;
 }
 
 function parseAppId(value: unknown, field: string): string {

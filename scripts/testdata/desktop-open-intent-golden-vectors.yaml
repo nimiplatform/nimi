@@ -20,6 +20,8 @@ entries:
   - apps-selection
   - apps-ai-models
   - settings-profile
+  - partner-conversation-handoff
+  - partner-conversation-draft-handoff
   - source-app-missing
   - unknown-field-authorization
   - unknown-target
@@ -38,6 +40,7 @@ entries:
   - raw-url-payload
   - renderer-provided-source-app
   - provider-model-credential-fields
+  - invalid-partner-conversation-draft-too-long
 authority_refs:
   - P-DOPEN-001
   - P-DOPEN-003
@@ -165,6 +168,25 @@ accepted:
       intent:
         kind: open-settings
         section: profile
+  - id: partner-conversation-handoff
+    envelope:
+      schemaVersion: 2
+      sourceApp: nimi.utopia
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-utopia-chat-0001
+      intent:
+        kind: open-partner-conversation
+        conversationAnchorId: anchor_utopia_001
+  - id: partner-conversation-draft-handoff
+    envelope:
+      schemaVersion: 2
+      sourceApp: nimi.utopia
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-utopia-chat-0002
+      intent:
+        kind: open-partner-conversation
+        conversationAnchorId: anchor_utopia_002
+        text: 海风正好，一起聊聊刚才的茶吗？
 rejected:
   - id: explore-activity-view
     reasonCode: desktop-open-target-unsupported
@@ -205,4 +227,6 @@ rejected:
   - id: renderer-provided-source-app
     reasonCode: desktop-open-intent-invalid
   - id: provider-model-credential-fields
+    reasonCode: desktop-open-intent-invalid
+  - id: invalid-partner-conversation-draft-too-long
     reasonCode: desktop-open-intent-invalid

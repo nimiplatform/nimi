@@ -487,6 +487,40 @@ fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHos
             }
             Ok(json!({ "kind": "open-agent-center", "conversationAnchorId": anchor }))
         }
+        "open-partner-conversation" => {
+            assert_allowed_fields(
+                record,
+                &["kind", "conversationAnchorId", "text"],
+                "partner conversation intent",
+            )?;
+            let anchor = required_string(
+                record.get("conversationAnchorId"),
+                "intent.conversationAnchorId",
+            )?;
+            if anchor.len() > 256
+                || !anchor
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
+            {
+                return Err(invalid_parse("Invalid Conversation correlation"));
+            }
+            let text = optional_string(record.get("text"), "intent.text")?;
+            if let Some(ref draft) = text {
+                if draft.contains('\0') || draft.chars().count() > 8000 {
+                    return Err(invalid_parse(
+                        "DesktopOpenIntent draft text must be 8000 characters or fewer without NUL",
+                    ));
+                }
+            }
+            let mut output = json!({
+                "kind": "open-partner-conversation",
+                "conversationAnchorId": anchor,
+            });
+            if let Some(value) = text {
+                output["text"] = Value::String(value);
+            }
+            Ok(output)
+        }
         "open-integrations" => {
             assert_allowed_fields(record, &["kind"], "integrations intent")?;
             Ok(json!({ "kind": "open-integrations" }))
@@ -685,6 +719,7 @@ fn parse_bridge_result(
                     | "open-settings"
                     | "open-integrations"
                     | "open-agent-center"
+                    | "open-partner-conversation"
             ) {
                 return Err("desktop-open-intent-invalid");
             }

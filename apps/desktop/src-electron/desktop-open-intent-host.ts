@@ -68,6 +68,10 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly zhiyuResourcePackPlacement?: (
     request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
+  readonly openPartnerConversation?: (target: {
+    readonly conversationAnchorId: string;
+    readonly text?: string;
+  }) => Promise<void>;
   readonly appActivitySourceLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivitySourceLaunchResult>;
   readonly now?: () => number;
   readonly heartbeatIntervalMs?: number;
@@ -113,6 +117,10 @@ class ElectronDesktopOpenIntentHost {
     readonly zhiyuResourcePackPlacement?: (
       request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
+    readonly openPartnerConversation?: (target: {
+      readonly conversationAnchorId: string;
+      readonly text?: string;
+    }) => Promise<void>;
     readonly appActivitySourceLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivitySourceLaunchResult>;
     readonly now?: () => number;
     readonly heartbeatIntervalMs?: number;
@@ -334,6 +342,37 @@ class ElectronDesktopOpenIntentHost {
         'desktop-open-desktop-not-ready',
         'wait_for_desktop_ready',
       ));
+      return;
+    }
+    if (parsed.value.intent.kind === 'open-partner-conversation') {
+      if (!this.input.openPartnerConversation) {
+        writeJson(response, 200, rejected(
+          this.bridgeId,
+          'desktop-open-desktop-not-ready',
+          'wait_for_desktop_ready',
+        ));
+        return;
+      }
+      try {
+        await this.input.openPartnerConversation({
+          conversationAnchorId: parsed.value.intent.conversationAnchorId,
+          ...(parsed.value.intent.text ? { text: parsed.value.intent.text } : {}),
+        });
+      } catch {
+        writeJson(response, 200, rejected(
+          this.bridgeId,
+          'desktop-open-desktop-not-ready',
+          'wait_for_desktop_ready',
+        ));
+        return;
+      }
+      writeJson(response, 200, {
+        status: 'accepted',
+        confirmation: 'desktop-accepted',
+        bridgeId: this.bridgeId,
+        requestId: parsed.value.requestId,
+        appliedTarget: parsed.value.intent.kind,
+      });
       return;
     }
     try {

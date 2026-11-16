@@ -112,6 +112,24 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
     intent: { kind: 'open-settings', section: 'profile' },
   },
   {schemaVersion: 2,sourceApp:'nimi.lab',sourceHost:'desktop-electron-local-app-host',requestId:'desktop-open-20261005-0200',intent:{kind:'open-integrations'}},
+  {
+    schemaVersion: 2,
+    sourceApp: 'nimi.utopia',
+    sourceHost: 'electron-standard-shell',
+    requestId: 'desktop-open-utopia-chat-0001',
+    intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_utopia_001' },
+  },
+  {
+    schemaVersion: 2,
+    sourceApp: 'nimi.utopia',
+    sourceHost: 'electron-standard-shell',
+    requestId: 'desktop-open-utopia-chat-0002',
+    intent: {
+      kind: 'open-partner-conversation',
+      conversationAnchorId: 'anchor_utopia_002',
+      text: '海风正好，一起聊聊刚才的茶吗？',
+    },
+  },
 ];
 describe('Desktop Open Intent SDK parser', () => {
   it('rejects retired schema and sections and requires a consistent Explore task', () => {
@@ -401,4 +419,35 @@ it('rejects the retired Explore partner pair without an alias or implicit select
   assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'partners', productIntent: 'select-partner' }));
   assert.throws(() => parseNimiDesktopOpenIntent({ kind: 'open-partners', agentHandle: 'foreign' }));
   assert.deepEqual(parseNimiDesktopOpenIntent({ kind: 'open-partners', query: 'mentor' }), { kind: 'open-partners', query: 'mentor' });
+});
+
+it('validates open-partner-conversation correlation and bounded draft text without handles', () => {
+  assert.deepEqual(
+    parseNimiDesktopOpenIntent({
+      kind: 'open-partner-conversation',
+      conversationAnchorId: 'anchor_utopia_002',
+      text: '  海风正好  ',
+    }),
+    {
+      kind: 'open-partner-conversation',
+      conversationAnchorId: 'anchor_utopia_002',
+      text: '海风正好',
+    },
+  );
+  assertRejectsRendererRequest(
+    { intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_1', agentHandle: 'foreign' } },
+    'desktop-open-intent-invalid',
+  );
+  assertRejectsRendererRequest(
+    { intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_1', text: '   ' } },
+    'desktop-open-intent-invalid',
+  );
+  assertRejectsRendererRequest(
+    { intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_1', text: 'x'.repeat(8001) } },
+    'desktop-open-intent-invalid',
+  );
+  assertRejectsRendererRequest(
+    { intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_1', text: 'hello\0world' } },
+    'desktop-open-intent-invalid',
+  );
 });

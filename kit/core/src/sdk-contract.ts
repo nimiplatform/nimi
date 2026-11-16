@@ -357,6 +357,7 @@ export type {
   NimiDesktopOpenRuntimeConfigPage,
   NimiDesktopOpenSettingsIntent,
   NimiDesktopOpenIntegrationsIntent,
+  NimiDesktopOpenPartnerConversationIntent,
   NimiDesktopOpenSettingsSection,
   NimiDesktopOpenSourceHost,
   NimiAgentRealtimeClient,

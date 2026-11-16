@@ -433,6 +433,96 @@ test('Desktop launches only the Runtime-resolved exact source and reports launch
   assert.deepEqual(await noRuntime('aor_request'), { status: 'unavailable', reason: 'host-unavailable' });
 });
 
+test('open-partner-conversation dispatches directly to bundled Zhiyu without focusing Home and keeps renderer ready on unreached handoff', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-zhiyu-handoff-')));
+  const descriptorPath = path.join(home, '.nimi', 'run', 'desktop', 'open-intent', 'presence.v1.json');
+  let focusCount = 0;
+  const emitted: NimiDesktopOpenIntentEnvelope[] = [];
+  const handoffs: { conversationAnchorId: string; text?: string }[] = [];
+  let shouldFailZhiyu = false;
+
+  const host = await createDesktopElectronOpenIntentHost({
+    homeDirectory: home,
+    heartbeatIntervalMs: 60_000,
+    readinessTtlMs: 10_000,
+    writeStderr: () => undefined,
+    focusMainWindow: async () => { focusCount += 1; },
+    emitIntent: (value) => emitted.push(value),
+    openPartnerConversation: async (target) => {
+      handoffs.push(target);
+      if (shouldFailZhiyu) throw new Error('zhiyu-target-not-reached');
+    },
+  });
+
+  try {
+    host.commandHandlers.desktop_open_intent_set_ready({
+      command: 'desktop_open_intent_set_ready',
+      payload: { ready: true },
+    });
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as {
+      endpoint: string;
+      token: string;
+      bridgeId: string;
+    };
+
+    const okResponse = await post(descriptor.endpoint, descriptor.token, {
+      schemaVersion: 2,
+      sourceApp: 'nimi.utopia',
+      sourceHost: 'electron-standard-shell',
+      requestId: 'desktop-open-utopia-chat-ok',
+      intent: {
+        kind: 'open-partner-conversation',
+        conversationAnchorId: 'anchor_utopia_1',
+        text: '海风正好，一起聊聊？',
+      },
+    });
+    assert.equal(okResponse.status, 200);
+    assert.deepEqual(await okResponse.json(), {
+      status: 'accepted',
+      confirmation: 'desktop-accepted',
+      bridgeId: descriptor.bridgeId,
+      requestId: 'desktop-open-utopia-chat-ok',
+      appliedTarget: 'open-partner-conversation',
+    });
+    assert.equal(focusCount, 0, 'Home main window must not steal focus over bundled Zhiyu');
+    assert.equal(emitted.length, 0, 'Home renderer navigation must not be mutated');
+    assert.deepEqual(handoffs, [{
+      conversationAnchorId: 'anchor_utopia_1',
+      text: '海风正好，一起聊聊？',
+    }]);
+
+    // When Zhiyu rejects arrival, handoff returns rejected without marking Home renderer unready
+    shouldFailZhiyu = true;
+    const failedHandoff = await post(descriptor.endpoint, descriptor.token, {
+      schemaVersion: 2,
+      sourceApp: 'nimi.utopia',
+      sourceHost: 'electron-standard-shell',
+      requestId: 'desktop-open-utopia-chat-fail',
+      intent: {
+        kind: 'open-partner-conversation',
+        conversationAnchorId: 'anchor_missing',
+      },
+    });
+    assert.equal(failedHandoff.status, 200);
+    assert.deepEqual(await failedHandoff.json(), {
+      status: 'rejected',
+      bridgeId: descriptor.bridgeId,
+      reasonCode: 'desktop-open-desktop-not-ready',
+      actionHint: 'wait_for_desktop_ready',
+    });
+
+    // Subsequent Home navigation intent still succeeds immediately because Home readiness was preserved
+    const homeResponse = await post(descriptor.endpoint, descriptor.token, envelope);
+    assert.equal(homeResponse.status, 200);
+    assert.equal((await homeResponse.json() as { status: string }).status, 'accepted');
+    assert.equal(focusCount, 1);
+    assert.equal(emitted.length, 1);
+  } finally {
+    await host.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 async function post(
   endpoint: string,
   token: string,

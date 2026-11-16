@@ -36,6 +36,7 @@ export type {
   NimiDesktopOpenRuntimeConfigPage,
   NimiDesktopOpenSettingsIntent,
   NimiDesktopOpenIntegrationsIntent,
+  NimiDesktopOpenPartnerConversationIntent,
   NimiDesktopOpenSettingsSection,
   NimiDesktopOpenSourceHost,
 } from './sdk-contract.js';

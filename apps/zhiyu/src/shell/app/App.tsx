@@ -643,7 +643,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     <ConfirmDialog
       open={Boolean(draftOffer)}
       title="保留当前草稿，还是追加新文字？"
-      message={<><p>Home 带来了一份文字，当前草稿保持不变。</p><p className="mt-3 whitespace-pre-wrap break-words">{draftOffer?.text}</p></>}
+      message={<><p>收到一份带入的草稿，当前草稿保持不变。</p><p className="mt-3 whitespace-pre-wrap break-words">{draftOffer?.text}</p></>}
       confirmLabel="追加到当前草稿"
       cancelLabel="保留当前草稿"
       confirmTone="primary"
