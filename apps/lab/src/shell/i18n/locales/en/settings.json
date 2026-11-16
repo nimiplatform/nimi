@@ -19,6 +19,11 @@
     "notificationListEmpty": "0 items via system filter",
     "notificationListSummary": "{{count}} item{{plural}}; first {{category}}:{{badgeKey}}",
     "chatCount": "{{count}} chat{{plural}}",
+    "openContacts": "Open Friends & chat in Nimi",
+    "openContactsDesktopNotRunning": "Open Nimi, then try again.",
+    "openContactsDesktopNotReady": "Wait for Nimi to finish starting or signing in, then try again.",
+    "openContactsUnsupported": "This Nimi version cannot open Friends & chat from Lab. Open it from Nimi Home.",
+    "openContactsFailed": "Could not open Friends & chat. Try again or open it from Nimi Home.",
     "projectionUnavailable": "Settings projection unavailable"
   }
 }

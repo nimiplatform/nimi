@@ -10,7 +10,10 @@ import {
   type SystemEntryActionDispatch, type SystemEntryActionResult, type SystemEntryContext,
   type SystemEntryProjection,
 } from '../../../shared/system-entry-types.js';
-import { useAppStore, useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { OPEN_HUMAN_CHAT_NOTICE, FOCUS_HUMAN_CHAT_NOTICE, humanChatNoticeTarget } from '../../../shared/human-chat-notice.js';
+import { openHumanChatNotice, reportHumanChatOpenResult } from '../relationship/human-chat-entry.js';
+import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
+import { useAppStore, useAppStoreApi, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
@@ -40,9 +43,10 @@ export type SystemEntryProviderProps = PropsWithChildren<{
 // @nimi-authority: rule.nimi.desktop.shell-ui.system-entry-projection
 export function SystemEntryProvider({ children, notifications, reading, timeZone, onHomeVisibility }: SystemEntryProviderProps) {
   const bindings = useDesktopRendererBindings();
+  const store = useAppStoreApi();
   const navigation = useHomeNavigation();
   const queryClient = useQueryClient();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { scheme: colorScheme } = useNimiTheme();
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id ?? ''));
   const authenticated = useAppStore((state) => state.auth.status === 'authenticated' || state.auth.status === 'refresh-pending');
@@ -249,15 +253,36 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
       setHomeVisible(value.homeVisible);
       setHostContext((current) => current && current.generation === value.generation ? { ...current, homeVisible: value.homeVisible as boolean } : current);
     }));
-    void actionListener.catch(() => undefined); void visibilityListener.catch(() => undefined);
+    const noticeListener = Promise.resolve(listenShell(OPEN_HUMAN_CHAT_NOTICE, (event) => {
+      const auth = store.getState().auth;
+      if (!active || (auth.status !== 'authenticated' && auth.status !== 'refresh-pending')
+        || !auth.user?.id || contextOwner.current !== auth.user.id) return;
+      const target = humanChatNoticeTarget.safeParse(event.payload);
+      const context = publisher.currentContext();
+      if (!target.success || context?.state !== 'ready' || context.generation !== target.data.generation) return;
+      const scope = captureAccountActionScope(store, { allowRefreshing: true });
+      if (!scope) return;
+      void openHumanChatNotice({
+        navigation, chatId: target.data.chatId,
+        isCurrent: () => active && scope.isCurrent() && publisher.currentContext()?.generation === target.data.generation,
+        report: result => reportHumanChatOpenResult(result, t),
+        focus: async () => {
+          await invokeChecked(FOCUS_HUMAN_CHAT_NOTICE, { payload: { generation: target.data.generation } }, value => value);
+        },
+      }).catch(() => {
+        if (scope.isCurrent()) reportHumanChatOpenResult({ status: 'busy' }, t);
+      }).finally(() => scope.dispose());
+    }));
+    void actionListener.catch(() => undefined); void visibilityListener.catch(() => undefined); void noticeListener.catch(() => undefined);
     return () => {
       active = false; requests.clear();
       for (const timer of retentionTimers) clearTimeout(timer);
       retentionTimers.clear();
       void actionListener.then((unsubscribe) => unsubscribe(), () => undefined);
       void visibilityListener.then((unsubscribe) => unsubscribe(), () => undefined);
+      void noticeListener.then((unsubscribe) => unsubscribe(), () => undefined);
     };
-  }, [nativeEnabled, publisher]);
+  }, [nativeEnabled, navigation, publisher, store, t]);
 
   return <SystemEntryProviderContext.Provider value={{ hostContext, homeVisible,
     projection: scope && published?.generation === hostContext?.generation ? published : null,

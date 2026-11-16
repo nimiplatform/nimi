@@ -19,6 +19,11 @@
     "notificationListEmpty": "经系统筛选共 0 条",
     "notificationListSummary": "{{count}} 条；首条 {{category}}:{{badgeKey}}",
     "chatCount": "{{count}} 个会话",
+    "openContacts": "在 Nimi 打开好友与聊天",
+    "openContactsDesktopNotRunning": "请打开 Nimi，然后重试。",
+    "openContactsDesktopNotReady": "请等待 Nimi 完成启动或登录，然后重试。",
+    "openContactsUnsupported": "当前 Nimi 版本暂不支持从 Lab 打开好友与聊天。请从 Nimi Home 打开。",
+    "openContactsFailed": "暂时无法打开好友与聊天。请重试，或从 Nimi Home 打开。",
     "projectionUnavailable": "设置投影不可用"
   }
 }

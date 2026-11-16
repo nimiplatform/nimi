@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { reportHumanChatOpenResult } from '../../features/relationship/human-chat-entry.js';
 import { useLayoutEffect } from 'react';
 import { homeShellPresence } from '../providers/home-shell-presence.js';
 import { CurrentUserProfileObserver } from '../../features/profile/current-user-profile.js';
@@ -17,6 +19,7 @@ import { MainLayoutView } from './main-layout-view';
 import { AppsDownloadsProvider } from '../../features/apps/apps-downloads-context.js';
 import { SystemEntryProvider } from '../../features/system-entry/system-entry-provider.js';
 import { useHomeExecutionNotificationControls } from '../../features/home/execution-notices.js';
+import { useRealmNotificationSettings } from '../../features/notification/use-realm-notification-settings.js';
 
 const ChatRealtimeSyncHost = lazy(async () => {
   const mod = await import('../../features/realtime/use-chat-realtime-sync');
@@ -60,9 +63,12 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 }
 
 export function MainLayout() {
+  const { t } = useTranslation();
   const navigation = useHomeNavigation();
   useLayoutEffect(() => homeShellPresence(navigation).mount(), [navigation]);
-  const notifications = useHomeExecutionNotificationControls();
+  const notificationSettings = useRealmNotificationSettings();
+  const directMessagesEnabled = notificationSettings.isSuccess && notificationSettings.data.activity?.directMessages !== false;
+  const notifications = useHomeExecutionNotificationControls(directMessagesEnabled);
   const [homeVisible, setHomeVisible] = useState(true);
   const reading = useMemo(() => {
     const openAIActivity = async (): Promise<void> => {
@@ -95,8 +101,8 @@ export function MainLayout() {
   }, [bindings]);
 
   useEffect(
-    () => bindings.app.events.connectDesktopOpenIntents(appStore.navigation),
-    [appStore, bindings],
+    () => bindings.app.events.connectDesktopOpenIntents(appStore.navigation, result => reportHumanChatOpenResult(result, t)),
+    [appStore, bindings, t],
   );
 
   useEffect(() => {

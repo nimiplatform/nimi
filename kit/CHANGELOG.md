@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Open Friends & chat (next 0.x minor)
+
+Standard shell callers can pass the parameter-free `{ kind: 'open-contacts' }` to `openDesktopIntent`. A matching running Nimi opens Friends & chat or focuses the current conversation or section. The intent grants no access to Realm data.
+
 ## Unreleased — Utopia Habitat Protocol v2 (breaking native carrier, next 0.x minor)
 
 Replaces the fixed `island`/`polar-station` Utopia preset and `outdoorOpen` boolean contract with the self-describing `HabitatSpecV1` protocol across `@nimiplatform/sdk/app`, Electron main, and the Rust `protected-local` bridge. `client.utopia.snapshot()` now returns the active `habitat`, `contentDigest`, `habitatActivationId`, `timezone`, `parameterValues`, `openPlaceIds`, `activeEvents`, `lastRelocation`, `residents`, `occupancy`, and `sharedActivities` (including `relocated` and `relocated_partial`). `client.utopia.update()` accepts `activate-habitat`, `restore-default`, `apply-tuning`, `set-public-participation`, `set-solitude`, and `set-timezone` and returns header-only `NimiUtopiaMutationAck`. Update Kit, SDK, Runtime, and the native binding together.

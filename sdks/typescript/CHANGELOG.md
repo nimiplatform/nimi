@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Open Friends & chat (next 0.x minor)
+
+`NimiDesktopOpenIntent` admits the parameter-free `open-contacts` target in the existing v2 envelope. Use matching Kit and Desktop builds for this target. App code can request the surface without selecting an account, conversation, or recipient.
+
 ## Unreleased — Character discovery (next 0.x minor)
 
 Formal App clients expose `agents.listCharacters` and `agents.connectCharacter` under the separate `agent.acquire` declaration. They return public Realm source display and ordinary current-session partner references; existing partners are reused by stable Character identity. Conversation continues to require `agent.local`. Custom standard shells must provide both methods; update Runtime, SDK, Kit and native bindings together. Remote declarations need a new admitted source revision, not an implicit grant expansion. `open-world` opens Home's exact public `worldId`. This is source work, not a release.

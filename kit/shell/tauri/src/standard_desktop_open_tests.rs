@@ -350,6 +350,10 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
             "nimi.tauri",
             json!({ "intent": { "kind": "open-partner-conversation", "conversationAnchorId": "anchor_1", "text": "x".repeat(8001) } }),
         ),
+        "contacts-with-conversation" => (
+            "nimi.lab",
+            json!({ "intent": { "kind": "open-contacts", "chatId": "chat_1" } }),
+        ),
         _ => return None,
     })
 }

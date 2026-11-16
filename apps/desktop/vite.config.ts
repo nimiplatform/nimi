@@ -139,6 +139,7 @@ export default defineConfig(({ mode }) => {
         '@nimiplatform/kit > hls.js',
         'zustand',
         'zustand/traditional',
+        'zod',
         // The overview is opened after Home. With HMR disabled, discovering
         // these only on its first open invalidates in-flight module URLs and
         // leaves the independent renderer blank. Prepare its small graph now.

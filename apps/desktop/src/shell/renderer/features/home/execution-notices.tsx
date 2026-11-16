@@ -54,7 +54,11 @@ function useExecutionNotificationPreferences() {
   };
   const assertCurrent = (intent: Omit<Intent, 'change'>): void => {
     const live = store.getState().auth;
-    if (intent.signal?.aborted || live !== intent.auth || currentSdk.current !== intent.sdk
+    // Display/profile refreshes may replace the auth projection during startup.
+    if (intent.signal?.aborted || live.status !== intent.auth.status
+      || live.authorizationRevision !== intent.auth.authorizationRevision
+      || live.user?.id !== intent.auth.user?.id || live.user?.realmEnvironmentId !== intent.auth.user?.realmEnvironmentId
+      || currentSdk.current !== intent.sdk
       || (i18n.resolvedLanguage?.startsWith('zh') ? 'zh' : 'en') !== intent.language
       || (intent.client !== null && (live.status !== 'authenticated' || live.user?.id !== intent.account
         || currentSdk.current.appProduct() !== intent.client))) {
@@ -173,9 +177,9 @@ export type HomeExecutionNotificationControls = Readonly<{
   resume: () => Promise<void>;
 }>;
 
-export function useHomeExecutionNotificationControls(): HomeExecutionNotificationControls {
+export function useHomeExecutionNotificationControls(directMessagesEnabled = false): HomeExecutionNotificationControls {
   const { query, update, authenticated, confirmed } = useExecutionNotificationPreferences();
-  const enabled = authenticated && confirmed && query.data?.preferences.systemEnabled === true;
+  const enabled = authenticated && confirmed && (query.data?.preferences.systemEnabled === true || directMessagesEnabled);
   const pausedUntil = authenticated && confirmed ? query.data!.pausedUntil : 0;
   const pause = useCallback(() => update({ kind: 'pause' }), [update]);
   const resume = useCallback(() => update({ kind: 'resume' }), [update]);

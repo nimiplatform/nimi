@@ -199,6 +199,7 @@ export async function loadChatList(
       cache.markCacheFallbackUsed();
       return {
         items: filterRealmDirectHumanChats(cached),
+        fromCache: true as const,
       };
     }
     emitChatError('load-chats', error);

@@ -316,11 +316,13 @@ test('locale replacement rebuilds native commands and removes an already-open ol
     await value.host.publish(projection());
     value.host.openMenu();
     assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-home')?.label, 'Open Nimi Home');
+    assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-friends')?.label, 'Friends & chat');
     assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-usage')?.label, 'AI activity & usage');
     value.host.setLocale('zh');
     assert.equal(value.tray().currentMenu, undefined);
     value.host.openMenu();
     assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-home')?.label, '打开 Nimi Home');
+    assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-friends')?.label, '好友与聊天');
     assert.equal(value.tray().currentMenu?.template.find(item => item.id === 'system-entry-usage')?.label, 'AI 活动与用量');
     assert.equal(value.tray().contextMenuCalls, 0);
   } finally { value.host.dispose(); }

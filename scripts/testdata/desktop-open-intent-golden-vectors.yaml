@@ -20,6 +20,7 @@ entries:
   - apps-selection
   - apps-ai-models
   - settings-profile
+  - contacts
   - partner-conversation-handoff
   - partner-conversation-draft-handoff
   - source-app-missing
@@ -41,6 +42,7 @@ entries:
   - renderer-provided-source-app
   - provider-model-credential-fields
   - invalid-partner-conversation-draft-too-long
+  - contacts-with-conversation
 authority_refs:
   - P-DOPEN-001
   - P-DOPEN-003
@@ -168,6 +170,14 @@ accepted:
       intent:
         kind: open-settings
         section: profile
+  - id: contacts
+    envelope:
+      schemaVersion: 2
+      sourceApp: nimi.lab
+      sourceHost: desktop-electron-local-app-host
+      requestId: desktop-open-lab-contacts
+      intent:
+        kind: open-contacts
   - id: partner-conversation-handoff
     envelope:
       schemaVersion: 2
@@ -229,4 +239,6 @@ rejected:
   - id: provider-model-credential-fields
     reasonCode: desktop-open-intent-invalid
   - id: invalid-partner-conversation-draft-too-long
+    reasonCode: desktop-open-intent-invalid
+  - id: contacts-with-conversation
     reasonCode: desktop-open-intent-invalid

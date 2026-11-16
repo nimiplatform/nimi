@@ -46,6 +46,18 @@ test('system-entry messages uses the same global message center as the bell', as
   value.input.navigation.dispose();
 });
 
+test('system-entry Friends & chat opens human conversations and preserves an active thread', async () => {
+  const { input } = setup();
+  const request = { requestId: 'favorites', generation: 'account-a', revision: 1, action: { kind: 'friends' } } as const;
+  await executeSystemEntryRendererAction(request, input);
+  assert.equal(input.navigation.getSnapshot().current.destination.chat?.contactsSection, 'conversations');
+  await input.navigation.push({ id: 'friends', chat: { mode: 'human', threadId: 'chat-eric' } });
+  const activeThread = input.navigation.getSnapshot().current;
+  await executeSystemEntryRendererAction(request, input);
+  assert.equal(input.navigation.getSnapshot().current, activeThread);
+  input.navigation.dispose();
+});
+
 test('old generation action is rejected before navigation or source effects', async () => {
   const value = setup();
   await assert.rejects(executeSystemEntryRendererAction({ requestId: 'request-a', generation: 'old-account', revision: 1, action: { kind: 'downloads' } }, value.input), /system-entry-view-stale/);

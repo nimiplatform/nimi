@@ -9,15 +9,18 @@ export function isDeletedChatPeer(peer?: RealmChatViewDto['otherUser'] | null): 
   return peer?.status === 'SUSPENDED' && peer.handle === '';
 }
 
+export type HumanChatListPage = RealmListChatsResultDto & { readonly fromCache?: true };
+export const humanChatListQueryKey = (realm: string, accountId: string) => ['chats', realm, accountId] as const;
+
 export function useHumanChatList(authStatus: AuthStatus) {
   const { t } = useTranslation();
   const data = useRealmHumanChatData();
   const accountId = useAppStore(state => String(state.auth.user?.id || ''));
   const realm = useAppStore(state => String(state.auth.user?.realmEnvironmentId || ''));
   const query = useInfiniteQuery({
-    queryKey: ['chats', realm, accountId],
+    queryKey: humanChatListQueryKey(realm, accountId),
     initialPageParam: null as string | null,
-    queryFn: async ({ pageParam }): Promise<RealmListChatsResultDto> => {
+    queryFn: async ({ pageParam }): Promise<HumanChatListPage> => {
       const page = pageParam ? await data.loadMoreChatList(pageParam) : await data.loadChatList();
       if (!page) throw new Error("Could not load conversations.");
       return page;

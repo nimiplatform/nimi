@@ -7,6 +7,7 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { setDesktopOpenIntentReady } from '../../bridge/runtime-bridge';
+import type { NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import { applyDesktopOpenIntentToAppStore } from './desktop-open-intent-navigation';
 import type { DesktopOpenIntentStore } from './desktop-open-intent-navigation';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
@@ -17,6 +18,7 @@ const DESKTOP_OPEN_READY_HEARTBEAT_INTERVAL_MS = 3_000;
 export function connectDesktopOpenIntentListener(
   runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort,
   store: DesktopOpenIntentStore,
+  reportNavigationResult: (result: NimiNavigationResult) => void,
 ): () => void {
     if (!hasNimiShellRuntime()) return () => undefined;
     let active = true;
@@ -50,10 +52,11 @@ export function connectDesktopOpenIntentListener(
         });
         return;
       }
-      applyDesktopOpenIntentToAppStore(parsed.value.intent, {
+      const navigation = applyDesktopOpenIntentToAppStore(parsed.value.intent, {
         store,
         runtimeConfigNavigation,
       });
+      void navigation?.then(reportNavigationResult);
     }));
 
     void unsubscribePromise.then(() => {

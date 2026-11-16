@@ -1,4 +1,6 @@
-import { Button, StatusBadge } from '@nimiplatform/kit/ui';
+import { useState } from 'react';
+import { Button, InlineAlert, StatusBadge } from '@nimiplatform/kit/ui';
+import { hasElectronInvoke, openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   getNimiNotificationBadgeKey,
   getNimiNotificationCategory,
@@ -11,6 +13,8 @@ const liveBadgeClassName = 'mr-2 rounded border border-[var(--nimi-border-subtle
 
 export function SettingsRealmRows(props: SettingsRouteViewProps) {
   const { t } = useTranslation();
+  const [openingContacts, setOpeningContacts] = useState(false);
+  const [openContactsError, setOpenContactsError] = useState<string | null>(null);
   const {
     notificationProjection,
     refreshNotificationProjection,
@@ -21,6 +25,32 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
     humanChatProjection,
     refreshHumanChatProjection,
   } = props;
+  const openContacts = async () => {
+    setOpeningContacts(true);
+    setOpenContactsError(null);
+    try {
+      const result = await openDesktopIntent({ intent: { kind: 'open-contacts' } });
+      if (result.status === 'accepted') return;
+      switch (result.reasonCode) {
+        case 'desktop-open-desktop-not-running':
+          setOpenContactsError(t('Settings.openContactsDesktopNotRunning'));
+          break;
+        case 'desktop-open-desktop-not-ready':
+          setOpenContactsError(t('Settings.openContactsDesktopNotReady'));
+          break;
+        case 'desktop-open-target-unsupported':
+          setOpenContactsError(t('Settings.openContactsUnsupported'));
+          break;
+        default:
+          setOpenContactsError(t('Settings.openContactsFailed'));
+      }
+    } catch {
+      setOpenContactsError(t('Settings.openContactsFailed'));
+    } finally {
+      setOpeningContacts(false);
+    }
+  };
+
   const notificationListStatusLabel = (() => {
     if (notificationListProjection.status === 'ready') {
       const firstItem = notificationListProjection.list.items[0];
@@ -133,6 +163,14 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
+      {hasElectronInvoke() ? (
+        <div>
+          <Button type="button" size="sm" tone="secondary" loading={openingContacts} onClick={() => void openContacts()}>
+            {t('Settings.openContacts')}
+          </Button>
+          {openContactsError ? <InlineAlert tone="warning" className="mt-2">{openContactsError}</InlineAlert> : null}
+        </div>
+      ) : null}
     </>
   );
 }

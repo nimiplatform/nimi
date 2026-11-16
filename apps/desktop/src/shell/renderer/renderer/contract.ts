@@ -4,6 +4,7 @@ import type {
   NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
 
+import type { NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
 import type { AuthStatus } from '../app-shell/providers/store-types.js';
 import type {
@@ -114,10 +115,14 @@ export interface DesktopRendererCommandPort {
   setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection>;
 }
 
+export type ChatInboxRefresh = { readonly kind: 'ready' } | { readonly kind: 'chat'; readonly chatId: string };
+
 export interface DesktopRendererEventPort {
   connectChatRealtimeSync(input: {
     readonly queryClient: QueryClient;
     readonly selectedChatId: string | null;
+    /** Ready precedes the authoritative list refetch, allowing recovery to survive a failed read. */
+    readonly onInboxRefreshed?: (refresh: ChatInboxRefresh) => Promise<void>;
   }): () => void;
   subscribeWindowFocus(listener: (focused: boolean) => void): () => void;
   subscribeDocumentVisibility(listener: (visible: boolean) => void): () => void;
@@ -139,7 +144,7 @@ export interface DesktopRendererEventPort {
       | { readonly ok: false; readonly error: string }
     ) => void,
   ): () => void;
-  connectDesktopOpenIntents(store: DesktopOpenIntentStore): () => void;
+  connectDesktopOpenIntents(store: DesktopOpenIntentStore, reportNavigationResult: (result: NimiNavigationResult) => void): () => void;
   connectLifecycle(lifecycle: DesktopRendererLifecyclePort): () => void;
 }
 

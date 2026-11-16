@@ -464,7 +464,7 @@ units:
     kind: rule
     title: Desktop Open navigation uses Desktop-owned target mappings
     modality: must
-    statement: "Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state. An open-agent-center request is a pending anchor correlation, not a proven chat identity: Home resolves it using its current-account reference list and agent.configure manager snapshot, then navigates to the same proven Agent Conversation and opens its shared manager. A failed resolution is visible without selecting another Agent or changing permissions."
+    statement: "Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state. The open-contacts intent focuses Home and preserves the current Friends and chat position when already there, or opens the existing conversation list through the Home navigation controller under the current Home account. An open-agent-center request is a pending anchor correlation, not a proven chat identity: Home resolves it using its current-account reference list and agent.configure manager snapshot, then navigates to the same proven Agent Conversation and opens its shared manager. A failed resolution is visible without selecting another Agent or changing permissions."
     condition: Whenever a validated Desktop Open Intent reaches renderer navigation.
     failure: Reject unknown targets and report failure when the complete target mapping cannot be applied.
     relations:
@@ -723,7 +723,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The localized native menu exposes quick overview, Open Home, admitted recent chat and source-qualified App entry points, Downloads, AI Capabilities, current-account usage, Home notification preference, Settings or Support and explicit Quit Home. Runtime lifecycle actions remain in their existing verified recovery destinations; the menu exposes no arbitrary command, URL, endpoint, binary, process, provider health, model unload or global execution stop. Attention, current work, open Apps, requests and unread counts retain separate owner semantics.
+    statement: The localized native menu exposes quick overview, Open Home, Friends and chat, admitted recent chat and source-qualified App entry points, Downloads, AI Capabilities, current-account usage, Home notification preference, Settings or Support and explicit Quit Home. Friends and chat focuses Home and resumes its current Friends and chat position or opens the existing conversation list. Runtime lifecycle actions remain in their existing verified recovery destinations; the menu exposes no arbitrary command, URL, endpoint, binary, process, provider health, model unload or global execution stop. Attention, current work, open Apps, requests and unread counts retain separate owner semantics.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:

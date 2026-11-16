@@ -1,16 +1,13 @@
-import type { QueryClient } from '@tanstack/react-query';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import { getOfflineCoordinator } from '../offline/coordinator.js';
 import { invalidateNotificationQueries } from '../../features/notification/notification-query.js';
 import { getDesktopRealmRealtimeClient } from '../sdk/desktop-nimi-client-session.js';
+import type { DesktopRendererEventPort } from '../../renderer/contract.js';
 
 const NOTIFICATION_REFRESH_INTERVAL_MS = 5_000;
 
-export function connectProductionChatRealtimeSync(input: {
-  readonly queryClient: QueryClient;
-  readonly selectedChatId: string | null;
-}): () => void {
+export function connectProductionChatRealtimeSync(input: Parameters<DesktopRendererEventPort['connectChatRealtimeSync']>[0]): () => void {
   const offlineCoordinator = getOfflineCoordinator();
   offlineCoordinator.markRealmSocketReachability('unknown');
   const abortController = new AbortController();
@@ -82,7 +79,10 @@ export function connectProductionChatRealtimeSync(input: {
 			const lifecycle = event.event.control.lifecycle;
 			if (lifecycle === 'ready') {
               offlineCoordinator.markRealmSocketReachability('reachable');
-			  await input.queryClient.invalidateQueries({ queryKey: ['chats'], exact: false });
+              if (active && target.target.type === 'inbox') {
+                await input.onInboxRefreshed?.({ kind: 'ready' });
+              }
+              await input.queryClient.invalidateQueries({ queryKey: ['chats'], exact: false });
             } else if (
 			  lifecycle === 'failed' || lifecycle === 'closed'
             ) {
@@ -122,6 +122,7 @@ export function connectProductionChatRealtimeSync(input: {
 			  input.queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
 			  input.queryClient.invalidateQueries({ queryKey: ['messages', event.event.chatId], exact: false }),
 			]);
+            if (active) await input.onInboxRefreshed?.({ kind: 'chat', chatId: event.event.chatId });
 			break;
           case 'typing':
         }

@@ -114,6 +114,13 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {schemaVersion: 2,sourceApp:'nimi.lab',sourceHost:'desktop-electron-local-app-host',requestId:'desktop-open-20261005-0200',intent:{kind:'open-integrations'}},
   {
     schemaVersion: 2,
+    sourceApp: 'nimi.lab',
+    sourceHost: 'desktop-electron-local-app-host',
+    requestId: 'desktop-open-lab-contacts',
+    intent: { kind: 'open-contacts' },
+  },
+  {
+    schemaVersion: 2,
     sourceApp: 'nimi.utopia',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-utopia-chat-0001',

@@ -2,7 +2,7 @@ import { openHomeSettings } from '../settings/settings-entry.js';
 import type { NimiAppActivityOpenResult, NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { SystemEntryActionDispatch, SystemEntryContext, SystemEntryProjection } from '../../../shared/system-entry-types.js';
 import { isSystemEntryActionOffered, SYSTEM_ENTRY_ACTION_DISPATCH_MS } from '../../../shared/system-entry-types.js';
-import type { HomeNavigation, HomeDestination } from '../../app-shell/providers/home-navigation.js';
+import { openHomeContacts, type HomeNavigation, type HomeDestination } from '../../app-shell/providers/home-navigation.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
@@ -62,6 +62,12 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
   const action = request.action;
   switch (action.kind) {
     case 'home': return navigate({ id: 'home', homeSection: 'overview' });
+    case 'friends': {
+      const result = await openHomeContacts(input.navigation);
+      guard();
+      if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected');
+      return;
+    }
     case 'messages': return navigate({ id: 'notification' });
     case 'activity':
     case 'usage': await input.reading.openAIActivity(); guard(); return;

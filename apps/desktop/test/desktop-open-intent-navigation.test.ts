@@ -206,6 +206,34 @@ test('Desktop Open action is consumed once and does not replay through history',
   assert.equal(runtimeConfigNavigation.takeAction(), null);
 });
 
+test('Contacts opens the existing human conversation list and keeps Home back history', async () => {
+  productionAppStore.navigation.reset({ id: 'explore' });
+  applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
+  assert.deepEqual(productionAppStore.navigation.getSnapshot().current.destination, {
+    id: 'friends',
+    chat: { mode: 'human', contactsSection: 'conversations' },
+  });
+  applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
+  await productionAppStore.navigation.back();
+  assert.equal(productionAppStore.navigation.getSnapshot().current.destination.id, 'explore');
+});
+
+test('Contacts keeps the active conversation or contact section in place', async () => {
+  const navigation = productionAppStore.navigation;
+  for (const chat of [
+    { mode: 'human', targetId: 'account-eric', threadId: 'chat-eric' },
+    { mode: 'human', contactsSection: 'received' },
+  ] as const) {
+    navigation.reset({ id: 'explore' });
+    await navigation.push({ id: 'friends', chat });
+    const current = navigation.getSnapshot().current;
+    applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
+    assert.equal(navigation.getSnapshot().current, current);
+    await navigation.back();
+    assert.equal(navigation.getSnapshot().current.destination.id, 'explore');
+  }
+});
+
 test('Desktop Open Intent maps settings profile and app details to owned surfaces', () => {
   // A public app-only intent replaces a prior source-qualified Home intent.
   productionAppStore.navigation.reset({ id: 'apps', appId: 'nimi.parentos', appEntryKey: 'verified:nimi.parentos' });
@@ -232,4 +260,19 @@ test('Desktop Open rejects the deferred activity feed before changing navigation
   const before = productionAppStore.navigation.getSnapshot();
   assert.throws(() => applyDesktopOpenIntentToAppStore(parseNimiDesktopOpenIntent({ kind: 'open-explore', section: 'activity' })), { reasonCode: 'desktop-open-target-unsupported' });
   assert.equal(productionAppStore.navigation.getSnapshot(), before);
+});
+
+
+test('Contacts returns a blocked navigation result for Home to present', async () => {
+  const { createHomeNavigation } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
+  const navigation = createHomeNavigation();
+  await navigation.push({ id: 'settings', settingsSection: 'profile' });
+  const unguard = navigation.registerLeaveGuard(() => 'busy');
+  try {
+    const result = await applyDesktopOpenIntent({ kind: 'open-contacts' }, {
+      store: navigation, runtimeConfigNavigation: {} as DesktopRendererRuntimeConfigNavigationPort,
+    });
+    assert.equal(result?.status, 'busy');
+    assert.equal(navigation.getSnapshot().current.destination.id, 'settings');
+  } finally { unguard(); navigation.dispose(); }
 });

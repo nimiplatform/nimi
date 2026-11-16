@@ -1,5 +1,5 @@
 import { SETTINGS_SECTIONS } from '../../features/settings/settings-sections.js';
-import { createNimiNavigation, type NimiNavigationController, type NimiNavigationLeaveGuard } from '@nimiplatform/kit/core/navigation';
+import { createNimiNavigation, type NimiNavigationController, type NimiNavigationLeaveGuard, type NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { readCharacterSourceRefV3, type CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
 import type { AppTab, WorldDetailInitialSubpage } from './store-types.js';
@@ -182,6 +182,11 @@ export function validateHomeDestination(value: unknown): HomeDestination {
 export type HomeNavigation = NimiNavigationController<HomeDestination> & {
   readonly registerLeaveGuard: (guard: NimiNavigationLeaveGuard<HomeDestination>) => () => void;
 };
+export async function openHomeContacts(navigation: HomeNavigation): Promise<NimiNavigationResult> {
+  if (navigation.getSnapshot().current.destination.id === 'friends') return { status: 'unchanged' };
+  return navigation.push({ id: 'friends' });
+}
+
 export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRuntimePosition = {}): HomeDestination {
   return { id: page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
     runtime: page === 'cloudServices' || page === 'advancedDiagnostics' ? position : { ...position, page } };

@@ -1,4 +1,6 @@
 {
+  "chatOpenBlocked": "Could not open Friends & chat. Finish the current operation, then try again.",
+  "chatOpenCancelled": "Opening Friends & chat was cancelled. You can try again when ready.",
   "execution": {
     "unconfirmed": "Cannot confirm whether execution conditions for this run are met.",
     "unavailable": "App interruption records are temporarily unavailable",
@@ -34,7 +36,7 @@
   "sectionActivity": "Social notifications",
   "sectionActivityDescription": "Choose notifications for direct messages and friend requests",
   "directMessages": "Direct Messages",
-  "directMessagesDescription": "Notify when someone sends you a direct message",
+  "directMessagesDescription": "Notify when someone sends you a direct message. While you use another app, Nimi shows the sender according to your system notification settings and pause status.",
   "friendRequests": "Friend Requests",
   "friendRequestsDescription": "Notify when someone sends a friend request",
   "sectionChannels": "Social notification channels",

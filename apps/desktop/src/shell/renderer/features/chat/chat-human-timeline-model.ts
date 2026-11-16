@@ -17,7 +17,7 @@ import {
   type RealmListMessagesResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { useAppStore, useHomeNavigation } from '../../app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-context.js';
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
@@ -92,6 +92,7 @@ function useHumanStreamState(chatId: string | null): StreamState | null {
 // @nimi-authority: rule.nimi.desktop.product-surfaces.human-chat-consumption
 export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: RealmChatViewDto | null) {
   const realmHumanChatData = useRealmHumanChatData();
+  const navigation = useHomeNavigation();
   const authStatus = useAppStore((state) => state.auth.status);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const currentUser = useAppStore((state) => state.auth.user);
@@ -140,7 +141,9 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
   const [readError, setReadError] = useState<string | null>(null);
   useEffect(() => { readPosition.current = null; setReadError(null); }, [readScope]);
   const acknowledgeRead = useCallback(async (messageId: string) => {
-    if (!selectedChatId || readTarget.current.scope !== readScope || document.visibilityState !== 'visible') return;
+    const destination = navigation.getSnapshot().current.destination;
+    if (!selectedChatId || destination.id !== 'friends' || destination.chat?.threadId !== selectedChatId
+      || readTarget.current.scope !== readScope || document.visibilityState !== 'visible' || !document.hasFocus()) return;
     const previous = readPosition.current;
     const retry = previous?.failed && previous.message.id === messageId;
     const message = retry ? previous.message : readTarget.current.newestMessage;
@@ -161,7 +164,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
         setReadError(messageId);
       }
     }
-  }, [selectedChatId, realmHumanChatData, queryClient, readScope]);
+  }, [navigation, selectedChatId, realmHumanChatData, queryClient, readScope]);
 
   const confirmedTimelineMessages = useRealmMessageTimeline({
     messagesData: messagesQuery.data,

@@ -2,13 +2,10 @@ import { useSettingsSaveGuard } from './use-settings-save-guard.js';
 import { ExecutionNotificationSetting } from '../home/execution-notices.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import {
-  loadNimiRealmUserNotificationSettings,
-  updateNimiRealmUserNotificationSettings,
-} from '@nimiplatform/sdk/realm';
+import { updateNimiRealmUserNotificationSettings } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { useQuery } from '@tanstack/react-query';
+import { useRealmNotificationSettings } from '../notification/use-realm-notification-settings.js';
 import { NimiText } from '@nimiplatform/kit/ui';
 import {
   Card,
@@ -120,10 +117,7 @@ export function NotificationsPage() {
   const editVersionRef = useRef(0);
   const saveSnapshotRef = useRef<number | null>(null);
 
-  const settingsQuery = useQuery({
-    queryKey: ['settings-notification'],
-    queryFn: async () => loadNimiRealmUserNotificationSettings(bindings.sdk.realm()),
-  });
+  const settingsQuery = useRealmNotificationSettings();
 
   useEffect(() => {
     if (!settingsQuery.data) {

@@ -32,7 +32,7 @@ export type SystemEntryFocusSource =
   | Readonly<{ kind: 'installed'; launchSelector: readonly number[] }>;
 export type SystemEntrySectionStatus = 'loading' | 'available' | 'partial' | 'unavailable';
 export type SystemEntryAction =
-  | Readonly<{ kind: 'home' | 'messages' | 'activity' | 'usage' | 'downloads' | 'ai-capabilities' | 'apps' | 'settings' | 'notification-settings' | 'support' | 'chat' | 'pause-notifications' | 'resume-notifications' | 'refresh' | 'quit' }>
+  | Readonly<{ kind: 'home' | 'friends' | 'messages' | 'activity' | 'usage' | 'downloads' | 'ai-capabilities' | 'apps' | 'settings' | 'notification-settings' | 'support' | 'chat' | 'pause-notifications' | 'resume-notifications' | 'refresh' | 'quit' }>
   | Readonly<{ kind: 'focus-app'; entryKey: string; source: SystemEntryFocusSource }>
   | Readonly<{ kind: 'continue-chat'; localAgentRef: string }>
   | Readonly<{ kind: 'open-activity'; activityId: string }>;
@@ -106,7 +106,7 @@ export type SystemEntryBridge = Readonly<{
   openMenu(): Promise<void>;
 }>;
 
-const SIMPLE_ACTIONS = new Set(['home', 'messages', 'activity', 'usage', 'downloads', 'ai-capabilities', 'apps', 'settings', 'notification-settings', 'support', 'chat', 'pause-notifications', 'resume-notifications', 'refresh', 'quit']);
+const SIMPLE_ACTIONS = new Set(['home', 'friends', 'messages', 'activity', 'usage', 'downloads', 'ai-capabilities', 'apps', 'settings', 'notification-settings', 'support', 'chat', 'pause-notifications', 'resume-notifications', 'refresh', 'quit']);
 const SECTION_STATES = new Set(['loading', 'available', 'partial', 'unavailable']);
 
 function fail(): never { throw new Error('system-entry-payload-invalid'); }

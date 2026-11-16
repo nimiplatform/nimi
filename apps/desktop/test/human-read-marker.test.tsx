@@ -35,6 +35,7 @@ test('read receipts advance to the latest visible confirmed message even when it
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   store.getState().applyRuntimeAccountProjection({ status: 'authenticated', user: { id: 'alice', realmEnvironmentId: 'realm' },
     sequence: '1', reasonCode: 0, accountReasonCode: 0, authorizationRevision: 'revision' });
+  await store.navigation.push({ id: 'friends', chat: { mode: 'human', threadId: 'chat' } });
   const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity } } });
   const uploads = createChatUploadPlaceholderStore(Date.now);
   const streams = createTestStreamController();
@@ -108,6 +109,11 @@ test('read receipts advance to the latest visible confirmed message even when it
     await act(async () => retry.click());
     assert.deepEqual(acknowledgements, ['z-first', 'a-newest', '0-retry', '0-retry'],
       'retry targets the previously seen message even after a newer one loads');
+    // Native notice navigation commits before focus, while the old transcript
+    // can still be mounted until React paints the new destination.
+    await store.navigation.push({ id: 'friends', chat: { mode: 'human', threadId: 'another-chat' } });
+    await act(async () => { dom.window.dispatchEvent(new dom.window.Event('focus')); });
+    assert.equal(acknowledgements.length, 4, 'a focus for another target cannot mark the old thread read');
     await act(async () => root.unmount());
     assert.equal(disconnected, true);
     dom.window.document.dispatchEvent(new dom.window.Event('visibilitychange'));

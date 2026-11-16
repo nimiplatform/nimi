@@ -369,7 +369,8 @@ export function createDesktopProductionBindings(
           store: Parameters<
             DesktopCanonicalRendererBindings['app']['events']['connectDesktopOpenIntents']
           >[0],
-        ) => connectDesktopOpenIntentListener(runtimeConfigNavigation, store),
+          reportNavigationResult: Parameters<DesktopCanonicalRendererBindings['app']['events']['connectDesktopOpenIntents']>[1],
+        ) => connectDesktopOpenIntentListener(runtimeConfigNavigation, store, reportNavigationResult),
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {

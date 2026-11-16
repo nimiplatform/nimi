@@ -1,6 +1,7 @@
+import type { NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import { openHomeSettings } from '../../features/settings/settings-entry.js';
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
-import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
+import { openHomeContacts, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import type { RuntimePageIdV11 } from '../../features/runtime-config/runtime-config-state-types';
 import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 import { asNimiError } from '@nimiplatform/sdk';
@@ -40,13 +41,14 @@ export async function resolveDesktopOpenAgentCenterTarget(
 }
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-dopen-003
+// @nimi-authority: rule.nimi.desktop.shell-ui.r039
 export function applyDesktopOpenIntentToAppStore(
   intent: NimiDesktopOpenIntent,
   input: {
     readonly store: DesktopOpenIntentStore;
     readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
   },
-): void {
+): void | Promise<NimiNavigationResult> {
   const { runtimeConfigNavigation, store } = input;
   switch (intent.kind) {
     case 'open-world': {
@@ -85,6 +87,9 @@ export function applyDesktopOpenIntentToAppStore(
     case 'open-integrations': {
       void store.push({ id: 'home', homeSection: 'integrations' });
       return;
+    }
+    case 'open-contacts': {
+      return openHomeContacts(store);
     }
     case 'open-partner-conversation': {
       // Dispatched directly to bundled Zhiyu by ElectronDesktopOpenIntentHost.

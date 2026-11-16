@@ -525,6 +525,10 @@ fn parse_desktop_open_intent(value: Value) -> Result<Value, DesktopOpenIntentHos
             assert_allowed_fields(record, &["kind"], "integrations intent")?;
             Ok(json!({ "kind": "open-integrations" }))
         }
+        "open-contacts" => {
+            assert_allowed_fields(record, &["kind"], "contacts intent")?;
+            Ok(json!({ "kind": "open-contacts" }))
+        }
         "open-url" => Err(invalid_parse(
             "DesktopOpenIntent does not admit raw URL payloads",
         )),
@@ -718,6 +722,7 @@ fn parse_bridge_result(
                     | "open-apps"
                     | "open-settings"
                     | "open-integrations"
+                    | "open-contacts"
                     | "open-agent-center"
                     | "open-partner-conversation"
             ) {
