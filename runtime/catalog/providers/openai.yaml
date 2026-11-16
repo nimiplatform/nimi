@@ -680,7 +680,7 @@ models:
       note: OpenAI GPT-4o mini model card.
     features:
       - input.image
-    context_window_tokens: 8192
+    context_window_tokens: 128000
   - model_id: gpt-image-2.5-flare
     provider: openai
     model_type: image

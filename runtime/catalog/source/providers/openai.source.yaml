@@ -687,6 +687,7 @@ models:
     updated_at: 2026-03-18
     capabilities: [text.generate]
     features: [input.image]
+    context_window_tokens: 128000
     pricing:
       unit: token
       input: "0.15"
