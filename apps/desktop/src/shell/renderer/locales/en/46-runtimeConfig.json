@@ -3325,6 +3325,23 @@
       "opened": "This partner’s desktop avatar is open.",
       "notOpened": "The desktop avatar was not opened. The current companion is unchanged.",
       "failed": "The desktop avatar could not be opened. Check its appearance settings and try again."
+    },
+    "utopia": {
+      "habitat": "Current habitat · {{habitat}}",
+      "sharedWith": "{{activity}} with {{partner}} at {{place}}",
+      "shared": "{{activity}} at {{place}}",
+      "locatedActivity": "{{place}} · {{activity}}",
+      "located": "Staying at {{place}}",
+      "solitary": "Quiet solitude · {{detail}}",
+      "interacting": "In conversation or app collaboration",
+      "resting": "In habitat · resting between activities",
+      "visit": "Visit in Utopia",
+      "observedAt": "Observed {{time}}",
+      "staleNotice": "Refresh failed; showing last observed state",
+      "retryRefresh": "Refresh",
+      "openedApps": "NimiUtopia is not installed or registered yet. Opened Apps.",
+      "chooseInApps": "Multiple NimiUtopia sources are available. Opened Apps so you can choose which one to launch.",
+      "launchFailed": "Could not launch NimiUtopia. Check its status in Apps."
     }
   },
   "mediaStorage": {

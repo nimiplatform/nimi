@@ -3325,6 +3325,23 @@
       "opened": "已打开此伙伴的桌面形象。",
       "notOpened": "未打开桌面形象，当前伙伴保持不变。",
       "failed": "桌面形象未能打开，请检查外观设置后重试。"
+    },
+    "utopia": {
+      "habitat": "当前栖居 · {{habitat}}",
+      "sharedWith": "在{{place}}与{{partner}}{{activity}}",
+      "shared": "在{{place}}{{activity}}",
+      "locatedActivity": "{{place}} · {{activity}}",
+      "located": "正在{{place}}停留",
+      "solitary": "安静独处 · {{detail}}",
+      "interacting": "正在对话或应用协作中",
+      "resting": "驻留洞天 · 间隙小憩",
+      "visit": "去洞天看望",
+      "observedAt": "观测于 {{time}}",
+      "staleNotice": "刷新未成功，当前显示上次记录",
+      "retryRefresh": "刷新",
+      "openedApps": "NimiUtopia 尚未在此设备运行或安装，已打开应用目录。",
+      "chooseInApps": "检测到多个 NimiUtopia 启动来源，已打开应用页供你选择。",
+      "launchFailed": "暂时无法启动 NimiUtopia，请前往应用页检查状态。"
     }
   },
   "mediaStorage": {

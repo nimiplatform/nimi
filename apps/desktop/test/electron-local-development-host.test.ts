@@ -692,6 +692,41 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(starts, 1);
   });
 
+  it('focuses an already-running registration started with CDP without throwing a CDP conflict', async () => {
+    const existing = registration();
+    const focused: string[] = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => [existing],
+      focusHost: async (supervisorRunId) => {
+        focused.push(supervisorRunId);
+      },
+    }), '/tmp');
+    const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+
+    const run = {
+      ...activeRun(),
+      requestedCdpPort: 9229,
+      cdpPort: 9229,
+      desktopManaged: false,
+    };
+    const internal = host as unknown as {
+      runs: Map<string, typeof run>;
+      startIntent: (...args: readonly unknown[]) => Promise<typeof run.status>;
+    };
+    internal.runs.set(run.status.runId, run);
+    internal.startIntent = async () => {
+      throw new Error('must not re-enter startIntent for an already active matching registration');
+    };
+
+    const result = await host.invoke('local_development_registration_start', {
+      payload: { selector: row!.selector },
+    }) as Record<string, unknown>;
+
+    assert.equal(result.state, 'running');
+    assert.equal(run.desktopManaged, true);
+    assert.deepEqual(focused, [SUPERVISOR]);
+  });
+
   it('does not remint after an ambiguous fresh-registration response loss', async () => {
     let registerCalls = 0;
     const host = new ElectronLocalDevelopmentHost(control({

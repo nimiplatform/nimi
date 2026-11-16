@@ -18,6 +18,7 @@ import { usePartnerChat } from './use-partner-chat.js';
 import { PartnerStatus } from './partner-status.js';
 import { PartnerActivity } from './partner-activity.js';
 import { PartnerAvatarAction } from './partner-avatar-action.js';
+import { PartnerUtopiaPresence } from './partner-utopia-presence.js';
 
 const P = 'runtimeConfig.partners';
 
@@ -76,6 +77,7 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
       <span>{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</span>
     </div>
     {session ? <PartnerStatus session={session} onManage={section => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: section } }); }} /> : null}
+    {session && active ? <PartnerUtopiaPresence session={session} agentHandle={!reference.isError ? reference.data?.reference?.agentHandle : null} accountId={accountId} scopeKey={scopeKey} /> : null}
     {reference.isError || actionError || chat.failed ? <InlineAlert tone="warning">{actionError || t(chat.failed ? `${P}.actionFailed` : `${P}.managerUnavailable`)}</InlineAlert> : null}
   </div>;
   const publicProfile = !source.isError && !profile.isError ? profile.data?.source : null;

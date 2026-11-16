@@ -808,6 +808,22 @@ export class ElectronLocalDevelopmentHost {
     if (!registration || registration.project.shell !== 'electron') {
       throw new Error('local-development-registration-not-found');
     }
+    if (this.closing) throw new Error('local-development-owner-closing');
+    const active = [...this.runs.values()].find((run) => (
+      !run.stopped
+      && run.registrationHandle === registrationHandle
+      && (run.status.retryable || !RESTARTABLE_RUN_STATES.has(run.status.state))
+    ));
+    if (active) {
+      active.desktopManaged = true;
+      this.clearLauncherLease(active);
+      if (active.status.state === 'running') {
+        await this.control.focusHost(active.supervisorRunId);
+      }
+      if (!active.stopped) {
+        return projectRun(active.status, selectorValue);
+      }
+    }
     const status = await this.startIntent(
       registration.project.appId,
       registration.project.canonicalProjectRoot,
