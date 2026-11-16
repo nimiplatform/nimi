@@ -886,7 +886,7 @@
     "greetingWithName": "{{greeting}}，{{name}}",
     "recentChats": {
       "title": "最近对话",
-      "openAll": "打开织羽",
+      "openAll": "查看全部伙伴",
       "replyLabel": "回复 {{name}}",
       "replyPlaceholder": "回复 {{name}}…",
       "replySend": "带草稿打开对话",

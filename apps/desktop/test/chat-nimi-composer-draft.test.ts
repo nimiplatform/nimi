@@ -8,7 +8,7 @@ test('Nimi landing and thread drafts survive leaving the page without overriding
   const landing = nimiComposerDraftRef(navigation, null, '');
   landing.current = 'unsent landing message';
   await navigation.push({ id: 'chat', chat: { mode: 'ai' } });
-  await navigation.push({ id: 'friends' });
+  await navigation.push({ id: 'contacts' });
   await navigation.push({ id: 'chat' });
   assert.equal(nimiComposerDraftRef(navigation, null, '').current, 'unsent landing message');
   const thread = nimiComposerDraftRef(navigation, 'thread-a', 'saved on disk');

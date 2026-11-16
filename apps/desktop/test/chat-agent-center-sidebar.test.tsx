@@ -43,7 +43,7 @@ test('partner management navigation isolates the shared editor draft by partner'
       onSectionChange={settingsSection => { void store.navigation.replace({ ...destination, partner: { ...partner, settingsSection } }); }}
       placementActions={{ close() {} }} />;
   }
-  const select = (handle: 'a' | 'b') => store.navigation.push({ id: 'partners', partner: {
+  const select = (handle: 'a' | 'b') => store.navigation.push({ id: 'contacts', contactView: 'partners', partner: {
     localAgentRef: handle, settingsSection: store.navigation.getSnapshot().current.destination.partner?.settingsSection ?? 'behavior' } });
   try {
     await select('a');

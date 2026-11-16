@@ -286,7 +286,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
 
   return <SystemEntryProviderContext.Provider value={{ hostContext, homeVisible,
     projection: scope && published?.generation === hostContext?.generation ? published : null,
-    appActivity: activity, ai: currentAI, refresh, openAIActivity: reading.openAIActivity }}>
+    appActivity: activity, recentPartners: scope && recentReadScope === scope ? recent.data : undefined, ai: currentAI, refresh, openAIActivity: reading.openAIActivity }}>
     {children}
   </SystemEntryProviderContext.Provider>;
 }

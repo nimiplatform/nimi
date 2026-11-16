@@ -10,21 +10,21 @@ export function useHomeChatPosition() {
   const entryKey = useHomeEntryKey();
   const chat = destination.chat;
   const mode = chat?.mode ?? 'ai';
-  const open = useCallback((position: HomeChatPosition) => void navigation.push({ id: position.mode === 'human' ? 'friends' : 'chat', chat: position }), [navigation]);
+  const open = useCallback((position: HomeChatPosition) => void navigation.push({ id: position.mode === 'human' ? 'contacts' : 'chat', chat: position }), [navigation]);
   const refine = useCallback((position: HomeChatPosition) => {
     const current = navigation.getSnapshot().current;
-    if (current.key !== entryKey || !['chat', 'friends'].includes(current.destination.id)) return;
+    if (current.key !== entryKey || !['chat', 'contacts'].includes(current.destination.id)) return;
     const explicit = current.destination.chat;
     if (explicit && (position.mode !== explicit.mode
       || explicit.targetId && !position.targetId || explicit.threadId && !position.threadId)) return;
-    void navigation.replace({ id: position.mode === 'human' ? 'friends' : 'chat', chat: position });
+    void navigation.replace({ id: position.mode === 'human' ? 'contacts' : 'chat', chat: position });
   }, [entryKey, navigation]);
   const openMode = useCallback((mode: HomeChatPosition['mode']) => open({ mode }), [open]);
   const openTarget = useCallback((mode: HomeChatPosition['mode'], targetId: string | null) => open({ mode, targetId: targetId ?? undefined }), [open]);
   const nimiSelection = useMemo<NimiConversationSelection>(() => ({ threadId: mode === 'ai' ? chat?.threadId ?? null : null }), [mode, chat?.threadId]);
   const selectNimiThread = useCallback((selection: NimiConversationSelection) => {
     const current = navigation.getSnapshot().current;
-    if (current.key !== entryKey || !['chat', 'friends'].includes(current.destination.id) || current.destination.chat?.mode !== 'ai') return;
+    if (current.key !== entryKey || !['chat', 'contacts'].includes(current.destination.id) || current.destination.chat?.mode !== 'ai') return;
     const position = { mode: 'ai' as const, targetId: 'ai:assistant', threadId: selection.threadId ?? undefined };
     if (!selection.threadId && current.destination.chat?.threadId) return;
     if (!current.destination.chat?.threadId) refine(position); else if (selection.threadId) open(position);

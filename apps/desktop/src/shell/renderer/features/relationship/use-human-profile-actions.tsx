@@ -73,7 +73,7 @@ export function useHumanProfileActions(profile: (ActionTarget & Pick<HumanProfil
         if (!opened?.chatId) throw new Error(t('Relationship.openChatFailed'));
         if (operation.current?.isCurrent() && navigation.getSnapshot().current.key === origin) {
           void queryClient.invalidateQueries({ queryKey: ['chats'] });
-          const result = await navigation.push({ id: 'friends', chat: { mode: 'human', targetId: target.id, threadId: opened.chatId } });
+          const result = await navigation.push({ id: 'contacts', chat: { mode: 'human', targetId: target.id, threadId: opened.chatId } });
           if (result.status === 'committed' || result.status === 'unchanged') onOpenConversation?.();
         }
       });

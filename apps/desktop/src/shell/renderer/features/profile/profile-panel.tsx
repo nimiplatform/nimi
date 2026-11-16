@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { Button, ScrollArea } from '@nimiplatform/kit/ui';
+import { ArrowLeft } from 'lucide-react';
 import { useCurrentUserProfileProjection } from './current-user-profile.js';
 import { useHomeNavigation, useHomeDestination, useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -14,7 +15,7 @@ import { requireHumanAccountId, toHumanProfileData, type HumanProfileSource } fr
 import { openHomeSettings } from '../settings/settings-entry.js';
 import { useHumanProfileActions } from '../relationship/use-human-profile-actions.js';
 
-export function ProfilePanel() {
+export function ProfilePanel({ onBackToContacts }: { onBackToContacts?: () => void }) {
   const navigation = useHomeNavigation();
   const social = useRealmSocialData();
   const queryClient = useQueryClient();
@@ -53,12 +54,15 @@ export function ProfilePanel() {
     {loading ? <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} /> : error ? <ProfileDetailErrorState
       backLabel={i18n.t('Common.back')} label={i18n.t('ProfileView.error')} onClose={navigation.back}
       retryLabel={i18n.t('Common.retry')} onRetry={() => { void profileQuery.refetch(); }} /> : profile ? <ScrollArea className="min-h-0 flex-1"
-        viewportClassName="bg-transparent px-5 pb-5 pt-8" contentClassName="mx-auto flex w-full max-w-[960px] flex-col" viewportRef={scroll}>
+        viewportClassName="bg-transparent px-5 pb-5 pt-6" contentClassName="mx-auto flex w-full max-w-[960px] flex-col" viewportRef={scroll}>
+        {onBackToContacts ? <div className="mb-3 min-[960px]:hidden">
+          <Button tone="ghost" size="sm" onClick={onBackToContacts}><ArrowLeft size={16} />{i18n.t('Relationship.contacts.title')}</Button>
+        </div> : null}
         <section className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)] py-5">
           <ProfileDetailView profile={profile} isOwnProfile={isOwnProfile} loading={false} error={false}
             hideBackButton externalScrollContainerRef={scroll} onClose={navigation.back} {...actions.props}
             onEditProfile={isOwnProfile ? () => { void openHomeSettings(navigation, 'profile'); } : undefined}
-            onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'friends', chat: { mode: 'human' } }); } : undefined}
+            onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'contacts', chat: { mode: 'human', contactsSection: 'friends' } }); } : undefined}
             onOpenPrivacy={isOwnProfile ? () => { void openHomeSettings(navigation, 'privacy'); } : undefined} />
         </section>
       </ScrollArea> : <p className="p-5 text-sm text-[var(--nimi-text-secondary)]">{i18n.t('Profile.noProfileDataAvailable')}</p>}

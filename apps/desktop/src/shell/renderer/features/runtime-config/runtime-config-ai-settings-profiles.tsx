@@ -539,7 +539,7 @@ function ProfileUsePanel(props: {
   const owner: RuntimeConfigProfileUseOwner | null =
     props.owner ??
     (destination === 'local-agent'
-      ? { kind: 'local-agent', returnFocus: 'home:' + encodeURIComponent(JSON.stringify({ id: 'partners' })) }
+      ? { kind: 'local-agent', returnFocus: 'home:' + encodeURIComponent(JSON.stringify({ id: 'contacts', contactView: 'partners' })) }
       : destination.startsWith('app:')
         ? {
           kind: 'app',

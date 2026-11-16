@@ -96,7 +96,7 @@ test('agent conversation launcher can prefill composer without authoring a threa
   } };
   const navigation = createHomeNavigation();
   try {
-    await navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+    await navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a' } });
     const origin = navigation.getSnapshot().current;
     const result = await launchAgentConversationFromDisplay({
       target: { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-agent-1', displayName: 'Partner' } as never,

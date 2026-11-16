@@ -84,7 +84,7 @@ test('Zhiyu desktop_open_select_partner keeps host exception details in diagnost
   assert.equal(result.state, 'failed');
   assert.equal(result.reasonCode, 'renderer-standard-shell-host-unavailable');
   assert.equal(result.actionHint, 'open_desktop_manually');
-  assert.match(result.message, /Nimi Home.*「我的伙伴」/);
+  assert.match(result.message, /Nimi Home.*「聊天与联系人」/);
   assert.doesNotMatch(result.message, /Electron|standard shell|command|nimi\.shell/u);
 });
 

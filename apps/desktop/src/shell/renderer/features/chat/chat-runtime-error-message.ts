@@ -63,7 +63,7 @@ export type ChatRuntimeErrorContext = {
 
 export function localAgentConfigurationFailure(reasonCode: string): boolean {
   return ['AI_LOCAL_CONFIGURATION_NOT_CONFIGURED', 'AI_TEXT_BEHAVIOR_UNSUPPORTED',
-    'AI_REMOTE_MODEL_CATALOG_STALE', 'CAPABILITY_CATALOG_MISMATCH', 'AI_CONFIG_INVALID']
+    'AI_REMOTE_MODEL_CATALOG_STALE', 'CAPABILITY_CATALOG_MISMATCH', 'AI_CONFIG_INVALID', 'AI_CONFIG_NOT_FOUND']
     .includes(reasonCode.trim().toUpperCase().replaceAll('-', '_'));
 }
 

@@ -30,7 +30,7 @@ test('friend requests preserve denial/offline failures and reject unconfirmed ou
 
 test('launch navigation retains Worlds and partners while rejecting retired catalogs and deferred feeds', () => {
   assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'worlds' }).exploreSection, 'worlds');
-  assert.equal(validateHomeDestination({ id: 'partners' }).id, 'partners');
+  assert.equal(validateHomeDestination({ id: 'contacts', contactView: 'partners' }).contactView, 'partners');
   assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }).exploreSearchKind, 'characters');
   assert.throws(() => validateHomeDestination({ id: 'explore', exploreSection: 'personas' }), /Invalid Home exploreSection/);
   assert.throws(() => validateHomeDestination({ id: 'activity' }), /Unknown Home destination/);

@@ -75,7 +75,7 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
   const openProfile = () => {
     if (!authenticated || person.deleted) return;
     if (!self) cache.setQueryData(['chat-peer-identity', environment, viewerId, person.id], { id: person.id, displayName: name, handle: handle || '', avatarUrl: profile?.avatarUrl || person.avatarUrl || null });
-    setOpen(false); void navigation.push({ id: 'profile', profileId: person.id });
+    setOpen(false); void navigation.push({ id: navigation.getSnapshot().current.destination.id === 'contacts' ? 'contacts' : 'profile', profileId: person.id });
   };
   return <>
     <ChatAvatarPopover open={open && !person.deleted} onOpenChange={setOpen} placement={placement} onSelect={onSelect}

@@ -4,8 +4,8 @@ scope: desktop.agent-projection
 units:
   - id: definition.nimi.desktop.agent-projection.agent-chat
     kind: definition
-    title: Home LocalAgent management and conversation handoff
-    meaning: Home owns LocalAgent inventory, partner management, source navigation, bounded Runtime conversation summaries and ephemeral shortcut drafts. Explicit full conversation, recorded voice, media interaction and transient Realtime belong to the admitted Zhiyu App surface. Home transfers only the Runtime-issued conversation correlation and bounded navigation or draft input through the supervised Host. Runtime retains LocalAgent identity, execution, Conversation, summary, voice, continuity and lifecycle; Cognition retains Memory and Knowledge semantics and canonical state, with Knowledge V1 inactive.
+    title: Home LocalAgent management and Conversation projection
+    meaning: Home owns presentation of LocalAgent inventory, management, source navigation and ordinary Conversation using the admitted public SDK and Kit. Zhiyu independently presents the same canonical Conversation and its own App experience including transient Realtime. Runtime owns LocalAgent identity, execution, Conversation, summary, voice, continuity and lifecycle. Cognition owns Memory and Knowledge semantics and canonical state, with Knowledge V1 inactive.
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
@@ -31,8 +31,8 @@ units:
     kind: rule
     title: Home hands off explicit partner conversation intent
     modality: must
-    statement: Home resolves the selected current-account partner through its own admitted client and hands only a Runtime-issued Conversation anchor, optional committed message reference and bounded unsent text to bundled Zhiyu through the verified Host. The destination resolves its own current-session Agent reference and confirms arrival; Home sends no LocalAgent turn, attachment, microphone input, provider choice, execution context, credential or caller handle.
-    condition: Whenever Home opens or continues a partner conversation.
+    statement: Home resolves the selected current-account partner through its own admitted client and hands only a Runtime-issued Conversation anchor, optional committed message reference and bounded unsent text to bundled Zhiyu through the verified Host. The destination resolves its own current-session Agent reference and confirms arrival; The handoff carries no turn, attachment, microphone input, provider choice, execution context, credential or caller handle.
+    condition: Whenever the user explicitly opens a partner conversation in Zhiyu from Home.
     failure: Keep the source input and report unavailable or not reached without selecting another partner or submitting a turn.
     relations:
       - type: applies_to
@@ -41,7 +41,7 @@ units:
     kind: rule
     title: Home reads bounded Runtime LocalAgent projections
     modality: must
-    statement: Home renders authorized Runtime LocalAgent inventory, management state, bounded conversation summaries and typed failures through public SDK and Kit projections. It owns no full LocalAgent transcript, live conversation reducer, playback or send controller; the admitted Zhiyu surface consumes those canonical operations independently. UI state and cached projections never become Runtime truth.
+    statement: Home renders authorized Runtime LocalAgent inventory, management, conversation summaries, Conversation snapshots, events and typed failures through public SDK and Kit. Home can submit admitted user intent and control local playback through those same consumers. UI state and cached projections never become Runtime truth.
     condition: Whenever Home renders LocalAgent information.
     failure: Use the owner projection or an explicit unavailable state without reconstructing conversation or execution truth.
     relations:
@@ -51,7 +51,7 @@ units:
     kind: rule
     title: Home partner availability and handoff failures stay explicit
     modality: must
-    statement: Home keeps missing or unavailable Runtime, account, partner, source and destination states distinct for the requested read, management or handoff action. Optional source, Cognition or appearance failures remain local; missing AI execution preparation does not by itself forbid reading partner management or opening an existing conversation in Zhiyu.
+    statement: Home keeps missing or unavailable Runtime, account, partner, source and destination states distinct for the requested read, management or handoff action. Optional source, Cognition or appearance failures remain local; missing AI execution preparation does not by itself forbid reading partner management or opening an existing admitted conversation.
     condition: Whenever a Home partner projection or handoff cannot operate.
     failure: Display the owning failure without fallback execution, false empty state or fake arrival.
     relations:
@@ -151,8 +151,8 @@ units:
     kind: rule
     title: Home shortcut text remains unsent UI state
     modality: must
-    statement: Home partner shortcut text belongs to the current account and selected partner as ephemeral UI state. A handoff offers it to Zhiyu as a draft, never sends it automatically, never silently overwrites the destination draft, and never turns it into Runtime Conversation, Memory, Knowledge, recovery or execution truth.
-    condition: Whenever Home edits or hands off partner shortcut text.
+    statement: Home partner shortcut text belongs to the current account and selected partner as ephemeral UI state. A Home conversation open or explicit Zhiyu handoff offers it to the destination as a draft, never sends it automatically, never silently overwrites the destination draft, and never turns it into Runtime Conversation, Memory, Knowledge, recovery or execution truth.
+    condition: Whenever Home edits, transfers or hands off partner shortcut text.
     failure: Discard or keep it only as UI state without semantic promotion.
     relations:
       - type: applies_to
@@ -191,7 +191,7 @@ units:
     kind: rule
     title: Home partner and conversation targeting remain explicit
     modality: must
-    statement: Home resolves an explicitly selected current-account partner through its own authorized Agent reference and uses only the Runtime-issued Conversation anchor for that partner. An incoming open-agent-center correlation is resolved under Home authority for management; it neither transfers a caller handle nor mounts a conversation. Home never guesses a default partner, matches by display name, merges conversations for a source or restores a retired Home chat destination.
+    statement: Home resolves an explicitly selected current-account partner through its own authorized Agent reference and uses only the Runtime-issued Conversation anchor for that partner. An incoming open-agent-center correlation is resolved under Home authority for management; it neither transfers a caller handle nor mounts a conversation. Home never guesses a default partner, matches by display name, merges conversations for a source or treats a previous session handle as a navigation key.
     condition: Whenever Home selects a partner or resolves a partner management or conversation handoff target.
     failure: Require explicit selection and keep the surface unavailable when it cannot be resolved.
     relations:
@@ -211,7 +211,7 @@ units:
     kind: rule
     title: Home conversation continuation reads owner summaries
     modality: must
-    statement: Home reads bounded Runtime conversation summaries and, when explicitly targeting a reply, its committed message reference. It hands off the exact correlation to Zhiyu and preserves the source position and input when arrival fails. Home does not restore a transcript, subscribe to a full LocalAgent conversation, recover a submission or replay a model request; canonical conversation continuity remains Runtime-owned and is consumed by the destination App.
+    statement: Home consumes bounded summaries and uses canonical snapshots, event observation, message reads and the existing explicit recovery operations for the selected conversation. A historical message requires an exact committed message reference. An ambiguous submission may be queried without executing or explicitly continued using the original request identity and input. Regeneration requires the owner’s eligibility and a new request referencing the prior attempt. Runtime owns transcript, admission and recovery truth. Explicit Zhiyu handoff preserves the source position and draft on failure.
     condition: Whenever Home offers a partner conversation continuation or reply action.
     failure: Report a missing or unreadable target without fabricating history, replaying work or equating window launch with conversation arrival.
     relations:
@@ -308,9 +308,9 @@ units:
     kind: rule
     title: Home App Product Plane uses canonical management and handoff paths
     modality: must
-    statement: Home AI Consume and the complete AgentCenter use the same public SDK, agent.configure App client, AgentCenter factory, Manager Session, action availability, typed results and errors as every equally covered protected App. Home preserves Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition and Diagnostics or Advanced management and delegates full LocalAgent conversation and voice interaction to Zhiyu. Home owns navigation, OS file selection, native preview and other admitted Host mechanics, without raw identity sidebands, private product clients or a second Manager.
+    statement: Home AI Consume and the complete AgentCenter use the same public SDK, agent.configure App client, AgentCenter factory, Manager Session, action availability, typed results and errors as every equally covered protected App. Home preserves Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition and Diagnostics or Advanced management and presents ordinary LocalAgent Conversation and voice through the admitted public client. Home owns navigation, OS file selection, native preview and other admitted Host mechanics, without raw identity sidebands, private product clients or a second Manager.
     condition: Whenever Home renders or invokes AI Consume, partner management or a partner handoff.
-    failure: Reject private product paths, raw authority sidebands, stale-handle mutation, a second Manager or a lost supported management capability; keep conversation in its admitted App owner.
+    failure: Reject private product paths, raw authority sidebands, stale-handle mutation, a second Manager or a lost supported management capability. Keep conversation and execution truth in Runtime.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -368,10 +368,10 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-introduction
   - id: rule.nimi.desktop.agent-projection.composer-draft
     kind: rule
-    title: Home shortcut drafts remain account and partner scoped
+    title: Home drafts and pending inputs remain scoped to their host
     modality: must
-    statement: Home keeps its shortcut text in account-and-partner-scoped in-memory UI state across partner selection and navigation, retains it through a temporary account-read outage and clears it on session end. A handoff preserves the Home input and offers a separate destination draft; it creates no Home submission ledger, durable LocalAgent transcript, saved-state claim or automatic retry. Zhiyu retains its own protected App draft and submission storage, and historical Home-only remnants use a one-time local export rather than a compatibility path.
-    condition: Whenever Home restores, edits, hands off or retires partner shortcut text.
+    statement: Home keeps shortcut text in account-and-partner-scoped in-memory UI state. The formal Home composer may retain unsent text, a quotation and one unresolved request with its required input and correlation in Home protected App storage scoped to the current account and App-specific partner binding. A pending request is not an execution or history record and only supports user-confirmed resolution. Incoming draft text is never sent automatically or silently substituted for an existing draft, quote or pending request. Zhiyu retains its own protected draft and submission storage. Historical Home-only remnants use a one-time local export.
+    condition: Whenever Home restores, edits, transfers, recovers or retires partner composer state.
     failure: Reject cross-account or cross-partner draft adoption, silent destination overwrite, false save acknowledgement and automatic message submission.
     relations:
       - type: applies_to

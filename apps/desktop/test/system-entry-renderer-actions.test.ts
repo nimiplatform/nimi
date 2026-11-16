@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { NimiRuntimeAgentSourceContextStatus } from '@nimiplatform/sdk/runtime';
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { SystemEntryProjection } from '../src/shell/shared/system-entry-types.js';
 import { createHomeNavigation, validateHomeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import { executeSystemEntryRendererAction } from '../src/shell/renderer/features/system-entry/system-entry-renderer-actions.js';
-import { characterSourceRefKey } from '../src/shell/renderer/features/realm-source/realm-source-identity.js';
 
 function setup() {
   const navigation = createHomeNavigation();
@@ -46,12 +44,12 @@ test('system-entry messages uses the same global message center as the bell', as
   value.input.navigation.dispose();
 });
 
-test('system-entry Friends & chat opens human conversations and preserves an active thread', async () => {
+test('system-entry Contacts opens conversations and preserves an active thread', async () => {
   const { input } = setup();
   const request = { requestId: 'favorites', generation: 'account-a', revision: 1, action: { kind: 'friends' } } as const;
   await executeSystemEntryRendererAction(request, input);
   assert.equal(input.navigation.getSnapshot().current.destination.chat?.contactsSection, 'conversations');
-  await input.navigation.push({ id: 'friends', chat: { mode: 'human', threadId: 'chat-eric' } });
+  await input.navigation.push({ id: 'contacts', chat: { mode: 'human', threadId: 'chat-eric' } });
   const activeThread = input.navigation.getSnapshot().current;
   await executeSystemEntryRendererAction(request, input);
   assert.equal(input.navigation.getSnapshot().current, activeThread);
@@ -122,111 +120,16 @@ test('focus forwards its original request and generation only for the exact publ
   }
 });
 
-function chatSetup(deferredReference = false) {
-  const base = setup();
-  const sourceRef = { kind: 'worldCharacter' as const, id: 'same-character', worldId: 'world-1',
-    worldEntityRef: { kind: 'worldEntity' as const, worldId: 'world-1', entityId: 'same-character' }, sourceHash: 'a'.repeat(64) };
-  const records = ['a', 'b'].map(id => ({ localAgentRef: `local-agent:agent-${id}`, ownerUserId: 'user-a',
-    runtimeSourceRef: `runtime-source:agent-${id}`, displayName: `Agent ${id}`,
-    sourceContextStatus: { schemaVersion: 'v2', ready: true, state: 'ready', reasonCode: 'none',
-      localAgentRef: `local-agent:agent-${id}`, sourceRef, sourceSchemaVersion: 'realm.world-character-core/v1',
-      snapshotSchemaVersion: 'v3', snapshotHash: 'a'.repeat(64), capturedAt: '2026-10-23T03:00:00.000Z',
-      worldContentHash: 'b'.repeat(64), materializationContextHash: 'c'.repeat(64), coverageSections: [],
-      lorebookReady: true, lorebookItemCount: 0, lorebookEstimatedTokens: '0' } satisfies NimiRuntimeAgentSourceContextStatus }));
-  const agents = records.map(record => ({ localAgentRef: record.localAgentRef, ownerUserId: record.ownerUserId,
-    runtimeSourceRef: record.runtimeSourceRef, displayName: record.displayName, sourceRef, sourceKey: characterSourceRefKey(sourceRef) }));
-  const reference = { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Agent b' };
-  const opened: string[] = [], resolved: string[] = [];
-  let generation = 'account-a', now = 1_000;
-  let finishReference!: () => void, referenceStarted!: () => void;
-  const started = new Promise<void>(resolve => { referenceStarted = resolve; });
-  const sdk = {
-    runtimeAgentDiscovery: () => ({ listLocalAgents: async () => records }),
-    resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => {
-      resolved.push(localAgentRef); referenceStarted();
-      if (deferredReference) await new Promise<void>(resolve => { finishReference = resolve; });
-      return { reference };
-    },
-    conversation: () => ({ open: async ({ agentHandle }: { agentHandle: string }) => {
-      opened.push(agentHandle); return { conversationAnchorId: 'anchor-b', activeTurnId: null };
-    } }),
-  } as unknown as DesktopRendererSdkPort;
-  const action = { kind: 'continue-chat' as const, localAgentRef: agents[1]!.localAgentRef };
-  const projection: SystemEntryProjection = { ...base.projection, recent: { status: 'available', observedAt: null, total: 1,
-    items: [{ id: action.localAgentRef, title: 'Agent b', detail: '', action }] } };
-  const context = () => ({ generation, state: 'ready' as const, homeVisible: true });
-  return {
-    input: { ...base.input, sdk, agents, context, readCurrentContext: async () => context(), published: () => projection, now: () => now },
-    request: { requestId: 'continue-request', generation: 'account-a', revision: 1, action },
-    opened, resolved, started,
-    invalidate: () => { generation = 'new-activation'; },
-    expire: () => { now = 15_001; },
-    finish: () => finishReference(),
+test('the recent partner action opens the exact stable Home target', async () => {
+  const { input, projection } = setup();
+  const localAgentRef = 'local-agent:agent-b';
+  const action = { kind: 'continue-chat' as const, localAgentRef };
+  const amended = { ...input,
+    agents: [{ localAgentRef, ownerUserId: input.ownerUserId, displayName: 'Partner B', runtimeSourceRef: 'runtime-source:b', sourceRef: { kind: 'worldCharacter' as const, id: 'partner-b', worldId: 'world-1', worldEntityRef: { kind: 'worldEntity' as const, worldId: 'world-1', entityId: 'partner-b' }, sourceHash: 'a'.repeat(64) }, sourceKey: 'partner-b' }],
+    published: () => ({ ...projection, recent: { ...projection.recent, total: 1, items: [{ id: localAgentRef, title: 'Partner B', detail: '', action }] } }),
   };
-}
-
-test('continue chat does not open after its generation changes during reference resolution', async () => {
-  const value = chatSetup(true);
-  const pending = executeSystemEntryRendererAction(value.request, value.input);
-  await value.started;
-  value.invalidate(); value.finish();
-  await assert.rejects(pending, /system-entry-view-stale/);
-  assert.deepEqual(value.opened, []);
-  assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
-});
-
-test('continue chat does not open after its deadline expires during reference resolution', async () => {
-  const value = chatSetup(true);
-  const pending = executeSystemEntryRendererAction(value.request, value.input);
-  await value.started;
-  value.expire(); value.finish();
-  await assert.rejects(pending, /system-entry-action-expired/);
-  assert.deepEqual(value.opened, []);
-  assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
-});
-
-test('view all recent partner chats opens Zhiyu without redirecting Home to Nimi Chat', async () => {
-  const globals = globalThis as Record<string, unknown>;
-  const before = [globals.window, globals.__NIMI_ELECTRON_RUNTIME__];
-  const calls: unknown[] = [];
-  globals.window = { __NIMI_HTML_BOOT_ID__: 'system-entry-all-chat-test' };
-  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, payload: unknown) => {
-    if (command === 'log_renderer_event') return {};
-    assert.equal(command, 'bundled_zhiyu_open'); calls.push(payload); return { opened: true };
-  } };
-  const value = setup();
-  try {
-    await executeSystemEntryRendererAction({ requestId: 'all-chats', generation: 'account-a', revision: 1, action: { kind: 'chat' } }, value.input);
-    assert.deepEqual(calls, [{}]);
-    assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
-  } finally {
-    value.input.navigation.dispose();
-    for (const [key, old] of [['window', before[0]], ['__NIMI_ELECTRON_RUNTIME__', before[1]]] as const) {
-      if (old === undefined) delete globals[key]; else globals[key] = old;
-    }
-  }
-});
-
-test('continue chat resolves only the selected LocalAgent and opens its anchor in Zhiyu', async () => {
-  const globals = globalThis as Record<string, unknown>;
-  const before = [globals.window, globals.__NIMI_ELECTRON_RUNTIME__];
-  const targets: unknown[] = [];
-  globals.window = { __NIMI_HTML_BOOT_ID__: 'system-entry-chat-test' };
-  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, payload: unknown) => {
-    if (command === 'log_renderer_event') return {};
-    assert.equal(command, 'bundled_zhiyu_open'); targets.push(payload); return { opened: true };
-  } };
-  const value = chatSetup();
-  try {
-    await executeSystemEntryRendererAction(value.request, value.input);
-    assert.deepEqual(value.resolved, ['local-agent:agent-b']);
-    assert.deepEqual(value.opened, ['agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB']);
-    assert.deepEqual(targets, [{ target: { conversationAnchorId: 'anchor-b' } }]);
-    assert.equal(value.input.navigation.getSnapshot().current.destination.id, 'home');
-  } finally {
-    value.input.navigation.dispose();
-    for (const [key, old] of [['window', before[0]], ['__NIMI_ELECTRON_RUNTIME__', before[1]]] as const) {
-      if (old === undefined) delete globals[key]; else globals[key] = old;
-    }
-  }
+  const request = { requestId: 'continue-chat', generation: 'account-a', revision: 1, action };
+  await executeSystemEntryRendererAction(request, amended);
+  assert.deepEqual(input.navigation.getSnapshot().current.destination, { id: 'contacts', partnerChat: { localAgentRef } });
+  input.navigation.dispose();
 });

@@ -5,16 +5,25 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import { isSameCharacter, projectPartnerRecord } from './partner-directory-model.js';
 
-// @nimi-authority: rule.nimi.desktop.product-surfaces.r006
-export async function openPartnerConversation(input: {
+type PartnerSelection = {
   sdk: DesktopRendererSdkPort; accountId: string; localAgentRef: string;
   expectedSource?: CharacterSourceRefV3; isCurrent(): boolean;
-}): Promise<AgentLocalTargetSnapshot | null> {
+};
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r006
+export async function readHomePartner(input: PartnerSelection) {
   const read = await input.sdk.withRuntimeProtectedScopes(['runtime.agent.read'], options => input.sdk.accountProduct().agents.getAgent({ agentId: input.localAgentRef }, options));
   if (!input.isCurrent()) return null;
   if (!read.agent || read.agent.localAgentRef !== input.localAgentRef) throw new Error('Partner not found.');
   const partner = projectPartnerRecord(read.agent, input.accountId);
-  if (!partner || partner.lifecycle !== AgentLifecycleStatus.ACTIVE || (input.expectedSource && !isSameCharacter(partner.sourceRef, input.expectedSource))) throw new Error('Partner is unavailable.');
+  if (!partner || input.expectedSource && !isSameCharacter(partner.sourceRef, input.expectedSource)) throw new Error('Partner is unavailable.');
+  return partner;
+}
+
+export async function openPartnerConversation(input: PartnerSelection): Promise<AgentLocalTargetSnapshot | null> {
+  const partner = await readHomePartner(input);
+  if (!partner || !input.isCurrent()) return null;
+  if (partner.lifecycle !== AgentLifecycleStatus.ACTIVE) throw new Error('Partner is unavailable.');
   const { reference } = await input.sdk.resolveDesktopAgentReference({ localAgentRef: partner.localAgentRef });
   if (!reference || !input.isCurrent()) return null;
   const opened = await input.sdk.conversation().open({ agentHandle: reference.agentHandle as NimiLocalAppAgentHandle });

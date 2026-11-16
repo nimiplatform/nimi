@@ -30,9 +30,8 @@ export type RuntimeAccountAuthProjection = {
 export type AppTab =
   | 'home'
   | 'chat'
-  | 'friends'
+  | 'contacts'
   | 'explore'
-  | 'partners'
   | 'connections'
   | 'apps'
   | 'runtime'

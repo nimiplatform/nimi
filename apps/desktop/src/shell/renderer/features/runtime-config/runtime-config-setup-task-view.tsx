@@ -1546,7 +1546,7 @@ function RuntimeSetupConsumerAction({ source }: { source: RuntimeSetupTask['sour
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
   return <Button tone="secondary" onClick={() => {
-    if (source.kind === 'local-agent') void navigation.push({ id: 'partners' });
+    if (source.kind === 'local-agent') void navigation.push({ id: 'contacts', contactView: 'partners' });
     else if (source.ownerAppId === DESKTOP_NIMI_APP_ID) void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
     else if (source.ownerAppId) void navigation.push({ id: 'apps', appId: source.ownerAppId });
   }}>{t('runtimeConfig.cloudWorkspace.goToConsumer')}</Button>;

@@ -79,7 +79,7 @@ export async function requestZhiyuDesktopOpenSelectPartner(
         actionId: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
         reasonCode: 'desktop-open-accepted',
         actionHint: 'wait_for_desktop_partners',
-        message: 'Nimi Home 已接收请求，请在「我的伙伴」中选择伙伴。',
+        message: 'Nimi Home 已接收请求，请在「聊天与联系人」的伙伴列表中选择伙伴。',
       };
     }
     return projectRejectedDesktopOpenResult(result);
@@ -116,19 +116,19 @@ function projectDesktopOpenFailure(error: unknown): ZhiyuDesktopOpenActionResult
 function desktopOpenReasonCopy(reasonCode: string): string {
   switch (reasonCode) {
     case 'desktop-open-desktop-not-running':
-      return '请先打开 Nimi Home，再前往「我的伙伴」选择伙伴。';
+      return '请先打开 Nimi Home，再前往「聊天与联系人」的伙伴列表选择伙伴。';
     case 'desktop-open-desktop-not-ready':
       return 'Nimi Home 正在加载，请稍后重试。';
     case 'desktop-open-host-unavailable':
     case 'renderer-standard-shell-host-unavailable':
-      return '当前环境无法自动打开 Nimi Home。请手动前往「我的伙伴」选择已有伙伴；发现新角色可使用织羽的「发现角色」。';
+      return '当前环境无法自动打开 Nimi Home。请手动前往「聊天与联系人」的伙伴列表选择已有伙伴；发现新角色可使用织羽的「发现角色」。';
     case 'desktop-open-bridge-auth-failed':
       return 'Nimi Home 连接校验失败，请重启 Nimi Home 后重试。';
     case 'desktop-open-intent-invalid':
     case 'desktop-open-target-unsupported':
-      return '当前环境不支持自动打开目标页面。请手动前往 Nimi Home「我的伙伴」。';
+      return '当前环境不支持自动打开目标页面。请手动前往 Nimi Home「聊天与联系人」的伙伴列表。';
     default:
-      return '暂时无法自动打开 Nimi Home。请手动前往「我的伙伴」。';
+      return '暂时无法自动打开 Nimi Home。请手动前往「聊天与联系人」的伙伴列表。';
   }
 }
 

@@ -37,7 +37,7 @@ test('Account authorization continuity is projected exactly and display setters 
 test('unproven or changed Account identity retires partner management navigation', async () => {
   const app = store();
   app.getState().applyRuntimeAccountProjection(projection('authenticated', 'account-a'));
-  await app.navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'appearance' } });
+  await app.navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a', settingsSection: 'appearance' } });
   app.getState().applyRuntimeAccountProjection(projection('unavailable'));
   assert.equal(app.navigation.getSnapshot().current.destination.id, 'home');
   assert.equal(app.navigation.getSnapshot().canGoBack, false);

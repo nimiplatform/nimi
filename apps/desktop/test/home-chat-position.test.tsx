@@ -40,7 +40,7 @@ test('an exiting chat view and a late selection cannot replace a different page'
     assert.equal(store.navigation.getSnapshot().current, entry);
     await act(async () => { await store.navigation.back(); });
     assert.equal(store.navigation.getSnapshot().current.destination.chat?.threadId, 'thread-a');
-    await act(async () => { await store.navigation.push({ id: 'friends', chat: { mode: 'human', targetId: 'person-a', threadId: 'human-a' } }); });
+    await act(async () => { await store.navigation.push({ id: 'contacts', chat: { mode: 'human', targetId: 'person-a', threadId: 'human-a' } }); });
     const explicit = store.navigation.getSnapshot().current;
     await act(async () => { position.resolveHumanThread(null); position.refine({ mode: 'human' }); });
     assert.equal(store.navigation.getSnapshot().current, explicit, 'loading, rejected or missing reads cannot clear an explicit reference');
@@ -60,27 +60,44 @@ test('independent chat entries respect defaults, history and controlled departur
   const people = { mode: 'human', contactsSection: 'conversations' };
   const nimi = { mode: 'ai', targetId: 'ai:assistant' };
   try {
-    await store.navigation.push({ id: 'friends', chat: { mode: 'human', targetId: 'person', threadId: 'human-thread' } });
+    await store.navigation.push({ id: 'contacts', chat: { mode: 'human', targetId: 'person', threadId: 'human-thread' } });
     await store.navigation.push({ id: 'chat' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
-    await store.navigation.push({ id: 'friends' });
+    await store.navigation.push({ id: 'contacts' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
-    await store.navigation.replace({ id: 'friends', chat: { mode: 'human', contactsSection: 'received' } });
+    await store.navigation.replace({ id: 'contacts', chat: { mode: 'human', contactsSection: 'received' } });
     await store.navigation.push({ id: 'chat' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
     await store.navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: 'nimi-thread' } });
-    await store.navigation.push({ id: 'friends' });
+    await store.navigation.push({ id: 'contacts' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
     await store.navigation.push({ id: 'chat' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
     const unregister = store.navigation.registerLeaveGuard(() => 'cancel');
-    await store.navigation.push({ id: 'friends' });
+    await store.navigation.push({ id: 'contacts' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi, 'navigation still respects controlled departure');
     unregister();
     store.navigation.reset({ id: 'home' });
-    await store.navigation.push({ id: 'friends' });
+    await store.navigation.push({ id: 'contacts' });
     assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
     assert.throws(() => validateHomeDestination({ id: 'chat', chat: { mode: 'agent' } }));
     assert.throws(() => validateHomeDestination({ id: 'chat', chat: { mode: 'ai', contactsSection: 'friends' } }));
+  } finally { store.navigation.dispose(); }
+});
+
+test('contact profile stays in Contacts and cannot be combined with a second target', async () => {
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  try {
+    await store.navigation.push({ id: 'contacts', chat: { mode: 'human', contactsSection: 'friends' } });
+    const directory = store.navigation.getSnapshot().current.destination;
+    await store.navigation.push({ id: 'contacts', profileId: 'realm-person' });
+    const detail = store.navigation.getSnapshot().current.destination;
+    assert.equal(homeNavigationColumn(detail), 'contacts');
+    assert.equal(detail.profileId, 'realm-person');
+    assert.equal(detail.chat, undefined);
+    await store.navigation.back();
+    assert.deepEqual(store.navigation.getSnapshot().current.destination, directory);
+    assert.throws(() => validateHomeDestination({ id: 'contacts', profileId: 'local-agent:a' }));
+    assert.throws(() => validateHomeDestination({ id: 'contacts', profileId: 'realm-person', contactView: 'partners' }));
   } finally { store.navigation.dispose(); }
 });

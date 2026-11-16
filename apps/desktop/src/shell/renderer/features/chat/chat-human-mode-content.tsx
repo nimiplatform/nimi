@@ -14,6 +14,7 @@ export type ChatHumanModeContentProps = {
   onCloseSettings: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
+  railReserved?: boolean;
 };
 
 export function ChatHumanModeContent({
@@ -22,6 +23,7 @@ export function ChatHumanModeContent({
   onCloseSettings,
   onSetupAction,
   onSelectTarget,
+  railReserved = true,
 }: ChatHumanModeContentProps) {
   const homeChat = useHomeChatPosition();
   const { t } = useTranslation();
@@ -57,6 +59,7 @@ export function ChatHumanModeContent({
       onSetupAction={onSetupAction}
       settingsOpen={settingsOpen}
       onCloseSettings={onCloseSettings}
+      railReserved={railReserved}
       settingsSheetTitle={host.settingsDrawerTitle || t('Chat.settingsTitle', { defaultValue: 'Settings' })}
       settingsSheetSubtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
     />

@@ -18,7 +18,7 @@ export async function openHumanChatNotice(input: {
 }) {
   if (!input.isCurrent()) return;
   const destination = input.navigation.getSnapshot().current.destination;
-  if (input.chatId && destination.id === 'friends' && destination.chat?.threadId === input.chatId) {
+  if (input.chatId && destination.id === 'contacts' && destination.chat?.threadId === input.chatId) {
     await input.focus();
     return;
   }
@@ -27,10 +27,10 @@ export async function openHumanChatNotice(input: {
   if (input.navigation.getSnapshot().current.destination.id === 'settings') await input.focus();
   if (!input.isCurrent()) return;
   const result = await input.navigation.push(input.chatId
-    ? { id: 'friends', chat: { mode: 'human', threadId: input.chatId } }
-    : { id: 'friends' });
+    ? { id: 'contacts', chat: { mode: 'human', threadId: input.chatId } }
+    : { id: 'contacts', conversationFilter: 'human' });
   if (!input.isCurrent()) return;
   input.report(result);
   if (result.status === 'committed' || result.status === 'unchanged'
-    || input.navigation.getSnapshot().current.destination.id !== 'friends') await input.focus();
+    || input.navigation.getSnapshot().current.destination.id !== 'contacts') await input.focus();
 }

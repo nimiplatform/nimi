@@ -168,7 +168,7 @@ units:
     kind: rule
     title: Zhiyu parity is presentation parity
     modality: must
-    statement: Zhiyu is the bundled primary LocalAgent conversation experience reached from Home. It retains existing text, media, message interaction and shared settings behavior through canonical SDK and Kit state mapping. Home remains a manager and summary consumer; presentation reuse never creates app-local transport, execution, provider, Memory or authorization truth.
+    statement: Zhiyu is a bundled LocalAgent experience reached explicitly from Home. It retains its existing text, media, message interaction, shared settings and product presentation through canonical SDK and Kit state mapping. Home and Zhiyu independently present the same Runtime Conversation. Presentation reuse never creates App-local transport, execution, provider, Memory or authorization truth.
     condition: Whenever Zhiyu aligns with another LocalAgent Conversation surface.
     failure: Reject App-local transport, execution, provider, model, Memory, Knowledge, Avatar, voice, or authorization truth.
     relations:

@@ -15,7 +15,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.explore
     kind: definition
     title: Desktop Explore product surface
-    meaning: Desktop Explore presents Realm World browsing and Character discovery, including cross-world Character search. My partners is an independent Home destination for current-account current-device Runtime inventory and management. Home owns presentation and navigation only, never Realm source, Runtime inventory, Conversation or AI-execution truth.
+    meaning: Desktop Explore presents Realm World browsing and Character discovery, including cross-world Character search. The Partners view within Contacts & Conversations is the Home entry for current-account current-device Runtime inventory and management. Home owns presentation and navigation only, never Realm source, Runtime inventory, Conversation or AI-execution truth.
   - id: definition.nimi.desktop.product-surfaces.home-feed
     kind: definition
     title: Desktop activity feed
@@ -36,7 +36,7 @@ units:
     kind: rule
     title: Explore is the unified Realm discovery surface
     modality: must
-    statement: Explore is the ordinary Desktop World and Character discovery surface. My partners independently presents current-account current-device Runtime inventory and management regardless of source readiness. Apps retains App discovery; Realm public activity, publishing and social search or recommendation remain deferred.
+    statement: Explore is the ordinary Desktop World and Character discovery surface. The Partners contact view presents current-account current-device Runtime inventory and management regardless of source readiness. Apps retains App discovery; Realm public activity, publishing and social search or recommendation remain deferred.
     condition: Whenever Desktop exposes ordinary Realm discovery or constructs its ordinary navigation destinations.
     failure: Reject a standalone primary World destination, App discovery in Explore, an additional Explore section, or another ordinary Realm discovery owner.
     relations:
@@ -46,7 +46,7 @@ units:
     kind: rule
     title: Explore sections are closed
     modality: must
-    statement: Explore retains Worlds with explicit worlds or characters discovery. My partners is an independent partners destination with its own query, exact partner selection and management position. The existing Home navigation controller owns both destinations; partners is rejected as an Explore section. First-partner actions from Home and an empty partner directory enter the same Character discovery task.
+    statement: Explore retains Worlds with explicit worlds or characters discovery. The Partners view within Contacts & Conversations retains its query, exact partner selection and management position. The existing Home navigation controller owns both destinations. Partners remains outside Explore. First-partner actions from Home and an empty partner directory enter the same Character discovery task.
     condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
     failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
     relations:
@@ -86,7 +86,7 @@ units:
     kind: rule
     title: Source state determines the primary action
     modality: must
-    statement: "The source-generic primary action follows owner state: an eligible Character with no current-account current-device partner offers Become my partner through MaterializeRealmSource with the current complete CharacterSourceRefV3 and a fresh requestId; an existing partner offers Open partner and selects that exact LocalAgent in My partners without creating a Conversation. Association uses stable Character identity across source hashes and includes all non-terminated lifecycle states. Unknown, partial, unavailable or conflicting inventory is never absence and cannot authorize creation or arbitrary instance selection. Create another partner and normal multi-instance selection are not supported. Active management resolves a fresh current Home session handle and uses the canonical Manager without a Conversation; only explicit Chat opens the canonical Conversation. A stale or missing selection never substitutes another Agent. Desktop receives only bounded source status and provenance, never private snapshots, Packets, proofs or prompts."
+    statement: "The source-generic primary action follows owner state: an eligible Character with no current-account current-device partner offers Become my partner through MaterializeRealmSource with the current complete CharacterSourceRefV3 and a fresh requestId; an existing partner offers Open partner and selects that exact LocalAgent in the Partners contact view without creating a Conversation. Association uses stable Character identity across source hashes and includes all non-terminated lifecycle states. Unknown, partial, unavailable or conflicting inventory is never absence and cannot authorize creation or arbitrary instance selection. Create another partner and normal multi-instance selection are not supported. Active management resolves a fresh current Home session handle and uses the canonical Manager without a Conversation; only explicit Chat opens the canonical Conversation. A stale or missing selection never substitutes another Agent. Desktop receives only bounded source status and provenance, never private snapshots, Packets, proofs or prompts."
     condition: Whenever Desktop derives or performs Character materialization, partner navigation or existing-partner actions.
     failure: Reject duplicate creation, unknown inventory promoted to absence, arbitrary instance selection, source identity promoted to operation authority, or materialization success without exact Runtime inventory and provenance confirmation.
     relations:
@@ -166,7 +166,7 @@ units:
     kind: rule
     title: Explore Open targets are closed
     modality: must
-    statement: Explore Open accepts exactly worlds with discover-worlds or discover-characters. The independent open-partners intent accepts only an optional display query and opens My partners without selecting or authorizing an Agent or creating a Conversation. The former Explore partners/select-partner pair rejects instead of redirecting. Source materialization remains behind selected source detail; retired personas and activity targets reject.
+    statement: Explore Open accepts exactly worlds with discover-worlds or discover-characters. The independent open-partners intent accepts only an optional display query and opens the Partners contact view without selecting or authorizing an Agent or creating a Conversation. The former Explore partners/select-partner pair rejects instead of redirecting. Source materialization remains behind selected source detail; retired personas and activity targets reject.
     condition: Whenever Desktop applies an Explore Open Intent section and productIntent pairing.
     failure: Reject an invalid pairing as desktop-open-target-unsupported and never create WorldCore, PersonaCharacter, Packet v3, or LocalAgent truth while opening Explore.
     relations:
@@ -471,7 +471,7 @@ units:
     kind: rule
     title: My partners preserves owner inventory and exact management selection
     modality: must
-    statement: My partners projects bounded current-account current-device Runtime inventory, retaining INITIALIZING, ACTIVE, SUSPENDED and TERMINATING records independently of nullable source readiness and excluding TERMINATED records. Loading, partial, failed and complete empty reads remain distinct. Selecting a partner renders the shared Character detail presentation in the right pane with exact Runtime-owned identity, explicit Chat and canonical Manager entry plus bounded current partner autonomy and Memory status. Public Character information remains separately labelled and independently fallible; an unavailable source never hides the partner or blocks otherwise admitted local operations. Initial meeting material is optional collapsed reference content for an existing partner. Only ACTIVE current-session references enter covered Manager or Chat operations. Shared LocalAgent AIConfig remains explicitly account-wide while appearance, behavior and Memory remain Agent-scoped.
+    statement: The Partners contact view projects bounded current-account current-device Runtime inventory, retaining INITIALIZING, ACTIVE, SUSPENDED and TERMINATING records independently of nullable source readiness and excluding TERMINATED records. Loading, partial, failed and complete empty reads remain distinct. Selecting a partner renders the shared Character detail presentation in the main pane with exact Runtime-owned identity, explicit Chat and canonical Manager entry plus bounded current partner autonomy and Memory status. Public Character information remains separately labelled and independently fallible; an unavailable source never hides the partner or blocks otherwise admitted local operations. Initial meeting material is optional collapsed reference content for an existing partner. Only ACTIVE current-session references enter covered Manager or Chat operations. Shared LocalAgent AIConfig remains explicitly account-wide while appearance, behavior and Memory remain Agent-scoped.
     condition: Whenever Home lists, selects or manages an existing partner.
     failure: Retain honest unavailable states and the exact selection; reject a frontend registry, raw snapshot exposure, invented relationship or Memory facts, automatic Conversation creation or source failure presented as partner absence.
     relations:
@@ -511,7 +511,7 @@ units:
     kind: rule
     title: Desktop projects confirmed human Chat attention while Home is in the background
     modality: must
-    statement: Desktop uses the existing Realm Chat inbox and current authorized Chat reads to display local system reminders for confirmed incoming unread direct messages while Home is in the background. A live reminder may show a confirmed human sender and omits message content. Newly observed unread without arrival evidence uses unread wording. Initial load establishes a baseline, and reconnect may show one aggregate reminder for newly confirmed unread. The current Realm direct-message preference, the shared ordinary-notification pause and OS delivery govern presentation. Only the verified Home renderer requests the bounded notice under the current Desktop account and Product Control admission. Clicking a named notice rechecks that admission and opens the exact Chat, while an aggregate opens the human conversation list. Projection and opening do not change Realm read state.
+    statement: Desktop uses the existing Realm Chat inbox and current authorized Chat reads to display local system reminders for confirmed incoming unread direct messages while Home is in the background. A live reminder may show a confirmed human sender and omits message content. Newly observed unread without arrival evidence uses unread wording. Initial load establishes a baseline, and reconnect may show one aggregate reminder for newly confirmed unread. The current Realm direct-message preference, the shared ordinary-notification pause and OS delivery govern presentation. Only the verified Home renderer requests the bounded notice under the current Desktop account and Product Control admission. Clicking a named notice rechecks that admission and opens the exact Chat, while an aggregate opens the human conversation filter within Contacts & Conversations. Projection and opening do not change Realm read state.
     condition: Whenever Desktop shows or opens a local direct-message reminder.
     failure: Drop unproven or stale notices and reject stale scope, generic IPC destinations, message content or navigation as a substitute for read confirmation.
     relations:

@@ -16,7 +16,7 @@ export function createChatTargetNavigation(input: {
       if (disposed) return;
       if (target.source === 'agent') { input.onError(new Error('Partner conversations open in Zhiyu.')); return; }
       if (target.source === 'ai' || (target.source === 'human' && target.canonicalSessionId)) {
-        await input.navigation.push({ id: target.source === 'human' ? 'friends' : 'chat', chat: { mode: target.source, targetId: target.id,
+        await input.navigation.push({ id: target.source === 'human' ? 'contacts' : 'chat', chat: { mode: target.source, targetId: target.id,
           ...(target.source === 'human' && target.canonicalSessionId ? { threadId: target.canonicalSessionId } : {}) } });
         return;
       }
@@ -29,7 +29,7 @@ export function createChatTargetNavigation(input: {
       try {
         if (target.source === 'human') {
           const threadId = await input.openHuman(target.id);
-          if (current()) await input.navigation.push({ id: 'friends', chat: { mode: 'human', targetId: target.id, threadId } });
+          if (current()) await input.navigation.push({ id: 'contacts', chat: { mode: 'human', targetId: target.id, threadId } });
           return;
         }
 

@@ -886,7 +886,7 @@
     "greetingWithName": "{{greeting}}, {{name}}",
     "recentChats": {
       "title": "Recent chats",
-      "openAll": "Open Zhiyu",
+      "openAll": "View all partners",
       "replyLabel": "Reply to {{name}}",
       "replyPlaceholder": "Reply to {{name}}…",
       "replySend": "Open chat with draft",

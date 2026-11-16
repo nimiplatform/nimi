@@ -7,8 +7,6 @@ import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
-import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 
 export type SystemEntryNotificationControls = Readonly<{
   enabled: boolean;
@@ -77,10 +75,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
     case 'settings': { const result = await openHomeSettings(input.navigation); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'notification-settings': { const result = await openHomeSettings(input.navigation, 'notifications'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
     case 'support': { const result = await openHomeSettings(input.navigation, 'troubleshooting'); guard(); if (result.status !== 'committed' && result.status !== 'unchanged') throw new Error('system-entry-navigation-rejected'); return; }
-    case 'chat':
-      await invokeChecked('bundled_zhiyu_open', {}, value => value);
-      guard();
-      return;
+    case 'chat': return navigate({ id: 'contacts' });
     case 'pause-notifications':
       if (!input.notifications.enabled) throw new Error('system-entry-notifications-disabled');
       await input.notifications.pause(); guard(); return;
@@ -100,16 +95,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
     case 'continue-chat': {
       const agent = input.agents.find((candidate) => candidate.localAgentRef === action.localAgentRef);
       if (!agent || agent.ownerUserId !== input.ownerUserId) throw new Error('system-entry-chat-unavailable');
-      const target = await resolveAgentTargetSnapshotForSourceRef({
-        sourceRef: agent.sourceRef, selectedLocalAgentRef: agent.localAgentRef,
-        ownerUserId: input.ownerUserId, sdk: input.sdk,
-        isCurrent: () => { guard(); return true; },
-      });
-      guard();
-      if (!target) throw new Error('system-entry-chat-unavailable');
-      await launchAgentConversationFromDisplay({ target });
-      guard();
-      return;
+      return navigate({ id: 'contacts', partnerChat: { localAgentRef: agent.localAgentRef } });
     }
     case 'focus-app': {
       const entry = input.appEntries.find((candidate) => candidate.identity.entryKey === action.entryKey);

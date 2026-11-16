@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, ConfirmDialog, InlineAlert, NimiTabs, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, IconButton, InlineAlert, NimiTabs, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
@@ -9,40 +9,65 @@ import { captureAccountActionScope } from '../../app-shell/providers/account-act
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
-import { useHumanChatList } from '../chat/use-human-chat-list.js';
-import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { FriendHandleLookupDialog } from './friend-handle-lookup-dialog.js';
 
 import { loadHumanContactPage, useReceivedFriendRequests, type ContactSection, type ContactRow, type ContactPage } from './human-contact-data.js';
-import { HumanIdentityPreview } from './human-identity-preview.js';
 import { RelationshipActionsMenu } from './relationship-actions-menu.js';
 import { ArrowLeft, UserPlus, MessageCircle, Inbox } from 'lucide-react';
+
 type RelationshipAction = RealmModel<'FriendshipAction'>;
 type Confirmation = { row: ContactRow; action: 'remove' | 'block' | 'unblock' };
 
-export function HumanContactsPanel() {
+export function HumanContactsPanel({
+  unreadByUserId,
+  onOpenConversation,
+}: {
+  unreadByUserId?: ReadonlyMap<string, number>;
+  onOpenConversation?: () => void;
+}) {
   const accountId = useAppStore(state => String(state.auth.user?.id || ''));
   const realmBaseUrl = useAppStore(state => String(state.runtimeDefaults?.realm.realmBaseUrl || ''));
-  return <AccountContactsPanel key={realmBaseUrl + '|' + accountId} accountId={accountId} realmBaseUrl={realmBaseUrl} />;
+  return <AccountContactsPanel key={realmBaseUrl + '|' + accountId} accountId={accountId} realmBaseUrl={realmBaseUrl} unreadByUserId={unreadByUserId} onOpenConversation={onOpenConversation} />;
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r032
-function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; realmBaseUrl: string }) {
+function AccountContactsPanel({ accountId, realmBaseUrl, unreadByUserId, onOpenConversation }: {
+  accountId: string;
+  realmBaseUrl: string;
+  unreadByUserId?: ReadonlyMap<string, number>;
+  onOpenConversation?: () => void;
+}) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const store = useAppStoreApi();
   const navigation = useHomeNavigation();
+  const destination = useHomeDestination();
   const chat = useRealmHumanChatData();
   const queryClient = useQueryClient();
-  const authStatus = useAppStore(state => state.auth.status);
-  const conversations = useHumanChatList(authStatus);
-  const i18n = useDesktopI18nResource();
-  const tab = useHomeDestination().chat?.contactsSection ?? 'friends';
-  const pageTitle = tab === 'conversations' ? t('Relationship.contacts.tabs.conversations') : t('Relationship.contacts.title');
-  const setTab = (contactsSection: ContactSection) => {
-    void navigation.replace({ id: 'friends', chat: { mode: 'human', contactsSection } });
-    setSelectedBlocked(null); setFeedback(null);
+  const requested = destination.chat?.contactsSection;
+  const routeTab = requested && requested !== 'conversations' ? requested : undefined;
+  const [localTab, setLocalTab] = useState<Exclude<ContactSection, 'conversations'>>(() => routeTab ?? 'friends');
+  useEffect(() => {
+    if (routeTab) setLocalTab(routeTab);
+  }, [routeTab]);
+  const tab = localTab;
+  const hasMainView = Boolean(
+    destination.partnerChat ||
+    destination.chat?.threadId ||
+    destination.chat?.targetId ||
+    destination.profileId ||
+    destination.partner ||
+    destination.partnerManagerAnchorId,
+  );
+  const setTab = (contactsSection: Exclude<ContactSection, 'conversations'>) => {
+    setLocalTab(contactsSection);
+    if (!hasMainView && destination.id === 'contacts') {
+      void navigation.replace({ id: 'contacts', chat: { mode: 'human', contactsSection } });
+    }
+    setSelectedBlocked(null);
+    setFeedback(null);
   };
+  const selectedProfileId = destination.profileId ?? null;
   const requests = useReceivedFriendRequests();
   const requestCount = requests.data?.pages[0]?.total;
   const [search, setSearch] = useState('');
@@ -57,9 +82,9 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
   const key = ['human-contacts', realmBaseUrl, accountId, tab, tab === 'friends' ? search.trim() : ''] as const;
   const contacts = useInfiniteQuery({
     queryKey: key, initialPageParam: '',
-    queryFn: ({ pageParam }) => loadHumanContactPage(bindings.sdk.realm(), tab === 'conversations' ? 'friends' : tab, pageParam, search.trim()),
+    queryFn: ({ pageParam }) => loadHumanContactPage(bindings.sdk.realm(), tab, pageParam, search.trim()),
     getNextPageParam: page => page.nextCursor || undefined,
-    enabled: Boolean(accountId) && tab !== 'conversations',
+    enabled: Boolean(accountId),
   });
   const blockedRelationship = useQuery({
     queryKey: ['blocked-contact-relationship', realmBaseUrl, accountId, selectedBlocked?.id],
@@ -68,8 +93,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
   });
   const rows = [...new Map((contacts.data?.pages.flatMap(page => page.items) ?? []).map(row => [row.id, row])).values()];
   const total = contacts.data?.pages[0]?.total;
-  const friendCount = queryClient.getQueryData<{ pages: ContactPage[] }>(['human-contacts', realmBaseUrl, accountId, 'friends', ''])?.pages[0]?.total;
-  const viewport = useHomeListPosition(`contacts:${tab}:${search}`, tab === 'conversations' ? !conversations.isPending : !contacts.isPending, false);
+  const viewport = useHomeListPosition(`contacts:${tab}:${search}`, !contacts.isPending, false);
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['human-contacts', realmBaseUrl, accountId] });
     void queryClient.invalidateQueries({ queryKey: ['contacts'] });
@@ -114,9 +138,15 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
       if (!opened?.chatId) throw new Error(t('Relationship.openChatFailed'));
       if (operation.current?.isCurrent() && navigation.getSnapshot().current.key === origin) {
         void queryClient.invalidateQueries({ queryKey: ['chats'] });
-        await navigation.push({ id: 'friends', chat: { mode: 'human', targetId: row.id, threadId: opened.chatId } });
+        await navigation.push({ id: 'contacts', chat: { mode: 'human', targetId: row.id, threadId: opened.chatId } });
+        onOpenConversation?.();
       }
     }, t('Relationship.contacts.chatOpened'));
+  };
+  const openProfile = (row: ContactRow) => {
+    if (row.isDeleted) return;
+    const currentDest = navigation.getSnapshot().current.destination;
+    void navigation.push({ id: currentDest.id === 'contacts' ? 'contacts' : 'profile', profileId: row.id });
   };
   const applyConfirmation = () => {
     if (!confirmation) return;
@@ -129,86 +159,116 @@ function AccountContactsPanel({ accountId, realmBaseUrl }: { accountId: string; 
   const selectedRelationship = blockedRelationship.data;
   const blockedRowWithRelationship = selectedBlocked && selectedRelationship?.relationshipId
     ? { ...selectedBlocked, relationshipId: selectedRelationship.relationshipId } : null;
-  return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1 pr-[76px]" contentClassName="mx-auto w-full max-w-[760px] px-5 pb-8 pt-10 sm:pt-14">
-    <Surface as="section" tone="card" padding="none" className="overflow-hidden rounded-2xl" aria-label={pageTitle}>
-      <header className="flex items-center justify-between gap-4 px-6 pb-5 pt-6">
-        <h1 className="text-xl font-semibold tracking-tight text-[var(--nimi-text-primary)]">{pageTitle}</h1>
-        <Button tone="primary" size="sm" leadingIcon={<UserPlus size={16} />} onClick={() => setAddOpen(true)}>{t('Relationship.findByHandleTitle')}</Button>
-      </header>
-      {tab === 'friends' || tab === 'conversations' ? <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-[var(--nimi-border-subtle)] px-4">
-        <NimiTabs className="border-b-0" ariaLabel={t('Relationship.contacts.title')} items={(['conversations','friends'] as const).map(value => ({ value, label: <span>{t('Relationship.contacts.tabs.' + value)}{value === 'friends' && friendCount !== undefined ? <span className="ml-2 text-xs tabular-nums text-[var(--nimi-text-secondary)]">{friendCount}</span> : null}</span> }))} value={tab} onValueChange={value => setTab(value as ContactSection)} />
-        <div className="flex items-center gap-1 pb-1">
-          <Button tone="ghost" size="sm" leadingIcon={<Inbox size={15} />} onClick={() => setTab('received')}>{t('Relationship.contacts.requests')}{requestCount ? <span className="ml-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-xs tabular-nums text-[var(--nimi-action-primary-text)]">{requestCount}</span> : null}</Button>
-          <RelationshipActionsMenu label={t('Relationship.contacts.manageContacts')} items={[{ id: 'blocked', label: t('Relationship.contacts.tabs.blocked'), onSelect: () => setTab('blocked') }]} />
+
+  return <div className="flex min-h-0 flex-1 flex-col" data-testid="human-contacts-panel">
+    {tab === 'friends' ? (
+      <div className="shrink-0 space-y-2 px-3 pb-2.5 pt-2">
+        <div className="flex items-center gap-2">
+          <SearchField className="flex-1 text-[13px]" value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} clearLabel={t('Common.clear')} placeholder={t('Relationship.contacts.search')} aria-label={t('Relationship.contacts.search')} />
+          <IconButton size="sm" tone="ghost" icon={<UserPlus size={16} />} aria-label={t('Relationship.findByHandleTitle')} title={t('Relationship.findByHandleTitle')} onClick={() => setAddOpen(true)} />
         </div>
-      </div> : <div className="space-y-3 border-b border-[var(--nimi-border-subtle)] px-5 pb-3">
-        <div className="flex items-center gap-3">
-          <Button tone="ghost" size="sm" leadingIcon={<ArrowLeft size={16} />} onClick={() => setTab('friends')}>{t('Relationship.contacts.tabs.friends')}</Button>
-          <h2 className="text-sm font-semibold">{tab === 'blocked' ? t('Relationship.contacts.tabs.blocked') : t('Relationship.contacts.requests')}{total !== undefined ? <span className="ml-2 text-xs font-normal tabular-nums text-[var(--nimi-text-secondary)]">{total}</span> : null}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <Button tone="ghost" size="sm" leadingIcon={<Inbox size={14} />} onClick={() => setTab('received')}>
+            {t('Relationship.contacts.requests')}
+            {requestCount ? <span className="ml-1.5 rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 py-px text-[11px] font-semibold tabular-nums text-[var(--nimi-action-primary-text)]">{requestCount}</span> : null}
+          </Button>
+          <RelationshipActionsMenu label={t('Relationship.contacts.manageContacts')} items={[
+            { id: 'add-friend', label: t('Relationship.findByHandleTitle'), onSelect: () => setAddOpen(true) },
+            { id: 'blocked', label: t('Relationship.contacts.tabs.blocked'), onSelect: () => setTab('blocked') },
+          ]} />
         </div>
-        {tab !== 'blocked' ? <NimiTabs className="border-b-0" ariaLabel={t('Relationship.contacts.requests')} items={(['received','sent'] as const).map(value => ({ value, label: t('Relationship.contacts.tabs.' + value) }))} value={tab} onValueChange={value => setTab(value as ContactSection)} /> : null}
-      </div>}
-      <div className="space-y-3 p-5">
-        {tab === 'friends' ? <SearchField className="mb-3 max-w-xs rounded-lg" value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} clearLabel={t('Common.clear')} placeholder={t('Relationship.contacts.search')} aria-label={t('Relationship.contacts.search')} /> : null}
-    {feedback ? <div className="space-y-2"><InlineAlert tone={feedback.error ? 'danger' : 'success'}>{feedback.message}</InlineAlert>{feedback.error ? <Button tone="ghost" size="sm" onClick={() => { void contacts.refetch(); if (selectedBlocked) void blockedRelationship.refetch(); }}>{t('Relationship.contacts.refreshList')}</Button> : null}</div> : null}
-    {tab === 'conversations' ? <section className="space-y-3" aria-label={t('Relationship.contacts.tabs.conversations')}>
-      {conversations.isPending ? <p role="status">{t('Common.loading')}</p> : null}
-      {conversations.isError ? <div className="space-y-2"><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button tone="secondary" onClick={() => { void conversations.refetch(); }}>{t('Common.retry')}</Button></div> : null}
-      {conversations.data?.items.length ? <>
-        <ul className="divide-y divide-[var(--nimi-border-subtle)]">{conversations.data.items.map(item => <li key={item.id}>
-          <button type="button" onClick={() => { void navigation.push({ id: 'friends', chat: { mode: 'human', targetId: item.otherUser.id, threadId: item.id } }); }} className="flex w-full items-start gap-3 rounded-lg px-2 py-4 text-left hover:bg-[var(--nimi-surface-active)]">
-            <EntityAvatar name={item.otherUser.displayName || item.otherUser.handle} imageUrl={item.otherUser.avatarUrl} media={item.otherUser.avatarMedia} kind="human" sizeClassName="h-10 w-10 shrink-0" />
-            <span className="min-w-0 flex-1"><span className="block truncate font-medium">{item.otherUser.displayName || item.otherUser.handle}</span><span className="mt-1 block text-sm text-[var(--nimi-text-secondary)]">{item.lastMessage ? t('Relationship.contacts.messagePreview') : t('Chat.noMessages')}</span></span>
-            <span className="shrink-0 text-right"><time dateTime={item.lastMessageAt || item.updatedAt} className="block text-xs text-[var(--nimi-text-secondary)]">{i18n.formatDate(item.lastMessageAt || item.updatedAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>{item.unreadCount > 0 ? <span className="mt-1 inline-block rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-xs text-[var(--nimi-action-primary-text)]" aria-label={t('Relationship.contacts.unreadMessages', { count: item.unreadCount })}>{item.unreadCount}</span> : null}</span>
-          </button>
-        </li>)}</ul>
-      </> : !conversations.isPending && !conversations.isError ? <p className="px-4 py-12 text-center text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{t('Relationship.contacts.emptyConversations')}</p> : null}
-      {conversations.hasNextPage ? <Button tone="secondary" loading={conversations.isFetchingNextPage} onClick={() => { void conversations.fetchNextPage(); }}>{t('Relationship.contacts.loadMore')}</Button> : null}
-    </section> : <>
-    {contacts.isPending ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p> : null}
-    {contacts.isError ? <div className="space-y-2"><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button tone="secondary" onClick={() => { void contacts.refetch(); }}>{t('Common.retry')}</Button></div> : null}
-    {!contacts.isPending && !contacts.isError && !rows.length ? <p className="px-4 py-12 text-center text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{tab === 'friends' && search.trim() ? t('Relationship.contacts.noSearchResults') : t('Relationship.contacts.empty.' + tab)}</p> : null}
-    <ul className="divide-y divide-[var(--nimi-border-subtle)]">
-      {rows.map(row => <li key={row.id} className="flex min-h-[80px] items-center gap-3 rounded-xl px-3 py-4 hover:bg-[var(--nimi-surface-active)]">
-        <div className="min-w-0 flex-1">
-          <HumanIdentityPreview {...row} avatarFallbackClassName="bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" disabled={row.isDeleted} onMessage={tab === 'friends' && !pending ? () => openChat(row) : undefined} />
-          {row.requestMessage ? <p className="ml-[52px] mt-2 whitespace-pre-wrap break-words text-sm text-[var(--nimi-text-secondary)]">{row.requestMessage}</p> : null}
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {tab === 'friends' ? <>
-            <Button size="sm" tone="ghost" className="text-[var(--nimi-action-primary-bg)]" leadingIcon={<MessageCircle size={16} />} disabled={Boolean(pending) || row.isDeleted} onClick={() => openChat(row)}>{t('Relationship.contacts.openChat')}</Button>
-            <RelationshipActionsMenu label={t('Relationship.contacts.personActions', { name: row.displayName || row.handle })} disabled={Boolean(pending)} items={[
-              { id: 'remove', label: t('Profile.removeFriend'), onSelect: () => setConfirmation({ row, action: 'remove' }) },
-              ...(!row.isDeleted ? [{ id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) }] : []),
-            ]} />
-          </> : tab === 'received' ? <>
-            <Button size="sm" tone="primary" disabled={Boolean(pending) || row.isDeleted} onClick={() => relationshipAction(row, 'accept')}>{t('Relationship.accept')}</Button>
-            <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(row, 'reject')}>{t('Relationship.reject')}</Button>
-            {!row.isDeleted ? <RelationshipActionsMenu label={t('Relationship.contacts.personActions', { name: row.displayName || row.handle })} disabled={Boolean(pending)} items={[{ id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) }]} /> : null}
-          </> : tab === 'sent' ? <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(row, 'cancel')}>{t('Relationship.contacts.cancelRequest')}</Button> : <>
-            <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => setConfirmation({ row, action: 'unblock' })}>{t('Profile.unblock')}</Button>
-            <Button size="sm" tone="ghost" disabled={Boolean(pending)} onClick={() => setSelectedBlocked(row)}>{t('Relationship.contacts.manageRelationship')}</Button>
-          </>}
-        </div>
-      </li>)}
-    </ul>
-    {contacts.hasNextPage ? <Button tone="secondary" loading={contacts.isFetchingNextPage} onClick={() => { void contacts.fetchNextPage(); }}>{t('Relationship.contacts.loadMore')}</Button> : null}
-    </>}
-    {selectedBlocked ? <section className="space-y-3 border-t border-[var(--nimi-border-subtle)] pt-4">
-      <h2 className="font-semibold">{t('Relationship.contacts.blockedRelationship', { name: selectedBlocked.displayName || selectedBlocked.handle || t('Relationship.contacts.deletedUser') })}</h2>
-      {blockedRelationship.isPending ? <p role="status">{t('Common.loading')}</p> : blockedRelationship.isError ? <><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button tone="secondary" onClick={() => { void blockedRelationship.refetch(); }}>{t('Common.retry')}</Button></> : <>
-        <p className="text-sm text-[var(--nimi-text-secondary)]">{t('Relationship.contacts.relationshipState.' + selectedRelationship?.state)}</p>
-        {blockedRowWithRelationship && selectedRelationship?.state === 'active' ? <Button tone="secondary" disabled={Boolean(pending)} onClick={() => setConfirmation({ row: blockedRowWithRelationship, action: 'remove' })}>{t('Profile.removeFriend')}</Button> : null}
-        {blockedRowWithRelationship && selectedRelationship?.state === 'pending_outgoing' ? <Button tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(blockedRowWithRelationship, 'cancel', false)}>{t('Relationship.contacts.cancelRequest')}</Button> : null}
-        {blockedRowWithRelationship && selectedRelationship?.state === 'pending_incoming' ? <Button tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(blockedRowWithRelationship, 'reject', false)}>{t('Relationship.reject')}</Button> : null}
-      </>}
-    </section> : null}
       </div>
-    </Surface>
+    ) : (
+      <div className="shrink-0 space-y-2 border-b border-[var(--nimi-border-subtle)] px-3 pb-2.5 pt-2">
+        <div className="flex items-center gap-2">
+          <Button tone="ghost" size="sm" leadingIcon={<ArrowLeft size={15} />} onClick={() => setTab('friends')}>{t('Relationship.contacts.tabs.friends')}</Button>
+          <h2 className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {tab === 'blocked' ? t('Relationship.contacts.tabs.blocked') : t('Relationship.contacts.requests')}
+            {total !== undefined ? <span className="ml-1.5 text-xs font-normal tabular-nums text-[var(--nimi-text-secondary)]">{total}</span> : null}
+          </h2>
+        </div>
+        {tab !== 'blocked' ? <NimiTabs className="border-b-0" ariaLabel={t('Relationship.contacts.requests')} items={(['received', 'sent'] as const).map(value => ({ value, label: t('Relationship.contacts.tabs.' + value) }))} value={tab} onValueChange={value => setTab(value as 'received' | 'sent')} /> : null}
+      </div>
+    )}
+
+    <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="space-y-2 px-2.5 pb-20 pt-1">
+      {feedback ? <div className="space-y-1.5 px-1"><InlineAlert tone={feedback.error ? 'danger' : 'success'}>{feedback.message}</InlineAlert>{feedback.error ? <Button tone="ghost" size="sm" onClick={() => { void contacts.refetch(); if (selectedBlocked) void blockedRelationship.refetch(); }}>{t('Relationship.contacts.refreshList')}</Button> : null}</div> : null}
+      {contacts.isPending ? <p role="status" className="px-2 py-4 text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p> : null}
+      {contacts.isError ? <div className="space-y-2 px-1"><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button size="sm" tone="secondary" onClick={() => { void contacts.refetch(); }}>{t('Common.retry')}</Button></div> : null}
+      {!contacts.isPending && !contacts.isError && !rows.length ? <p className="px-3 py-10 text-center text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{tab === 'friends' && search.trim() ? t('Relationship.contacts.noSearchResults') : t('Relationship.contacts.empty.' + tab)}</p> : null}
+      <ul className="space-y-1">
+        {rows.map(row => {
+          const name = row.isDeleted ? t('Relationship.contacts.deletedUser') : row.displayName || row.handle || t('Common.unknown');
+          const selected = selectedProfileId === row.id;
+          const unread = unreadByUserId?.get(row.id) ?? 0;
+          return <li key={row.id} className={`group rounded-xl transition-colors ${selected ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)]'}`}>
+            <div className="flex min-h-[64px] items-center gap-2 px-2.5 py-2.5">
+              <button type="button" disabled={row.isDeleted} aria-current={selected ? 'true' : undefined}
+                aria-label={t('Relationship.contacts.previewPerson', { name })}
+                onClick={() => openProfile(row)}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-default">
+                <EntityAvatar name={name} imageUrl={row.isDeleted ? null : row.avatarUrl} media={row.isDeleted ? null : row.avatarMedia} kind="human" sizeClassName="h-11 w-11 shrink-0" fallbackClassName="bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{name}</span>
+                    {unread > 0 ? <span className="shrink-0 rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 py-px text-[10px] font-bold text-[var(--nimi-action-primary-text)]">{unread > 99 ? '99+' : unread}</span> : null}
+                  </span>
+                  {!row.isDeleted && row.handle ? <span className="mt-0.5 block truncate text-xs text-[var(--nimi-text-secondary)]">@{row.handle.replace(/^@+/, '')}</span> : null}
+                </span>
+              </button>
+              {tab === 'friends' ? (
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <span className={selected ? 'opacity-100' : 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'}>
+                    <IconButton size="sm" tone="ghost" icon={<MessageCircle size={15} />}
+                      aria-label={t('Relationship.contacts.openChat')} title={t('Relationship.contacts.openChat')}
+                      disabled={Boolean(pending) || row.isDeleted} onClick={() => openChat(row)} />
+                  </span>
+                  <RelationshipActionsMenu label={t('Relationship.contacts.personActions', { name })} disabled={Boolean(pending)} items={[
+                    { id: 'remove', label: t('Profile.removeFriend'), onSelect: () => setConfirmation({ row, action: 'remove' }) },
+                    ...(!row.isDeleted ? [{ id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) }] : []),
+                  ]} />
+                </div>
+              ) : tab === 'received' && !row.isDeleted ? (
+                <RelationshipActionsMenu label={t('Relationship.contacts.personActions', { name })} disabled={Boolean(pending)} items={[
+                  { id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) },
+                ]} />
+              ) : null}
+            </div>
+            {row.requestMessage ? <p className="px-3 pb-2 pl-[62px] whitespace-pre-wrap break-words text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{row.requestMessage}</p> : null}
+            {tab === 'received' ? (
+              <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 pl-[62px]">
+                <Button size="sm" tone="primary" disabled={Boolean(pending) || row.isDeleted} onClick={() => relationshipAction(row, 'accept')}>{t('Relationship.accept')}</Button>
+                <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(row, 'reject')}>{t('Relationship.reject')}</Button>
+              </div>
+            ) : tab === 'sent' ? (
+              <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 pl-[62px]">
+                <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(row, 'cancel')}>{t('Relationship.contacts.cancelRequest')}</Button>
+              </div>
+            ) : tab === 'blocked' ? (
+              <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 pl-[62px]">
+                <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => setConfirmation({ row, action: 'unblock' })}>{t('Profile.unblock')}</Button>
+                <Button size="sm" tone="ghost" disabled={Boolean(pending)} onClick={() => setSelectedBlocked(row)}>{t('Relationship.contacts.manageRelationship')}</Button>
+              </div>
+            ) : null}
+          </li>;
+        })}
+      </ul>
+      {contacts.hasNextPage ? <div className="pt-2"><Button size="sm" tone="secondary" fullWidth loading={contacts.isFetchingNextPage} onClick={() => { void contacts.fetchNextPage(); }}>{t('Relationship.contacts.loadMore')}</Button></div> : null}
+      {selectedBlocked ? <section className="space-y-2.5 border-t border-[var(--nimi-border-subtle)] px-1 pt-3">
+        <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">{t('Relationship.contacts.blockedRelationship', { name: selectedBlocked.displayName || selectedBlocked.handle || t('Relationship.contacts.deletedUser') })}</h3>
+        {blockedRelationship.isPending ? <p role="status" className="text-xs text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p> : blockedRelationship.isError ? <><InlineAlert tone="danger">{t('Relationship.contacts.loadFailed')}</InlineAlert><Button size="sm" tone="secondary" onClick={() => { void blockedRelationship.refetch(); }}>{t('Common.retry')}</Button></> : <>
+          <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('Relationship.contacts.relationshipState.' + selectedRelationship?.state)}</p>
+          {blockedRowWithRelationship && selectedRelationship?.state === 'active' ? <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => setConfirmation({ row: blockedRowWithRelationship, action: 'remove' })}>{t('Profile.removeFriend')}</Button> : null}
+          {blockedRowWithRelationship && selectedRelationship?.state === 'pending_outgoing' ? <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(blockedRowWithRelationship, 'cancel', false)}>{t('Relationship.contacts.cancelRequest')}</Button> : null}
+          {blockedRowWithRelationship && selectedRelationship?.state === 'pending_incoming' ? <Button size="sm" tone="secondary" disabled={Boolean(pending)} onClick={() => relationshipAction(blockedRowWithRelationship, 'reject', false)}>{t('Relationship.reject')}</Button> : null}
+        </>}
+      </section> : null}
+    </ScrollArea>
+
     <ConfirmDialog open={Boolean(confirmation)} title={confirmation ? t('Relationship.contacts.confirmTitle.' + confirmation.action) : ''}
       message={confirmation ? t('Relationship.contacts.confirmBody.' + confirmation.action, { name: confirmation.row.displayName || confirmation.row.handle || t('Relationship.contacts.deletedUser') }) : ''}
       confirmLabel={confirmation ? t('Relationship.contacts.confirmTitle.' + confirmation.action) : ''} cancelLabel={t('Common.cancel')} pending={Boolean(pending)}
       confirmTone={confirmation?.action === 'unblock' ? 'primary' : 'danger'} onConfirm={applyConfirmation} onClose={() => { if (!pending) setConfirmation(null); }} />
     {addOpen ? <FriendHandleLookupDialog onClose={() => { setAddOpen(false); refresh(); }} /> : null}
-  </ScrollArea>;
+  </div>;
 }

@@ -89,7 +89,7 @@ for (const outcome of ['success', 'failure'] as const) {
     retainedDraft.current = temporaryText;
     const temporaryBundle = client.getQueryData(bundleQueryKey(temporary.id));
     if (route === 'leave for friends') {
-      await navigation.push({ id: 'friends' });
+      await navigation.push({ id: 'contacts' });
       await navigation.push({ id: 'chat' });
       assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, undefined);
     }

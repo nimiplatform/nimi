@@ -10,9 +10,8 @@ import { characterSourceMaterializationFailureMessage, characterSourceMaterializ
 import { CharacterSourceConfirmationPendingError, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { isSameCharacter, readPartnerDirectoryForSource } from '../agents/partner-directory-model.js';
-import { openPartnerConversation } from '../agents/partner-navigation.js';
+import { readHomePartner } from '../agents/partner-navigation.js';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 
 import { sourceDisplayDetailQueryKey, fetchSourceDisplayDetail } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
@@ -89,7 +88,7 @@ export function SourceDetailPanel({
   }, [source, ownerUserId, localAgentListQuery.isPending, localAgentListQuery.isError, matchingPartners]);
   const openPartner = (localAgentRef: string) => {
     if (!matchingPartners.some(partner => partner.localAgentRef === localAgentRef)) return;
-    void navigation.push({ id: 'partners', partner: { localAgentRef } });
+    void navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef } });
   };
 
   const stats = useMemo(() => {
@@ -136,7 +135,7 @@ export function SourceDetailPanel({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added.' }),
       });
-      void navigation.push({ id: 'partners', partner: { localAgentRef: createdRef } });
+      void navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: createdRef } });
     } catch (error) {
       if (!isCurrent()) return;
       void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
@@ -149,7 +148,7 @@ export function SourceDetailPanel({
         // returning to a creation button here could duplicate this partner.
         void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
         void queryClient.invalidateQueries({ queryKey: ['home-partners', ownerUserId] });
-        void navigation.push({ id: 'partners', partner: { localAgentRef: error.localAgentRef } });
+        void navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: error.localAgentRef } });
       }
     } finally {
       scope.dispose(); position.dispose();
@@ -170,14 +169,12 @@ export function SourceDetailPanel({
     try {
       const prefillText = String(initialComposerText || '').trim();
       const selected = matchingPartners.length === 1 ? matchingPartners[0]!.localAgentRef : null;
-      const conversationTarget = source?.sourceRef && selected
-        ? await openPartnerConversation({ sdk: bindings.sdk, accountId: ownerUserId, localAgentRef: selected, expectedSource: source.sourceRef, isCurrent }) : null;
+      const partner = source?.sourceRef && selected
+        ? await readHomePartner({ sdk: bindings.sdk, accountId: ownerUserId, localAgentRef: selected, expectedSource: source.sourceRef, isCurrent }) : null;
       if (!isCurrent()) return;
-      if (conversationTarget) {
-        await launchAgentConversationFromDisplay({
-          target: conversationTarget,
-          initialComposerText: prefillText || null,
-        });
+      if (partner?.lifecycle === AgentLifecycleStatus.ACTIVE) {
+        await navigation.push({ id: 'contacts', partnerChat: { localAgentRef: partner.localAgentRef,
+          ...(prefillText ? { draft: { text: prefillText } } : {}) } });
         return;
       }
 

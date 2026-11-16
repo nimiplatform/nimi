@@ -6,7 +6,7 @@
 
 An optional `onLiveChange` observer on `createNimiAppActivityView` receives accepted subscription changes after the current list baseline. Initial and continuation pages still update the current view through `onUpdate`.
 
-## Unreleased — Open Friends & chat (next 0.x minor)
+## Unreleased — Open Contacts & Conversations (next 0.x minor)
 
 `NimiDesktopOpenIntent` admits the parameter-free `open-contacts` target in the existing v2 envelope. Use matching Kit and Desktop builds for this target. App code can request the surface without selecting an account, conversation, or recipient.
 

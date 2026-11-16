@@ -65,8 +65,8 @@ export function useHomeRealmMessages() {
     open(message: HomeRealmMessage) {
       const account = realmMessageAccount(message);
       const chatId = message.notifications[0]?.target?.chatId;
-      if (message.request) void navigation.push({ id: 'friends', chat: { mode: 'human', contactsSection: 'received' } });
-      else if (chatId) void navigation.push({ id: 'friends', chat: { mode: 'human', threadId: chatId } });
+      if (message.request) void navigation.push({ id: 'contacts', chat: { mode: 'human', contactsSection: 'received' } });
+      else if (chatId) void navigation.push({ id: 'contacts', chat: { mode: 'human', threadId: chatId } });
       else if (account.id) void navigation.push({ id: 'profile', profileId: account.id });
     },
   };

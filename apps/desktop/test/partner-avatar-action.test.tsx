@@ -22,7 +22,7 @@ test('partner Avatar action keeps configuration, exact launch and late-navigatio
   const root = createRoot(document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   store.getState().setAuthSession({ id: 'account-a' });
-  const origin = { id: 'partners', partner: { localAgentRef: 'local-agent:a', activity: {} } } as const;
+  const origin = { id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a', activity: {} } } as const;
   await store.navigation.push(origin);
   const empty = await sessionFor();
   const ready = await sessionFor({ appearance: { status: 'ready', backendKind: 'vrm', avatarAssetRef: 'vrm_123456789abc', avatarAssetValid: true } });
@@ -53,7 +53,7 @@ test('partner Avatar action keeps configuration, exact launch and late-navigatio
     deferRead = true;
     await act(async () => document.querySelector('button')!.click());
     assert.ok(release);
-    await act(async () => store.navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:b' } }));
+    await act(async () => store.navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:b' } }));
     await act(async () => release!());
     assert.equal(launches.length, 1, 'late resolution must not launch the departed partner');
   } finally {

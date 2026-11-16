@@ -9,10 +9,11 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(path.join(root, 'apps/desktop/package.json'));
 const ts = require('typescript');
+const { AgentLifecycleStatus } = require('@nimiplatform/sdk/runtime/wire-types');
 const renderer = path.join(root, 'apps/desktop/src/shell/renderer');
 const load = (p) => import(pathToFileURL(path.join(renderer, p)).href);
 const { ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError } = await load('features/relationship/character-source-launch-target.ts');
-const { openPartnerConversation } = await load('features/agents/partner-navigation.ts');
+const { readHomePartner } = await load('features/agents/partner-navigation.ts');
 const { captureAccountActionScope } = await load('app-shell/providers/account-action-scope.ts');
 const { localAgentListQueryKey } = await load('features/agents/local-agent-list-model.ts');
 const { characterSourceRefKey, characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage } = await load('features/explore/character-source-materialization.ts');
@@ -114,7 +115,7 @@ async function run(surface, posture = 'missing', action = 'open') {
     bindings: { sdk }, queryClient: { invalidateQueries: async () => {} },
     ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError, localAgentListQueryKey,
     characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage,
-    openPartnerConversation, captureAccountActionScope, captureHomeNavigationScope, characterSourceRefKey, launchAgentConversationFromDisplay,
+    readHomePartner, AgentLifecycleStatus, captureAccountActionScope, captureHomeNavigationScope, characterSourceRefKey, launchAgentConversationFromDisplay,
     logRendererEvent: () => {},
     setFeedback: (feedback) => events.push(`feedback:${feedback.kind}`),
   };
@@ -150,11 +151,10 @@ for (const posture of ['missing', 'ambiguous', 'denied', 'stale', 'unavailable',
 test('Source Detail Open uses the sole current target without creation', async () => {
   const result = await run('source-detail', 'existing');
   assert.equal(result.materialized, false);
-  assert.equal(result.opened, true);
-  assert.equal(result.events.filter((event) => event.startsWith('OPEN_CONVERSATION:')).length, 1);
+  assert.equal(result.opened, false);
   assert.equal(result.events.includes('feedback:error'), false);
-  assert.equal(result.events.includes('ZHIYU:anchor-new'), true);
-  assert.equal(result.navigation.getSnapshot().current.destination.id, 'home');
+  assert.equal(result.events.includes('ZHIYU:anchor-new'), false);
+  assert.deepEqual(result.navigation.getSnapshot().current.destination, { id: 'contacts', partnerChat: { localAgentRef: 'local-agent:new-empty-partner' } });
 });
 test('conflicting partner records cannot open an arbitrarily selected instance', async () => {
   const result = await run('source-detail', 'ambiguous', 'select');

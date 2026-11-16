@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop exposes Home, Nimi Chat, My partners, Explore, Apps, AI Capabilities, Cloud Services and Connections and access through the existing shell, with independently reachable Friends and chat. Nimi Chat retains session-based generic AI conversation; Friends and chat retains Realm human communication. Full LocalAgent conversation opens in Zhiyu through the verified Host. Home remains the ordinary entry and Logo destination. Downloads, Settings and diagnostics retain their existing roles. This separation reuses existing styling and interaction; it does not require a new shell, process or window model.
+    statement: Desktop exposes Home, Nimi Chat, Contacts & Conversations, Explore, Apps, AI Capabilities, Cloud Services and Connections and access through the existing shell. Nimi Chat retains session-based generic AI conversation. Contacts & Conversations groups Realm direct chats and Runtime partner conversations, with separate conversation and contact views. Explicit Zhiyu handoff uses the verified Host. Home remains the ordinary entry and Logo destination. Downloads, Settings and diagnostics retain their existing roles. This separation reuses existing styling and interaction; it does not require a new shell, process or window model.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -52,7 +52,7 @@ units:
     kind: rule
     title: Explore Worlds and My partners own distinct discovery and management surfaces
     modality: must
-    statement: Desktop has no separate Characters primary tab. Explore Worlds owns World browsing and typed cross-world Character search; The independent My partners destination is a real current-account current-device Runtime inventory and management surface, not a renamed Realm Persona catalog. Discovery selection opens canonical Source Detail; partner selection opens exact partner detail and may mount the shared Manager without creating a Conversation. All positions use the Home navigation controller.
+    statement: Desktop has no separate Characters primary tab. Explore Worlds owns World browsing and typed cross-world Character search; The Partners view within Contacts & Conversations presents the current-account current-device Runtime inventory and management surface, not a renamed Realm Persona catalog. Discovery selection opens canonical Source Detail; partner selection opens exact partner detail and may mount the shared Manager without creating a Conversation. All positions use the Home navigation controller.
     condition: Whenever Desktop lists or opens a PersonaCharacter source or constructs ordinary primary navigation.
     failure: Reject a separate Characters primary surface, a renderer-owned LocalAgent registry or guessed source state, and a primary PersonaCharacter catalog outside Explore Worlds and Source Detail.
     relations:
@@ -464,7 +464,7 @@ units:
     kind: rule
     title: Desktop Open navigation uses Desktop-owned target mappings
     modality: must
-    statement: "Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state. The open-contacts intent focuses Home and preserves the current Friends and chat position when already there, or opens the existing conversation list through the Home navigation controller under the current Home account. An open-agent-center request is a pending anchor correlation, not a proven chat identity: Home resolves it using its current-account reference list and agent.configure manager snapshot, then navigates to the same proven Agent Conversation and opens its shared manager. A failed resolution is visible without selecting another Agent or changing permissions."
+    statement: "Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state. The open-contacts intent focuses Home and preserves the current Contacts & Conversations position when already there, or opens the existing conversation list through the Home navigation controller under the current Home account. An open-agent-center request is a pending anchor correlation, not a proven chat identity: Home resolves it using its current-account reference list and agent.configure manager snapshot, then opens that partner’s shared manager within Contacts & Conversations without opening a conversation. A failed resolution is visible without selecting another Agent or changing permissions."
     condition: Whenever a validated Desktop Open Intent reaches renderer navigation.
     failure: Reject unknown targets and report failure when the complete target mapping cannot be applied.
     relations:
@@ -624,9 +624,9 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.desktop.shell-ui.r054
     kind: rule
-    title: Home delegates full partner interaction to Zhiyu
+    title: Home presents canonical partner conversations and explicit Zhiyu handoff
     modality: must
-    statement: Home retains LocalAgent inventory, management, source navigation and bounded conversation summaries, while explicit partner interaction enters Zhiyu. Home resolves only its own current references and sends a non-authorizing Conversation correlation, optional message target and bounded user draft through the supervised Host. The destination independently resolves and reads the same Runtime conversation before reporting arrival. Home never mounts a second complete LocalAgent chat workspace, silently substitutes a target, sends a prefill, or owns conversation or memory truth.
+    statement: Contacts & Conversations presents ordinary LocalAgent messaging through the admitted public Conversation client, including text, images, recorded transcription, message voice and bounded history by known message reference. Home also presents Runtime inventory, management and source navigation. An explicit open in Zhiyu hands only a non-authorizing Conversation correlation, optional committed message target and bounded unsent draft through the supervised Host. Zhiyu independently resolves the same Runtime conversation before reporting arrival. Neither surface owns conversation, execution or memory truth.
     condition: Whenever LocalAgent Conversation appears in Nimi Home.
     failure: Consume the admitted Runtime, SDK, Realm, and Cognition owner projections and reject shell-local truth.
     relations:
@@ -636,7 +636,7 @@ units:
     kind: rule
     title: Home AI execution carries an explicit owner and contract
     modality: must
-    statement: Every Nimi Home AI execution request carries an explicit CapabilityContract and the canonical AIConfig owner identity. Home Nimi Chat uses the Desktop App AIConfig; Home partner management projects the shared LocalAgent subsystem AIConfig without submitting a LocalAgent Conversation turn. Partner conversation in Zhiyu retains that subsystem owner.
+    statement: Every Nimi Home AI execution request carries an explicit CapabilityContract and the canonical AIConfig owner identity. Home Nimi Chat uses the Desktop App AIConfig; Home partner management projects the shared LocalAgent subsystem AIConfig without submitting a LocalAgent Conversation turn. Partner conversations in Home and Zhiyu use that same subsystem owner through their admitted Conversation operations.
     condition: Whenever Nimi Home submits AI execution intent.
     failure: Reject the request before execution when the CapabilityContract or canonical AIConfig owner is absent, invalid, or confused between the Desktop App and LocalAgent subsystem.
     relations:
@@ -723,7 +723,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The localized native menu exposes quick overview, Open Home, Friends and chat, admitted recent chat and source-qualified App entry points, Downloads, AI Capabilities, current-account usage, Home notification preference, Settings or Support and explicit Quit Home. Friends and chat focuses Home and resumes its current Friends and chat position or opens the existing conversation list. Runtime lifecycle actions remain in their existing verified recovery destinations; the menu exposes no arbitrary command, URL, endpoint, binary, process, provider health, model unload or global execution stop. Attention, current work, open Apps, requests and unread counts retain separate owner semantics.
+    statement: The localized native menu exposes quick overview, Open Home, Contacts & Conversations, admitted recent chat and source-qualified App entry points, Downloads, AI Capabilities, current-account usage, Home notification preference, Settings or Support and explicit Quit Home. Contacts & Conversations focuses Home and resumes its current Contacts & Conversations position or opens the existing conversation list. Runtime lifecycle actions remain in their existing verified recovery destinations; the menu exposes no arbitrary command, URL, endpoint, binary, process, provider health, model unload or global execution stop. Attention, current work, open Apps, requests and unread counts retain separate owner semantics.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:
@@ -1111,9 +1111,9 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.chat-sides
     kind: rule
-    title: Home generic AI and human communication are separate destinations
+    title: Home separates generic AI from contacts and conversations
     modality: must
-    statement: Nimi Chat and Friends and chat have independent Home destinations and retain their existing thread history, object-scoped drafts, attachments, relationship admission and owner read-through. A two-sided people/companion flip and a full Home Agent chat destination no longer exist. The human rail shows recent permitted human conversations and Contacts with request attention; the Nimi surface retains its history and settings controls. Profile, request and message notifications target the exact human destination and object. Partner reply attention remains in Home partner summaries and opens the exact Zhiyu conversation or reply. Opening summaries, selecting an object or changing destinations never acknowledges chat replies. Actual visible focused replies retain their owner read semantics. Scope replacement clears old navigation and pending work without replay. Layout and visual vocabulary continue to use existing Home components.
+    statement: Nimi Chat remains independent from Contacts & Conversations. Contacts & Conversations switches its right rail between the compact human and partner conversation avatars and the searchable Contacts panel with Friends and Partners views, while keeping the existing transcript and composer presentation and replacing the main pane with the selected Human or Agent profile when a contact is chosen. Human and Agent profiles retain their owner-specific reads and actions. Existing threads, scoped drafts, attachments, relationship admission, request attention and owner read boundaries remain in force. Inactive partners remain discoverable through inventory and cannot open a Conversation without an admitted active reference. Ordinary reply navigation targets Home and explicit Zhiyu navigation remains available. Opening a summary, selecting a row or changing destinations never acknowledges a reply. Actual visible focused replies retain their owner read semantics. Scope replacement clears old navigation and pending work without replay.
     condition: Whenever Home composes Chat navigation and its relationship rail.
     failure: Reject a flip restoring the previous chat object or thread, unread-dependent ordering or membership, selection-based repositioning, duplicate all-conversations or all-companions rail shortcuts, inaccessible Contacts or primary companion directory, lost or cross-account drafts, and treating loading or read failure as Agent deletion.
     relations:

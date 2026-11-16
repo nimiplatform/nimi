@@ -42,11 +42,13 @@ test('a timed-out notice still delivers its click and releases after activation'
 test('named and aggregate notice targets commit before the native focus can acknowledge old chat', async () => {
   const navigation = createHomeNavigation();
   for (const chatId of ['chat-b', null]) {
-    await navigation.push({ id: 'friends', chat: { mode: 'human', threadId: 'chat-a' } });
+    await navigation.push({ id: 'contacts', chat: { mode: 'human', threadId: 'chat-a' } });
     let focused = 0;
     await openHumanChatNotice({ navigation, chatId, isCurrent: () => true, report: () => {}, focus: async () => {
       focused += 1;
-      assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, chatId ?? undefined);
+      const opened = navigation.getSnapshot().current.destination;
+      assert.equal(opened.chat?.threadId, chatId ?? undefined);
+      if (chatId === null) assert.equal(opened.conversationFilter, 'human');
     } });
     assert.equal(focused, 1);
   }

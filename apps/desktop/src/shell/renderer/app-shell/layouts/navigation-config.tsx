@@ -147,10 +147,9 @@ const ICON_SUPPORT = (
 // @nimi-authority: rule.nimi.desktop.shell-ui.r008
 export function renderShellNavIcon(icon: string): ReactNode {
   const normalized = String(icon || '').trim().toLowerCase();
-  if (normalized === 'partners') return <UsersRound size={18} />;
   if (normalized === 'connections') return <Network size={18} />;
   if (normalized === 'home') return ICON_HOME;
-  if (normalized === 'friends') return <UsersRound size={18} />;
+  if (normalized === 'contacts') return <UsersRound size={18} />;
   if (normalized === 'chat') return ICON_CHAT;
   if (normalized === 'explore') return ICON_EXPLORE;
   if (normalized === 'runtime') return ICON_RUNTIME;
@@ -176,7 +175,6 @@ export function renderShellNavIcon(icon: string): ReactNode {
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Nimi Chat', icon: renderShellNavIcon('chat') },
-  { id: 'partners', label: 'My partners', icon: renderShellNavIcon('partners') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'AI Capabilities', icon: renderShellNavIcon('runtime') },
@@ -189,7 +187,7 @@ export function getCoreNavItems(): NavItem[] {
 }
 
 export function getQuickNavItems(): NavItem[] {
-  return [{ id: 'friends', label: 'Friends & chat', icon: renderShellNavIcon('friends') }];
+  return [{ id: 'contacts', label: 'Contacts & Conversations', icon: renderShellNavIcon('contacts') }];
 }
 
 export function NavLink({

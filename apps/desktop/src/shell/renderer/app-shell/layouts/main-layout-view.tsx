@@ -320,7 +320,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       item={item}
                       active={navigationColumn === item.id}
                       collapsed
-                      badge={item.id === 'partners' && hasUnreadCompanion ? t('Chat.rail.unreadChats') : undefined}
                       onClick={() => props.onNav(item.id)}
                     />
                   ))}
@@ -335,7 +334,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   {quickNavItems.map((item) => (
                     <NavLink
                       key={item.id}
-                      badge={item.id === 'friends' && hasUnreadHumanChat ? t('Chat.rail.unreadChats') : undefined}
+                      badge={item.id === 'contacts' && (hasUnreadHumanChat || hasUnreadCompanion) ? t('Chat.rail.unreadChats') : undefined}
                       item={item}
                       active={navigationColumn === item.id}
                       collapsed

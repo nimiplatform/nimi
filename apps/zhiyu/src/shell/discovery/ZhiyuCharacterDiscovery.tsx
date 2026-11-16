@@ -67,7 +67,7 @@ export function ZhiyuCharacterDiscovery({ client, cache, inventoryKey, query, se
       if (current !== generation.current) return;
       if (page) { const updated = { ...page, items: page.items.map(value => characterKey(value) === characterKey(item) ? { ...value, existingPartner: result.partner } : value) }; cache.set(query, updated); setPage(updated); }
       onPartner(result.partner);
-    } catch (error) { if (current === generation.current) setError(discoveryFailure(error, '暂时无法进入伙伴对话。若伙伴已建立，会保留在「我的伙伴」中；请刷新后再试。')); }
+    } catch (error) { if (current === generation.current) setError(discoveryFailure(error, '暂时无法进入伙伴对话。若伙伴已建立，会保留在联系人中的伙伴列表；请刷新后再试。')); }
     finally { if (current === generation.current) { pending.current = false; setConnecting(false); } }
   }
   return <section className="zhiyu-discovery" aria-label="发现角色">

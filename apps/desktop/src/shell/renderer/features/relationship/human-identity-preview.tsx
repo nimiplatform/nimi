@@ -27,7 +27,7 @@ export function HumanIdentityPreview({ id, displayName, handle, avatarUrl, avata
       <div className="flex items-center gap-3"><EntityAvatar name={name} imageUrl={avatarUrl} media={avatarMedia} kind="human" sizeClassName="h-12 w-12 shrink-0" fallbackClassName={avatarFallbackClassName} />
         <div className="min-w-0"><p className="break-words font-semibold">{name}</p>{handle ? <p className="break-words text-sm text-[var(--nimi-text-secondary)]">@{handle.replace(/^@+/, '')}</p> : null}</div></div>
       <div className="flex gap-2">
-        <Button size="sm" tone="secondary" data-testid={openProfileTestId} onClick={() => { setOpen(false); void navigation.push({ id: 'profile', profileId: id }); }}>{t('Relationship.contacts.fullProfile')}</Button>
+        <Button size="sm" tone="secondary" data-testid={openProfileTestId} onClick={() => { setOpen(false); void navigation.push({ id: navigation.getSnapshot().current.destination.id === 'contacts' ? 'contacts' : 'profile', profileId: id }); }}>{t('Relationship.contacts.fullProfile')}</Button>
         {onMessage ? <Button size="sm" tone="primary" onClick={() => { setOpen(false); onMessage(); }}>{t('Relationship.contacts.openChat')}</Button> : null}
       </div>
     </PopoverContent>

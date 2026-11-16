@@ -33,6 +33,7 @@ export type ChatCanonicalModeFrameProps = {
   onSetupAction: (action: ConversationSetupAction) => void;
   settingsOpen: boolean;
   onCloseSettings: () => void;
+  railReserved?: boolean;
   className?: string;
   sceneBackground?: ReactNode;
   afterShell?: ReactNode;
@@ -70,8 +71,14 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
     : `${props.mode}:landing`;
   const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[viewModeKey] || 'chat');
   const canonicalMessages = props.host.messages || [];
-  const transcriptProps = useChatReadPosition(`${props.mode}:${props.host.activeThreadId ?? props.selectedTargetId ?? 'landing'}`,
-    props.transcriptPropsOverride ?? props.host.transcriptProps);
+  const railReserved = props.railReserved ?? true;
+  const baseTranscriptProps = props.transcriptPropsOverride ?? props.host.transcriptProps;
+  const transcriptProps = useChatReadPosition(
+    `${props.mode}:${props.host.activeThreadId ?? props.selectedTargetId ?? 'landing'}`,
+    railReserved || !baseTranscriptProps
+      ? baseTranscriptProps
+      : { ...baseTranscriptProps, scrollViewportWidthClassName: 'w-full [scrollbar-gutter:stable]' },
+  );
   const canonicalCopy = useMemo<ChatCopy>(() => ({
     targetPaneLoadingLabel: t('Chat.loadingTargets', { defaultValue: 'Loading targets…' }),
     targetPaneEmptyTitle: t('Chat.noTargetsTitle', { defaultValue: 'No targets available' }),
@@ -159,7 +166,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         topContent={props.host.topContent}
         sceneBackground={props.sceneBackground}
         composer={props.host.composerContent ? (
-          <div className={CHAT_COMPOSER_RAIL_RESERVE_CLASS}>
+          <div className={railReserved ? CHAT_COMPOSER_RAIL_RESERVE_CLASS : undefined}>
             {props.host.composerContent}
           </div>
         ) : null}
@@ -169,7 +176,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
       {shouldRenderSettings ? (
         props.settingsSheetBare ? (
           <aside
-            className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'flex min-h-0 w-[min(500px,calc(100cqw-96px))] shrink-0')}
+            className={cn(railReserved ? CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS : undefined, 'flex min-h-0 w-[min(500px,calc(100cqw-96px))] shrink-0')}
             data-chat-shared-side-sheet="settings"
           >
             {settingsContent}
@@ -177,6 +184,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         ) : (
           <ChatSideSheet
             sheetKey="settings"
+            className={railReserved ? undefined : 'mr-0'}
             eyebrow={props.settingsSheetEyebrow}
             title={props.settingsSheetTitle ?? props.host.settingsDrawerTitle ?? props.selectedTarget?.title ?? 'Settings'}
             subtitle={props.settingsSheetSubtitle ?? props.host.settingsDrawerSubtitle ?? props.host.characterData?.name ?? null}

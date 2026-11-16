@@ -142,7 +142,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
   useEffect(() => { readPosition.current = null; setReadError(null); }, [readScope]);
   const acknowledgeRead = useCallback(async (messageId: string) => {
     const destination = navigation.getSnapshot().current.destination;
-    if (!selectedChatId || destination.id !== 'friends' || destination.chat?.threadId !== selectedChatId
+    if (!selectedChatId || destination.id !== 'contacts' || destination.chat?.threadId !== selectedChatId
       || readTarget.current.scope !== readScope || document.visibilityState !== 'visible' || !document.hasFocus()) return;
     const previous = readPosition.current;
     const retry = previous?.failed && previous.message.id === messageId;

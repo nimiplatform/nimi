@@ -56,11 +56,11 @@ export function applyDesktopOpenIntentToAppStore(
       return;
     }
     case 'open-agent-center': {
-      void store.push({ id: 'partners', partnerManagerAnchorId: intent.conversationAnchorId });
+      void store.push({ id: 'contacts', contactView: 'partners', partnerManagerAnchorId: intent.conversationAnchorId });
       return;
     }
     case 'open-partners': {
-      void store.push({ id: 'partners', partnerQuery: intent.query ?? '' });
+      void store.push({ id: 'contacts', contactView: 'partners', partnerQuery: intent.query ?? '' });
       return;
     }
     case 'open-explore': {

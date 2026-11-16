@@ -69,7 +69,7 @@ test('ready state renders the recent-chats header, compact strip, and one merged
   const html = render();
   assert.match(html, /data-state="ready"/);
   assert.match(html, /data-testid="home-recent-chats-title">最近对话/);
-  assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>打开织羽/);
+  assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>查看全部伙伴/);
   // The open-all action renders as a ghost button without a trailing chevron.
   assert.doesNotMatch(html, /lucide-chevron-right/);
   assert.match(html, /data-testid="home-recent-chat:lumi"/);
@@ -224,7 +224,7 @@ test('Home shortcut drafts keep their partner and account through navigation and
     project('account-a');
     store.getState().setHomePartnerDraft('account-a', first, '  Original draft  ');
     store.getState().setHomePartnerDraft('account-a', second, 'Another partner');
-    await store.navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+    await store.navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a' } });
     await store.navigation.back();
     assert.equal(read('account-a', first), '  Original draft  ');
     assert.equal(read('account-a', second), 'Another partner');

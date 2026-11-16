@@ -32,13 +32,13 @@ type DesktopOpenTarget = {
 };
 
 const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
-  { rowId: 'target.agent-center', intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' }, expected: { activeTab: 'partners' } },
+  { rowId: 'target.agent-center', intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' }, expected: { activeTab: 'contacts' } },
   { rowId: 'target.explore-worlds-section', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
   { rowId: 'target.explore-worlds', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
-  { rowId: 'target.explore-personas-section', intent: { kind: 'open-partners', }, expected: { activeTab: 'partners' } },
-  { rowId: 'target.explore-personas', intent: { kind: 'open-partners', }, expected: { activeTab: 'partners' } },
+  { rowId: 'target.explore-personas-section', intent: { kind: 'open-partners', }, expected: { activeTab: 'contacts' } },
+  { rowId: 'target.explore-personas', intent: { kind: 'open-partners', }, expected: { activeTab: 'contacts' } },
   { rowId: 'target.explore-personas-discover', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-characters' }, expected: { activeTab: 'explore', section: 'worlds' } },
-  { rowId: 'target.explore-search', intent: { kind: 'open-partners', query: 'mentor' }, expected: { activeTab: 'partners', query: 'mentor' } },
+  { rowId: 'target.explore-search', intent: { kind: 'open-partners', query: 'mentor' }, expected: { activeTab: 'contacts', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloudServices' } },
   { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'modelLibrary' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
@@ -160,6 +160,11 @@ for (const target of DESKTOP_OPEN_TARGETS) {
       target.rowId === 'target.runtime-connector' ? 'cloud' : target.expected.activeTab,
     );
 
+    if (target.intent.kind === 'open-agent-center' || target.intent.kind === 'open-partners') {
+      assert.equal(appState.contactView, 'partners');
+      if (target.intent.kind === 'open-partners') assert.equal(appState.partnerQuery, target.intent.query ?? '');
+    }
+
     if (target.expected.activeTab === 'explore') {
       assert.equal(appState.exploreSection, target.expected.section);
       assert.equal((appState.exploreSearchKind === 'characters' ? appState.search : appState.worldSearch) ?? '', target.expected.query ?? '');
@@ -210,7 +215,7 @@ test('Contacts opens the existing human conversation list and keeps Home back hi
   productionAppStore.navigation.reset({ id: 'explore' });
   applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
   assert.deepEqual(productionAppStore.navigation.getSnapshot().current.destination, {
-    id: 'friends',
+    id: 'contacts',
     chat: { mode: 'human', contactsSection: 'conversations' },
   });
   applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
@@ -225,7 +230,7 @@ test('Contacts keeps the active conversation or contact section in place', async
     { mode: 'human', contactsSection: 'received' },
   ] as const) {
     navigation.reset({ id: 'explore' });
-    await navigation.push({ id: 'friends', chat });
+    await navigation.push({ id: 'contacts', chat });
     const current = navigation.getSnapshot().current;
     applyDesktopOpenIntentToAppStore({ kind: 'open-contacts' });
     assert.equal(navigation.getSnapshot().current, current);

@@ -32,7 +32,7 @@ const APP_SOURCE = {
 test('a reused setup task returns to the latest exact partner management position', () => {
   const store = makeStore();
   const first = openOrCreateRuntimeSetupTask(store, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus: 'chat:agent' }, openTask() {} });
-  const destination = { id: 'partners', partnerManagerAnchorId: 'anchor-current', partnerManagerSection: 'ai-config' };
+  const destination = { id: 'contacts', contactView: 'partners', partnerManagerAnchorId: 'anchor-current', partnerManagerSection: 'ai-config' };
   const returnFocus = 'home:' + encodeURIComponent(JSON.stringify(destination));
   const second = openOrCreateRuntimeSetupTask(store, { capabilityContract: 'text.generate', source: { kind: 'local-agent', accountId: 'acct-1', returnFocus }, openTask() {} });
   assert.equal(first.taskId, second.taskId);
@@ -183,7 +183,7 @@ test('return handles resolve to existing tabs and never invent a destination', (
 
 
 test('setup return persists only the original anchor and section for the current-account resolver', async () => {
-  const destination = { id: 'partners', partnerManagerAnchorId: 'anchor-a', partnerManagerSection: 'ai-config' } as const;
+  const destination = { id: 'contacts', contactView: 'partners', partnerManagerAnchorId: 'anchor-a', partnerManagerSection: 'ai-config' } as const;
   const returnFocus = 'home:' + encodeURIComponent(JSON.stringify(destination));
   assert.ok(!returnFocus.includes('expired-a'));
   const saved = new Map<string, string>();
@@ -203,7 +203,7 @@ test('setup return persists only the original anchor and section for the current
 test('returning from a setup detour preserves Back to the original partner', async () => {
   const { createHomeNavigation, homeRuntimeDestination } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
   const navigation = createHomeNavigation();
-  const chat = { id: 'partners', partner: { localAgentRef: 'local-agent:a' } } as const;
+  const chat = { id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a' } } as const;
   const manager = { ...chat, partner: { ...chat.partner, settingsSection: 'ai-config' } } as const;
   await navigation.push(chat);
   await navigation.push(manager);
@@ -240,7 +240,7 @@ test('Nimi setup returns to the recorded conversation', async () => {
 test('a delayed configuration source cannot create or rewrite a task after leaving its entry', async () => {
   const { createHomeNavigation } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
   const navigation = createHomeNavigation();
-  const manager = { id: 'partners', partner: { localAgentRef: 'local-agent:current', settingsSection: 'ai-config' } } as const;
+  const manager = { id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:current', settingsSection: 'ai-config' } } as const;
   await navigation.push(manager);
   const store = makeStore();
   const opened: string[] = [];

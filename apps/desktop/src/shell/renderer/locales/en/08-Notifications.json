@@ -1,6 +1,6 @@
 {
-  "chatOpenBlocked": "Could not open Friends & chat. Finish the current operation, then try again.",
-  "chatOpenCancelled": "Opening Friends & chat was cancelled. You can try again when ready.",
+  "chatOpenBlocked": "Could not open Contacts & Conversations. Finish the current operation, then try again.",
+  "chatOpenCancelled": "Opening Contacts & Conversations was cancelled. You can try again when ready.",
   "execution": {
     "unconfirmed": "Cannot confirm whether execution conditions for this run are met.",
     "unavailable": "App interruption records are temporarily unavailable",

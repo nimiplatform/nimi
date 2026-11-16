@@ -1,5 +1,5 @@
+import { unreadCompanionReplies } from './home-app-activity-model.js';
 import { homePartnerDraftKey } from './home-partner-draft.js';
-import { captureHomeNavigationScope } from '../../app-shell/providers/home-navigation.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
@@ -12,9 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } from '../agents/local-agent-list-model.js';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 import { fetchHomeRecentChatPartners, withRecentChatUnread, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
 import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
@@ -330,36 +328,16 @@ export function HomeAgentCard() {
 
   const openConversation = useCallback(async (selectedItem: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
     if (!selectedItem) return;
-    const position = captureHomeNavigationScope(navigation);
-    try {
-      const target = await resolveAgentTargetSnapshotForSourceRef({
-        sourceRef: selectedItem.sourceRef,
-        selectedLocalAgentRef: selectedItem.localAgentRef,
-        ownerUserId,
-        sdk: bindings.sdk,
-      }).catch(() => null);
-      if (!position.isCurrent()) return;
-      if (target) {
-        const preview = partners.find(partner => partner.localAgentRef === selectedItem.localAgentRef);
-        const latest = preview?.hasUnread && !initialComposerText && target.agentHandle && target.conversationAnchorId
-          ? await bindings.sdk.conversation().snapshot({ agentHandle: target.agentHandle as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle, conversationAnchorId: target.conversationAnchorId }) : null;
-        if (!position.isCurrent()) return;
-        const messageId = latest?.messages.filter(message => message.role === 'assistant').at(-1)?.messageId;
-        await launchAgentConversationFromDisplay({
-          messageId,
-          target,
-          initialComposerText: initialComposerText ?? null,
-        });
-        return;
-      }
-      emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.partners.unavailable') });
-    } finally { position.dispose(); }
-  }, [
-    bindings.sdk,
-    partners, t,
-    ownerUserId,
-    navigation,
-  ]);
+    const activityRef = partners.find(partner => partner.localAgentRef === selectedItem.localAgentRef)?.activityAgentRef;
+    const reply = !initialComposerText && activityRef
+      ? unreadCompanionReplies(activity.recent.records).get(activityRef)?.find(record => record.key.startsWith('turn:'))
+      : undefined;
+    await navigation.push({ id: 'contacts', partnerChat: {
+      localAgentRef: selectedItem.localAgentRef,
+      ...(reply ? { turnId: reply.key.slice('turn:'.length) } : {}),
+      ...(initialComposerText?.trim() ? { draft: { text: initialComposerText, source: JSON.stringify(['home', realmBaseUrl, selectedItem.localAgentRef]) } } : {}),
+    } });
+  }, [navigation, realmBaseUrl, partners, activity.recent.records]);
 
   const state: HomeAgentCardState = !enabled || agents.isPending
     ? 'loading'
@@ -383,7 +361,7 @@ export function HomeAgentCard() {
       onDraftChange={text => setHomePartnerDraft(ownerUserId, draftScope, text)}
       onOpenChat={(text) => void openConversation(selected ? agentItemsByRef.get(selected.localAgentRef) : null, text).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
       onOpenPartner={(id) => void openConversation(agentItemsByRef.get(id)).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
-      onOpenAll={() => { void invokeChecked('bundled_zhiyu_open', {}, value => value).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) })); }}
+      onOpenAll={() => { void navigation.push({ id: 'contacts', contactView: 'partners' }); }}
       onExplore={() => navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
     />
   );

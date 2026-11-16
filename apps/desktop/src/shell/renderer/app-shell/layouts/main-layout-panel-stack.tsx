@@ -15,7 +15,7 @@ const ExplorePanel = lazy(async () => {
   const mod = await import('../../features/explore/explore-panel');
   return { default: mod.ExplorePanel };
 });
-const PartnersPanel = lazy(async () => ({ default: (await import('../../features/agents/partners-panel.js')).PartnersPanel }));
+const ContactsPage = lazy(async () => ({ default: (await import('../../features/chat/contacts-page.js')).ContactsPage }));
 const ConnectionsPanel = lazy(async () => ({ default: (await import('../../features/settings/connections-panel.js')).ConnectionsPanel }));
 const AppsPanel = lazy(async () => {
   const mod = await import('../../features/apps/apps-panel');
@@ -124,7 +124,7 @@ export function MainLayoutPanelStack({
             </MotionPanelFrame>
           ) : null}
 
-          {activeTab === 'chat' || activeTab === 'friends' ? (
+          {activeTab === 'chat' ? (
             <MotionPanelFrame panelId={activeTab} className="flex h-full min-h-0 flex-1">
               <ChatPage />
             </MotionPanelFrame>
@@ -141,7 +141,7 @@ export function MainLayoutPanelStack({
             </MotionPanelFrame>
           ) : null}
 
-          {activeTab === 'partners' ? <MotionPanelFrame panelId="partners"><PartnersPanel /></MotionPanelFrame> : null}
+          {activeTab === 'contacts' ? <MotionPanelFrame panelId="contacts"><ContactsPage /></MotionPanelFrame> : null}
           {activeTab === 'connections' ? <MotionPanelFrame panelId="connections"><ConnectionsPanel /></MotionPanelFrame> : null}
           {activeTab === 'apps' ? (
             <MotionPanelFrame panelId="apps">

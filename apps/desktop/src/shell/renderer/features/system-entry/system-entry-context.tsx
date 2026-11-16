@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { NimiAppActivityRecord, NimiAppActivityViewSnapshot } from '@nimiplatform/sdk/app';
 import type { SystemEntryContext, SystemEntryProjection } from '../../../shared/system-entry-types.js';
+import type { HomeRecentChatPartner } from '../home/home-recent-conversations-model.js';
 import type { SystemEntryAIState } from './system-entry-ai-model.js';
 
 export type HomeMessageNotice = Readonly<{ tone: 'info' | 'warning'; text: string }>;
@@ -21,6 +22,7 @@ export type SystemEntryContextValue = Readonly<{
   homeVisible: boolean;
   projection: SystemEntryProjection | null;
   appActivity: HomeAppActivity;
+  recentPartners?: readonly HomeRecentChatPartner[];
   ai: SystemEntryAIState | null;
   refresh(): Promise<void>;
   openAIActivity(): Promise<void>;

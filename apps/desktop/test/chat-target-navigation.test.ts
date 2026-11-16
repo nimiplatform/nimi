@@ -25,7 +25,7 @@ test('a friend without history opens a real thread; a late open cannot select th
   reads.c.resolve('thread-c'); await c;
   reads.b.resolve('thread-b'); await b;
   assert.deepEqual(requested, ['b', 'c']);
-  assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'friends', chat: { mode: 'human', targetId: 'c', threadId: 'thread-c' } });
+  assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'contacts', chat: { mode: 'human', targetId: 'c', threadId: 'thread-c' } });
   controller.dispose(); navigation.dispose();
 });
 
@@ -42,8 +42,8 @@ test('failed first chat keeps the origin and reports the failure', async () => {
 test('removed Home Agent routes reject instead of falling back to Nimi Chat', () => {
   assert.throws(() => validateHomeDestination({ id: 'chat', chat: { mode: 'agent', agentHandle: 'a', conversationAnchorId: 'anchor-a' } }));
   assert.throws(() => validateHomeDestination({ id: 'chat', chat: { mode: 'human' } }));
-  assert.throws(() => validateHomeDestination({ id: 'friends', chat: { mode: 'ai' } }));
-  assert.equal(validateHomeDestination({ id: 'friends' }).chat?.mode, 'human');
+  assert.throws(() => validateHomeDestination({ id: 'contacts', chat: { mode: 'ai' } }));
+  assert.equal(validateHomeDestination({ id: 'contacts' }).chat?.mode, 'human');
   assert.equal(validateHomeDestination({ id: 'chat' }).chat?.mode, 'ai');
 });
 

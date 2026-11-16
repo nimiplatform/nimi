@@ -17,7 +17,7 @@ export function usePartnerChat(accountId: string) {
   const pending = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const openChat = async (partner: PartnerDirectoryItem) => {
+  const openChat = async (partner: PartnerDirectoryItem, surface: 'home' | 'zhiyu' = 'home') => {
     if (partner.lifecycle !== AgentLifecycleStatus.ACTIVE || pending.current) return;
     const scope = captureAccountActionScope(store);
     if (!scope || scope.accountId !== accountId) { scope?.dispose(); return; }
@@ -26,6 +26,10 @@ export function usePartnerChat(accountId: string) {
     pending.current = true;
     setOpeningRef(partner.localAgentRef); setFailed(false);
     try {
+      if (surface === 'home') {
+        if (isCurrent()) await navigation.push({ id: 'contacts', partnerChat: { localAgentRef: partner.localAgentRef } });
+        return;
+      }
       const target = await openPartnerConversation({ sdk: bindings.sdk, accountId, localAgentRef: partner.localAgentRef, isCurrent });
       if (target && isCurrent()) await launchAgentConversationFromDisplay({ target });
     } catch { if (isCurrent()) setFailed(true); }

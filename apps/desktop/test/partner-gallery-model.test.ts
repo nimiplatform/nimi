@@ -3,39 +3,12 @@ import test from 'node:test';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import type { PartnerDirectoryItem } from '../src/shell/renderer/features/agents/partner-directory-model.js';
-import { readPartnerLastChat, selectGalleryPartners } from '../src/shell/renderer/features/agents/partner-gallery-model.js';
+import { readPartnerLastChat } from '../src/shell/renderer/features/agents/partner-gallery-model.js';
 
-const persona = { kind: 'personaCharacter' as const, id: 'persona', worldId: 'world', ownerAccountId: 'owner', sourceHash: 'a'.repeat(64) };
-const world = { kind: 'worldCharacter' as const, id: 'character', worldId: 'world', worldEntityRef: { kind: 'worldEntity' as const, worldId: 'world', entityId: 'entity' }, sourceHash: 'b'.repeat(64) };
 const partner = (id: string, overrides: Partial<PartnerDirectoryItem> = {}): PartnerDirectoryItem => ({
   localAgentRef: `local-agent:${id}`, runtimeSourceRef: 'source-a', displayName: id, lifecycle: AgentLifecycleStatus.ACTIVE,
   createdAt: '2026-10-01T00:00:00.000Z', sourceRef: null, sourceReady: false, ...overrides,
 });
-const partners = [partner('unknown', { lifecycle: AgentLifecycleStatus.SUSPENDED }), partner('world', { sourceRef: world }),
-  partner('mine', { sourceRef: persona }), partner('other', { sourceRef: { ...persona, ownerAccountId: 'someone-else' } })];
-
-test('gallery filters use provenance and authorship without changing inventory membership', () => {
-  const input = { partners, accountId: 'owner', sort: 'newest' as const, lastChats: new Map() };
-  assert.deepEqual(selectGalleryPartners({ ...input, filter: 'all' }), partners);
-  assert.deepEqual(selectGalleryPartners({ ...input, filter: 'world' }).map(p => p.displayName), ['world']);
-  assert.deepEqual(selectGalleryPartners({ ...input, filter: 'created' }).map(p => p.displayName), ['mine']);
-  assert.equal(partners.length, 4);
-});
-
-test('recent chats sort by confirmed messages, excluding unknown and empty histories', () => {
-  const lastChats = new Map<string, number | null>([['local-agent:mine', 20], ['local-agent:world', 100], ['local-agent:unknown', null]]);
-  assert.deepEqual(selectGalleryPartners({ partners, accountId: 'owner', filter: 'recent', sort: 'newest', lastChats }).map(p => p.displayName), ['world', 'mine']);
-});
-
-test('gallery sorting is stable for duplicate names and keeps unknown dates last', () => {
-  const records = [partner('unknown', { createdAt: null }), partner('older'), partner('newer', { createdAt: '2026-10-20T00:00:00.000Z' })];
-  const input = { partners: records, accountId: 'owner', filter: 'all' as const, lastChats: new Map() };
-  assert.deepEqual(selectGalleryPartners({ ...input, sort: 'newest' }).map(p => p.displayName), ['newer', 'older', 'unknown']);
-  assert.deepEqual(selectGalleryPartners({ ...input, sort: 'oldest' }).map(p => p.displayName), ['older', 'newer', 'unknown']);
-  assert.equal(records[0]?.displayName, 'unknown');
-  assert.deepEqual(selectGalleryPartners({ ...input, sort: 'name', partners: [partner('a', { displayName: 'Same' }), partner('b', { displayName: 'Same' })] }).map(p => p.localAgentRef), ['local-agent:a', 'local-agent:b']);
-});
-
 function historySdk(pages: { summaries: unknown[]; nextPageToken: string }[]) {
   const tokens: string[] = [];
   const sdk = {

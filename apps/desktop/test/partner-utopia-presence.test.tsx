@@ -337,7 +337,7 @@ test('PartnerUtopiaPresence stays hidden when life is off and renders habitat su
   const root = createRoot(document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   store.getState().setAuthSession({ id: 'account-a' });
-  await store.navigation.push({ id: 'partners', partner: { localAgentRef: 'local-agent:a' } });
+  await store.navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: 'local-agent:a' } });
 
   const lifeOffSession = await sessionFor({ autonomy: { revision: 'r1', enabled: false } });
   const lifeOnSession = await sessionFor({ autonomy: { revision: 'r2', enabled: true } });

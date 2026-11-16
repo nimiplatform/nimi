@@ -20,9 +20,9 @@ test('blocked and cancelled entry results expose localized visible feedback', as
     await resource.init();
     await React.act(async () => { root.render(React.createElement(NimiToaster)); });
     await React.act(async () => { reportHumanChatOpenResult({ status: 'busy' }, key => resource.instance.t(key)); });
-    assert.match(dom.window.document.body.textContent ?? '', /Could not open Friends & chat/);
+    assert.match(dom.window.document.body.textContent ?? '', /Could not open Contacts & Conversations/);
     await React.act(async () => { reportHumanChatOpenResult({ status: 'cancelled' }, key => resource.instance.t(key)); });
-    assert.match(dom.window.document.body.textContent ?? '', /Opening Friends & chat was cancelled/);
+    assert.match(dom.window.document.body.textContent ?? '', /Opening Contacts & Conversations was cancelled/);
   } finally {
     await React.act(async () => { nimiToast.clear(); root.unmount(); });
     dom.window.close();

@@ -66,11 +66,13 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
   };
   if (selected.isPending) return <LoadingSkeleton lines={4} />;
   if (selected.isError || !partner) return <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void selected.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.unavailable`)}</InlineAlert>;
-  const actions = <div className="flex flex-wrap gap-2"><Button tone="secondary" disabled={!active || reference.isPending || reference.isError} onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } }); }}><Settings size={16} />{t(`${P}.manage`)}</Button>
-          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t(`${P}.chat`)}</Button>
+  const actions = <div className="flex flex-wrap items-center gap-2">
+          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t('Chat.contactsOpenConversation')}</Button>
+          <Button tone="secondary" disabled={!active || reference.isPending || reference.isError} onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } }); }}><Settings size={16} />{t(`${P}.manage`)}</Button>
           <Button tone="secondary" onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, ...(showActivity ? {} : { activity: {} }) } }); }}><List size={16} />{t(showActivity ? `${P}.profile` : `${P}.activity.title`)}</Button>
           {session && active ? <PartnerAvatarAction session={session} accountId={accountId} localAgentRef={localAgentRef}
-            onConfigure={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'appearance' } }); }} /> : null}</div>;
+            onConfigure={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'appearance' } }); }} /> : null}
+          <Button tone="ghost" size="sm" disabled={!active || Boolean(chat.openingRef)} onClick={() => { void chat.openChat(partner, 'zhiyu'); }}>{t('Chat.contactsOpenZhiyu')}</Button></div>;
   const statusContent = <div className="space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--nimi-text-secondary)]">
       <span>{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleDateString() }) : t(`${P}.creationUnknown`)}</span>
