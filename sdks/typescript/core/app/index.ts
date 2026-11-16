@@ -524,7 +524,37 @@ export { projectLocalAppSpeechAlignment as validateNimiLocalAppSpeechAlignment }
 export type { NimiLocalAppConversationState, NimiLocalAppConversationFollowUpCancelInput, NimiLocalAppScheduledTime } from './local-app-runtime-platform-proactive.js';
 export type { NimiLocalAppAgentLifePhase, NimiLocalAppAgentLifeFrame, NimiLocalAppAgentLifeActivity, NimiLocalAppAgentLife } from './local-app-runtime-platform-life.js';
 export type { NimiAppRuntimeClient } from './portable-client.js';
-export type { NimiUtopiaPreset, NimiUtopiaSettingsIntent, NimiUtopiaSettingsUpdate, NimiUtopiaTime, NimiUtopiaSettings, NimiUtopiaFrame, NimiUtopiaResident, NimiUtopiaSharedActivity, NimiUtopiaSnapshot, NimiLocalAppUtopiaShell, NimiLocalAppUtopiaClient } from './local-app-runtime-platform-utopia.js';
+export { validateHabitatSpecV1 } from './local-app-runtime-platform-utopia.js';
+export type {
+  HabitatDaypart,
+  HabitatThemeTag,
+  HabitatPlaceArchetype,
+  HabitatSocialMode,
+  HabitatSceneryKind,
+  HabitatParameterCondition,
+  HabitatParameterOption,
+  HabitatParameterSpec,
+  HabitatPersonalQuarterSpec,
+  HabitatPlaceSpec,
+  HabitatActivitySpec,
+  HabitatEventPresetSpec,
+  HabitatSpecV1,
+  NimiUtopiaTime,
+  NimiUtopiaActiveEvent,
+  NimiUtopiaFrame,
+  NimiUtopiaResident,
+  NimiUtopiaPlaceOccupancy,
+  NimiUtopiaSharedState,
+  NimiUtopiaSharedActivity,
+  NimiUtopiaRelocationSummary,
+  NimiUtopiaSnapshot,
+  NimiUtopiaEventMutation,
+  NimiUtopiaUpdateIntent,
+  NimiUtopiaSettingsUpdate,
+  NimiUtopiaMutationAck,
+  NimiLocalAppUtopiaShell,
+  NimiLocalAppUtopiaClient,
+} from './local-app-runtime-platform-utopia.js';
 
 export { createNimiAppCharacterDiscoveryClient, createNimiAppCharacterDiscoveryRuntimeClient, validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from './local-app-character-discovery.js';
 export type { NimiAppCharacterSourceRef, NimiAppCharacterSource, NimiAppCharacterQuery, NimiAppCharacterConnectInput, NimiAppCharacterDiscoveryClient, NimiAppCharacterDiscoveryShell } from './local-app-character-discovery.js';

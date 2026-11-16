@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"encoding/json"
 	"sort"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -12,6 +13,9 @@ import (
 // owner validates identities, text limits, chronology and progress on commit.
 // Keep the wire schema within the shared strict subset supported by Responses.
 func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.ResponseFormat, uint64, error) {
+	if err := view.ensureUtopiaModelProjection(time.Now().UTC()); err != nil {
+		return nil, 0, err
+	}
 	var core struct {
 		PastWindow  *struct{} `json:"past_window"`
 		FutureSlots *int      `json:"future_slots"`
@@ -46,16 +50,13 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 		} else {
 			props["duration_minutes"] = map[string]any{"type": "number", "minimum": 1, "maximum": 1440}
 			if view.Utopia != nil {
-				places, activities := []any{""}, []any{""}
-				seen := map[string]bool{}
-				for _, place := range view.Utopia.Places {
-					places = append(places, place.ID)
-					for _, activity := range place.Activities {
-						if !seen[activity] {
-							activities = append(activities, activity)
-							seen[activity] = true
-						}
-					}
+				places := []any{""}
+				for _, pid := range view.UtopiaAdmittedPlaces {
+					places = append(places, pid)
+				}
+				activities := []any{""}
+				for _, aid := range view.UtopiaAdmittedActivities {
+					activities = append(activities, aid)
 				}
 				props["place"] = map[string]any{"type": "string", "enum": places}
 				props["utopia_activity"] = map[string]any{"type": "string", "enum": activities}

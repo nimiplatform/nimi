@@ -2,84 +2,226 @@ syntax = "proto3";
 
 package nimi.runtime.v1;
 
-option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 message GetLocalAppAgentUtopiaSnapshotRequest {}
 
-message LocalAppAgentUtopiaSettings {
-  uint64 revision = 1;
-  string preset = 2;
-  uint64 preset_version = 3;
-  bool outdoor_open = 4;
-  bool public_participation = 5;
+message LocalAppUtopiaParameterCondition {
+  string parameter_key = 1;
+  repeated string allowed_values = 2;
 }
 
-message LocalAppAgentUtopiaPlace {
+message LocalAppUtopiaParameterOption {
+  string value = 1;
+  string label = 2;
+  string summary = 3;
+}
+
+message LocalAppUtopiaParameterSpec {
+  string key = 1;
+  string label = 2;
+  string default_value = 3;
+  repeated LocalAppUtopiaParameterOption options = 4;
+}
+
+message LocalAppUtopiaPersonalQuarterSpec {
   string id = 1;
-  repeated string activities = 2;
+  string name = 2;
+  string sensory_traits = 3;
 }
 
-message LocalAppAgentUtopiaFrame {
-  string title = 1;
-  string place = 2;
-  google.protobuf.Timestamp starts_at = 3;
-  google.protobuf.Timestamp ends_at = 4;
-  bool interaction = 5;
+message LocalAppUtopiaPlaceSpec {
+  string id = 1;
+  string name = 2;
+  string archetype = 3;
+  bool indoor = 4;
+  string sensory_traits = 5;
+  repeated LocalAppUtopiaParameterCondition open_when = 6;
 }
 
-message LocalAppAgentUtopiaResident {
+message LocalAppUtopiaActivitySpec {
+  string id = 1;
+  string name = 2;
+  repeated string place_ids = 3;
+  string social_mode = 4;
+  repeated string allowed_dayparts = 5;
+  repeated LocalAppUtopiaParameterCondition when = 6;
+  int32 min_duration_minutes = 7;
+  int32 max_duration_minutes = 8;
+  string scene_hint = 9;
+}
+
+message LocalAppUtopiaEventPresetSpec {
+  string id = 1;
+  string scenery_kind = 2;
+  string label = 3;
+  string description = 4;
+  optional string place_id = 5;
+  int32 default_duration_minutes = 6;
+}
+
+message LocalAppUtopiaHabitatSpec {
+  string schema_version = 1;
+  string habitat_id = 2;
+  string title = 3;
+  string theme_tag = 4;
+  string backdrop_summary = 5;
+  LocalAppUtopiaPersonalQuarterSpec personal_quarter = 6;
+  repeated LocalAppUtopiaPlaceSpec places = 7;
+  repeated LocalAppUtopiaActivitySpec activities = 8;
+  repeated LocalAppUtopiaParameterSpec parameters = 9;
+  repeated LocalAppUtopiaEventPresetSpec event_presets = 10;
+}
+
+message LocalAppUtopiaParameterEntry {
+  string key = 1;
+  string value = 2;
+}
+
+message LocalAppUtopiaActiveEvent {
+  string event_id = 1;
+  string slot = 2;
+  string scenery_kind = 3;
+  string label = 4;
+  string description = 5;
+  optional string place_id = 6;
+  google.protobuf.Timestamp starts_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+message LocalAppUtopiaFrame {
+  string activity_id = 1;
+  string title = 2;
+  string habitat_activation_id = 3;
+  string habitat_id = 4;
+  string habitat_title = 5;
+  string place_id = 6;
+  string place_label = 7;
+  google.protobuf.Timestamp starts_at = 8;
+  google.protobuf.Timestamp ends_at = 9;
+  bool interaction = 10;
+}
+
+message LocalAppUtopiaResident {
   string agent_handle = 1;
   string display_name = 2;
   bool solitary = 3;
-  LocalAppAgentUtopiaFrame current = 4;
-  LocalAppAgentUtopiaFrame recent = 5;
-  LocalAppAgentUtopiaFrame next = 6;
+  LocalAppUtopiaFrame current = 4;
+  LocalAppUtopiaFrame recent = 5;
+  LocalAppUtopiaFrame next = 6;
 }
 
-message LocalAppAgentUtopiaOccupancy {
-  string place = 1;
+message LocalAppUtopiaPlaceOccupancy {
+  string place_id = 1;
   repeated string agent_handles = 2;
 }
 
-message LocalAppAgentUtopiaSharedActivity {
+message LocalAppUtopiaSharedActivity {
   string activity_ref = 1;
-  string initiator_handle = 2;
-  string recipient_handle = 3;
-  string place = 4;
-  string activity = 5;
-  string state = 6;
-  google.protobuf.Timestamp starts_at = 7;
-  google.protobuf.Timestamp ends_at = 8;
-  google.protobuf.Timestamp accepted_at = 9;
+  string habitat_activation_id = 2;
+  string habitat_id = 3;
+  string habitat_title = 4;
+  string initiator_handle = 5;
+  string recipient_handle = 6;
+  string place_id = 7;
+  string place_label = 8;
+  string activity_id = 9;
+  string activity_label = 10;
+  string state = 11;
+  google.protobuf.Timestamp starts_at = 12;
+  google.protobuf.Timestamp ends_at = 13;
+  google.protobuf.Timestamp accepted_at = 14;
+}
+
+message LocalAppUtopiaRelocationSummary {
+  string from_habitat_id = 1;
+  string from_habitat_title = 2;
+  string to_habitat_id = 3;
+  string to_habitat_title = 4;
+  google.protobuf.Timestamp relocated_at = 5;
 }
 
 message GetLocalAppAgentUtopiaSnapshotResponse {
-  LocalAppAgentUtopiaSettings settings = 1;
+  uint64 revision = 1;
   google.protobuf.Timestamp observed_at = 2;
-  repeated LocalAppAgentUtopiaPlace places = 3;
-  repeated LocalAppAgentUtopiaResident residents = 4;
-  repeated LocalAppAgentUtopiaOccupancy occupancy = 5;
-  repeated LocalAppAgentUtopiaSharedActivity shared_activities = 6;
+  string habitat_activation_id = 3;
+  string content_digest = 4;
+  string timezone = 5;
+  bool public_participation = 6;
+  LocalAppUtopiaHabitatSpec habitat = 7;
+  repeated LocalAppUtopiaParameterEntry parameter_values = 8;
+  repeated string open_place_ids = 9;
+  repeated LocalAppUtopiaActiveEvent active_events = 10;
+  LocalAppUtopiaRelocationSummary last_relocation = 11;
+  repeated LocalAppUtopiaResident residents = 12;
+  repeated LocalAppUtopiaPlaceOccupancy occupancy = 13;
+  repeated LocalAppUtopiaSharedActivity shared_activities = 14;
 }
 
-message LocalAppAgentUtopiaSolitude {
+message LocalAppUtopiaActivateHabitatChange {
+  LocalAppUtopiaHabitatSpec habitat = 1;
+  repeated LocalAppUtopiaParameterEntry initial_parameters = 2;
+  optional string timezone = 3;
+}
+
+message LocalAppUtopiaRestoreDefaultChange {
+  optional string timezone = 1;
+}
+
+message LocalAppUtopiaPresetEventTrigger {
+  string preset_id = 1;
+  optional int32 duration_minutes = 2;
+}
+
+message LocalAppUtopiaCustomEventTrigger {
+  string scenery_kind = 1;
+  string label = 2;
+  string description = 3;
+  optional string place_id = 4;
+  int32 duration_minutes = 5;
+}
+
+message LocalAppUtopiaEventMutation {
+  oneof action {
+    LocalAppUtopiaPresetEventTrigger trigger_preset = 1;
+    LocalAppUtopiaCustomEventTrigger put_custom = 2;
+    string clear_event_id = 3;
+  }
+}
+
+message LocalAppUtopiaApplyTuningChange {
+  repeated LocalAppUtopiaParameterEntry parameters = 1;
+  LocalAppUtopiaEventMutation event_mutation = 2;
+}
+
+message LocalAppUtopiaSolitudeChange {
   string agent_handle = 1;
   bool solitary = 2;
 }
 
 message UpdateLocalAppAgentUtopiaSettingsRequest {
   uint64 expected_revision = 1;
-  oneof intent {
-    string select_preset = 2;
-    bool restore_default = 3;
-    bool outdoor_open = 4;
+  oneof change {
+    LocalAppUtopiaActivateHabitatChange activate_habitat = 2;
+    LocalAppUtopiaRestoreDefaultChange restore_default = 3;
+    LocalAppUtopiaApplyTuningChange apply_tuning = 4;
     bool public_participation = 5;
-    LocalAppAgentUtopiaSolitude solitude = 6;
+    LocalAppUtopiaSolitudeChange solitude = 6;
+    string timezone = 7;
   }
 }
 
 message UpdateLocalAppAgentUtopiaSettingsResponse {
-  LocalAppAgentUtopiaSettings settings = 1;
+  uint64 revision = 1;
+  string habitat_activation_id = 2;
+  string habitat_id = 3;
+  string habitat_title = 4;
+  string content_digest = 5;
+  string timezone = 6;
+  bool public_participation = 7;
+  repeated LocalAppUtopiaParameterEntry parameter_values = 8;
+  repeated string open_place_ids = 9;
+  repeated LocalAppUtopiaActiveEvent active_events = 10;
 }

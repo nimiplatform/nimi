@@ -1,0 +1,341 @@
+{
+  "schemaVersion": "1.0",
+  "habitatId": "nimi.builtin.cloud-bamboo-abode",
+  "title": "云水山居",
+  "themeTag": "xianxia",
+  "backdropSummary": "云海竹林环抱的青绿水墨洞天，青石阶与曲水拱桥串联观云剑坪、松风晨钟台、飞瀑听泉亭、灵草药圃、暖火丹房与藏经茶阁。",
+  "personalQuarter": {
+    "id": "personal-quarter",
+    "name": "青竹静室",
+    "sensoryTraits": "翠竹掩映素纸窗棂，室内清幽安宁，案头温着一盏清茶。"
+  },
+  "places": [
+    {
+      "id": "cloud-terrace",
+      "name": "观云剑坪",
+      "archetype": "lookout",
+      "indoor": false,
+      "sensoryTraits": "古松临崖的圆石平台，四周云涛翻涌，山风清冽。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "clear-mist",
+            "auspicious-snow"
+          ]
+        },
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pine-bell-platform",
+      "name": "松风晨钟台",
+      "archetype": "lookout",
+      "indoor": false,
+      "sensoryTraits": "山门牌坊旁的青铜古钟亭，钟声悠远涤荡山岚。",
+      "openWhen": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "waterfall-pavilion",
+      "name": "飞瀑听泉亭",
+      "archetype": "waterside",
+      "indoor": false,
+      "sensoryTraits": "临近银练飞瀑的六角木亭，水雾清凉沁人。",
+      "openWhen": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "herb-terrace",
+      "name": "灵草药圃",
+      "archetype": "garden",
+      "indoor": false,
+      "sensoryTraits": "竹笕引泉灌溉的层叠药畦，弥漫清润草木香。",
+      "openWhen": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "elixir-hearth",
+      "name": "暖火丹房",
+      "archetype": "hearth",
+      "indoor": true,
+      "sensoryTraits": "中庭铜鼎松炭恒温不熄，药香混着焙茶暖意。",
+      "openWhen": []
+    },
+    {
+      "id": "bamboo-cloister",
+      "name": "曲水竹廊院",
+      "archetype": "waterside",
+      "indoor": true,
+      "sensoryTraits": "折廊凌波映着荷叶粉莲，凭栏可听雨打青瓦。",
+      "openWhen": []
+    },
+    {
+      "id": "craft-scroll-hall",
+      "name": "鲁班木艺坊",
+      "archetype": "workshop",
+      "indoor": true,
+      "sensoryTraits": "敞轩内陈列彩绘油纸伞、墨竹画卷与木作案几。",
+      "openWhen": []
+    },
+    {
+      "id": "tea-pavilion",
+      "name": "藏经茶阁",
+      "archetype": "library",
+      "indoor": true,
+      "sensoryTraits": "双层木楼珍藏古卷棋枰，檐下悬着避风宫灯。",
+      "openWhen": []
+    }
+  ],
+  "activities": [
+    {
+      "id": "quiet-reading",
+      "name": "静室读书调息",
+      "placeIds": [
+        "personal-quarter"
+      ],
+      "socialMode": "solo",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 120,
+      "sceneHint": "在青竹静室静坐翻卷，听窗外竹叶轻响。"
+    },
+    {
+      "id": "terrace-cloud-watch",
+      "name": "临崖晨练观云",
+      "placeIds": [
+        "cloud-terrace",
+        "pine-bell-platform"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在观云剑坪或晨钟台远眺峰间云海。"
+    },
+    {
+      "id": "waterfall-tea-listen",
+      "name": "飞瀑亭畔听泉",
+      "placeIds": [
+        "waterfall-pavilion"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在飞瀑听泉亭凭栏赏潭，闲谈山中风物。"
+    },
+    {
+      "id": "water-herbs",
+      "name": "药圃引泉浇灌",
+      "placeIds": [
+        "herb-terrace"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day"
+      ],
+      "when": [
+        {
+          "parameterKey": "mountain-array",
+          "allowedValues": [
+            "normal"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "引清泉竹笕润泽灵草新芽。"
+    },
+    {
+      "id": "tend-hearth-tea",
+      "name": "丹房看火煮茶",
+      "placeIds": [
+        "elixir-hearth"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在暖火丹房围炉焙茶，看松炭微红。"
+    },
+    {
+      "id": "cloister-lotus-stroll",
+      "name": "竹廊凭栏赏荷",
+      "placeIds": [
+        "bamboo-cloister"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 80,
+      "sceneHint": "在曲水竹廊院慢步赏莲，听溪水穿桥。"
+    },
+    {
+      "id": "umbrella-scroll-craft",
+      "name": "彩绘纸伞题卷",
+      "placeIds": [
+        "craft-scroll-hall"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "day",
+        "dusk"
+      ],
+      "when": [],
+      "minDurationMinutes": 25,
+      "maxDurationMinutes": 85,
+      "sceneHint": "在鲁班木艺坊描绘油纸伞面或装裱山水小品。"
+    },
+    {
+      "id": "pavilion-board-talk",
+      "name": "茶阁对弈夜话",
+      "placeIds": [
+        "tea-pavilion"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在藏经茶阁灯下摆棋翻卷，闲话日常。"
+    }
+  ],
+  "parameters": [
+    {
+      "key": "weather",
+      "label": "山间天象",
+      "defaultValue": "clear-mist",
+      "options": [
+        {
+          "value": "clear-mist",
+          "label": "晴岚",
+          "summary": "山间清朗微岚，云海平铺于剑坪之下。"
+        },
+        {
+          "value": "mountain-rain",
+          "label": "山雨",
+          "summary": "细雨穿过竹林石阶，宜在竹廊与阁内听雨。"
+        },
+        {
+          "value": "auspicious-snow",
+          "label": "瑞雪",
+          "summary": "轻雪落满松枝青瓦，丹房炭火更显温暖。"
+        }
+      ]
+    },
+    {
+      "key": "mountain-array",
+      "label": "山门云阵",
+      "defaultValue": "normal",
+      "options": [
+        {
+          "value": "normal",
+          "label": "云开常态",
+          "summary": "云径畅通，外坪飞瀑与药圃皆可自由往来。"
+        },
+        {
+          "value": "secluded",
+          "label": "护山静息",
+          "summary": "云雾合拢护院，众人皆在室内廊阁静修叙话。"
+        }
+      ]
+    }
+  ],
+  "eventPresets": [
+    {
+      "id": "white-blossom",
+      "sceneryKind": "blossom",
+      "label": "后山古树落白花",
+      "description": "山风拂过古木，细白花瓣顺着云阶飘落药圃庭前。",
+      "placeId": "herb-terrace",
+      "defaultDurationMinutes": 240
+    },
+    {
+      "id": "terrace-meteors",
+      "sceneryKind": "meteor-shower",
+      "label": "观云坪流萤星雨",
+      "description": "清夜云海之上掠过成串澄澈星痕。",
+      "placeId": "cloud-terrace",
+      "defaultDurationMinutes": 180
+    },
+    {
+      "id": "cloister-lotus-lantern",
+      "sceneryKind": "hearth-lit",
+      "label": "竹廊荷池放河灯",
+      "description": "曲水竹廊下的碧荷间漂起盏盏暖黄纸莲灯。",
+      "placeId": "bamboo-cloister",
+      "defaultDurationMinutes": 150
+    }
+  ]
+}

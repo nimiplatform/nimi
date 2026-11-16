@@ -5152,12 +5152,20 @@ type GetLocalAppAgentUtopiaSnapshotRequest struct {
 }
 
 type GetLocalAppAgentUtopiaSnapshotResponse struct {
-	Settings         *LocalAppAgentUtopiaSettings        `json:"settings,omitempty"`
-	ObservedAt       string                              `json:"observed_at,omitempty"`
-	Places           []LocalAppAgentUtopiaPlace          `json:"places,omitempty"`
-	Residents        []LocalAppAgentUtopiaResident       `json:"residents,omitempty"`
-	Occupancy        []LocalAppAgentUtopiaOccupancy      `json:"occupancy,omitempty"`
-	SharedActivities []LocalAppAgentUtopiaSharedActivity `json:"shared_activities,omitempty"`
+	Revision            uint64                           `json:"revision,omitempty"`
+	ObservedAt          string                           `json:"observed_at,omitempty"`
+	HabitatActivationId string                           `json:"habitat_activation_id,omitempty"`
+	ContentDigest       string                           `json:"content_digest,omitempty"`
+	Timezone            string                           `json:"timezone,omitempty"`
+	PublicParticipation bool                             `json:"public_participation,omitempty"`
+	Habitat             *LocalAppUtopiaHabitatSpec       `json:"habitat,omitempty"`
+	ParameterValues     []LocalAppUtopiaParameterEntry   `json:"parameter_values,omitempty"`
+	OpenPlaceIds        []string                         `json:"open_place_ids,omitempty"`
+	ActiveEvents        []LocalAppUtopiaActiveEvent      `json:"active_events,omitempty"`
+	LastRelocation      *LocalAppUtopiaRelocationSummary `json:"last_relocation,omitempty"`
+	Residents           []LocalAppUtopiaResident         `json:"residents,omitempty"`
+	Occupancy           []LocalAppUtopiaPlaceOccupancy   `json:"occupancy,omitempty"`
+	SharedActivities    []LocalAppUtopiaSharedActivity   `json:"shared_activities,omitempty"`
 }
 
 type GetLocalAppAgentWorkRequest struct {
@@ -6583,58 +6591,6 @@ type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
 }
 
-type LocalAppAgentUtopiaFrame struct {
-	Title       string `json:"title,omitempty"`
-	Place       string `json:"place,omitempty"`
-	StartsAt    string `json:"starts_at,omitempty"`
-	EndsAt      string `json:"ends_at,omitempty"`
-	Interaction bool   `json:"interaction,omitempty"`
-}
-
-type LocalAppAgentUtopiaOccupancy struct {
-	Place        string   `json:"place,omitempty"`
-	AgentHandles []string `json:"agent_handles,omitempty"`
-}
-
-type LocalAppAgentUtopiaPlace struct {
-	Id         string   `json:"id,omitempty"`
-	Activities []string `json:"activities,omitempty"`
-}
-
-type LocalAppAgentUtopiaResident struct {
-	AgentHandle string                    `json:"agent_handle,omitempty"`
-	DisplayName string                    `json:"display_name,omitempty"`
-	Solitary    bool                      `json:"solitary,omitempty"`
-	Current     *LocalAppAgentUtopiaFrame `json:"current,omitempty"`
-	Recent      *LocalAppAgentUtopiaFrame `json:"recent,omitempty"`
-	Next        *LocalAppAgentUtopiaFrame `json:"next,omitempty"`
-}
-
-type LocalAppAgentUtopiaSettings struct {
-	Revision            uint64 `json:"revision,omitempty"`
-	Preset              string `json:"preset,omitempty"`
-	PresetVersion       uint64 `json:"preset_version,omitempty"`
-	OutdoorOpen         bool   `json:"outdoor_open,omitempty"`
-	PublicParticipation bool   `json:"public_participation,omitempty"`
-}
-
-type LocalAppAgentUtopiaSharedActivity struct {
-	ActivityRef     string `json:"activity_ref,omitempty"`
-	InitiatorHandle string `json:"initiator_handle,omitempty"`
-	RecipientHandle string `json:"recipient_handle,omitempty"`
-	Place           string `json:"place,omitempty"`
-	Activity        string `json:"activity,omitempty"`
-	State           string `json:"state,omitempty"`
-	StartsAt        string `json:"starts_at,omitempty"`
-	EndsAt          string `json:"ends_at,omitempty"`
-	AcceptedAt      string `json:"accepted_at,omitempty"`
-}
-
-type LocalAppAgentUtopiaSolitude struct {
-	AgentHandle string `json:"agent_handle,omitempty"`
-	Solitary    bool   `json:"solitary,omitempty"`
-}
-
 type LocalAppAgentWorkEvent struct {
 	ExecutionId string                      `json:"execution_id,omitempty"`
 	Sequence    uint64                      `json:"sequence,omitempty"`
@@ -7189,6 +7145,180 @@ type LocalAppTextTurnReasoningSummary struct {
 type LocalAppTextTurnToolCall struct {
 	ItemIndex uint32    `json:"item_index,omitempty"`
 	ToolCall  *ToolCall `json:"tool_call,omitempty"`
+}
+
+type LocalAppUtopiaActivateHabitatChange struct {
+	Habitat           *LocalAppUtopiaHabitatSpec     `json:"habitat,omitempty"`
+	InitialParameters []LocalAppUtopiaParameterEntry `json:"initial_parameters,omitempty"`
+	Timezone          *string                        `json:"timezone,omitempty"`
+}
+
+type LocalAppUtopiaActiveEvent struct {
+	EventId     string  `json:"event_id,omitempty"`
+	Slot        string  `json:"slot,omitempty"`
+	SceneryKind string  `json:"scenery_kind,omitempty"`
+	Label       string  `json:"label,omitempty"`
+	Description string  `json:"description,omitempty"`
+	PlaceId     *string `json:"place_id,omitempty"`
+	StartsAt    string  `json:"starts_at,omitempty"`
+	ExpiresAt   string  `json:"expires_at,omitempty"`
+}
+
+type LocalAppUtopiaActivitySpec struct {
+	Id                 string                             `json:"id,omitempty"`
+	Name               string                             `json:"name,omitempty"`
+	PlaceIds           []string                           `json:"place_ids,omitempty"`
+	SocialMode         string                             `json:"social_mode,omitempty"`
+	AllowedDayparts    []string                           `json:"allowed_dayparts,omitempty"`
+	When               []LocalAppUtopiaParameterCondition `json:"when,omitempty"`
+	MinDurationMinutes int32                              `json:"min_duration_minutes,omitempty"`
+	MaxDurationMinutes int32                              `json:"max_duration_minutes,omitempty"`
+	SceneHint          string                             `json:"scene_hint,omitempty"`
+}
+
+type LocalAppUtopiaApplyTuningChange struct {
+	Parameters    []LocalAppUtopiaParameterEntry `json:"parameters,omitempty"`
+	EventMutation *LocalAppUtopiaEventMutation   `json:"event_mutation,omitempty"`
+}
+
+type LocalAppUtopiaCustomEventTrigger struct {
+	SceneryKind     string  `json:"scenery_kind,omitempty"`
+	Label           string  `json:"label,omitempty"`
+	Description     string  `json:"description,omitempty"`
+	PlaceId         *string `json:"place_id,omitempty"`
+	DurationMinutes int32   `json:"duration_minutes,omitempty"`
+}
+
+type LocalAppUtopiaEventMutation struct {
+	TriggerPreset *LocalAppUtopiaPresetEventTrigger `json:"trigger_preset,omitempty"`
+	PutCustom     *LocalAppUtopiaCustomEventTrigger `json:"put_custom,omitempty"`
+	ClearEventId  string                            `json:"clear_event_id,omitempty"`
+}
+
+type LocalAppUtopiaEventPresetSpec struct {
+	Id                     string  `json:"id,omitempty"`
+	SceneryKind            string  `json:"scenery_kind,omitempty"`
+	Label                  string  `json:"label,omitempty"`
+	Description            string  `json:"description,omitempty"`
+	PlaceId                *string `json:"place_id,omitempty"`
+	DefaultDurationMinutes int32   `json:"default_duration_minutes,omitempty"`
+}
+
+type LocalAppUtopiaFrame struct {
+	ActivityId          string `json:"activity_id,omitempty"`
+	Title               string `json:"title,omitempty"`
+	HabitatActivationId string `json:"habitat_activation_id,omitempty"`
+	HabitatId           string `json:"habitat_id,omitempty"`
+	HabitatTitle        string `json:"habitat_title,omitempty"`
+	PlaceId             string `json:"place_id,omitempty"`
+	PlaceLabel          string `json:"place_label,omitempty"`
+	StartsAt            string `json:"starts_at,omitempty"`
+	EndsAt              string `json:"ends_at,omitempty"`
+	Interaction         bool   `json:"interaction,omitempty"`
+}
+
+type LocalAppUtopiaHabitatSpec struct {
+	SchemaVersion   string                             `json:"schema_version,omitempty"`
+	HabitatId       string                             `json:"habitat_id,omitempty"`
+	Title           string                             `json:"title,omitempty"`
+	ThemeTag        string                             `json:"theme_tag,omitempty"`
+	BackdropSummary string                             `json:"backdrop_summary,omitempty"`
+	PersonalQuarter *LocalAppUtopiaPersonalQuarterSpec `json:"personal_quarter,omitempty"`
+	Places          []LocalAppUtopiaPlaceSpec          `json:"places,omitempty"`
+	Activities      []LocalAppUtopiaActivitySpec       `json:"activities,omitempty"`
+	Parameters      []LocalAppUtopiaParameterSpec      `json:"parameters,omitempty"`
+	EventPresets    []LocalAppUtopiaEventPresetSpec    `json:"event_presets,omitempty"`
+}
+
+type LocalAppUtopiaParameterCondition struct {
+	ParameterKey  string   `json:"parameter_key,omitempty"`
+	AllowedValues []string `json:"allowed_values,omitempty"`
+}
+
+type LocalAppUtopiaParameterEntry struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type LocalAppUtopiaParameterOption struct {
+	Value   string `json:"value,omitempty"`
+	Label   string `json:"label,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type LocalAppUtopiaParameterSpec struct {
+	Key          string                          `json:"key,omitempty"`
+	Label        string                          `json:"label,omitempty"`
+	DefaultValue string                          `json:"default_value,omitempty"`
+	Options      []LocalAppUtopiaParameterOption `json:"options,omitempty"`
+}
+
+type LocalAppUtopiaPersonalQuarterSpec struct {
+	Id            string `json:"id,omitempty"`
+	Name          string `json:"name,omitempty"`
+	SensoryTraits string `json:"sensory_traits,omitempty"`
+}
+
+type LocalAppUtopiaPlaceOccupancy struct {
+	PlaceId      string   `json:"place_id,omitempty"`
+	AgentHandles []string `json:"agent_handles,omitempty"`
+}
+
+type LocalAppUtopiaPlaceSpec struct {
+	Id            string                             `json:"id,omitempty"`
+	Name          string                             `json:"name,omitempty"`
+	Archetype     string                             `json:"archetype,omitempty"`
+	Indoor        bool                               `json:"indoor,omitempty"`
+	SensoryTraits string                             `json:"sensory_traits,omitempty"`
+	OpenWhen      []LocalAppUtopiaParameterCondition `json:"open_when,omitempty"`
+}
+
+type LocalAppUtopiaPresetEventTrigger struct {
+	PresetId        string `json:"preset_id,omitempty"`
+	DurationMinutes *int32 `json:"duration_minutes,omitempty"`
+}
+
+type LocalAppUtopiaRelocationSummary struct {
+	FromHabitatId    string `json:"from_habitat_id,omitempty"`
+	FromHabitatTitle string `json:"from_habitat_title,omitempty"`
+	ToHabitatId      string `json:"to_habitat_id,omitempty"`
+	ToHabitatTitle   string `json:"to_habitat_title,omitempty"`
+	RelocatedAt      string `json:"relocated_at,omitempty"`
+}
+
+type LocalAppUtopiaResident struct {
+	AgentHandle string               `json:"agent_handle,omitempty"`
+	DisplayName string               `json:"display_name,omitempty"`
+	Solitary    bool                 `json:"solitary,omitempty"`
+	Current     *LocalAppUtopiaFrame `json:"current,omitempty"`
+	Recent      *LocalAppUtopiaFrame `json:"recent,omitempty"`
+	Next        *LocalAppUtopiaFrame `json:"next,omitempty"`
+}
+
+type LocalAppUtopiaRestoreDefaultChange struct {
+	Timezone *string `json:"timezone,omitempty"`
+}
+
+type LocalAppUtopiaSharedActivity struct {
+	ActivityRef         string `json:"activity_ref,omitempty"`
+	HabitatActivationId string `json:"habitat_activation_id,omitempty"`
+	HabitatId           string `json:"habitat_id,omitempty"`
+	HabitatTitle        string `json:"habitat_title,omitempty"`
+	InitiatorHandle     string `json:"initiator_handle,omitempty"`
+	RecipientHandle     string `json:"recipient_handle,omitempty"`
+	PlaceId             string `json:"place_id,omitempty"`
+	PlaceLabel          string `json:"place_label,omitempty"`
+	ActivityId          string `json:"activity_id,omitempty"`
+	ActivityLabel       string `json:"activity_label,omitempty"`
+	State               string `json:"state,omitempty"`
+	StartsAt            string `json:"starts_at,omitempty"`
+	EndsAt              string `json:"ends_at,omitempty"`
+	AcceptedAt          string `json:"accepted_at,omitempty"`
+}
+
+type LocalAppUtopiaSolitudeChange struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Solitary    bool   `json:"solitary,omitempty"`
 }
 
 type LocalAppVideoGenerateJobSpec struct {
@@ -10118,16 +10248,26 @@ type UpdateLocalAppAgentConversationContextResponse struct {
 }
 
 type UpdateLocalAppAgentUtopiaSettingsRequest struct {
-	ExpectedRevision    uint64                       `json:"expected_revision,omitempty"`
-	SelectPreset        string                       `json:"select_preset,omitempty"`
-	RestoreDefault      bool                         `json:"restore_default,omitempty"`
-	OutdoorOpen         bool                         `json:"outdoor_open,omitempty"`
-	PublicParticipation bool                         `json:"public_participation,omitempty"`
-	Solitude            *LocalAppAgentUtopiaSolitude `json:"solitude,omitempty"`
+	ExpectedRevision    uint64                               `json:"expected_revision,omitempty"`
+	ActivateHabitat     *LocalAppUtopiaActivateHabitatChange `json:"activate_habitat,omitempty"`
+	RestoreDefault      *LocalAppUtopiaRestoreDefaultChange  `json:"restore_default,omitempty"`
+	ApplyTuning         *LocalAppUtopiaApplyTuningChange     `json:"apply_tuning,omitempty"`
+	PublicParticipation bool                                 `json:"public_participation,omitempty"`
+	Solitude            *LocalAppUtopiaSolitudeChange        `json:"solitude,omitempty"`
+	Timezone            string                               `json:"timezone,omitempty"`
 }
 
 type UpdateLocalAppAgentUtopiaSettingsResponse struct {
-	Settings *LocalAppAgentUtopiaSettings `json:"settings,omitempty"`
+	Revision            uint64                         `json:"revision,omitempty"`
+	HabitatActivationId string                         `json:"habitat_activation_id,omitempty"`
+	HabitatId           string                         `json:"habitat_id,omitempty"`
+	HabitatTitle        string                         `json:"habitat_title,omitempty"`
+	ContentDigest       string                         `json:"content_digest,omitempty"`
+	Timezone            string                         `json:"timezone,omitempty"`
+	PublicParticipation bool                           `json:"public_participation,omitempty"`
+	ParameterValues     []LocalAppUtopiaParameterEntry `json:"parameter_values,omitempty"`
+	OpenPlaceIds        []string                       `json:"open_place_ids,omitempty"`
+	ActiveEvents        []LocalAppUtopiaActiveEvent    `json:"active_events,omitempty"`
 }
 
 type UploadArtifactChunk struct {

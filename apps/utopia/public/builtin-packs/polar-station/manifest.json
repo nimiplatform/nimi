@@ -1,0 +1,11 @@
+{
+  "bundleFormatVersion": "1.0",
+  "bundleId": "nimi.builtin.polar-station",
+  "version": "1.0.0",
+  "title": "极地科考站",
+  "subtitle": "冰脊暖光全景科考聚落 · 气象栈台、双穹顶观测温室、冰芯库与地热暖炉",
+  "author": "Nimi Official",
+  "previewAsset": "assets/preview.png",
+  "habitatFile": "habitat.json",
+  "stageFile": "stage.json"
+}

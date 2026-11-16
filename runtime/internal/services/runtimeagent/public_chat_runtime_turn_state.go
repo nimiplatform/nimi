@@ -264,6 +264,7 @@ func (r publicChatRuntime) reserveTurn(
 		if claim := req.proactiveClaim; claim != nil {
 			copy := *claim
 			turn.ProactiveIntent = &copy
+			turn.UtopiaRead = claim.UtopiaRead
 			turn.Origin = claim.Source
 			turn.MemoryReadSet = req.proactiveMemoryReadSet
 			turn.ConversationRead = req.proactiveConversationRead

@@ -8874,12 +8874,20 @@ pub struct GetLocalAppAgentUtopiaSnapshotRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppAgentUtopiaSnapshotResponse {
-    pub settings: Option<Box<LocalAppAgentUtopiaSettings>>,
+    pub revision: Option<u64>,
     pub observed_at: Option<String>,
-    pub places: Vec<Box<LocalAppAgentUtopiaPlace>>,
-    pub residents: Vec<Box<LocalAppAgentUtopiaResident>>,
-    pub occupancy: Vec<Box<LocalAppAgentUtopiaOccupancy>>,
-    pub shared_activities: Vec<Box<LocalAppAgentUtopiaSharedActivity>>,
+    pub habitat_activation_id: Option<String>,
+    pub content_digest: Option<String>,
+    pub timezone: Option<String>,
+    pub public_participation: Option<bool>,
+    pub habitat: Option<Box<LocalAppUtopiaHabitatSpec>>,
+    pub parameter_values: Vec<Box<LocalAppUtopiaParameterEntry>>,
+    pub open_place_ids: Vec<String>,
+    pub active_events: Vec<Box<LocalAppUtopiaActiveEvent>>,
+    pub last_relocation: Option<Box<LocalAppUtopiaRelocationSummary>>,
+    pub residents: Vec<Box<LocalAppUtopiaResident>>,
+    pub occupancy: Vec<Box<LocalAppUtopiaPlaceOccupancy>>,
+    pub shared_activities: Vec<Box<LocalAppUtopiaSharedActivity>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11080,65 +11088,6 @@ pub struct LocalAppAgentUpdateAutonomyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaFrame {
-    pub title: Option<String>,
-    pub place: Option<String>,
-    pub starts_at: Option<String>,
-    pub ends_at: Option<String>,
-    pub interaction: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaOccupancy {
-    pub place: Option<String>,
-    pub agent_handles: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaPlace {
-    pub id: Option<String>,
-    pub activities: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaResident {
-    pub agent_handle: Option<String>,
-    pub display_name: Option<String>,
-    pub solitary: Option<bool>,
-    pub current: Option<Box<LocalAppAgentUtopiaFrame>>,
-    pub recent: Option<Box<LocalAppAgentUtopiaFrame>>,
-    pub next: Option<Box<LocalAppAgentUtopiaFrame>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaSettings {
-    pub revision: Option<u64>,
-    pub preset: Option<String>,
-    pub preset_version: Option<u64>,
-    pub outdoor_open: Option<bool>,
-    pub public_participation: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaSharedActivity {
-    pub activity_ref: Option<String>,
-    pub initiator_handle: Option<String>,
-    pub recipient_handle: Option<String>,
-    pub place: Option<String>,
-    pub activity: Option<String>,
-    pub state: Option<String>,
-    pub starts_at: Option<String>,
-    pub ends_at: Option<String>,
-    pub accepted_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentUtopiaSolitude {
-    pub agent_handle: Option<String>,
-    pub solitary: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentWorkEvent {
     pub execution_id: Option<String>,
     pub sequence: Option<u64>,
@@ -11758,6 +11707,202 @@ pub struct LocalAppTextTurnReasoningSummary {
 pub struct LocalAppTextTurnToolCall {
     pub item_index: Option<u32>,
     pub tool_call: Option<Box<ToolCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaActivateHabitatChange {
+    pub habitat: Option<Box<LocalAppUtopiaHabitatSpec>>,
+    pub initial_parameters: Vec<Box<LocalAppUtopiaParameterEntry>>,
+    pub timezone: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaActiveEvent {
+    pub event_id: Option<String>,
+    pub slot: Option<String>,
+    pub scenery_kind: Option<String>,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub place_id: Option<String>,
+    pub starts_at: Option<String>,
+    pub expires_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaActivitySpec {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub place_ids: Vec<String>,
+    pub social_mode: Option<String>,
+    pub allowed_dayparts: Vec<String>,
+    pub when: Vec<Box<LocalAppUtopiaParameterCondition>>,
+    pub min_duration_minutes: Option<i32>,
+    pub max_duration_minutes: Option<i32>,
+    pub scene_hint: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaApplyTuningChange {
+    pub parameters: Vec<Box<LocalAppUtopiaParameterEntry>>,
+    pub event_mutation: Option<Box<LocalAppUtopiaEventMutation>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaCustomEventTrigger {
+    pub scenery_kind: Option<String>,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub place_id: Option<String>,
+    pub duration_minutes: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaEventMutation {
+    pub trigger_preset: Option<Box<LocalAppUtopiaPresetEventTrigger>>,
+    pub put_custom: Option<Box<LocalAppUtopiaCustomEventTrigger>>,
+    pub clear_event_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaEventPresetSpec {
+    pub id: Option<String>,
+    pub scenery_kind: Option<String>,
+    pub label: Option<String>,
+    pub description: Option<String>,
+    pub place_id: Option<String>,
+    pub default_duration_minutes: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaFrame {
+    pub activity_id: Option<String>,
+    pub title: Option<String>,
+    pub habitat_activation_id: Option<String>,
+    pub habitat_id: Option<String>,
+    pub habitat_title: Option<String>,
+    pub place_id: Option<String>,
+    pub place_label: Option<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub interaction: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaHabitatSpec {
+    pub schema_version: Option<String>,
+    pub habitat_id: Option<String>,
+    pub title: Option<String>,
+    pub theme_tag: Option<String>,
+    pub backdrop_summary: Option<String>,
+    pub personal_quarter: Option<Box<LocalAppUtopiaPersonalQuarterSpec>>,
+    pub places: Vec<Box<LocalAppUtopiaPlaceSpec>>,
+    pub activities: Vec<Box<LocalAppUtopiaActivitySpec>>,
+    pub parameters: Vec<Box<LocalAppUtopiaParameterSpec>>,
+    pub event_presets: Vec<Box<LocalAppUtopiaEventPresetSpec>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaParameterCondition {
+    pub parameter_key: Option<String>,
+    pub allowed_values: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaParameterEntry {
+    pub key: Option<String>,
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaParameterOption {
+    pub value: Option<String>,
+    pub label: Option<String>,
+    pub summary: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaParameterSpec {
+    pub key: Option<String>,
+    pub label: Option<String>,
+    pub default_value: Option<String>,
+    pub options: Vec<Box<LocalAppUtopiaParameterOption>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaPersonalQuarterSpec {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub sensory_traits: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaPlaceOccupancy {
+    pub place_id: Option<String>,
+    pub agent_handles: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaPlaceSpec {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub archetype: Option<String>,
+    pub indoor: Option<bool>,
+    pub sensory_traits: Option<String>,
+    pub open_when: Vec<Box<LocalAppUtopiaParameterCondition>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaPresetEventTrigger {
+    pub preset_id: Option<String>,
+    pub duration_minutes: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaRelocationSummary {
+    pub from_habitat_id: Option<String>,
+    pub from_habitat_title: Option<String>,
+    pub to_habitat_id: Option<String>,
+    pub to_habitat_title: Option<String>,
+    pub relocated_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaResident {
+    pub agent_handle: Option<String>,
+    pub display_name: Option<String>,
+    pub solitary: Option<bool>,
+    pub current: Option<Box<LocalAppUtopiaFrame>>,
+    pub recent: Option<Box<LocalAppUtopiaFrame>>,
+    pub next: Option<Box<LocalAppUtopiaFrame>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaRestoreDefaultChange {
+    pub timezone: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaSharedActivity {
+    pub activity_ref: Option<String>,
+    pub habitat_activation_id: Option<String>,
+    pub habitat_id: Option<String>,
+    pub habitat_title: Option<String>,
+    pub initiator_handle: Option<String>,
+    pub recipient_handle: Option<String>,
+    pub place_id: Option<String>,
+    pub place_label: Option<String>,
+    pub activity_id: Option<String>,
+    pub activity_label: Option<String>,
+    pub state: Option<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub accepted_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppUtopiaSolitudeChange {
+    pub agent_handle: Option<String>,
+    pub solitary: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -16284,16 +16429,26 @@ pub struct UpdateLocalAppAgentConversationContextResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateLocalAppAgentUtopiaSettingsRequest {
     pub expected_revision: Option<u64>,
-    pub select_preset: Option<String>,
-    pub restore_default: Option<bool>,
-    pub outdoor_open: Option<bool>,
+    pub activate_habitat: Option<Box<LocalAppUtopiaActivateHabitatChange>>,
+    pub restore_default: Option<Box<LocalAppUtopiaRestoreDefaultChange>>,
+    pub apply_tuning: Option<Box<LocalAppUtopiaApplyTuningChange>>,
     pub public_participation: Option<bool>,
-    pub solitude: Option<Box<LocalAppAgentUtopiaSolitude>>,
+    pub solitude: Option<Box<LocalAppUtopiaSolitudeChange>>,
+    pub timezone: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateLocalAppAgentUtopiaSettingsResponse {
-    pub settings: Option<Box<LocalAppAgentUtopiaSettings>>,
+    pub revision: Option<u64>,
+    pub habitat_activation_id: Option<String>,
+    pub habitat_id: Option<String>,
+    pub habitat_title: Option<String>,
+    pub content_digest: Option<String>,
+    pub timezone: Option<String>,
+    pub public_participation: Option<bool>,
+    pub parameter_values: Vec<Box<LocalAppUtopiaParameterEntry>>,
+    pub open_place_ids: Vec<String>,
+    pub active_events: Vec<Box<LocalAppUtopiaActiveEvent>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

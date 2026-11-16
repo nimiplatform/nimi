@@ -1,0 +1,11 @@
+{
+  "bundleFormatVersion": "1.0",
+  "bundleId": "nimi.builtin.seaside-island",
+  "version": "1.0.0",
+  "title": "海风渔岛",
+  "subtitle": "全景手绘海岸聚落 · 灯塔、观鸟湿地、榕荫市集、退潮礁池与双栈桥渔港",
+  "author": "Nimi Official",
+  "previewAsset": "assets/preview.png",
+  "habitatFile": "habitat.json",
+  "stageFile": "stage.json"
+}

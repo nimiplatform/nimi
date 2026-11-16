@@ -211,6 +211,9 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 	}
 	if result.Accepted {
 		result.Confirmation = confirmation
+		if a := next.Life.Activities[result.ActivityRef]; a != nil {
+			a.CustomSceneryDerived = a.CustomSceneryDerived || live.LifeCustomSceneryRead
+		}
 	}
 	memoryHook, memoryErr := s.selfIntentionMemoryTxHook(next, p, result, turn.TurnID, time.Now().UTC())
 	if memoryErr != nil {

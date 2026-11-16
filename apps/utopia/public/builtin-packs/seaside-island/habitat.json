@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "1.0",
+  "habitatId": "nimi.builtin.seaside-island",
+  "title": "海风渔岛",
+  "themeTag": "seaside",
+  "backdropSummary": "安静的临海小岛，木栈道连着遮蔽观鸟棚、礁石滩涂与木船工坊，海风与潮汐决定每日去处。",
+  "personalQuarter": {
+    "id": "personal-quarter",
+    "name": "海边木屋",
+    "sensoryTraits": "松木地板带着淡淡海盐味，窗外能听见远处规律的潮声。"
+  },
+  "places": [
+    {
+      "id": "bird-hide",
+      "name": "遮蔽观鸟棚",
+      "archetype": "lookout",
+      "indoor": true,
+      "sensoryTraits": "半敞木窗朝向湿地芦苇与浅湾，适合安静驻足。",
+      "openWhen": []
+    },
+    {
+      "id": "tidal-reef",
+      "name": "礁石滩涂",
+      "archetype": "waterside",
+      "indoor": false,
+      "sensoryTraits": "退潮后露出平滑岩池与细沙浅滩。",
+      "openWhen": [
+        {
+          "parameterKey": "tide",
+          "allowedValues": [
+            "low-tide"
+          ]
+        },
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "sea-mist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "island-deck",
+      "name": "海岸木平台",
+      "archetype": "courtyard",
+      "indoor": false,
+      "sensoryTraits": "临海开阔甲板，摆放着木桌与防风提灯。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "sea-mist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boat-workshop",
+      "name": "木船工坊",
+      "archetype": "workshop",
+      "indoor": true,
+      "sensoryTraits": "干燥温暖的木梁棚屋，墙边整齐挂着刨刀、画板与渔网。",
+      "openWhen": []
+    }
+  ],
+  "activities": [
+    {
+      "id": "cabin-quiet-rest",
+      "name": "木屋读书小憩",
+      "placeIds": [
+        "personal-quarter"
+      ],
+      "socialMode": "solo",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 120,
+      "sceneHint": "在海边木屋翻书或整理随身小物件，听窗外风声。"
+    },
+    {
+      "id": "watch-birds",
+      "name": "棚内观鸟",
+      "placeIds": [
+        "bird-hide"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在观鸟棚木窗旁辨认掠过浅湾的海鸟与夜鹭。"
+    },
+    {
+      "id": "reef-combing",
+      "name": "赶海拾贝",
+      "placeIds": [
+        "tidal-reef"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "tide",
+          "allowedValues": [
+            "low-tide"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "趁大退潮沿着岩池寻找贝壳与海玻璃。"
+    },
+    {
+      "id": "watch-waves",
+      "name": "木台听涛写生",
+      "placeIds": [
+        "island-deck"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "sea-mist"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在海岸木平台凭栏看浪或速写海平面。"
+    },
+    {
+      "id": "mend-gear",
+      "name": "合力修整渔具",
+      "placeIds": [
+        "boat-workshop"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在木船工坊灯下打磨木浆、修补浮标或整理画稿。"
+    }
+  ],
+  "parameters": [
+    {
+      "key": "weather",
+      "label": "海岛天气",
+      "defaultValue": "sunny-breeze",
+      "options": [
+        {
+          "value": "sunny-breeze",
+          "label": "晴风",
+          "summary": "海面清朗，微风拂过栈道与木台。"
+        },
+        {
+          "value": "sea-mist",
+          "label": "海雾",
+          "summary": "薄雾拢着远礁，光线柔和安静。"
+        },
+        {
+          "value": "rain",
+          "label": "阵雨",
+          "summary": "海雨敲打屋檐，露天滩涂与木台暂时收起。"
+        }
+      ]
+    },
+    {
+      "key": "tide",
+      "label": "潮汐水位",
+      "defaultValue": "low-tide",
+      "options": [
+        {
+          "value": "high-tide",
+          "label": "涨潮",
+          "summary": "海水漫过低处礁盘，拍岸声清晰。"
+        },
+        {
+          "value": "low-tide",
+          "label": "大退潮",
+          "summary": "礁石滩涂完整显露，可以缓步赶海。"
+        }
+      ]
+    }
+  ],
+  "eventPresets": [
+    {
+      "id": "sea-glass",
+      "sceneryKind": "tide-pooling",
+      "label": "礁石留着海玻璃",
+      "description": "退潮后的岩池边缘散落着被海浪磨圆的透亮海玻璃。",
+      "placeId": "tidal-reef",
+      "defaultDurationMinutes": 180
+    },
+    {
+      "id": "dolphin-pod",
+      "sceneryKind": "wildlife-visit",
+      "label": "远海有海豚跃过",
+      "description": "几道银灰背鳍顺着暖流掠过外湾水面。",
+      "placeId": "island-deck",
+      "defaultDurationMinutes": 120
+    }
+  ]
+}

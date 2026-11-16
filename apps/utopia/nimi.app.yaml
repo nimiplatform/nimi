@@ -6,6 +6,7 @@ app_access:
   - agent.utopia.read
   - agent.utopia.manage
   - agent.local
+  - runtime.consume
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1455

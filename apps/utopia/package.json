@@ -9,6 +9,7 @@
     "dev:shell": "nimi-app dev",
     "dev:renderer": "vite --host 127.0.0.1 --port 1455 --strictPort",
     "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --import tsx --test test/*.test.ts test/*.test.tsx",
     "build": "tsc --noEmit && vite build",
     "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer utopia"
   },
@@ -20,12 +21,15 @@
   },
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "electron": "45.0.0",
     "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vite": "8.3.5"
   }

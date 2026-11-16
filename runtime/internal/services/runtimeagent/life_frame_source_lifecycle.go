@@ -121,6 +121,19 @@ func (s *Service) chatLifeContext(ctx context.Context, session publicChatAnchorS
 			}
 		}
 	}
+	now := time.Now().UTC()
 	selection := &lifeConversationRead{AnchorID: session.ConversationAnchorID, Revision: conversationContextRevision(session.ConversationContext), FirstSequence: session.ConversationContext.FirstTurnSequence}
-	return projectLifeContext(entry.Life, false, session.ConversationContext.OmitSupplementalContext, selection, time.Now().UTC())
+	projected := projectLifeContext(entry.Life, false, session.ConversationContext.OmitSupplementalContext, selection, now)
+	if projected != nil && entry.Agent != nil && entry.Agent.GetOwnerUserId() != "" {
+		if settings, uErr := s.readLifeUtopiaSettings(ctx, entry.Agent.GetOwnerUserId()); uErr == nil {
+			if utopia, effErr := settings.effectiveAt(now); effErr == nil {
+				if posture, pErr := utopia.compileMinimalPostureJSON(entry.Life, now); pErr == nil {
+					projected.Utopia = &utopia
+					projected.UtopiaModelJSON = posture.JSON
+					projected.UtopiaRead = posture.Read
+				}
+			}
+		}
+	}
+	return projected
 }

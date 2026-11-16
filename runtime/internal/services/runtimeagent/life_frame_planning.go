@@ -31,14 +31,15 @@ func (l *agentLifeState) canPlanAt(now time.Time) bool {
 }
 
 type lifePastProposal struct {
-	Description       *lifeSelfDescription `json:"description,omitempty"`
-	ActivityRef       string               `json:"activity_ref,omitempty"`
-	Title             string               `json:"title"`
-	Kind              string               `json:"kind"`
-	EndProgress       int                  `json:"end_progress"`
-	CompletesActivity bool                 `json:"completes_activity"`
-	StartFraction     float64              `json:"start_fraction"`
-	EndFraction       float64              `json:"end_fraction"`
+	CustomSceneryActive bool                 `json:"-"`
+	Description         *lifeSelfDescription `json:"description,omitempty"`
+	ActivityRef         string               `json:"activity_ref,omitempty"`
+	Title               string               `json:"title"`
+	Kind                string               `json:"kind"`
+	EndProgress         int                  `json:"end_progress"`
+	CompletesActivity   bool                 `json:"completes_activity"`
+	StartFraction       float64              `json:"start_fraction"`
+	EndFraction         float64              `json:"end_fraction"`
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.catch-up
@@ -66,7 +67,7 @@ func (l *agentLifeState) acceptPast(proposals []lifePastProposal, until time.Tim
 		if p.EndFraction == 1 || end.After(until) {
 			end = until
 		}
-		proposal := lifeFrameProposal{Description: p.Description, ActivityRef: p.ActivityRef, Title: p.Title, Kind: p.Kind, EndProgress: p.EndProgress, CompletesActivity: p.CompletesActivity}
+		proposal := lifeFrameProposal{CustomSceneryActive: p.CustomSceneryActive, Description: p.Description, ActivityRef: p.ActivityRef, Title: p.Title, Kind: p.Kind, EndProgress: p.EndProgress, CompletesActivity: p.CompletesActivity}
 		if err := next.acceptFrames([]lifeFrameProposal{proposal}, start, memoryRefs, chatRead, &end); err != nil {
 			return nil, err
 		}

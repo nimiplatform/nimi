@@ -1,0 +1,371 @@
+{
+  "schemaVersion": "1.0",
+  "habitatId": "nimi.builtin.starfield-town",
+  "title": "星原晴风镇",
+  "themeTag": "courtyard",
+  "backdropSummary": "薰衣草坡与清溪环抱的晴风小镇，鹅卵石街巷串联钟楼绘本馆、暖麦烘焙屋、玻璃花房、喷泉广场、陶绘工坊与热气球草坪。",
+  "personalQuarter": {
+    "id": "personal-quarter",
+    "name": "花院小筑",
+    "sensoryTraits": "爬满蔷薇与常春藤的暖光石木小屋，推开木窗能听见远处广场清脆水声。"
+  },
+  "places": [
+    {
+      "id": "clocktower-library",
+      "name": "钟楼绘本馆",
+      "archetype": "library",
+      "indoor": true,
+      "sensoryTraits": "彩绘玻璃投下柔光，高耸木书架间陈列着植物画册与旧地图。",
+      "openWhen": []
+    },
+    {
+      "id": "bakery-cafe",
+      "name": "暖麦烘焙屋",
+      "archetype": "hearth",
+      "indoor": true,
+      "sensoryTraits": "红白条纹遮阳篷下飘出烤麦包、黄油曲奇与手冲咖啡香气。",
+      "openWhen": []
+    },
+    {
+      "id": "fountain-plaza",
+      "name": "星泉中心广场",
+      "archetype": "courtyard",
+      "indoor": false,
+      "sensoryTraits": "圆环鹅卵石铺就的开阔广场，三层白石喷泉周围种满四色小花。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sunlight-greenhouse",
+      "name": "晴光玻璃花房",
+      "archetype": "garden",
+      "indoor": true,
+      "sensoryTraits": "通透拱形玻璃穹顶下柑橘挂果、蕨叶舒展，空气温润清甜。",
+      "openWhen": []
+    },
+    {
+      "id": "brookside-teadeck",
+      "name": "柳溪木栈茶座",
+      "archetype": "waterside",
+      "indoor": false,
+      "sensoryTraits": "临溪挑出的浅木露台，撑着米白布伞，耳畔是水车轻转声。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "windmill-atelier",
+      "name": "陶绘木工坊",
+      "archetype": "workshop",
+      "indoor": true,
+      "sensoryTraits": "半木结构敞亮工坊，摆着拉坯转盘、水彩画架与松木长桌。",
+      "openWhen": []
+    },
+    {
+      "id": "balloon-meadow",
+      "name": "晴岚热气球坪",
+      "archetype": "lookout",
+      "indoor": false,
+      "sensoryTraits": "镇东高坡向阳草甸，粉蓝拼布热气球随风轻晃，视野极开阔。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grove-stage",
+      "name": "林荫露天乐台",
+      "archetype": "courtyard",
+      "indoor": false,
+      "sensoryTraits": "大树串灯环绕的圆弧木舞台与草阶坐席，常有弦乐随晚风回荡。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "id": "cottage-journal-rest",
+      "name": "小筑静读小憩",
+      "placeIds": [
+        "personal-quarter"
+      ],
+      "socialMode": "solo",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 120,
+      "sceneHint": "在花院小筑窗边整理手账或静静歇息。"
+    },
+    {
+      "id": "clocktower-reading",
+      "name": "翻阅植物绘本",
+      "placeIds": [
+        "clocktower-library"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 25,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在钟楼绘本馆彩窗下各自安静翻阅画集。"
+    },
+    {
+      "id": "bakery-pastry-tea",
+      "name": "分享现烤麦包",
+      "placeIds": [
+        "bakery-cafe"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在暖麦烘焙屋木桌旁分享热茶与刚出炉的面包。"
+    },
+    {
+      "id": "fountain-stroll-chat",
+      "name": "喷泉长椅闲谈",
+      "placeIds": [
+        "fountain-plaza"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在星泉中心广场花坛长椅边听水声聊天。"
+    },
+    {
+      "id": "greenhouse-botany",
+      "name": "照料花房柑橘",
+      "placeIds": [
+        "sunlight-greenhouse"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 80,
+      "sceneHint": "在晴光玻璃花房给盆栽喷雾、记录新叶。"
+    },
+    {
+      "id": "brookside-sketching",
+      "name": "临溪茶座写生",
+      "placeIds": [
+        "brookside-teadeck"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ],
+      "minDurationMinutes": 25,
+      "maxDurationMinutes": 90,
+      "sceneHint": "坐在柳溪木栈茶座描绘石拱桥与水车波光。"
+    },
+    {
+      "id": "pottery-wheel-craft",
+      "name": "手作彩绘陶杯",
+      "placeIds": [
+        "windmill-atelier"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 30,
+      "maxDurationMinutes": 100,
+      "sceneHint": "在陶绘木工坊并肩给素坯茶杯绘上小花纹样。"
+    },
+    {
+      "id": "balloon-horizon-watch",
+      "name": "气球坪远眺晴岚",
+      "placeIds": [
+        "balloon-meadow"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 70,
+      "sceneHint": "在晴岚热气球坪吹风远望整座小镇屋脊。"
+    },
+    {
+      "id": "grove-evening-ensemble",
+      "name": "林荫串灯合奏",
+      "placeIds": [
+        "grove-stage"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "dusk",
+        "night"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "sunny-breeze",
+            "petal-breeze"
+          ]
+        }
+      ],
+      "minDurationMinutes": 25,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在林荫露天乐台暖黄灯串下轻拨琴弦。"
+    }
+  ],
+  "parameters": [
+    {
+      "key": "weather",
+      "label": "小镇天象",
+      "defaultValue": "sunny-breeze",
+      "options": [
+        {
+          "value": "sunny-breeze",
+          "label": "晴风",
+          "summary": "暖阳清风拂过钟楼与草坡，全镇露天街区敞开。"
+        },
+        {
+          "value": "petal-breeze",
+          "label": "落花微风",
+          "summary": "花瓣随风掠过喷泉与柳溪，热气球坪暂停升空。"
+        },
+        {
+          "value": "soft-rain",
+          "label": "润叶细雨",
+          "summary": "细雨润泽石板路，伙伴们移步花房、书馆与烘焙屋。"
+        }
+      ]
+    },
+    {
+      "key": "festival",
+      "label": "街巷氛围",
+      "defaultValue": "daily-calm",
+      "options": [
+        {
+          "value": "daily-calm",
+          "label": "日常晴昼",
+          "summary": "恬静舒缓的小镇日常步调。"
+        },
+        {
+          "value": "lantern-fair",
+          "label": "星灯游园",
+          "summary": "广场、石桥与林荫乐台亮起温暖游园灯串。"
+        }
+      ]
+    }
+  ],
+  "eventPresets": [
+    {
+      "id": "fountain-rainbow",
+      "sceneryKind": "clear-sky",
+      "label": "喷泉映出小彩虹",
+      "description": "午后斜阳穿过星泉水雾，在花坛边折出一道清透七彩光弧。",
+      "placeId": "fountain-plaza",
+      "defaultDurationMinutes": 150
+    },
+    {
+      "id": "bakery-cinnamon",
+      "sceneryKind": "hearth-lit",
+      "label": "暖炉麦包刚出炉",
+      "description": "烘焙屋端出热腾腾的蜂蜜肉桂卷，整条石板街都染上甜香。",
+      "placeId": "bakery-cafe",
+      "defaultDurationMinutes": 120
+    },
+    {
+      "id": "greenhouse-citrus",
+      "sceneryKind": "harvest",
+      "label": "花房小柑橘熟了",
+      "description": "玻璃花房里的金橘与柠檬枝头缀满澄黄果实。",
+      "placeId": "sunlight-greenhouse",
+      "defaultDurationMinutes": 240
+    },
+    {
+      "id": "grove-string-quartet",
+      "sceneryKind": "radio-signal",
+      "label": "乐台飘来大提琴声",
+      "description": "林荫露天乐台传来温暖舒缓的木管与大提琴小品。",
+      "placeId": "grove-stage",
+      "defaultDurationMinutes": 120
+    }
+  ]
+}

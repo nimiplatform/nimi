@@ -29,48 +29,56 @@ const (
 
 // Activity is the stable identity; a frame is only one scheduled segment.
 type lifeActivity struct {
-	RedactedNameKey  string                `json:"redactedNameKey,omitempty"`
-	ConversationRead *lifeConversationRead `json:"conversationRead,omitempty"`
-	Ref              string                `json:"ref"`
-	Title            string                `json:"title"`
-	Kind             string                `json:"kind"`
-	Phase            lifePhase             `json:"phase"`
-	Progress         int                   `json:"progress"`
-	StartedAt        time.Time             `json:"startedAt,omitempty"`
-	CompletedAt      time.Time             `json:"completedAt,omitempty"`
-	Retrospective    bool                  `json:"retrospective,omitempty"`
+	CustomSceneryDerived bool                  `json:"customSceneryDerived,omitempty"`
+	RedactedNameKey      string                `json:"redactedNameKey,omitempty"`
+	ConversationRead     *lifeConversationRead `json:"conversationRead,omitempty"`
+	Ref                  string                `json:"ref"`
+	Title                string                `json:"title"`
+	Kind                 string                `json:"kind"`
+	Phase                lifePhase             `json:"phase"`
+	Progress             int                   `json:"progress"`
+	StartedAt            time.Time             `json:"startedAt,omitempty"`
+	CompletedAt          time.Time             `json:"completedAt,omitempty"`
+	Retrospective        bool                  `json:"retrospective,omitempty"`
 
 	MemoryRefs []string `json:"memoryRefs,omitempty"`
 }
 
 type lifeFrame struct {
-	Place             string                `json:"place,omitempty"`
-	UtopiaActivity    string                `json:"utopiaActivity,omitempty"`
-	Public            bool                  `json:"public,omitempty"`
-	SharedRef         string                `json:"sharedRef,omitempty"`
-	Description       *lifeSelfDescription  `json:"description,omitempty"`
-	ActivityState     lifePhase             `json:"activityState,omitempty"`
-	RecordedAt        time.Time             `json:"recordedAt,omitempty"`
-	Invalidated       bool                  `json:"invalidated,omitempty"`
-	Interaction       bool                  `json:"interaction,omitempty"`
-	StartProgress     int                   `json:"startProgress"`
-	Title             string                `json:"title"`
-	MemoryRefs        []string              `json:"memoryRefs,omitempty"`
-	ConversationRead  *lifeConversationRead `json:"conversationRead,omitempty"`
-	ID                string                `json:"id"`
-	ActivityRef       string                `json:"activityRef"`
-	StartsAt          time.Time             `json:"startsAt"`
-	EndsAt            time.Time             `json:"endsAt"`
-	Phase             lifePhase             `json:"phase"`
-	EndProgress       int                   `json:"endProgress"`
-	CompletesActivity bool                  `json:"completesActivity"`
-	Retrospective     bool                  `json:"retrospective"`
+	HabitatActivationID string                `json:"habitatActivationId,omitempty"`
+	HabitatID           string                `json:"habitatId,omitempty"`
+	HabitatTitle        string                `json:"habitatTitle,omitempty"`
+	Place               string                `json:"place,omitempty"`
+	PlaceLabel          string                `json:"placeLabel,omitempty"`
+	UtopiaActivity      string                `json:"utopiaActivity,omitempty"`
+	ActivityLabel       string                `json:"activityLabel,omitempty"`
+	CustomSceneryActive bool                  `json:"customSceneryActive,omitempty"`
+	Public              bool                  `json:"public,omitempty"`
+	SharedRef           string                `json:"sharedRef,omitempty"`
+	Description         *lifeSelfDescription  `json:"description,omitempty"`
+	ActivityState       lifePhase             `json:"activityState,omitempty"`
+	RecordedAt          time.Time             `json:"recordedAt,omitempty"`
+	Invalidated         bool                  `json:"invalidated,omitempty"`
+	Interaction         bool                  `json:"interaction,omitempty"`
+	StartProgress       int                   `json:"startProgress"`
+	Title               string                `json:"title"`
+	MemoryRefs          []string              `json:"memoryRefs,omitempty"`
+	ConversationRead    *lifeConversationRead `json:"conversationRead,omitempty"`
+	ID                  string                `json:"id"`
+	ActivityRef         string                `json:"activityRef"`
+	StartsAt            time.Time             `json:"startsAt"`
+	EndsAt              time.Time             `json:"endsAt"`
+	Phase               lifePhase             `json:"phase"`
+	EndProgress         int                   `json:"endProgress"`
+	CompletesActivity   bool                  `json:"completesActivity"`
+	Retrospective       bool                  `json:"retrospective"`
 }
 
 type lifeExplanation struct {
-	Text             string                `json:"text"`
-	MemoryRefs       []string              `json:"memoryRefs,omitempty"`
-	ConversationRead *lifeConversationRead `json:"conversationRead,omitempty"`
+	CustomSceneryDerived bool                  `json:"customSceneryDerived,omitempty"`
+	Text                 string                `json:"text"`
+	MemoryRefs           []string              `json:"memoryRefs,omitempty"`
+	ConversationRead     *lifeConversationRead `json:"conversationRead,omitempty"`
 }
 
 type lifeConversationRead struct {
@@ -80,6 +88,7 @@ type lifeConversationRead struct {
 }
 
 type lifeProactiveIntent struct {
+	UtopiaRead *lifeUtopiaRead `json:"utopiaRead,omitempty"`
 	// Contact-only generation already produced this public text. Life intents
 	// instead carry Purpose for their later expression generation.
 	Text             string                `json:"text,omitempty"`
@@ -97,30 +106,33 @@ type lifeProactiveIntent struct {
 
 // @nimi-authority: definition.nimi.runtime.agent-life.frame-timeline
 type agentLifeState struct {
-	LifeBudgetWaiting    bool                          `json:"lifeBudgetWaiting,omitempty"`
-	ContactBudgetWaiting bool                          `json:"contactBudgetWaiting,omitempty"`
-	ContactEpoch         uint64                        `json:"contactEpoch,omitempty"`
-	ContactConsideredAt  time.Time                     `json:"contactConsideredAt,omitempty"`
-	ContactNextAt        time.Time                     `json:"contactNextAt,omitempty"`
-	LastLifeAttempt      time.Time                     `json:"lastLifeAttempt,omitempty"`
-	ContactSinceUser     bool                          `json:"contactSinceUser,omitempty"`
-	Interaction          *lifeInteraction              `json:"interaction,omitempty"`
-	Revision             uint64                        `json:"revision"`
-	StartedAt            time.Time                     `json:"startedAt,omitempty"`
-	SettledAt            time.Time                     `json:"settledAt,omitempty"`
-	Current              *lifeFrame                    `json:"current,omitempty"`
-	Future               []lifeFrame                   `json:"future,omitempty"`
-	Recent               []lifeFrame                   `json:"recent,omitempty"`
-	Activities           map[string]*lifeActivity      `json:"activities,omitempty"`
-	Explanation          *lifeExplanation              `json:"explanation,omitempty"`
-	NextCheckAt          time.Time                     `json:"nextCheckAt,omitempty"`
-	NextPublicAt         time.Time                     `json:"nextPublicAt,omitempty"`
-	WaitReason           string                        `json:"waitReason,omitempty"`
-	Intents              []lifeProactiveIntent         `json:"intents,omitempty"`
-	ContactTimes         []time.Time                   `json:"contactTimes,omitempty"`
-	MemoryReadSet        cognitionmemory.MemoryReadSet `json:"memoryReadSet,omitempty"`
-	LastPlanningTokens   int64                         `json:"lastPlanningTokens,omitempty"`
-	LastPlannedUtopia    *lifeUtopiaPlanningConditions `json:"lastPlannedUtopia,omitempty"`
+	LifeBudgetWaiting               bool                          `json:"lifeBudgetWaiting,omitempty"`
+	ContactBudgetWaiting            bool                          `json:"contactBudgetWaiting,omitempty"`
+	ContactEpoch                    uint64                        `json:"contactEpoch,omitempty"`
+	ContactConsideredAt             time.Time                     `json:"contactConsideredAt,omitempty"`
+	ContactNextAt                   time.Time                     `json:"contactNextAt,omitempty"`
+	LastLifeAttempt                 time.Time                     `json:"lastLifeAttempt,omitempty"`
+	ContactSinceUser                bool                          `json:"contactSinceUser,omitempty"`
+	Interaction                     *lifeInteraction              `json:"interaction,omitempty"`
+	Revision                        uint64                        `json:"revision"`
+	StartedAt                       time.Time                     `json:"startedAt,omitempty"`
+	SettledAt                       time.Time                     `json:"settledAt,omitempty"`
+	Current                         *lifeFrame                    `json:"current,omitempty"`
+	Future                          []lifeFrame                   `json:"future,omitempty"`
+	Recent                          []lifeFrame                   `json:"recent,omitempty"`
+	Activities                      map[string]*lifeActivity      `json:"activities,omitempty"`
+	Explanation                     *lifeExplanation              `json:"explanation,omitempty"`
+	NextCheckAt                     time.Time                     `json:"nextCheckAt,omitempty"`
+	NextPublicAt                    time.Time                     `json:"nextPublicAt,omitempty"`
+	WaitReason                      string                        `json:"waitReason,omitempty"`
+	Intents                         []lifeProactiveIntent         `json:"intents,omitempty"`
+	ContactTimes                    []time.Time                   `json:"contactTimes,omitempty"`
+	MemoryReadSet                   cognitionmemory.MemoryReadSet `json:"memoryReadSet,omitempty"`
+	LastPlanningTokens              int64                         `json:"lastPlanningTokens,omitempty"`
+	LastPlannedUtopia               *lifeUtopiaPlanningConditions `json:"lastPlannedUtopia,omitempty"`
+	LastObservedHabitatActivationID string                        `json:"lastObservedHabitatActivationId,omitempty"`
+	LastObservedHabitatID           string                        `json:"lastObservedHabitatId,omitempty"`
+	LastObservedHabitatTitle        string                        `json:"lastObservedHabitatTitle,omitempty"`
 }
 
 func newAgentLifeState() *agentLifeState {
@@ -392,15 +404,21 @@ func (l *agentLifeState) cancelFreeIntents(source string) {
 }
 
 type lifeFrameProposal struct {
-	Place             string               `json:"place,omitempty"`
-	UtopiaActivity    string               `json:"utopia_activity,omitempty"`
-	Description       *lifeSelfDescription `json:"description,omitempty"`
-	ActivityRef       string               `json:"activity_ref,omitempty"`
-	Title             string               `json:"title"`
-	Kind              string               `json:"kind"`
-	DurationMinutes   float64              `json:"duration_minutes"`
-	EndProgress       int                  `json:"end_progress"`
-	CompletesActivity bool                 `json:"completes_activity"`
+	HabitatActivationID string               `json:"-"`
+	HabitatID           string               `json:"-"`
+	HabitatTitle        string               `json:"-"`
+	Place               string               `json:"place,omitempty"`
+	PlaceLabel          string               `json:"-"`
+	UtopiaActivity      string               `json:"utopia_activity,omitempty"`
+	ActivityLabel       string               `json:"-"`
+	CustomSceneryActive bool                 `json:"-"`
+	Description         *lifeSelfDescription `json:"description,omitempty"`
+	ActivityRef         string               `json:"activity_ref,omitempty"`
+	Title               string               `json:"title"`
+	Kind                string               `json:"kind"`
+	DurationMinutes     float64              `json:"duration_minutes"`
+	EndProgress         int                  `json:"end_progress"`
+	CompletesActivity   bool                 `json:"completes_activity"`
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.replacement

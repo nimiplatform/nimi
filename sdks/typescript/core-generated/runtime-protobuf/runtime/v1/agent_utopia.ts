@@ -18,72 +18,316 @@ import { Timestamp } from "../../google/protobuf/timestamp";
 export interface GetLocalAppAgentUtopiaSnapshotRequest {
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSettings
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaParameterCondition
  */
-export interface LocalAppAgentUtopiaSettings {
+export interface LocalAppUtopiaParameterCondition {
     /**
-     * @generated from protobuf field: uint64 revision = 1
+     * @generated from protobuf field: string parameter_key = 1
      */
-    revision: string;
+    parameterKey: string;
     /**
-     * @generated from protobuf field: string preset = 2
+     * @generated from protobuf field: repeated string allowed_values = 2
      */
-    preset: string;
-    /**
-     * @generated from protobuf field: uint64 preset_version = 3
-     */
-    presetVersion: string;
-    /**
-     * @generated from protobuf field: bool outdoor_open = 4
-     */
-    outdoorOpen: boolean;
-    /**
-     * @generated from protobuf field: bool public_participation = 5
-     */
-    publicParticipation: boolean;
+    allowedValues: string[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaPlace
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaParameterOption
  */
-export interface LocalAppAgentUtopiaPlace {
+export interface LocalAppUtopiaParameterOption {
+    /**
+     * @generated from protobuf field: string value = 1
+     */
+    value: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string summary = 3
+     */
+    summary: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaParameterSpec
+ */
+export interface LocalAppUtopiaParameterSpec {
+    /**
+     * @generated from protobuf field: string key = 1
+     */
+    key: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string default_value = 3
+     */
+    defaultValue: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterOption options = 4
+     */
+    options: LocalAppUtopiaParameterOption[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec
+ */
+export interface LocalAppUtopiaPersonalQuarterSpec {
     /**
      * @generated from protobuf field: string id = 1
      */
     id: string;
     /**
-     * @generated from protobuf field: repeated string activities = 2
+     * @generated from protobuf field: string name = 2
      */
-    activities: string[];
+    name: string;
+    /**
+     * @generated from protobuf field: string sensory_traits = 3
+     */
+    sensoryTraits: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaFrame
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaPlaceSpec
  */
-export interface LocalAppAgentUtopiaFrame {
+export interface LocalAppUtopiaPlaceSpec {
     /**
-     * @generated from protobuf field: string title = 1
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string archetype = 3
+     */
+    archetype: string;
+    /**
+     * @generated from protobuf field: bool indoor = 4
+     */
+    indoor: boolean;
+    /**
+     * @generated from protobuf field: string sensory_traits = 5
+     */
+    sensoryTraits: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition open_when = 6
+     */
+    openWhen: LocalAppUtopiaParameterCondition[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaActivitySpec
+ */
+export interface LocalAppUtopiaActivitySpec {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: repeated string place_ids = 3
+     */
+    placeIds: string[];
+    /**
+     * @generated from protobuf field: string social_mode = 4
+     */
+    socialMode: string;
+    /**
+     * @generated from protobuf field: repeated string allowed_dayparts = 5
+     */
+    allowedDayparts: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition when = 6
+     */
+    when: LocalAppUtopiaParameterCondition[];
+    /**
+     * @generated from protobuf field: int32 min_duration_minutes = 7
+     */
+    minDurationMinutes: number;
+    /**
+     * @generated from protobuf field: int32 max_duration_minutes = 8
+     */
+    maxDurationMinutes: number;
+    /**
+     * @generated from protobuf field: string scene_hint = 9
+     */
+    sceneHint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaEventPresetSpec
+ */
+export interface LocalAppUtopiaEventPresetSpec {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string scenery_kind = 2
+     */
+    sceneryKind: string;
+    /**
+     * @generated from protobuf field: string label = 3
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string description = 4
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: optional string place_id = 5
+     */
+    placeId?: string;
+    /**
+     * @generated from protobuf field: int32 default_duration_minutes = 6
+     */
+    defaultDurationMinutes: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaHabitatSpec
+ */
+export interface LocalAppUtopiaHabitatSpec {
+    /**
+     * @generated from protobuf field: string schema_version = 1
+     */
+    schemaVersion: string;
+    /**
+     * @generated from protobuf field: string habitat_id = 2
+     */
+    habitatId: string;
+    /**
+     * @generated from protobuf field: string title = 3
      */
     title: string;
     /**
-     * @generated from protobuf field: string place = 2
+     * @generated from protobuf field: string theme_tag = 4
      */
-    place: string;
+    themeTag: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp starts_at = 3
+     * @generated from protobuf field: string backdrop_summary = 5
+     */
+    backdropSummary: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec personal_quarter = 6
+     */
+    personalQuarter?: LocalAppUtopiaPersonalQuarterSpec;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaPlaceSpec places = 7
+     */
+    places: LocalAppUtopiaPlaceSpec[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaActivitySpec activities = 8
+     */
+    activities: LocalAppUtopiaActivitySpec[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterSpec parameters = 9
+     */
+    parameters: LocalAppUtopiaParameterSpec[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaEventPresetSpec event_presets = 10
+     */
+    eventPresets: LocalAppUtopiaEventPresetSpec[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaParameterEntry
+ */
+export interface LocalAppUtopiaParameterEntry {
+    /**
+     * @generated from protobuf field: string key = 1
+     */
+    key: string;
+    /**
+     * @generated from protobuf field: string value = 2
+     */
+    value: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaActiveEvent
+ */
+export interface LocalAppUtopiaActiveEvent {
+    /**
+     * @generated from protobuf field: string event_id = 1
+     */
+    eventId: string;
+    /**
+     * @generated from protobuf field: string slot = 2
+     */
+    slot: string;
+    /**
+     * @generated from protobuf field: string scenery_kind = 3
+     */
+    sceneryKind: string;
+    /**
+     * @generated from protobuf field: string label = 4
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string description = 5
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: optional string place_id = 6
+     */
+    placeId?: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp starts_at = 7
      */
     startsAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp ends_at = 4
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 8
+     */
+    expiresAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaFrame
+ */
+export interface LocalAppUtopiaFrame {
+    /**
+     * @generated from protobuf field: string activity_id = 1
+     */
+    activityId: string;
+    /**
+     * @generated from protobuf field: string title = 2
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string habitat_activation_id = 3
+     */
+    habitatActivationId: string;
+    /**
+     * @generated from protobuf field: string habitat_id = 4
+     */
+    habitatId: string;
+    /**
+     * @generated from protobuf field: string habitat_title = 5
+     */
+    habitatTitle: string;
+    /**
+     * @generated from protobuf field: string place_id = 6
+     */
+    placeId: string;
+    /**
+     * @generated from protobuf field: string place_label = 7
+     */
+    placeLabel: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp starts_at = 8
+     */
+    startsAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp ends_at = 9
      */
     endsAt?: Timestamp;
     /**
-     * @generated from protobuf field: bool interaction = 5
+     * @generated from protobuf field: bool interaction = 10
      */
     interaction: boolean;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaResident
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaResident
  */
-export interface LocalAppAgentUtopiaResident {
+export interface LocalAppUtopiaResident {
     /**
      * @generated from protobuf field: string agent_handle = 1
      */
@@ -97,105 +341,288 @@ export interface LocalAppAgentUtopiaResident {
      */
     solitary: boolean;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaFrame current = 4
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaFrame current = 4
      */
-    current?: LocalAppAgentUtopiaFrame;
+    current?: LocalAppUtopiaFrame;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaFrame recent = 5
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaFrame recent = 5
      */
-    recent?: LocalAppAgentUtopiaFrame;
+    recent?: LocalAppUtopiaFrame;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaFrame next = 6
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaFrame next = 6
      */
-    next?: LocalAppAgentUtopiaFrame;
+    next?: LocalAppUtopiaFrame;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaOccupancy
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy
  */
-export interface LocalAppAgentUtopiaOccupancy {
+export interface LocalAppUtopiaPlaceOccupancy {
     /**
-     * @generated from protobuf field: string place = 1
+     * @generated from protobuf field: string place_id = 1
      */
-    place: string;
+    placeId: string;
     /**
      * @generated from protobuf field: repeated string agent_handles = 2
      */
     agentHandles: string[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaSharedActivity
  */
-export interface LocalAppAgentUtopiaSharedActivity {
+export interface LocalAppUtopiaSharedActivity {
     /**
      * @generated from protobuf field: string activity_ref = 1
      */
     activityRef: string;
     /**
-     * @generated from protobuf field: string initiator_handle = 2
+     * @generated from protobuf field: string habitat_activation_id = 2
+     */
+    habitatActivationId: string;
+    /**
+     * @generated from protobuf field: string habitat_id = 3
+     */
+    habitatId: string;
+    /**
+     * @generated from protobuf field: string habitat_title = 4
+     */
+    habitatTitle: string;
+    /**
+     * @generated from protobuf field: string initiator_handle = 5
      */
     initiatorHandle: string;
     /**
-     * @generated from protobuf field: string recipient_handle = 3
+     * @generated from protobuf field: string recipient_handle = 6
      */
     recipientHandle: string;
     /**
-     * @generated from protobuf field: string place = 4
+     * @generated from protobuf field: string place_id = 7
      */
-    place: string;
+    placeId: string;
     /**
-     * @generated from protobuf field: string activity = 5
+     * @generated from protobuf field: string place_label = 8
      */
-    activity: string;
+    placeLabel: string;
     /**
-     * @generated from protobuf field: string state = 6
+     * @generated from protobuf field: string activity_id = 9
+     */
+    activityId: string;
+    /**
+     * @generated from protobuf field: string activity_label = 10
+     */
+    activityLabel: string;
+    /**
+     * @generated from protobuf field: string state = 11
      */
     state: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp starts_at = 7
+     * @generated from protobuf field: google.protobuf.Timestamp starts_at = 12
      */
     startsAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp ends_at = 8
+     * @generated from protobuf field: google.protobuf.Timestamp ends_at = 13
      */
     endsAt?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp accepted_at = 9
+     * @generated from protobuf field: google.protobuf.Timestamp accepted_at = 14
      */
     acceptedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaRelocationSummary
+ */
+export interface LocalAppUtopiaRelocationSummary {
+    /**
+     * @generated from protobuf field: string from_habitat_id = 1
+     */
+    fromHabitatId: string;
+    /**
+     * @generated from protobuf field: string from_habitat_title = 2
+     */
+    fromHabitatTitle: string;
+    /**
+     * @generated from protobuf field: string to_habitat_id = 3
+     */
+    toHabitatId: string;
+    /**
+     * @generated from protobuf field: string to_habitat_title = 4
+     */
+    toHabitatTitle: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp relocated_at = 5
+     */
+    relocatedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse
  */
 export interface GetLocalAppAgentUtopiaSnapshotResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaSettings settings = 1
+     * @generated from protobuf field: uint64 revision = 1
      */
-    settings?: LocalAppAgentUtopiaSettings;
+    revision: string;
     /**
      * @generated from protobuf field: google.protobuf.Timestamp observed_at = 2
      */
     observedAt?: Timestamp;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentUtopiaPlace places = 3
+     * @generated from protobuf field: string habitat_activation_id = 3
      */
-    places: LocalAppAgentUtopiaPlace[];
+    habitatActivationId: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentUtopiaResident residents = 4
+     * @generated from protobuf field: string content_digest = 4
      */
-    residents: LocalAppAgentUtopiaResident[];
+    contentDigest: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentUtopiaOccupancy occupancy = 5
+     * @generated from protobuf field: string timezone = 5
      */
-    occupancy: LocalAppAgentUtopiaOccupancy[];
+    timezone: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity shared_activities = 6
+     * @generated from protobuf field: bool public_participation = 6
      */
-    sharedActivities: LocalAppAgentUtopiaSharedActivity[];
+    publicParticipation: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat = 7
+     */
+    habitat?: LocalAppUtopiaHabitatSpec;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values = 8
+     */
+    parameterValues: LocalAppUtopiaParameterEntry[];
+    /**
+     * @generated from protobuf field: repeated string open_place_ids = 9
+     */
+    openPlaceIds: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events = 10
+     */
+    activeEvents: LocalAppUtopiaActiveEvent[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaRelocationSummary last_relocation = 11
+     */
+    lastRelocation?: LocalAppUtopiaRelocationSummary;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaResident residents = 12
+     */
+    residents: LocalAppUtopiaResident[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy occupancy = 13
+     */
+    occupancy: LocalAppUtopiaPlaceOccupancy[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaSharedActivity shared_activities = 14
+     */
+    sharedActivities: LocalAppUtopiaSharedActivity[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSolitude
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange
  */
-export interface LocalAppAgentUtopiaSolitude {
+export interface LocalAppUtopiaActivateHabitatChange {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat = 1
+     */
+    habitat?: LocalAppUtopiaHabitatSpec;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry initial_parameters = 2
+     */
+    initialParameters: LocalAppUtopiaParameterEntry[];
+    /**
+     * @generated from protobuf field: optional string timezone = 3
+     */
+    timezone?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange
+ */
+export interface LocalAppUtopiaRestoreDefaultChange {
+    /**
+     * @generated from protobuf field: optional string timezone = 1
+     */
+    timezone?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger
+ */
+export interface LocalAppUtopiaPresetEventTrigger {
+    /**
+     * @generated from protobuf field: string preset_id = 1
+     */
+    presetId: string;
+    /**
+     * @generated from protobuf field: optional int32 duration_minutes = 2
+     */
+    durationMinutes?: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger
+ */
+export interface LocalAppUtopiaCustomEventTrigger {
+    /**
+     * @generated from protobuf field: string scenery_kind = 1
+     */
+    sceneryKind: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+    /**
+     * @generated from protobuf field: string description = 3
+     */
+    description: string;
+    /**
+     * @generated from protobuf field: optional string place_id = 4
+     */
+    placeId?: string;
+    /**
+     * @generated from protobuf field: int32 duration_minutes = 5
+     */
+    durationMinutes: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaEventMutation
+ */
+export interface LocalAppUtopiaEventMutation {
+    /**
+     * @generated from protobuf oneof: action
+     */
+    action: {
+        oneofKind: "triggerPreset";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger trigger_preset = 1
+         */
+        triggerPreset: LocalAppUtopiaPresetEventTrigger;
+    } | {
+        oneofKind: "putCustom";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger put_custom = 2
+         */
+        putCustom: LocalAppUtopiaCustomEventTrigger;
+    } | {
+        oneofKind: "clearEventId";
+        /**
+         * @generated from protobuf field: string clear_event_id = 3
+         */
+        clearEventId: string;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaApplyTuningChange
+ */
+export interface LocalAppUtopiaApplyTuningChange {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameters = 1
+     */
+    parameters: LocalAppUtopiaParameterEntry[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaEventMutation event_mutation = 2
+     */
+    eventMutation?: LocalAppUtopiaEventMutation;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppUtopiaSolitudeChange
+ */
+export interface LocalAppUtopiaSolitudeChange {
     /**
      * @generated from protobuf field: string agent_handle = 1
      */
@@ -214,26 +641,26 @@ export interface UpdateLocalAppAgentUtopiaSettingsRequest {
      */
     expectedRevision: string;
     /**
-     * @generated from protobuf oneof: intent
+     * @generated from protobuf oneof: change
      */
-    intent: {
-        oneofKind: "selectPreset";
+    change: {
+        oneofKind: "activateHabitat";
         /**
-         * @generated from protobuf field: string select_preset = 2
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange activate_habitat = 2
          */
-        selectPreset: string;
+        activateHabitat: LocalAppUtopiaActivateHabitatChange;
     } | {
         oneofKind: "restoreDefault";
         /**
-         * @generated from protobuf field: bool restore_default = 3
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange restore_default = 3
          */
-        restoreDefault: boolean;
+        restoreDefault: LocalAppUtopiaRestoreDefaultChange;
     } | {
-        oneofKind: "outdoorOpen";
+        oneofKind: "applyTuning";
         /**
-         * @generated from protobuf field: bool outdoor_open = 4
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaApplyTuningChange apply_tuning = 4
          */
-        outdoorOpen: boolean;
+        applyTuning: LocalAppUtopiaApplyTuningChange;
     } | {
         oneofKind: "publicParticipation";
         /**
@@ -243,9 +670,15 @@ export interface UpdateLocalAppAgentUtopiaSettingsRequest {
     } | {
         oneofKind: "solitude";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaSolitude solitude = 6
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppUtopiaSolitudeChange solitude = 6
          */
-        solitude: LocalAppAgentUtopiaSolitude;
+        solitude: LocalAppUtopiaSolitudeChange;
+    } | {
+        oneofKind: "timezone";
+        /**
+         * @generated from protobuf field: string timezone = 7
+         */
+        timezone: string;
     } | {
         oneofKind: undefined;
     };
@@ -255,9 +688,45 @@ export interface UpdateLocalAppAgentUtopiaSettingsRequest {
  */
 export interface UpdateLocalAppAgentUtopiaSettingsResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentUtopiaSettings settings = 1
+     * @generated from protobuf field: uint64 revision = 1
      */
-    settings?: LocalAppAgentUtopiaSettings;
+    revision: string;
+    /**
+     * @generated from protobuf field: string habitat_activation_id = 2
+     */
+    habitatActivationId: string;
+    /**
+     * @generated from protobuf field: string habitat_id = 3
+     */
+    habitatId: string;
+    /**
+     * @generated from protobuf field: string habitat_title = 4
+     */
+    habitatTitle: string;
+    /**
+     * @generated from protobuf field: string content_digest = 5
+     */
+    contentDigest: string;
+    /**
+     * @generated from protobuf field: string timezone = 6
+     */
+    timezone: string;
+    /**
+     * @generated from protobuf field: bool public_participation = 7
+     */
+    publicParticipation: boolean;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values = 8
+     */
+    parameterValues: LocalAppUtopiaParameterEntry[];
+    /**
+     * @generated from protobuf field: repeated string open_place_ids = 9
+     */
+    openPlaceIds: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events = 10
+     */
+    activeEvents: LocalAppUtopiaActiveEvent[];
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class GetLocalAppAgentUtopiaSnapshotRequest$Type extends MessageType<GetLocalAppAgentUtopiaSnapshotRequest> {
@@ -298,46 +767,31 @@ class GetLocalAppAgentUtopiaSnapshotRequest$Type extends MessageType<GetLocalApp
  */
 export const GetLocalAppAgentUtopiaSnapshotRequest = new GetLocalAppAgentUtopiaSnapshotRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaSettings$Type extends MessageType<LocalAppAgentUtopiaSettings> {
+class LocalAppUtopiaParameterCondition$Type extends MessageType<LocalAppUtopiaParameterCondition> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaSettings", [
-            { no: 1, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 2, name: "preset", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "preset_version", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "outdoor_open", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "public_participation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        super("nimi.runtime.v1.LocalAppUtopiaParameterCondition", [
+            { no: 1, name: "parameter_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "allowed_values", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaSettings>): LocalAppAgentUtopiaSettings {
+    create(value?: PartialMessage<LocalAppUtopiaParameterCondition>): LocalAppUtopiaParameterCondition {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.revision = "0";
-        message.preset = "";
-        message.presetVersion = "0";
-        message.outdoorOpen = false;
-        message.publicParticipation = false;
+        message.parameterKey = "";
+        message.allowedValues = [];
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaSettings>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaParameterCondition>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaSettings): LocalAppAgentUtopiaSettings {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaParameterCondition): LocalAppUtopiaParameterCondition {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint64 revision */ 1:
-                    message.revision = reader.uint64().toString();
+                case /* string parameter_key */ 1:
+                    message.parameterKey = reader.string();
                     break;
-                case /* string preset */ 2:
-                    message.preset = reader.string();
-                    break;
-                case /* uint64 preset_version */ 3:
-                    message.presetVersion = reader.uint64().toString();
-                    break;
-                case /* bool outdoor_open */ 4:
-                    message.outdoorOpen = reader.bool();
-                    break;
-                case /* bool public_participation */ 5:
-                    message.publicParticipation = reader.bool();
+                case /* repeated string allowed_values */ 2:
+                    message.allowedValues.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -350,22 +804,13 @@ class LocalAppAgentUtopiaSettings$Type extends MessageType<LocalAppAgentUtopiaSe
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaSettings, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint64 revision = 1; */
-        if (message.revision !== "0")
-            writer.tag(1, WireType.Varint).uint64(message.revision);
-        /* string preset = 2; */
-        if (message.preset !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.preset);
-        /* uint64 preset_version = 3; */
-        if (message.presetVersion !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.presetVersion);
-        /* bool outdoor_open = 4; */
-        if (message.outdoorOpen !== false)
-            writer.tag(4, WireType.Varint).bool(message.outdoorOpen);
-        /* bool public_participation = 5; */
-        if (message.publicParticipation !== false)
-            writer.tag(5, WireType.Varint).bool(message.publicParticipation);
+    internalBinaryWrite(message: LocalAppUtopiaParameterCondition, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string parameter_key = 1; */
+        if (message.parameterKey !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.parameterKey);
+        /* repeated string allowed_values = 2; */
+        for (let i = 0; i < message.allowedValues.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.allowedValues[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -373,26 +818,162 @@ class LocalAppAgentUtopiaSettings$Type extends MessageType<LocalAppAgentUtopiaSe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSettings
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaParameterCondition
  */
-export const LocalAppAgentUtopiaSettings = new LocalAppAgentUtopiaSettings$Type();
+export const LocalAppUtopiaParameterCondition = new LocalAppUtopiaParameterCondition$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaPlace$Type extends MessageType<LocalAppAgentUtopiaPlace> {
+class LocalAppUtopiaParameterOption$Type extends MessageType<LocalAppUtopiaParameterOption> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaPlace", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "activities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        super("nimi.runtime.v1.LocalAppUtopiaParameterOption", [
+            { no: 1, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaPlace>): LocalAppAgentUtopiaPlace {
+    create(value?: PartialMessage<LocalAppUtopiaParameterOption>): LocalAppUtopiaParameterOption {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.id = "";
-        message.activities = [];
+        message.value = "";
+        message.label = "";
+        message.summary = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaPlace>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaParameterOption>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaPlace): LocalAppAgentUtopiaPlace {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaParameterOption): LocalAppUtopiaParameterOption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string value */ 1:
+                    message.value = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                case /* string summary */ 3:
+                    message.summary = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaParameterOption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string value = 1; */
+        if (message.value !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.value);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        /* string summary = 3; */
+        if (message.summary !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.summary);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaParameterOption
+ */
+export const LocalAppUtopiaParameterOption = new LocalAppUtopiaParameterOption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaParameterSpec$Type extends MessageType<LocalAppUtopiaParameterSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaParameterSpec", [
+            { no: 1, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "default_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterOption }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaParameterSpec>): LocalAppUtopiaParameterSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.key = "";
+        message.label = "";
+        message.defaultValue = "";
+        message.options = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaParameterSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaParameterSpec): LocalAppUtopiaParameterSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string key */ 1:
+                    message.key = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                case /* string default_value */ 3:
+                    message.defaultValue = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterOption options */ 4:
+                    message.options.push(LocalAppUtopiaParameterOption.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaParameterSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string key = 1; */
+        if (message.key !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.key);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        /* string default_value = 3; */
+        if (message.defaultValue !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.defaultValue);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterOption options = 4; */
+        for (let i = 0; i < message.options.length; i++)
+            LocalAppUtopiaParameterOption.internalBinaryWrite(message.options[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaParameterSpec
+ */
+export const LocalAppUtopiaParameterSpec = new LocalAppUtopiaParameterSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaPersonalQuarterSpec$Type extends MessageType<LocalAppUtopiaPersonalQuarterSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "sensory_traits", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaPersonalQuarterSpec>): LocalAppUtopiaPersonalQuarterSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.name = "";
+        message.sensoryTraits = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaPersonalQuarterSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaPersonalQuarterSpec): LocalAppUtopiaPersonalQuarterSpec {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -400,8 +981,11 @@ class LocalAppAgentUtopiaPlace$Type extends MessageType<LocalAppAgentUtopiaPlace
                 case /* string id */ 1:
                     message.id = reader.string();
                     break;
-                case /* repeated string activities */ 2:
-                    message.activities.push(reader.string());
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* string sensory_traits */ 3:
+                    message.sensoryTraits = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -414,13 +998,16 @@ class LocalAppAgentUtopiaPlace$Type extends MessageType<LocalAppAgentUtopiaPlace
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaPlace, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalAppUtopiaPersonalQuarterSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string id = 1; */
         if (message.id !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.id);
-        /* repeated string activities = 2; */
-        for (let i = 0; i < message.activities.length; i++)
-            writer.tag(2, WireType.LengthDelimited).string(message.activities[i]);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* string sensory_traits = 3; */
+        if (message.sensoryTraits !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.sensoryTraits);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -428,47 +1015,629 @@ class LocalAppAgentUtopiaPlace$Type extends MessageType<LocalAppAgentUtopiaPlace
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaPlace
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec
  */
-export const LocalAppAgentUtopiaPlace = new LocalAppAgentUtopiaPlace$Type();
+export const LocalAppUtopiaPersonalQuarterSpec = new LocalAppUtopiaPersonalQuarterSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaFrame$Type extends MessageType<LocalAppAgentUtopiaFrame> {
+class LocalAppUtopiaPlaceSpec$Type extends MessageType<LocalAppUtopiaPlaceSpec> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaFrame", [
-            { no: 1, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "place", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "starts_at", kind: "message", T: () => Timestamp },
-            { no: 4, name: "ends_at", kind: "message", T: () => Timestamp },
-            { no: 5, name: "interaction", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        super("nimi.runtime.v1.LocalAppUtopiaPlaceSpec", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "archetype", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "indoor", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "sensory_traits", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "open_when", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterCondition }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaFrame>): LocalAppAgentUtopiaFrame {
+    create(value?: PartialMessage<LocalAppUtopiaPlaceSpec>): LocalAppUtopiaPlaceSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.title = "";
-        message.place = "";
-        message.interaction = false;
+        message.id = "";
+        message.name = "";
+        message.archetype = "";
+        message.indoor = false;
+        message.sensoryTraits = "";
+        message.openWhen = [];
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaFrame>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaPlaceSpec>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaFrame): LocalAppAgentUtopiaFrame {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaPlaceSpec): LocalAppUtopiaPlaceSpec {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string title */ 1:
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* string archetype */ 3:
+                    message.archetype = reader.string();
+                    break;
+                case /* bool indoor */ 4:
+                    message.indoor = reader.bool();
+                    break;
+                case /* string sensory_traits */ 5:
+                    message.sensoryTraits = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition open_when */ 6:
+                    message.openWhen.push(LocalAppUtopiaParameterCondition.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaPlaceSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* string archetype = 3; */
+        if (message.archetype !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.archetype);
+        /* bool indoor = 4; */
+        if (message.indoor !== false)
+            writer.tag(4, WireType.Varint).bool(message.indoor);
+        /* string sensory_traits = 5; */
+        if (message.sensoryTraits !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sensoryTraits);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition open_when = 6; */
+        for (let i = 0; i < message.openWhen.length; i++)
+            LocalAppUtopiaParameterCondition.internalBinaryWrite(message.openWhen[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaPlaceSpec
+ */
+export const LocalAppUtopiaPlaceSpec = new LocalAppUtopiaPlaceSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaActivitySpec$Type extends MessageType<LocalAppUtopiaActivitySpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaActivitySpec", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "place_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "social_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "allowed_dayparts", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "when", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterCondition },
+            { no: 7, name: "min_duration_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "max_duration_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 9, name: "scene_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaActivitySpec>): LocalAppUtopiaActivitySpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.name = "";
+        message.placeIds = [];
+        message.socialMode = "";
+        message.allowedDayparts = [];
+        message.when = [];
+        message.minDurationMinutes = 0;
+        message.maxDurationMinutes = 0;
+        message.sceneHint = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaActivitySpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaActivitySpec): LocalAppUtopiaActivitySpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* repeated string place_ids */ 3:
+                    message.placeIds.push(reader.string());
+                    break;
+                case /* string social_mode */ 4:
+                    message.socialMode = reader.string();
+                    break;
+                case /* repeated string allowed_dayparts */ 5:
+                    message.allowedDayparts.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition when */ 6:
+                    message.when.push(LocalAppUtopiaParameterCondition.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* int32 min_duration_minutes */ 7:
+                    message.minDurationMinutes = reader.int32();
+                    break;
+                case /* int32 max_duration_minutes */ 8:
+                    message.maxDurationMinutes = reader.int32();
+                    break;
+                case /* string scene_hint */ 9:
+                    message.sceneHint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaActivitySpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* repeated string place_ids = 3; */
+        for (let i = 0; i < message.placeIds.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.placeIds[i]);
+        /* string social_mode = 4; */
+        if (message.socialMode !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.socialMode);
+        /* repeated string allowed_dayparts = 5; */
+        for (let i = 0; i < message.allowedDayparts.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.allowedDayparts[i]);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterCondition when = 6; */
+        for (let i = 0; i < message.when.length; i++)
+            LocalAppUtopiaParameterCondition.internalBinaryWrite(message.when[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* int32 min_duration_minutes = 7; */
+        if (message.minDurationMinutes !== 0)
+            writer.tag(7, WireType.Varint).int32(message.minDurationMinutes);
+        /* int32 max_duration_minutes = 8; */
+        if (message.maxDurationMinutes !== 0)
+            writer.tag(8, WireType.Varint).int32(message.maxDurationMinutes);
+        /* string scene_hint = 9; */
+        if (message.sceneHint !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.sceneHint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaActivitySpec
+ */
+export const LocalAppUtopiaActivitySpec = new LocalAppUtopiaActivitySpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaEventPresetSpec$Type extends MessageType<LocalAppUtopiaEventPresetSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaEventPresetSpec", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "scenery_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "place_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "default_duration_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaEventPresetSpec>): LocalAppUtopiaEventPresetSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.sceneryKind = "";
+        message.label = "";
+        message.description = "";
+        message.defaultDurationMinutes = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaEventPresetSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaEventPresetSpec): LocalAppUtopiaEventPresetSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string scenery_kind */ 2:
+                    message.sceneryKind = reader.string();
+                    break;
+                case /* string label */ 3:
+                    message.label = reader.string();
+                    break;
+                case /* string description */ 4:
+                    message.description = reader.string();
+                    break;
+                case /* optional string place_id */ 5:
+                    message.placeId = reader.string();
+                    break;
+                case /* int32 default_duration_minutes */ 6:
+                    message.defaultDurationMinutes = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaEventPresetSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string scenery_kind = 2; */
+        if (message.sceneryKind !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.sceneryKind);
+        /* string label = 3; */
+        if (message.label !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.label);
+        /* string description = 4; */
+        if (message.description !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.description);
+        /* optional string place_id = 5; */
+        if (message.placeId !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.placeId);
+        /* int32 default_duration_minutes = 6; */
+        if (message.defaultDurationMinutes !== 0)
+            writer.tag(6, WireType.Varint).int32(message.defaultDurationMinutes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaEventPresetSpec
+ */
+export const LocalAppUtopiaEventPresetSpec = new LocalAppUtopiaEventPresetSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaHabitatSpec$Type extends MessageType<LocalAppUtopiaHabitatSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaHabitatSpec", [
+            { no: 1, name: "schema_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "theme_tag", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "backdrop_summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "personal_quarter", kind: "message", T: () => LocalAppUtopiaPersonalQuarterSpec },
+            { no: 7, name: "places", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaPlaceSpec },
+            { no: 8, name: "activities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaActivitySpec },
+            { no: 9, name: "parameters", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterSpec },
+            { no: 10, name: "event_presets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaEventPresetSpec }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaHabitatSpec>): LocalAppUtopiaHabitatSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.schemaVersion = "";
+        message.habitatId = "";
+        message.title = "";
+        message.themeTag = "";
+        message.backdropSummary = "";
+        message.places = [];
+        message.activities = [];
+        message.parameters = [];
+        message.eventPresets = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaHabitatSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaHabitatSpec): LocalAppUtopiaHabitatSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string schema_version */ 1:
+                    message.schemaVersion = reader.string();
+                    break;
+                case /* string habitat_id */ 2:
+                    message.habitatId = reader.string();
+                    break;
+                case /* string title */ 3:
                     message.title = reader.string();
                     break;
-                case /* string place */ 2:
-                    message.place = reader.string();
+                case /* string theme_tag */ 4:
+                    message.themeTag = reader.string();
                     break;
-                case /* google.protobuf.Timestamp starts_at */ 3:
+                case /* string backdrop_summary */ 5:
+                    message.backdropSummary = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec personal_quarter */ 6:
+                    message.personalQuarter = LocalAppUtopiaPersonalQuarterSpec.internalBinaryRead(reader, reader.uint32(), options, message.personalQuarter);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaPlaceSpec places */ 7:
+                    message.places.push(LocalAppUtopiaPlaceSpec.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaActivitySpec activities */ 8:
+                    message.activities.push(LocalAppUtopiaActivitySpec.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterSpec parameters */ 9:
+                    message.parameters.push(LocalAppUtopiaParameterSpec.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaEventPresetSpec event_presets */ 10:
+                    message.eventPresets.push(LocalAppUtopiaEventPresetSpec.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaHabitatSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string schema_version = 1; */
+        if (message.schemaVersion !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.schemaVersion);
+        /* string habitat_id = 2; */
+        if (message.habitatId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.habitatId);
+        /* string title = 3; */
+        if (message.title !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.title);
+        /* string theme_tag = 4; */
+        if (message.themeTag !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.themeTag);
+        /* string backdrop_summary = 5; */
+        if (message.backdropSummary !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.backdropSummary);
+        /* nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec personal_quarter = 6; */
+        if (message.personalQuarter)
+            LocalAppUtopiaPersonalQuarterSpec.internalBinaryWrite(message.personalQuarter, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaPlaceSpec places = 7; */
+        for (let i = 0; i < message.places.length; i++)
+            LocalAppUtopiaPlaceSpec.internalBinaryWrite(message.places[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaActivitySpec activities = 8; */
+        for (let i = 0; i < message.activities.length; i++)
+            LocalAppUtopiaActivitySpec.internalBinaryWrite(message.activities[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterSpec parameters = 9; */
+        for (let i = 0; i < message.parameters.length; i++)
+            LocalAppUtopiaParameterSpec.internalBinaryWrite(message.parameters[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaEventPresetSpec event_presets = 10; */
+        for (let i = 0; i < message.eventPresets.length; i++)
+            LocalAppUtopiaEventPresetSpec.internalBinaryWrite(message.eventPresets[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaHabitatSpec
+ */
+export const LocalAppUtopiaHabitatSpec = new LocalAppUtopiaHabitatSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaParameterEntry$Type extends MessageType<LocalAppUtopiaParameterEntry> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaParameterEntry", [
+            { no: 1, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaParameterEntry>): LocalAppUtopiaParameterEntry {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.key = "";
+        message.value = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaParameterEntry>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaParameterEntry): LocalAppUtopiaParameterEntry {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string key */ 1:
+                    message.key = reader.string();
+                    break;
+                case /* string value */ 2:
+                    message.value = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaParameterEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string key = 1; */
+        if (message.key !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.key);
+        /* string value = 2; */
+        if (message.value !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.value);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaParameterEntry
+ */
+export const LocalAppUtopiaParameterEntry = new LocalAppUtopiaParameterEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaActiveEvent$Type extends MessageType<LocalAppUtopiaActiveEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaActiveEvent", [
+            { no: 1, name: "event_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "slot", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "scenery_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "place_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "starts_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "expires_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaActiveEvent>): LocalAppUtopiaActiveEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.eventId = "";
+        message.slot = "";
+        message.sceneryKind = "";
+        message.label = "";
+        message.description = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaActiveEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaActiveEvent): LocalAppUtopiaActiveEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string event_id */ 1:
+                    message.eventId = reader.string();
+                    break;
+                case /* string slot */ 2:
+                    message.slot = reader.string();
+                    break;
+                case /* string scenery_kind */ 3:
+                    message.sceneryKind = reader.string();
+                    break;
+                case /* string label */ 4:
+                    message.label = reader.string();
+                    break;
+                case /* string description */ 5:
+                    message.description = reader.string();
+                    break;
+                case /* optional string place_id */ 6:
+                    message.placeId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp starts_at */ 7:
                     message.startsAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startsAt);
                     break;
-                case /* google.protobuf.Timestamp ends_at */ 4:
+                case /* google.protobuf.Timestamp expires_at */ 8:
+                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaActiveEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string event_id = 1; */
+        if (message.eventId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.eventId);
+        /* string slot = 2; */
+        if (message.slot !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.slot);
+        /* string scenery_kind = 3; */
+        if (message.sceneryKind !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.sceneryKind);
+        /* string label = 4; */
+        if (message.label !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.label);
+        /* string description = 5; */
+        if (message.description !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.description);
+        /* optional string place_id = 6; */
+        if (message.placeId !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.placeId);
+        /* google.protobuf.Timestamp starts_at = 7; */
+        if (message.startsAt)
+            Timestamp.internalBinaryWrite(message.startsAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp expires_at = 8; */
+        if (message.expiresAt)
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaActiveEvent
+ */
+export const LocalAppUtopiaActiveEvent = new LocalAppUtopiaActiveEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaFrame$Type extends MessageType<LocalAppUtopiaFrame> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaFrame", [
+            { no: 1, name: "activity_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "habitat_activation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "habitat_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "place_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "place_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "starts_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "ends_at", kind: "message", T: () => Timestamp },
+            { no: 10, name: "interaction", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaFrame>): LocalAppUtopiaFrame {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.activityId = "";
+        message.title = "";
+        message.habitatActivationId = "";
+        message.habitatId = "";
+        message.habitatTitle = "";
+        message.placeId = "";
+        message.placeLabel = "";
+        message.interaction = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaFrame>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaFrame): LocalAppUtopiaFrame {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string activity_id */ 1:
+                    message.activityId = reader.string();
+                    break;
+                case /* string title */ 2:
+                    message.title = reader.string();
+                    break;
+                case /* string habitat_activation_id */ 3:
+                    message.habitatActivationId = reader.string();
+                    break;
+                case /* string habitat_id */ 4:
+                    message.habitatId = reader.string();
+                    break;
+                case /* string habitat_title */ 5:
+                    message.habitatTitle = reader.string();
+                    break;
+                case /* string place_id */ 6:
+                    message.placeId = reader.string();
+                    break;
+                case /* string place_label */ 7:
+                    message.placeLabel = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp starts_at */ 8:
+                    message.startsAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startsAt);
+                    break;
+                case /* google.protobuf.Timestamp ends_at */ 9:
                     message.endsAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.endsAt);
                     break;
-                case /* bool interaction */ 5:
+                case /* bool interaction */ 10:
                     message.interaction = reader.bool();
                     break;
                 default:
@@ -482,22 +1651,37 @@ class LocalAppAgentUtopiaFrame$Type extends MessageType<LocalAppAgentUtopiaFrame
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaFrame, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string title = 1; */
+    internalBinaryWrite(message: LocalAppUtopiaFrame, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string activity_id = 1; */
+        if (message.activityId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.activityId);
+        /* string title = 2; */
         if (message.title !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.title);
-        /* string place = 2; */
-        if (message.place !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.place);
-        /* google.protobuf.Timestamp starts_at = 3; */
+            writer.tag(2, WireType.LengthDelimited).string(message.title);
+        /* string habitat_activation_id = 3; */
+        if (message.habitatActivationId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.habitatActivationId);
+        /* string habitat_id = 4; */
+        if (message.habitatId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.habitatId);
+        /* string habitat_title = 5; */
+        if (message.habitatTitle !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.habitatTitle);
+        /* string place_id = 6; */
+        if (message.placeId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.placeId);
+        /* string place_label = 7; */
+        if (message.placeLabel !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.placeLabel);
+        /* google.protobuf.Timestamp starts_at = 8; */
         if (message.startsAt)
-            Timestamp.internalBinaryWrite(message.startsAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp ends_at = 4; */
+            Timestamp.internalBinaryWrite(message.startsAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp ends_at = 9; */
         if (message.endsAt)
-            Timestamp.internalBinaryWrite(message.endsAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* bool interaction = 5; */
+            Timestamp.internalBinaryWrite(message.endsAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* bool interaction = 10; */
         if (message.interaction !== false)
-            writer.tag(5, WireType.Varint).bool(message.interaction);
+            writer.tag(10, WireType.Varint).bool(message.interaction);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -505,31 +1689,31 @@ class LocalAppAgentUtopiaFrame$Type extends MessageType<LocalAppAgentUtopiaFrame
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaFrame
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaFrame
  */
-export const LocalAppAgentUtopiaFrame = new LocalAppAgentUtopiaFrame$Type();
+export const LocalAppUtopiaFrame = new LocalAppUtopiaFrame$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaResident$Type extends MessageType<LocalAppAgentUtopiaResident> {
+class LocalAppUtopiaResident$Type extends MessageType<LocalAppUtopiaResident> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaResident", [
+        super("nimi.runtime.v1.LocalAppUtopiaResident", [
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "solitary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "current", kind: "message", T: () => LocalAppAgentUtopiaFrame },
-            { no: 5, name: "recent", kind: "message", T: () => LocalAppAgentUtopiaFrame },
-            { no: 6, name: "next", kind: "message", T: () => LocalAppAgentUtopiaFrame }
+            { no: 4, name: "current", kind: "message", T: () => LocalAppUtopiaFrame },
+            { no: 5, name: "recent", kind: "message", T: () => LocalAppUtopiaFrame },
+            { no: 6, name: "next", kind: "message", T: () => LocalAppUtopiaFrame }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaResident>): LocalAppAgentUtopiaResident {
+    create(value?: PartialMessage<LocalAppUtopiaResident>): LocalAppUtopiaResident {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentHandle = "";
         message.displayName = "";
         message.solitary = false;
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaResident>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaResident>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaResident): LocalAppAgentUtopiaResident {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaResident): LocalAppUtopiaResident {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -543,14 +1727,14 @@ class LocalAppAgentUtopiaResident$Type extends MessageType<LocalAppAgentUtopiaRe
                 case /* bool solitary */ 3:
                     message.solitary = reader.bool();
                     break;
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaFrame current */ 4:
-                    message.current = LocalAppAgentUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.current);
+                case /* nimi.runtime.v1.LocalAppUtopiaFrame current */ 4:
+                    message.current = LocalAppUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.current);
                     break;
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaFrame recent */ 5:
-                    message.recent = LocalAppAgentUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.recent);
+                case /* nimi.runtime.v1.LocalAppUtopiaFrame recent */ 5:
+                    message.recent = LocalAppUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.recent);
                     break;
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaFrame next */ 6:
-                    message.next = LocalAppAgentUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.next);
+                case /* nimi.runtime.v1.LocalAppUtopiaFrame next */ 6:
+                    message.next = LocalAppUtopiaFrame.internalBinaryRead(reader, reader.uint32(), options, message.next);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -563,7 +1747,7 @@ class LocalAppAgentUtopiaResident$Type extends MessageType<LocalAppAgentUtopiaRe
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaResident, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalAppUtopiaResident, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string agent_handle = 1; */
         if (message.agentHandle !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
@@ -573,15 +1757,15 @@ class LocalAppAgentUtopiaResident$Type extends MessageType<LocalAppAgentUtopiaRe
         /* bool solitary = 3; */
         if (message.solitary !== false)
             writer.tag(3, WireType.Varint).bool(message.solitary);
-        /* nimi.runtime.v1.LocalAppAgentUtopiaFrame current = 4; */
+        /* nimi.runtime.v1.LocalAppUtopiaFrame current = 4; */
         if (message.current)
-            LocalAppAgentUtopiaFrame.internalBinaryWrite(message.current, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppAgentUtopiaFrame recent = 5; */
+            LocalAppUtopiaFrame.internalBinaryWrite(message.current, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaFrame recent = 5; */
         if (message.recent)
-            LocalAppAgentUtopiaFrame.internalBinaryWrite(message.recent, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalAppAgentUtopiaFrame next = 6; */
+            LocalAppUtopiaFrame.internalBinaryWrite(message.recent, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaFrame next = 6; */
         if (message.next)
-            LocalAppAgentUtopiaFrame.internalBinaryWrite(message.next, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+            LocalAppUtopiaFrame.internalBinaryWrite(message.next, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -589,32 +1773,32 @@ class LocalAppAgentUtopiaResident$Type extends MessageType<LocalAppAgentUtopiaRe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaResident
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaResident
  */
-export const LocalAppAgentUtopiaResident = new LocalAppAgentUtopiaResident$Type();
+export const LocalAppUtopiaResident = new LocalAppUtopiaResident$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaOccupancy$Type extends MessageType<LocalAppAgentUtopiaOccupancy> {
+class LocalAppUtopiaPlaceOccupancy$Type extends MessageType<LocalAppUtopiaPlaceOccupancy> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaOccupancy", [
-            { no: 1, name: "place", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+        super("nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy", [
+            { no: 1, name: "place_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "agent_handles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaOccupancy>): LocalAppAgentUtopiaOccupancy {
+    create(value?: PartialMessage<LocalAppUtopiaPlaceOccupancy>): LocalAppUtopiaPlaceOccupancy {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.place = "";
+        message.placeId = "";
         message.agentHandles = [];
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaOccupancy>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaPlaceOccupancy>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaOccupancy): LocalAppAgentUtopiaOccupancy {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaPlaceOccupancy): LocalAppUtopiaPlaceOccupancy {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string place */ 1:
-                    message.place = reader.string();
+                case /* string place_id */ 1:
+                    message.placeId = reader.string();
                     break;
                 case /* repeated string agent_handles */ 2:
                     message.agentHandles.push(reader.string());
@@ -630,10 +1814,10 @@ class LocalAppAgentUtopiaOccupancy$Type extends MessageType<LocalAppAgentUtopiaO
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaOccupancy, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string place = 1; */
-        if (message.place !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.place);
+    internalBinaryWrite(message: LocalAppUtopiaPlaceOccupancy, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string place_id = 1; */
+        if (message.placeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.placeId);
         /* repeated string agent_handles = 2; */
         for (let i = 0; i < message.agentHandles.length; i++)
             writer.tag(2, WireType.LengthDelimited).string(message.agentHandles[i]);
@@ -644,37 +1828,47 @@ class LocalAppAgentUtopiaOccupancy$Type extends MessageType<LocalAppAgentUtopiaO
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaOccupancy
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy
  */
-export const LocalAppAgentUtopiaOccupancy = new LocalAppAgentUtopiaOccupancy$Type();
+export const LocalAppUtopiaPlaceOccupancy = new LocalAppUtopiaPlaceOccupancy$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaSharedActivity$Type extends MessageType<LocalAppAgentUtopiaSharedActivity> {
+class LocalAppUtopiaSharedActivity$Type extends MessageType<LocalAppUtopiaSharedActivity> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity", [
+        super("nimi.runtime.v1.LocalAppUtopiaSharedActivity", [
             { no: 1, name: "activity_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "initiator_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "recipient_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "place", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "activity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "starts_at", kind: "message", T: () => Timestamp },
-            { no: 8, name: "ends_at", kind: "message", T: () => Timestamp },
-            { no: 9, name: "accepted_at", kind: "message", T: () => Timestamp }
+            { no: 2, name: "habitat_activation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "habitat_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "initiator_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "recipient_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "place_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "place_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "activity_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "activity_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "starts_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "ends_at", kind: "message", T: () => Timestamp },
+            { no: 14, name: "accepted_at", kind: "message", T: () => Timestamp }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaSharedActivity>): LocalAppAgentUtopiaSharedActivity {
+    create(value?: PartialMessage<LocalAppUtopiaSharedActivity>): LocalAppUtopiaSharedActivity {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.activityRef = "";
+        message.habitatActivationId = "";
+        message.habitatId = "";
+        message.habitatTitle = "";
         message.initiatorHandle = "";
         message.recipientHandle = "";
-        message.place = "";
-        message.activity = "";
+        message.placeId = "";
+        message.placeLabel = "";
+        message.activityId = "";
+        message.activityLabel = "";
         message.state = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaSharedActivity>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaSharedActivity>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaSharedActivity): LocalAppAgentUtopiaSharedActivity {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaSharedActivity): LocalAppUtopiaSharedActivity {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -682,28 +1876,43 @@ class LocalAppAgentUtopiaSharedActivity$Type extends MessageType<LocalAppAgentUt
                 case /* string activity_ref */ 1:
                     message.activityRef = reader.string();
                     break;
-                case /* string initiator_handle */ 2:
+                case /* string habitat_activation_id */ 2:
+                    message.habitatActivationId = reader.string();
+                    break;
+                case /* string habitat_id */ 3:
+                    message.habitatId = reader.string();
+                    break;
+                case /* string habitat_title */ 4:
+                    message.habitatTitle = reader.string();
+                    break;
+                case /* string initiator_handle */ 5:
                     message.initiatorHandle = reader.string();
                     break;
-                case /* string recipient_handle */ 3:
+                case /* string recipient_handle */ 6:
                     message.recipientHandle = reader.string();
                     break;
-                case /* string place */ 4:
-                    message.place = reader.string();
+                case /* string place_id */ 7:
+                    message.placeId = reader.string();
                     break;
-                case /* string activity */ 5:
-                    message.activity = reader.string();
+                case /* string place_label */ 8:
+                    message.placeLabel = reader.string();
                     break;
-                case /* string state */ 6:
+                case /* string activity_id */ 9:
+                    message.activityId = reader.string();
+                    break;
+                case /* string activity_label */ 10:
+                    message.activityLabel = reader.string();
+                    break;
+                case /* string state */ 11:
                     message.state = reader.string();
                     break;
-                case /* google.protobuf.Timestamp starts_at */ 7:
+                case /* google.protobuf.Timestamp starts_at */ 12:
                     message.startsAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startsAt);
                     break;
-                case /* google.protobuf.Timestamp ends_at */ 8:
+                case /* google.protobuf.Timestamp ends_at */ 13:
                     message.endsAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.endsAt);
                     break;
-                case /* google.protobuf.Timestamp accepted_at */ 9:
+                case /* google.protobuf.Timestamp accepted_at */ 14:
                     message.acceptedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.acceptedAt);
                     break;
                 default:
@@ -717,34 +1926,49 @@ class LocalAppAgentUtopiaSharedActivity$Type extends MessageType<LocalAppAgentUt
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaSharedActivity, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalAppUtopiaSharedActivity, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string activity_ref = 1; */
         if (message.activityRef !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.activityRef);
-        /* string initiator_handle = 2; */
+        /* string habitat_activation_id = 2; */
+        if (message.habitatActivationId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.habitatActivationId);
+        /* string habitat_id = 3; */
+        if (message.habitatId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.habitatId);
+        /* string habitat_title = 4; */
+        if (message.habitatTitle !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.habitatTitle);
+        /* string initiator_handle = 5; */
         if (message.initiatorHandle !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.initiatorHandle);
-        /* string recipient_handle = 3; */
+            writer.tag(5, WireType.LengthDelimited).string(message.initiatorHandle);
+        /* string recipient_handle = 6; */
         if (message.recipientHandle !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.recipientHandle);
-        /* string place = 4; */
-        if (message.place !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.place);
-        /* string activity = 5; */
-        if (message.activity !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.activity);
-        /* string state = 6; */
+            writer.tag(6, WireType.LengthDelimited).string(message.recipientHandle);
+        /* string place_id = 7; */
+        if (message.placeId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.placeId);
+        /* string place_label = 8; */
+        if (message.placeLabel !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.placeLabel);
+        /* string activity_id = 9; */
+        if (message.activityId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.activityId);
+        /* string activity_label = 10; */
+        if (message.activityLabel !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.activityLabel);
+        /* string state = 11; */
         if (message.state !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.state);
-        /* google.protobuf.Timestamp starts_at = 7; */
+            writer.tag(11, WireType.LengthDelimited).string(message.state);
+        /* google.protobuf.Timestamp starts_at = 12; */
         if (message.startsAt)
-            Timestamp.internalBinaryWrite(message.startsAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp ends_at = 8; */
+            Timestamp.internalBinaryWrite(message.startsAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp ends_at = 13; */
         if (message.endsAt)
-            Timestamp.internalBinaryWrite(message.endsAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp accepted_at = 9; */
+            Timestamp.internalBinaryWrite(message.endsAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp accepted_at = 14; */
         if (message.acceptedAt)
-            Timestamp.internalBinaryWrite(message.acceptedAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+            Timestamp.internalBinaryWrite(message.acceptedAt, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -752,24 +1976,117 @@ class LocalAppAgentUtopiaSharedActivity$Type extends MessageType<LocalAppAgentUt
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaSharedActivity
  */
-export const LocalAppAgentUtopiaSharedActivity = new LocalAppAgentUtopiaSharedActivity$Type();
+export const LocalAppUtopiaSharedActivity = new LocalAppUtopiaSharedActivity$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaRelocationSummary$Type extends MessageType<LocalAppUtopiaRelocationSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaRelocationSummary", [
+            { no: 1, name: "from_habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "from_habitat_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "to_habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "to_habitat_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "relocated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaRelocationSummary>): LocalAppUtopiaRelocationSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fromHabitatId = "";
+        message.fromHabitatTitle = "";
+        message.toHabitatId = "";
+        message.toHabitatTitle = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaRelocationSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaRelocationSummary): LocalAppUtopiaRelocationSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string from_habitat_id */ 1:
+                    message.fromHabitatId = reader.string();
+                    break;
+                case /* string from_habitat_title */ 2:
+                    message.fromHabitatTitle = reader.string();
+                    break;
+                case /* string to_habitat_id */ 3:
+                    message.toHabitatId = reader.string();
+                    break;
+                case /* string to_habitat_title */ 4:
+                    message.toHabitatTitle = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp relocated_at */ 5:
+                    message.relocatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.relocatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaRelocationSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string from_habitat_id = 1; */
+        if (message.fromHabitatId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.fromHabitatId);
+        /* string from_habitat_title = 2; */
+        if (message.fromHabitatTitle !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.fromHabitatTitle);
+        /* string to_habitat_id = 3; */
+        if (message.toHabitatId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.toHabitatId);
+        /* string to_habitat_title = 4; */
+        if (message.toHabitatTitle !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.toHabitatTitle);
+        /* google.protobuf.Timestamp relocated_at = 5; */
+        if (message.relocatedAt)
+            Timestamp.internalBinaryWrite(message.relocatedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaRelocationSummary
+ */
+export const LocalAppUtopiaRelocationSummary = new LocalAppUtopiaRelocationSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetLocalAppAgentUtopiaSnapshotResponse$Type extends MessageType<GetLocalAppAgentUtopiaSnapshotResponse> {
     constructor() {
         super("nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse", [
-            { no: 1, name: "settings", kind: "message", T: () => LocalAppAgentUtopiaSettings },
+            { no: 1, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 2, name: "observed_at", kind: "message", T: () => Timestamp },
-            { no: 3, name: "places", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentUtopiaPlace },
-            { no: 4, name: "residents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentUtopiaResident },
-            { no: 5, name: "occupancy", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentUtopiaOccupancy },
-            { no: 6, name: "shared_activities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentUtopiaSharedActivity }
+            { no: 3, name: "habitat_activation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "content_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "public_participation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "habitat", kind: "message", T: () => LocalAppUtopiaHabitatSpec },
+            { no: 8, name: "parameter_values", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterEntry },
+            { no: 9, name: "open_place_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "active_events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaActiveEvent },
+            { no: 11, name: "last_relocation", kind: "message", T: () => LocalAppUtopiaRelocationSummary },
+            { no: 12, name: "residents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaResident },
+            { no: 13, name: "occupancy", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaPlaceOccupancy },
+            { no: 14, name: "shared_activities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaSharedActivity }
         ]);
     }
     create(value?: PartialMessage<GetLocalAppAgentUtopiaSnapshotResponse>): GetLocalAppAgentUtopiaSnapshotResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.places = [];
+        message.revision = "0";
+        message.habitatActivationId = "";
+        message.contentDigest = "";
+        message.timezone = "";
+        message.publicParticipation = false;
+        message.parameterValues = [];
+        message.openPlaceIds = [];
+        message.activeEvents = [];
         message.residents = [];
         message.occupancy = [];
         message.sharedActivities = [];
@@ -782,23 +2099,47 @@ class GetLocalAppAgentUtopiaSnapshotResponse$Type extends MessageType<GetLocalAp
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaSettings settings */ 1:
-                    message.settings = LocalAppAgentUtopiaSettings.internalBinaryRead(reader, reader.uint32(), options, message.settings);
+                case /* uint64 revision */ 1:
+                    message.revision = reader.uint64().toString();
                     break;
                 case /* google.protobuf.Timestamp observed_at */ 2:
                     message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
                     break;
-                case /* repeated nimi.runtime.v1.LocalAppAgentUtopiaPlace places */ 3:
-                    message.places.push(LocalAppAgentUtopiaPlace.internalBinaryRead(reader, reader.uint32(), options));
+                case /* string habitat_activation_id */ 3:
+                    message.habitatActivationId = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalAppAgentUtopiaResident residents */ 4:
-                    message.residents.push(LocalAppAgentUtopiaResident.internalBinaryRead(reader, reader.uint32(), options));
+                case /* string content_digest */ 4:
+                    message.contentDigest = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalAppAgentUtopiaOccupancy occupancy */ 5:
-                    message.occupancy.push(LocalAppAgentUtopiaOccupancy.internalBinaryRead(reader, reader.uint32(), options));
+                case /* string timezone */ 5:
+                    message.timezone = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity shared_activities */ 6:
-                    message.sharedActivities.push(LocalAppAgentUtopiaSharedActivity.internalBinaryRead(reader, reader.uint32(), options));
+                case /* bool public_participation */ 6:
+                    message.publicParticipation = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat */ 7:
+                    message.habitat = LocalAppUtopiaHabitatSpec.internalBinaryRead(reader, reader.uint32(), options, message.habitat);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values */ 8:
+                    message.parameterValues.push(LocalAppUtopiaParameterEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string open_place_ids */ 9:
+                    message.openPlaceIds.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events */ 10:
+                    message.activeEvents.push(LocalAppUtopiaActiveEvent.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.LocalAppUtopiaRelocationSummary last_relocation */ 11:
+                    message.lastRelocation = LocalAppUtopiaRelocationSummary.internalBinaryRead(reader, reader.uint32(), options, message.lastRelocation);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaResident residents */ 12:
+                    message.residents.push(LocalAppUtopiaResident.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy occupancy */ 13:
+                    message.occupancy.push(LocalAppUtopiaPlaceOccupancy.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaSharedActivity shared_activities */ 14:
+                    message.sharedActivities.push(LocalAppUtopiaSharedActivity.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -812,24 +2153,48 @@ class GetLocalAppAgentUtopiaSnapshotResponse$Type extends MessageType<GetLocalAp
         return message;
     }
     internalBinaryWrite(message: GetLocalAppAgentUtopiaSnapshotResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalAppAgentUtopiaSettings settings = 1; */
-        if (message.settings)
-            LocalAppAgentUtopiaSettings.internalBinaryWrite(message.settings, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 revision = 1; */
+        if (message.revision !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.revision);
         /* google.protobuf.Timestamp observed_at = 2; */
         if (message.observedAt)
             Timestamp.internalBinaryWrite(message.observedAt, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalAppAgentUtopiaPlace places = 3; */
-        for (let i = 0; i < message.places.length; i++)
-            LocalAppAgentUtopiaPlace.internalBinaryWrite(message.places[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalAppAgentUtopiaResident residents = 4; */
+        /* string habitat_activation_id = 3; */
+        if (message.habitatActivationId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.habitatActivationId);
+        /* string content_digest = 4; */
+        if (message.contentDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.contentDigest);
+        /* string timezone = 5; */
+        if (message.timezone !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.timezone);
+        /* bool public_participation = 6; */
+        if (message.publicParticipation !== false)
+            writer.tag(6, WireType.Varint).bool(message.publicParticipation);
+        /* nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat = 7; */
+        if (message.habitat)
+            LocalAppUtopiaHabitatSpec.internalBinaryWrite(message.habitat, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values = 8; */
+        for (let i = 0; i < message.parameterValues.length; i++)
+            LocalAppUtopiaParameterEntry.internalBinaryWrite(message.parameterValues[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string open_place_ids = 9; */
+        for (let i = 0; i < message.openPlaceIds.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.openPlaceIds[i]);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events = 10; */
+        for (let i = 0; i < message.activeEvents.length; i++)
+            LocalAppUtopiaActiveEvent.internalBinaryWrite(message.activeEvents[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaRelocationSummary last_relocation = 11; */
+        if (message.lastRelocation)
+            LocalAppUtopiaRelocationSummary.internalBinaryWrite(message.lastRelocation, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaResident residents = 12; */
         for (let i = 0; i < message.residents.length; i++)
-            LocalAppAgentUtopiaResident.internalBinaryWrite(message.residents[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalAppAgentUtopiaOccupancy occupancy = 5; */
+            LocalAppUtopiaResident.internalBinaryWrite(message.residents[i], writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy occupancy = 13; */
         for (let i = 0; i < message.occupancy.length; i++)
-            LocalAppAgentUtopiaOccupancy.internalBinaryWrite(message.occupancy[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity shared_activities = 6; */
+            LocalAppUtopiaPlaceOccupancy.internalBinaryWrite(message.occupancy[i], writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaSharedActivity shared_activities = 14; */
         for (let i = 0; i < message.sharedActivities.length; i++)
-            LocalAppAgentUtopiaSharedActivity.internalBinaryWrite(message.sharedActivities[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+            LocalAppUtopiaSharedActivity.internalBinaryWrite(message.sharedActivities[i], writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -841,22 +2206,385 @@ class GetLocalAppAgentUtopiaSnapshotResponse$Type extends MessageType<GetLocalAp
  */
 export const GetLocalAppAgentUtopiaSnapshotResponse = new GetLocalAppAgentUtopiaSnapshotResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalAppAgentUtopiaSolitude$Type extends MessageType<LocalAppAgentUtopiaSolitude> {
+class LocalAppUtopiaActivateHabitatChange$Type extends MessageType<LocalAppUtopiaActivateHabitatChange> {
     constructor() {
-        super("nimi.runtime.v1.LocalAppAgentUtopiaSolitude", [
+        super("nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange", [
+            { no: 1, name: "habitat", kind: "message", T: () => LocalAppUtopiaHabitatSpec },
+            { no: 2, name: "initial_parameters", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterEntry },
+            { no: 3, name: "timezone", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaActivateHabitatChange>): LocalAppUtopiaActivateHabitatChange {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.initialParameters = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaActivateHabitatChange>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaActivateHabitatChange): LocalAppUtopiaActivateHabitatChange {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat */ 1:
+                    message.habitat = LocalAppUtopiaHabitatSpec.internalBinaryRead(reader, reader.uint32(), options, message.habitat);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry initial_parameters */ 2:
+                    message.initialParameters.push(LocalAppUtopiaParameterEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* optional string timezone */ 3:
+                    message.timezone = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaActivateHabitatChange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppUtopiaHabitatSpec habitat = 1; */
+        if (message.habitat)
+            LocalAppUtopiaHabitatSpec.internalBinaryWrite(message.habitat, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry initial_parameters = 2; */
+        for (let i = 0; i < message.initialParameters.length; i++)
+            LocalAppUtopiaParameterEntry.internalBinaryWrite(message.initialParameters[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* optional string timezone = 3; */
+        if (message.timezone !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.timezone);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange
+ */
+export const LocalAppUtopiaActivateHabitatChange = new LocalAppUtopiaActivateHabitatChange$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaRestoreDefaultChange$Type extends MessageType<LocalAppUtopiaRestoreDefaultChange> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange", [
+            { no: 1, name: "timezone", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaRestoreDefaultChange>): LocalAppUtopiaRestoreDefaultChange {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaRestoreDefaultChange>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaRestoreDefaultChange): LocalAppUtopiaRestoreDefaultChange {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* optional string timezone */ 1:
+                    message.timezone = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaRestoreDefaultChange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* optional string timezone = 1; */
+        if (message.timezone !== undefined)
+            writer.tag(1, WireType.LengthDelimited).string(message.timezone);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange
+ */
+export const LocalAppUtopiaRestoreDefaultChange = new LocalAppUtopiaRestoreDefaultChange$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaPresetEventTrigger$Type extends MessageType<LocalAppUtopiaPresetEventTrigger> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger", [
+            { no: 1, name: "preset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "duration_minutes", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaPresetEventTrigger>): LocalAppUtopiaPresetEventTrigger {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.presetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaPresetEventTrigger>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaPresetEventTrigger): LocalAppUtopiaPresetEventTrigger {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string preset_id */ 1:
+                    message.presetId = reader.string();
+                    break;
+                case /* optional int32 duration_minutes */ 2:
+                    message.durationMinutes = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaPresetEventTrigger, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string preset_id = 1; */
+        if (message.presetId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.presetId);
+        /* optional int32 duration_minutes = 2; */
+        if (message.durationMinutes !== undefined)
+            writer.tag(2, WireType.Varint).int32(message.durationMinutes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger
+ */
+export const LocalAppUtopiaPresetEventTrigger = new LocalAppUtopiaPresetEventTrigger$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaCustomEventTrigger$Type extends MessageType<LocalAppUtopiaCustomEventTrigger> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger", [
+            { no: 1, name: "scenery_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "place_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "duration_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaCustomEventTrigger>): LocalAppUtopiaCustomEventTrigger {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sceneryKind = "";
+        message.label = "";
+        message.description = "";
+        message.durationMinutes = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaCustomEventTrigger>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaCustomEventTrigger): LocalAppUtopiaCustomEventTrigger {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string scenery_kind */ 1:
+                    message.sceneryKind = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                case /* string description */ 3:
+                    message.description = reader.string();
+                    break;
+                case /* optional string place_id */ 4:
+                    message.placeId = reader.string();
+                    break;
+                case /* int32 duration_minutes */ 5:
+                    message.durationMinutes = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaCustomEventTrigger, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string scenery_kind = 1; */
+        if (message.sceneryKind !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sceneryKind);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        /* string description = 3; */
+        if (message.description !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.description);
+        /* optional string place_id = 4; */
+        if (message.placeId !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.placeId);
+        /* int32 duration_minutes = 5; */
+        if (message.durationMinutes !== 0)
+            writer.tag(5, WireType.Varint).int32(message.durationMinutes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger
+ */
+export const LocalAppUtopiaCustomEventTrigger = new LocalAppUtopiaCustomEventTrigger$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaEventMutation$Type extends MessageType<LocalAppUtopiaEventMutation> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaEventMutation", [
+            { no: 1, name: "trigger_preset", kind: "message", oneof: "action", T: () => LocalAppUtopiaPresetEventTrigger },
+            { no: 2, name: "put_custom", kind: "message", oneof: "action", T: () => LocalAppUtopiaCustomEventTrigger },
+            { no: 3, name: "clear_event_id", kind: "scalar", oneof: "action", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaEventMutation>): LocalAppUtopiaEventMutation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.action = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaEventMutation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaEventMutation): LocalAppUtopiaEventMutation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger trigger_preset */ 1:
+                    message.action = {
+                        oneofKind: "triggerPreset",
+                        triggerPreset: LocalAppUtopiaPresetEventTrigger.internalBinaryRead(reader, reader.uint32(), options, (message.action as any).triggerPreset)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger put_custom */ 2:
+                    message.action = {
+                        oneofKind: "putCustom",
+                        putCustom: LocalAppUtopiaCustomEventTrigger.internalBinaryRead(reader, reader.uint32(), options, (message.action as any).putCustom)
+                    };
+                    break;
+                case /* string clear_event_id */ 3:
+                    message.action = {
+                        oneofKind: "clearEventId",
+                        clearEventId: reader.string()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaEventMutation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger trigger_preset = 1; */
+        if (message.action.oneofKind === "triggerPreset")
+            LocalAppUtopiaPresetEventTrigger.internalBinaryWrite(message.action.triggerPreset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger put_custom = 2; */
+        if (message.action.oneofKind === "putCustom")
+            LocalAppUtopiaCustomEventTrigger.internalBinaryWrite(message.action.putCustom, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string clear_event_id = 3; */
+        if (message.action.oneofKind === "clearEventId")
+            writer.tag(3, WireType.LengthDelimited).string(message.action.clearEventId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaEventMutation
+ */
+export const LocalAppUtopiaEventMutation = new LocalAppUtopiaEventMutation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaApplyTuningChange$Type extends MessageType<LocalAppUtopiaApplyTuningChange> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaApplyTuningChange", [
+            { no: 1, name: "parameters", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterEntry },
+            { no: 2, name: "event_mutation", kind: "message", T: () => LocalAppUtopiaEventMutation }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppUtopiaApplyTuningChange>): LocalAppUtopiaApplyTuningChange {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.parameters = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppUtopiaApplyTuningChange>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaApplyTuningChange): LocalAppUtopiaApplyTuningChange {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameters */ 1:
+                    message.parameters.push(LocalAppUtopiaParameterEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.LocalAppUtopiaEventMutation event_mutation */ 2:
+                    message.eventMutation = LocalAppUtopiaEventMutation.internalBinaryRead(reader, reader.uint32(), options, message.eventMutation);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppUtopiaApplyTuningChange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameters = 1; */
+        for (let i = 0; i < message.parameters.length; i++)
+            LocalAppUtopiaParameterEntry.internalBinaryWrite(message.parameters[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaEventMutation event_mutation = 2; */
+        if (message.eventMutation)
+            LocalAppUtopiaEventMutation.internalBinaryWrite(message.eventMutation, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaApplyTuningChange
+ */
+export const LocalAppUtopiaApplyTuningChange = new LocalAppUtopiaApplyTuningChange$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppUtopiaSolitudeChange$Type extends MessageType<LocalAppUtopiaSolitudeChange> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppUtopiaSolitudeChange", [
             { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "solitary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalAppAgentUtopiaSolitude>): LocalAppAgentUtopiaSolitude {
+    create(value?: PartialMessage<LocalAppUtopiaSolitudeChange>): LocalAppUtopiaSolitudeChange {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentHandle = "";
         message.solitary = false;
         if (value !== undefined)
-            reflectionMergePartial<LocalAppAgentUtopiaSolitude>(this, message, value);
+            reflectionMergePartial<LocalAppUtopiaSolitudeChange>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentUtopiaSolitude): LocalAppAgentUtopiaSolitude {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppUtopiaSolitudeChange): LocalAppUtopiaSolitudeChange {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -878,7 +2606,7 @@ class LocalAppAgentUtopiaSolitude$Type extends MessageType<LocalAppAgentUtopiaSo
         }
         return message;
     }
-    internalBinaryWrite(message: LocalAppAgentUtopiaSolitude, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: LocalAppUtopiaSolitudeChange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string agent_handle = 1; */
         if (message.agentHandle !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
@@ -892,25 +2620,26 @@ class LocalAppAgentUtopiaSolitude$Type extends MessageType<LocalAppAgentUtopiaSo
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentUtopiaSolitude
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppUtopiaSolitudeChange
  */
-export const LocalAppAgentUtopiaSolitude = new LocalAppAgentUtopiaSolitude$Type();
+export const LocalAppUtopiaSolitudeChange = new LocalAppUtopiaSolitudeChange$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class UpdateLocalAppAgentUtopiaSettingsRequest$Type extends MessageType<UpdateLocalAppAgentUtopiaSettingsRequest> {
     constructor() {
         super("nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest", [
             { no: 1, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 2, name: "select_preset", kind: "scalar", oneof: "intent", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "restore_default", kind: "scalar", oneof: "intent", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "outdoor_open", kind: "scalar", oneof: "intent", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "public_participation", kind: "scalar", oneof: "intent", T: 8 /*ScalarType.BOOL*/ },
-            { no: 6, name: "solitude", kind: "message", oneof: "intent", T: () => LocalAppAgentUtopiaSolitude }
+            { no: 2, name: "activate_habitat", kind: "message", oneof: "change", T: () => LocalAppUtopiaActivateHabitatChange },
+            { no: 3, name: "restore_default", kind: "message", oneof: "change", T: () => LocalAppUtopiaRestoreDefaultChange },
+            { no: 4, name: "apply_tuning", kind: "message", oneof: "change", T: () => LocalAppUtopiaApplyTuningChange },
+            { no: 5, name: "public_participation", kind: "scalar", oneof: "change", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "solitude", kind: "message", oneof: "change", T: () => LocalAppUtopiaSolitudeChange },
+            { no: 7, name: "timezone", kind: "scalar", oneof: "change", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateLocalAppAgentUtopiaSettingsRequest>): UpdateLocalAppAgentUtopiaSettingsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.expectedRevision = "0";
-        message.intent = { oneofKind: undefined };
+        message.change = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<UpdateLocalAppAgentUtopiaSettingsRequest>(this, message, value);
         return message;
@@ -923,34 +2652,40 @@ class UpdateLocalAppAgentUtopiaSettingsRequest$Type extends MessageType<UpdateLo
                 case /* uint64 expected_revision */ 1:
                     message.expectedRevision = reader.uint64().toString();
                     break;
-                case /* string select_preset */ 2:
-                    message.intent = {
-                        oneofKind: "selectPreset",
-                        selectPreset: reader.string()
+                case /* nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange activate_habitat */ 2:
+                    message.change = {
+                        oneofKind: "activateHabitat",
+                        activateHabitat: LocalAppUtopiaActivateHabitatChange.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).activateHabitat)
                     };
                     break;
-                case /* bool restore_default */ 3:
-                    message.intent = {
+                case /* nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange restore_default */ 3:
+                    message.change = {
                         oneofKind: "restoreDefault",
-                        restoreDefault: reader.bool()
+                        restoreDefault: LocalAppUtopiaRestoreDefaultChange.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).restoreDefault)
                     };
                     break;
-                case /* bool outdoor_open */ 4:
-                    message.intent = {
-                        oneofKind: "outdoorOpen",
-                        outdoorOpen: reader.bool()
+                case /* nimi.runtime.v1.LocalAppUtopiaApplyTuningChange apply_tuning */ 4:
+                    message.change = {
+                        oneofKind: "applyTuning",
+                        applyTuning: LocalAppUtopiaApplyTuningChange.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).applyTuning)
                     };
                     break;
                 case /* bool public_participation */ 5:
-                    message.intent = {
+                    message.change = {
                         oneofKind: "publicParticipation",
                         publicParticipation: reader.bool()
                     };
                     break;
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaSolitude solitude */ 6:
-                    message.intent = {
+                case /* nimi.runtime.v1.LocalAppUtopiaSolitudeChange solitude */ 6:
+                    message.change = {
                         oneofKind: "solitude",
-                        solitude: LocalAppAgentUtopiaSolitude.internalBinaryRead(reader, reader.uint32(), options, (message.intent as any).solitude)
+                        solitude: LocalAppUtopiaSolitudeChange.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).solitude)
+                    };
+                    break;
+                case /* string timezone */ 7:
+                    message.change = {
+                        oneofKind: "timezone",
+                        timezone: reader.string()
                     };
                     break;
                 default:
@@ -968,21 +2703,24 @@ class UpdateLocalAppAgentUtopiaSettingsRequest$Type extends MessageType<UpdateLo
         /* uint64 expected_revision = 1; */
         if (message.expectedRevision !== "0")
             writer.tag(1, WireType.Varint).uint64(message.expectedRevision);
-        /* string select_preset = 2; */
-        if (message.intent.oneofKind === "selectPreset")
-            writer.tag(2, WireType.LengthDelimited).string(message.intent.selectPreset);
-        /* bool restore_default = 3; */
-        if (message.intent.oneofKind === "restoreDefault")
-            writer.tag(3, WireType.Varint).bool(message.intent.restoreDefault);
-        /* bool outdoor_open = 4; */
-        if (message.intent.oneofKind === "outdoorOpen")
-            writer.tag(4, WireType.Varint).bool(message.intent.outdoorOpen);
+        /* nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange activate_habitat = 2; */
+        if (message.change.oneofKind === "activateHabitat")
+            LocalAppUtopiaActivateHabitatChange.internalBinaryWrite(message.change.activateHabitat, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange restore_default = 3; */
+        if (message.change.oneofKind === "restoreDefault")
+            LocalAppUtopiaRestoreDefaultChange.internalBinaryWrite(message.change.restoreDefault, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppUtopiaApplyTuningChange apply_tuning = 4; */
+        if (message.change.oneofKind === "applyTuning")
+            LocalAppUtopiaApplyTuningChange.internalBinaryWrite(message.change.applyTuning, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* bool public_participation = 5; */
-        if (message.intent.oneofKind === "publicParticipation")
-            writer.tag(5, WireType.Varint).bool(message.intent.publicParticipation);
-        /* nimi.runtime.v1.LocalAppAgentUtopiaSolitude solitude = 6; */
-        if (message.intent.oneofKind === "solitude")
-            LocalAppAgentUtopiaSolitude.internalBinaryWrite(message.intent.solitude, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        if (message.change.oneofKind === "publicParticipation")
+            writer.tag(5, WireType.Varint).bool(message.change.publicParticipation);
+        /* nimi.runtime.v1.LocalAppUtopiaSolitudeChange solitude = 6; */
+        if (message.change.oneofKind === "solitude")
+            LocalAppUtopiaSolitudeChange.internalBinaryWrite(message.change.solitude, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string timezone = 7; */
+        if (message.change.oneofKind === "timezone")
+            writer.tag(7, WireType.LengthDelimited).string(message.change.timezone);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -997,11 +2735,30 @@ export const UpdateLocalAppAgentUtopiaSettingsRequest = new UpdateLocalAppAgentU
 class UpdateLocalAppAgentUtopiaSettingsResponse$Type extends MessageType<UpdateLocalAppAgentUtopiaSettingsResponse> {
     constructor() {
         super("nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse", [
-            { no: 1, name: "settings", kind: "message", T: () => LocalAppAgentUtopiaSettings }
+            { no: 1, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "habitat_activation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "habitat_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "habitat_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "content_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "public_participation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "parameter_values", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaParameterEntry },
+            { no: 9, name: "open_place_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "active_events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppUtopiaActiveEvent }
         ]);
     }
     create(value?: PartialMessage<UpdateLocalAppAgentUtopiaSettingsResponse>): UpdateLocalAppAgentUtopiaSettingsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.revision = "0";
+        message.habitatActivationId = "";
+        message.habitatId = "";
+        message.habitatTitle = "";
+        message.contentDigest = "";
+        message.timezone = "";
+        message.publicParticipation = false;
+        message.parameterValues = [];
+        message.openPlaceIds = [];
+        message.activeEvents = [];
         if (value !== undefined)
             reflectionMergePartial<UpdateLocalAppAgentUtopiaSettingsResponse>(this, message, value);
         return message;
@@ -1011,8 +2768,35 @@ class UpdateLocalAppAgentUtopiaSettingsResponse$Type extends MessageType<UpdateL
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalAppAgentUtopiaSettings settings */ 1:
-                    message.settings = LocalAppAgentUtopiaSettings.internalBinaryRead(reader, reader.uint32(), options, message.settings);
+                case /* uint64 revision */ 1:
+                    message.revision = reader.uint64().toString();
+                    break;
+                case /* string habitat_activation_id */ 2:
+                    message.habitatActivationId = reader.string();
+                    break;
+                case /* string habitat_id */ 3:
+                    message.habitatId = reader.string();
+                    break;
+                case /* string habitat_title */ 4:
+                    message.habitatTitle = reader.string();
+                    break;
+                case /* string content_digest */ 5:
+                    message.contentDigest = reader.string();
+                    break;
+                case /* string timezone */ 6:
+                    message.timezone = reader.string();
+                    break;
+                case /* bool public_participation */ 7:
+                    message.publicParticipation = reader.bool();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values */ 8:
+                    message.parameterValues.push(LocalAppUtopiaParameterEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string open_place_ids */ 9:
+                    message.openPlaceIds.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events */ 10:
+                    message.activeEvents.push(LocalAppUtopiaActiveEvent.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1026,9 +2810,36 @@ class UpdateLocalAppAgentUtopiaSettingsResponse$Type extends MessageType<UpdateL
         return message;
     }
     internalBinaryWrite(message: UpdateLocalAppAgentUtopiaSettingsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalAppAgentUtopiaSettings settings = 1; */
-        if (message.settings)
-            LocalAppAgentUtopiaSettings.internalBinaryWrite(message.settings, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 revision = 1; */
+        if (message.revision !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.revision);
+        /* string habitat_activation_id = 2; */
+        if (message.habitatActivationId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.habitatActivationId);
+        /* string habitat_id = 3; */
+        if (message.habitatId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.habitatId);
+        /* string habitat_title = 4; */
+        if (message.habitatTitle !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.habitatTitle);
+        /* string content_digest = 5; */
+        if (message.contentDigest !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.contentDigest);
+        /* string timezone = 6; */
+        if (message.timezone !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.timezone);
+        /* bool public_participation = 7; */
+        if (message.publicParticipation !== false)
+            writer.tag(7, WireType.Varint).bool(message.publicParticipation);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaParameterEntry parameter_values = 8; */
+        for (let i = 0; i < message.parameterValues.length; i++)
+            LocalAppUtopiaParameterEntry.internalBinaryWrite(message.parameterValues[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string open_place_ids = 9; */
+        for (let i = 0; i < message.openPlaceIds.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.openPlaceIds[i]);
+        /* repeated nimi.runtime.v1.LocalAppUtopiaActiveEvent active_events = 10; */
+        for (let i = 0; i < message.activeEvents.length; i++)
+            LocalAppUtopiaActiveEvent.internalBinaryWrite(message.activeEvents[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

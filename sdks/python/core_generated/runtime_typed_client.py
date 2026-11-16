@@ -2993,12 +2993,20 @@ class GetLocalAppAgentUtopiaSnapshotRequest:
 
 @dataclass(frozen=True)
 class GetLocalAppAgentUtopiaSnapshotResponse:
-    settings: LocalAppAgentUtopiaSettings | None = None
+    revision: int | None = None
     observed_at: str | None = None
-    places: tuple[LocalAppAgentUtopiaPlace, ...] = field(default_factory=tuple)
-    residents: tuple[LocalAppAgentUtopiaResident, ...] = field(default_factory=tuple)
-    occupancy: tuple[LocalAppAgentUtopiaOccupancy, ...] = field(default_factory=tuple)
-    shared_activities: tuple[LocalAppAgentUtopiaSharedActivity, ...] = field(default_factory=tuple)
+    habitat_activation_id: str | None = None
+    content_digest: str | None = None
+    timezone: str | None = None
+    public_participation: bool | None = None
+    habitat: LocalAppUtopiaHabitatSpec | None = None
+    parameter_values: tuple[LocalAppUtopiaParameterEntry, ...] = field(default_factory=tuple)
+    open_place_ids: tuple[str, ...] = field(default_factory=tuple)
+    active_events: tuple[LocalAppUtopiaActiveEvent, ...] = field(default_factory=tuple)
+    last_relocation: LocalAppUtopiaRelocationSummary | None = None
+    residents: tuple[LocalAppUtopiaResident, ...] = field(default_factory=tuple)
+    occupancy: tuple[LocalAppUtopiaPlaceOccupancy, ...] = field(default_factory=tuple)
+    shared_activities: tuple[LocalAppUtopiaSharedActivity, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class GetLocalAppAgentWorkRequest:
@@ -4448,58 +4456,6 @@ class LocalAppAgentUpdateAutonomyResponse:
     projection: LocalAppAgentAutonomyProjection | None = None
 
 @dataclass(frozen=True)
-class LocalAppAgentUtopiaFrame:
-    title: str | None = None
-    place: str | None = None
-    starts_at: str | None = None
-    ends_at: str | None = None
-    interaction: bool | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaOccupancy:
-    place: str | None = None
-    agent_handles: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaPlace:
-    id: str | None = None
-    activities: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaResident:
-    agent_handle: str | None = None
-    display_name: str | None = None
-    solitary: bool | None = None
-    current: LocalAppAgentUtopiaFrame | None = None
-    recent: LocalAppAgentUtopiaFrame | None = None
-    next: LocalAppAgentUtopiaFrame | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaSettings:
-    revision: int | None = None
-    preset: str | None = None
-    preset_version: int | None = None
-    outdoor_open: bool | None = None
-    public_participation: bool | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaSharedActivity:
-    activity_ref: str | None = None
-    initiator_handle: str | None = None
-    recipient_handle: str | None = None
-    place: str | None = None
-    activity: str | None = None
-    state: str | None = None
-    starts_at: str | None = None
-    ends_at: str | None = None
-    accepted_at: str | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentUtopiaSolitude:
-    agent_handle: str | None = None
-    solitary: bool | None = None
-
-@dataclass(frozen=True)
 class LocalAppAgentWorkEvent:
     execution_id: str | None = None
     sequence: int | None = None
@@ -5054,6 +5010,180 @@ class LocalAppTextTurnReasoningSummary:
 class LocalAppTextTurnToolCall:
     item_index: int | None = None
     tool_call: ToolCall | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaActivateHabitatChange:
+    habitat: LocalAppUtopiaHabitatSpec | None = None
+    initial_parameters: tuple[LocalAppUtopiaParameterEntry, ...] = field(default_factory=tuple)
+    timezone: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaActiveEvent:
+    event_id: str | None = None
+    slot: str | None = None
+    scenery_kind: str | None = None
+    label: str | None = None
+    description: str | None = None
+    place_id: str | None = None
+    starts_at: str | None = None
+    expires_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaActivitySpec:
+    id: str | None = None
+    name: str | None = None
+    place_ids: tuple[str, ...] = field(default_factory=tuple)
+    social_mode: str | None = None
+    allowed_dayparts: tuple[str, ...] = field(default_factory=tuple)
+    when: tuple[LocalAppUtopiaParameterCondition, ...] = field(default_factory=tuple)
+    min_duration_minutes: int | None = None
+    max_duration_minutes: int | None = None
+    scene_hint: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaApplyTuningChange:
+    parameters: tuple[LocalAppUtopiaParameterEntry, ...] = field(default_factory=tuple)
+    event_mutation: LocalAppUtopiaEventMutation | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaCustomEventTrigger:
+    scenery_kind: str | None = None
+    label: str | None = None
+    description: str | None = None
+    place_id: str | None = None
+    duration_minutes: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaEventMutation:
+    trigger_preset: LocalAppUtopiaPresetEventTrigger | None = None
+    put_custom: LocalAppUtopiaCustomEventTrigger | None = None
+    clear_event_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaEventPresetSpec:
+    id: str | None = None
+    scenery_kind: str | None = None
+    label: str | None = None
+    description: str | None = None
+    place_id: str | None = None
+    default_duration_minutes: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaFrame:
+    activity_id: str | None = None
+    title: str | None = None
+    habitat_activation_id: str | None = None
+    habitat_id: str | None = None
+    habitat_title: str | None = None
+    place_id: str | None = None
+    place_label: str | None = None
+    starts_at: str | None = None
+    ends_at: str | None = None
+    interaction: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaHabitatSpec:
+    schema_version: str | None = None
+    habitat_id: str | None = None
+    title: str | None = None
+    theme_tag: str | None = None
+    backdrop_summary: str | None = None
+    personal_quarter: LocalAppUtopiaPersonalQuarterSpec | None = None
+    places: tuple[LocalAppUtopiaPlaceSpec, ...] = field(default_factory=tuple)
+    activities: tuple[LocalAppUtopiaActivitySpec, ...] = field(default_factory=tuple)
+    parameters: tuple[LocalAppUtopiaParameterSpec, ...] = field(default_factory=tuple)
+    event_presets: tuple[LocalAppUtopiaEventPresetSpec, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppUtopiaParameterCondition:
+    parameter_key: str | None = None
+    allowed_values: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppUtopiaParameterEntry:
+    key: str | None = None
+    value: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaParameterOption:
+    value: str | None = None
+    label: str | None = None
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaParameterSpec:
+    key: str | None = None
+    label: str | None = None
+    default_value: str | None = None
+    options: tuple[LocalAppUtopiaParameterOption, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppUtopiaPersonalQuarterSpec:
+    id: str | None = None
+    name: str | None = None
+    sensory_traits: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaPlaceOccupancy:
+    place_id: str | None = None
+    agent_handles: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppUtopiaPlaceSpec:
+    id: str | None = None
+    name: str | None = None
+    archetype: str | None = None
+    indoor: bool | None = None
+    sensory_traits: str | None = None
+    open_when: tuple[LocalAppUtopiaParameterCondition, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppUtopiaPresetEventTrigger:
+    preset_id: str | None = None
+    duration_minutes: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaRelocationSummary:
+    from_habitat_id: str | None = None
+    from_habitat_title: str | None = None
+    to_habitat_id: str | None = None
+    to_habitat_title: str | None = None
+    relocated_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaResident:
+    agent_handle: str | None = None
+    display_name: str | None = None
+    solitary: bool | None = None
+    current: LocalAppUtopiaFrame | None = None
+    recent: LocalAppUtopiaFrame | None = None
+    next: LocalAppUtopiaFrame | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaRestoreDefaultChange:
+    timezone: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaSharedActivity:
+    activity_ref: str | None = None
+    habitat_activation_id: str | None = None
+    habitat_id: str | None = None
+    habitat_title: str | None = None
+    initiator_handle: str | None = None
+    recipient_handle: str | None = None
+    place_id: str | None = None
+    place_label: str | None = None
+    activity_id: str | None = None
+    activity_label: str | None = None
+    state: str | None = None
+    starts_at: str | None = None
+    ends_at: str | None = None
+    accepted_at: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppUtopiaSolitudeChange:
+    agent_handle: str | None = None
+    solitary: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppVideoGenerateJobSpec:
@@ -7997,15 +8127,25 @@ class UpdateLocalAppAgentConversationContextResponse:
 @dataclass(frozen=True)
 class UpdateLocalAppAgentUtopiaSettingsRequest:
     expected_revision: int | None = None
-    select_preset: str | None = None
-    restore_default: bool | None = None
-    outdoor_open: bool | None = None
+    activate_habitat: LocalAppUtopiaActivateHabitatChange | None = None
+    restore_default: LocalAppUtopiaRestoreDefaultChange | None = None
+    apply_tuning: LocalAppUtopiaApplyTuningChange | None = None
     public_participation: bool | None = None
-    solitude: LocalAppAgentUtopiaSolitude | None = None
+    solitude: LocalAppUtopiaSolitudeChange | None = None
+    timezone: str | None = None
 
 @dataclass(frozen=True)
 class UpdateLocalAppAgentUtopiaSettingsResponse:
-    settings: LocalAppAgentUtopiaSettings | None = None
+    revision: int | None = None
+    habitat_activation_id: str | None = None
+    habitat_id: str | None = None
+    habitat_title: str | None = None
+    content_digest: str | None = None
+    timezone: str | None = None
+    public_participation: bool | None = None
+    parameter_values: tuple[LocalAppUtopiaParameterEntry, ...] = field(default_factory=tuple)
+    open_place_ids: tuple[str, ...] = field(default_factory=tuple)
+    active_events: tuple[LocalAppUtopiaActiveEvent, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class UploadArtifactChunk:

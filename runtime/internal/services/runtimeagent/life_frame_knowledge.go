@@ -13,6 +13,19 @@ func constrainLifePastKnowledge(input *lifeFrameExecutionInput) error {
 		return nil
 	}
 	from := maxTime(input.Entry.Life.SettledAt, input.Source.KnownAt)
+	if input.Context.Utopia != nil {
+		if err := input.Context.ensureUtopiaModelProjection(input.Now); err != nil {
+			return err
+		}
+		if !input.Context.Utopia.ActivatedAt.IsZero() {
+			from = maxTime(from, input.Context.Utopia.ActivatedAt)
+		}
+		for _, ev := range input.Context.UtopiaRead.Events {
+			if !ev.StartsAt.IsZero() {
+				from = maxTime(from, ev.StartsAt)
+			}
+		}
+	}
 	for _, turn := range input.Transcript {
 		if turn.KnownAt.IsZero() {
 			from = input.Now

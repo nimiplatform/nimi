@@ -555,6 +555,9 @@ func (r publicChatRuntime) runTurn(
 		commitErr = errors.New("Runtime transcript commit requires exactly one admitted current-turn input")
 	}
 	if commitErr != nil {
+		if errors.Is(commitErr, errLifeUtopiaReadChanged) && turn.ProactiveIntent != nil {
+			r.svc.retireLifeProactiveIntent(session.AgentID, turn.ProactiveIntent.ID)
+		}
 		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "commit Runtime transcript failed: "+commitErr.Error())
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -14,28 +15,68 @@ import (
 )
 
 const (
-	lifeSharedPlace     = "observation-window"
-	lifeSharedActivity  = "observe-snow"
 	lifeSharedRetention = 24 * time.Hour
 	lifeSharedLimit     = 12
 )
 
 type lifeSharedRecord struct {
-	Ref          string    `json:"ref"`
-	Initiator    string    `json:"initiator"`
-	Recipient    string    `json:"recipient"`
-	State        string    `json:"state"`
-	AcceptedAt   time.Time `json:"acceptedAt,omitempty"`
-	ReplyStarted bool      `json:"replyStarted,omitempty"`
-	Deadline     time.Time `json:"deadline"`
-	StartsAt     time.Time `json:"startsAt"`
-	EndsAt       time.Time `json:"endsAt"`
-	OccurredFrom time.Time `json:"occurredFrom,omitempty"`
-	OccurredTo   time.Time `json:"occurredTo,omitempty"`
-	ClosedAt     time.Time `json:"closedAt,omitempty"`
+	Ref                 string    `json:"ref"`
+	HabitatActivationID string    `json:"habitatActivationId,omitempty"`
+	HabitatID           string    `json:"habitatId,omitempty"`
+	HabitatTitle        string    `json:"habitatTitle,omitempty"`
+	PlaceID             string    `json:"placeId,omitempty"`
+	PlaceLabel          string    `json:"placeLabel,omitempty"`
+	ActivityID          string    `json:"activityId,omitempty"`
+	ActivityLabel       string    `json:"activityLabel,omitempty"`
+	Initiator           string    `json:"initiator"`
+	Recipient           string    `json:"recipient"`
+	State               string    `json:"state"`
+	AcceptedAt          time.Time `json:"acceptedAt,omitempty"`
+	ReplyStarted        bool      `json:"replyStarted,omitempty"`
+	Deadline            time.Time `json:"deadline"`
+	StartsAt            time.Time `json:"startsAt"`
+	EndsAt              time.Time `json:"endsAt"`
+	OccurredFrom        time.Time `json:"occurredFrom,omitempty"`
+	OccurredTo          time.Time `json:"occurredTo,omitempty"`
+	ClosedAt            time.Time `json:"closedAt,omitempty"`
 	// Only active participation is tied to an authenticated Runtime generation.
 	// A future agreement is rechecked when it starts.
 	ActiveAccountGeneration uint64 `json:"activeAccountGeneration,omitempty"`
+}
+
+func (record lifeSharedRecord) effectivePlaceID() string {
+	if record.PlaceID != "" {
+		return record.PlaceID
+	}
+	return "observation-window"
+}
+
+func (record lifeSharedRecord) effectiveActivityID() string {
+	if record.ActivityID != "" {
+		return record.ActivityID
+	}
+	return "observe-snow"
+}
+
+func (record lifeSharedRecord) effectiveHabitatTitle() string {
+	if record.HabitatTitle != "" {
+		return record.HabitatTitle
+	}
+	return legacyUtopiaLabelFallback
+}
+
+func (record lifeSharedRecord) effectivePlaceLabel() string {
+	if record.PlaceLabel != "" {
+		return record.PlaceLabel
+	}
+	return legacyUtopiaLabelFallback
+}
+
+func (record lifeSharedRecord) effectiveActivityLabel() string {
+	if record.ActivityLabel != "" {
+		return record.ActivityLabel
+	}
+	return legacyUtopiaLabelFallback
 }
 
 func (record lifeSharedRecord) validState() bool {
@@ -46,8 +87,10 @@ func (record lifeSharedRecord) validState() bool {
 		return record.ClosedAt.IsZero() && !record.AcceptedAt.IsZero()
 	case "active":
 		return record.ClosedAt.IsZero() && !record.AcceptedAt.IsZero() && !record.OccurredFrom.IsZero()
-	case "completed", "interrupted", "missed", "declined", "invalidated", "unavailable", "unanswered", "expired":
+	case "completed", "interrupted", "missed", "declined", "invalidated", "unavailable", "unanswered", "expired", "relocated":
 		return !record.ClosedAt.IsZero()
+	case "relocated_partial":
+		return !record.ClosedAt.IsZero() && !record.OccurredFrom.IsZero()
 	default:
 		return false
 	}
@@ -117,12 +160,21 @@ func sharedRecordFor(records []lifeSharedRecord, ref string) *lifeSharedRecord {
 	return nil
 }
 
+// Only the start is daypart-gated. Already established participation keeps its
+// original start, while unstarted agreements must fit the current timezone.
+func sharedLifeConditionsAllowed(utopia lifeUtopia, record lifeSharedRecord) bool {
+	if record.State == "active" {
+		return utopia.allowsShared(record.effectivePlaceID(), record.effectiveActivityID())
+	}
+	return utopia.allowsSharedAt(record.effectivePlaceID(), record.effectiveActivityID(), record.StartsAt)
+}
+
 func invalidateSharedLife(record lifeSharedRecord, now time.Time) lifeSharedRecord {
 	switch record.State {
 	case "active":
 		record.State = "interrupted"
 	case "accepted":
-		record.State = "missed"
+		record.State = "invalidated"
 	default:
 		record.State = "invalidated"
 	}
@@ -130,15 +182,36 @@ func invalidateSharedLife(record lifeSharedRecord, now time.Time) lifeSharedReco
 	return record
 }
 
-func (s *Service) eligibleSharedAgentLocked(accountID, ref string, settings lifeUtopiaSettings) bool {
+func relocateSharedLife(record lifeSharedRecord, now time.Time, unknownTail bool) lifeSharedRecord {
+	if record.State == "active" {
+		if unknownTail {
+			record.State = "interrupted"
+		} else if now.After(record.OccurredFrom) {
+			record.State = "relocated_partial"
+		} else {
+			record.State = "relocated"
+		}
+	} else {
+		record.State = "relocated"
+	}
+	record.ClosedAt = now
+	return record
+}
+
+func (s *Service) validSharedParticipantLocked(accountID, ref string) bool {
 	entry := s.agents[ref]
 	view, found := s.turnSourceViews[ref]
-	return lifeEnabled(entry) && entry.Agent.GetOwnerUserId() == accountID && settings.publicFor(ref) && found && view.WorldTimeDecodeFailure == ""
+	return entry != nil && entry.Agent.GetOwnerUserId() == accountID && found && view.WorldTimeDecodeFailure == ""
+}
+
+func (s *Service) eligibleSharedAgentLocked(accountID, ref string, settings lifeUtopiaSettings) bool {
+	return s.validSharedParticipantLocked(accountID, ref) && lifeEnabled(s.agents[ref]) && settings.publicFor(ref)
 }
 
 func (s *Service) sharedLifeVisibleNowLocked(accountID string, scope uint64, settings lifeUtopiaSettings, utopia lifeUtopia, record lifeSharedRecord, now time.Time) bool {
-	return record.State == "active" && record.ActiveAccountGeneration == scope &&
-		!now.Before(record.OccurredFrom) && now.Before(record.EndsAt) && utopia.allows(lifeSharedPlace, lifeSharedActivity) &&
+	sameActivation := record.HabitatActivationID == "" || record.HabitatActivationID == utopia.HabitatActivationID
+	return record.State == "active" && record.ActiveAccountGeneration == scope && sameActivation &&
+		!now.Before(record.OccurredFrom) && now.Before(record.EndsAt) && utopia.allowsShared(record.effectivePlaceID(), record.effectiveActivityID()) &&
 		s.eligibleSharedAgentLocked(accountID, record.Initiator, settings) && s.eligibleSharedAgentLocked(accountID, record.Recipient, settings) &&
 		s.agents[record.Initiator].Life.sharedLifeCurrent(record.Ref) && s.agents[record.Recipient].Life.sharedLifeCurrent(record.Ref)
 }
@@ -166,11 +239,26 @@ func (l *agentLifeState) reserveSharedLife(record lifeSharedRecord) error {
 	if !canReserveSharedLife(l, record.StartsAt) {
 		return fmt.Errorf("shared activity conflicts with an existing plan")
 	}
-	l.Activities[record.Ref] = &lifeActivity{Ref: record.Ref, Title: "Observe the snow together", Kind: "routine", Phase: lifePlanned}
+	title := record.effectiveActivityLabel()
+	l.Activities[record.Ref] = &lifeActivity{Ref: record.Ref, Title: title, Kind: "routine", Phase: lifePlanned}
 	l.Future = append(l.Future, lifeFrame{
-		ID: record.Ref, ActivityRef: record.Ref, Title: "Observe the snow together", Phase: lifePlanned,
-		Place: lifeSharedPlace, UtopiaActivity: lifeSharedActivity, Public: true, SharedRef: record.Ref,
-		StartsAt: record.StartsAt, EndsAt: record.EndsAt, EndProgress: 100, CompletesActivity: true,
+		ID:                  record.Ref,
+		ActivityRef:         record.Ref,
+		Title:               title,
+		Phase:               lifePlanned,
+		HabitatActivationID: record.HabitatActivationID,
+		HabitatID:           record.HabitatID,
+		HabitatTitle:        record.effectiveHabitatTitle(),
+		Place:               record.effectivePlaceID(),
+		PlaceLabel:          record.effectivePlaceLabel(),
+		UtopiaActivity:      record.effectiveActivityID(),
+		ActivityLabel:       record.effectiveActivityLabel(),
+		Public:              true,
+		SharedRef:           record.Ref,
+		StartsAt:            record.StartsAt,
+		EndsAt:              record.EndsAt,
+		EndProgress:         100,
+		CompletesActivity:   true,
 	})
 	return l.changed()
 }
@@ -230,6 +318,12 @@ func (l *agentLifeState) closeSharedLife(record lifeSharedRecord, now time.Time)
 			if !end.After(frame.StartsAt) {
 				l.Recent = append(l.Recent[:i], l.Recent[i+1:]...)
 				delete(l.Activities, record.Ref)
+			} else if record.State == "completed" {
+				frame.EndsAt = end
+				frame.Phase, frame.ActivityState, frame.EndProgress, frame.CompletesActivity = lifeCompleted, lifeCompleted, 100, true
+				if activity := l.Activities[record.Ref]; activity != nil {
+					activity.Phase, activity.Progress, activity.CompletedAt = lifeCompleted, 100, end
+				}
 			} else {
 				frame.EndsAt = end
 				frame.ActivityState = lifeCanceled
@@ -237,6 +331,8 @@ func (l *agentLifeState) closeSharedLife(record lifeSharedRecord, now time.Time)
 					activity.Phase, activity.CompletedAt = lifeCanceled, end
 				}
 			}
+			l.SettledAt = maxTime(l.SettledAt, end)
+			l.pruneActivities()
 			return true
 		}
 	}
@@ -247,7 +343,7 @@ func (l *agentLifeState) closeSharedLife(record lifeSharedRecord, now time.Time)
 	return false
 }
 
-func (s *Service) commitSharedLifeLocked(ctx context.Context, account string, record *lifeSharedRecord, updates []*agentEntry, now time.Time, events ...*runtimev1.AgentEvent) error {
+func (s *Service) commitSharedLifeLocked(ctx context.Context, account string, record *lifeSharedRecord, updates []*agentEntry, now time.Time, hook runtimeAgentStateTxHook, events ...*runtimev1.AgentEvent) error {
 	for _, entry := range updates {
 		prior := s.agents[entry.Agent.GetLocalAgentRef()]
 		events = append(events, optionalEvents(s.syncLifePresentation(entry, prior.Life.Current != nil, now))...)
@@ -265,7 +361,7 @@ func (s *Service) commitSharedLifeLocked(ctx context.Context, account string, re
 				}
 			}
 		}
-		return persistAgentDeltasTx(tx, updates, committed, s.sequence, nil)
+		return persistAgentDeltasTx(tx, updates, committed, s.sequence, hook)
 	}); err != nil {
 		s.events, s.sequence = saved, sequence
 		return err
@@ -275,6 +371,53 @@ func (s *Service) commitSharedLifeLocked(ctx context.Context, account string, re
 	}
 	s.broadcast(committed, s.matchingSubscribersLocked(committed))
 	return nil
+}
+
+// settleNaturalSharedLifeAtLocked settles records whose deadline or scheduled
+// window already elapsed (or whose active frame already ended/broke) at or
+// before `now` under `settings` and `utopia`, before an environment change or
+// invalidation branch can overwrite an already-finished outcome.
+func (s *Service) settleNaturalSharedLifeAtLocked(account string, settings lifeUtopiaSettings, utopia lifeUtopia, r lifeSharedRecord, now time.Time, unknownTail bool) (lifeSharedRecord, bool) {
+	switch r.State {
+	case "invited":
+		if !now.Before(r.Deadline) {
+			r.State, r.ClosedAt = "expired", now
+			if r.ReplyStarted {
+				r.State = "unavailable"
+			}
+			return r, true
+		}
+	case "accepted":
+		if !now.Before(r.EndsAt) {
+			r.State, r.ClosedAt = "missed", now
+			return r, true
+		}
+	case "active":
+		a, b := s.agents[r.Initiator], s.agents[r.Recipient]
+		bothCurrent := a != nil && b != nil && a.Life.sharedLifeCurrent(r.Ref) && b.Life.sharedLifeCurrent(r.Ref)
+		bothCompletedWindow := a != nil && b != nil && a.Life.sharedLifeEstablishedUntil(r.Ref, r.EndsAt) && b.Life.sharedLifeEstablishedUntil(r.Ref, r.EndsAt)
+		if !unknownTail && !now.Before(r.EndsAt) && bothCompletedWindow {
+			sameActivation := r.HabitatActivationID == "" || r.HabitatActivationID == utopia.HabitatActivationID
+			endAt := r.EndsAt
+			if r.EndsAt.After(r.OccurredFrom) {
+				endAt = r.EndsAt.Add(-time.Nanosecond)
+			}
+			utopiaAtEnd, err := settings.effectiveAt(endAt)
+			validAtCompletion := err == nil && sameActivation &&
+				s.validSharedParticipantLocked(account, r.Initiator) &&
+				s.validSharedParticipantLocked(account, r.Recipient) &&
+				sharedLifeConditionsAllowed(utopiaAtEnd, r)
+			if validAtCompletion {
+				r.State, r.ClosedAt = "completed", now
+				return r, true
+			}
+		}
+		if !bothCurrent {
+			r.State, r.ClosedAt = "interrupted", now
+			return r, true
+		}
+	}
+	return r, false
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.shared-activity
@@ -295,49 +438,46 @@ func (s *Service) maintainSharedLifeLocked(ctx context.Context, account string, 
 			}
 			continue
 		}
-		eligible := s.eligibleSharedAgentLocked(account, r.Initiator, settings) && s.eligibleSharedAgentLocked(account, r.Recipient, settings) && utopia.allows(lifeSharedPlace, lifeSharedActivity)
+		sameActivation := r.HabitatActivationID == "" || r.HabitatActivationID == utopia.HabitatActivationID
+		eligible := sameActivation && s.eligibleSharedAgentLocked(account, r.Initiator, settings) && s.eligibleSharedAgentLocked(account, r.Recipient, settings) && sharedLifeConditionsAllowed(utopia, r)
 		unknownTail := r.State == "active" && (recovery || r.ActiveAccountGeneration != scope.generation)
 		var updates []*agentEntry
-		switch {
-		case unknownTail:
-			r.State, r.ClosedAt = "interrupted", now
-		case !eligible:
-			r = invalidateSharedLife(r, now)
-		case r.State == "invited" && !now.Before(r.Deadline):
-			r.State, r.ClosedAt = "expired", now
-			if r.ReplyStarted {
-				r.State = "unavailable"
-			}
-		case r.State == "accepted" && !now.Before(r.EndsAt):
-			r.State, r.ClosedAt = "missed", now
-		case r.State == "active" && !recovery && !now.Before(r.EndsAt) && s.agents[r.Initiator].Life.sharedLifeCurrent(r.Ref) && s.agents[r.Recipient].Life.sharedLifeCurrent(r.Ref):
-			r.State, r.ClosedAt = "completed", now
-		case r.State == "active" && (!s.agents[r.Initiator].Life.sharedLifeCurrent(r.Ref) || !s.agents[r.Recipient].Life.sharedLifeCurrent(r.Ref)):
-			r.State, r.ClosedAt = "interrupted", now
-		case r.State == "accepted" && !now.Before(r.StartsAt):
-			a, b := cloneAgentEntry(s.agents[r.Initiator]), cloneAgentEntry(s.agents[r.Recipient])
-			if recovery {
-				r.State, r.ClosedAt = "missed", now
-				break
-			}
-			if lifeInteractionBlocks(a.Life.Interaction, now) || lifeInteractionBlocks(b.Life.Interaction, now) ||
-				s.lifeInteractionBusy(r.Initiator) || s.lifeInteractionBusy(r.Recipient) {
-				r.State, r.ClosedAt = "missed", now
-			} else if a.Life.startSharedLife(r, now) && b.Life.startSharedLife(r, now) {
-				r.State, r.OccurredFrom = "active", now
-				r.ActiveAccountGeneration = scope.generation
-				for _, entry := range []*agentEntry{a, b} {
-					if err := entry.Life.changed(); err != nil {
-						return err
-					}
+		if settled, ok := s.settleNaturalSharedLifeAtLocked(account, settings, utopia, r, now, unknownTail); ok {
+			r = settled
+		} else {
+			switch {
+			case !sameActivation:
+				r = relocateSharedLife(r, now, unknownTail)
+			case unknownTail:
+				r.State, r.ClosedAt = "interrupted", now
+			case !eligible:
+				r = invalidateSharedLife(r, now)
+			case r.State == "accepted" && !now.Before(r.StartsAt):
+				a, b := cloneAgentEntry(s.agents[r.Initiator]), cloneAgentEntry(s.agents[r.Recipient])
+				if recovery {
+					r.State, r.ClosedAt = "missed", now
+					break
 				}
-				updates = []*agentEntry{a, b}
-			} else {
-				// The same sweep can finish expired interaction or personal coverage.
+				if !utopia.allowsSharedAt(r.effectivePlaceID(), r.effectiveActivityID(), now) {
+					r.State, r.ClosedAt = "invalidated", now
+				} else if lifeInteractionBlocks(a.Life.Interaction, now) || lifeInteractionBlocks(b.Life.Interaction, now) ||
+					s.lifeInteractionBusy(r.Initiator) || s.lifeInteractionBusy(r.Recipient) {
+					r.State, r.ClosedAt = "missed", now
+				} else if a.Life.startSharedLife(r, now) && b.Life.startSharedLife(r, now) {
+					r.State, r.OccurredFrom = "active", now
+					r.ActiveAccountGeneration = scope.generation
+					for _, entry := range []*agentEntry{a, b} {
+						if err := entry.Life.changed(); err != nil {
+							return err
+						}
+					}
+					updates = []*agentEntry{a, b}
+				} else {
+					continue
+				}
+			default:
 				continue
 			}
-		default:
-			continue
 		}
 		if !r.ClosedAt.IsZero() {
 			var err error
@@ -347,7 +487,7 @@ func (s *Service) maintainSharedLifeLocked(ctx context.Context, account string, 
 			}
 		}
 		if err := publish(func(current context.Context) error {
-			return s.commitSharedLifeLocked(current, account, &r, updates, now)
+			return s.commitSharedLifeLocked(current, account, &r, updates, now, nil)
 		}); err != nil {
 			return err
 		}
@@ -397,12 +537,30 @@ func (s *Service) closeSharedLifeLocked(record *lifeSharedRecord, unknownTail bo
 	}
 	if end.After(record.OccurredFrom) && !record.OccurredFrom.IsZero() {
 		record.OccurredTo = end
+	} else if record.State == "relocated_partial" {
+		record.State = "relocated"
 	}
 	return updates, nil
 }
 
 func (l *agentLifeState) sharedLifeCurrent(ref string) bool {
 	return l.Current != nil && l.Current.SharedRef == ref
+}
+
+func (l *agentLifeState) sharedLifeEstablishedUntil(ref string, targetEnd time.Time) bool {
+	if l == nil || (l.Interaction != nil && l.Interaction.StartedAt.Before(targetEnd)) {
+		return false
+	}
+	if l.Current != nil && l.Current.SharedRef == ref {
+		return !l.Current.Invalidated && !l.Current.EndsAt.Before(targetEnd) && l.Current.EndsAt.After(l.Current.StartsAt)
+	}
+	for i := len(l.Recent) - 1; i >= 0; i-- {
+		if l.Recent[i].SharedRef == ref {
+			frame := l.Recent[i]
+			return !frame.Invalidated && !frame.EndsAt.Before(targetEnd) && frame.EndsAt.After(frame.StartsAt)
+		}
+	}
+	return false
 }
 
 func (s *Service) maintainCurrentUtopia(ctx context.Context, now time.Time) (string, lifeUtopiaSettings, lifeUtopia, []lifeSharedRecord, error) {
@@ -425,7 +583,7 @@ func (s *Service) maintainCurrentUtopia(ctx context.Context, now time.Time) (str
 	if err != nil {
 		return "", lifeUtopiaSettings{}, lifeUtopia{}, nil, err
 	}
-	utopia, err := settings.effective()
+	utopia, err := settings.effectiveAt(now)
 	if err != nil {
 		return "", lifeUtopiaSettings{}, lifeUtopia{}, nil, err
 	}
@@ -464,7 +622,7 @@ func (s *Service) recoverSharedLife(ctx context.Context, now time.Time) error {
 		if err != nil {
 			return err
 		}
-		utopia, err := settings.effective()
+		utopia, err := settings.effectiveAt(now)
 		if err != nil {
 			return err
 		}
@@ -479,17 +637,42 @@ func (s *Service) recoverSharedLife(ctx context.Context, now time.Time) error {
 	return nil
 }
 
-func newSharedLifeRecord(ref, recipient string, option lifePublicOption) lifeSharedRecord {
-	return lifeSharedRecord{Ref: "shared_" + ulid.Make().String(), Initiator: ref, Recipient: recipient, State: "invited", Deadline: option.Deadline, StartsAt: option.StartsAt, EndsAt: option.EndsAt}
+func newSharedLifeRecord(ref, recipient string, utopia lifeUtopia, option lifePublicOption) lifeSharedRecord {
+	placeLabel := option.PlaceLabel
+	if placeLabel == "" {
+		placeLabel = utopia.Spec.placeLabel(option.Place)
+	}
+	actLabel := option.ActivityLabel
+	if actLabel == "" {
+		if act, ok := utopia.Spec.activityByID(option.Activity); ok {
+			actLabel = act.Name
+		}
+	}
+	return lifeSharedRecord{
+		Ref:                 "shared_" + ulid.Make().String(),
+		HabitatActivationID: utopia.HabitatActivationID,
+		HabitatID:           utopia.Spec.HabitatID,
+		HabitatTitle:        utopia.Spec.Title,
+		PlaceID:             option.Place,
+		PlaceLabel:          placeLabel,
+		ActivityID:          option.Activity,
+		ActivityLabel:       actLabel,
+		Initiator:           ref,
+		Recipient:           recipient,
+		State:               "invited",
+		Deadline:            option.Deadline,
+		StartsAt:            option.StartsAt,
+		EndsAt:              option.EndsAt,
+	}
 }
 
-func (s *Service) sharedLifeInvitationOptionLocked(accountID, ref string, settings lifeUtopiaSettings, utopia lifeUtopia, records []lifeSharedRecord, now time.Time) (lifePublicOption, bool) {
-	if !utopia.allows(lifeSharedPlace, lifeSharedActivity) || sharedRecordFor(records, ref) != nil {
-		return lifePublicOption{}, false
+func (s *Service) sharedLifeInvitationOptionsLocked(accountID, ref string, settings lifeUtopiaSettings, utopia lifeUtopia, records []lifeSharedRecord, now time.Time) []lifePublicOption {
+	if sharedRecordFor(records, ref) != nil {
+		return nil
 	}
 	initiator := s.agents[ref]
 	if !s.eligibleSharedAgentLocked(accountID, ref, settings) || initiator.Life.Interaction != nil || initiator.Life.unfinishedActivityCount() >= lifeUnfinishedLimit {
-		return lifePublicOption{}, false
+		return nil
 	}
 	var refs []string
 	for candidate := range s.agents {
@@ -498,6 +681,7 @@ func (s *Service) sharedLifeInvitationOptionLocked(accountID, ref string, settin
 		}
 	}
 	sort.Strings(refs)
+	var options []lifePublicOption
 	for _, recipient := range refs {
 		partner := s.agents[recipient]
 		if partner.Life.Interaction != nil || partner.Agent.GetAutonomy().GetBudgetExhausted() || partner.Agent.GetAutonomy().GetSuspendedUntil().AsTime().After(now) {
@@ -507,13 +691,43 @@ func (s *Service) sharedLifeInvitationOptionLocked(accountID, ref string, settin
 		deadline := due.Add(4 * time.Minute)
 		start := sharedLifeWindowStart(initiator.Life, deadline.Add(time.Minute))
 		start = sharedLifeWindowStart(partner.Life, start)
-		end := start.Add(lifePublicDuration)
-		if end.After(now.Add(24*time.Hour)) || !canReserveSharedLife(initiator.Life, start) || !canReserveSharedLife(partner.Life, start) {
+		if !canReserveSharedLife(initiator.Life, start) || !canReserveSharedLife(partner.Life, start) {
 			continue
 		}
-		return lifePublicOption{Place: lifeSharedPlace, Activity: lifeSharedActivity, Action: "invite", Partner: partner.Agent.GetDisplayName(), recipient: recipient, StartsAt: start, EndsAt: end, Deadline: deadline}, true
+		startDaypart := evalHabitatDaypart(start, utopia.Timezone)
+		for _, act := range utopia.Spec.Activities {
+			if act.SocialMode != "shared_invite" || !slices.Contains(act.AllowedDayparts, startDaypart) || !evalHabitatConditions(act.When, utopia.ParameterValues) {
+				continue
+			}
+			dur := time.Duration(act.MinDurationMinutes) * time.Minute
+			end := start.Add(dur)
+			if end.After(now.Add(24 * time.Hour)) {
+				continue
+			}
+			for _, pid := range act.PlaceIDs {
+				if pid == habitatPersonalQuarterID || !utopia.isPlaceOpen(pid) {
+					continue
+				}
+				options = append(options, lifePublicOption{
+					Place:           pid,
+					PlaceLabel:      utopia.Spec.placeLabel(pid),
+					Activity:        act.ID,
+					ActivityLabel:   act.Name,
+					DurationMinutes: act.MinDurationMinutes,
+					Action:          "invite",
+					Partner:         partner.Agent.GetDisplayName(),
+					recipient:       recipient,
+					StartsAt:        start,
+					EndsAt:          end,
+					Deadline:        deadline,
+				})
+				if len(options) >= 4 {
+					return options
+				}
+			}
+		}
 	}
-	return lifePublicOption{}, false
+	return options
 }
 
 func (s *Service) commitSharedLifeDecision(work *agentBackgroundExecution, attempt *agentEntry, input lifePublicInput, choice int, usage int64, executionErr error, now time.Time) {
@@ -532,6 +746,9 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 	defer s.mu.Unlock()
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
+	if committedAt := time.Now().UTC(); committedAt.After(now) {
+		now = committedAt
+	}
 	ref, accountID := attempt.Agent.GetLocalAgentRef(), attempt.Agent.GetOwnerUserId()
 	current := s.agents[ref]
 	if current == nil || !proto.Equal(current.Agent.GetCreatedAt(), attempt.Agent.GetCreatedAt()) {
@@ -544,12 +761,11 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 	if err != nil {
 		return err
 	}
-	utopia, err := settings.effective()
+	utopia, err := settings.effectiveAt(now)
 	if err != nil {
 		return err
 	}
-	if !s.eligibleSharedAgentLocked(accountID, ref, settings) || !utopia.allows(lifeSharedPlace, lifeSharedActivity) ||
-		(input.responseRef == "" && !input.Utopia.sameConditions(utopia)) {
+	if !s.eligibleSharedAgentLocked(accountID, ref, settings) || !input.Utopia.sameConditions(utopia) || !utopia.acceptsRead(input.habitatRead, now) {
 		return fmt.Errorf("shared life conditions changed")
 	}
 	records, err := s.readLifeSharedRecords(work.ctx, accountID)
@@ -564,7 +780,9 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 	events := optionalEvents(budgetEventForTransition(ref, before, actor.Agent.GetAutonomy(), now))
 	commit := func(record *lifeSharedRecord) error {
 		return s.commitLifeAccount(work.ctx, accountID, input.account, func(ctx context.Context) error {
-			return s.commitSharedLifeLocked(ctx, accountID, record, updates, now, events...)
+			return s.commitSharedLifeLocked(ctx, accountID, record, updates, now, func(*sql.Tx) error {
+				return input.habitatRead.checkCommitTime()
+			}, events...)
 		})
 	}
 	var record lifeSharedRecord
@@ -572,6 +790,10 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 		pending := sharedRecordFor(records, ref)
 		if pending == nil || pending.Ref != input.responseRef || pending.State != "invited" || pending.Recipient != ref || !pending.ReplyStarted || !now.Before(pending.Deadline) {
 			return fmt.Errorf("shared invitation expired or changed")
+		}
+		sameActivation := pending.HabitatActivationID == "" || pending.HabitatActivationID == utopia.HabitatActivationID
+		if !sameActivation || !sharedLifeConditionsAllowed(utopia, *pending) {
+			return fmt.Errorf("shared invitation activity is no longer available")
 		}
 		record = *pending
 		switch {
@@ -598,8 +820,9 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 		}
 	} else {
 		option := input.Options[choice-1]
-		// A dispatched choice still consumes its public opportunity if another
-		// resident commits first or the proposed window is no longer available.
+		if !utopia.allowsSharedAt(option.Place, option.Activity, option.StartsAt) {
+			return commit(nil)
+		}
 		if sharedRecordFor(records, ref) != nil || sharedRecordFor(records, option.recipient) != nil || !now.Before(option.Deadline) || !s.eligibleSharedAgentLocked(accountID, option.recipient, settings) || s.agentTerminationFencedLocked(option.recipient) {
 			return commit(nil)
 		}
@@ -607,7 +830,7 @@ func (s *Service) applySharedLifeDecision(work *agentBackgroundExecution, attemp
 		if sharedLifeDue(other, now).Add(time.Second).After(option.Deadline) || !canReserveSharedLife(actor.Life, option.StartsAt) || !canReserveSharedLife(other.Life, option.StartsAt) {
 			return commit(nil)
 		}
-		record = newSharedLifeRecord(ref, option.recipient, option)
+		record = newSharedLifeRecord(ref, option.recipient, utopia, option)
 	}
 	return commit(&record)
 }

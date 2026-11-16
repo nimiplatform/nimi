@@ -1,5 +1,13 @@
 export { parseRealmMediaDelivery } from '@nimiplatform/sdk/realm';
-export type { NimiLocalAppUtopiaShell, NimiUtopiaSettingsUpdate } from '@nimiplatform/sdk/app';
+export type {
+  HabitatSpecV1,
+  NimiLocalAppUtopiaShell,
+  NimiUtopiaEventMutation,
+  NimiUtopiaMutationAck,
+  NimiUtopiaSettingsUpdate,
+  NimiUtopiaSnapshot,
+  NimiUtopiaUpdateIntent,
+} from '@nimiplatform/sdk/app';
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-030
 /**
  * `@nimiplatform/kit/core/sdk-contract`

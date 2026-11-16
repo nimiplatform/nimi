@@ -22,7 +22,7 @@ func (e *sharedDecisionTestExecutor) ExecuteScenario(_ context.Context, request 
 	if _, err := capabilitydriver.OpenAIResponsesTextBehaviorRequestSerializer("gpt-6.1-terra", request.GetSpec().GetTextGenerate(), false); err != nil {
 		return nil, fmt.Errorf("serialize public decision: %w", err)
 	}
-	text := request.GetSpec().GetTextGenerate().GetInput()[0].GetContent()
+	text := request.GetSpec().GetTextGenerate().GetInput()[1].GetContent()
 	e.inputs = append(e.inputs, text)
 	return &runtimev1.ExecuteScenarioResponse{
 		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
@@ -39,7 +39,8 @@ func prepareSharedLifeTest(t *testing.T) (*Service, string, string, time.Time) {
 		t.Fatal(err)
 	}
 	commit := func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }
-	if _, err := svc.updateLifeUtopia(ctx, "user-1", 1, lifeUtopiaChange{Preset: lifePolarPreset}, commit); err != nil {
+	polarSpec := builtinPolarStationSpec()
+	if _, err := svc.updateLifeUtopia(ctx, "user-1", 1, lifeUtopiaChange{ActivateHabitat: &polarSpec}, commit); err != nil {
 		t.Fatal(err)
 	}
 	enabled := true
@@ -103,8 +104,8 @@ func TestSharedLifeConflictingInvitationConsumesPublicOpportunity(t *testing.T) 
 	}
 	start := sharedLifeWindowStart(other.Life, now.Add(6*time.Minute))
 	option := lifePublicOption{
-		Action: "invite", Place: lifeSharedPlace, Activity: lifeSharedActivity,
-		recipient: recipient, Deadline: now.Add(5 * time.Minute), StartsAt: start, EndsAt: start.Add(lifePublicDuration),
+		Action: "invite", Place: "observation-window", Activity: "observe-snow",
+		recipient: recipient, Deadline: now.Add(5 * time.Minute), StartsAt: start, EndsAt: start.Add(15 * time.Minute),
 	}
 	_, account, ready := svc.currentLifeAccount(ctx)
 	if !ready {
@@ -353,7 +354,7 @@ func TestSharedLifeClockDoesNotSettleAcrossAccountInactivity(t *testing.T) {
 }
 
 func TestSharedLifeInvitationAndIndependentResponseDuringPersonalLife(t *testing.T) {
-	for _, interruption := range []string{"", "foreground", "restart", "write-failure", "environment"} {
+	for _, interruption := range []string{"", "foreground", "restart", "write-failure", "environment", "same-habitat-closure"} {
 		name := interruption
 		if name == "" {
 			name = "completed"
@@ -424,13 +425,29 @@ func TestSharedLifeInvitationAndIndependentResponseDuringPersonalLife(t *testing
 				if _, err := svc.updateLifeUtopia(ctx, "user-1", 3, lifeUtopiaChange{Restore: true}, func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }); err != nil {
 					t.Fatal(err)
 				}
-				if record := onlySharedLifeTestRecord(t, svc); record.State != "missed" || !record.OccurredFrom.IsZero() {
+				if record := onlySharedLifeTestRecord(t, svc); record.State != "relocated" || !record.OccurredFrom.IsZero() || record.HabitatTitle != "极地科考站" {
 					t.Fatalf("environment cutover: %+v", record)
 				}
 				for _, ref := range []string{a, b} {
 					entry, _ := svc.agentByID(ref)
 					if len(entry.Life.Future) != 1 || entry.Life.Future[0].SharedRef != "" {
 						t.Fatal("environment change left an invalid reservation")
+					}
+				}
+				return
+			}
+			if interruption == "same-habitat-closure" {
+				solitary := true
+				if _, err := svc.updateLifeUtopia(ctx, "user-1", 3, lifeUtopiaChange{AgentRef: b, Solitary: &solitary}, func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }); err != nil {
+					t.Fatal(err)
+				}
+				if record := onlySharedLifeTestRecord(t, svc); record.State != "invalidated" || !record.OccurredFrom.IsZero() {
+					t.Fatalf("same-habitat closure: %+v", record)
+				}
+				for _, ref := range []string{a, b} {
+					entry, _ := svc.agentByID(ref)
+					if len(entry.Life.Future) != 1 || entry.Life.Future[0].SharedRef != "" {
+						t.Fatal("same-habitat closure left an invalid reservation")
 					}
 				}
 				return

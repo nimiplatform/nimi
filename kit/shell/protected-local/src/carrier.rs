@@ -2088,7 +2088,7 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn agent_utopia_update(
         &self,
-        request: JsonValue,
+        request: crate::ParsedAgentUtopiaUpdateInput,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn agent_work_reference_list(
         &self,

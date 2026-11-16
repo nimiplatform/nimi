@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "1.0",
+  "layout": "panoramic-split",
+  "aspectRatio": "16:9",
+  "palette": {
+    "stageCanvasBg": "#C9D692",
+    "badgeBg": "#FFFDF6",
+    "badgeText": "#3B2E23",
+    "accent": "#C67B2E",
+    "frameMotif": "coastal-wood"
+  },
+  "layers": [
+    {
+      "id": "town-sky-map",
+      "assetPath": "assets/sky.webp",
+      "zIndex": 1,
+      "parallaxFactor": 0.03
+    },
+    {
+      "id": "town-warm-windows",
+      "assetPath": "assets/midground.png",
+      "zIndex": 14,
+      "parallaxFactor": 0.07
+    },
+    {
+      "id": "festival-lantern-glow",
+      "assetPath": "assets/festival-lanterns.png",
+      "zIndex": 22,
+      "parallaxFactor": 0.08,
+      "visibleWhen": {
+        "parameters": {
+          "festival": [
+            "lantern-fair"
+          ]
+        }
+      }
+    },
+    {
+      "id": "soft-rain-veil",
+      "assetPath": "assets/rain-mist.png",
+      "zIndex": 28,
+      "parallaxFactor": 0.11,
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "soft-rain"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientEffects": [
+    {
+      "effect": "sea-breeze",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "sunny-breeze"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "falling-petals",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "petal-breeze"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "raindrops",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "soft-rain"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "starlight",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "dayparts": [
+          "dusk",
+          "night"
+        ],
+        "parameters": {
+          "festival": [
+            "lantern-fair"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientAudio": [
+    {
+      "id": "town-soft-rain",
+      "assetPath": "assets/ambient-rain.wav",
+      "gain": 0.34,
+      "activeWhen": {
+        "parameters": {
+          "weather": [
+            "soft-rain"
+          ]
+        }
+      }
+    },
+    {
+      "id": "town-breeze",
+      "assetPath": "assets/ambient-breeze.wav",
+      "gain": 0.28
+    }
+  ],
+  "anchors": [
+    {
+      "targetId": "personal-quarter",
+      "xPercent": 15,
+      "yPercent": 56,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "clocktower-library",
+      "xPercent": 29,
+      "yPercent": 15,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "bakery-cafe",
+      "xPercent": 39,
+      "yPercent": 41,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "sunlight-greenhouse",
+      "xPercent": 51,
+      "yPercent": 14,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "fountain-plaza",
+      "xPercent": 54,
+      "yPercent": 67,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 5
+    },
+    {
+      "targetId": "brookside-teadeck",
+      "xPercent": 58,
+      "yPercent": 39,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "windmill-atelier",
+      "xPercent": 74,
+      "yPercent": 12,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "grove-stage",
+      "xPercent": 90,
+      "yPercent": 66,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "balloon-meadow",
+      "xPercent": 91,
+      "yPercent": 20,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    }
+  ]
+}

@@ -52,12 +52,13 @@ const (
 type agentTurnContextTrustClass string
 
 const (
-	agentTurnContextTrustSystemAuthority agentTurnContextTrustClass = "runtime_system_authority"
-	agentTurnContextTrustValidatedSource agentTurnContextTrustClass = "validated_source_data"
-	agentTurnContextTrustRuntimeScoped   agentTurnContextTrustClass = "runtime_scoped_data"
-	agentTurnContextTrustCognitionScoped agentTurnContextTrustClass = "cognition_owned_advisory"
-	agentTurnContextTrustCallerInput     agentTurnContextTrustClass = "authenticated_caller_input"
-	agentTurnContextTrustMixedRelation   agentTurnContextTrustClass = "validated_source_data+runtime_scoped_data"
+	agentTurnContextTrustSystemAuthority  agentTurnContextTrustClass = "runtime_system_authority"
+	agentTurnContextTrustValidatedSource  agentTurnContextTrustClass = "validated_source_data"
+	agentTurnContextTrustRuntimeScoped    agentTurnContextTrustClass = "runtime_scoped_data"
+	agentTurnContextTrustCognitionScoped  agentTurnContextTrustClass = "cognition_owned_advisory"
+	agentTurnContextTrustCallerInput      agentTurnContextTrustClass = "authenticated_caller_input"
+	agentTurnContextTrustUntrustedHabitat agentTurnContextTrustClass = "untrusted_habitat_data"
+	agentTurnContextTrustMixedRelation    agentTurnContextTrustClass = "validated_source_data+runtime_scoped_data"
 )
 
 type agentTurnContextTruncationClass string

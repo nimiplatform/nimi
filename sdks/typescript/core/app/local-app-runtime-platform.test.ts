@@ -344,19 +344,300 @@ test('image face replacement uses owned artifact Job input and rejects extra sel
   assert.equal(captured.length, 2);
 });
 
-test('Utopia uses separate Host operations and rejects an extra owner field', async () => {
+test('Utopia uses Habitat Protocol v2 operations, validates specs symmetrically, and rejects private owner fields', async () => {
   const base = standardShell([]);
-  const current = { revision: '4', preset: 'island', presetVersion: '1', outdoorOpen: true, publicParticipation: false };
+  const handleA = `agent_ref_${'a'.repeat(43)}`;
+  const handleB = `agent_ref_${'b'.repeat(43)}`;
+  const digest = `sha256:${'1'.repeat(64)}`;
+  const habitat = {
+    schemaVersion: '1.0' as const,
+    habitatId: 'nimi.builtin.seaside-island',
+    title: '海风渔岛',
+    themeTag: 'seaside' as const,
+    backdropSummary: '潮声轻拍木栈，海风掠过灯塔与木屋。',
+    personalQuarter: { id: 'personal-quarter' as const, name: '海边木屋', sensoryTraits: '温暖木窗与海浪白噪' },
+    places: [
+      {
+        id: 'bird-hide',
+        name: '遮蔽观鸟棚',
+        archetype: 'lookout' as const,
+        indoor: false,
+        sensoryTraits: '芦苇掩映的木窗',
+        openWhen: [{ parameterKey: 'weather', allowedValues: ['clear'] }],
+      },
+      {
+        id: 'workshop',
+        name: '海木工坊',
+        archetype: 'workshop' as const,
+        indoor: true,
+        sensoryTraits: '松木刨花与热茶香',
+        openWhen: [],
+      },
+    ],
+    activities: [
+      {
+        id: 'rest-indoors',
+        name: '木屋小憩',
+        placeIds: ['personal-quarter'],
+        socialMode: 'solo' as const,
+        allowedDayparts: ['morning', 'day', 'dusk', 'night'] as const,
+        when: [],
+        minDurationMinutes: 20,
+        maxDurationMinutes: 90,
+        sceneHint: '在木屋窗边整理思绪',
+      },
+      {
+        id: 'watch-birds',
+        name: '静坐观鸟',
+        placeIds: ['bird-hide'],
+        socialMode: 'shared_invite' as const,
+        allowedDayparts: ['morning', 'day', 'dusk'] as const,
+        when: [{ parameterKey: 'weather', allowedValues: ['clear'] }],
+        minDurationMinutes: 20,
+        maxDurationMinutes: 60,
+        sceneHint: '并肩观察掠过礁石的海鸟',
+      },
+    ],
+    parameters: [
+      {
+        key: 'weather',
+        label: '海岛天气',
+        defaultValue: 'clear',
+        options: [
+          { value: 'clear', label: '海风晴朗', summary: '能见度极佳' },
+          { value: 'storm', label: '海雾阵雨', summary: '露天场所暂闭' },
+        ],
+      },
+    ],
+    eventPresets: [
+      {
+        id: 'sea-glass',
+        sceneryKind: 'tide-pooling' as const,
+        label: '礁石海玻璃',
+        description: '退潮后的礁石边留下晶莹的海玻璃',
+        placeId: 'bird-hide',
+        defaultDurationMinutes: 120,
+      },
+    ],
+  };
+  const baseAck = {
+    revision: '5',
+    habitatActivationId: 'act_2',
+    habitatId: habitat.habitatId,
+    habitatTitle: habitat.title,
+    contentDigest: digest,
+    timezone: 'Asia/Shanghai',
+    publicParticipation: true,
+    parameterValues: { weather: 'storm' },
+    openPlaceIds: ['workshop'],
+    activeEvents: [
+      {
+        eventId: 'evt_1',
+        slot: 'preset',
+        sceneryKind: 'tide-pooling',
+        label: '礁石海玻璃',
+        description: '退潮后的礁石边留下晶莹的海玻璃',
+        placeId: 'bird-hide',
+        startsAt: { seconds: '10', nanos: 0 },
+        expiresAt: { seconds: '7210', nanos: 0 },
+      },
+    ],
+  };
   const seen: unknown[] = [];
-  const client = createNimiLocalAppClient({ standardShell: { ...base, utopia: {
-    async snapshot() { return { settings: current, observedAt: { seconds: '10', nanos: 0 }, places: [], residents: [], occupancy: [], sharedActivities: [] }; },
-    async update(input) { seen.push(input); return { ...current, revision: '5', outdoorOpen: false }; },
-  } } });
-  assert.equal((await client.utopia.snapshot()).settings.revision, '4');
-  assert.equal((await client.utopia.update({ expectedRevision: '4', intent: { kind: 'outdoor', open: false } })).outdoorOpen, false);
-  assert.deepEqual(seen, [{ expectedRevision: '4', intent: { kind: 'outdoor', open: false } }]);
-  const invalid = createNimiLocalAppClient({ standardShell: { ...base, utopia: { ...base.utopia, async snapshot() { return { accountId: 'private' }; } } } });
-  await assert.rejects(() => invalid.utopia.snapshot());
+  const client = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      utopia: {
+        async snapshot() {
+          return {
+            revision: '4',
+            observedAt: { seconds: '10', nanos: 0 },
+            habitatActivationId: 'act_1',
+            contentDigest: digest,
+            timezone: 'UTC',
+            publicParticipation: true,
+            habitat,
+            parameterValues: { weather: 'clear' },
+            openPlaceIds: ['bird-hide', 'workshop'],
+            activeEvents: [],
+            lastRelocation: {
+              fromHabitatId: 'nimi.builtin.polar-station',
+              fromHabitatTitle: '极光科考站',
+              toHabitatId: habitat.habitatId,
+              toHabitatTitle: habitat.title,
+              relocatedAt: { seconds: '5', nanos: 0 },
+            },
+            residents: [
+              {
+                agentHandle: handleA,
+                displayName: '阿青',
+                solitary: false,
+                current: {
+                  activityId: 'watch-birds',
+                  title: '静坐观鸟',
+                  habitatActivationId: 'act_1',
+                  habitatId: habitat.habitatId,
+                  habitatTitle: habitat.title,
+                  placeId: 'bird-hide',
+                  placeLabel: '遮蔽观鸟棚',
+                  startsAt: { seconds: '8', nanos: 0 },
+                  endsAt: { seconds: '1808', nanos: 0 },
+                  interaction: false,
+                },
+                recent: null,
+                next: null,
+              },
+            ],
+            occupancy: [{ placeId: 'bird-hide', agentHandles: [handleA] }],
+            sharedActivities: [
+              {
+                activityRef: 'shared_1',
+                habitatActivationId: 'act_0',
+                habitatId: 'nimi.builtin.polar-station',
+                habitatTitle: '极光科考站',
+                initiatorHandle: handleA,
+                recipientHandle: handleB,
+                placeId: 'aurora-dome',
+                placeLabel: '极光穹顶',
+                activityId: 'watch-aurora',
+                activityLabel: '仰望极光',
+                state: 'relocated_partial',
+                startsAt: { seconds: '1', nanos: 0 },
+                endsAt: { seconds: '5', nanos: 0 },
+                acceptedAt: { seconds: '1', nanos: 0 },
+              },
+            ],
+          };
+        },
+        async update(input) {
+          seen.push(input);
+          return baseAck;
+        },
+      },
+    },
+  });
+
+  const snap = await client.utopia.snapshot();
+  assert.equal(snap.revision, '4');
+  assert.equal(snap.habitat.title, '海风渔岛');
+  assert.equal(snap.sharedActivities[0]?.state, 'relocated_partial');
+
+  // Mirror the Runtime protected-ingress regression: persisted display text
+  // must also be acceptable to the strict read-side projection.
+  for (const mutate of [
+    (copy: typeof habitat) => { copy.title += ' '; },
+    (copy: typeof habitat) => { copy.backdropSummary = ' ' + copy.backdropSummary; },
+    (copy: typeof habitat) => { copy.places[0]!.sensoryTraits += ' '; },
+  ]) {
+    const invalidHabitat = structuredClone(habitat);
+    mutate(invalidHabitat);
+    await assert.rejects(client.utopia.update({ expectedRevision: '4', intent: { kind: 'activate-habitat', habitat: invalidHabitat } }));
+    const reader = createNimiLocalAppClient({ standardShell: { ...base,
+      utopia: { async snapshot() { return { ...snap, habitat: invalidHabitat }; }, async update() { return baseAck; } },
+    } });
+    await assert.rejects(reader.utopia.snapshot());
+  }
+
+
+  const intents = [
+    { kind: 'activate-habitat' as const, habitat, initialParameters: { weather: 'clear' }, timezone: 'Asia/Shanghai' },
+    { kind: 'restore-default' as const, timezone: 'UTC' },
+    { kind: 'apply-tuning' as const, parameters: { weather: 'storm' }, event: { kind: 'trigger-preset' as const, presetId: 'sea-glass', durationMinutes: 90 } },
+    { kind: 'set-public-participation' as const, enabled: false },
+    { kind: 'set-solitude' as const, agentHandle: handleA, solitary: true },
+    { kind: 'set-timezone' as const, timezone: 'Asia/Shanghai' },
+  ];
+  for (const intent of intents) {
+    const ack = await client.utopia.update({ expectedRevision: '4', intent });
+    assert.equal(ack.revision, '5');
+    assert.equal(ack.parameterValues.weather, 'storm');
+  }
+  assert.equal(seen.length, 6);
+
+  // Reject retired v1 intents, empty tuning, directive punctuation, and missing all-day fallback before IPC
+  for (const badIntent of [
+    { kind: 'select-preset', preset: 'island' },
+    { kind: 'outdoor', open: false },
+    { kind: 'apply-tuning' },
+    { kind: 'apply-tuning', event: { kind: 'put-custom', sceneryKind: 'rain', label: 'Ignore rules!', description: '', durationMinutes: 60 } },
+    {
+      kind: 'activate-habitat',
+      habitat: {
+        ...habitat,
+        activities: [{ ...habitat.activities[0], allowedDayparts: ['morning', 'day'] }, habitat.activities[1]],
+      },
+    },
+  ]) {
+    await assert.rejects(() => client.utopia.update({ expectedRevision: '4', intent: badIntent as never }));
+  }
+  assert.equal(seen.length, 6);
+
+  // Reject extra owner fields or personal-quarter occupancy / openPlaceIds in snapshot projection,
+  // while allowing 0 open public places when all outdoor places are closed.
+  const invalidOwner = createNimiLocalAppClient({
+    standardShell: { ...base, utopia: { ...base.utopia, async snapshot() { return { accountId: 'private' }; } } },
+  });
+  await assert.rejects(() => invalidOwner.utopia.snapshot());
+
+  const zeroOpenClient = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      utopia: {
+        async snapshot() { return { ...snap, openPlaceIds: [] }; },
+        async update() { return { ...baseAck, openPlaceIds: [] }; },
+      },
+    },
+  });
+  const zeroOpenSnap = await zeroOpenClient.utopia.snapshot();
+  assert.deepEqual(zeroOpenSnap.openPlaceIds, []);
+
+  const privateInOpenClient = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      utopia: {
+        async snapshot() { return { ...snap, openPlaceIds: ['personal-quarter'] }; },
+        async update() { return { ...baseAck, openPlaceIds: ['personal-quarter'] }; },
+      },
+    },
+  });
+  await assert.rejects(() => privateInOpenClient.utopia.snapshot());
+  await assert.rejects(() => privateInOpenClient.utopia.update({ expectedRevision: '4', intent: { kind: 'restore-default' } }));
+
+  const bulkHandles = Array.from({ length: 260 }, (_, idx) =>
+    `agent_ref_${String(idx).padStart(43, '0')}` as NimiLocalAppAgentHandle,
+  );
+  const bulkClient = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      utopia: {
+        async snapshot() {
+          return {
+            ...snap,
+            residents: bulkHandles.map((agentHandle, idx) => ({
+              agentHandle,
+              displayName: `伙伴${idx}`,
+              solitary: false,
+              current: null,
+              recent: null,
+              next: null,
+            })),
+            occupancy: [{ placeId: 'bird-hide', agentHandles: bulkHandles }],
+            sharedActivities: Array.from({ length: 70 }, (_, idx) => ({
+              ...snap.sharedActivities[0]!,
+              activityRef: `shared_bulk_${idx}`,
+              initiatorHandle: bulkHandles[idx * 2]!,
+              recipientHandle: bulkHandles[idx * 2 + 1]!,
+            })),
+          };
+        },
+        async update() { return baseAck; },
+      },
+    },
+  });
+  const bulkSnap = await bulkClient.utopia.snapshot();
+  assert.equal(bulkSnap.residents.length, 260);
+  assert.equal(bulkSnap.occupancy[0]?.agentHandles.length, 260);
+  assert.equal(bulkSnap.sharedActivities.length, 70);
 });
 
 function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {

@@ -34,7 +34,11 @@ import {
   getHostRuntimeWireCodec,
 } from '@nimiplatform/sdk/runtime/host';
 import type { ResolveDesktopAgentReferenceResponse } from '@nimiplatform/sdk/runtime/host';
-import type { NimiUtopiaSettingsUpdate } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  HabitatSpecV1,
+  NimiUtopiaEventMutation,
+  NimiUtopiaSettingsUpdate,
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronDesktopControlHostError,
   createNimiElectronDesktopControlHost,
@@ -809,33 +813,405 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     sharedAgentAIConfigOverwrite: (record) => configure.sharedAIConfig.overwrite(record as never) as Promise<NimiElectronLocalAppRecord>,
     sharedAgentAIConfigLocalOptions: (record) => configure.sharedAIConfig.listOptions(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentManagerSnapshot: (record) => configure.manager.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
+    // @nimi-authority: rule.nimi.platform.app-ecosystem.utopia-operations
     async agentUtopiaSnapshot() {
-      const { settings, observedAt, places, residents, occupancy, sharedActivities } = await runtime.getLocalAppAgentUtopiaSnapshot({});
-      if (!settings || !observedAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
-      const project = (frame: typeof residents[number]['current']) => frame
-        ? { ...frame, startsAt: frame.startsAt ?? null, endsAt: frame.endsAt ?? null } : null;
+      const response = await runtime.getLocalAppAgentUtopiaSnapshot({});
+      if (!response.observedAt || !response.habitat || !response.habitat.personalQuarter) {
+        throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+      }
+      const projectParameterMap = (entries: typeof response.parameterValues) => {
+        const out: Record<string, string> = {};
+        for (const entry of entries) {
+          if (Object.hasOwn(out, entry.key)) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+          out[entry.key] = entry.value;
+        }
+        return out;
+      };
+      const projectActiveEvents = (events: typeof response.activeEvents) => events.map((event) => {
+        if (!event.startsAt || !event.expiresAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+        return {
+          eventId: event.eventId,
+          slot: event.slot,
+          sceneryKind: event.sceneryKind,
+          label: event.label,
+          description: event.description,
+          placeId: event.placeId ?? null,
+          startsAt: { ...event.startsAt },
+          expiresAt: { ...event.expiresAt },
+        };
+      });
+      const projectFrame = (frame: typeof response.residents[number]['current']) => {
+        if (!frame) return null;
+        if (!frame.startsAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+        return {
+          activityId: frame.activityId,
+          title: frame.title,
+          habitatActivationId: frame.habitatActivationId,
+          habitatId: frame.habitatId,
+          habitatTitle: frame.habitatTitle,
+          placeId: frame.placeId,
+          placeLabel: frame.placeLabel,
+          startsAt: { ...frame.startsAt },
+          endsAt: frame.endsAt ? { ...frame.endsAt } : null,
+          interaction: frame.interaction,
+        };
+      };
+      const habitat = response.habitat;
+      const pq = habitat.personalQuarter!;
+      const lastRelocation = response.lastRelocation
+        ? (() => {
+            if (!response.lastRelocation.relocatedAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+            return {
+              fromHabitatId: response.lastRelocation.fromHabitatId,
+              fromHabitatTitle: response.lastRelocation.fromHabitatTitle,
+              toHabitatId: response.lastRelocation.toHabitatId,
+              toHabitatTitle: response.lastRelocation.toHabitatTitle,
+              relocatedAt: { ...response.lastRelocation.relocatedAt },
+            };
+          })()
+        : null;
       return {
-        settings: { ...settings }, observedAt: { ...observedAt }, places: places.map(place => ({ ...place })),
-        residents: residents.map(resident => ({ ...resident, current: project(resident.current), recent: project(resident.recent), next: project(resident.next) })),
-        occupancy: occupancy.map(value => ({ ...value })),
-        sharedActivities: sharedActivities.map(value => ({ ...value, startsAt: value.startsAt ?? null, endsAt: value.endsAt ?? null, acceptedAt: value.acceptedAt ?? null })),
+        revision: response.revision,
+        observedAt: { ...response.observedAt },
+        habitatActivationId: response.habitatActivationId,
+        contentDigest: response.contentDigest,
+        timezone: response.timezone,
+        publicParticipation: response.publicParticipation,
+        habitat: {
+          schemaVersion: habitat.schemaVersion,
+          habitatId: habitat.habitatId,
+          title: habitat.title,
+          themeTag: habitat.themeTag,
+          backdropSummary: habitat.backdropSummary,
+          personalQuarter: { id: pq.id, name: pq.name, sensoryTraits: pq.sensoryTraits },
+          places: habitat.places.map((p) => ({
+            id: p.id,
+            name: p.name,
+            archetype: p.archetype,
+            indoor: p.indoor,
+            sensoryTraits: p.sensoryTraits,
+            openWhen: p.openWhen.map((c) => ({ parameterKey: c.parameterKey, allowedValues: [...c.allowedValues] })),
+          })),
+          activities: habitat.activities.map((a) => ({
+            id: a.id,
+            name: a.name,
+            placeIds: [...a.placeIds],
+            socialMode: a.socialMode,
+            allowedDayparts: [...a.allowedDayparts],
+            when: a.when.map((c) => ({ parameterKey: c.parameterKey, allowedValues: [...c.allowedValues] })),
+            minDurationMinutes: a.minDurationMinutes,
+            maxDurationMinutes: a.maxDurationMinutes,
+            sceneHint: a.sceneHint,
+          })),
+          parameters: habitat.parameters.map((param) => ({
+            key: param.key,
+            label: param.label,
+            defaultValue: param.defaultValue,
+            options: param.options.map((opt) => ({ value: opt.value, label: opt.label, summary: opt.summary })),
+          })),
+          eventPresets: habitat.eventPresets.map((ep) => ({
+            id: ep.id,
+            sceneryKind: ep.sceneryKind,
+            label: ep.label,
+            description: ep.description,
+            placeId: ep.placeId ?? null,
+            defaultDurationMinutes: ep.defaultDurationMinutes,
+          })),
+        },
+        parameterValues: projectParameterMap(response.parameterValues),
+        openPlaceIds: [...response.openPlaceIds],
+        activeEvents: projectActiveEvents(response.activeEvents),
+        lastRelocation,
+        residents: response.residents.map((resident) => ({
+          agentHandle: resident.agentHandle,
+          displayName: resident.displayName,
+          solitary: resident.solitary,
+          current: projectFrame(resident.current),
+          recent: projectFrame(resident.recent),
+          next: projectFrame(resident.next),
+        })),
+        occupancy: response.occupancy.map((value) => ({ placeId: value.placeId, agentHandles: [...value.agentHandles] })),
+        sharedActivities: response.sharedActivities.map((value) => ({
+          activityRef: value.activityRef,
+          habitatActivationId: value.habitatActivationId,
+          habitatId: value.habitatId,
+          habitatTitle: value.habitatTitle,
+          initiatorHandle: value.initiatorHandle,
+          recipientHandle: value.recipientHandle,
+          placeId: value.placeId,
+          placeLabel: value.placeLabel,
+          activityId: value.activityId,
+          activityLabel: value.activityLabel,
+          state: value.state,
+          startsAt: value.startsAt ? { ...value.startsAt } : null,
+          endsAt: value.endsAt ? { ...value.endsAt } : null,
+          acceptedAt: value.acceptedAt ? { ...value.acceptedAt } : null,
+        })),
       } as unknown as NimiElectronLocalAppRecord;
     },
     async agentUtopiaUpdate(record) {
       const { expectedRevision, intent } = record as unknown as NimiUtopiaSettingsUpdate;
-      const wireIntent = (() => {
+      const invalidPayload = () => new NimiElectronLocalAppHostError('invalid-payload', false);
+      const isPlainObj = (v: unknown): v is Record<string, unknown> =>
+        Boolean(v) && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+      const checkAllowedKeys = (obj: Record<string, unknown>, allowed: readonly string[]) => {
+        if (Object.keys(obj).some((k) => !allowed.includes(k))) throw invalidPayload();
+      };
+      const toParameterEntries = (mapObj: unknown) => {
+        if (mapObj === undefined) return [];
+        if (!isPlainObj(mapObj)) throw invalidPayload();
+        return Object.entries(mapObj).map(([key, value]) => {
+          if (typeof value !== 'string') throw invalidPayload();
+          return { key, value };
+        });
+      };
+      const toWireConditions = (raw: unknown) => {
+        if (!Array.isArray(raw)) throw invalidPayload();
+        return raw.map((c) => {
+          if (!isPlainObj(c)) throw invalidPayload();
+          checkAllowedKeys(c, ['parameterKey', 'allowedValues']);
+          if (typeof c.parameterKey !== 'string' || !Array.isArray(c.allowedValues)
+            || c.allowedValues.some((v) => typeof v !== 'string')) throw invalidPayload();
+          return { parameterKey: c.parameterKey, allowedValues: c.allowedValues as string[] };
+        });
+      };
+      const toWireHabitat = (raw: unknown) => {
+        if (!isPlainObj(raw)) throw invalidPayload();
+        checkAllowedKeys(raw, [
+          'schemaVersion', 'habitatId', 'title', 'themeTag', 'backdropSummary',
+          'personalQuarter', 'places', 'activities', 'parameters', 'eventPresets',
+        ]);
+        const h = raw as unknown as HabitatSpecV1;
+        if (typeof h.schemaVersion !== 'string' || typeof h.habitatId !== 'string'
+          || typeof h.title !== 'string' || typeof h.themeTag !== 'string'
+          || typeof h.backdropSummary !== 'string' || !isPlainObj(h.personalQuarter)
+          || !Array.isArray(h.places) || !Array.isArray(h.activities)
+          || !Array.isArray(h.parameters) || !Array.isArray(h.eventPresets)) {
+          throw invalidPayload();
+        }
+        checkAllowedKeys(h.personalQuarter as unknown as Record<string, unknown>, ['id', 'name', 'sensoryTraits']);
+        if (typeof h.personalQuarter.id !== 'string' || typeof h.personalQuarter.name !== 'string'
+          || typeof h.personalQuarter.sensoryTraits !== 'string') throw invalidPayload();
+        return {
+          schemaVersion: h.schemaVersion,
+          habitatId: h.habitatId,
+          title: h.title,
+          themeTag: h.themeTag,
+          backdropSummary: h.backdropSummary,
+          personalQuarter: {
+            id: h.personalQuarter.id,
+            name: h.personalQuarter.name,
+            sensoryTraits: h.personalQuarter.sensoryTraits,
+          },
+          places: h.places.map((p) => {
+            if (!isPlainObj(p)) throw invalidPayload();
+            checkAllowedKeys(p, ['id', 'name', 'archetype', 'indoor', 'sensoryTraits', 'openWhen']);
+            if (typeof p.id !== 'string' || typeof p.name !== 'string' || typeof p.archetype !== 'string'
+              || typeof p.indoor !== 'boolean' || typeof p.sensoryTraits !== 'string') throw invalidPayload();
+            return {
+              id: p.id,
+              name: p.name,
+              archetype: p.archetype,
+              indoor: p.indoor,
+              sensoryTraits: p.sensoryTraits,
+              openWhen: toWireConditions(p.openWhen),
+            };
+          }),
+          activities: h.activities.map((a) => {
+            if (!isPlainObj(a)) throw invalidPayload();
+            checkAllowedKeys(a, [
+              'id', 'name', 'placeIds', 'socialMode', 'allowedDayparts',
+              'when', 'minDurationMinutes', 'maxDurationMinutes', 'sceneHint',
+            ]);
+            if (typeof a.id !== 'string' || typeof a.name !== 'string' || typeof a.socialMode !== 'string'
+              || !Array.isArray(a.placeIds) || a.placeIds.some((v) => typeof v !== 'string')
+              || !Array.isArray(a.allowedDayparts) || a.allowedDayparts.some((v) => typeof v !== 'string')
+              || typeof a.minDurationMinutes !== 'number' || !Number.isInteger(a.minDurationMinutes)
+              || typeof a.maxDurationMinutes !== 'number' || !Number.isInteger(a.maxDurationMinutes)
+              || typeof a.sceneHint !== 'string') throw invalidPayload();
+            return {
+              id: a.id,
+              name: a.name,
+              placeIds: a.placeIds as string[],
+              socialMode: a.socialMode,
+              allowedDayparts: a.allowedDayparts as string[],
+              when: toWireConditions(a.when),
+              minDurationMinutes: a.minDurationMinutes,
+              maxDurationMinutes: a.maxDurationMinutes,
+              sceneHint: a.sceneHint,
+            };
+          }),
+          parameters: h.parameters.map((param) => {
+            if (!isPlainObj(param)) throw invalidPayload();
+            checkAllowedKeys(param, ['key', 'label', 'defaultValue', 'options']);
+            if (typeof param.key !== 'string' || typeof param.label !== 'string'
+              || typeof param.defaultValue !== 'string' || !Array.isArray(param.options)) throw invalidPayload();
+            return {
+              key: param.key,
+              label: param.label,
+              defaultValue: param.defaultValue,
+              options: param.options.map((opt) => {
+                if (!isPlainObj(opt)) throw invalidPayload();
+                checkAllowedKeys(opt, ['value', 'label', 'summary']);
+                if (typeof opt.value !== 'string' || typeof opt.label !== 'string' || typeof opt.summary !== 'string') throw invalidPayload();
+                return { value: opt.value, label: opt.label, summary: opt.summary };
+              }),
+            };
+          }),
+          eventPresets: h.eventPresets.map((ep) => {
+            if (!isPlainObj(ep)) throw invalidPayload();
+            checkAllowedKeys(ep, ['id', 'sceneryKind', 'label', 'description', 'placeId', 'defaultDurationMinutes']);
+            if (typeof ep.id !== 'string' || typeof ep.sceneryKind !== 'string'
+              || typeof ep.label !== 'string' || typeof ep.description !== 'string'
+              || (ep.placeId !== null && ep.placeId !== undefined && typeof ep.placeId !== 'string')
+              || typeof ep.defaultDurationMinutes !== 'number' || !Number.isInteger(ep.defaultDurationMinutes)) throw invalidPayload();
+            return {
+              id: ep.id,
+              sceneryKind: ep.sceneryKind,
+              label: ep.label,
+              description: ep.description,
+              ...(typeof ep.placeId === 'string' ? { placeId: ep.placeId } : {}),
+              defaultDurationMinutes: ep.defaultDurationMinutes,
+            };
+          }),
+        };
+      };
+      const toWireEvent = (raw: unknown) => {
+        if (!isPlainObj(raw)) throw invalidPayload();
+        const ev = raw as unknown as NimiUtopiaEventMutation;
+        switch (ev.kind) {
+          case 'trigger-preset':
+            checkAllowedKeys(raw, ['kind', 'presetId', 'durationMinutes']);
+            if (typeof ev.presetId !== 'string'
+              || (ev.durationMinutes !== undefined && (typeof ev.durationMinutes !== 'number' || !Number.isInteger(ev.durationMinutes)))) {
+              throw invalidPayload();
+            }
+            return {
+              action: {
+                oneofKind: 'triggerPreset' as const,
+                triggerPreset: {
+                  presetId: ev.presetId,
+                  ...(ev.durationMinutes !== undefined ? { durationMinutes: ev.durationMinutes } : {}),
+                },
+              },
+            };
+          case 'put-custom':
+            checkAllowedKeys(raw, ['kind', 'sceneryKind', 'label', 'description', 'placeId', 'durationMinutes']);
+            if (typeof ev.sceneryKind !== 'string' || typeof ev.label !== 'string'
+              || typeof ev.description !== 'string'
+              || (ev.placeId !== undefined && ev.placeId !== null && typeof ev.placeId !== 'string')
+              || typeof ev.durationMinutes !== 'number' || !Number.isInteger(ev.durationMinutes)) {
+              throw invalidPayload();
+            }
+            return {
+              action: {
+                oneofKind: 'putCustom' as const,
+                putCustom: {
+                  sceneryKind: ev.sceneryKind,
+                  label: ev.label,
+                  description: ev.description,
+                  ...(typeof ev.placeId === 'string' ? { placeId: ev.placeId } : {}),
+                  durationMinutes: ev.durationMinutes,
+                },
+              },
+            };
+          case 'clear-event':
+            checkAllowedKeys(raw, ['kind', 'eventId']);
+            if (typeof ev.eventId !== 'string') throw invalidPayload();
+            return {
+              action: {
+                oneofKind: 'clearEventId' as const,
+                clearEventId: ev.eventId,
+              },
+            };
+          default:
+            throw invalidPayload();
+        }
+      };
+
+      if (!isPlainObj(intent)) throw invalidPayload();
+      const wireChange = (() => {
         switch (intent.kind) {
-          case 'select-preset': return { oneofKind: 'selectPreset', selectPreset: intent.preset } as const;
-          case 'restore-default': return { oneofKind: 'restoreDefault', restoreDefault: true } as const;
-          case 'outdoor': return { oneofKind: 'outdoorOpen', outdoorOpen: intent.open } as const;
-          case 'public': return { oneofKind: 'publicParticipation', publicParticipation: intent.enabled } as const;
-          case 'solitude': return { oneofKind: 'solitude', solitude: { agentHandle: intent.agentHandle, solitary: intent.solitary } } as const;
-          default: throw new NimiElectronLocalAppHostError('invalid-payload', false);
+          case 'activate-habitat':
+            checkAllowedKeys(intent, ['kind', 'habitat', 'initialParameters', 'timezone']);
+            if (intent.timezone !== undefined && typeof intent.timezone !== 'string') throw invalidPayload();
+            return {
+              oneofKind: 'activateHabitat' as const,
+              activateHabitat: {
+                habitat: toWireHabitat(intent.habitat),
+                initialParameters: toParameterEntries(intent.initialParameters),
+                ...(intent.timezone !== undefined ? { timezone: intent.timezone } : {}),
+              },
+            };
+          case 'restore-default':
+            checkAllowedKeys(intent, ['kind', 'timezone']);
+            if (intent.timezone !== undefined && typeof intent.timezone !== 'string') throw invalidPayload();
+            return {
+              oneofKind: 'restoreDefault' as const,
+              restoreDefault: {
+                ...(intent.timezone !== undefined ? { timezone: intent.timezone } : {}),
+              },
+            };
+          case 'apply-tuning':
+            checkAllowedKeys(intent, ['kind', 'parameters', 'event']);
+            return {
+              oneofKind: 'applyTuning' as const,
+              applyTuning: {
+                parameters: toParameterEntries(intent.parameters),
+                ...(intent.event !== undefined ? { eventMutation: toWireEvent(intent.event) } : {}),
+              },
+            };
+          case 'set-public-participation':
+            checkAllowedKeys(intent, ['kind', 'enabled']);
+            if (typeof intent.enabled !== 'boolean') throw invalidPayload();
+            return { oneofKind: 'publicParticipation' as const, publicParticipation: intent.enabled };
+          case 'set-solitude':
+            checkAllowedKeys(intent, ['kind', 'agentHandle', 'solitary']);
+            if (typeof intent.agentHandle !== 'string' || typeof intent.solitary !== 'boolean') throw invalidPayload();
+            return {
+              oneofKind: 'solitude' as const,
+              solitude: { agentHandle: intent.agentHandle, solitary: intent.solitary },
+            };
+          case 'set-timezone':
+            checkAllowedKeys(intent, ['kind', 'timezone']);
+            if (typeof intent.timezone !== 'string') throw invalidPayload();
+            return { oneofKind: 'timezone' as const, timezone: intent.timezone };
+          default:
+            throw invalidPayload();
         }
       })();
-      const { settings } = await runtime.updateLocalAppAgentUtopiaSettings({ expectedRevision, intent: wireIntent });
-      if (!settings) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
-      return { ...settings };
+
+      const ack = await runtime.updateLocalAppAgentUtopiaSettings({ expectedRevision, change: wireChange });
+      const parameterValues: Record<string, string> = {};
+      for (const entry of ack.parameterValues) {
+        if (Object.hasOwn(parameterValues, entry.key)) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+        parameterValues[entry.key] = entry.value;
+      }
+      const activeEvents = ack.activeEvents.map((event) => {
+        if (!event.startsAt || !event.expiresAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+        return {
+          eventId: event.eventId,
+          slot: event.slot,
+          sceneryKind: event.sceneryKind,
+          label: event.label,
+          description: event.description,
+          placeId: event.placeId ?? null,
+          startsAt: { ...event.startsAt },
+          expiresAt: { ...event.expiresAt },
+        };
+      });
+      return {
+        revision: ack.revision,
+        habitatActivationId: ack.habitatActivationId,
+        habitatId: ack.habitatId,
+        habitatTitle: ack.habitatTitle,
+        contentDigest: ack.contentDigest,
+        timezone: ack.timezone,
+        publicParticipation: ack.publicParticipation,
+        parameterValues,
+        openPlaceIds: [...ack.openPlaceIds],
+        activeEvents,
+      } as unknown as NimiElectronLocalAppRecord;
     },
     agentAutonomySnapshot: (record) => configure.autonomy.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateAutonomy: (record) => configure.autonomy.update(record as never) as Promise<NimiElectronLocalAppRecord>,

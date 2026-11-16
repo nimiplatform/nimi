@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -96,6 +97,20 @@ func (s *Service) launchLifeProactive(ref string, intent lifeProactiveIntent) {
 	if err != nil || entry.Agent.GetOwnerUserId() != projection.GetAccountId() || !validLifeProactiveClaim(entry, &intent, time.Now().UTC()) {
 		return
 	}
+	if intent.UtopiaRead != nil {
+		settings, err := s.readLifeUtopiaSettings(work.ctx, entry.Agent.GetOwnerUserId())
+		if err != nil {
+			return
+		}
+		u, err := settings.effectiveAt(time.Now().UTC())
+		if err != nil {
+			return
+		}
+		if !u.acceptsRead(intent.UtopiaRead, time.Now().UTC()) {
+			s.retireLifeProactiveIntent(ref, intent.ID)
+			return
+		}
+	}
 	selection := s.lifeConversationSelection(ref)
 	s.chatSurfaceMu.Lock()
 	work.conversationRead = projectConversationRead(intent.ConversationRead, selection)
@@ -146,6 +161,9 @@ func (s *Service) launchLifeProactive(ref string, intent lifeProactiveIntent) {
 	ctx := executionintent.WithRuntimeAccountSubject(work.ctx, identity.OwnerUserID)
 	if intent.Source == "contact" {
 		err = s.commitGeneratedContact(ctx, identity, anchorID, work, intent, read)
+		if errors.Is(err, errLifeUtopiaReadChanged) {
+			s.retireLifeProactiveIntent(ref, intent.ID)
+		}
 		if err != nil && s.logger != nil {
 			s.logger.Warn("generated contact not committed", "error", err)
 		}
@@ -161,9 +179,25 @@ func (s *Service) launchLifeProactive(ref string, intent lifeProactiveIntent) {
 	}
 
 	_, err = s.publicChatRuntime().handleTurnRequestWithID(ctx, &runtimev1.AppMessageEvent{SubjectUserId: identity.OwnerUserID, MessageId: intent.ID}, publicChatTurnRequestPayload{backgroundAdmission: work, LocalAgentRef: ref, OwnerUserID: identity.OwnerUserID, RuntimeSourceRef: identity.RuntimeSourceRef, ConversationAnchorID: anchorID, RequestID: intent.ID, Messages: publicChatFollowUpInstructionInput(instruction), MaxOutputTokens: int32(cap), proactiveClaim: &intent, proactiveMemoryReadSet: read, proactiveConversationRead: projectConversationRead(intent.ConversationRead, selection)})
+	if errors.Is(err, errLifeUtopiaReadChanged) {
+		s.retireLifeProactiveIntent(ref, intent.ID)
+	}
 	if err != nil && s.logger != nil {
 		s.logger.Warn("proactive expression not admitted", "error", err)
 	}
+}
+
+func (s *Service) retireLifeProactiveIntent(ref, id string) {
+	_ = s.mutateAgent(ref, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		kept := entry.Life.Intents[:0]
+		for _, intent := range entry.Life.Intents {
+			if intent.ID != id {
+				kept = append(kept, intent)
+			}
+		}
+		entry.Life.Intents = kept
+		return nil, nil, nil
+	})
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.proactive-execution
@@ -235,7 +269,7 @@ func (s *Service) commitGeneratedContact(ctx context.Context, identity localAgen
 
 // Caller holds Agent and Conversation commit locks. The returned state is
 // published only after the same transaction persists the assistant message.
-func (s *Service) prepareProactiveMessageCommit(entry *agentEntry, turn *publicChatTurnState, now time.Time) (*agentEntry, runtimeAgentStateTxHook, error) {
+func (s *Service) prepareProactiveMessageCommit(ctx context.Context, entry *agentEntry, turn *publicChatTurnState, now time.Time) (*agentEntry, runtimeAgentStateTxHook, error) {
 	if turn == nil || !isProactiveOrigin(turn.Origin) {
 		return nil, nil, nil
 	}
@@ -244,6 +278,16 @@ func (s *Service) prepareProactiveMessageCommit(entry *agentEntry, turn *publicC
 	}
 	next := cloneAgentEntry(entry)
 	if claim := turn.ProactiveIntent; claim != nil {
+		if claim.UtopiaRead != nil {
+			settings, err := s.readLifeUtopiaSettings(ctx, entry.Agent.GetOwnerUserId())
+			if err != nil {
+				return nil, nil, err
+			}
+			utopia, err := settings.effectiveAt(now)
+			if err != nil || !utopia.acceptsRead(claim.UtopiaRead, now) {
+				return nil, nil, errLifeUtopiaReadChanged
+			}
+		}
 		if !validLifeProactiveClaim(next, claim, now) {
 			return nil, nil, fmt.Errorf("proactive source changed before message commit")
 		}
@@ -269,5 +313,12 @@ func (s *Service) prepareProactiveMessageCommit(entry *agentEntry, turn *publicC
 		next.Life.ContactTimes = append(kept, now)
 		next.Life.ContactSinceUser = true
 	}
-	return next, func(tx *sql.Tx) error { return persistAgentLifeTx(tx, entry.Agent.GetLocalAgentRef(), next.Life) }, nil
+	return next, func(tx *sql.Tx) error {
+		if claim := turn.ProactiveIntent; claim != nil {
+			if err := claim.UtopiaRead.checkCommitTime(); err != nil {
+				return err
+			}
+		}
+		return persistAgentLifeTx(tx, entry.Agent.GetLocalAgentRef(), next.Life)
+	}, nil
 }

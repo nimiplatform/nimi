@@ -58,104 +58,81 @@ func (*GetLocalAppAgentUtopiaSnapshotRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{0}
 }
 
-type LocalAppAgentUtopiaSettings struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Revision            uint64                 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
-	Preset              string                 `protobuf:"bytes,2,opt,name=preset,proto3" json:"preset,omitempty"`
-	PresetVersion       uint64                 `protobuf:"varint,3,opt,name=preset_version,json=presetVersion,proto3" json:"preset_version,omitempty"`
-	OutdoorOpen         bool                   `protobuf:"varint,4,opt,name=outdoor_open,json=outdoorOpen,proto3" json:"outdoor_open,omitempty"`
-	PublicParticipation bool                   `protobuf:"varint,5,opt,name=public_participation,json=publicParticipation,proto3" json:"public_participation,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *LocalAppAgentUtopiaSettings) Reset() {
-	*x = LocalAppAgentUtopiaSettings{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAgentUtopiaSettings) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAgentUtopiaSettings) ProtoMessage() {}
-
-func (x *LocalAppAgentUtopiaSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAgentUtopiaSettings.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaSettings) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *LocalAppAgentUtopiaSettings) GetRevision() uint64 {
-	if x != nil {
-		return x.Revision
-	}
-	return 0
-}
-
-func (x *LocalAppAgentUtopiaSettings) GetPreset() string {
-	if x != nil {
-		return x.Preset
-	}
-	return ""
-}
-
-func (x *LocalAppAgentUtopiaSettings) GetPresetVersion() uint64 {
-	if x != nil {
-		return x.PresetVersion
-	}
-	return 0
-}
-
-func (x *LocalAppAgentUtopiaSettings) GetOutdoorOpen() bool {
-	if x != nil {
-		return x.OutdoorOpen
-	}
-	return false
-}
-
-func (x *LocalAppAgentUtopiaSettings) GetPublicParticipation() bool {
-	if x != nil {
-		return x.PublicParticipation
-	}
-	return false
-}
-
-type LocalAppAgentUtopiaPlace struct {
+type LocalAppUtopiaParameterCondition struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Activities    []string               `protobuf:"bytes,2,rep,name=activities,proto3" json:"activities,omitempty"`
+	ParameterKey  string                 `protobuf:"bytes,1,opt,name=parameter_key,json=parameterKey,proto3" json:"parameter_key,omitempty"`
+	AllowedValues []string               `protobuf:"bytes,2,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaPlace) Reset() {
-	*x = LocalAppAgentUtopiaPlace{}
+func (x *LocalAppUtopiaParameterCondition) Reset() {
+	*x = LocalAppUtopiaParameterCondition{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaParameterCondition) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaParameterCondition) ProtoMessage() {}
+
+func (x *LocalAppUtopiaParameterCondition) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaParameterCondition.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaParameterCondition) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *LocalAppUtopiaParameterCondition) GetParameterKey() string {
+	if x != nil {
+		return x.ParameterKey
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterCondition) GetAllowedValues() []string {
+	if x != nil {
+		return x.AllowedValues
+	}
+	return nil
+}
+
+type LocalAppUtopiaParameterOption struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Summary       string                 `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaParameterOption) Reset() {
+	*x = LocalAppUtopiaParameterOption{}
 	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaPlace) String() string {
+func (x *LocalAppUtopiaParameterOption) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaPlace) ProtoMessage() {}
+func (*LocalAppUtopiaParameterOption) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaPlace) ProtoReflect() protoreflect.Message {
+func (x *LocalAppUtopiaParameterOption) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -167,51 +144,187 @@ func (x *LocalAppAgentUtopiaPlace) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaPlace.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaPlace) Descriptor() ([]byte, []int) {
+// Deprecated: Use LocalAppUtopiaParameterOption.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaParameterOption) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *LocalAppAgentUtopiaPlace) GetId() string {
+func (x *LocalAppUtopiaParameterOption) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterOption) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterOption) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+type LocalAppUtopiaParameterSpec struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	Key           string                           `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Label         string                           `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	DefaultValue  string                           `protobuf:"bytes,3,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"`
+	Options       []*LocalAppUtopiaParameterOption `protobuf:"bytes,4,rep,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaParameterSpec) Reset() {
+	*x = LocalAppUtopiaParameterSpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaParameterSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaParameterSpec) ProtoMessage() {}
+
+func (x *LocalAppUtopiaParameterSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaParameterSpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaParameterSpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *LocalAppUtopiaParameterSpec) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterSpec) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterSpec) GetDefaultValue() string {
+	if x != nil {
+		return x.DefaultValue
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterSpec) GetOptions() []*LocalAppUtopiaParameterOption {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type LocalAppUtopiaPersonalQuarterSpec struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	SensoryTraits string                 `protobuf:"bytes,3,opt,name=sensory_traits,json=sensoryTraits,proto3" json:"sensory_traits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaPersonalQuarterSpec) Reset() {
+	*x = LocalAppUtopiaPersonalQuarterSpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaPersonalQuarterSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaPersonalQuarterSpec) ProtoMessage() {}
+
+func (x *LocalAppUtopiaPersonalQuarterSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaPersonalQuarterSpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaPersonalQuarterSpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LocalAppUtopiaPersonalQuarterSpec) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaPlace) GetActivities() []string {
+func (x *LocalAppUtopiaPersonalQuarterSpec) GetName() string {
 	if x != nil {
-		return x.Activities
+		return x.Name
 	}
-	return nil
+	return ""
 }
 
-type LocalAppAgentUtopiaFrame struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Place         string                 `protobuf:"bytes,2,opt,name=place,proto3" json:"place,omitempty"`
-	StartsAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
-	EndsAt        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
-	Interaction   bool                   `protobuf:"varint,5,opt,name=interaction,proto3" json:"interaction,omitempty"`
+func (x *LocalAppUtopiaPersonalQuarterSpec) GetSensoryTraits() string {
+	if x != nil {
+		return x.SensoryTraits
+	}
+	return ""
+}
+
+type LocalAppUtopiaPlaceSpec struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Id            string                              `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                              `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Archetype     string                              `protobuf:"bytes,3,opt,name=archetype,proto3" json:"archetype,omitempty"`
+	Indoor        bool                                `protobuf:"varint,4,opt,name=indoor,proto3" json:"indoor,omitempty"`
+	SensoryTraits string                              `protobuf:"bytes,5,opt,name=sensory_traits,json=sensoryTraits,proto3" json:"sensory_traits,omitempty"`
+	OpenWhen      []*LocalAppUtopiaParameterCondition `protobuf:"bytes,6,rep,name=open_when,json=openWhen,proto3" json:"open_when,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaFrame) Reset() {
-	*x = LocalAppAgentUtopiaFrame{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[3]
+func (x *LocalAppUtopiaPlaceSpec) Reset() {
+	*x = LocalAppUtopiaPlaceSpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaFrame) String() string {
+func (x *LocalAppUtopiaPlaceSpec) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaFrame) ProtoMessage() {}
+func (*LocalAppUtopiaPlaceSpec) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaFrame) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[3]
+func (x *LocalAppUtopiaPlaceSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,73 +335,656 @@ func (x *LocalAppAgentUtopiaFrame) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaFrame.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaFrame) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use LocalAppUtopiaPlaceSpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaPlaceSpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *LocalAppAgentUtopiaFrame) GetTitle() string {
+func (x *LocalAppUtopiaPlaceSpec) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaPlaceSpec) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaPlaceSpec) GetArchetype() string {
+	if x != nil {
+		return x.Archetype
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaPlaceSpec) GetIndoor() bool {
+	if x != nil {
+		return x.Indoor
+	}
+	return false
+}
+
+func (x *LocalAppUtopiaPlaceSpec) GetSensoryTraits() string {
+	if x != nil {
+		return x.SensoryTraits
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaPlaceSpec) GetOpenWhen() []*LocalAppUtopiaParameterCondition {
+	if x != nil {
+		return x.OpenWhen
+	}
+	return nil
+}
+
+type LocalAppUtopiaActivitySpec struct {
+	state              protoimpl.MessageState              `protogen:"open.v1"`
+	Id                 string                              `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name               string                              `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	PlaceIds           []string                            `protobuf:"bytes,3,rep,name=place_ids,json=placeIds,proto3" json:"place_ids,omitempty"`
+	SocialMode         string                              `protobuf:"bytes,4,opt,name=social_mode,json=socialMode,proto3" json:"social_mode,omitempty"`
+	AllowedDayparts    []string                            `protobuf:"bytes,5,rep,name=allowed_dayparts,json=allowedDayparts,proto3" json:"allowed_dayparts,omitempty"`
+	When               []*LocalAppUtopiaParameterCondition `protobuf:"bytes,6,rep,name=when,proto3" json:"when,omitempty"`
+	MinDurationMinutes int32                               `protobuf:"varint,7,opt,name=min_duration_minutes,json=minDurationMinutes,proto3" json:"min_duration_minutes,omitempty"`
+	MaxDurationMinutes int32                               `protobuf:"varint,8,opt,name=max_duration_minutes,json=maxDurationMinutes,proto3" json:"max_duration_minutes,omitempty"`
+	SceneHint          string                              `protobuf:"bytes,9,opt,name=scene_hint,json=sceneHint,proto3" json:"scene_hint,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaActivitySpec) Reset() {
+	*x = LocalAppUtopiaActivitySpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaActivitySpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaActivitySpec) ProtoMessage() {}
+
+func (x *LocalAppUtopiaActivitySpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaActivitySpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaActivitySpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetPlaceIds() []string {
+	if x != nil {
+		return x.PlaceIds
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetSocialMode() string {
+	if x != nil {
+		return x.SocialMode
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetAllowedDayparts() []string {
+	if x != nil {
+		return x.AllowedDayparts
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetWhen() []*LocalAppUtopiaParameterCondition {
+	if x != nil {
+		return x.When
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetMinDurationMinutes() int32 {
+	if x != nil {
+		return x.MinDurationMinutes
+	}
+	return 0
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetMaxDurationMinutes() int32 {
+	if x != nil {
+		return x.MaxDurationMinutes
+	}
+	return 0
+}
+
+func (x *LocalAppUtopiaActivitySpec) GetSceneHint() string {
+	if x != nil {
+		return x.SceneHint
+	}
+	return ""
+}
+
+type LocalAppUtopiaEventPresetSpec struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Id                     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SceneryKind            string                 `protobuf:"bytes,2,opt,name=scenery_kind,json=sceneryKind,proto3" json:"scenery_kind,omitempty"`
+	Label                  string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Description            string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	PlaceId                *string                `protobuf:"bytes,5,opt,name=place_id,json=placeId,proto3,oneof" json:"place_id,omitempty"`
+	DefaultDurationMinutes int32                  `protobuf:"varint,6,opt,name=default_duration_minutes,json=defaultDurationMinutes,proto3" json:"default_duration_minutes,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) Reset() {
+	*x = LocalAppUtopiaEventPresetSpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaEventPresetSpec) ProtoMessage() {}
+
+func (x *LocalAppUtopiaEventPresetSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaEventPresetSpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaEventPresetSpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetSceneryKind() string {
+	if x != nil {
+		return x.SceneryKind
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetPlaceId() string {
+	if x != nil && x.PlaceId != nil {
+		return *x.PlaceId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaEventPresetSpec) GetDefaultDurationMinutes() int32 {
+	if x != nil {
+		return x.DefaultDurationMinutes
+	}
+	return 0
+}
+
+type LocalAppUtopiaHabitatSpec struct {
+	state           protoimpl.MessageState             `protogen:"open.v1"`
+	SchemaVersion   string                             `protobuf:"bytes,1,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	HabitatId       string                             `protobuf:"bytes,2,opt,name=habitat_id,json=habitatId,proto3" json:"habitat_id,omitempty"`
+	Title           string                             `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	ThemeTag        string                             `protobuf:"bytes,4,opt,name=theme_tag,json=themeTag,proto3" json:"theme_tag,omitempty"`
+	BackdropSummary string                             `protobuf:"bytes,5,opt,name=backdrop_summary,json=backdropSummary,proto3" json:"backdrop_summary,omitempty"`
+	PersonalQuarter *LocalAppUtopiaPersonalQuarterSpec `protobuf:"bytes,6,opt,name=personal_quarter,json=personalQuarter,proto3" json:"personal_quarter,omitempty"`
+	Places          []*LocalAppUtopiaPlaceSpec         `protobuf:"bytes,7,rep,name=places,proto3" json:"places,omitempty"`
+	Activities      []*LocalAppUtopiaActivitySpec      `protobuf:"bytes,8,rep,name=activities,proto3" json:"activities,omitempty"`
+	Parameters      []*LocalAppUtopiaParameterSpec     `protobuf:"bytes,9,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	EventPresets    []*LocalAppUtopiaEventPresetSpec   `protobuf:"bytes,10,rep,name=event_presets,json=eventPresets,proto3" json:"event_presets,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaHabitatSpec) Reset() {
+	*x = LocalAppUtopiaHabitatSpec{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaHabitatSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaHabitatSpec) ProtoMessage() {}
+
+func (x *LocalAppUtopiaHabitatSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaHabitatSpec.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaHabitatSpec) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetSchemaVersion() string {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetHabitatId() string {
+	if x != nil {
+		return x.HabitatId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaFrame) GetPlace() string {
+func (x *LocalAppUtopiaHabitatSpec) GetThemeTag() string {
 	if x != nil {
-		return x.Place
+		return x.ThemeTag
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaFrame) GetStartsAt() *timestamppb.Timestamp {
+func (x *LocalAppUtopiaHabitatSpec) GetBackdropSummary() string {
+	if x != nil {
+		return x.BackdropSummary
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetPersonalQuarter() *LocalAppUtopiaPersonalQuarterSpec {
+	if x != nil {
+		return x.PersonalQuarter
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetPlaces() []*LocalAppUtopiaPlaceSpec {
+	if x != nil {
+		return x.Places
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetActivities() []*LocalAppUtopiaActivitySpec {
+	if x != nil {
+		return x.Activities
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetParameters() []*LocalAppUtopiaParameterSpec {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaHabitatSpec) GetEventPresets() []*LocalAppUtopiaEventPresetSpec {
+	if x != nil {
+		return x.EventPresets
+	}
+	return nil
+}
+
+type LocalAppUtopiaParameterEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaParameterEntry) Reset() {
+	*x = LocalAppUtopiaParameterEntry{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaParameterEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaParameterEntry) ProtoMessage() {}
+
+func (x *LocalAppUtopiaParameterEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaParameterEntry.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaParameterEntry) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LocalAppUtopiaParameterEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaParameterEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type LocalAppUtopiaActiveEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	Slot          string                 `protobuf:"bytes,2,opt,name=slot,proto3" json:"slot,omitempty"`
+	SceneryKind   string                 `protobuf:"bytes,3,opt,name=scenery_kind,json=sceneryKind,proto3" json:"scenery_kind,omitempty"`
+	Label         string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	PlaceId       *string                `protobuf:"bytes,6,opt,name=place_id,json=placeId,proto3,oneof" json:"place_id,omitempty"`
+	StartsAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaActiveEvent) Reset() {
+	*x = LocalAppUtopiaActiveEvent{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaActiveEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaActiveEvent) ProtoMessage() {}
+
+func (x *LocalAppUtopiaActiveEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaActiveEvent.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaActiveEvent) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetSlot() string {
+	if x != nil {
+		return x.Slot
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetSceneryKind() string {
+	if x != nil {
+		return x.SceneryKind
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetPlaceId() string {
+	if x != nil && x.PlaceId != nil {
+		return *x.PlaceId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaActiveEvent) GetStartsAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.StartsAt
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaFrame) GetEndsAt() *timestamppb.Timestamp {
+func (x *LocalAppUtopiaActiveEvent) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type LocalAppUtopiaFrame struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ActivityId          string                 `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	Title               string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	HabitatActivationId string                 `protobuf:"bytes,3,opt,name=habitat_activation_id,json=habitatActivationId,proto3" json:"habitat_activation_id,omitempty"`
+	HabitatId           string                 `protobuf:"bytes,4,opt,name=habitat_id,json=habitatId,proto3" json:"habitat_id,omitempty"`
+	HabitatTitle        string                 `protobuf:"bytes,5,opt,name=habitat_title,json=habitatTitle,proto3" json:"habitat_title,omitempty"`
+	PlaceId             string                 `protobuf:"bytes,6,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	PlaceLabel          string                 `protobuf:"bytes,7,opt,name=place_label,json=placeLabel,proto3" json:"place_label,omitempty"`
+	StartsAt            *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
+	EndsAt              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
+	Interaction         bool                   `protobuf:"varint,10,opt,name=interaction,proto3" json:"interaction,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaFrame) Reset() {
+	*x = LocalAppUtopiaFrame{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaFrame) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaFrame) ProtoMessage() {}
+
+func (x *LocalAppUtopiaFrame) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaFrame.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaFrame) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LocalAppUtopiaFrame) GetActivityId() string {
+	if x != nil {
+		return x.ActivityId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetHabitatActivationId() string {
+	if x != nil {
+		return x.HabitatActivationId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetHabitatId() string {
+	if x != nil {
+		return x.HabitatId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetHabitatTitle() string {
+	if x != nil {
+		return x.HabitatTitle
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetPlaceId() string {
+	if x != nil {
+		return x.PlaceId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetPlaceLabel() string {
+	if x != nil {
+		return x.PlaceLabel
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaFrame) GetStartsAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartsAt
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaFrame) GetEndsAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.EndsAt
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaFrame) GetInteraction() bool {
+func (x *LocalAppUtopiaFrame) GetInteraction() bool {
 	if x != nil {
 		return x.Interaction
 	}
 	return false
 }
 
-type LocalAppAgentUtopiaResident struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	AgentHandle   string                    `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	DisplayName   string                    `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Solitary      bool                      `protobuf:"varint,3,opt,name=solitary,proto3" json:"solitary,omitempty"`
-	Current       *LocalAppAgentUtopiaFrame `protobuf:"bytes,4,opt,name=current,proto3" json:"current,omitempty"`
-	Recent        *LocalAppAgentUtopiaFrame `protobuf:"bytes,5,opt,name=recent,proto3" json:"recent,omitempty"`
-	Next          *LocalAppAgentUtopiaFrame `protobuf:"bytes,6,opt,name=next,proto3" json:"next,omitempty"`
+type LocalAppUtopiaResident struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Solitary      bool                   `protobuf:"varint,3,opt,name=solitary,proto3" json:"solitary,omitempty"`
+	Current       *LocalAppUtopiaFrame   `protobuf:"bytes,4,opt,name=current,proto3" json:"current,omitempty"`
+	Recent        *LocalAppUtopiaFrame   `protobuf:"bytes,5,opt,name=recent,proto3" json:"recent,omitempty"`
+	Next          *LocalAppUtopiaFrame   `protobuf:"bytes,6,opt,name=next,proto3" json:"next,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaResident) Reset() {
-	*x = LocalAppAgentUtopiaResident{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[4]
+func (x *LocalAppUtopiaResident) Reset() {
+	*x = LocalAppUtopiaResident{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaResident) String() string {
+func (x *LocalAppUtopiaResident) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaResident) ProtoMessage() {}
+func (*LocalAppUtopiaResident) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaResident) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[4]
+func (x *LocalAppUtopiaResident) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -299,76 +995,76 @@ func (x *LocalAppAgentUtopiaResident) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaResident.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaResident) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{4}
+// Deprecated: Use LocalAppUtopiaResident.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaResident) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *LocalAppAgentUtopiaResident) GetAgentHandle() string {
+func (x *LocalAppUtopiaResident) GetAgentHandle() string {
 	if x != nil {
 		return x.AgentHandle
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaResident) GetDisplayName() string {
+func (x *LocalAppUtopiaResident) GetDisplayName() string {
 	if x != nil {
 		return x.DisplayName
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaResident) GetSolitary() bool {
+func (x *LocalAppUtopiaResident) GetSolitary() bool {
 	if x != nil {
 		return x.Solitary
 	}
 	return false
 }
 
-func (x *LocalAppAgentUtopiaResident) GetCurrent() *LocalAppAgentUtopiaFrame {
+func (x *LocalAppUtopiaResident) GetCurrent() *LocalAppUtopiaFrame {
 	if x != nil {
 		return x.Current
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaResident) GetRecent() *LocalAppAgentUtopiaFrame {
+func (x *LocalAppUtopiaResident) GetRecent() *LocalAppUtopiaFrame {
 	if x != nil {
 		return x.Recent
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaResident) GetNext() *LocalAppAgentUtopiaFrame {
+func (x *LocalAppUtopiaResident) GetNext() *LocalAppUtopiaFrame {
 	if x != nil {
 		return x.Next
 	}
 	return nil
 }
 
-type LocalAppAgentUtopiaOccupancy struct {
+type LocalAppUtopiaPlaceOccupancy struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Place         string                 `protobuf:"bytes,1,opt,name=place,proto3" json:"place,omitempty"`
+	PlaceId       string                 `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
 	AgentHandles  []string               `protobuf:"bytes,2,rep,name=agent_handles,json=agentHandles,proto3" json:"agent_handles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaOccupancy) Reset() {
-	*x = LocalAppAgentUtopiaOccupancy{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[5]
+func (x *LocalAppUtopiaPlaceOccupancy) Reset() {
+	*x = LocalAppUtopiaPlaceOccupancy{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaOccupancy) String() string {
+func (x *LocalAppUtopiaPlaceOccupancy) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaOccupancy) ProtoMessage() {}
+func (*LocalAppUtopiaPlaceOccupancy) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaOccupancy) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[5]
+func (x *LocalAppUtopiaPlaceOccupancy) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -379,55 +1075,60 @@ func (x *LocalAppAgentUtopiaOccupancy) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaOccupancy.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaOccupancy) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{5}
+// Deprecated: Use LocalAppUtopiaPlaceOccupancy.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaPlaceOccupancy) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *LocalAppAgentUtopiaOccupancy) GetPlace() string {
+func (x *LocalAppUtopiaPlaceOccupancy) GetPlaceId() string {
 	if x != nil {
-		return x.Place
+		return x.PlaceId
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaOccupancy) GetAgentHandles() []string {
+func (x *LocalAppUtopiaPlaceOccupancy) GetAgentHandles() []string {
 	if x != nil {
 		return x.AgentHandles
 	}
 	return nil
 }
 
-type LocalAppAgentUtopiaSharedActivity struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ActivityRef     string                 `protobuf:"bytes,1,opt,name=activity_ref,json=activityRef,proto3" json:"activity_ref,omitempty"`
-	InitiatorHandle string                 `protobuf:"bytes,2,opt,name=initiator_handle,json=initiatorHandle,proto3" json:"initiator_handle,omitempty"`
-	RecipientHandle string                 `protobuf:"bytes,3,opt,name=recipient_handle,json=recipientHandle,proto3" json:"recipient_handle,omitempty"`
-	Place           string                 `protobuf:"bytes,4,opt,name=place,proto3" json:"place,omitempty"`
-	Activity        string                 `protobuf:"bytes,5,opt,name=activity,proto3" json:"activity,omitempty"`
-	State           string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
-	StartsAt        *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
-	EndsAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
-	AcceptedAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=accepted_at,json=acceptedAt,proto3" json:"accepted_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+type LocalAppUtopiaSharedActivity struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ActivityRef         string                 `protobuf:"bytes,1,opt,name=activity_ref,json=activityRef,proto3" json:"activity_ref,omitempty"`
+	HabitatActivationId string                 `protobuf:"bytes,2,opt,name=habitat_activation_id,json=habitatActivationId,proto3" json:"habitat_activation_id,omitempty"`
+	HabitatId           string                 `protobuf:"bytes,3,opt,name=habitat_id,json=habitatId,proto3" json:"habitat_id,omitempty"`
+	HabitatTitle        string                 `protobuf:"bytes,4,opt,name=habitat_title,json=habitatTitle,proto3" json:"habitat_title,omitempty"`
+	InitiatorHandle     string                 `protobuf:"bytes,5,opt,name=initiator_handle,json=initiatorHandle,proto3" json:"initiator_handle,omitempty"`
+	RecipientHandle     string                 `protobuf:"bytes,6,opt,name=recipient_handle,json=recipientHandle,proto3" json:"recipient_handle,omitempty"`
+	PlaceId             string                 `protobuf:"bytes,7,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	PlaceLabel          string                 `protobuf:"bytes,8,opt,name=place_label,json=placeLabel,proto3" json:"place_label,omitempty"`
+	ActivityId          string                 `protobuf:"bytes,9,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	ActivityLabel       string                 `protobuf:"bytes,10,opt,name=activity_label,json=activityLabel,proto3" json:"activity_label,omitempty"`
+	State               string                 `protobuf:"bytes,11,opt,name=state,proto3" json:"state,omitempty"`
+	StartsAt            *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=starts_at,json=startsAt,proto3" json:"starts_at,omitempty"`
+	EndsAt              *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=ends_at,json=endsAt,proto3" json:"ends_at,omitempty"`
+	AcceptedAt          *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=accepted_at,json=acceptedAt,proto3" json:"accepted_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) Reset() {
-	*x = LocalAppAgentUtopiaSharedActivity{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[6]
+func (x *LocalAppUtopiaSharedActivity) Reset() {
+	*x = LocalAppUtopiaSharedActivity{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) String() string {
+func (x *LocalAppUtopiaSharedActivity) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaSharedActivity) ProtoMessage() {}
+func (*LocalAppUtopiaSharedActivity) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaSharedActivity) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[6]
+func (x *LocalAppUtopiaSharedActivity) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -438,89 +1139,208 @@ func (x *LocalAppAgentUtopiaSharedActivity) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaSharedActivity.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaSharedActivity) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{6}
+// Deprecated: Use LocalAppUtopiaSharedActivity.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaSharedActivity) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetActivityRef() string {
+func (x *LocalAppUtopiaSharedActivity) GetActivityRef() string {
 	if x != nil {
 		return x.ActivityRef
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetInitiatorHandle() string {
+func (x *LocalAppUtopiaSharedActivity) GetHabitatActivationId() string {
+	if x != nil {
+		return x.HabitatActivationId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaSharedActivity) GetHabitatId() string {
+	if x != nil {
+		return x.HabitatId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaSharedActivity) GetHabitatTitle() string {
+	if x != nil {
+		return x.HabitatTitle
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaSharedActivity) GetInitiatorHandle() string {
 	if x != nil {
 		return x.InitiatorHandle
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetRecipientHandle() string {
+func (x *LocalAppUtopiaSharedActivity) GetRecipientHandle() string {
 	if x != nil {
 		return x.RecipientHandle
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetPlace() string {
+func (x *LocalAppUtopiaSharedActivity) GetPlaceId() string {
 	if x != nil {
-		return x.Place
+		return x.PlaceId
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetActivity() string {
+func (x *LocalAppUtopiaSharedActivity) GetPlaceLabel() string {
 	if x != nil {
-		return x.Activity
+		return x.PlaceLabel
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetState() string {
+func (x *LocalAppUtopiaSharedActivity) GetActivityId() string {
+	if x != nil {
+		return x.ActivityId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaSharedActivity) GetActivityLabel() string {
+	if x != nil {
+		return x.ActivityLabel
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaSharedActivity) GetState() string {
 	if x != nil {
 		return x.State
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetStartsAt() *timestamppb.Timestamp {
+func (x *LocalAppUtopiaSharedActivity) GetStartsAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.StartsAt
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetEndsAt() *timestamppb.Timestamp {
+func (x *LocalAppUtopiaSharedActivity) GetEndsAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.EndsAt
 	}
 	return nil
 }
 
-func (x *LocalAppAgentUtopiaSharedActivity) GetAcceptedAt() *timestamppb.Timestamp {
+func (x *LocalAppUtopiaSharedActivity) GetAcceptedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.AcceptedAt
 	}
 	return nil
 }
 
-type GetLocalAppAgentUtopiaSnapshotResponse struct {
-	state            protoimpl.MessageState               `protogen:"open.v1"`
-	Settings         *LocalAppAgentUtopiaSettings         `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
-	ObservedAt       *timestamppb.Timestamp               `protobuf:"bytes,2,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
-	Places           []*LocalAppAgentUtopiaPlace          `protobuf:"bytes,3,rep,name=places,proto3" json:"places,omitempty"`
-	Residents        []*LocalAppAgentUtopiaResident       `protobuf:"bytes,4,rep,name=residents,proto3" json:"residents,omitempty"`
-	Occupancy        []*LocalAppAgentUtopiaOccupancy      `protobuf:"bytes,5,rep,name=occupancy,proto3" json:"occupancy,omitempty"`
-	SharedActivities []*LocalAppAgentUtopiaSharedActivity `protobuf:"bytes,6,rep,name=shared_activities,json=sharedActivities,proto3" json:"shared_activities,omitempty"`
+type LocalAppUtopiaRelocationSummary struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	FromHabitatId    string                 `protobuf:"bytes,1,opt,name=from_habitat_id,json=fromHabitatId,proto3" json:"from_habitat_id,omitempty"`
+	FromHabitatTitle string                 `protobuf:"bytes,2,opt,name=from_habitat_title,json=fromHabitatTitle,proto3" json:"from_habitat_title,omitempty"`
+	ToHabitatId      string                 `protobuf:"bytes,3,opt,name=to_habitat_id,json=toHabitatId,proto3" json:"to_habitat_id,omitempty"`
+	ToHabitatTitle   string                 `protobuf:"bytes,4,opt,name=to_habitat_title,json=toHabitatTitle,proto3" json:"to_habitat_title,omitempty"`
+	RelocatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=relocated_at,json=relocatedAt,proto3" json:"relocated_at,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
+func (x *LocalAppUtopiaRelocationSummary) Reset() {
+	*x = LocalAppUtopiaRelocationSummary{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaRelocationSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaRelocationSummary) ProtoMessage() {}
+
+func (x *LocalAppUtopiaRelocationSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaRelocationSummary.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaRelocationSummary) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *LocalAppUtopiaRelocationSummary) GetFromHabitatId() string {
+	if x != nil {
+		return x.FromHabitatId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaRelocationSummary) GetFromHabitatTitle() string {
+	if x != nil {
+		return x.FromHabitatTitle
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaRelocationSummary) GetToHabitatId() string {
+	if x != nil {
+		return x.ToHabitatId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaRelocationSummary) GetToHabitatTitle() string {
+	if x != nil {
+		return x.ToHabitatTitle
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaRelocationSummary) GetRelocatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RelocatedAt
+	}
+	return nil
+}
+
+type GetLocalAppAgentUtopiaSnapshotResponse struct {
+	state               protoimpl.MessageState           `protogen:"open.v1"`
+	Revision            uint64                           `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
+	ObservedAt          *timestamppb.Timestamp           `protobuf:"bytes,2,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	HabitatActivationId string                           `protobuf:"bytes,3,opt,name=habitat_activation_id,json=habitatActivationId,proto3" json:"habitat_activation_id,omitempty"`
+	ContentDigest       string                           `protobuf:"bytes,4,opt,name=content_digest,json=contentDigest,proto3" json:"content_digest,omitempty"`
+	Timezone            string                           `protobuf:"bytes,5,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	PublicParticipation bool                             `protobuf:"varint,6,opt,name=public_participation,json=publicParticipation,proto3" json:"public_participation,omitempty"`
+	Habitat             *LocalAppUtopiaHabitatSpec       `protobuf:"bytes,7,opt,name=habitat,proto3" json:"habitat,omitempty"`
+	ParameterValues     []*LocalAppUtopiaParameterEntry  `protobuf:"bytes,8,rep,name=parameter_values,json=parameterValues,proto3" json:"parameter_values,omitempty"`
+	OpenPlaceIds        []string                         `protobuf:"bytes,9,rep,name=open_place_ids,json=openPlaceIds,proto3" json:"open_place_ids,omitempty"`
+	ActiveEvents        []*LocalAppUtopiaActiveEvent     `protobuf:"bytes,10,rep,name=active_events,json=activeEvents,proto3" json:"active_events,omitempty"`
+	LastRelocation      *LocalAppUtopiaRelocationSummary `protobuf:"bytes,11,opt,name=last_relocation,json=lastRelocation,proto3" json:"last_relocation,omitempty"`
+	Residents           []*LocalAppUtopiaResident        `protobuf:"bytes,12,rep,name=residents,proto3" json:"residents,omitempty"`
+	Occupancy           []*LocalAppUtopiaPlaceOccupancy  `protobuf:"bytes,13,rep,name=occupancy,proto3" json:"occupancy,omitempty"`
+	SharedActivities    []*LocalAppUtopiaSharedActivity  `protobuf:"bytes,14,rep,name=shared_activities,json=sharedActivities,proto3" json:"shared_activities,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
 func (x *GetLocalAppAgentUtopiaSnapshotResponse) Reset() {
 	*x = GetLocalAppAgentUtopiaSnapshotResponse{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[7]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +1352,7 @@ func (x *GetLocalAppAgentUtopiaSnapshotResponse) String() string {
 func (*GetLocalAppAgentUtopiaSnapshotResponse) ProtoMessage() {}
 
 func (x *GetLocalAppAgentUtopiaSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[7]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,14 +1365,14 @@ func (x *GetLocalAppAgentUtopiaSnapshotResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use GetLocalAppAgentUtopiaSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalAppAgentUtopiaSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetSettings() *LocalAppAgentUtopiaSettings {
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetRevision() uint64 {
 	if x != nil {
-		return x.Settings
+		return x.Revision
 	}
-	return nil
+	return 0
 }
 
 func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetObservedAt() *timestamppb.Timestamp {
@@ -562,57 +1382,114 @@ func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetObservedAt() *timestamppb.Ti
 	return nil
 }
 
-func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetPlaces() []*LocalAppAgentUtopiaPlace {
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetHabitatActivationId() string {
 	if x != nil {
-		return x.Places
+		return x.HabitatActivationId
+	}
+	return ""
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetContentDigest() string {
+	if x != nil {
+		return x.ContentDigest
+	}
+	return ""
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetPublicParticipation() bool {
+	if x != nil {
+		return x.PublicParticipation
+	}
+	return false
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetHabitat() *LocalAppUtopiaHabitatSpec {
+	if x != nil {
+		return x.Habitat
 	}
 	return nil
 }
 
-func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetResidents() []*LocalAppAgentUtopiaResident {
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetParameterValues() []*LocalAppUtopiaParameterEntry {
+	if x != nil {
+		return x.ParameterValues
+	}
+	return nil
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetOpenPlaceIds() []string {
+	if x != nil {
+		return x.OpenPlaceIds
+	}
+	return nil
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetActiveEvents() []*LocalAppUtopiaActiveEvent {
+	if x != nil {
+		return x.ActiveEvents
+	}
+	return nil
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetLastRelocation() *LocalAppUtopiaRelocationSummary {
+	if x != nil {
+		return x.LastRelocation
+	}
+	return nil
+}
+
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetResidents() []*LocalAppUtopiaResident {
 	if x != nil {
 		return x.Residents
 	}
 	return nil
 }
 
-func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetOccupancy() []*LocalAppAgentUtopiaOccupancy {
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetOccupancy() []*LocalAppUtopiaPlaceOccupancy {
 	if x != nil {
 		return x.Occupancy
 	}
 	return nil
 }
 
-func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetSharedActivities() []*LocalAppAgentUtopiaSharedActivity {
+func (x *GetLocalAppAgentUtopiaSnapshotResponse) GetSharedActivities() []*LocalAppUtopiaSharedActivity {
 	if x != nil {
 		return x.SharedActivities
 	}
 	return nil
 }
 
-type LocalAppAgentUtopiaSolitude struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
-	Solitary      bool                   `protobuf:"varint,2,opt,name=solitary,proto3" json:"solitary,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type LocalAppUtopiaActivateHabitatChange struct {
+	state             protoimpl.MessageState          `protogen:"open.v1"`
+	Habitat           *LocalAppUtopiaHabitatSpec      `protobuf:"bytes,1,opt,name=habitat,proto3" json:"habitat,omitempty"`
+	InitialParameters []*LocalAppUtopiaParameterEntry `protobuf:"bytes,2,rep,name=initial_parameters,json=initialParameters,proto3" json:"initial_parameters,omitempty"`
+	Timezone          *string                         `protobuf:"bytes,3,opt,name=timezone,proto3,oneof" json:"timezone,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *LocalAppAgentUtopiaSolitude) Reset() {
-	*x = LocalAppAgentUtopiaSolitude{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[8]
+func (x *LocalAppUtopiaActivateHabitatChange) Reset() {
+	*x = LocalAppUtopiaActivateHabitatChange{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalAppAgentUtopiaSolitude) String() string {
+func (x *LocalAppUtopiaActivateHabitatChange) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalAppAgentUtopiaSolitude) ProtoMessage() {}
+func (*LocalAppUtopiaActivateHabitatChange) ProtoMessage() {}
 
-func (x *LocalAppAgentUtopiaSolitude) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[8]
+func (x *LocalAppUtopiaActivateHabitatChange) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,19 +1500,400 @@ func (x *LocalAppAgentUtopiaSolitude) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalAppAgentUtopiaSolitude.ProtoReflect.Descriptor instead.
-func (*LocalAppAgentUtopiaSolitude) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{8}
+// Deprecated: Use LocalAppUtopiaActivateHabitatChange.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaActivateHabitatChange) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *LocalAppAgentUtopiaSolitude) GetAgentHandle() string {
+func (x *LocalAppUtopiaActivateHabitatChange) GetHabitat() *LocalAppUtopiaHabitatSpec {
+	if x != nil {
+		return x.Habitat
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaActivateHabitatChange) GetInitialParameters() []*LocalAppUtopiaParameterEntry {
+	if x != nil {
+		return x.InitialParameters
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaActivateHabitatChange) GetTimezone() string {
+	if x != nil && x.Timezone != nil {
+		return *x.Timezone
+	}
+	return ""
+}
+
+type LocalAppUtopiaRestoreDefaultChange struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timezone      *string                `protobuf:"bytes,1,opt,name=timezone,proto3,oneof" json:"timezone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaRestoreDefaultChange) Reset() {
+	*x = LocalAppUtopiaRestoreDefaultChange{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaRestoreDefaultChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaRestoreDefaultChange) ProtoMessage() {}
+
+func (x *LocalAppUtopiaRestoreDefaultChange) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaRestoreDefaultChange.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaRestoreDefaultChange) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *LocalAppUtopiaRestoreDefaultChange) GetTimezone() string {
+	if x != nil && x.Timezone != nil {
+		return *x.Timezone
+	}
+	return ""
+}
+
+type LocalAppUtopiaPresetEventTrigger struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	PresetId        string                 `protobuf:"bytes,1,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"`
+	DurationMinutes *int32                 `protobuf:"varint,2,opt,name=duration_minutes,json=durationMinutes,proto3,oneof" json:"duration_minutes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaPresetEventTrigger) Reset() {
+	*x = LocalAppUtopiaPresetEventTrigger{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaPresetEventTrigger) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaPresetEventTrigger) ProtoMessage() {}
+
+func (x *LocalAppUtopiaPresetEventTrigger) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaPresetEventTrigger.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaPresetEventTrigger) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *LocalAppUtopiaPresetEventTrigger) GetPresetId() string {
+	if x != nil {
+		return x.PresetId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaPresetEventTrigger) GetDurationMinutes() int32 {
+	if x != nil && x.DurationMinutes != nil {
+		return *x.DurationMinutes
+	}
+	return 0
+}
+
+type LocalAppUtopiaCustomEventTrigger struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SceneryKind     string                 `protobuf:"bytes,1,opt,name=scenery_kind,json=sceneryKind,proto3" json:"scenery_kind,omitempty"`
+	Label           string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	PlaceId         *string                `protobuf:"bytes,4,opt,name=place_id,json=placeId,proto3,oneof" json:"place_id,omitempty"`
+	DurationMinutes int32                  `protobuf:"varint,5,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) Reset() {
+	*x = LocalAppUtopiaCustomEventTrigger{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaCustomEventTrigger) ProtoMessage() {}
+
+func (x *LocalAppUtopiaCustomEventTrigger) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaCustomEventTrigger.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaCustomEventTrigger) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) GetSceneryKind() string {
+	if x != nil {
+		return x.SceneryKind
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) GetPlaceId() string {
+	if x != nil && x.PlaceId != nil {
+		return *x.PlaceId
+	}
+	return ""
+}
+
+func (x *LocalAppUtopiaCustomEventTrigger) GetDurationMinutes() int32 {
+	if x != nil {
+		return x.DurationMinutes
+	}
+	return 0
+}
+
+type LocalAppUtopiaEventMutation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Action:
+	//
+	//	*LocalAppUtopiaEventMutation_TriggerPreset
+	//	*LocalAppUtopiaEventMutation_PutCustom
+	//	*LocalAppUtopiaEventMutation_ClearEventId
+	Action        isLocalAppUtopiaEventMutation_Action `protobuf_oneof:"action"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaEventMutation) Reset() {
+	*x = LocalAppUtopiaEventMutation{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaEventMutation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaEventMutation) ProtoMessage() {}
+
+func (x *LocalAppUtopiaEventMutation) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaEventMutation.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaEventMutation) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *LocalAppUtopiaEventMutation) GetAction() isLocalAppUtopiaEventMutation_Action {
+	if x != nil {
+		return x.Action
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaEventMutation) GetTriggerPreset() *LocalAppUtopiaPresetEventTrigger {
+	if x != nil {
+		if x, ok := x.Action.(*LocalAppUtopiaEventMutation_TriggerPreset); ok {
+			return x.TriggerPreset
+		}
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaEventMutation) GetPutCustom() *LocalAppUtopiaCustomEventTrigger {
+	if x != nil {
+		if x, ok := x.Action.(*LocalAppUtopiaEventMutation_PutCustom); ok {
+			return x.PutCustom
+		}
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaEventMutation) GetClearEventId() string {
+	if x != nil {
+		if x, ok := x.Action.(*LocalAppUtopiaEventMutation_ClearEventId); ok {
+			return x.ClearEventId
+		}
+	}
+	return ""
+}
+
+type isLocalAppUtopiaEventMutation_Action interface {
+	isLocalAppUtopiaEventMutation_Action()
+}
+
+type LocalAppUtopiaEventMutation_TriggerPreset struct {
+	TriggerPreset *LocalAppUtopiaPresetEventTrigger `protobuf:"bytes,1,opt,name=trigger_preset,json=triggerPreset,proto3,oneof"`
+}
+
+type LocalAppUtopiaEventMutation_PutCustom struct {
+	PutCustom *LocalAppUtopiaCustomEventTrigger `protobuf:"bytes,2,opt,name=put_custom,json=putCustom,proto3,oneof"`
+}
+
+type LocalAppUtopiaEventMutation_ClearEventId struct {
+	ClearEventId string `protobuf:"bytes,3,opt,name=clear_event_id,json=clearEventId,proto3,oneof"`
+}
+
+func (*LocalAppUtopiaEventMutation_TriggerPreset) isLocalAppUtopiaEventMutation_Action() {}
+
+func (*LocalAppUtopiaEventMutation_PutCustom) isLocalAppUtopiaEventMutation_Action() {}
+
+func (*LocalAppUtopiaEventMutation_ClearEventId) isLocalAppUtopiaEventMutation_Action() {}
+
+type LocalAppUtopiaApplyTuningChange struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Parameters    []*LocalAppUtopiaParameterEntry `protobuf:"bytes,1,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	EventMutation *LocalAppUtopiaEventMutation    `protobuf:"bytes,2,opt,name=event_mutation,json=eventMutation,proto3" json:"event_mutation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaApplyTuningChange) Reset() {
+	*x = LocalAppUtopiaApplyTuningChange{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaApplyTuningChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaApplyTuningChange) ProtoMessage() {}
+
+func (x *LocalAppUtopiaApplyTuningChange) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaApplyTuningChange.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaApplyTuningChange) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *LocalAppUtopiaApplyTuningChange) GetParameters() []*LocalAppUtopiaParameterEntry {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *LocalAppUtopiaApplyTuningChange) GetEventMutation() *LocalAppUtopiaEventMutation {
+	if x != nil {
+		return x.EventMutation
+	}
+	return nil
+}
+
+type LocalAppUtopiaSolitudeChange struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentHandle   string                 `protobuf:"bytes,1,opt,name=agent_handle,json=agentHandle,proto3" json:"agent_handle,omitempty"`
+	Solitary      bool                   `protobuf:"varint,2,opt,name=solitary,proto3" json:"solitary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalAppUtopiaSolitudeChange) Reset() {
+	*x = LocalAppUtopiaSolitudeChange{}
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppUtopiaSolitudeChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppUtopiaSolitudeChange) ProtoMessage() {}
+
+func (x *LocalAppUtopiaSolitudeChange) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppUtopiaSolitudeChange.ProtoReflect.Descriptor instead.
+func (*LocalAppUtopiaSolitudeChange) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *LocalAppUtopiaSolitudeChange) GetAgentHandle() string {
 	if x != nil {
 		return x.AgentHandle
 	}
 	return ""
 }
 
-func (x *LocalAppAgentUtopiaSolitude) GetSolitary() bool {
+func (x *LocalAppUtopiaSolitudeChange) GetSolitary() bool {
 	if x != nil {
 		return x.Solitary
 	}
@@ -645,21 +1903,22 @@ func (x *LocalAppAgentUtopiaSolitude) GetSolitary() bool {
 type UpdateLocalAppAgentUtopiaSettingsRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	ExpectedRevision uint64                 `protobuf:"varint,1,opt,name=expected_revision,json=expectedRevision,proto3" json:"expected_revision,omitempty"`
-	// Types that are valid to be assigned to Intent:
+	// Types that are valid to be assigned to Change:
 	//
-	//	*UpdateLocalAppAgentUtopiaSettingsRequest_SelectPreset
+	//	*UpdateLocalAppAgentUtopiaSettingsRequest_ActivateHabitat
 	//	*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault
-	//	*UpdateLocalAppAgentUtopiaSettingsRequest_OutdoorOpen
+	//	*UpdateLocalAppAgentUtopiaSettingsRequest_ApplyTuning
 	//	*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation
 	//	*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude
-	Intent        isUpdateLocalAppAgentUtopiaSettingsRequest_Intent `protobuf_oneof:"intent"`
+	//	*UpdateLocalAppAgentUtopiaSettingsRequest_Timezone
+	Change        isUpdateLocalAppAgentUtopiaSettingsRequest_Change `protobuf_oneof:"change"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateLocalAppAgentUtopiaSettingsRequest) Reset() {
 	*x = UpdateLocalAppAgentUtopiaSettingsRequest{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[9]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -671,7 +1930,7 @@ func (x *UpdateLocalAppAgentUtopiaSettingsRequest) String() string {
 func (*UpdateLocalAppAgentUtopiaSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateLocalAppAgentUtopiaSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[9]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -684,7 +1943,7 @@ func (x *UpdateLocalAppAgentUtopiaSettingsRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use UpdateLocalAppAgentUtopiaSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLocalAppAgentUtopiaSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetExpectedRevision() uint64 {
@@ -694,72 +1953,81 @@ func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetExpectedRevision() uint64 
 	return 0
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetIntent() isUpdateLocalAppAgentUtopiaSettingsRequest_Intent {
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetChange() isUpdateLocalAppAgentUtopiaSettingsRequest_Change {
 	if x != nil {
-		return x.Intent
+		return x.Change
 	}
 	return nil
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetSelectPreset() string {
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetActivateHabitat() *LocalAppUtopiaActivateHabitatChange {
 	if x != nil {
-		if x, ok := x.Intent.(*UpdateLocalAppAgentUtopiaSettingsRequest_SelectPreset); ok {
-			return x.SelectPreset
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_ActivateHabitat); ok {
+			return x.ActivateHabitat
 		}
 	}
-	return ""
+	return nil
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetRestoreDefault() bool {
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetRestoreDefault() *LocalAppUtopiaRestoreDefaultChange {
 	if x != nil {
-		if x, ok := x.Intent.(*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault); ok {
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault); ok {
 			return x.RestoreDefault
 		}
 	}
-	return false
+	return nil
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetOutdoorOpen() bool {
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetApplyTuning() *LocalAppUtopiaApplyTuningChange {
 	if x != nil {
-		if x, ok := x.Intent.(*UpdateLocalAppAgentUtopiaSettingsRequest_OutdoorOpen); ok {
-			return x.OutdoorOpen
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_ApplyTuning); ok {
+			return x.ApplyTuning
 		}
 	}
-	return false
+	return nil
 }
 
 func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetPublicParticipation() bool {
 	if x != nil {
-		if x, ok := x.Intent.(*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation); ok {
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation); ok {
 			return x.PublicParticipation
 		}
 	}
 	return false
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetSolitude() *LocalAppAgentUtopiaSolitude {
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetSolitude() *LocalAppUtopiaSolitudeChange {
 	if x != nil {
-		if x, ok := x.Intent.(*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude); ok {
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude); ok {
 			return x.Solitude
 		}
 	}
 	return nil
 }
 
-type isUpdateLocalAppAgentUtopiaSettingsRequest_Intent interface {
-	isUpdateLocalAppAgentUtopiaSettingsRequest_Intent()
+func (x *UpdateLocalAppAgentUtopiaSettingsRequest) GetTimezone() string {
+	if x != nil {
+		if x, ok := x.Change.(*UpdateLocalAppAgentUtopiaSettingsRequest_Timezone); ok {
+			return x.Timezone
+		}
+	}
+	return ""
 }
 
-type UpdateLocalAppAgentUtopiaSettingsRequest_SelectPreset struct {
-	SelectPreset string `protobuf:"bytes,2,opt,name=select_preset,json=selectPreset,proto3,oneof"`
+type isUpdateLocalAppAgentUtopiaSettingsRequest_Change interface {
+	isUpdateLocalAppAgentUtopiaSettingsRequest_Change()
+}
+
+type UpdateLocalAppAgentUtopiaSettingsRequest_ActivateHabitat struct {
+	ActivateHabitat *LocalAppUtopiaActivateHabitatChange `protobuf:"bytes,2,opt,name=activate_habitat,json=activateHabitat,proto3,oneof"`
 }
 
 type UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault struct {
-	RestoreDefault bool `protobuf:"varint,3,opt,name=restore_default,json=restoreDefault,proto3,oneof"`
+	RestoreDefault *LocalAppUtopiaRestoreDefaultChange `protobuf:"bytes,3,opt,name=restore_default,json=restoreDefault,proto3,oneof"`
 }
 
-type UpdateLocalAppAgentUtopiaSettingsRequest_OutdoorOpen struct {
-	OutdoorOpen bool `protobuf:"varint,4,opt,name=outdoor_open,json=outdoorOpen,proto3,oneof"`
+type UpdateLocalAppAgentUtopiaSettingsRequest_ApplyTuning struct {
+	ApplyTuning *LocalAppUtopiaApplyTuningChange `protobuf:"bytes,4,opt,name=apply_tuning,json=applyTuning,proto3,oneof"`
 }
 
 type UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation struct {
@@ -767,34 +2035,50 @@ type UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation struct {
 }
 
 type UpdateLocalAppAgentUtopiaSettingsRequest_Solitude struct {
-	Solitude *LocalAppAgentUtopiaSolitude `protobuf:"bytes,6,opt,name=solitude,proto3,oneof"`
+	Solitude *LocalAppUtopiaSolitudeChange `protobuf:"bytes,6,opt,name=solitude,proto3,oneof"`
 }
 
-func (*UpdateLocalAppAgentUtopiaSettingsRequest_SelectPreset) isUpdateLocalAppAgentUtopiaSettingsRequest_Intent() {
+type UpdateLocalAppAgentUtopiaSettingsRequest_Timezone struct {
+	Timezone string `protobuf:"bytes,7,opt,name=timezone,proto3,oneof"`
 }
 
-func (*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault) isUpdateLocalAppAgentUtopiaSettingsRequest_Intent() {
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_ActivateHabitat) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
 }
 
-func (*UpdateLocalAppAgentUtopiaSettingsRequest_OutdoorOpen) isUpdateLocalAppAgentUtopiaSettingsRequest_Intent() {
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
 }
 
-func (*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation) isUpdateLocalAppAgentUtopiaSettingsRequest_Intent() {
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_ApplyTuning) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
 }
 
-func (*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude) isUpdateLocalAppAgentUtopiaSettingsRequest_Intent() {
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
+}
+
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
+}
+
+func (*UpdateLocalAppAgentUtopiaSettingsRequest_Timezone) isUpdateLocalAppAgentUtopiaSettingsRequest_Change() {
 }
 
 type UpdateLocalAppAgentUtopiaSettingsResponse struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	Settings      *LocalAppAgentUtopiaSettings `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState          `protogen:"open.v1"`
+	Revision            uint64                          `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
+	HabitatActivationId string                          `protobuf:"bytes,2,opt,name=habitat_activation_id,json=habitatActivationId,proto3" json:"habitat_activation_id,omitempty"`
+	HabitatId           string                          `protobuf:"bytes,3,opt,name=habitat_id,json=habitatId,proto3" json:"habitat_id,omitempty"`
+	HabitatTitle        string                          `protobuf:"bytes,4,opt,name=habitat_title,json=habitatTitle,proto3" json:"habitat_title,omitempty"`
+	ContentDigest       string                          `protobuf:"bytes,5,opt,name=content_digest,json=contentDigest,proto3" json:"content_digest,omitempty"`
+	Timezone            string                          `protobuf:"bytes,6,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	PublicParticipation bool                            `protobuf:"varint,7,opt,name=public_participation,json=publicParticipation,proto3" json:"public_participation,omitempty"`
+	ParameterValues     []*LocalAppUtopiaParameterEntry `protobuf:"bytes,8,rep,name=parameter_values,json=parameterValues,proto3" json:"parameter_values,omitempty"`
+	OpenPlaceIds        []string                        `protobuf:"bytes,9,rep,name=open_place_ids,json=openPlaceIds,proto3" json:"open_place_ids,omitempty"`
+	ActiveEvents        []*LocalAppUtopiaActiveEvent    `protobuf:"bytes,10,rep,name=active_events,json=activeEvents,proto3" json:"active_events,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpdateLocalAppAgentUtopiaSettingsResponse) Reset() {
 	*x = UpdateLocalAppAgentUtopiaSettingsResponse{}
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[10]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +2090,7 @@ func (x *UpdateLocalAppAgentUtopiaSettingsResponse) String() string {
 func (*UpdateLocalAppAgentUtopiaSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateLocalAppAgentUtopiaSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[10]
+	mi := &file_runtime_v1_agent_utopia_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -819,12 +2103,75 @@ func (x *UpdateLocalAppAgentUtopiaSettingsResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use UpdateLocalAppAgentUtopiaSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateLocalAppAgentUtopiaSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_agent_utopia_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetSettings() *LocalAppAgentUtopiaSettings {
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetRevision() uint64 {
 	if x != nil {
-		return x.Settings
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetHabitatActivationId() string {
+	if x != nil {
+		return x.HabitatActivationId
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetHabitatId() string {
+	if x != nil {
+		return x.HabitatId
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetHabitatTitle() string {
+	if x != nil {
+		return x.HabitatTitle
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetContentDigest() string {
+	if x != nil {
+		return x.ContentDigest
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetPublicParticipation() bool {
+	if x != nil {
+		return x.PublicParticipation
+	}
+	return false
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetParameterValues() []*LocalAppUtopiaParameterEntry {
+	if x != nil {
+		return x.ParameterValues
+	}
+	return nil
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetOpenPlaceIds() []string {
+	if x != nil {
+		return x.OpenPlaceIds
+	}
+	return nil
+}
+
+func (x *UpdateLocalAppAgentUtopiaSettingsResponse) GetActiveEvents() []*LocalAppUtopiaActiveEvent {
+	if x != nil {
+		return x.ActiveEvents
 	}
 	return nil
 }
@@ -834,66 +2181,204 @@ var File_runtime_v1_agent_utopia_proto protoreflect.FileDescriptor
 const file_runtime_v1_agent_utopia_proto_rawDesc = "" +
 	"\n" +
 	"\x1druntime/v1/agent_utopia.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"'\n" +
-	"%GetLocalAppAgentUtopiaSnapshotRequest\"\xce\x01\n" +
-	"\x1bLocalAppAgentUtopiaSettings\x12\x1a\n" +
-	"\brevision\x18\x01 \x01(\x04R\brevision\x12\x16\n" +
-	"\x06preset\x18\x02 \x01(\tR\x06preset\x12%\n" +
-	"\x0epreset_version\x18\x03 \x01(\x04R\rpresetVersion\x12!\n" +
-	"\foutdoor_open\x18\x04 \x01(\bR\voutdoorOpen\x121\n" +
-	"\x14public_participation\x18\x05 \x01(\bR\x13publicParticipation\"J\n" +
-	"\x18LocalAppAgentUtopiaPlace\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1e\n" +
+	"%GetLocalAppAgentUtopiaSnapshotRequest\"n\n" +
+	" LocalAppUtopiaParameterCondition\x12#\n" +
+	"\rparameter_key\x18\x01 \x01(\tR\fparameterKey\x12%\n" +
+	"\x0eallowed_values\x18\x02 \x03(\tR\rallowedValues\"e\n" +
+	"\x1dLocalAppUtopiaParameterOption\x12\x14\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
+	"\asummary\x18\x03 \x01(\tR\asummary\"\xb4\x01\n" +
+	"\x1bLocalAppUtopiaParameterSpec\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12#\n" +
+	"\rdefault_value\x18\x03 \x01(\tR\fdefaultValue\x12H\n" +
+	"\aoptions\x18\x04 \x03(\v2..nimi.runtime.v1.LocalAppUtopiaParameterOptionR\aoptions\"n\n" +
+	"!LocalAppUtopiaPersonalQuarterSpec\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\x0esensory_traits\x18\x03 \x01(\tR\rsensoryTraits\"\xea\x01\n" +
+	"\x17LocalAppUtopiaPlaceSpec\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
+	"\tarchetype\x18\x03 \x01(\tR\tarchetype\x12\x16\n" +
+	"\x06indoor\x18\x04 \x01(\bR\x06indoor\x12%\n" +
+	"\x0esensory_traits\x18\x05 \x01(\tR\rsensoryTraits\x12N\n" +
+	"\topen_when\x18\x06 \x03(\v21.nimi.runtime.v1.LocalAppUtopiaParameterConditionR\bopenWhen\"\xf3\x02\n" +
+	"\x1aLocalAppUtopiaActivitySpec\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
+	"\tplace_ids\x18\x03 \x03(\tR\bplaceIds\x12\x1f\n" +
+	"\vsocial_mode\x18\x04 \x01(\tR\n" +
+	"socialMode\x12)\n" +
+	"\x10allowed_dayparts\x18\x05 \x03(\tR\x0fallowedDayparts\x12E\n" +
+	"\x04when\x18\x06 \x03(\v21.nimi.runtime.v1.LocalAppUtopiaParameterConditionR\x04when\x120\n" +
+	"\x14min_duration_minutes\x18\a \x01(\x05R\x12minDurationMinutes\x120\n" +
+	"\x14max_duration_minutes\x18\b \x01(\x05R\x12maxDurationMinutes\x12\x1d\n" +
 	"\n" +
-	"activities\x18\x02 \x03(\tR\n" +
-	"activities\"\xd6\x01\n" +
-	"\x18LocalAppAgentUtopiaFrame\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\x14\n" +
-	"\x05place\x18\x02 \x01(\tR\x05place\x127\n" +
-	"\tstarts_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x123\n" +
-	"\aends_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\x12 \n" +
-	"\vinteraction\x18\x05 \x01(\bR\vinteraction\"\xc6\x02\n" +
-	"\x1bLocalAppAgentUtopiaResident\x12!\n" +
+	"scene_hint\x18\t \x01(\tR\tsceneHint\"\xf1\x01\n" +
+	"\x1dLocalAppUtopiaEventPresetSpec\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fscenery_kind\x18\x02 \x01(\tR\vsceneryKind\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1e\n" +
+	"\bplace_id\x18\x05 \x01(\tH\x00R\aplaceId\x88\x01\x01\x128\n" +
+	"\x18default_duration_minutes\x18\x06 \x01(\x05R\x16defaultDurationMinutesB\v\n" +
+	"\t_place_id\"\xd0\x04\n" +
+	"\x19LocalAppUtopiaHabitatSpec\x12%\n" +
+	"\x0eschema_version\x18\x01 \x01(\tR\rschemaVersion\x12\x1d\n" +
+	"\n" +
+	"habitat_id\x18\x02 \x01(\tR\thabitatId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x1b\n" +
+	"\ttheme_tag\x18\x04 \x01(\tR\bthemeTag\x12)\n" +
+	"\x10backdrop_summary\x18\x05 \x01(\tR\x0fbackdropSummary\x12]\n" +
+	"\x10personal_quarter\x18\x06 \x01(\v22.nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpecR\x0fpersonalQuarter\x12@\n" +
+	"\x06places\x18\a \x03(\v2(.nimi.runtime.v1.LocalAppUtopiaPlaceSpecR\x06places\x12K\n" +
+	"\n" +
+	"activities\x18\b \x03(\v2+.nimi.runtime.v1.LocalAppUtopiaActivitySpecR\n" +
+	"activities\x12L\n" +
+	"\n" +
+	"parameters\x18\t \x03(\v2,.nimi.runtime.v1.LocalAppUtopiaParameterSpecR\n" +
+	"parameters\x12S\n" +
+	"\revent_presets\x18\n" +
+	" \x03(\v2..nimi.runtime.v1.LocalAppUtopiaEventPresetSpecR\feventPresets\"F\n" +
+	"\x1cLocalAppUtopiaParameterEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xc6\x02\n" +
+	"\x19LocalAppUtopiaActiveEvent\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x12\n" +
+	"\x04slot\x18\x02 \x01(\tR\x04slot\x12!\n" +
+	"\fscenery_kind\x18\x03 \x01(\tR\vsceneryKind\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x1e\n" +
+	"\bplace_id\x18\x06 \x01(\tH\x00R\aplaceId\x88\x01\x01\x127\n" +
+	"\tstarts_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAtB\v\n" +
+	"\t_place_id\"\x90\x03\n" +
+	"\x13LocalAppUtopiaFrame\x12\x1f\n" +
+	"\vactivity_id\x18\x01 \x01(\tR\n" +
+	"activityId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x122\n" +
+	"\x15habitat_activation_id\x18\x03 \x01(\tR\x13habitatActivationId\x12\x1d\n" +
+	"\n" +
+	"habitat_id\x18\x04 \x01(\tR\thabitatId\x12#\n" +
+	"\rhabitat_title\x18\x05 \x01(\tR\fhabitatTitle\x12\x19\n" +
+	"\bplace_id\x18\x06 \x01(\tR\aplaceId\x12\x1f\n" +
+	"\vplace_label\x18\a \x01(\tR\n" +
+	"placeLabel\x127\n" +
+	"\tstarts_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x123\n" +
+	"\aends_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\x12 \n" +
+	"\vinteraction\x18\n" +
+	" \x01(\bR\vinteraction\"\xb2\x02\n" +
+	"\x16LocalAppUtopiaResident\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
-	"\bsolitary\x18\x03 \x01(\bR\bsolitary\x12C\n" +
-	"\acurrent\x18\x04 \x01(\v2).nimi.runtime.v1.LocalAppAgentUtopiaFrameR\acurrent\x12A\n" +
-	"\x06recent\x18\x05 \x01(\v2).nimi.runtime.v1.LocalAppAgentUtopiaFrameR\x06recent\x12=\n" +
-	"\x04next\x18\x06 \x01(\v2).nimi.runtime.v1.LocalAppAgentUtopiaFrameR\x04next\"Y\n" +
-	"\x1cLocalAppAgentUtopiaOccupancy\x12\x14\n" +
-	"\x05place\x18\x01 \x01(\tR\x05place\x12#\n" +
-	"\ragent_handles\x18\x02 \x03(\tR\fagentHandles\"\x8f\x03\n" +
-	"!LocalAppAgentUtopiaSharedActivity\x12!\n" +
-	"\factivity_ref\x18\x01 \x01(\tR\vactivityRef\x12)\n" +
-	"\x10initiator_handle\x18\x02 \x01(\tR\x0finitiatorHandle\x12)\n" +
-	"\x10recipient_handle\x18\x03 \x01(\tR\x0frecipientHandle\x12\x14\n" +
-	"\x05place\x18\x04 \x01(\tR\x05place\x12\x1a\n" +
-	"\bactivity\x18\x05 \x01(\tR\bactivity\x12\x14\n" +
-	"\x05state\x18\x06 \x01(\tR\x05state\x127\n" +
-	"\tstarts_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x123\n" +
-	"\aends_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\x12;\n" +
-	"\vaccepted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"acceptedAt\"\xec\x03\n" +
-	"&GetLocalAppAgentUtopiaSnapshotResponse\x12H\n" +
-	"\bsettings\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalAppAgentUtopiaSettingsR\bsettings\x12;\n" +
+	"\bsolitary\x18\x03 \x01(\bR\bsolitary\x12>\n" +
+	"\acurrent\x18\x04 \x01(\v2$.nimi.runtime.v1.LocalAppUtopiaFrameR\acurrent\x12<\n" +
+	"\x06recent\x18\x05 \x01(\v2$.nimi.runtime.v1.LocalAppUtopiaFrameR\x06recent\x128\n" +
+	"\x04next\x18\x06 \x01(\v2$.nimi.runtime.v1.LocalAppUtopiaFrameR\x04next\"^\n" +
+	"\x1cLocalAppUtopiaPlaceOccupancy\x12\x19\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12#\n" +
+	"\ragent_handles\x18\x02 \x03(\tR\fagentHandles\"\xd4\x04\n" +
+	"\x1cLocalAppUtopiaSharedActivity\x12!\n" +
+	"\factivity_ref\x18\x01 \x01(\tR\vactivityRef\x122\n" +
+	"\x15habitat_activation_id\x18\x02 \x01(\tR\x13habitatActivationId\x12\x1d\n" +
+	"\n" +
+	"habitat_id\x18\x03 \x01(\tR\thabitatId\x12#\n" +
+	"\rhabitat_title\x18\x04 \x01(\tR\fhabitatTitle\x12)\n" +
+	"\x10initiator_handle\x18\x05 \x01(\tR\x0finitiatorHandle\x12)\n" +
+	"\x10recipient_handle\x18\x06 \x01(\tR\x0frecipientHandle\x12\x19\n" +
+	"\bplace_id\x18\a \x01(\tR\aplaceId\x12\x1f\n" +
+	"\vplace_label\x18\b \x01(\tR\n" +
+	"placeLabel\x12\x1f\n" +
+	"\vactivity_id\x18\t \x01(\tR\n" +
+	"activityId\x12%\n" +
+	"\x0eactivity_label\x18\n" +
+	" \x01(\tR\ractivityLabel\x12\x14\n" +
+	"\x05state\x18\v \x01(\tR\x05state\x127\n" +
+	"\tstarts_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\bstartsAt\x123\n" +
+	"\aends_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\x06endsAt\x12;\n" +
+	"\vaccepted_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"acceptedAt\"\x84\x02\n" +
+	"\x1fLocalAppUtopiaRelocationSummary\x12&\n" +
+	"\x0ffrom_habitat_id\x18\x01 \x01(\tR\rfromHabitatId\x12,\n" +
+	"\x12from_habitat_title\x18\x02 \x01(\tR\x10fromHabitatTitle\x12\"\n" +
+	"\rto_habitat_id\x18\x03 \x01(\tR\vtoHabitatId\x12(\n" +
+	"\x10to_habitat_title\x18\x04 \x01(\tR\x0etoHabitatTitle\x12=\n" +
+	"\frelocated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vrelocatedAt\"\x8d\a\n" +
+	"&GetLocalAppAgentUtopiaSnapshotResponse\x12\x1a\n" +
+	"\brevision\x18\x01 \x01(\x04R\brevision\x12;\n" +
 	"\vobserved_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAt\x12A\n" +
-	"\x06places\x18\x03 \x03(\v2).nimi.runtime.v1.LocalAppAgentUtopiaPlaceR\x06places\x12J\n" +
-	"\tresidents\x18\x04 \x03(\v2,.nimi.runtime.v1.LocalAppAgentUtopiaResidentR\tresidents\x12K\n" +
-	"\toccupancy\x18\x05 \x03(\v2-.nimi.runtime.v1.LocalAppAgentUtopiaOccupancyR\toccupancy\x12_\n" +
-	"\x11shared_activities\x18\x06 \x03(\v22.nimi.runtime.v1.LocalAppAgentUtopiaSharedActivityR\x10sharedActivities\"\\\n" +
-	"\x1bLocalAppAgentUtopiaSolitude\x12!\n" +
+	"observedAt\x122\n" +
+	"\x15habitat_activation_id\x18\x03 \x01(\tR\x13habitatActivationId\x12%\n" +
+	"\x0econtent_digest\x18\x04 \x01(\tR\rcontentDigest\x12\x1a\n" +
+	"\btimezone\x18\x05 \x01(\tR\btimezone\x121\n" +
+	"\x14public_participation\x18\x06 \x01(\bR\x13publicParticipation\x12D\n" +
+	"\ahabitat\x18\a \x01(\v2*.nimi.runtime.v1.LocalAppUtopiaHabitatSpecR\ahabitat\x12X\n" +
+	"\x10parameter_values\x18\b \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaParameterEntryR\x0fparameterValues\x12$\n" +
+	"\x0eopen_place_ids\x18\t \x03(\tR\fopenPlaceIds\x12O\n" +
+	"\ractive_events\x18\n" +
+	" \x03(\v2*.nimi.runtime.v1.LocalAppUtopiaActiveEventR\factiveEvents\x12Y\n" +
+	"\x0flast_relocation\x18\v \x01(\v20.nimi.runtime.v1.LocalAppUtopiaRelocationSummaryR\x0elastRelocation\x12E\n" +
+	"\tresidents\x18\f \x03(\v2'.nimi.runtime.v1.LocalAppUtopiaResidentR\tresidents\x12K\n" +
+	"\toccupancy\x18\r \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaPlaceOccupancyR\toccupancy\x12Z\n" +
+	"\x11shared_activities\x18\x0e \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaSharedActivityR\x10sharedActivities\"\xf7\x01\n" +
+	"#LocalAppUtopiaActivateHabitatChange\x12D\n" +
+	"\ahabitat\x18\x01 \x01(\v2*.nimi.runtime.v1.LocalAppUtopiaHabitatSpecR\ahabitat\x12\\\n" +
+	"\x12initial_parameters\x18\x02 \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaParameterEntryR\x11initialParameters\x12\x1f\n" +
+	"\btimezone\x18\x03 \x01(\tH\x00R\btimezone\x88\x01\x01B\v\n" +
+	"\t_timezone\"R\n" +
+	"\"LocalAppUtopiaRestoreDefaultChange\x12\x1f\n" +
+	"\btimezone\x18\x01 \x01(\tH\x00R\btimezone\x88\x01\x01B\v\n" +
+	"\t_timezone\"\x84\x01\n" +
+	" LocalAppUtopiaPresetEventTrigger\x12\x1b\n" +
+	"\tpreset_id\x18\x01 \x01(\tR\bpresetId\x12.\n" +
+	"\x10duration_minutes\x18\x02 \x01(\x05H\x00R\x0fdurationMinutes\x88\x01\x01B\x13\n" +
+	"\x11_duration_minutes\"\xd5\x01\n" +
+	" LocalAppUtopiaCustomEventTrigger\x12!\n" +
+	"\fscenery_kind\x18\x01 \x01(\tR\vsceneryKind\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1e\n" +
+	"\bplace_id\x18\x04 \x01(\tH\x00R\aplaceId\x88\x01\x01\x12)\n" +
+	"\x10duration_minutes\x18\x05 \x01(\x05R\x0fdurationMinutesB\v\n" +
+	"\t_place_id\"\xff\x01\n" +
+	"\x1bLocalAppUtopiaEventMutation\x12Z\n" +
+	"\x0etrigger_preset\x18\x01 \x01(\v21.nimi.runtime.v1.LocalAppUtopiaPresetEventTriggerH\x00R\rtriggerPreset\x12R\n" +
+	"\n" +
+	"put_custom\x18\x02 \x01(\v21.nimi.runtime.v1.LocalAppUtopiaCustomEventTriggerH\x00R\tputCustom\x12&\n" +
+	"\x0eclear_event_id\x18\x03 \x01(\tH\x00R\fclearEventIdB\b\n" +
+	"\x06action\"\xc5\x01\n" +
+	"\x1fLocalAppUtopiaApplyTuningChange\x12M\n" +
+	"\n" +
+	"parameters\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaParameterEntryR\n" +
+	"parameters\x12S\n" +
+	"\x0eevent_mutation\x18\x02 \x01(\v2,.nimi.runtime.v1.LocalAppUtopiaEventMutationR\reventMutation\"]\n" +
+	"\x1cLocalAppUtopiaSolitudeChange\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12\x1a\n" +
-	"\bsolitary\x18\x02 \x01(\bR\bsolitary\"\xd9\x02\n" +
+	"\bsolitary\x18\x02 \x01(\bR\bsolitary\"\x9b\x04\n" +
 	"(UpdateLocalAppAgentUtopiaSettingsRequest\x12+\n" +
-	"\x11expected_revision\x18\x01 \x01(\x04R\x10expectedRevision\x12%\n" +
-	"\rselect_preset\x18\x02 \x01(\tH\x00R\fselectPreset\x12)\n" +
-	"\x0frestore_default\x18\x03 \x01(\bH\x00R\x0erestoreDefault\x12#\n" +
-	"\foutdoor_open\x18\x04 \x01(\bH\x00R\voutdoorOpen\x123\n" +
-	"\x14public_participation\x18\x05 \x01(\bH\x00R\x13publicParticipation\x12J\n" +
-	"\bsolitude\x18\x06 \x01(\v2,.nimi.runtime.v1.LocalAppAgentUtopiaSolitudeH\x00R\bsolitudeB\b\n" +
-	"\x06intent\"u\n" +
-	")UpdateLocalAppAgentUtopiaSettingsResponse\x12H\n" +
-	"\bsettings\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalAppAgentUtopiaSettingsR\bsettingsB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x11expected_revision\x18\x01 \x01(\x04R\x10expectedRevision\x12a\n" +
+	"\x10activate_habitat\x18\x02 \x01(\v24.nimi.runtime.v1.LocalAppUtopiaActivateHabitatChangeH\x00R\x0factivateHabitat\x12^\n" +
+	"\x0frestore_default\x18\x03 \x01(\v23.nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChangeH\x00R\x0erestoreDefault\x12U\n" +
+	"\fapply_tuning\x18\x04 \x01(\v20.nimi.runtime.v1.LocalAppUtopiaApplyTuningChangeH\x00R\vapplyTuning\x123\n" +
+	"\x14public_participation\x18\x05 \x01(\bH\x00R\x13publicParticipation\x12K\n" +
+	"\bsolitude\x18\x06 \x01(\v2-.nimi.runtime.v1.LocalAppUtopiaSolitudeChangeH\x00R\bsolitude\x12\x1c\n" +
+	"\btimezone\x18\a \x01(\tH\x00R\btimezoneB\b\n" +
+	"\x06change\"\x86\x04\n" +
+	")UpdateLocalAppAgentUtopiaSettingsResponse\x12\x1a\n" +
+	"\brevision\x18\x01 \x01(\x04R\brevision\x122\n" +
+	"\x15habitat_activation_id\x18\x02 \x01(\tR\x13habitatActivationId\x12\x1d\n" +
+	"\n" +
+	"habitat_id\x18\x03 \x01(\tR\thabitatId\x12#\n" +
+	"\rhabitat_title\x18\x04 \x01(\tR\fhabitatTitle\x12%\n" +
+	"\x0econtent_digest\x18\x05 \x01(\tR\rcontentDigest\x12\x1a\n" +
+	"\btimezone\x18\x06 \x01(\tR\btimezone\x121\n" +
+	"\x14public_participation\x18\a \x01(\bR\x13publicParticipation\x12X\n" +
+	"\x10parameter_values\x18\b \x03(\v2-.nimi.runtime.v1.LocalAppUtopiaParameterEntryR\x0fparameterValues\x12$\n" +
+	"\x0eopen_place_ids\x18\t \x03(\tR\fopenPlaceIds\x12O\n" +
+	"\ractive_events\x18\n" +
+	" \x03(\v2*.nimi.runtime.v1.LocalAppUtopiaActiveEventR\factiveEventsB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_agent_utopia_proto_rawDescOnce sync.Once
@@ -907,43 +2392,81 @@ func file_runtime_v1_agent_utopia_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_utopia_proto_rawDescData
 }
 
-var file_runtime_v1_agent_utopia_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_runtime_v1_agent_utopia_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_runtime_v1_agent_utopia_proto_goTypes = []any{
 	(*GetLocalAppAgentUtopiaSnapshotRequest)(nil),     // 0: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotRequest
-	(*LocalAppAgentUtopiaSettings)(nil),               // 1: nimi.runtime.v1.LocalAppAgentUtopiaSettings
-	(*LocalAppAgentUtopiaPlace)(nil),                  // 2: nimi.runtime.v1.LocalAppAgentUtopiaPlace
-	(*LocalAppAgentUtopiaFrame)(nil),                  // 3: nimi.runtime.v1.LocalAppAgentUtopiaFrame
-	(*LocalAppAgentUtopiaResident)(nil),               // 4: nimi.runtime.v1.LocalAppAgentUtopiaResident
-	(*LocalAppAgentUtopiaOccupancy)(nil),              // 5: nimi.runtime.v1.LocalAppAgentUtopiaOccupancy
-	(*LocalAppAgentUtopiaSharedActivity)(nil),         // 6: nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity
-	(*GetLocalAppAgentUtopiaSnapshotResponse)(nil),    // 7: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse
-	(*LocalAppAgentUtopiaSolitude)(nil),               // 8: nimi.runtime.v1.LocalAppAgentUtopiaSolitude
-	(*UpdateLocalAppAgentUtopiaSettingsRequest)(nil),  // 9: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest
-	(*UpdateLocalAppAgentUtopiaSettingsResponse)(nil), // 10: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse
-	(*timestamppb.Timestamp)(nil),                     // 11: google.protobuf.Timestamp
+	(*LocalAppUtopiaParameterCondition)(nil),          // 1: nimi.runtime.v1.LocalAppUtopiaParameterCondition
+	(*LocalAppUtopiaParameterOption)(nil),             // 2: nimi.runtime.v1.LocalAppUtopiaParameterOption
+	(*LocalAppUtopiaParameterSpec)(nil),               // 3: nimi.runtime.v1.LocalAppUtopiaParameterSpec
+	(*LocalAppUtopiaPersonalQuarterSpec)(nil),         // 4: nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec
+	(*LocalAppUtopiaPlaceSpec)(nil),                   // 5: nimi.runtime.v1.LocalAppUtopiaPlaceSpec
+	(*LocalAppUtopiaActivitySpec)(nil),                // 6: nimi.runtime.v1.LocalAppUtopiaActivitySpec
+	(*LocalAppUtopiaEventPresetSpec)(nil),             // 7: nimi.runtime.v1.LocalAppUtopiaEventPresetSpec
+	(*LocalAppUtopiaHabitatSpec)(nil),                 // 8: nimi.runtime.v1.LocalAppUtopiaHabitatSpec
+	(*LocalAppUtopiaParameterEntry)(nil),              // 9: nimi.runtime.v1.LocalAppUtopiaParameterEntry
+	(*LocalAppUtopiaActiveEvent)(nil),                 // 10: nimi.runtime.v1.LocalAppUtopiaActiveEvent
+	(*LocalAppUtopiaFrame)(nil),                       // 11: nimi.runtime.v1.LocalAppUtopiaFrame
+	(*LocalAppUtopiaResident)(nil),                    // 12: nimi.runtime.v1.LocalAppUtopiaResident
+	(*LocalAppUtopiaPlaceOccupancy)(nil),              // 13: nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy
+	(*LocalAppUtopiaSharedActivity)(nil),              // 14: nimi.runtime.v1.LocalAppUtopiaSharedActivity
+	(*LocalAppUtopiaRelocationSummary)(nil),           // 15: nimi.runtime.v1.LocalAppUtopiaRelocationSummary
+	(*GetLocalAppAgentUtopiaSnapshotResponse)(nil),    // 16: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse
+	(*LocalAppUtopiaActivateHabitatChange)(nil),       // 17: nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange
+	(*LocalAppUtopiaRestoreDefaultChange)(nil),        // 18: nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange
+	(*LocalAppUtopiaPresetEventTrigger)(nil),          // 19: nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger
+	(*LocalAppUtopiaCustomEventTrigger)(nil),          // 20: nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger
+	(*LocalAppUtopiaEventMutation)(nil),               // 21: nimi.runtime.v1.LocalAppUtopiaEventMutation
+	(*LocalAppUtopiaApplyTuningChange)(nil),           // 22: nimi.runtime.v1.LocalAppUtopiaApplyTuningChange
+	(*LocalAppUtopiaSolitudeChange)(nil),              // 23: nimi.runtime.v1.LocalAppUtopiaSolitudeChange
+	(*UpdateLocalAppAgentUtopiaSettingsRequest)(nil),  // 24: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest
+	(*UpdateLocalAppAgentUtopiaSettingsResponse)(nil), // 25: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse
+	(*timestamppb.Timestamp)(nil),                     // 26: google.protobuf.Timestamp
 }
 var file_runtime_v1_agent_utopia_proto_depIdxs = []int32{
-	11, // 0: nimi.runtime.v1.LocalAppAgentUtopiaFrame.starts_at:type_name -> google.protobuf.Timestamp
-	11, // 1: nimi.runtime.v1.LocalAppAgentUtopiaFrame.ends_at:type_name -> google.protobuf.Timestamp
-	3,  // 2: nimi.runtime.v1.LocalAppAgentUtopiaResident.current:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaFrame
-	3,  // 3: nimi.runtime.v1.LocalAppAgentUtopiaResident.recent:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaFrame
-	3,  // 4: nimi.runtime.v1.LocalAppAgentUtopiaResident.next:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaFrame
-	11, // 5: nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity.starts_at:type_name -> google.protobuf.Timestamp
-	11, // 6: nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity.ends_at:type_name -> google.protobuf.Timestamp
-	11, // 7: nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity.accepted_at:type_name -> google.protobuf.Timestamp
-	1,  // 8: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.settings:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaSettings
-	11, // 9: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
-	2,  // 10: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.places:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaPlace
-	4,  // 11: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.residents:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaResident
-	5,  // 12: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.occupancy:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaOccupancy
-	6,  // 13: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.shared_activities:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaSharedActivity
-	8,  // 14: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest.solitude:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaSolitude
-	1,  // 15: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse.settings:type_name -> nimi.runtime.v1.LocalAppAgentUtopiaSettings
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	2,  // 0: nimi.runtime.v1.LocalAppUtopiaParameterSpec.options:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterOption
+	1,  // 1: nimi.runtime.v1.LocalAppUtopiaPlaceSpec.open_when:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterCondition
+	1,  // 2: nimi.runtime.v1.LocalAppUtopiaActivitySpec.when:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterCondition
+	4,  // 3: nimi.runtime.v1.LocalAppUtopiaHabitatSpec.personal_quarter:type_name -> nimi.runtime.v1.LocalAppUtopiaPersonalQuarterSpec
+	5,  // 4: nimi.runtime.v1.LocalAppUtopiaHabitatSpec.places:type_name -> nimi.runtime.v1.LocalAppUtopiaPlaceSpec
+	6,  // 5: nimi.runtime.v1.LocalAppUtopiaHabitatSpec.activities:type_name -> nimi.runtime.v1.LocalAppUtopiaActivitySpec
+	3,  // 6: nimi.runtime.v1.LocalAppUtopiaHabitatSpec.parameters:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterSpec
+	7,  // 7: nimi.runtime.v1.LocalAppUtopiaHabitatSpec.event_presets:type_name -> nimi.runtime.v1.LocalAppUtopiaEventPresetSpec
+	26, // 8: nimi.runtime.v1.LocalAppUtopiaActiveEvent.starts_at:type_name -> google.protobuf.Timestamp
+	26, // 9: nimi.runtime.v1.LocalAppUtopiaActiveEvent.expires_at:type_name -> google.protobuf.Timestamp
+	26, // 10: nimi.runtime.v1.LocalAppUtopiaFrame.starts_at:type_name -> google.protobuf.Timestamp
+	26, // 11: nimi.runtime.v1.LocalAppUtopiaFrame.ends_at:type_name -> google.protobuf.Timestamp
+	11, // 12: nimi.runtime.v1.LocalAppUtopiaResident.current:type_name -> nimi.runtime.v1.LocalAppUtopiaFrame
+	11, // 13: nimi.runtime.v1.LocalAppUtopiaResident.recent:type_name -> nimi.runtime.v1.LocalAppUtopiaFrame
+	11, // 14: nimi.runtime.v1.LocalAppUtopiaResident.next:type_name -> nimi.runtime.v1.LocalAppUtopiaFrame
+	26, // 15: nimi.runtime.v1.LocalAppUtopiaSharedActivity.starts_at:type_name -> google.protobuf.Timestamp
+	26, // 16: nimi.runtime.v1.LocalAppUtopiaSharedActivity.ends_at:type_name -> google.protobuf.Timestamp
+	26, // 17: nimi.runtime.v1.LocalAppUtopiaSharedActivity.accepted_at:type_name -> google.protobuf.Timestamp
+	26, // 18: nimi.runtime.v1.LocalAppUtopiaRelocationSummary.relocated_at:type_name -> google.protobuf.Timestamp
+	26, // 19: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
+	8,  // 20: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.habitat:type_name -> nimi.runtime.v1.LocalAppUtopiaHabitatSpec
+	9,  // 21: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.parameter_values:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterEntry
+	10, // 22: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.active_events:type_name -> nimi.runtime.v1.LocalAppUtopiaActiveEvent
+	15, // 23: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.last_relocation:type_name -> nimi.runtime.v1.LocalAppUtopiaRelocationSummary
+	12, // 24: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.residents:type_name -> nimi.runtime.v1.LocalAppUtopiaResident
+	13, // 25: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.occupancy:type_name -> nimi.runtime.v1.LocalAppUtopiaPlaceOccupancy
+	14, // 26: nimi.runtime.v1.GetLocalAppAgentUtopiaSnapshotResponse.shared_activities:type_name -> nimi.runtime.v1.LocalAppUtopiaSharedActivity
+	8,  // 27: nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange.habitat:type_name -> nimi.runtime.v1.LocalAppUtopiaHabitatSpec
+	9,  // 28: nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange.initial_parameters:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterEntry
+	19, // 29: nimi.runtime.v1.LocalAppUtopiaEventMutation.trigger_preset:type_name -> nimi.runtime.v1.LocalAppUtopiaPresetEventTrigger
+	20, // 30: nimi.runtime.v1.LocalAppUtopiaEventMutation.put_custom:type_name -> nimi.runtime.v1.LocalAppUtopiaCustomEventTrigger
+	9,  // 31: nimi.runtime.v1.LocalAppUtopiaApplyTuningChange.parameters:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterEntry
+	21, // 32: nimi.runtime.v1.LocalAppUtopiaApplyTuningChange.event_mutation:type_name -> nimi.runtime.v1.LocalAppUtopiaEventMutation
+	17, // 33: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest.activate_habitat:type_name -> nimi.runtime.v1.LocalAppUtopiaActivateHabitatChange
+	18, // 34: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest.restore_default:type_name -> nimi.runtime.v1.LocalAppUtopiaRestoreDefaultChange
+	22, // 35: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest.apply_tuning:type_name -> nimi.runtime.v1.LocalAppUtopiaApplyTuningChange
+	23, // 36: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsRequest.solitude:type_name -> nimi.runtime.v1.LocalAppUtopiaSolitudeChange
+	9,  // 37: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse.parameter_values:type_name -> nimi.runtime.v1.LocalAppUtopiaParameterEntry
+	10, // 38: nimi.runtime.v1.UpdateLocalAppAgentUtopiaSettingsResponse.active_events:type_name -> nimi.runtime.v1.LocalAppUtopiaActiveEvent
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_utopia_proto_init() }
@@ -951,12 +2474,24 @@ func file_runtime_v1_agent_utopia_proto_init() {
 	if File_runtime_v1_agent_utopia_proto != nil {
 		return
 	}
-	file_runtime_v1_agent_utopia_proto_msgTypes[9].OneofWrappers = []any{
-		(*UpdateLocalAppAgentUtopiaSettingsRequest_SelectPreset)(nil),
+	file_runtime_v1_agent_utopia_proto_msgTypes[7].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[10].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[17].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[18].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[19].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[20].OneofWrappers = []any{}
+	file_runtime_v1_agent_utopia_proto_msgTypes[21].OneofWrappers = []any{
+		(*LocalAppUtopiaEventMutation_TriggerPreset)(nil),
+		(*LocalAppUtopiaEventMutation_PutCustom)(nil),
+		(*LocalAppUtopiaEventMutation_ClearEventId)(nil),
+	}
+	file_runtime_v1_agent_utopia_proto_msgTypes[24].OneofWrappers = []any{
+		(*UpdateLocalAppAgentUtopiaSettingsRequest_ActivateHabitat)(nil),
 		(*UpdateLocalAppAgentUtopiaSettingsRequest_RestoreDefault)(nil),
-		(*UpdateLocalAppAgentUtopiaSettingsRequest_OutdoorOpen)(nil),
+		(*UpdateLocalAppAgentUtopiaSettingsRequest_ApplyTuning)(nil),
 		(*UpdateLocalAppAgentUtopiaSettingsRequest_PublicParticipation)(nil),
 		(*UpdateLocalAppAgentUtopiaSettingsRequest_Solitude)(nil),
+		(*UpdateLocalAppAgentUtopiaSettingsRequest_Timezone)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -964,7 +2499,7 @@ func file_runtime_v1_agent_utopia_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_utopia_proto_rawDesc), len(file_runtime_v1_agent_utopia_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

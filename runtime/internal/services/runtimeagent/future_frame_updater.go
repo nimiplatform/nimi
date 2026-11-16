@@ -72,6 +72,7 @@ func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Tim
 		} else if a.Phase == lifeCompleted || a.Phase == lifeCanceled || plannedComplete[a.Ref] || p.EndProgress < plannedProgress[a.Ref] {
 			return nil, fmt.Errorf("life activity %s cannot continue: phase=%s planned_complete=%t progress=%d proposed=%d", a.Ref, a.Phase, plannedComplete[a.Ref], plannedProgress[a.Ref], p.EndProgress)
 		}
+		a.CustomSceneryDerived = a.CustomSceneryDerived || p.CustomSceneryActive
 		var end time.Time
 		if retrospective {
 			end = *retrospectiveEnd
@@ -81,7 +82,28 @@ func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Tim
 		} else {
 			end = start.Add(time.Duration(float64(time.Minute) * p.DurationMinutes))
 		}
-		next.Future = append(next.Future, lifeFrame{Description: p.Description, ID: "frame_" + ulid.Make().String(), ActivityRef: a.Ref, Title: strings.TrimSpace(p.Title), MemoryRefs: append([]string(nil), memoryRefs...), StartsAt: start, EndsAt: end, Phase: lifePlanned, StartProgress: plannedProgress[a.Ref], EndProgress: p.EndProgress, CompletesActivity: p.CompletesActivity, Retrospective: retrospective, Place: p.Place, UtopiaActivity: p.UtopiaActivity})
+		next.Future = append(next.Future, lifeFrame{
+			HabitatActivationID: p.HabitatActivationID,
+			HabitatID:           p.HabitatID,
+			HabitatTitle:        p.HabitatTitle,
+			Place:               p.Place,
+			PlaceLabel:          p.PlaceLabel,
+			UtopiaActivity:      p.UtopiaActivity,
+			ActivityLabel:       p.ActivityLabel,
+			CustomSceneryActive: a.CustomSceneryDerived,
+			Description:         p.Description,
+			ID:                  "frame_" + ulid.Make().String(),
+			ActivityRef:         a.Ref,
+			Title:               strings.TrimSpace(p.Title),
+			MemoryRefs:          append([]string(nil), memoryRefs...),
+			StartsAt:            start,
+			EndsAt:              end,
+			Phase:               lifePlanned,
+			StartProgress:       plannedProgress[a.Ref],
+			EndProgress:         p.EndProgress,
+			CompletesActivity:   p.CompletesActivity,
+			Retrospective:       retrospective,
+		})
 		plannedProgress[a.Ref] = p.EndProgress
 		plannedComplete[a.Ref] = p.CompletesActivity
 		start = end

@@ -1,0 +1,11 @@
+{
+  "bundleFormatVersion": "1.0",
+  "bundleId": "nimi.builtin.cloud-bamboo-abode",
+  "version": "1.0.0",
+  "title": "云水山居",
+  "subtitle": "青绿水墨山居长卷 · 观云剑坪、松钟飞瀑、竹廊药圃、丹房木坊与藏经茶阁",
+  "author": "Nimi Official",
+  "previewAsset": "assets/preview.png",
+  "habitatFile": "habitat.json",
+  "stageFile": "stage.json"
+}

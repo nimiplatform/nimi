@@ -129,6 +129,9 @@ const calls = [
   ['localAppAgentMemoryForget', { agentHandle, memoryIds: ['memory-contract'], confirmed: true }],
   ['localAppAgentMemorySwitch', { agentHandle, enabled: false }],
   ['localAppAgentMemoryDelete', { agentHandle, confirmed: true }],
+  ['localAppAgentUtopiaSnapshot'],
+  ['localAppAgentUtopiaUpdate', { expectedRevision: '1', intent: { kind: 'apply-tuning', parameters: { weather: 'clear' } } }],
+  ['localAppAgentUtopiaUpdate', { expectedRevision: '1', intent: { kind: 'set-public-participation', enabled: true } }],
 ];
 
 async function main() {
@@ -276,6 +279,10 @@ async function main() {
     ['localAppActivityList', { todoStates: [], occurredBeforeSeconds: '1', pageSize: 1 }],
     ['localAppActivitySubscribe', { afterChangeSeq: '01' }],
     ['localAppActivityMarkRead', { activityId: 'act_contract', displayedRevision: 0 }],
+    ['localAppAgentUtopiaUpdate', { expectedRevision: '1', intent: { kind: 'select-preset', preset: 'island' } }],
+    ['localAppAgentUtopiaUpdate', { expectedRevision: '1', intent: { kind: 'outdoor', open: false } }],
+    ['localAppAgentUtopiaUpdate', { expectedRevision: '01', intent: { kind: 'restore-default' } }],
+    ['localAppAgentUtopiaUpdate', { expectedRevision: '1', intent: { kind: 'apply-tuning' } }],
   ]) {
     const outcome = await addon[name](input);
     assert.equal(outcome?.status, 'error', `${name} must reject a malformed numeric input`);

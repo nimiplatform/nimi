@@ -953,6 +953,7 @@ function validatePayload(
     case 'agentUtopiaUpdate': {
       assertAllowedKeys(payload, ['expectedRevision', 'intent'], ['expectedRevision', 'intent'], command);
       if (!isPlainRecord(payload.intent)) throw invalidPayload(command, 'Utopia intent is invalid');
+      validateJsonValue(payload.intent, command, 32 * 1024);
       return { expectedRevision: decimalUint64(payload.expectedRevision, 'expectedRevision', command, false), intent: payload.intent as NimiElectronLocalAppRecord };
     }
     case 'agentManagerSnapshot': {

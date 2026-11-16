@@ -365,12 +365,27 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	if trimmedAssistant != "" {
 		activityHook, activityPublished = s.appActivityTurnTxHook(session, committedTurnID, session.UpdatedAt)
 	}
-	nextAgent, proactiveHook, err := s.prepareProactiveMessageCommit(s.agents[session.LocalAgentRef], turn, session.UpdatedAt)
+	nextAgent, proactiveHook, err := s.prepareProactiveMessageCommit(commitContext, s.agents[session.LocalAgentRef], turn, session.UpdatedAt)
 	if err != nil {
 		rollback()
 		return err
 	}
-	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook, proactiveHook), trimmedAnchorID); err != nil {
+	var habitatHook runtimeAgentStateTxHook
+	if turn != nil && trimmedAssistant != "" && !replayed {
+		base := nextAgent
+		if base == nil {
+			base = s.agents[session.LocalAgentRef]
+		}
+		observed, hook, observationErr := s.prepareHabitatObservationCommit(commitContext, base, turn.UtopiaRead)
+		if observationErr != nil {
+			rollback()
+			return observationErr
+		}
+		if observed != nil {
+			nextAgent, habitatHook = observed, hook
+		}
+	}
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook, proactiveHook, habitatHook), trimmedAnchorID); err != nil {
 		rollback()
 		return grpcerr.WrapWithReasonCode(
 			codes.Internal,

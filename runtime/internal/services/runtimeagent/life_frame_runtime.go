@@ -270,18 +270,40 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	omitSupplemental = input.ContactOnly && omitSupplemental
 	input.Context = projectLifeContext(entry.Life, !input.ContactOnly, omitSupplemental, input.TranscriptRead, now)
 	input.Context.Planning = true
-	if !input.ContactOnly {
+	if input.ContactOnly {
+		if settings, sErr := s.readLifeUtopiaSettings(ctx, projection.GetAccountId()); sErr == nil {
+			if utopia, uErr := settings.effectiveAt(now); uErr == nil {
+				if posture, pErr := utopia.compileMinimalPostureJSON(entry.Life, now); pErr == nil {
+					input.Context.Utopia = &utopia
+					input.Context.UtopiaModelJSON = posture.JSON
+					input.Context.UtopiaRead = posture.Read
+				}
+			}
+		}
+	} else {
 		settings, err := s.readLifeUtopiaSettings(ctx, projection.GetAccountId())
 		if err != nil {
 			s.recordLifePlanningFailure(work, entry, err, 0)
 			return
 		}
-		utopia, err := settings.effective()
+		utopia, err := settings.effectiveAt(now)
+		if err != nil {
+			s.recordLifePlanningFailure(work, entry, err, 0)
+			return
+		}
+		relocatedFrom := entry.Life.relocatedFromForUtopia(utopia, now)
+		habitatProjection, err := utopia.compilePlanningModelJSON(settings.Solitary[ref], relocatedFrom, now)
 		if err != nil {
 			s.recordLifePlanningFailure(work, entry, err, 0)
 			return
 		}
 		input.Context.Utopia = &utopia
+		input.Context.UtopiaSolitary = settings.Solitary[ref]
+		input.Context.UtopiaRelocatedFrom = relocatedFrom
+		input.Context.UtopiaModelJSON = habitatProjection.JSON
+		input.Context.UtopiaRead = habitatProjection.Read
+		input.Context.UtopiaAdmittedPlaces = habitatProjection.Places
+		input.Context.UtopiaAdmittedActivities = habitatProjection.Activities
 		if previous := entry.Life.LastPlannedUtopia; previous != nil && *previous != utopia.planningConditions() {
 			input.Context.PreviousUtopia = previous
 		}
@@ -337,8 +359,12 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 
 func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input lifeFrameExecutionInput, result *lifeFrameResult, usage int64) error {
 	ref := input.Entry.Agent.GetLocalAgentRef()
-	now := time.Now().UTC()
+	var habitatRead *lifeUtopiaRead
+	if input.Context != nil {
+		habitatRead = input.Context.UtopiaRead
+	}
 	return s.mutateAgentWithPersistence(ref, func(current *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		now := time.Now().UTC()
 		if !proto.Equal(current.Agent.GetCreatedAt(), input.Entry.Agent.GetCreatedAt()) {
 			return nil, nil, nil
 		}
@@ -352,21 +378,71 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			return budgetEvents, nil, nil
 		}
 		l := current.Life
+		var committedUtopia *lifeUtopia
 		if input.Context != nil && input.Context.Utopia != nil {
 			settings, err := s.readLifeUtopiaSettings(work.ctx, current.Agent.GetOwnerUserId())
 			if err != nil {
+				if input.ContactOnly {
+					return budgetEvents, nil, nil
+				}
 				return nil, nil, err
 			}
-			utopia, err := settings.effective()
+			utopia, err := settings.effectiveAt(now)
 			if err != nil {
+				if input.ContactOnly {
+					return budgetEvents, nil, nil
+				}
 				return nil, nil, err
 			}
-			if !input.Context.Utopia.sameConditions(utopia) {
-				return budgetEvents, nil, nil
-			}
-			for _, frame := range result.Future {
-				if (frame.Place != "" || frame.UtopiaActivity != "") && !utopia.allows(frame.Place, frame.UtopiaActivity) {
-					return nil, nil, fmt.Errorf("life proposal used an unavailable Utopia activity")
+			if input.ContactOnly {
+				if !input.Context.Utopia.sameConditions(utopia) || !utopia.acceptsRead(input.Context.UtopiaRead, now) {
+					return budgetEvents, nil, nil
+				}
+			} else {
+				if !input.Context.Utopia.sameConditions(utopia) || !utopia.acceptsRead(input.Context.UtopiaRead, now) {
+					return budgetEvents, nil, nil
+				}
+				committedUtopia = &utopia
+				solitary := settings.Solitary[ref]
+				segStart := now
+				if l.SettledAt.After(segStart) {
+					segStart = l.SettledAt
+				}
+				for i := 0; i < len(result.Future); i++ {
+					frame := result.Future[i]
+					frame.CustomSceneryActive = input.Context.customSceneryRead()
+					if (frame.Place == "") != (frame.UtopiaActivity == "") {
+						return nil, nil, fmt.Errorf("life proposal must specify both place and utopia_activity or neither")
+					}
+					if frame.Place != "" {
+						if !utopia.allowsPlaceAndParameters(frame.Place, frame.UtopiaActivity) {
+							return nil, nil, fmt.Errorf("life proposal used an unavailable Utopia activity")
+						}
+						act, _ := utopia.Spec.activityByID(frame.UtopiaActivity)
+						if solitary && frame.Place != habitatPersonalQuarterID {
+							return nil, nil, fmt.Errorf("life proposal used a public Utopia place while solitary")
+						}
+						if act.MinDurationMinutes > 0 && (frame.DurationMinutes < float64(act.MinDurationMinutes) || frame.DurationMinutes > float64(act.MaxDurationMinutes)) {
+							return nil, nil, fmt.Errorf("life proposal duration is outside habitat activity bounds")
+						}
+						if !utopia.allowsAt(frame.Place, frame.UtopiaActivity, segStart, solitary) {
+							if i == 0 {
+								if evalHabitatDaypart(segStart, utopia.Timezone) != input.Context.Utopia.Daypart {
+									return budgetEvents, nil, nil
+								}
+								return nil, nil, fmt.Errorf("life proposal used an unavailable Utopia activity for daypart")
+							}
+							// Multi-segment proposal crossed into an ineligible daypart: keep valid prefix 0..i-1.
+							copied := *result
+							copied.Future = append([]lifeFrameProposal(nil), result.Future[:i]...)
+							result = &copied
+							break
+						}
+					}
+					result.Future[i] = utopia.enrichProposal(frame)
+					if frame.DurationMinutes > 0 {
+						segStart = segStart.Add(time.Duration(float64(time.Minute) * frame.DurationMinutes))
+					}
 				}
 			}
 		}
@@ -379,7 +455,7 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			l.ContactConsideredAt = input.Now
 			l.ContactNextAt = now.Add(6 * time.Hour)
 			if result.Contact != "" {
-				l.Intents = append(l.Intents, lifeProactiveIntent{ID: "intent_" + ulid.Make().String(), Source: "contact", DueAt: now, ExpiresAt: now.Add(30 * time.Minute), Text: result.Contact, MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead})
+				l.Intents = append(l.Intents, lifeProactiveIntent{ID: "intent_" + ulid.Make().String(), Source: "contact", UtopiaRead: habitatRead, DueAt: now, ExpiresAt: now.Add(30 * time.Minute), Text: result.Contact, MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead})
 				stored, err := unionStoredMemoryReadSets(l.MemoryReadSet, input.ReadSet)
 				if err != nil {
 					return nil, nil, err
@@ -396,11 +472,14 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 				if work.invalidated || s.backgroundByAgent[ref] != work || !s.lifeConversationReadCurrentLocked(input.ConversationRead) {
 					return fmt.Errorf("contact source invalidated")
 				}
-				return nil
+				return habitatRead.checkCommitTime()
 			}, nil
 		}
 		if input.PastFrom.After(l.SettledAt) {
 			l.SettledAt = input.PastFrom
+		}
+		for i := range result.Past {
+			result.Past[i].CustomSceneryActive = input.Context.customSceneryRead()
 		}
 		completed, err := l.acceptPast(result.Past, input.Now, input.ReadSet.Refs, input.ConversationRead != nil)
 		if err != nil {
@@ -416,9 +495,14 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 				if acceptErr == nil {
 					current.Life, l = next, next
 					intentionAccepted = true
-					intentionHook, err = s.selfIntentionMemoryTxHook(current, proposal, accepted, input.RequestID, now)
-					if err != nil {
-						return nil, nil, err
+					if a := l.Activities[accepted.ActivityRef]; a != nil {
+						a.CustomSceneryDerived = a.CustomSceneryDerived || input.Context.customSceneryRead()
+					}
+					if !input.Context.customSceneryRead() {
+						intentionHook, err = s.selfIntentionMemoryTxHook(current, proposal, accepted, input.RequestID, now)
+						if err != nil {
+							return nil, nil, err
+						}
 					}
 				}
 			}
@@ -430,6 +514,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 				result = &copy
 			}
 		}
+		for i := range result.Future {
+			result.Future[i].CustomSceneryActive = input.Context.customSceneryRead()
+		}
 		if len(result.Future) > 0 {
 			if err := l.acceptFuture(result.Future, now, input.ReadSet.Refs, input.ConversationRead != nil); err != nil {
 				return nil, nil, err
@@ -438,9 +525,12 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		if _, err := l.advance(now); err != nil {
 			return nil, nil, err
 		}
-		if input.Context != nil && input.Context.Utopia != nil {
-			conditions := input.Context.Utopia.planningConditions()
+		if committedUtopia != nil {
+			conditions := committedUtopia.planningConditions()
 			l.LastPlannedUtopia = &conditions
+			l.LastObservedHabitatActivationID = committedUtopia.HabitatActivationID
+			l.LastObservedHabitatID = committedUtopia.Spec.HabitatID
+			l.LastObservedHabitatTitle = committedUtopia.Spec.Title
 		}
 		oldFrames := map[string]bool{}
 		for _, f := range input.Entry.Life.frames() {
@@ -458,7 +548,7 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		l.MemoryReadSet = storedRead
 		l.Explanation = nil
 		if text := strings.TrimSpace(result.Explanation); text != "" {
-			l.Explanation = &lifeExplanation{Text: text, MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead}
+			l.Explanation = &lifeExplanation{Text: text, CustomSceneryDerived: input.Context.customSceneryRead(), MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead}
 		}
 		l.NextCheckAt = now.Add(max(pacedLifePlanningInterval(current, now), time.Duration(result.NextCheckMinutes)*time.Minute))
 		if current.Life.ContactEpoch == input.Entry.Life.ContactEpoch && lifeContactPermitted(current, now) && lifeContactAllowed(input.Entry, input.Now) &&
@@ -485,7 +575,7 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			}
 			if activityRef != "" {
 				l.cancelFreeIntents("life")
-				l.Intents = append(l.Intents, lifeProactiveIntent{ID: "intent_" + ulid.Make().String(), Source: "life", ActivityRef: activityRef, DueAt: now, Purpose: result.Contact, ExpiresAt: now.Add(lifePlanningInterval(current)), MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead})
+				l.Intents = append(l.Intents, lifeProactiveIntent{ID: "intent_" + ulid.Make().String(), Source: "life", ActivityRef: activityRef, UtopiaRead: habitatRead, DueAt: now, Purpose: result.Contact, ExpiresAt: now.Add(lifePlanningInterval(current)), MemoryRefs: append([]string(nil), input.ReadSet.Refs...), ConversationRead: input.ConversationRead})
 			}
 		}
 		if err := l.changed(); err != nil {
@@ -502,6 +592,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			// mutateAgent holds chatSurfaceMu through commit, ordered with yield.
 			if work.invalidated || s.backgroundByAgent[ref] != work || !s.lifeConversationReadCurrentLocked(input.ConversationRead) {
 				return fmt.Errorf("life planning yielded to foreground")
+			}
+			if err := habitatRead.checkCommitTime(); err != nil {
+				return err
 			}
 			if hook != nil {
 				if err := hook(tx); err != nil {

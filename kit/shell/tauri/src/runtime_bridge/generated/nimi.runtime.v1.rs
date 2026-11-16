@@ -20236,40 +20236,166 @@ impl LocalAppEmbodimentVoicePhase {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentUtopiaSnapshotRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaSettings {
-    #[prost(uint64, tag = "1")]
-    pub revision: u64,
-    #[prost(string, tag = "2")]
-    pub preset: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "3")]
-    pub preset_version: u64,
-    #[prost(bool, tag = "4")]
-    pub outdoor_open: bool,
-    #[prost(bool, tag = "5")]
-    pub public_participation: bool,
+pub struct LocalAppUtopiaParameterCondition {
+    #[prost(string, tag = "1")]
+    pub parameter_key: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub allowed_values: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaPlace {
+pub struct LocalAppUtopiaParameterOption {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub summary: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaParameterSpec {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub default_value: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "4")]
+    pub options: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterOption>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaPersonalQuarterSpec {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "2")]
-    pub activities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub sensory_traits: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaPlaceSpec {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub archetype: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub indoor: bool,
+    #[prost(string, tag = "5")]
+    pub sensory_traits: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "6")]
+    pub open_when: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterCondition>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaActivitySpec {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub place_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub social_mode: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub allowed_dayparts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "6")]
+    pub when: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterCondition>,
+    #[prost(int32, tag = "7")]
+    pub min_duration_minutes: i32,
+    #[prost(int32, tag = "8")]
+    pub max_duration_minutes: i32,
+    #[prost(string, tag = "9")]
+    pub scene_hint: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaFrame {
+pub struct LocalAppUtopiaEventPresetSpec {
     #[prost(string, tag = "1")]
-    pub title: ::prost::alloc::string::String,
+    pub id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub place: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
+    pub scenery_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub place_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, tag = "6")]
+    pub default_duration_minutes: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaHabitatSpec {
+    #[prost(string, tag = "1")]
+    pub schema_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub habitat_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub theme_tag: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub backdrop_summary: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub personal_quarter: ::core::option::Option<LocalAppUtopiaPersonalQuarterSpec>,
+    #[prost(message, repeated, tag = "7")]
+    pub places: ::prost::alloc::vec::Vec<LocalAppUtopiaPlaceSpec>,
+    #[prost(message, repeated, tag = "8")]
+    pub activities: ::prost::alloc::vec::Vec<LocalAppUtopiaActivitySpec>,
+    #[prost(message, repeated, tag = "9")]
+    pub parameters: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterSpec>,
+    #[prost(message, repeated, tag = "10")]
+    pub event_presets: ::prost::alloc::vec::Vec<LocalAppUtopiaEventPresetSpec>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaParameterEntry {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaActiveEvent {
+    #[prost(string, tag = "1")]
+    pub event_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub scenery_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "6")]
+    pub place_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "7")]
     pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "4")]
+    #[prost(message, optional, tag = "8")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaFrame {
+    #[prost(string, tag = "1")]
+    pub activity_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub habitat_activation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub habitat_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub habitat_title: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub place_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub place_label: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
     pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(bool, tag = "5")]
+    #[prost(bool, tag = "10")]
     pub interaction: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaResident {
+pub struct LocalAppUtopiaResident {
     #[prost(string, tag = "1")]
     pub agent_handle: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -20277,94 +20403,211 @@ pub struct LocalAppAgentUtopiaResident {
     #[prost(bool, tag = "3")]
     pub solitary: bool,
     #[prost(message, optional, tag = "4")]
-    pub current: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+    pub current: ::core::option::Option<LocalAppUtopiaFrame>,
     #[prost(message, optional, tag = "5")]
-    pub recent: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+    pub recent: ::core::option::Option<LocalAppUtopiaFrame>,
     #[prost(message, optional, tag = "6")]
-    pub next: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+    pub next: ::core::option::Option<LocalAppUtopiaFrame>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaOccupancy {
+pub struct LocalAppUtopiaPlaceOccupancy {
     #[prost(string, tag = "1")]
-    pub place: ::prost::alloc::string::String,
+    pub place_id: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "2")]
     pub agent_handles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaSharedActivity {
+pub struct LocalAppUtopiaSharedActivity {
     #[prost(string, tag = "1")]
     pub activity_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub initiator_handle: ::prost::alloc::string::String,
+    pub habitat_activation_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub recipient_handle: ::prost::alloc::string::String,
+    pub habitat_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub place: ::prost::alloc::string::String,
+    pub habitat_title: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
-    pub activity: ::prost::alloc::string::String,
+    pub initiator_handle: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
+    pub recipient_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub place_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub place_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub activity_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub activity_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
     pub state: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "12")]
     pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "13")]
     pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "14")]
     pub accepted_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaRelocationSummary {
+    #[prost(string, tag = "1")]
+    pub from_habitat_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub from_habitat_title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub to_habitat_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub to_habitat_title: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub relocated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLocalAppAgentUtopiaSnapshotResponse {
-    #[prost(message, optional, tag = "1")]
-    pub settings: ::core::option::Option<LocalAppAgentUtopiaSettings>,
+    #[prost(uint64, tag = "1")]
+    pub revision: u64,
     #[prost(message, optional, tag = "2")]
     pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, repeated, tag = "3")]
-    pub places: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaPlace>,
-    #[prost(message, repeated, tag = "4")]
-    pub residents: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaResident>,
-    #[prost(message, repeated, tag = "5")]
-    pub occupancy: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaOccupancy>,
-    #[prost(message, repeated, tag = "6")]
-    pub shared_activities: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaSharedActivity>,
+    #[prost(string, tag = "3")]
+    pub habitat_activation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub content_digest: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub timezone: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub public_participation: bool,
+    #[prost(message, optional, tag = "7")]
+    pub habitat: ::core::option::Option<LocalAppUtopiaHabitatSpec>,
+    #[prost(message, repeated, tag = "8")]
+    pub parameter_values: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterEntry>,
+    #[prost(string, repeated, tag = "9")]
+    pub open_place_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "10")]
+    pub active_events: ::prost::alloc::vec::Vec<LocalAppUtopiaActiveEvent>,
+    #[prost(message, optional, tag = "11")]
+    pub last_relocation: ::core::option::Option<LocalAppUtopiaRelocationSummary>,
+    #[prost(message, repeated, tag = "12")]
+    pub residents: ::prost::alloc::vec::Vec<LocalAppUtopiaResident>,
+    #[prost(message, repeated, tag = "13")]
+    pub occupancy: ::prost::alloc::vec::Vec<LocalAppUtopiaPlaceOccupancy>,
+    #[prost(message, repeated, tag = "14")]
+    pub shared_activities: ::prost::alloc::vec::Vec<LocalAppUtopiaSharedActivity>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaActivateHabitatChange {
+    #[prost(message, optional, tag = "1")]
+    pub habitat: ::core::option::Option<LocalAppUtopiaHabitatSpec>,
+    #[prost(message, repeated, tag = "2")]
+    pub initial_parameters: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterEntry>,
+    #[prost(string, optional, tag = "3")]
+    pub timezone: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentUtopiaSolitude {
+pub struct LocalAppUtopiaRestoreDefaultChange {
+    #[prost(string, optional, tag = "1")]
+    pub timezone: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaPresetEventTrigger {
+    #[prost(string, tag = "1")]
+    pub preset_id: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "2")]
+    pub duration_minutes: ::core::option::Option<i32>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaCustomEventTrigger {
+    #[prost(string, tag = "1")]
+    pub scenery_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub place_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub duration_minutes: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaEventMutation {
+    #[prost(oneof = "local_app_utopia_event_mutation::Action", tags = "1, 2, 3")]
+    pub action: ::core::option::Option<local_app_utopia_event_mutation::Action>,
+}
+/// Nested message and enum types in `LocalAppUtopiaEventMutation`.
+pub mod local_app_utopia_event_mutation {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Action {
+        #[prost(message, tag = "1")]
+        TriggerPreset(super::LocalAppUtopiaPresetEventTrigger),
+        #[prost(message, tag = "2")]
+        PutCustom(super::LocalAppUtopiaCustomEventTrigger),
+        #[prost(string, tag = "3")]
+        ClearEventId(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppUtopiaApplyTuningChange {
+    #[prost(message, repeated, tag = "1")]
+    pub parameters: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterEntry>,
+    #[prost(message, optional, tag = "2")]
+    pub event_mutation: ::core::option::Option<LocalAppUtopiaEventMutation>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppUtopiaSolitudeChange {
     #[prost(string, tag = "1")]
     pub agent_handle: ::prost::alloc::string::String,
     #[prost(bool, tag = "2")]
     pub solitary: bool,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateLocalAppAgentUtopiaSettingsRequest {
     #[prost(uint64, tag = "1")]
     pub expected_revision: u64,
     #[prost(
-        oneof = "update_local_app_agent_utopia_settings_request::Intent",
-        tags = "2, 3, 4, 5, 6"
+        oneof = "update_local_app_agent_utopia_settings_request::Change",
+        tags = "2, 3, 4, 5, 6, 7"
     )]
-    pub intent: ::core::option::Option<
-        update_local_app_agent_utopia_settings_request::Intent,
+    pub change: ::core::option::Option<
+        update_local_app_agent_utopia_settings_request::Change,
     >,
 }
 /// Nested message and enum types in `UpdateLocalAppAgentUtopiaSettingsRequest`.
 pub mod update_local_app_agent_utopia_settings_request {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Intent {
-        #[prost(string, tag = "2")]
-        SelectPreset(::prost::alloc::string::String),
-        #[prost(bool, tag = "3")]
-        RestoreDefault(bool),
-        #[prost(bool, tag = "4")]
-        OutdoorOpen(bool),
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(message, tag = "2")]
+        ActivateHabitat(super::LocalAppUtopiaActivateHabitatChange),
+        #[prost(message, tag = "3")]
+        RestoreDefault(super::LocalAppUtopiaRestoreDefaultChange),
+        #[prost(message, tag = "4")]
+        ApplyTuning(super::LocalAppUtopiaApplyTuningChange),
         #[prost(bool, tag = "5")]
         PublicParticipation(bool),
         #[prost(message, tag = "6")]
-        Solitude(super::LocalAppAgentUtopiaSolitude),
+        Solitude(super::LocalAppUtopiaSolitudeChange),
+        #[prost(string, tag = "7")]
+        Timezone(::prost::alloc::string::String),
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateLocalAppAgentUtopiaSettingsResponse {
-    #[prost(message, optional, tag = "1")]
-    pub settings: ::core::option::Option<LocalAppAgentUtopiaSettings>,
+    #[prost(uint64, tag = "1")]
+    pub revision: u64,
+    #[prost(string, tag = "2")]
+    pub habitat_activation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub habitat_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub habitat_title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub content_digest: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub timezone: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub public_participation: bool,
+    #[prost(message, repeated, tag = "8")]
+    pub parameter_values: ::prost::alloc::vec::Vec<LocalAppUtopiaParameterEntry>,
+    #[prost(string, repeated, tag = "9")]
+    pub open_place_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "10")]
+    pub active_events: ::prost::alloc::vec::Vec<LocalAppUtopiaActiveEvent>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentWorkReference {

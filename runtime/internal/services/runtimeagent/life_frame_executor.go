@@ -85,10 +85,10 @@ func compileLifeFrameContext(input lifeFrameExecutionInput) (*agentTurnContextCo
 	}
 	format, schemaBytes, err := lifeFrameResponseFormat(input.Context)
 	instruction := lifeFrameOutputContract
-	if input.Context.Utopia != nil {
-		instruction += "\nFor each future segment, set place and utopia_activity to a matching pair from the current Utopia when the action uses a listed place. Leave both fields empty for an ordinary activity without an established place. Do not substitute another place for a closed one without choosing a valid action there."
-		if input.Context.PreviousUtopia != nil {
-			instruction += " The previous Utopia describes the last accepted plan's conditions. Use current conditions for future choices and preserve already established history."
+	if input.Context.Utopia != nil && !input.ContactOnly {
+		instruction += "\nFor each future segment, set place and utopia_activity to a matching pair from openPlaces and eligibleActivities in the current Utopia when the action uses a listed place, respecting its minM..maxM duration bounds. Leave both fields empty for an ordinary activity without an established place. Do not substitute another place for a closed one without choosing a valid action there."
+		if input.Context.UtopiaRelocatedFrom != "" || input.Context.PreviousUtopia != nil {
+			instruction += " Use current Utopia conditions for future choices while preserving your character identity and already established history."
 		}
 	}
 	if input.ContactOnly {
@@ -152,6 +152,12 @@ func compileSelectedLifeFrameContext(input *lifeFrameExecutionInput, core string
 		}
 		input.Memory, input.Transcript = memory, history
 		if len(memory)+len(history) == oldCount {
+			// Provenance follows consumed input, not an optional candidate that
+			// the capacity compiler omitted.
+			if !selected["life.explanation"] {
+				input.Context.Explanation = ""
+				input.Context.ExplanationCustomScenery = false
+			}
 			return compiled, nil
 		}
 	}

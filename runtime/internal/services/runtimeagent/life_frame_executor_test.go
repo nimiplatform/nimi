@@ -195,8 +195,8 @@ func TestLifeFrameLoopPlansWithoutConversationAndPersistsAcceptedCoverage(t *tes
 		t.Fatalf("sixty planned minutes take %v", got)
 	}
 	input := ai.requests[0].GetSpec().GetTextGenerate().GetInput()[0].GetContent()
-	if !strings.Contains(input, "Current Utopia conditions") || !strings.Contains(input, "birdwatching spot") {
-		t.Fatal("the Runtime did not supply its default Utopia to personal planning")
+	if !strings.Contains(input, "untrusted_habitat_data") || !strings.Contains(input, "海风渔岛") || !strings.Contains(input, "openPlaces") || strings.Contains(input, "安静的临海小岛") {
+		t.Fatal("the Runtime did not supply its zero-prose default Utopia to personal planning")
 	}
 	svc.chatSurfaceMu.Lock()
 	anchors := len(svc.chatAnchors)

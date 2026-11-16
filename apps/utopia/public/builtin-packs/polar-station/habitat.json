@@ -1,0 +1,323 @@
+{
+  "schemaVersion": "1.0",
+  "habitatId": "nimi.builtin.polar-station",
+  "title": "极地科考站",
+  "themeTag": "polar",
+  "backdropSummary": "冰脊雪原上的多舱段暖光科考聚落，防风木栈桥串联室外气象台、雪橇补给坪、冰芯样本库、双层玻璃穹顶、地热暖炉厅与极夜电台室。",
+  "personalQuarter": {
+    "id": "personal-quarter",
+    "name": "保温个人舱",
+    "sensoryTraits": "高脚恒温圆顶舱室，舷窗凝着细霜，床畔亮着柔和琥珀阅读灯。"
+  },
+  "places": [
+    {
+      "id": "weather-deck",
+      "name": "室外气象台",
+      "archetype": "lookout",
+      "indoor": false,
+      "sensoryTraits": "架在西侧冰脊上的防滑钢栈桥、风向袋与风速仪。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "crisp-clear"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rover-apron",
+      "name": "雪橇补给坪",
+      "archetype": "workshop",
+      "indoor": false,
+      "sensoryTraits": "停靠橙色履带雪地车与木制物资箱的开阔雪坪。",
+      "openWhen": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "crisp-clear"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ice-core-vault",
+      "name": "冰芯样本库",
+      "archetype": "library",
+      "indoor": true,
+      "sensoryTraits": "半嵌冰岩的恒低温拱廊，透出清澈冰蓝色观测冷光。",
+      "openWhen": []
+    },
+    {
+      "id": "observation-window",
+      "name": "全景观测窗",
+      "archetype": "lookout",
+      "indoor": true,
+      "sensoryTraits": "山脊高处的暖光几何玻璃穹顶，配有望远镜与软垫躺椅。",
+      "openWhen": []
+    },
+    {
+      "id": "hydro-garden",
+      "name": "水培温室",
+      "archetype": "garden",
+      "indoor": true,
+      "sensoryTraits": "湿润温暖的球形植物温室，藤蔓翠绿、蔬果清香。",
+      "openWhen": []
+    },
+    {
+      "id": "geothermal-hearth",
+      "name": "地热暖炉厅",
+      "archetype": "hearth",
+      "indoor": true,
+      "sensoryTraits": "紧邻露天温泉眼的松木尖顶木屋，壁炉松柴噼啪作响。",
+      "openWhen": []
+    },
+    {
+      "id": "radio-comms-room",
+      "name": "极夜电台室",
+      "archetype": "workshop",
+      "indoor": true,
+      "sensoryTraits": "红白通信塔下的安静木舱，电子管电台闪烁着温暖绿光。",
+      "openWhen": []
+    },
+    {
+      "id": "common-lab",
+      "name": "公共工作间",
+      "archetype": "workshop",
+      "indoor": true,
+      "sensoryTraits": "挂满极地海图与地质剖面图的宽敞长桌研究室。",
+      "openWhen": []
+    }
+  ],
+  "activities": [
+    {
+      "id": "bunk-quiet-rest",
+      "name": "舱内整理休息",
+      "placeIds": [
+        "personal-quarter"
+      ],
+      "socialMode": "solo",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 120,
+      "sceneHint": "在保温个人舱阅读笔记或静静小憩。"
+    },
+    {
+      "id": "wind-reading",
+      "name": "室外测风记录",
+      "placeIds": [
+        "weather-deck"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "crisp-clear"
+          ]
+        }
+      ],
+      "minDurationMinutes": 15,
+      "maxDurationMinutes": 60,
+      "sceneHint": "趁晴冷无暴雪登上室外气象台校准风速读数。"
+    },
+    {
+      "id": "rover-gear-check",
+      "name": "清点雪车补给",
+      "placeIds": [
+        "rover-apron"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day"
+      ],
+      "when": [
+        {
+          "parameterKey": "weather",
+          "allowedValues": [
+            "crisp-clear"
+          ]
+        }
+      ],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 70,
+      "sceneHint": "在雪橇补给坪检查履带雪地车与防寒装备箱。"
+    },
+    {
+      "id": "ice-core-catalog",
+      "name": "描摹冰芯年轮",
+      "placeIds": [
+        "ice-core-vault"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在冰芯样本库记录远古气泡层序。"
+    },
+    {
+      "id": "observe-snow",
+      "name": "并肩看雪观极光",
+      "placeIds": [
+        "observation-window"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在全景观测窗穹顶下捧着热茶仰望雪峰与极光。"
+    },
+    {
+      "id": "tend-seedlings",
+      "name": "照料温室幼苗",
+      "placeIds": [
+        "hydro-garden"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 75,
+      "sceneHint": "在水培温室修剪番茄藤叶、记录营养液温度。"
+    },
+    {
+      "id": "hearth-cocoa-chat",
+      "name": "暖炉热可可夜话",
+      "placeIds": [
+        "geothermal-hearth"
+      ],
+      "socialMode": "shared_invite",
+      "allowedDayparts": [
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 25,
+      "maxDurationMinutes": 95,
+      "sceneHint": "在地热暖炉厅围坐壁炉旁分享热可可与旅途见闻。"
+    },
+    {
+      "id": "night-radio-watch",
+      "name": "守听极夜短波",
+      "placeIds": [
+        "radio-comms-room"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 80,
+      "sceneHint": "在极夜电台室调谐短波频率，抄收远洋船队问候。"
+    },
+    {
+      "id": "log-review",
+      "name": "核对科考海图",
+      "placeIds": [
+        "common-lab"
+      ],
+      "socialMode": "co_present",
+      "allowedDayparts": [
+        "morning",
+        "day",
+        "dusk",
+        "night"
+      ],
+      "when": [],
+      "minDurationMinutes": 20,
+      "maxDurationMinutes": 90,
+      "sceneHint": "在公共工作间长桌旁整理地形卡片与观测图表。"
+    }
+  ],
+  "parameters": [
+    {
+      "key": "weather",
+      "label": "站外气象",
+      "defaultValue": "crisp-clear",
+      "options": [
+        {
+          "value": "crisp-clear",
+          "label": "晴冷",
+          "summary": "冰原视野通透，室外气象台与雪橇补给坪安全开放。"
+        },
+        {
+          "value": "blizzard",
+          "label": "暴风雪",
+          "summary": "风雪呼啸封锁外坪，全员留在温暖室内舱段活动。"
+        }
+      ]
+    },
+    {
+      "key": "sky-phenomenon",
+      "label": "极夜天象",
+      "defaultValue": "quiet-sky",
+      "options": [
+        {
+          "value": "quiet-sky",
+          "label": "静谧夜空",
+          "summary": "清澈深蓝星幕映着冰脊微光。"
+        },
+        {
+          "value": "aurora-band",
+          "label": "极光带",
+          "summary": "翠绿与淡紫光幕在雪峰上空缓缓流动。"
+        }
+      ]
+    }
+  ],
+  "eventPresets": [
+    {
+      "id": "first-tomato",
+      "sceneryKind": "harvest",
+      "label": "温室番茄结果了",
+      "description": "水培温室第一串红透的小番茄挂上藤蔓。",
+      "placeId": "hydro-garden",
+      "defaultDurationMinutes": 240
+    },
+    {
+      "id": "shortwave-music",
+      "sceneryKind": "radio-signal",
+      "label": "电台飘来古典乐",
+      "description": "极夜电台室清晰收到一段温暖的大提琴广播。",
+      "placeId": "radio-comms-room",
+      "defaultDurationMinutes": 120
+    },
+    {
+      "id": "hearth-soup-pot",
+      "sceneryKind": "hearth-lit",
+      "label": "暖炉炖上奶油浓汤",
+      "description": "地热暖炉厅铜锅咕嘟冒泡，满屋弥漫烤面包与浓汤香。",
+      "placeId": "geothermal-hearth",
+      "defaultDurationMinutes": 150
+    }
+  ]
+}

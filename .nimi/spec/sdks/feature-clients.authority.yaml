@@ -272,11 +272,11 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.utopia
     kind: rule
-    title: SDK projects the native Utopia snapshot and typed settings intent
+    title: SDK projects the self-describing native Utopia snapshot and atomic settings intents
     modality: must
-    statement: The host-injected typed App client projects the exact native Utopia snapshot and settings update operations under their respective coverage. It carries Runtime's settings revision, typed configuration intent, safe current summaries, current-session handles and typed results without creating local ownership, rewriting accepted facts or inferring permissions. Scope invalidation clears previously projected state. App observation does not start life; existing Conversation operations carry explicit user chat intent.
+    statement: The host-injected typed App client projects the exact native Utopia snapshot and settings update operations under their respective coverage. Snapshot read projects the Runtime-resolved self-describing HabitatSpecV1, content digest, activation identity, timezone, parameter values, open places, active bounded ambient events, relocation summary, safe resident frame summaries using validated labels and current-session handles, public occupancy and bounded shared records. Settings update submits the expected settings revision with one typed intent for habitat activation, default restoration, atomic parameter and ambient-event tuning, timezone, public participation or per-Agent solitude, and projects the committed header acknowledgement without resident read lists, local ownership, rewritten facts or inferred permissions. Scope invalidation clears previously projected state. App observation does not start life; existing Conversation operations carry explicit user chat intent.
     condition: Whenever a native App client observes or updates Utopia.
-    failure: Return a typed unavailable, denied or stale result under the existing carrier contract. Do not route through an alternate API or recreate the effective setting locally.
+    failure: Fail closed on malformed write intents and return a typed unavailable, denied, invalid or stale result under the existing carrier contract without routing through an alternate API or recreating the effective habitat locally.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-life.utopia

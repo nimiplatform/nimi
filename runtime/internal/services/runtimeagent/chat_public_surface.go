@@ -225,18 +225,20 @@ type publicChatConversationSummaryAttemptState struct {
 	AttemptedAt       time.Time `json:"attemptedAt"`
 }
 type publicChatTurnState struct {
-	LifeReadRevision     uint64
-	ConversationRead     *lifeConversationRead
-	AgentCreatedAt       *timestamppb.Timestamp
-	MemoryReadSet        cognitionmemory.MemoryReadSet
-	MemorySourcesInvalid bool
-	ProactiveIntent      *lifeProactiveIntent
-	BackgroundReleased   chan struct{}
-	CanceledFollowUp     *publicChatFollowUpState
-	AdmissionReused      bool
-	RetryOfTurnID        string
-	ConversationAnchorID string
-	TurnID               string
+	UtopiaRead            *lifeUtopiaRead
+	LifeReadRevision      uint64
+	LifeCustomSceneryRead bool
+	ConversationRead      *lifeConversationRead
+	AgentCreatedAt        *timestamppb.Timestamp
+	MemoryReadSet         cognitionmemory.MemoryReadSet
+	MemorySourcesInvalid  bool
+	ProactiveIntent       *lifeProactiveIntent
+	BackgroundReleased    chan struct{}
+	CanceledFollowUp      *publicChatFollowUpState
+	AdmissionReused       bool
+	RetryOfTurnID         string
+	ConversationAnchorID  string
+	TurnID                string
 	// StreamID identifies the owned foreground presentation/turn stream per
 	// K-AGCORE-030. One turn may own multiple stream units; this field is
 	// the primary admitted foreground stream for the reactive chat path and

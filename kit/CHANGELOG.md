@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Utopia Habitat Protocol v2 (breaking native carrier, next 0.x minor)
+
+Replaces the fixed `island`/`polar-station` Utopia preset and `outdoorOpen` boolean contract with the self-describing `HabitatSpecV1` protocol across `@nimiplatform/sdk/app`, Electron main, and the Rust `protected-local` bridge. `client.utopia.snapshot()` now returns the active `habitat`, `contentDigest`, `habitatActivationId`, `timezone`, `parameterValues`, `openPlaceIds`, `activeEvents`, `lastRelocation`, `residents`, `occupancy`, and `sharedActivities` (including `relocated` and `relocated_partial`). `client.utopia.update()` accepts `activate-habitat`, `restore-default`, `apply-tuning`, `set-public-participation`, `set-solitude`, and `set-timezone` and returns header-only `NimiUtopiaMutationAck`. Update Kit, SDK, Runtime, and the native binding together.
+
 ## Unreleased — Character discovery (next 0.x minor)
 
 Native and remote App carriers support the SDK Character discovery and acquisition operations. Custom native bindings must implement `localAppCharacterSourceList` and `localAppCharacterSourceConnect`; custom standard shells must expose `agents.listCharacters` and `agents.connectCharacter`. Update matching Runtime, SDK, Kit and native packages together. `open-world` carries one public world reference to Home; no generic URL or account authority is transferred. This source change is not published.

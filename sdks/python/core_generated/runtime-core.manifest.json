@@ -8531,13 +8531,6 @@
       "LocalAppAgentRealtimeTranscript",
       "LocalAppAgentReference",
       "LocalAppAgentUpdateAutonomyResponse",
-      "LocalAppAgentUtopiaFrame",
-      "LocalAppAgentUtopiaOccupancy",
-      "LocalAppAgentUtopiaPlace",
-      "LocalAppAgentUtopiaResident",
-      "LocalAppAgentUtopiaSettings",
-      "LocalAppAgentUtopiaSharedActivity",
-      "LocalAppAgentUtopiaSolitude",
       "LocalAppAgentWorkEvent",
       "LocalAppAgentWorkExecution",
       "LocalAppAgentWorkInput",
@@ -8604,6 +8597,28 @@
       "LocalAppTextTurnFailed",
       "LocalAppTextTurnReasoningSummary",
       "LocalAppTextTurnToolCall",
+      "LocalAppUtopiaActivateHabitatChange",
+      "LocalAppUtopiaActiveEvent",
+      "LocalAppUtopiaActivitySpec",
+      "LocalAppUtopiaApplyTuningChange",
+      "LocalAppUtopiaCustomEventTrigger",
+      "LocalAppUtopiaEventMutation",
+      "LocalAppUtopiaEventPresetSpec",
+      "LocalAppUtopiaFrame",
+      "LocalAppUtopiaHabitatSpec",
+      "LocalAppUtopiaParameterCondition",
+      "LocalAppUtopiaParameterEntry",
+      "LocalAppUtopiaParameterOption",
+      "LocalAppUtopiaParameterSpec",
+      "LocalAppUtopiaPersonalQuarterSpec",
+      "LocalAppUtopiaPlaceOccupancy",
+      "LocalAppUtopiaPlaceSpec",
+      "LocalAppUtopiaPresetEventTrigger",
+      "LocalAppUtopiaRelocationSummary",
+      "LocalAppUtopiaResident",
+      "LocalAppUtopiaRestoreDefaultChange",
+      "LocalAppUtopiaSharedActivity",
+      "LocalAppUtopiaSolitudeChange",
       "LocalAppVideoGenerateJobSpec",
       "LocalAppVideoGenerationOptions",
       "LocalAppVoiceAsset",
@@ -22524,8 +22539,8 @@
         "name": "GetLocalAppAgentUtopiaSnapshotResponse",
         "fields": [
           {
-            "name": "settings",
-            "type": "LocalAppAgentUtopiaSettings",
+            "name": "revision",
+            "type": "uint64",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -22538,32 +22553,88 @@
             "number": 2
           },
           {
-            "name": "places",
-            "type": "LocalAppAgentUtopiaPlace",
-            "repeated": true,
+            "name": "habitat_activation_id",
+            "type": "string",
+            "repeated": false,
             "optional": false,
             "number": 3
           },
           {
-            "name": "residents",
-            "type": "LocalAppAgentUtopiaResident",
-            "repeated": true,
+            "name": "content_digest",
+            "type": "string",
+            "repeated": false,
             "optional": false,
             "number": 4
           },
           {
-            "name": "occupancy",
-            "type": "LocalAppAgentUtopiaOccupancy",
-            "repeated": true,
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
             "optional": false,
             "number": 5
           },
           {
-            "name": "shared_activities",
-            "type": "LocalAppAgentUtopiaSharedActivity",
-            "repeated": true,
+            "name": "public_participation",
+            "type": "bool",
+            "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "habitat",
+            "type": "LocalAppUtopiaHabitatSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "parameter_values",
+            "type": "LocalAppUtopiaParameterEntry",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "open_place_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "active_events",
+            "type": "LocalAppUtopiaActiveEvent",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "last_relocation",
+            "type": "LocalAppUtopiaRelocationSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "residents",
+            "type": "LocalAppUtopiaResident",
+            "repeated": true,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "occupancy",
+            "type": "LocalAppUtopiaPlaceOccupancy",
+            "repeated": true,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "shared_activities",
+            "type": "LocalAppUtopiaSharedActivity",
+            "repeated": true,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/agent_utopia.proto"
@@ -29131,265 +29202,6 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
-        "name": "LocalAppAgentUtopiaFrame",
-        "fields": [
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "place",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "starts_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "ends_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "interaction",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaOccupancy",
-        "fields": [
-          {
-            "name": "place",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_handles",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaPlace",
-        "fields": [
-          {
-            "name": "id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "activities",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaResident",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "display_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "solitary",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "current",
-            "type": "LocalAppAgentUtopiaFrame",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "recent",
-            "type": "LocalAppAgentUtopiaFrame",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "next",
-            "type": "LocalAppAgentUtopiaFrame",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaSettings",
-        "fields": [
-          {
-            "name": "revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "preset",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "preset_version",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "outdoor_open",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "public_participation",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaSharedActivity",
-        "fields": [
-          {
-            "name": "activity_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "initiator_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "recipient_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "place",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "activity",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "starts_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "ends_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "accepted_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
-        "name": "LocalAppAgentUtopiaSolitude",
-        "fields": [
-          {
-            "name": "agent_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "solitary",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_utopia.proto"
-      },
-      {
         "name": "LocalAppAgentWorkEvent",
         "fields": [
           {
@@ -32290,6 +32102,894 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "LocalAppUtopiaActivateHabitatChange",
+        "fields": [
+          {
+            "name": "habitat",
+            "type": "LocalAppUtopiaHabitatSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "initial_parameters",
+            "type": "LocalAppUtopiaParameterEntry",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaActiveEvent",
+        "fields": [
+          {
+            "name": "event_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "slot",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "scenery_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaActivitySpec",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "place_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "social_mode",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "allowed_dayparts",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "when",
+            "type": "LocalAppUtopiaParameterCondition",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "min_duration_minutes",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "max_duration_minutes",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "scene_hint",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaApplyTuningChange",
+        "fields": [
+          {
+            "name": "parameters",
+            "type": "LocalAppUtopiaParameterEntry",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "event_mutation",
+            "type": "LocalAppUtopiaEventMutation",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaCustomEventTrigger",
+        "fields": [
+          {
+            "name": "scenery_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "duration_minutes",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaEventMutation",
+        "fields": [
+          {
+            "name": "trigger_preset",
+            "type": "LocalAppUtopiaPresetEventTrigger",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "put_custom",
+            "type": "LocalAppUtopiaCustomEventTrigger",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "clear_event_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaEventPresetSpec",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "scenery_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "default_duration_minutes",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaFrame",
+        "fields": [
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "habitat_activation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "habitat_title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "place_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "ends_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "interaction",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaHabitatSpec",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "theme_tag",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "backdrop_summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "personal_quarter",
+            "type": "LocalAppUtopiaPersonalQuarterSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "places",
+            "type": "LocalAppUtopiaPlaceSpec",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "activities",
+            "type": "LocalAppUtopiaActivitySpec",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "parameters",
+            "type": "LocalAppUtopiaParameterSpec",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "event_presets",
+            "type": "LocalAppUtopiaEventPresetSpec",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaParameterCondition",
+        "fields": [
+          {
+            "name": "parameter_key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "allowed_values",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaParameterEntry",
+        "fields": [
+          {
+            "name": "key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaParameterOption",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaParameterSpec",
+        "fields": [
+          {
+            "name": "key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "default_value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "options",
+            "type": "LocalAppUtopiaParameterOption",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaPersonalQuarterSpec",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "sensory_traits",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaPlaceOccupancy",
+        "fields": [
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_handles",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaPlaceSpec",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "archetype",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "indoor",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sensory_traits",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "open_when",
+            "type": "LocalAppUtopiaParameterCondition",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaPresetEventTrigger",
+        "fields": [
+          {
+            "name": "preset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "duration_minutes",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaRelocationSummary",
+        "fields": [
+          {
+            "name": "from_habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "from_habitat_title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "to_habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "to_habitat_title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "relocated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaResident",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "solitary",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "current",
+            "type": "LocalAppUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "recent",
+            "type": "LocalAppUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "next",
+            "type": "LocalAppUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaRestoreDefaultChange",
+        "fields": [
+          {
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaSharedActivity",
+        "fields": [
+          {
+            "name": "activity_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "habitat_activation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "habitat_title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "initiator_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "recipient_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "place_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "place_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "activity_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "ends_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "accepted_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppUtopiaSolitudeChange",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "solitary",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
       },
       {
         "name": "LocalAppVideoGenerateJobSpec",
@@ -46735,22 +47435,22 @@
             "number": 1
           },
           {
-            "name": "select_preset",
-            "type": "string",
+            "name": "activate_habitat",
+            "type": "LocalAppUtopiaActivateHabitatChange",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
             "name": "restore_default",
-            "type": "bool",
+            "type": "LocalAppUtopiaRestoreDefaultChange",
             "repeated": false,
             "optional": false,
             "number": 3
           },
           {
-            "name": "outdoor_open",
-            "type": "bool",
+            "name": "apply_tuning",
+            "type": "LocalAppUtopiaApplyTuningChange",
             "repeated": false,
             "optional": false,
             "number": 4
@@ -46764,10 +47464,17 @@
           },
           {
             "name": "solitude",
-            "type": "LocalAppAgentUtopiaSolitude",
+            "type": "LocalAppUtopiaSolitudeChange",
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_utopia.proto"
@@ -46776,11 +47483,74 @@
         "name": "UpdateLocalAppAgentUtopiaSettingsResponse",
         "fields": [
           {
-            "name": "settings",
-            "type": "LocalAppAgentUtopiaSettings",
+            "name": "revision",
+            "type": "uint64",
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "habitat_activation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "habitat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "habitat_title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "content_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "timezone",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "public_participation",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "parameter_values",
+            "type": "LocalAppUtopiaParameterEntry",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "open_place_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "active_events",
+            "type": "LocalAppUtopiaActiveEvent",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/agent_utopia.proto"

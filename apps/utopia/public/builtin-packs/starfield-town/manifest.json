@@ -1,0 +1,11 @@
+{
+  "bundleFormatVersion": "1.0",
+  "bundleId": "nimi.builtin.starfield-town",
+  "version": "1.0.0",
+  "title": "星原晴风镇",
+  "subtitle": "晴岚手绘田园小镇 · 钟楼书馆、玻璃花房、喷泉广场、双桥水车与热气球坪",
+  "author": "Nimi Official",
+  "previewAsset": "assets/preview.png",
+  "habitatFile": "habitat.json",
+  "stageFile": "stage.json"
+}

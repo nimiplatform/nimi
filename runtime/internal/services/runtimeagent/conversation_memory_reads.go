@@ -50,6 +50,7 @@ func mergeMemoryReadSets(a, b cognitionmemory.MemoryReadSet, limit int) (cogniti
 func (s *Service) recordConversationMemoryReads(turnID string, compiled *agentTurnContextCompilation, pre cognitionmemory.MemoryReadSet, recall *agentTurnPrivateRecallInput, life *agentTurnLifeContextInput, session publicChatAnchorState, summary *agentTurnConversationSummaryInput) {
 	actual := map[string]bool{}
 	explanation := false
+	habitatIncluded := false
 	var conversationRead *lifeConversationRead
 	includeSequence := func(sequence uint64) {
 		read := &lifeConversationRead{AnchorID: session.ConversationAnchorID, Revision: conversationContextRevision(session.ConversationContext), FirstSequence: sequence}
@@ -59,6 +60,9 @@ func (s *Service) recordConversationMemoryReads(turnID string, compiled *agentTu
 		for _, item := range lane.Items {
 			if !item.Included {
 				continue
+			}
+			if lane.LaneID == agentTurnContextLaneLifeContext && item.StableID == "life.utopia" {
+				habitatIncluded = true
 			}
 			if lane.LaneID == agentTurnContextLaneCanonicalMemory {
 				actual[item.SourceRef.RefID] = true
@@ -116,6 +120,10 @@ func (s *Service) recordConversationMemoryReads(turnID string, compiled *agentTu
 	if turn := s.chatTurns[turnID]; turn != nil {
 		if life != nil {
 			turn.LifeReadRevision = life.Revision
+			turn.LifeCustomSceneryRead = life.CoreCustomScenery || explanation && life.ExplanationCustomScenery || habitatIncluded && life.UtopiaRead.customScenery()
+			if habitatIncluded {
+				turn.UtopiaRead = life.UtopiaRead
+			}
 		}
 		var contextErr error
 		turn.ConversationRead, contextErr = combineConversationReads(turn.ConversationRead, conversationRead)

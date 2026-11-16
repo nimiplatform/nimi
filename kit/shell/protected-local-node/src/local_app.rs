@@ -3685,7 +3685,11 @@ pub async fn local_app_agent_utopia_snapshot() -> NativeJsonOutcome {
 }
 #[napi(js_name = "localAppAgentUtopiaUpdate")]
 pub async fn local_app_agent_utopia_update(input: JsonValue) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.agent_utopia_update(input).await }).await
+    let parsed = match nimi_shell_protected_local::parse_agent_utopia_update_input(input) {
+        Ok(parsed) => parsed,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move { session.agent_utopia_update(parsed).await }).await
 }
 #[napi(js_name = "localAppAgentWorkStart")]
 pub async fn local_app_agent_work_start(input: JsonValue) -> NativeJsonOutcome {

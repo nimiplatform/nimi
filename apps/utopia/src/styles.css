@@ -1,31 +1,3794 @@
-:root { font-family: 'Inter', system-ui, sans-serif; color-scheme: light; color: #1c2c29; background: #eff4ef; }
-* { box-sizing: border-box; }
-body { margin: 0; }
-main { max-width: 1060px; margin: auto; padding: 34px clamp(16px, 5vw, 56px); display: grid; gap: 22px; }
-h1, h2, h3, p { margin: 0; }
-h1 { font-size: clamp(1.85rem, 4vw, 2.6rem); letter-spacing: -.035em; }
-h2 { font-size: 1.13rem; margin-bottom: 8px; }
-h3 { font-size: 1rem; }
-.heading p, small, dt, .places span { color: #526661; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.panel { border: 1px solid #cbdad1; border-radius: 14px; background: #fcfdfb; padding: 18px; }
-.settings { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin: 8px 0 16px; }
-.settings label { display: flex; align-items: center; gap: 7px; }
-button, select, textarea { font: inherit; color: inherit; background: white; border: 1px solid #94aea2; border-radius: 7px; padding: 6px 10px; }
-button { cursor: pointer; }
-button:disabled { cursor: default; opacity: .55; }
-button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid #397866; outline-offset: 2px; }
-.places, .shared, .messages { list-style: none; padding: 0; margin: 0; }
-.places { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.places li { background: #edf5ef; border-radius: 9px; padding: 11px; display: grid; gap: 3px; }
-.places span, small { font-size: .81rem; }
-.residents { display: grid; grid-template-columns: repeat(auto-fit, minmax(234px, 1fr)); gap: 10px; }
-dl div { display: grid; grid-template-columns: 84px 1fr; margin: 6px 0; }
-dd { margin: 0; overflow-wrap: anywhere; }
-.alert { color: #8a251a; }
-.shared li, .messages li { border-top: 1px solid #dbe7de; padding: 8px 0; }
-.messages { max-height: 260px; overflow: auto; }
-.messages p { white-space: pre-wrap; overflow-wrap: anywhere; }
-form { display: grid; gap: 7px; margin-top: 12px; }
-form button { justify-self: end; }
-textarea { min-height: 76px; resize: vertical; }
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
+@import "tailwindcss";
+
+@source "../node_modules/@nimiplatform/kit/dist/**/*.{js,mjs}";
+
+:root {
+  color-scheme: light;
+  --utopia-ink-strong: #3c2f25;
+  --utopia-ink-body: #564537;
+  --utopia-ink-muted: #826e5c;
+  --utopia-parchment-bg: #fdf9f0;
+  --utopia-parchment-card: #fffdf7;
+  --utopia-parchment-subtle: #f6efe2;
+  --utopia-parchment-border: rgba(94, 72, 52, 0.24);
+  --utopia-ink-outline: #4a3a2d;
+  --utopia-gold-top: #fde18d;
+  --utopia-gold-bottom: #f0b43e;
+  --utopia-gold-border: #6f4f20;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 360px;
+  overflow: hidden;
+  background: #e9e2d2;
+  color: var(--utopia-ink-strong);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.utopia-inline-icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── App Root & Full-Bleed Hand-Drawn World Shell ── */
+.utopia-app-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #e9e2d2;
+}
+
+.utopia-world-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.utopia-world-canvas-main {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.utopia-loading-canvas {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 45%, #fbf7ec 0%, #e7decb 100%);
+}
+
+.utopia-parchment-empty {
+  max-width: 460px;
+  padding: 20px 24px;
+  border-radius: 22px;
+  border: 1.5px solid var(--utopia-parchment-border);
+  background: var(--utopia-parchment-bg);
+  box-shadow: 0 16px 40px rgba(48, 35, 22, 0.14);
+}
+
+.utopia-loading-scroll-pill {
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1.5px solid var(--utopia-parchment-border);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(48, 35, 22, 0.12);
+}
+
+.utopia-floating-alert {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 88;
+  width: min(560px, calc(100vw - 32px));
+  pointer-events: auto;
+}
+
+/* ── Floating Storybook Parchment Top Ribbon (AI-Town Inspired) ── */
+.utopia-horizon-bar {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(92, 71, 50, 0.25);
+  background: rgba(253, 249, 240, 0.95);
+  box-shadow:
+    0 8px 24px rgba(40, 28, 16, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+}
+
+.utopia-horizon-bar.is-hud-hidden {
+  transform: translateY(-140%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.utopia-horizon-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.utopia-horizon-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 6px;
+  border-right: 1.5px solid rgba(94, 72, 52, 0.18);
+  margin-right: 2px;
+}
+
+.utopia-horizon-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fce294, #eeb440);
+  border: 1.5px solid #6f4f20;
+  color: #462f10;
+  flex-shrink: 0;
+}
+
+.utopia-horizon-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-horizon-theme,
+.utopia-horizon-loading {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(126, 98, 68, 0.11);
+  color: var(--utopia-ink-body);
+}
+
+.utopia-horizon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-body);
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(46, 34, 22, 0.06);
+}
+
+.utopia-horizon-pill .utopia-pill-kicker {
+  font-size: 11px;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-horizon-pill strong {
+  font-weight: 700;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-horizon-pill.is-interactive {
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 120ms ease;
+}
+
+.utopia-horizon-pill.is-interactive:hover:not(:disabled) {
+  border-color: #8c6432;
+  background: #fff8e6;
+  transform: translateY(-0.5px);
+}
+
+.utopia-horizon-pill.is-interactive:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.utopia-horizon-pill.is-interactive:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+.utopia-horizon-pill.is-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-horizon-pill.is-event {
+  border-color: rgba(186, 122, 34, 0.48);
+  background: #fff6dc;
+  color: #5c3d12;
+  font-weight: 600;
+}
+
+.utopia-horizon-pill.is-interactive.has-impact-warn {
+  border-color: rgba(186, 110, 34, 0.52);
+}
+
+.utopia-pill-impact-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(126, 98, 68, 0.12);
+  color: #6b4e2e;
+}
+
+.utopia-pill-impact-tag.is-warn {
+  background: rgba(214, 128, 36, 0.16);
+  color: #8a4308;
+}
+
+.utopia-horizon-confirm-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1.25px solid rgba(186, 110, 34, 0.45);
+  background: #fff9eb;
+  color: #5c340b;
+  font-size: 12px;
+  box-shadow: 0 3px 10px rgba(64, 42, 18, 0.08);
+}
+
+.utopia-horizon-confirm-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utopia-relocate-tz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(126, 98, 68, 0.24);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--utopia-ink-body);
+  cursor: pointer;
+}
+
+.utopia-relocate-tz-option input[type='checkbox'] {
+  margin-top: 2px;
+  accent-color: #8c6432;
+}
+
+.utopia-freeze-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--nimi-status-warning-soft-border);
+  background: var(--nimi-status-warning-soft-bg);
+  color: var(--nimi-status-warning-soft-text);
+  font-size: 12px;
+}
+
+.utopia-horizon-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.utopia-audio-control-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utopia-soundwave-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+  margin-left: 1px;
+}
+
+.utopia-soundwave-bars i {
+  display: block;
+  width: 2px;
+  border-radius: 2px;
+  background: #9e6820;
+  animation: utopiaSoundWave 900ms ease-in-out infinite;
+}
+
+.utopia-soundwave-bars i:nth-child(1) {
+  height: 5px;
+  animation-delay: 0ms;
+}
+
+.utopia-soundwave-bars i:nth-child(2) {
+  height: 10px;
+  animation-delay: 180ms;
+}
+
+.utopia-soundwave-bars i:nth-child(3) {
+  height: 6px;
+  animation-delay: 340ms;
+}
+
+@keyframes utopiaSoundWave {
+  0%, 100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1.1);
+  }
+}
+
+.utopia-volume-slider {
+  width: 64px;
+  height: 4px;
+  accent-color: #c88728;
+  cursor: pointer;
+}
+
+.utopia-ribbon-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.2);
+  background: #f5ede0;
+}
+
+.utopia-ribbon-nav-group .utopia-toolbar-btn {
+  height: 28px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 11px;
+}
+
+.utopia-ribbon-nav-group .utopia-toolbar-btn:hover:not(:disabled) {
+  background: rgba(255, 253, 247, 0.72);
+}
+
+.utopia-ribbon-nav-group .utopia-toolbar-btn.is-active {
+  border-color: rgba(94, 72, 52, 0.28);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  box-shadow: 0 2px 6px rgba(46, 34, 22, 0.1);
+}
+
+.utopia-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 31px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.24);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(46, 34, 22, 0.08);
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease, box-shadow 140ms ease;
+}
+
+.utopia-toolbar-btn:hover:not(:disabled) {
+  background: #fff8e7;
+  border-color: rgba(111, 79, 32, 0.45);
+  transform: translateY(-0.5px);
+}
+
+.utopia-toolbar-btn.is-active,
+.utopia-toolbar-btn.is-emphasis {
+  border-color: #9e6b24;
+  background: #fff3d1;
+  color: #4a310e;
+  font-weight: 700;
+}
+
+/* Signature AI-Town Warm Golden-Amber Illustrated Pill CTA */
+.utopia-toolbar-btn.is-gold-cta {
+  border: 1.75px solid var(--utopia-gold-border);
+  background: linear-gradient(180deg, var(--utopia-gold-top) 0%, var(--utopia-gold-bottom) 100%);
+  color: #412b0d;
+  font-weight: 800;
+  box-shadow:
+    0 3px 10px rgba(111, 79, 32, 0.24),
+    inset 0 1px 0 rgba(255, 252, 232, 0.85);
+}
+
+.utopia-toolbar-btn.is-gold-cta:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe79f 0%, #f5bc49 100%);
+  border-color: #563b14;
+  box-shadow:
+    0 5px 14px rgba(111, 79, 32, 0.3),
+    inset 0 1px 0 rgba(255, 253, 240, 0.9);
+}
+
+.utopia-toolbar-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.utopia-toolbar-btn:focus-visible,
+.utopia-horizon-pill.is-interactive:focus-visible,
+.utopia-anchor-pin-btn:focus-visible,
+.utopia-chibi-actor:focus-visible,
+.utopia-resident-pill:focus-visible,
+.utopia-dock-resident-chip:focus-visible,
+.utopia-mini-resident-btn:focus-visible,
+.utopia-param-option-btn:focus-visible,
+.utopia-inline-link-btn:focus-visible,
+.utopia-tab-btn:focus-visible,
+.utopia-drawer-close-btn:focus-visible,
+.utopia-cam-btn:focus-visible,
+.utopia-cam-reset-btn:focus-visible,
+.utopia-icebreaker-chip:focus-visible,
+.utopia-journal-card-trigger:focus-visible,
+.utopia-place-unlock-btn:focus-visible,
+.utopia-chibi-mini-btn:focus-visible,
+.utopia-wardrobe-action-btn:focus-visible,
+.utopia-wardrobe-pill:focus-visible,
+.utopia-wardrobe-swatch:focus-visible,
+.utopia-landmark-pin-btn:focus-visible,
+.utopia-minimap-place-pin:focus-visible,
+.utopia-minimap-chip:focus-visible,
+.utopia-minimap-toggle-pill:focus-visible,
+.utopia-minimap-collapse-btn:focus-visible {
+  outline: 2px solid #c88728;
+  outline-offset: 2px;
+}
+
+/* ── Companion Portrait Avatar Medallion ── */
+.utopia-companion-avatar {
+  --utopia-avatar-tint: #4b8299;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--utopia-avatar-tint);
+  color: #ffffff;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1.5px solid var(--utopia-ink-outline);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34), 0 1px 3px rgba(32, 22, 12, 0.16);
+}
+
+.utopia-companion-avatar.size-xs {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+
+.utopia-companion-avatar.size-sm {
+  width: 29px;
+  height: 29px;
+  font-size: 12px;
+}
+
+.utopia-companion-avatar.size-md {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
+.utopia-companion-avatar.size-lg {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+
+.utopia-companion-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+}
+
+.utopia-companion-avatar-initial {
+  line-height: 1;
+  user-select: none;
+}
+
+.utopia-presence-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1.5px solid #fffdf7;
+  background: #64748b;
+}
+
+.utopia-companion-avatar.size-xs .utopia-presence-dot {
+  width: 7px;
+  height: 7px;
+}
+
+.utopia-companion-avatar.size-lg .utopia-presence-dot {
+  width: 11px;
+  height: 11px;
+  border-width: 2px;
+}
+
+.utopia-presence-dot.is-conversing,
+.utopia-chibi-status-pip.is-conversing {
+  background: #16a34a;
+}
+
+.utopia-presence-dot.is-shared,
+.utopia-chibi-status-pip.is-shared {
+  background: #e07a1f;
+}
+
+.utopia-presence-dot.is-active,
+.utopia-chibi-status-pip.is-active {
+  background: #1d8ab5;
+}
+
+.utopia-presence-dot.is-solitary,
+.utopia-chibi-status-pip.is-solitary {
+  background: #7c6f64;
+}
+
+.utopia-presence-dot.is-resting,
+.utopia-chibi-status-pip.is-resting {
+  background: #d49b27;
+}
+
+/* ── Full-Bleed 2.5D Isometric World Stage & Interactive Camera ── */
+[data-utopia-expressive-stage] {
+  --utopia-stage-bg: #a9c279;
+  --utopia-stage-badge-bg: #fffdf6;
+  --utopia-stage-badge-text: #3c2f25;
+  --utopia-stage-accent: #2b7a8b;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--utopia-stage-bg);
+  overflow: hidden;
+  transition: filter 280ms ease, opacity 340ms ease;
+}
+
+[data-utopia-expressive-stage].is-frozen {
+  filter: saturate(0.74) contrast(0.96);
+}
+
+[data-utopia-expressive-stage].is-relocating {
+  opacity: 0.72;
+}
+
+.utopia-stage-viewport-frame {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.is-dragging-map .utopia-stage-viewport-frame {
+  cursor: grabbing;
+}
+
+.utopia-world-stage-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.utopia-stage-overlay-plane {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.utopia-daypart-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 38;
+  pointer-events: none;
+  transition: background 600ms ease;
+}
+
+.daypart-morning .utopia-daypart-tint {
+  background: linear-gradient(180deg, rgba(255, 240, 198, 0.12), rgba(255, 250, 240, 0.01));
+}
+
+.daypart-day .utopia-daypart-tint {
+  background: transparent;
+}
+
+.daypart-dusk .utopia-daypart-tint {
+  background: linear-gradient(180deg, rgba(242, 152, 98, 0.15), rgba(96, 70, 118, 0.1));
+}
+
+.daypart-night .utopia-daypart-tint {
+  background: linear-gradient(180deg, rgba(16, 30, 58, 0.26), rgba(18, 32, 58, 0.16));
+}
+
+.motif-industrial-cutaway.daypart-night .utopia-daypart-tint {
+  background: linear-gradient(180deg, rgba(8, 16, 34, 0.08), rgba(12, 22, 42, 0.05));
+}
+
+.utopia-stage-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 68%, rgba(28, 22, 16, 0.14) 100%);
+}
+
+.utopia-particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 44;
+  pointer-events: none;
+}
+
+/* Tactile Ground Click Ripple */
+.utopia-map-click-ripple {
+  position: absolute;
+  width: 14px;
+  height: 10px;
+  margin-left: -7px;
+  margin-top: -5px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 249, 228, 0.92);
+  box-shadow: 0 0 0 1.5px rgba(74, 58, 45, 0.35);
+  z-index: 75;
+  pointer-events: none;
+  animation: utopiaGroundRipple 640ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes utopiaGroundRipple {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+/* ── Ambient Kinetic World Props & Diegetic Scenic Landmarks (`风物地标`) ── */
+.utopia-world-kinetics-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 46;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.utopia-world-kinetics-layer.is-paused * {
+  animation-play-state: paused !important;
+}
+
+.utopia-kinetic-beacon {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.utopia-kinetic-beacon-core {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 246, 204, 0.96) 0%,
+    rgba(246, 182, 72, 0.48) 52%,
+    transparent 100%
+  );
+}
+
+.utopia-kinetic-beacon-cone {
+  position: absolute;
+  left: 0;
+  top: -36px;
+  width: 196px;
+  height: 72px;
+  transform-origin: 0% 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 235, 164, 0.42) 0%,
+    rgba(255, 224, 138, 0.14) 56%,
+    transparent 100%
+  );
+  clip-path: polygon(0 44%, 100% 0, 100% 100%, 0 56%);
+  animation: utopiaBeaconSweep 11s ease-in-out infinite alternate;
+}
+
+@keyframes utopiaBeaconSweep {
+  0% {
+    transform: rotate(-16deg);
+    opacity: 0.72;
+  }
+  100% {
+    transform: rotate(22deg);
+    opacity: 0.94;
+  }
+}
+
+.utopia-kinetic-breeze-ring,
+.utopia-kinetic-water-spray {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  animation: utopiaKineticSpin 20s linear infinite;
+}
+
+@keyframes utopiaKineticSpin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.utopia-kinetic-balloon-glint {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 248, 214, 0.32) 0%,
+    rgba(255, 236, 184, 0.12) 48%,
+    transparent 74%
+  );
+  animation: utopiaBalloonBob 5.6s ease-in-out infinite;
+}
+
+@keyframes utopiaBalloonBob {
+  0%, 100% {
+    margin-top: 0;
+    opacity: 0.75;
+  }
+  50% {
+    margin-top: -6px;
+    opacity: 1;
+  }
+}
+
+.utopia-kinetic-bird-flock {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transform: translate(-50%, -50%);
+  animation: utopiaBirdGlide 15s ease-in-out infinite alternate;
+}
+
+@keyframes utopiaBirdGlide {
+  0% {
+    transform: translate(calc(-50% - 14px), calc(-50% + 4px));
+  }
+  100% {
+    transform: translate(calc(-50% + 16px), calc(-50% - 5px));
+  }
+}
+
+.utopia-bird-svg {
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgba(34, 24, 14, 0.16));
+  animation: utopiaBirdWing 2.3s ease-in-out infinite;
+}
+
+.utopia-bird-svg.is-wingman {
+  margin-top: 9px;
+  animation-delay: -0.75s;
+}
+
+@keyframes utopiaBirdWing {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2px) scaleY(0.76);
+  }
+}
+
+.utopia-landmarks-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 48;
+  pointer-events: none;
+}
+
+.utopia-landmark-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  transition: transform 150ms ease;
+}
+
+.utopia-landmark-node:hover,
+.utopia-landmark-node.is-selected {
+  z-index: 148;
+}
+
+.utopia-landmark-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9.5px 3px 6.5px;
+  border-radius: 999px;
+  border: 1.4px solid rgba(114, 84, 46, 0.76);
+  background: rgba(255, 249, 235, 0.94);
+  color: #4c3622;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    0 3px 8px rgba(34, 24, 14, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.utopia-landmark-pin-btn:hover {
+  transform: translateY(-1.5px) scale(1.03);
+  background: #fff6de;
+  border-color: #8f601d;
+  box-shadow: 0 5px 12px rgba(34, 24, 14, 0.22);
+}
+
+.utopia-landmark-node.is-selected .utopia-landmark-pin-btn {
+  border-color: #8b5b16;
+  background: #fff1c9;
+  box-shadow:
+    0 0 0 2.5px rgba(240, 180, 62, 0.42),
+    0 5px 14px rgba(34, 24, 14, 0.24);
+}
+
+.utopia-landmark-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(217, 148, 41, 0.2);
+  color: #965a0e;
+  flex-shrink: 0;
+}
+
+/* ── Diegetic Hand-Drawn Roof Signposts ── */
+.utopia-anchors-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.utopia-anchor-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  transition: transform 160ms ease;
+}
+
+.utopia-anchor-node:hover {
+  z-index: 155;
+}
+
+.utopia-anchor-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5.5px;
+  padding: 4px 11px 4px 8.5px;
+  border-radius: 999px;
+  border: 1.65px solid var(--utopia-ink-outline);
+  background: rgba(255, 253, 246, 0.96);
+  color: var(--utopia-ink-strong);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 4px 10px rgba(32, 22, 12, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.utopia-anchor-pin-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: #fff9e6;
+  border-color: #6e4f20;
+  box-shadow: 0 6px 14px rgba(32, 22, 12, 0.26);
+}
+
+.utopia-anchor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--utopia-stage-accent) 16%, #f6eedc);
+  color: var(--utopia-stage-accent);
+}
+
+.utopia-anchor-node.is-selected .utopia-anchor-pin-btn {
+  border-color: #6f4f20;
+  background: #fff4d2;
+  box-shadow:
+    0 0 0 3px rgba(240, 180, 62, 0.42),
+    0 6px 16px rgba(32, 22, 12, 0.25);
+}
+
+.utopia-anchor-node.is-closed .utopia-anchor-pin-btn {
+  border-style: dashed;
+  background: rgba(246, 241, 232, 0.92);
+  color: var(--utopia-ink-body);
+}
+
+.utopia-anchor-scenery-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+}
+
+.utopia-anchor-occ-pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f3b844;
+  border: 1px solid #6f4f20;
+  color: #3f2a0c;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.utopia-anchor-closed-label,
+.utopia-anchor-quarter-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(114, 92, 68, 0.14);
+  color: var(--utopia-ink-body);
+}
+
+/* ── Embodied 2.5D Chibi Companions Walking & Interacting on Map ── */
+.utopia-living-residents-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 54;
+  pointer-events: none;
+}
+
+.utopia-chibi-actor {
+  --chibi-cape: #7bc4a4;
+  --chibi-hat: #f4b942;
+  --chibi-trim: #fff6dc;
+  --chibi-delay: 0s;
+  position: absolute;
+  transform: translate(-50%, -86%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transition: filter 150ms ease;
+}
+
+.utopia-chibi-actor:hover {
+  z-index: 165 !important;
+  filter: drop-shadow(0 4px 10px rgba(42, 28, 12, 0.22));
+}
+
+.utopia-chibi-actor:hover .utopia-chibi-figure {
+  transform: translateY(-2px) scale(1.06);
+}
+
+.utopia-chibi-shadow {
+  position: absolute;
+  bottom: 18px;
+  width: calc(32px * var(--utopia-chibi-scale, 1));
+  height: calc(9px * var(--utopia-chibi-scale, 1));
+  border-radius: 999px;
+  background: rgba(42, 31, 21, 0.28);
+  pointer-events: none;
+}
+
+.utopia-chibi-focus-ring {
+  position: absolute;
+  bottom: 14px;
+  width: calc(46px * var(--utopia-chibi-scale, 1));
+  height: calc(16px * var(--utopia-chibi-scale, 1));
+  border-radius: 999px;
+  border: 2px solid #f4b942;
+  background: rgba(250, 208, 96, 0.24);
+  box-shadow: 0 0 10px rgba(244, 185, 66, 0.55);
+  pointer-events: none;
+  animation: utopiaFocusPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes utopiaFocusPulse {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.utopia-chibi-figure {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: calc(52px * var(--utopia-chibi-scale, 1));
+  height: calc(66px * var(--utopia-chibi-scale, 1));
+  transition: transform 160ms ease;
+}
+
+.utopia-chibi-figure.facing-left {
+  transform: scaleX(-1);
+}
+
+.utopia-chibi-actor:hover .utopia-chibi-figure.facing-left {
+  transform: scaleX(-1) translateY(-2px) scale(1.06);
+}
+
+.utopia-chibi-actor.is-idle .utopia-chibi-figure {
+  animation: utopiaChibiBreathe 2.8s ease-in-out infinite;
+  animation-delay: var(--chibi-delay);
+}
+
+.utopia-chibi-actor.is-idle .utopia-chibi-figure.facing-left {
+  animation-name: utopiaChibiBreatheLeft;
+}
+
+@keyframes utopiaChibiBreathe {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes utopiaChibiBreatheLeft {
+  0%, 100% {
+    transform: scaleX(-1) translateY(0);
+  }
+  50% {
+    transform: scaleX(-1) translateY(-2px);
+  }
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-figure {
+  animation: utopiaChibiWalkBob 460ms ease-in-out infinite;
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-figure.facing-left {
+  animation: utopiaChibiWalkBobLeft 460ms ease-in-out infinite;
+}
+
+@keyframes utopiaChibiWalkBob {
+  0%, 100% {
+    transform: translateY(0) rotate(-1.4deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1.4deg);
+  }
+}
+
+@keyframes utopiaChibiWalkBobLeft {
+  0%, 100% {
+    transform: scaleX(-1) translateY(0) rotate(-1.4deg);
+  }
+  50% {
+    transform: scaleX(-1) translateY(-3px) rotate(1.4deg);
+  }
+}
+
+.utopia-chibi-actor.is-reacting .utopia-chibi-figure {
+  animation: utopiaChibiHappyJump 540ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes utopiaChibiHappyJump {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  38% {
+    transform: translateY(-11px) scale(1.08);
+  }
+  70% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+/* Unified Single-SVG Picture-Book Chibi Doll + Blinking Eyes + Medallion */
+.utopia-chibi-full-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1.8px 2.4px rgba(34, 24, 14, 0.2));
+}
+
+.utopia-chibi-head-svg {
+  width: 44px;
+  height: 40px;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1.5px 2px rgba(34, 24, 14, 0.16));
+}
+
+.utopia-chibi-eyes {
+  transform-origin: 32px 36px;
+  animation: utopiaChibiBlink 4.6s ease-in-out infinite;
+  animation-delay: var(--chibi-delay, 0s);
+}
+
+@keyframes utopiaChibiBlink {
+  0%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  95.5% {
+    transform: scaleY(0.12);
+  }
+}
+
+.utopia-chibi-medallion {
+  --chibi-badge-bg: #fff7df;
+  --chibi-badge-ring: #7ac3a3;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid #3e3025;
+  background: radial-gradient(
+    circle at 50% 38%,
+    #fffdf8 0%,
+    color-mix(in srgb, var(--chibi-badge-ring) 26%, var(--chibi-badge-bg)) 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 1px 3px rgba(34, 24, 14, 0.15);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.utopia-chibi-medallion.size-xs {
+  width: 22px;
+  height: 22px;
+}
+
+.utopia-chibi-medallion.size-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.utopia-chibi-medallion.size-md {
+  width: 38px;
+  height: 38px;
+}
+
+.utopia-chibi-medallion.size-lg {
+  width: 48px;
+  height: 48px;
+}
+
+.utopia-chibi-medallion-svg {
+  width: 96%;
+  height: 96%;
+  display: block;
+}
+
+.utopia-chibi-medallion.size-xs .utopia-presence-dot {
+  width: 7px;
+  height: 7px;
+}
+
+/* Connected Sleeves & Stepping Boots Motion */
+.utopia-chibi-arm.arm-left {
+  transform-origin: 22px 49px;
+}
+
+.utopia-chibi-arm.arm-right {
+  transform-origin: 42px 49px;
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-arm.arm-left {
+  animation: utopiaArmSwingLeft 460ms ease-in-out infinite;
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-arm.arm-right {
+  animation: utopiaArmSwingRight 460ms ease-in-out infinite;
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-leg.leg-left {
+  animation: utopiaFootStepA 460ms ease-in-out infinite;
+}
+
+.utopia-chibi-actor.is-walking .utopia-chibi-leg.leg-right {
+  animation: utopiaFootStepB 460ms ease-in-out infinite;
+}
+
+@keyframes utopiaArmSwingLeft {
+  0%, 100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes utopiaArmSwingRight {
+  0%, 100% {
+    transform: rotate(7deg);
+  }
+  50% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes utopiaFootStepA {
+  0%, 100% {
+    transform: translateY(-2px);
+  }
+  50% {
+    transform: translateY(1.4px);
+  }
+}
+
+@keyframes utopiaFootStepB {
+  0%, 100% {
+    transform: translateY(1.4px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Chibi Speech, Activity & Thought Bubbles */
+.utopia-chibi-speech-bubble,
+.utopia-chibi-thought-dot {
+  position: relative;
+  margin-bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  border: 1.5px solid #4e3d2f;
+  background: #fffdf6;
+  color: #3c2f25;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(36, 25, 14, 0.18);
+  pointer-events: none;
+}
+
+.utopia-chibi-speech-bubble::after,
+.utopia-chibi-thought-dot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  background: #fffdf6;
+  border-right: 1.5px solid #4e3d2f;
+  border-bottom: 1.5px solid #4e3d2f;
+  transform: rotate(45deg);
+}
+
+.utopia-chibi-bubble-label {
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.utopia-chibi-copresent-dot {
+  font-style: normal;
+  font-size: 9.5px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(126, 98, 68, 0.14);
+  color: var(--utopia-ink-body);
+}
+
+.utopia-chibi-thought-dot {
+  padding: 2px 6.5px;
+  font-size: 11px;
+  animation: utopiaBubbleFloat 2.4s ease-in-out infinite;
+}
+
+@keyframes utopiaBubbleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+.utopia-chibi-sparkle-burst {
+  position: absolute;
+  top: -18px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #f59e0b;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+  animation: utopiaSparkleRise 820ms ease-out forwards;
+}
+
+@keyframes utopiaSparkleRise {
+  0% {
+    transform: translateY(4px) scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-16px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Shared Face-to-Face Duo Activity Cloud */
+.utopia-shared-duo-cloud {
+  position: absolute;
+  transform: translate(-50%, -74px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  animation: utopiaBubbleFloat 2.6s ease-in-out infinite;
+}
+
+.utopia-duo-notes {
+  font-size: 11px;
+  font-weight: 800;
+  color: #d97706;
+  text-shadow: 0 1px 0 #fffdf6;
+}
+
+.utopia-duo-cloud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1.6px solid #6e4f20;
+  background: #fff6dc;
+  color: #4a310e;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(42, 28, 12, 0.2);
+}
+
+/* Crisp Storybook Nameplate Under Boots */
+.utopia-chibi-nameplate {
+  position: relative;
+  z-index: 4;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1.5px 7px 1.5px 5px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(74, 58, 45, 0.36);
+  background: rgba(255, 253, 246, 0.94);
+  color: #382b21;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(32, 22, 12, 0.16);
+}
+
+.utopia-chibi-actor.is-selected .utopia-chibi-nameplate {
+  border-color: #6f4f20;
+  background: #fff3cc;
+}
+
+.utopia-chibi-status-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.utopia-chibi-name-text {
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Place Inspection Floating Field Card ── */
+.utopia-place-floating-sheet {
+  position: absolute;
+  left: 14px;
+  top: 64px;
+  z-index: 76;
+  max-width: min(372px, calc(100% - 28px));
+  pointer-events: auto;
+  transition: top 240ms ease;
+}
+
+.is-hud-hidden .utopia-place-floating-sheet {
+  top: 14px;
+}
+
+.utopia-place-caption-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(92, 71, 50, 0.28);
+  background: rgba(255, 253, 246, 0.97);
+  color: var(--utopia-ink-strong);
+  font-size: 12px;
+  box-shadow: 0 12px 30px rgba(34, 24, 14, 0.22);
+}
+
+.utopia-place-caption-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-place-caption-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-place-caption-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utopia-place-status-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1.5px 8px;
+  border-radius: 999px;
+  background: rgba(43, 122, 139, 0.14);
+  color: #215b69;
+}
+
+.utopia-place-status-chip.is-closed {
+  background: rgba(217, 119, 6, 0.16);
+  color: #9a4d06;
+}
+
+.utopia-place-status-chip.is-landmark {
+  background: rgba(196, 134, 34, 0.17);
+  color: #7b4b0c;
+}
+
+.utopia-place-close-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: #f5ede0;
+  color: var(--utopia-ink-strong);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.utopia-place-caption-prose {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-place-scenery-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.utopia-place-scenery-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9px;
+  background: #fff5db;
+  border: 1px solid rgba(196, 136, 40, 0.3);
+  color: #5c3d12;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.utopia-place-activities-line {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-place-companions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(154, 108, 44, 0.24);
+  background: #fbf5e7;
+}
+
+.utopia-place-companions-kicker {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #8b5b18;
+  letter-spacing: 0.02em;
+}
+
+.utopia-place-quiet-hint {
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 9px;
+  background: rgba(126, 98, 68, 0.08);
+  color: var(--utopia-ink-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.utopia-place-unlock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(94, 72, 52, 0.26);
+  font-size: 11.5px;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-place-unlock-btn {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--utopia-gold-border);
+  background: linear-gradient(180deg, var(--utopia-gold-top), var(--utopia-gold-bottom));
+  color: #412b0d;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.utopia-place-unlock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.utopia-landmark-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(94, 72, 52, 0.24);
+}
+
+.utopia-landmark-honesty-note {
+  font-size: 11px;
+  color: var(--utopia-ink-muted);
+}
+
+/* ── Bottom-Left Floating Companion Bubble Dock ── */
+.utopia-floating-bottom-left {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  max-width: min(640px, calc(100vw - 300px));
+  z-index: 72;
+  pointer-events: auto;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+}
+
+.utopia-floating-bottom-left.is-egressed {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.utopia-presence-dock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(92, 71, 50, 0.26);
+  background: rgba(253, 249, 240, 0.95);
+  color: var(--utopia-ink-strong);
+  box-shadow:
+    0 8px 22px rgba(36, 25, 14, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  min-width: 0;
+}
+
+.utopia-dock-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--utopia-ink-body);
+  white-space: nowrap;
+  padding-right: 4px;
+  border-right: 1.5px solid rgba(94, 72, 52, 0.16);
+}
+
+.utopia-dock-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f5e6c4;
+  border: 1px solid rgba(111, 79, 32, 0.3);
+  color: #4a3210;
+  font-size: 10.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.utopia-dock-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 1px 16px 1px 2px;
+  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 20px), transparent 100%);
+}
+
+.utopia-dock-list::-webkit-scrollbar {
+  display: none;
+}
+
+.utopia-dock-resident-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.2);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 140ms ease, transform 130ms ease, background-color 140ms ease;
+}
+
+.utopia-dock-resident-chip:hover {
+  border-color: #8c6432;
+  background: #fff8e6;
+  transform: translateY(-1.5px);
+}
+
+.utopia-dock-resident-chip.is-selected {
+  border-color: #6f4f20;
+  background: #fff3ce;
+  box-shadow: 0 0 0 2px rgba(240, 180, 62, 0.35);
+}
+
+.utopia-dock-resident-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.18;
+}
+
+.utopia-dock-resident-name {
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.utopia-dock-resident-state {
+  font-size: 10px;
+  color: var(--utopia-ink-muted);
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Bottom-Right Interactive World Mini-Map & Camera Controls ── */
+.utopia-floating-bottom-right-stack {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 72;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  transition: transform 240ms ease, opacity 200ms ease;
+}
+
+.utopia-floating-bottom-right-stack.is-egressed {
+  opacity: 0.42;
+}
+
+.utopia-minimap-collapsed-wrap {
+  pointer-events: auto;
+}
+
+.utopia-minimap-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(92, 71, 50, 0.28);
+  background: rgba(253, 249, 240, 0.95);
+  color: var(--utopia-ink-strong);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 8px 20px rgba(36, 25, 14, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.utopia-minimap-toggle-pill:hover {
+  background: #fff7e2;
+  border-color: #8c6432;
+}
+
+.utopia-minimap-card {
+  width: 244px;
+  padding: 8px 9px 9px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(92, 71, 50, 0.3);
+  background: rgba(253, 249, 240, 0.96);
+  color: var(--utopia-ink-strong);
+  box-shadow:
+    0 12px 28px rgba(34, 24, 14, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.utopia-minimap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.utopia-minimap-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-minimap-title small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-minimap-collapse-btn {
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utopia-minimap-collapse-btn:hover {
+  background: #fff4d6;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-minimap-radar {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  border: 1.25px solid rgba(82, 62, 42, 0.38);
+  background: #d8ceb8;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.utopia-minimap-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.utopia-minimap-landmark-dot {
+  position: absolute;
+  width: 5.5px;
+  height: 5.5px;
+  margin-left: -2.75px;
+  margin-top: -2.75px;
+  background: #f5cc6a;
+  border: 1px solid #5e3e12;
+  transform: rotate(45deg);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.utopia-minimap-landmark-dot.is-selected {
+  width: 7.5px;
+  height: 7.5px;
+  margin-left: -3.75px;
+  margin-top: -3.75px;
+  background: #fff3b0;
+  box-shadow: 0 0 0 2px rgba(242, 178, 56, 0.55);
+}
+
+.utopia-minimap-place-pin {
+  position: absolute;
+  width: 8.5px;
+  height: 8.5px;
+  padding: 0;
+  margin-left: -4.25px;
+  margin-top: -4.25px;
+  border-radius: 999px;
+  border: 1.4px solid #3c2d1e;
+  background: #fffdf6;
+  z-index: 4;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(24, 16, 8, 0.35);
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.utopia-minimap-place-pin:hover {
+  transform: scale(1.35);
+  background: #ffe9a8;
+}
+
+.utopia-minimap-place-pin.is-quarter {
+  background: #b8e6d4;
+}
+
+.utopia-minimap-place-pin.is-closed {
+  background: #d6cec2;
+  opacity: 0.8;
+}
+
+.utopia-minimap-place-pin.is-selected {
+  transform: scale(1.42);
+  background: #f7bd42;
+  border-color: #4a2e08;
+  box-shadow: 0 0 0 2.5px rgba(255, 243, 196, 0.85);
+}
+
+.utopia-minimap-resident-dot {
+  position: absolute;
+  width: 6.5px;
+  height: 6.5px;
+  margin-left: -3.25px;
+  margin-top: -3.25px;
+  border-radius: 999px;
+  background: #16a34a;
+  border: 1.2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(18, 12, 6, 0.36);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.utopia-minimap-resident-dot.is-solitary {
+  background: #d97706;
+}
+
+.utopia-minimap-viewport-rect {
+  position: absolute;
+  border: 1.8px solid #f4b942;
+  border-radius: 4px;
+  background: rgba(255, 248, 220, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(58, 38, 14, 0.45),
+    0 0 0 999px rgba(30, 22, 14, 0.17);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.utopia-minimap-place-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 1px 2px;
+}
+
+.utopia-minimap-place-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.utopia-minimap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.utopia-minimap-chip:hover {
+  background: #fff6de;
+  border-color: #8c6432;
+}
+
+.utopia-minimap-chip.is-closed {
+  color: var(--utopia-ink-muted);
+  border-style: dashed;
+}
+
+.utopia-minimap-chip.is-selected {
+  background: #fff1c7;
+  border-color: #7c541b;
+  font-weight: 800;
+}
+
+.utopia-minimap-chip-count {
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f3b844;
+  color: #3f2a0c;
+}
+
+.utopia-floating-camera-dock {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(92, 71, 50, 0.26);
+  background: rgba(253, 249, 240, 0.95);
+  box-shadow:
+    0 8px 22px rgba(36, 25, 14, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  pointer-events: auto;
+  transition: transform 240ms ease, opacity 200ms ease;
+}
+
+.utopia-floating-camera-dock.is-egressed {
+  opacity: 0.45;
+}
+
+.utopia-cam-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.utopia-cam-btn:hover:not(:disabled),
+.utopia-cam-reset-btn:hover {
+  background: #fff6de;
+  border-color: #8c6432;
+}
+
+.utopia-cam-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.utopia-cam-zoom-readout {
+  min-width: 40px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-cam-reset-btn {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utopia-cam-reset-btn.is-active {
+  border-color: #6f4f20;
+  background: linear-gradient(180deg, var(--utopia-gold-top), var(--utopia-gold-bottom));
+  color: #412b0d;
+}
+
+/* ── Floating Right Storybook Parchment Drawer ── */
+.utopia-floating-drawer {
+  position: absolute;
+  top: 60px;
+  right: 14px;
+  bottom: 58px;
+  width: min(392px, calc(100vw - 28px));
+  z-index: 82;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 22px;
+  border: 1.5px solid rgba(92, 71, 50, 0.28);
+  background: #fcf8ee;
+  box-shadow:
+    0 20px 48px rgba(34, 24, 14, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  animation: utopiaDrawerEnter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes utopiaDrawerEnter {
+  from {
+    transform: translateX(18px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.utopia-drawer-top-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(94, 72, 52, 0.16);
+  background: #f5ede0;
+  flex-shrink: 0;
+}
+
+.utopia-tab-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.utopia-tab-btn {
+  height: 31px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--utopia-ink-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 130ms ease, color 130ms ease;
+}
+
+.utopia-tab-btn:hover {
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-tab-btn.is-active {
+  border-color: rgba(94, 72, 52, 0.24);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(42, 30, 18, 0.08);
+}
+
+.utopia-drawer-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.utopia-drawer-close-btn:hover {
+  background: #fff4d6;
+  border-color: #8c6432;
+}
+
+.utopia-rail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+@media (max-width: 760px) {
+  .utopia-horizon-bar {
+    border-radius: 18px;
+    padding: 6px 10px;
+  }
+  .utopia-minimap-card {
+    display: none;
+  }
+  .utopia-floating-bottom-left {
+    max-width: calc(100vw - 28px);
+    bottom: 52px;
+  }
+  .utopia-floating-drawer {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    bottom: 52px;
+  }
+}
+
+/* ── Fallback Journal Badges & Pills (Universal Sketchbook View) ── */
+.utopia-badge-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.utopia-shared-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  border: 1.5px solid var(--utopia-stage-accent);
+  background: var(--utopia-stage-badge-bg);
+  color: var(--utopia-stage-badge-text);
+  font-size: 11.5px;
+  box-shadow: 0 3px 10px rgba(10, 22, 36, 0.14);
+}
+
+.utopia-shared-link {
+  display: inline-flex;
+  color: var(--utopia-stage-accent);
+}
+
+.utopia-mini-resident-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 1px 3px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.utopia-shared-act-tag {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--utopia-stage-accent) 18%, transparent);
+  font-weight: 600;
+}
+
+.utopia-resident-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--utopia-stage-accent) 32%, rgba(120, 136, 144, 0.36));
+  background: var(--utopia-stage-badge-bg);
+  color: var(--utopia-stage-badge-text);
+  font-size: 11.5px;
+  box-shadow: 0 2px 6px rgba(10, 22, 36, 0.12);
+  cursor: pointer;
+}
+
+.utopia-resident-pill.is-selected,
+.utopia-mini-resident-btn.is-selected {
+  box-shadow: 0 0 0 2.5px var(--utopia-stage-accent);
+}
+
+.utopia-resident-name {
+  font-weight: 600;
+}
+
+.utopia-resident-sub {
+  font-size: 11px;
+  opacity: 0.82;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.utopia-solitary-chip,
+.utopia-copresent-chip,
+.utopia-overflow-chip {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(120, 136, 144, 0.18);
+  font-weight: 500;
+}
+
+.utopia-foreground-interaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--utopia-stage-accent) 36%, rgba(120, 136, 144, 0.3));
+  background: color-mix(in srgb, var(--utopia-stage-accent) 12%, var(--utopia-stage-badge-bg));
+  font-size: 11.5px;
+}
+
+.utopia-interaction-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.utopia-interaction-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ── Universal Field Sketchbook Stage (FallbackJournalStage) ── */
+.utopia-journal-stage {
+  padding: 72px 20px 20px;
+  gap: 14px;
+  overflow-y: auto;
+  color: var(--utopia-stage-badge-text);
+  background-image: radial-gradient(rgba(120, 136, 144, 0.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.utopia-journal-header,
+.utopia-journal-grid,
+.utopia-journal-bottom-row,
+.utopia-journal-stage > .utopia-presence-dock {
+  position: relative;
+  z-index: 48;
+}
+
+.utopia-journal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--utopia-stage-accent) 30%, rgba(120, 136, 144, 0.25));
+  background: var(--utopia-stage-badge-bg);
+}
+
+.utopia-journal-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 640px;
+}
+
+.utopia-journal-stamp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.utopia-journal-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--utopia-stage-accent);
+  color: var(--utopia-stage-accent);
+}
+
+.utopia-journal-open-stat {
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+.utopia-journal-heading {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.utopia-journal-summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.52;
+  opacity: 0.9;
+}
+
+.utopia-journal-scenery-strip,
+.utopia-journal-place-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.utopia-journal-scenery-pill,
+.utopia-journal-event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--utopia-stage-accent) 14%, transparent);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.utopia-journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.utopia-journal-card,
+.utopia-quarter-wing {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 136, 144, 0.28);
+  background: var(--utopia-stage-badge-bg);
+  box-shadow: 0 2px 8px rgba(12, 24, 36, 0.06);
+}
+
+.utopia-journal-card.is-closed {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.utopia-journal-card.is-selected,
+.utopia-quarter-wing.is-selected {
+  border-color: var(--utopia-stage-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--utopia-stage-accent) 24%, transparent);
+}
+
+.utopia-journal-card-trigger {
+  text-align: left;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.utopia-journal-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.utopia-journal-icon {
+  display: inline-flex;
+  color: var(--utopia-stage-accent);
+}
+
+.utopia-journal-title {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.utopia-journal-meta {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.78;
+}
+
+.utopia-journal-traits {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.48;
+  opacity: 0.88;
+}
+
+.utopia-journal-bottom-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.utopia-quarter-wing {
+  flex: 1;
+  min-width: 240px;
+}
+
+/* ── Storybook Parchment Cards inside Floating Drawer ── */
+.utopia-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.utopia-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 15px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(42, 30, 18, 0.05);
+}
+
+.utopia-card-section.is-highlighted {
+  border-color: rgba(186, 128, 38, 0.48);
+  background: #fffbf0;
+}
+
+.utopia-postcard-section {
+  background: linear-gradient(165deg, #fff8e6 0%, #fffdf7 70%);
+}
+
+.utopia-postcard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-postcard-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #9a6216;
+}
+
+.utopia-postcard-summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-postcard-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.utopia-postcard-event-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(186, 128, 38, 0.36);
+  background: #fff5d8;
+  color: #5c3d12;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.utopia-postcard-residents {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(94, 72, 52, 0.2);
+}
+
+.utopia-postcard-resident-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--utopia-parchment-subtle);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease;
+}
+
+.utopia-postcard-resident-row:hover {
+  border-color: rgba(154, 98, 22, 0.38);
+  background: #fff6e0;
+}
+
+.utopia-postcard-res-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--utopia-ink-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 128px;
+}
+
+.utopia-postcard-resting-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 2px;
+}
+
+.utopia-postcard-res-state {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--utopia-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 175px;
+}
+
+.utopia-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-section-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-section-title-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utopia-muted-caption {
+  font-size: 11.5px;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-empty-hint,
+.utopia-causal-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.52;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-journal-list,
+.utopia-shared-list,
+.utopia-active-events-list,
+.utopia-chat-message-list,
+.utopia-preview-bullet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.utopia-journal-item,
+.utopia-shared-item,
+.utopia-active-event-row {
+  padding-top: 9px;
+  border-top: 1px solid rgba(94, 72, 52, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.utopia-journal-list > li:first-child,
+.utopia-shared-list > li:first-child,
+.utopia-active-events-list > li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.utopia-active-event-row {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-active-event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.utopia-event-progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(94, 72, 52, 0.14);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.utopia-event-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #d98a2b;
+}
+
+.utopia-journal-item-head,
+.utopia-shared-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-journal-item-head > :last-child,
+.utopia-shared-item-top > :last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.utopia-shared-pair-ident {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.utopia-avatar-stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.utopia-avatar-stack > .utopia-companion-avatar + .utopia-companion-avatar {
+  margin-left: -6px;
+}
+
+.utopia-time-tag {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-journal-item-body,
+.utopia-shared-item-sub {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.48;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-encounter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.utopia-encounter-spot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 124, 38, 0.3);
+  background: linear-gradient(180deg, #fffaf0 0%, #f9efe0 100%);
+}
+
+.utopia-warm-scene-card {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(138, 102, 54, 0.32);
+  background: #fbf5e8;
+}
+
+.utopia-warm-scene-prose {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-inline-link-btn {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #9e6214;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utopia-inline-link-btn:hover {
+  text-decoration: underline;
+}
+
+/* ── Companion Spotlight, Hand-Drawn Chibi Wardrobe & Zero-Side-Effect Chat ── */
+.utopia-spotlight-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(94, 72, 52, 0.16);
+}
+
+.utopia-agent-portrait-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.utopia-agent-portrait-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+  background: #f5ecdc;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-spotlight-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.utopia-chibi-studio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  background: #f7efe0;
+}
+
+.utopia-chibi-studio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-chibi-studio-ident {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.utopia-chibi-studio-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.utopia-chibi-studio-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-chibi-studio-title em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #fde59c;
+  border: 1px solid rgba(111, 79, 32, 0.32);
+  color: #4f340e;
+}
+
+.utopia-chibi-studio-copy small {
+  font-size: 11px;
+  color: var(--utopia-ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.utopia-chibi-studio-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.utopia-chibi-mini-btn {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.26);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 130ms ease, border-color 130ms ease, transform 120ms ease;
+}
+
+.utopia-chibi-mini-btn:hover {
+  border-color: #8c6432;
+  background: #fff8e5;
+  transform: translateY(-0.5px);
+}
+
+.utopia-chibi-mini-btn.is-customize {
+  border-color: var(--utopia-gold-border);
+  background: linear-gradient(180deg, #fee7a2 0%, #f3be4f 100%);
+  color: #422c0d;
+}
+
+.utopia-chibi-mini-btn.is-customize.is-open {
+  background: #fff2cf;
+  border-color: #8c6432;
+}
+
+.utopia-wardrobe-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-card);
+}
+
+.utopia-wardrobe-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(94, 72, 52, 0.2);
+}
+
+.utopia-wardrobe-pedestal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 74px;
+  padding-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  background: radial-gradient(circle at 50% 42%, #fffcf4 0%, #efe4cd 100%);
+  flex-shrink: 0;
+}
+
+.utopia-wardrobe-pedestal .utopia-chibi-figure {
+  --utopia-chibi-scale: 1.02;
+  z-index: 2;
+}
+
+.utopia-wardrobe-pedestal-disc {
+  position: absolute;
+  bottom: 7px;
+  width: 36px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(62, 48, 37, 0.18);
+  pointer-events: none;
+}
+
+.utopia-wardrobe-stage-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.utopia-wardrobe-stage-copy strong {
+  font-size: 12.5px;
+}
+
+.utopia-wardrobe-stage-copy small {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-wardrobe-stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.utopia-wardrobe-action-btn {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.26);
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-strong);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utopia-wardrobe-action-btn.is-random {
+  border-color: #9a6216;
+  background: #fff3d1;
+  color: #4f330d;
+}
+
+.utopia-wardrobe-action-btn:hover {
+  background: #ffebc0;
+}
+
+.utopia-wardrobe-field {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+}
+
+.utopia-wardrobe-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--utopia-ink-muted);
+  padding-top: 3px;
+}
+
+.utopia-wardrobe-pills,
+.utopia-wardrobe-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.utopia-wardrobe-pill {
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.utopia-wardrobe-pill:hover {
+  border-color: #9a6216;
+  background: #fff8e6;
+}
+
+.utopia-wardrobe-pill.is-active {
+  border-color: #6f4f20;
+  background: #fde396;
+  color: #3f2a0c;
+  font-weight: 800;
+}
+
+.utopia-wardrobe-swatch {
+  --swatch-color: #7bc4a4;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1.75px solid #3e3025;
+  background: var(--swatch-color);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.utopia-wardrobe-swatch:hover {
+  transform: scale(1.1);
+}
+
+.utopia-wardrobe-swatch.is-active {
+  transform: scale(1.14);
+  box-shadow:
+    0 0 0 2px #fffdf7,
+    0 0 0 3.5px #c88728;
+}
+
+.utopia-spotlight-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.utopia-spotlight-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.utopia-spotlight-name-row strong {
+  font-size: 14.5px;
+}
+
+.utopia-presence-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-body);
+  border: 1px solid rgba(94, 72, 52, 0.2);
+}
+
+.utopia-presence-pill.tone-conversing {
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.utopia-presence-pill.tone-shared {
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.utopia-spotlight-origin {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-spotlight-now {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.24);
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-strong);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.utopia-voice-btn.is-playing {
+  border-color: #b4741e;
+  background: #fff3d1;
+  color: #6b430d;
+}
+
+.utopia-icebreaker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.utopia-icebreaker-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 98, 22, 0.3);
+  background: #fff8e6;
+  color: var(--utopia-ink-strong);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 130ms ease, border-color 130ms ease;
+}
+
+.utopia-icebreaker-chip:hover:not(:disabled) {
+  border-color: #9a6216;
+  background: #ffefc6;
+}
+
+.utopia-icebreaker-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.utopia-switch-row,
+.utopia-solitude-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.utopia-resident-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.utopia-resident-card {
+  padding: 11px 12px;
+  border-radius: 13px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.utopia-resident-card.is-focused {
+  border-color: rgba(180, 116, 30, 0.55);
+  background: #fff9eb;
+}
+
+.utopia-resident-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.utopia-resident-ident {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.utopia-resident-title-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.utopia-resident-name-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.utopia-resident-quick-now {
+  font-size: 11px;
+  color: var(--utopia-ink-muted);
+  max-width: 196px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.utopia-frame-dl {
+  margin: 0;
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: var(--utopia-parchment-card);
+  border: 1px solid rgba(94, 72, 52, 0.14);
+}
+
+.utopia-frame-dl > div {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+}
+
+.utopia-frame-dl > div.is-now dt {
+  color: #9e6214;
+  font-weight: 700;
+}
+
+.utopia-frame-dl > div.is-now dd {
+  font-weight: 700;
+}
+
+.utopia-frame-dl dt {
+  color: var(--utopia-ink-muted);
+  font-size: 11.5px;
+}
+
+.utopia-frame-dl dd {
+  margin: 0;
+  color: var(--utopia-ink-strong);
+  overflow-wrap: anywhere;
+}
+
+.utopia-solitude-row {
+  padding-top: 7px;
+  border-top: 1px solid rgba(94, 72, 52, 0.14);
+}
+
+.utopia-solitude-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.utopia-solitude-label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.utopia-solitude-copy small {
+  font-size: 11.5px;
+  color: var(--utopia-ink-muted);
+  line-height: 1.42;
+}
+
+.utopia-local-draft-box,
+.utopia-formal-chat-box,
+.utopia-chat-form,
+.utopia-nl-active-box,
+.utopia-nl-degraded-card,
+.utopia-nl-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.utopia-draft-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.utopia-chat-message-list {
+  max-height: 224px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 11px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-subtle);
+  gap: 8px;
+}
+
+.utopia-chat-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+}
+
+.utopia-chat-msg.is-user {
+  justify-content: flex-end;
+}
+
+.utopia-chat-bubble {
+  max-width: 88%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: var(--utopia-parchment-card);
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.utopia-chat-msg.is-user .utopia-chat-bubble {
+  background: #fff3d1;
+  border-color: rgba(180, 116, 30, 0.36);
+}
+
+.utopia-chat-role {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--utopia-ink-muted);
+}
+
+.utopia-chat-bubble p {
+  margin: 0;
+  line-height: 1.48;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ── Deterministic & Natural-Language Tuner ── */
+.utopia-param-groups,
+.utopia-preset-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.utopia-param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.utopia-param-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.utopia-param-options {
+  display: grid;
+  gap: 6px;
+}
+
+.utopia-param-option-btn {
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.utopia-param-option-btn:hover:not(:disabled) {
+  border-color: rgba(154, 98, 22, 0.45);
+  background: #fff8e6;
+}
+
+.utopia-param-option-btn.is-active {
+  border-color: #b4741e;
+  background: #fff3d4;
+  cursor: default;
+}
+
+.utopia-param-opt-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.utopia-preset-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.utopia-param-opt-summary {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--utopia-ink-body);
+}
+
+.utopia-param-opt-causal {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #9e6214;
+}
+
+.utopia-param-opt-causal.is-open {
+  color: #15803d;
+}
+
+.utopia-param-opt-causal.is-close {
+  color: #b45309;
+}
+
+.utopia-preset-card {
+  padding: 10px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.utopia-preset-card.is-lit {
+  border-color: rgba(180, 116, 30, 0.45);
+  background: #fff9eb;
+}
+
+.utopia-preset-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.utopia-nl-degraded-card,
+.utopia-nl-preview-card {
+  padding: 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(94, 72, 52, 0.18);
+  background: var(--utopia-parchment-subtle);
+}
+
+.utopia-preview-bullet-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.48;
+}
+
+.utopia-preview-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--utopia-parchment-card);
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  white-space: nowrap;
+}
+
+/* ── Curated Scroll Gallery & Relocation Modal ── */
+.utopia-pack-library-body,
+.utopia-relocate-confirm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 74vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.utopia-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 15px;
+  border-radius: 15px;
+  border: 1.5px dashed rgba(154, 98, 22, 0.42);
+  background: #fcf6e8;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.utopia-dropzone.is-dragging {
+  border-color: #b4741e;
+  background: #fff1cf;
+}
+
+.utopia-dropzone-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.utopia-dropzone-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utopia-dropzone-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.utopia-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+  gap: 14px;
+}
+
+.utopia-pack-card {
+  border-radius: 16px;
+  border: 1.5px solid rgba(94, 72, 52, 0.22);
+  background: var(--utopia-parchment-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(42, 30, 18, 0.08);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.utopia-pack-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(42, 30, 18, 0.14);
+}
+
+.utopia-pack-card.is-active {
+  border-color: #b4741e;
+  box-shadow: 0 0 0 2px rgba(240, 180, 62, 0.36), 0 8px 20px rgba(42, 30, 18, 0.12);
+}
+
+.utopia-pack-cover-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--utopia-parchment-subtle);
+  overflow: hidden;
+}
+
+.utopia-pack-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 280ms ease;
+}
+
+.utopia-pack-card:hover .utopia-pack-cover {
+  transform: scale(1.03);
+}
+
+.utopia-pack-theme-pill {
+  position: absolute;
+  left: 9px;
+  top: 9px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 58, 45, 0.35);
+  background: rgba(255, 253, 246, 0.94);
+  color: var(--utopia-ink-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.utopia-pack-card-body {
+  padding: 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+
+.utopia-pack-places-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.utopia-pack-place-chip {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  background: var(--utopia-parchment-subtle);
+  color: var(--utopia-ink-body);
+}
+
+.utopia-pack-place-chip.is-quarter {
+  font-weight: 700;
+  color: var(--utopia-ink-strong);
+}
+
+.utopia-pack-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.utopia-relocate-summary-card,
+.utopia-relocate-impact-box {
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 72, 52, 0.2);
+  background: var(--utopia-parchment-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.utopia-relocate-hero-cover {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 11px;
+  border: 1px solid rgba(94, 72, 52, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-utopia-expressive-stage],
+  .utopia-stage-camera-rig,
+  .utopia-stage-layer-img,
+  .utopia-daypart-tint,
+  .utopia-toolbar-btn,
+  .utopia-anchor-pin-btn,
+  .utopia-landmark-pin-btn,
+  .utopia-kinetic-beacon-cone,
+  .utopia-kinetic-breeze-ring,
+  .utopia-kinetic-water-spray,
+  .utopia-kinetic-balloon-glint,
+  .utopia-kinetic-bird-flock,
+  .utopia-bird-svg,
+  .utopia-chibi-figure,
+  .utopia-chibi-wings,
+  .utopia-chibi-eyes,
+  .utopia-chibi-thought-dot,
+  .utopia-shared-duo-cloud,
+  .utopia-pack-card,
+  .utopia-pack-cover {
+    transition: none !important;
+    animation: none !important;
+  }
+}

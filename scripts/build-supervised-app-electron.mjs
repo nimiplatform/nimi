@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,7 +10,7 @@ import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = process.cwd();
-const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const requireFromApp = createRequire(path.join(appRoot, 'package.json'));
 
 function parseConsumer(argv) {
   if (argv.length !== 2 || argv[0] !== '--consumer' || !/^[a-z][a-z0-9-]*$/u.test(argv[1])) {
@@ -40,7 +41,8 @@ try {
         + 'Wait for Desktop preparation to settle before launching supervised Apps.',
       );
     }
-    runChecked(pnpmBin, ['exec', 'tsc', '-p', 'tsconfig.electron.json']);
+    const tscEntry = requireFromApp.resolve('typescript/bin/tsc');
+    runChecked(process.execPath, [tscEntry, '-p', 'tsconfig.electron.json']);
     runChecked(process.execPath, ['scripts/bundle-electron-preload.mjs']);
   });
   process.stdout.write(`[${consumer} build:electron] built from Desktop-owned SDK/Kit dist\n`);

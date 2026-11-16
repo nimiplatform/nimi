@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0",
+  "layout": "panoramic-split",
+  "aspectRatio": "16:9",
+  "palette": {
+    "stageCanvasBg": "#2A3D5C",
+    "badgeBg": "#FFFDF6",
+    "badgeText": "#2D2520",
+    "accent": "#D98A2B",
+    "frameMotif": "industrial-cutaway"
+  },
+  "layers": [
+    {
+      "id": "polar-sky",
+      "assetPath": "assets/sky.webp",
+      "zIndex": 1,
+      "parallaxFactor": 0.04
+    },
+    {
+      "id": "aurora-ribbons",
+      "assetPath": "assets/aurora-overlay.png",
+      "zIndex": 8,
+      "parallaxFactor": 0.07,
+      "visibleWhen": {
+        "parameters": {
+          "sky-phenomenon": [
+            "aurora-band"
+          ]
+        }
+      }
+    },
+    {
+      "id": "station-cutaway",
+      "assetPath": "assets/midground.png",
+      "zIndex": 15,
+      "parallaxFactor": 0.09
+    },
+    {
+      "id": "snowdrift-foreground",
+      "assetPath": "assets/foreground.png",
+      "zIndex": 24,
+      "parallaxFactor": 0.14
+    }
+  ],
+  "ambientEffects": [
+    {
+      "effect": "snowfall",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "crisp-clear"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "snowfall",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "blizzard"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "aurora-glow",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "sky-phenomenon": [
+            "aurora-band"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "starlight",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "dayparts": [
+          "night"
+        ],
+        "parameters": {
+          "sky-phenomenon": [
+            "quiet-sky"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientAudio": [
+    {
+      "id": "polar-blizzard",
+      "assetPath": "assets/ambient-blizzard.wav",
+      "gain": 0.34,
+      "activeWhen": {
+        "parameters": {
+          "weather": [
+            "blizzard"
+          ]
+        }
+      }
+    },
+    {
+      "id": "polar-cabin-hum",
+      "assetPath": "assets/ambient-hum.wav",
+      "gain": 0.3
+    }
+  ],
+  "anchors": [
+    {
+      "targetId": "weather-deck",
+      "xPercent": 14,
+      "yPercent": 32,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 3
+    },
+    {
+      "targetId": "rover-apron",
+      "xPercent": 18,
+      "yPercent": 76,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "ice-core-vault",
+      "xPercent": 37,
+      "yPercent": 50,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "observation-window",
+      "xPercent": 50,
+      "yPercent": 26,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "hydro-garden",
+      "xPercent": 52,
+      "yPercent": 66,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "geothermal-hearth",
+      "xPercent": 66,
+      "yPercent": 48,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "radio-comms-room",
+      "xPercent": 73,
+      "yPercent": 28,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 3
+    },
+    {
+      "targetId": "personal-quarter",
+      "xPercent": 84,
+      "yPercent": 76,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "common-lab",
+      "xPercent": 88,
+      "yPercent": 43,
+      "badgeStyle": "cabin-window",
+      "maxVisibleAvatars": 4
+    }
+  ]
+}

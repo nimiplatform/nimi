@@ -5,7 +5,6 @@ use crate::{
 };
 mod agent_configure;
 mod agent_work;
-mod agent_utopia;
 mod app_activity;
 mod app_ai_config;
 mod avatar_host_target;
@@ -916,18 +915,18 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            agent_utopia::snapshot(self.checked_channel()?).await
+            crate::agent_utopia_contract::snapshot(self.checked_channel()?).await
         })
     }
 
     fn agent_utopia_update(
         &self,
-        request: serde_json::Value,
+        request: crate::ParsedAgentUtopiaUpdateInput,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            agent_utopia::update(self.checked_channel()?, request).await
+            crate::agent_utopia_contract::update(self.checked_channel()?, request).await
         })
     }
 

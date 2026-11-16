@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "1.0",
+  "layout": "panoramic-split",
+  "aspectRatio": "16:9",
+  "palette": {
+    "stageCanvasBg": "#D9E2D2",
+    "badgeBg": "#FFFDF6",
+    "badgeText": "#352E28",
+    "accent": "#3B7A62",
+    "frameMotif": "ink-scroll"
+  },
+  "layers": [
+    {
+      "id": "mountain-sky",
+      "assetPath": "assets/sky.webp",
+      "zIndex": 1,
+      "parallaxFactor": 0.04
+    },
+    {
+      "id": "abode-pavilions",
+      "assetPath": "assets/midground.png",
+      "zIndex": 14,
+      "parallaxFactor": 0.08
+    },
+    {
+      "id": "bamboo-foreground",
+      "assetPath": "assets/foreground.png",
+      "zIndex": 22,
+      "parallaxFactor": 0.14
+    },
+    {
+      "id": "auspicious-snow-veil",
+      "assetPath": "assets/snow-overlay.png",
+      "zIndex": 28,
+      "parallaxFactor": 0.1,
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "auspicious-snow"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mountain-array-cloud",
+      "assetPath": "assets/array-mist.png",
+      "zIndex": 32,
+      "parallaxFactor": 0.12,
+      "visibleWhen": {
+        "parameters": {
+          "mountain-array": [
+            "secluded"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientEffects": [
+    {
+      "effect": "spirit-mist",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "clear-mist"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "raindrops",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "mountain-rain"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "snowfall",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "auspicious-snow"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "falling-petals",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "sceneryKinds": [
+          "blossom"
+        ]
+      }
+    }
+  ],
+  "ambientAudio": [
+    {
+      "id": "mountain-rain-audio",
+      "assetPath": "assets/ambient-mountain-rain.wav",
+      "gain": 0.34,
+      "activeWhen": {
+        "parameters": {
+          "weather": [
+            "mountain-rain"
+          ]
+        }
+      }
+    },
+    {
+      "id": "bamboo-breeze-audio",
+      "assetPath": "assets/ambient-bamboo.wav",
+      "gain": 0.3
+    }
+  ],
+  "anchors": [
+    {
+      "targetId": "cloud-terrace",
+      "xPercent": 15,
+      "yPercent": 52,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "herb-terrace",
+      "xPercent": 31,
+      "yPercent": 74,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "pine-bell-platform",
+      "xPercent": 33,
+      "yPercent": 21,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 3
+    },
+    {
+      "targetId": "waterfall-pavilion",
+      "xPercent": 44,
+      "yPercent": 16,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 3
+    },
+    {
+      "targetId": "bamboo-cloister",
+      "xPercent": 53,
+      "yPercent": 76,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "elixir-hearth",
+      "xPercent": 58,
+      "yPercent": 43,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "craft-scroll-hall",
+      "xPercent": 74,
+      "yPercent": 17,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "tea-pavilion",
+      "xPercent": 84,
+      "yPercent": 41,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "personal-quarter",
+      "xPercent": 85,
+      "yPercent": 74,
+      "badgeStyle": "lantern",
+      "maxVisibleAvatars": 4
+    }
+  ]
+}

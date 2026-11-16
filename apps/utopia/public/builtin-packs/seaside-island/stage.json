@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "1.0",
+  "layout": "panoramic-split",
+  "aspectRatio": "16:9",
+  "palette": {
+    "stageCanvasBg": "#9CC8C9",
+    "badgeBg": "#FFFDF6",
+    "badgeText": "#3E3229",
+    "accent": "#2B7A8B",
+    "frameMotif": "coastal-wood"
+  },
+  "layers": [
+    {
+      "id": "coastal-sky",
+      "assetPath": "assets/sky.webp",
+      "zIndex": 1,
+      "parallaxFactor": 0.04
+    },
+    {
+      "id": "island-midground",
+      "assetPath": "assets/midground.png",
+      "zIndex": 12,
+      "parallaxFactor": 0.1
+    },
+    {
+      "id": "shore-foreground",
+      "assetPath": "assets/foreground.png",
+      "zIndex": 22,
+      "parallaxFactor": 0.16
+    },
+    {
+      "id": "low-tide-reef",
+      "assetPath": "assets/low-tide-reef.png",
+      "zIndex": 26,
+      "parallaxFactor": 0.05,
+      "visibleWhen": {
+        "parameters": {
+          "tide": [
+            "low-tide"
+          ]
+        }
+      }
+    },
+    {
+      "id": "high-tide-surf",
+      "assetPath": "assets/high-tide-surf.png",
+      "zIndex": 27,
+      "parallaxFactor": 0.06,
+      "visibleWhen": {
+        "parameters": {
+          "tide": [
+            "high-tide"
+          ]
+        }
+      }
+    },
+    {
+      "id": "sea-mist-veil",
+      "assetPath": "assets/mist-overlay.png",
+      "zIndex": 32,
+      "parallaxFactor": 0.12,
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "sea-mist",
+            "rain"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientEffects": [
+    {
+      "effect": "sea-breeze",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "sunny-breeze"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "spirit-mist",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "sea-mist"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "raindrops",
+      "intensity": "moderate",
+      "visibleWhen": {
+        "parameters": {
+          "weather": [
+            "rain"
+          ]
+        }
+      }
+    },
+    {
+      "effect": "starlight",
+      "intensity": "subtle",
+      "visibleWhen": {
+        "dayparts": [
+          "night"
+        ],
+        "parameters": {
+          "weather": [
+            "sunny-breeze"
+          ]
+        }
+      }
+    }
+  ],
+  "ambientAudio": [
+    {
+      "id": "coastal-rain",
+      "assetPath": "assets/ambient-rain.wav",
+      "gain": 0.34,
+      "activeWhen": {
+        "parameters": {
+          "weather": [
+            "rain"
+          ]
+        }
+      }
+    },
+    {
+      "id": "coastal-waves",
+      "assetPath": "assets/ambient-waves.wav",
+      "gain": 0.3
+    }
+  ],
+  "anchors": [
+    {
+      "targetId": "personal-quarter",
+      "xPercent": 24,
+      "yPercent": 52,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "bird-hide",
+      "xPercent": 56,
+      "yPercent": 11,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "tidal-reef",
+      "xPercent": 46,
+      "yPercent": 79,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "island-deck",
+      "xPercent": 85,
+      "yPercent": 52,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    },
+    {
+      "targetId": "boat-workshop",
+      "xPercent": 77,
+      "yPercent": 19,
+      "badgeStyle": "wooden-sign",
+      "maxVisibleAvatars": 4
+    }
+  ]
+}

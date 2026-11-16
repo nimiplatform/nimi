@@ -1,6 +1,12 @@
 #![deny(unsafe_code)]
 
 mod adapters;
+#[path = "windows_local_app/agent_utopia.rs"]
+mod agent_utopia_contract;
+pub use agent_utopia_contract::{
+    parse_agent_utopia_update_input, validate_agent_utopia_update_input,
+    ParsedAgentUtopiaUpdateInput,
+};
 mod asset_reveal;
 mod bundled_app_profiles_generated;
 mod bundled_avatar;

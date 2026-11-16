@@ -12,11 +12,11 @@ import (
 // @nimi-authority: rule.nimi.runtime.memory-world.r021
 func independentLifeFrameFact(l *agentLifeState, f lifeFrame, now time.Time) *runtimev1.CognitionMemoryActivityTerminal {
 	d := normalizeLifeSelfDescription(f.Description)
-	if f.Phase != lifeCompleted || f.Invalidated || f.SharedRef != "" || d == nil || validateLifeSelfDescription(d) != nil || f.StartsAt.IsZero() || f.EndsAt.Before(f.StartsAt) || f.EndsAt.After(now) {
+	if f.Phase != lifeCompleted || f.Invalidated || f.SharedRef != "" || f.CustomSceneryActive || d == nil || validateLifeSelfDescription(d) != nil || f.StartsAt.IsZero() || f.EndsAt.Before(f.StartsAt) || f.EndsAt.After(now) {
 		return nil
 	}
 	a := l.Activities[f.ActivityRef]
-	if a == nil {
+	if a == nil || a.CustomSceneryDerived {
 		return nil
 	}
 	change := runtimev1.CognitionMemoryActivityChange_COGNITION_MEMORY_ACTIVITY_CHANGE_ROUTINE
@@ -71,6 +71,9 @@ func (s *Service) lifeExperienceMemoryTxHook(entry *agentEntry, facts []*runtime
 
 func (s *Service) selfIntentionMemoryTxHook(entry *agentEntry, p *selfIntentionProposal, result *selfIntentionResult, turnID string, now time.Time) (runtimeAgentStateTxHook, error) {
 	if p == nil || p.Description == nil || !result.Accepted || (p.Action != "change" && p.Action != "abandon") {
+		return nil, nil
+	}
+	if a := entry.Life.Activities[result.ActivityRef]; a != nil && a.CustomSceneryDerived {
 		return nil, nil
 	}
 	d := normalizeLifeSelfDescription(p.Description)
