@@ -449,6 +449,8 @@ export type RegisteredNimiElectronRuntimeBridge = {
   readonly resolveDesktopAgentReference?: (input: Readonly<{ localAgentRef: string }>) => Promise<import('@nimiplatform/sdk/runtime/host').ResolveDesktopAgentReferenceResponse>;
   /** Desktop-main-only exact source resolution for a pending App activity open request. */
   readonly resolveAppActivityOpenLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
+  /** Main-only cleanup of current resources while the selected Runtime data root still authorizes them. */
+  readonly quiesceFormalAppResources?: () => Promise<void>;
   /** Bounded owner cleanup used before Desktop Host shutdown. */
   readonly disposeFormalAppResources?: () => Promise<void>;
   /** Main-only failed-quit recovery. Replaces stopped owners after cleanup; true requires a fresh Home renderer. */

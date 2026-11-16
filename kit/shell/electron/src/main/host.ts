@@ -736,6 +736,15 @@ export function registerNimiElectronRuntimeBridge(
               avatarHostTargetRef,
             )
           ),
+          // Data-root transitions retire streams under their original Runtime
+          // authority before it becomes unavailable. An aborted transition can
+          // still use these owners to open fresh resources.
+          quiesceFormalAppResources: async () => {
+            await Promise.all([
+              desktopFormalHostOwner?.invalidateResources(),
+              bundledAvatarFormalHostOwner?.invalidateResources(),
+            ]);
+          },
           disposeFormalAppResources,
           // @nimi-authority: rule.nimi.desktop.shell-ui.r066
           restoreFormalAppResources: async () => {

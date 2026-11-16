@@ -37,6 +37,14 @@ describe('Home formal owners after an interrupted quit', () => {
     try {
       expect(await bridge.restoreFormalAppResources!()).toBe(false);
       await expect(resolve()).resolves.toEqual({ reference });
+      const oldWrite = await oldAvatar.assetWriteOpen({ relativePath: 'stays-in-previous-root.txt' });
+      await bridge.quiesceFormalAppResources!();
+      await expect(oldAvatar.assetWriteAbort({ streamId: oldWrite.streamId })).rejects.toBeDefined();
+      expect(await bridge.restoreFormalAppResources!()).toBe(false);
+      await expect(resolve()).resolves.toEqual({ reference });
+      // A refused data-root transition still permits fresh resources.
+      const retryWrite = await oldAvatar.assetWriteOpen({ relativePath: 'fresh-in-same-root.txt' });
+      await oldAvatar.assetWriteAbort({ streamId: retryWrite.streamId });
       await bridge.disposeFormalAppResources!();
       // Reproduce the reported symptom: Runtime is healthy but the surviving
       // Home bridge still points at an owner permanently closed during quit.

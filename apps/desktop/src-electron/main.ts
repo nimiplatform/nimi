@@ -669,6 +669,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         await installedAppHost?.shutdown();
         await bundledZhiyuHost?.close();
         await bundledAvatarHost?.quiesceDataRoot();
+        await registeredRuntimeBridge?.quiesceFormalAppResources?.();
         await localAssetProtocolHost.quiesceDataRootReadableGrants();
       },
       abortHostDataRoot: () => {
