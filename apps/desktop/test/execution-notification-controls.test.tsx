@@ -218,7 +218,7 @@ test('initial sync, language and account changes use the acknowledged owner path
     fixture.documents.set('account-b', { version: 1, systemEnabled: false });
     await fixture.switchAccount('account-b');
     await fixture.settle();
-    assert.equal(fixture.controls[0]!.enabled, false);
+    assert.equal(fixture.controls[0]!.enabled, true, 'ordinary pause remains available for partner replies');
     assert.equal(fixture.nativeEnabled.at(-1), false);
     assert.equal(fixture.writes.length, 0);
   } finally { await fixture.close(); }

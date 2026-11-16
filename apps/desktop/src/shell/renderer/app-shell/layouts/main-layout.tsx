@@ -19,7 +19,6 @@ import { MainLayoutView } from './main-layout-view';
 import { AppsDownloadsProvider } from '../../features/apps/apps-downloads-context.js';
 import { SystemEntryProvider } from '../../features/system-entry/system-entry-provider.js';
 import { useHomeExecutionNotificationControls } from '../../features/home/execution-notices.js';
-import { useRealmNotificationSettings } from '../../features/notification/use-realm-notification-settings.js';
 
 const ChatRealtimeSyncHost = lazy(async () => {
   const mod = await import('../../features/realtime/use-chat-realtime-sync');
@@ -66,9 +65,7 @@ export function MainLayout() {
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
   useLayoutEffect(() => homeShellPresence(navigation).mount(), [navigation]);
-  const notificationSettings = useRealmNotificationSettings();
-  const directMessagesEnabled = notificationSettings.isSuccess && notificationSettings.data.activity?.directMessages !== false;
-  const notifications = useHomeExecutionNotificationControls(directMessagesEnabled);
+  const notifications = useHomeExecutionNotificationControls();
   const [homeVisible, setHomeVisible] = useState(true);
   const reading = useMemo(() => {
     const openAIActivity = async (): Promise<void> => {

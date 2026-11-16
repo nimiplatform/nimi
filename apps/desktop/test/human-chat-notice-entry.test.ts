@@ -71,3 +71,18 @@ test('a blocked editor receives feedback and remains available to finish the ope
     report: () => assert.fail('stale click'), focus: async () => assert.fail('stale focus') });
   assert.equal(navigation.getSnapshot().current.destination.id, 'settings');
 });
+
+test('a confirmed read withdraws only the matching partner notice', () => {
+  const notices = createHumanChatNoticeRegistry();
+  const first = new NativeNotice();
+  const next = new NativeNotice();
+  notices.retain(first as unknown as Notification, 'activity-first');
+  notices.retain(next as unknown as Notification, 'activity-next');
+  notices.closeTarget('activity-first');
+  assert.equal(first.closed, 1);
+  assert.equal(next.closed, 0);
+  assert.equal(notices.hasTarget('activity-first'), false);
+  assert.equal(notices.hasTarget('activity-next'), true);
+  notices.clear();
+  assert.equal(next.closed, 1);
+});

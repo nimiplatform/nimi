@@ -733,7 +733,7 @@ units:
     kind: rule
     title: Menu-bar navigation is event-dispatched
     modality: must
-    statement: System-entry navigation restores or creates the admitted Home main window through its existing native owner and dispatches only a bounded typed destination through the single Home navigation controller. Current admission and source-qualified object authority are rechecked when an action executes, including a previously expanded menu; activity open remains the formal owner operation, and Runtime Agent activity acquires no Conversation open. A missing or failed renderer offers native recovery without replaying business actions or treating another small window as the Home main window.
+    statement: System-entry navigation restores or creates the admitted Home main window through its existing native owner and dispatches only a bounded typed destination through the single Home navigation controller. Current admission and source-qualified object authority are rechecked when an action executes, including a previously expanded menu; activity open remains the formal owner operation, and a Runtime Agent reply may navigate to the exact partner through Home’s own current admission without granting Conversation access or reusing the App activity open operation. A missing or failed renderer offers native recovery without replaying business actions or treating another small window as the Home main window.
     condition: Whenever a menu-bar navigation item is activated.
     failure: Reject invalid payloads and report navigation failure without mutating a React component directly.
     relations:

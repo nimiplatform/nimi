@@ -2,6 +2,8 @@
   "chatOpenBlocked": "暂时无法打开聊天与联系人。请先完成当前操作，再重试。",
   "chatOpenCancelled": "已取消打开聊天与联系人，准备好后可重试。",
   "execution": {
+    "ordinaryScope": "暂停普通通知适用于伙伴回复、真人私信和应用执行中断。",
+    "pause": "暂停普通通知 1 小时",
     "unconfirmed": "暂时无法确认本次运行的执行条件。",
     "unavailable": "应用中断记录暂时不可用",
     "title": "应用执行中断的本机通知",

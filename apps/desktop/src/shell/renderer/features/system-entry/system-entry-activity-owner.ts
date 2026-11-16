@@ -1,4 +1,4 @@
-import { createNimiAppActivityView, type NimiAppActivityOpenResult, type NimiAppActivityRecord, type NimiAppActivityView, type NimiAppActivityViewSnapshot, type NimiLocalAppActivityClient } from '@nimiplatform/sdk/app';
+import { createNimiAppActivityView, type NimiAppActivityChange, type NimiAppActivityOpenResult, type NimiAppActivityRecord, type NimiAppActivityView, type NimiAppActivityViewSnapshot, type NimiLocalAppActivityClient } from '@nimiplatform/sdk/app';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
@@ -10,7 +10,7 @@ type ViewState = Readonly<{ scope: string | null; pending: NimiAppActivityViewSn
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r035
 // @nimi-authority: rule.nimi.desktop.shell-ui.system-entry-projection
-export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: string | null): {
+export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: string | null, onLiveChange?: (change: NimiAppActivityChange) => void): {
   activity: HomeAppActivity;
   observedAt: string | null;
   openActivity(record: NimiAppActivityRecord): Promise<NimiAppActivityOpenResult>;
@@ -25,6 +25,8 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
   const [notices, setNotices] = useState<Readonly<Record<string, HomeMessageNotice>>>({});
   const views = useRef<Partial<Record<HomeActivityViewKey, NimiAppActivityView>>>({});
   const pendingReads = useRef(new Set<string>());
+  const liveChange = useRef(onLiveChange);
+  liveChange.current = onLiveChange;
   const liveScope = useRef(scope);
   liveScope.current = scope;
 
@@ -40,7 +42,8 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
         observedAt: snapshot.status === 'ready' ? new Date().toISOString() : previous.observedAt }));
     };
     const pending = createNimiAppActivityView({ activity: client, filter: { kind: 'todo', todoStates: ['open'] }, onUpdate: update('pending') });
-    const recent = createNimiAppActivityView({ activity: client, maxRecords: 300, onUpdate: update('recent') });
+    const recent = createNimiAppActivityView({ activity: client, maxRecords: 300, onUpdate: update('recent'),
+      onLiveChange: change => { if (active && liveScope.current === scope) liveChange.current?.(change); } });
     views.current = { pending, recent };
     pending.start(); recent.start();
     return () => {

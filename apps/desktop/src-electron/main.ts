@@ -133,7 +133,7 @@ import { SYSTEM_ENTRY_ACTION_EVENT, SYSTEM_ENTRY_HOME_COMMANDS, SYSTEM_ENTRY_VIS
   type SystemEntryAction, type SystemEntryActionContext, type SystemEntryActionDispatch,
 } from '../src/shell/shared/system-entry-types.js';
 import { createHumanChatNoticeRegistry } from './human-chat-notice-registry.js';
-import { OPEN_HUMAN_CHAT_NOTICE, SHOW_HUMAN_CHAT_NOTICE, FOCUS_HUMAN_CHAT_NOTICE, humanChatNoticeFocus, humanChatNoticeRequest } from '../src/shell/shared/human-chat-notice.js';
+import { CLOSE_PARTNER_CHAT_NOTICE, OPEN_PARTNER_CHAT_NOTICE, SHOW_PARTNER_CHAT_NOTICE, partnerChatNoticeClose, partnerChatNoticeRequest, OPEN_HUMAN_CHAT_NOTICE, SHOW_HUMAN_CHAT_NOTICE, FOCUS_HUMAN_CHAT_NOTICE, humanChatNoticeFocus, humanChatNoticeRequest } from '../src/shell/shared/human-chat-notice.js';
 
 const APP_ID = 'nimi.desktop';
 const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
@@ -204,6 +204,7 @@ const systemEntryDeniedWebContents = new Set<number>();
 const desktopSenderInvalidationListeners = new Set<() => void>();
 const systemNotices = new Set<Notification>();
 const humanChatNotices = createHumanChatNoticeRegistry();
+const partnerChatNotices = createHumanChatNoticeRegistry();
 const executionNotices = createDesktopExecutionNoticesHost({
   supported: () => Notification.isSupported(),
   readAdmission: async () => systemEntryAdmission?.read() ?? { generation: 'unavailable', state: 'unknown' },
@@ -892,6 +893,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       preloadPath: path.join(currentDir, 'zhiyu-preload.cjs'),
       version: zhiyuPackage.version,
       canOpen: () => normalHomeWorkAllowed() && !desktopQuitCoordinator.isLaunchBlocked(),
+      onFocus: clearPartnerChatNotices,
       reportError: error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`),
     });
     const appActivitySourceLaunch = createDesktopAppActivitySourceLaunch({
@@ -983,6 +985,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           assertSystemEntryHomeRequest(payload, event, true);
           if (!current || current.generation !== result.generation || current.state !== 'ready' || !systemEntryActionRelay) throw new Error('system-entry-action-stale');
           systemEntryActionRelay.settle(result);
+          return { accepted: true };
+        },
+        [SHOW_PARTNER_CHAT_NOTICE]: ({ payload, event }) => showPartnerChatNotice(payload, event),
+        [CLOSE_PARTNER_CHAT_NOTICE]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, true);
+          const { generation, activityId } = partnerChatNoticeClose.parse(payload.payload);
+          const current = await systemEntryAdmission?.read();
+          assertSystemEntryHomeRequest(payload, event, true);
+          if (current?.state === 'ready' && current.generation === generation) partnerChatNotices.closeTarget(activityId);
           return { accepted: true };
         },
         [SHOW_HUMAN_CHAT_NOTICE]: ({ payload, event }) => showHumanChatNotice(payload, event),
@@ -1360,8 +1371,17 @@ function assertSystemEntryHomeRequest(payload: Readonly<Record<string, unknown>>
   }
 }
 
+function clearPartnerChatNotices(): void {
+  partnerChatNotices.clear();
+}
+
+app.on('browser-window-focus', (_event, window) => {
+  if (window === mainWindow) clearPartnerChatNotices();
+});
+
 function clearHumanChatNotices(): void {
   humanChatNotices.clear();
+  clearPartnerChatNotices();
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.human-chat-notice
@@ -1400,6 +1420,35 @@ async function showHumanChatNotice(payload: Readonly<Record<string, unknown>>, e
     });
   });
   notification.show();
+  return { requested: true };
+}
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.partner-chat-notice
+async function showPartnerChatNotice(payload: Readonly<Record<string, unknown>>, event: NimiElectronIpcMainInvokeEvent) {
+  assertSystemEntryHomeRequest(payload, event, true);
+  const { sender, ...target } = partnerChatNoticeRequest.parse(payload.payload);
+  const window = mainWindow;
+  const admission = systemEntryAdmission;
+  if (!window || window.isDestroyed() || window.isFocused() || bundledZhiyuHost?.isFocused() || !admission || !Notification.isSupported()) return { requested: false };
+  const assertCurrent = await admission.authorizeFocus(target.generation);
+  const view = await systemEntryHost?.snapshot();
+  assertCurrent();
+  assertSystemEntryHomeRequest(payload, event, true);
+  if (window !== mainWindow || window.isDestroyed() || window.isFocused() || bundledZhiyuHost?.isFocused() || partnerChatNotices.hasTarget(target.activityId)
+    || view?.projection?.generation !== target.generation || view.projection.notificationsPausedUntil > Date.now()) return { requested: false };
+
+  const zh = systemEntryLocale === 'zh';
+  const notice = new Notification({ title: zh ? `${sender} 回复了你` : `New reply from ${sender}`, body: zh ? '在 Nimi 查看' : 'Open in Nimi' });
+  partnerChatNotices.retain(notice, target.activityId);
+  notice.once('click', () => {
+    void (async () => {
+      const assertClickCurrent = await admission.authorizeFocus(target.generation);
+      assertClickCurrent();
+      if (window !== mainWindow || window.isDestroyed() || window.webContents.isDestroyed()) return;
+      window.webContents.send(`${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${OPEN_PARTNER_CHAT_NOTICE}`, target);
+    })().catch(() => undefined);
+  });
+  notice.show();
   return { requested: true };
 }
 

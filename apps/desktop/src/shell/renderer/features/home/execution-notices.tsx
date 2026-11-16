@@ -177,9 +177,9 @@ export type HomeExecutionNotificationControls = Readonly<{
   resume: () => Promise<void>;
 }>;
 
-export function useHomeExecutionNotificationControls(directMessagesEnabled = false): HomeExecutionNotificationControls {
+export function useHomeExecutionNotificationControls(): HomeExecutionNotificationControls {
   const { query, update, authenticated, confirmed } = useExecutionNotificationPreferences();
-  const enabled = authenticated && confirmed && (query.data?.preferences.systemEnabled === true || directMessagesEnabled);
+  const enabled = authenticated && confirmed;
   const pausedUntil = authenticated && confirmed ? query.data!.pausedUntil : 0;
   const pause = useCallback(() => update({ kind: 'pause' }), [update]);
   const resume = useCallback(() => update({ kind: 'resume' }), [update]);
@@ -202,10 +202,11 @@ export function ExecutionNotificationSetting() {
     <label className="flex items-center justify-between gap-4"><span className="font-medium">{t('Notifications.execution.title')}</span><input type="checkbox" aria-label={t('Notifications.execution.title')} checked={confirmed && query.data!.preferences.systemEnabled} disabled={!canChange} onChange={event => change({ kind: 'system', enabled: event.target.checked })} /></label>
     <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.description')}</p>
     <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('Notifications.execution.osLimit')}</p>
+    <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.ordinaryScope')}</p>
     {pausedUntil ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm" role="status">
       <span>{t('Notifications.execution.pausedUntil', { time: new Date(pausedUntil).toLocaleTimeString(i18n.resolvedLanguage, { hour: '2-digit', minute: '2-digit' }) })}</span>
       <Button tone="ghost" size="sm" disabled={!canChange} onClick={() => change({ kind: 'resume' })}>{t('Notifications.execution.resume')}</Button>
-    </div> : null}
+    </div> : <Button className="mt-2" tone="ghost" size="sm" disabled={!canChange} onClick={() => change({ kind: 'pause' })}>{t('Notifications.execution.pause')}</Button>}
     {query.isError || mutationFailed ? <div role="status" className="mt-2 text-sm"><span>{t('Notifications.execution.failed')}</span><Button tone="ghost" size="sm" disabled={busy} onClick={() => void query.refetch({ cancelRefetch: false })}>{t('Notifications.execution.retry')}</Button></div> : null}
   </section>;
 }

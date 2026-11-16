@@ -2,6 +2,8 @@
   "chatOpenBlocked": "Could not open Contacts & Conversations. Finish the current operation, then try again.",
   "chatOpenCancelled": "Opening Contacts & Conversations was cancelled. You can try again when ready.",
   "execution": {
+    "ordinaryScope": "The ordinary notification pause covers partner replies, direct messages, and App interruptions.",
+    "pause": "Pause ordinary notifications for 1 hour",
     "unconfirmed": "Cannot confirm whether execution conditions for this run are met.",
     "unavailable": "App interruption records are temporarily unavailable",
     "title": "App execution interruption notifications",

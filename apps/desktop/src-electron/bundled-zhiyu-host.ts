@@ -30,6 +30,7 @@ export function createDesktopBundledZhiyuHost(input: {
   preloadPath: string;
   version: string;
   canOpen: () => boolean;
+  onFocus?: () => void;
   reportError: (error: unknown) => void;
 }) {
   const appSession = session.fromPartition('persist:nimi-bundled-zhiyu');
@@ -127,6 +128,7 @@ export function createDesktopBundledZhiyuHost(input: {
           additionalArguments: [`--nimi-electron-runtime-invoke-channel=${invokeChannel}`, `--nimi-electron-runtime-event-channel-prefix=${eventChannelPrefix}`],
         },
       });
+      if (input.onFocus) window.on('focus', input.onFocus);
       const record = { window, owner, bridge, media, chrome, placement: undefined as Awaited<ReturnType<typeof createZhiyuElectronResourcePackPlacementHost>> | undefined };
       current = record;
       chrome.bindWindow(window);
@@ -163,6 +165,7 @@ export function createDesktopBundledZhiyuHost(input: {
       await focus();
     },
     isOpen: () => Boolean(current),
+    isFocused: () => Boolean(current && !current.window.isDestroyed() && current.window.isFocused()),
     close,
     async shutdown() {
       if (opening) await opening.catch(() => undefined);

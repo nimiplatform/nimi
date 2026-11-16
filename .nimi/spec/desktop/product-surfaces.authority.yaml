@@ -435,7 +435,7 @@ units:
     kind: rule
     title: Home hiding and display preferences change only the Home preview
     modality: must
-    statement: Home hiding and per-App-source display preferences remain scoped Desktop presentation choices for eligible activity, stored by activityId and displayed revision; Realm notifications and current requests do not gain a parallel hidden or read store in this iteration. The Message center ignores Home hiding, and restores only supported activity cards to Home. Settings groups these controls under Messages and notifications while clearly separating Home display, Realm social/channel preferences and local system alerts. The Realm direct-message activity preference gates Desktop direct-message alerts, and the native Pause ordinary notifications action applies to both Desktop direct-message and execution-interruption alerts. No single switch claims control over unimplemented App/Agent push or mail delivery. Hidden activity reappears only on a higher source revision; system items collapse but are not hidden. A missing preferences document starts with defaults; other failures keep content visible and expose retry, and a save changes display only after successful owner storage.
+    statement: Home hiding and per-App-source display preferences remain scoped Desktop presentation choices for eligible activity, stored by activityId and displayed revision; Realm notifications and current requests do not gain a parallel hidden or read store in this iteration. The Message center ignores Home hiding, and restores only supported activity cards to Home. Settings groups these controls under Messages and notifications while clearly separating Home display, Realm social/channel preferences and local system alerts. The Realm direct-message activity preference gates Desktop direct-message alerts, and the native Pause ordinary notifications action applies to Desktop direct-message, partner-reply and execution-interruption alerts. No single switch claims control over unimplemented App/Agent push or mail delivery. Hidden activity reappears only on a higher source revision; system items collapse but are not hidden. A missing preferences document starts with defaults; other failures keep content visible and expose retry, and a save changes display only after successful owner storage.
     condition: Whenever Home, the Message center or Settings reads, applies, or changes Home message display preferences.
     failure: Keep the previous display and show the read or save failure with a manual retry, and reject hiding that marks read, completes, cancels, or stops publishing, reuse of the Realm notification settings DTO, and preferences carried across accounts, subjects, or data roots.
     relations:
@@ -545,3 +545,13 @@ units:
         target: definition.nimi.platform.core-protocol.app-activity-open
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-activity-record
+  - id: rule.nimi.desktop.product-surfaces.partner-chat-notice
+    kind: rule
+    title: Partner reply alerts preserve exact target and attention
+    modality: must
+    statement: Desktop may show a bounded native alert for a newly observed committed Runtime Agent reply from the current Activity changes after the list baseline, subject to ordinary notification pause and OS delivery. Historical list pages and relist are not arrival events. Home or bundled Zhiyu focus suppresses partner alerts without changing unread state or replaying suppressed alerts on blur. Scope retirement, focus or confirmed read or removal clears the applicable alerts. Native alert text excludes message content. Clicking revalidates the current Home scope and targets the complete committed primary text for the exact turn, including an authorized message read outside the live snapshot when the message reference is known. If the message cannot be positioned, show that state and offer an explicit open of the same partner conversation. Navigation alone never marks the reply read.
+    condition: Whenever Desktop delivers or opens a native partner reply alert.
+    failure: Drop stale or duplicate alerts and reject substituted messages, guessed partner identity, transferred operation authority or inferred read state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview

@@ -10,7 +10,7 @@ import {
   type SystemEntryActionDispatch, type SystemEntryActionResult, type SystemEntryContext,
   type SystemEntryProjection,
 } from '../../../shared/system-entry-types.js';
-import { OPEN_HUMAN_CHAT_NOTICE, FOCUS_HUMAN_CHAT_NOTICE, humanChatNoticeTarget } from '../../../shared/human-chat-notice.js';
+import { OPEN_PARTNER_CHAT_NOTICE, partnerChatNoticeTarget, OPEN_HUMAN_CHAT_NOTICE, FOCUS_HUMAN_CHAT_NOTICE, humanChatNoticeTarget } from '../../../shared/human-chat-notice.js';
 import { openHumanChatNotice, reportHumanChatOpenResult } from '../relationship/human-chat-entry.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { useAppStore, useAppStoreApi, useHomeNavigation } from '../../app-shell/providers/app-store.js';
@@ -25,6 +25,8 @@ import { fetchHomeRecentChatPartners, withRecentChatUnread } from '../home/home-
 import { mergeActivitySnapshots } from '../home/home-app-activity-model.js';
 import { createSystemEntryAIObserver, type SystemEntryAIObserver } from './system-entry-ai-observer.js';
 import { projectSystemEntryUsage, projectSystemEntryWork, type SystemEntryAIState } from './system-entry-ai-model.js';
+import { useContactsScope } from '../chat/contacts-scope.js';
+import { useSystemEntryPartnerNotices } from './system-entry-partner-notices.js';
 import { useSystemEntryActivityOwner } from './system-entry-activity-owner.js';
 import { SystemEntryProviderContext } from './system-entry-context.js';
 import { createSystemEntryPublisher, type SystemEntryProjectionDraft } from './system-entry-publisher.js';
@@ -99,7 +101,17 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
     // Re-read and acknowledge the same preference owner after scope recovery.
     void queryClient.invalidateQueries({ queryKey: ['desktop-execution-notification-preferences'] });
   }, [hostContext?.generation, hostContext?.state, queryClient]);
-  const activityOwner = useSystemEntryActivityOwner(bindings.sdk, scope);
+  const contacts = useContactsScope();
+  const partnerGeneration = hostContext?.state === 'ready' ? hostContext.generation : null;
+  const partnerChange = useSystemEntryPartnerNotices({ sdk: bindings.sdk, accountId: ownerUserId,
+    scope: scope ? scope + ':' + contacts.scope : null, contactsScope: contacts.scope, generation: partnerGeneration,
+    isCurrent: () => {
+      const auth = store.getState().auth;
+      return (auth.status === 'authenticated' || auth.status === 'refresh-pending') &&
+        auth.user?.id === ownerUserId && auth.authorizationRevision === contacts.auth.authorizationRevision &&
+        publisher.currentContext()?.generation === partnerGeneration;
+    } });
+  const activityOwner = useSystemEntryActivityOwner(bindings.sdk, scope, partnerChange);
   const activity = activityOwner.activity;
   const apps = useAppsOverview({ enabled: Boolean(scope) });
   const appDownloads = useAppsDownloads();
@@ -273,6 +285,27 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
         if (scope.isCurrent()) reportHumanChatOpenResult({ status: 'busy' }, t);
       }).finally(() => scope.dispose());
     }));
+    const partnerNoticeListener = Promise.resolve(listenShell(OPEN_PARTNER_CHAT_NOTICE, event => {
+      const target = partnerChatNoticeTarget.safeParse(event.payload);
+      const context = publisher.currentContext();
+      const auth = store.getState().auth;
+      if (!active || !target.success || context?.state !== 'ready' || target.data.generation !== context.generation
+        || !auth.user?.id || contextOwner.current !== auth.user.id) return;
+      const scope = captureAccountActionScope(store, { allowRefreshing: true });
+      if (!scope) return;
+      const current = () => active && scope.isCurrent() && publisher.currentContext()?.generation === target.data.generation;
+      const focus = () => invokeChecked(FOCUS_HUMAN_CHAT_NOTICE, { payload: { generation: target.data.generation } }, value => value);
+      void (async () => {
+        if (navigation.getSnapshot().current.destination.id === 'settings') await focus();
+        if (!current()) return;
+        const result = await navigation.push({ id: 'contacts', partnerChat: { localAgentRef: target.data.localAgentRef,
+          turnId: target.data.turnId, messageId: target.data.messageId } });
+        if (!current()) return;
+        reportHumanChatOpenResult(result, t);
+        if (result.status === 'committed' || result.status === 'unchanged') await focus();
+      })().catch(() => { if (current()) reportHumanChatOpenResult({ status: 'busy' }, t); }).finally(() => scope.dispose());
+    }));
+    void partnerNoticeListener.catch(() => undefined);
     void actionListener.catch(() => undefined); void visibilityListener.catch(() => undefined); void noticeListener.catch(() => undefined);
     return () => {
       active = false; requests.clear();
@@ -280,6 +313,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
       retentionTimers.clear();
       void actionListener.then((unsubscribe) => unsubscribe(), () => undefined);
       void visibilityListener.then((unsubscribe) => unsubscribe(), () => undefined);
+      void partnerNoticeListener.then(unsubscribe => unsubscribe(), () => undefined);
       void noticeListener.then((unsubscribe) => unsubscribe(), () => undefined);
     };
   }, [nativeEnabled, navigation, publisher, store, t]);
