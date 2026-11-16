@@ -30,6 +30,8 @@ export type NimiAppActivityViewOptions = {
   readonly pageSize?: number;
   /** Records merged per listing step; listing pauses with `hasMore` once reached. */
   readonly maxRecords?: number;
+  /** Accepted subscription changes after the current list baseline. List pages do not invoke this observer. */
+  readonly onLiveChange?: (change: NimiAppActivityChange) => void;
   readonly onUpdate: (snapshot: NimiAppActivityViewSnapshot) => void;
 };
 
@@ -173,7 +175,10 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
       openedAt = Date.now();
       for await (const change of active) {
         if (!running || listingGeneration !== generation) return;
-        if (state.mergeChange(change)) publish();
+        if (state.mergeChange(change)) {
+          publish();
+          if (running && listingGeneration === generation) options.onLiveChange?.(change);
+        }
       }
     } catch (error) {
       if (!running || listingGeneration !== generation) return;

@@ -519,3 +519,33 @@ test('Runtime confirmation and deadline remain observable while Desktop launch i
     assert.equal(stream.aborted, true);
   }
 });
+
+test('Activity view distinguishes a live arrival from concurrently loaded history', async () => {
+  let finishPage!: (page: unknown) => void;
+  const pushable = fakeShell([
+    () => ({ records: [recordJson(2)], nextPageToken: 'older', baselineChangeSeq: '2' }),
+    () => new Promise(resolve => { finishPage = resolve; }),
+  ]);
+  const arrivals: string[] = [];
+  const view = createNimiAppActivityView({
+    activity: createNimiLocalAppActivityClient(pushable.shell),
+    onUpdate: () => undefined,
+    onLiveChange: change => { if (change.kind === 'upsert') arrivals.push(change.record.activityId); },
+  });
+  try {
+    view.start();
+    await tick();
+    const event = { changeSeq: '3', kind: 'upsert', activityId: ID(3), record: recordJson(3) };
+    pushable.push(event);
+    pushable.push(event);
+    await tick();
+    assert.deepEqual(arrivals, [ID(3)]);
+    finishPage({ records: [recordJson(1)], nextPageToken: null, baselineChangeSeq: '2' });
+    await tick();
+    assert.deepEqual(view.snapshot().records.map(record => record.activityId), [ID(3), ID(2), ID(1)]);
+    assert.deepEqual(arrivals, [ID(3)]);
+  } finally {
+    await view.stop();
+    pushable.end();
+  }
+});
