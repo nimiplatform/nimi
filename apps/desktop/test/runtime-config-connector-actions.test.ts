@@ -100,7 +100,7 @@ test('connection checks deliver localized inline feedback and retain failure det
         guard: {
           get testingConnector() { return busy; },
           checkingHealth: false,
-          setTestingConnector: (next: boolean) => { busy = next; },
+          setCheckingConnector: (next: unknown) => { busy = Boolean(next); },
           setCheckingHealth() {},
         },
         provider: { get health(): never { throw new Error('Connection checks must not invoke local health checks'); }, testSelectedConnector: {

@@ -28,7 +28,6 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   // truth. Renderer storage keeps UI preferences only.
   const payload: StoredStateV11 = {
     version: 16,
-    initializedByV11: Boolean(state.initializedByV11),
     diagnosticsCollapsed: Boolean(state.diagnosticsCollapsed),
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,
@@ -43,11 +42,4 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     RUNTIME_CONFIG_STORAGE_KEY_V16,
     payload,
   );
-}
-
-export function setInitializedByV11(state: RuntimeConfigStateV11): RuntimeConfigStateV11 {
-  return {
-    ...state,
-    initializedByV11: true,
-  };
 }

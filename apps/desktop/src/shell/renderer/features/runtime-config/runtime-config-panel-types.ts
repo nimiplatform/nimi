@@ -1,3 +1,4 @@
+import type { ConnectorCheckIdentity } from './runtime-config-connector-test-command.js';
 import type {
   RuntimeConfigStatusV11,
   RuntimeConfigStateV11,
@@ -56,7 +57,7 @@ export type RuntimeConfigPanelControllerModel = {
   showCloudApiKey: boolean;
   connectorModelQuery: string;
   vaultEntryCount: number;
-  testingConnector: boolean;
+  checkingConnector: ConnectorCheckIdentity | null;
   checkingHealth: boolean;
   runtimeWritesDisabled: boolean;
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;

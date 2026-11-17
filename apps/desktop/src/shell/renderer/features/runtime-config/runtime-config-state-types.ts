@@ -69,7 +69,6 @@ export type ApiConnector = NimiRuntimeConfigConnectorProjection;
 
 export type RuntimeConfigStateV11 = {
   version: 16;
-  initializedByV11: boolean;
   diagnosticsCollapsed: boolean;
   selectedSource: SourceIdV11;
   uiMode: UiModeV11;

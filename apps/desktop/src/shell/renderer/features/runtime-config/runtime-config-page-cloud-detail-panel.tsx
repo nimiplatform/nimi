@@ -1,3 +1,4 @@
+import { matchesConnectorCheck } from './runtime-config-connector-test-command.js';
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
 import { CloudMediaStorage } from './runtime-config-media-storage.js';
 import { CloudSVGAuthor } from './runtime-config-svg-author.js';
@@ -162,7 +163,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   }
   const presentation = connectorPresentationState(selectedConnector);
   const vendorLabel = vendorOptions.find(item => item.value === selectedConnector.vendor)?.label ?? selectedConnector.vendor;
-  const checking = model.testingConnector;
+  const checking = matchesConnectorCheck(model.checkingConnector, selectedConnector);
+  const anotherCheck = Boolean(model.checkingConnector) && !checking;
   const credentialRejected = ['AI_PROVIDER_AUTH_FAILED', 'AI_CONNECTOR_CREDENTIAL_MISSING'].includes(selectedConnector.lastDetail);
   const canRepairCredential = !isSystemOwned && (isBrowserManagedConnector || selectedConnector.authMode === 'api_key');
   const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t, 'save') : '';
@@ -206,12 +208,12 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {!isSystemOwned && (editing || !credentialRejected || !canRepairCredential) ? (
-              <Button variant="ghost" size="sm" disabled={checking || savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
+              <Button variant="ghost" size="sm" disabled={savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
                 {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
               </Button>
             ) : null}
             {!editing && presentation !== 'needs-credential' && presentation !== 'disabled' ? (
-              <Button variant="ghost" size="sm" disabled={checking || savingToken || isDraft} onClick={() => {
+              <Button variant="ghost" size="sm" disabled={checking || anotherCheck || savingToken || isDraft} onClick={() => {
                 void model.testSelectedConnector(feedback => setCheckResult({ configurationVersion: selectedConnector.configurationVersion, feedback }));
               }}>
                 {t(checking ? 'runtimeConfig.cloud.testing' : presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}
@@ -228,6 +230,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
         <div data-testid={`cloud-connection-state:${presentation}`}>
           <div aria-live="polite" aria-atomic="true">
             <InlineFeedback className="mb-3" feedback={checking ? { kind: 'info', message: t('runtimeConfig.cloud.testing') } : checkFeedback} />
+            {anotherCheck && !editing && !isDraft && presentation !== 'needs-credential' && presentation !== 'disabled'
+              ? <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.anotherCheck')}</p> : null}
           </div>
           {selectedConnector.lastCheckedAt ? <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}</p> : null}
           {presentation === 'attention' ? <div className="mt-3 space-y-2" role="alert">

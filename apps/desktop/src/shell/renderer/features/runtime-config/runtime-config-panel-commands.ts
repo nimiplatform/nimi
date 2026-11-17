@@ -23,9 +23,11 @@ export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelComman
 
   const testSelectedConnector = async (setControlFeedback: TestConnectorCommandContext['setControlFeedback']) => {
     const context = { ...input.provider.testSelectedConnector, setControlFeedback };
+    if (!context.selectedConnector) return;
+    const { id, configurationVersion } = context.selectedConnector;
     await runRuntimeConfigAsyncGuard(
       input.guard.testingConnector,
-      input.guard.setTestingConnector,
+      next => input.guard.setCheckingConnector(next ? { id, configurationVersion } : null),
       async () => {
         setControlFeedback(null);
         await testSelectedConnectorCommand(context);

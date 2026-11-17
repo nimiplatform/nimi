@@ -74,18 +74,21 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   // render. Assign in render body (not an effect) so reads are never stale.
   const stateRef = useRef(panelState.state);
   const checkingHealthRef = useRef(panelState.checkingHealth);
-  const testingConnectorRef = useRef(panelState.testingConnector);
+  const testingConnectorRef = useRef(panelState.checkingConnector);
   const selectedConnectorRef = useRef(derived.selectedConnector);
   stateRef.current = panelState.state;
   checkingHealthRef.current = panelState.checkingHealth;
-  testingConnectorRef.current = panelState.testingConnector;
+  testingConnectorRef.current = panelState.checkingConnector;
   selectedConnectorRef.current = derived.selectedConnector;
 
   const commandInput = useMemo(() => ({
     guard: {
-      get testingConnector() { return testingConnectorRef.current; },
+      get testingConnector() { return Boolean(testingConnectorRef.current); },
       get checkingHealth() { return checkingHealthRef.current; },
-      setTestingConnector: panelState.setTestingConnector,
+      setCheckingConnector: (next: typeof testingConnectorRef.current) => {
+        testingConnectorRef.current = next;
+        panelState.setCheckingConnector(next);
+      },
       setCheckingHealth: panelState.setCheckingHealth,
     },
     provider: {
@@ -102,7 +105,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         connectorSdk: runtimeConnectorSdk,
         now: bindings.clock.now,
         get selectedConnector() { return selectedConnectorRef.current; },
-        get testingConnector() { return testingConnectorRef.current; },
+        get testingConnector() { return Boolean(testingConnectorRef.current); },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
       },
@@ -112,7 +115,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     bindings.clock.now,
     runtimeConnectorSdk,
     panelState.setCheckingHealth,
-    panelState.setTestingConnector,
+    panelState.setCheckingConnector,
     panelState.updateState,
   ]);
 
@@ -176,7 +179,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setHydrated: panelState.setHydrated,
     state: panelState.state,
     setState: panelState.setState,
-    setStatusBanner: setPageFeedback,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
   });
@@ -230,7 +232,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     showCloudApiKey: panelState.showCloudApiKey,
     connectorModelQuery: panelState.connectorModelQuery,
     vaultEntryCount: panelState.vaultEntryCount,
-    testingConnector: panelState.testingConnector,
+    checkingConnector: panelState.checkingConnector,
     checkingHealth: panelState.checkingHealth,
     runtimeWritesDisabled: offlineTier === 'L2',
     selectedConnector: derived.selectedConnector,

@@ -34,6 +34,7 @@ import { CloudHistoryDialog } from './runtime-config-cloud-observation.js';
 import { openRuntimeSetupTaskFromEntry } from './runtime-setup-task-open.js';
 import { currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
 import { getRuntimeSetupTaskStore } from './runtime-setup-task-store.js';
+import type { ConnectorCheckIdentity } from './runtime-config-connector-test-command.js';
 import { Button, CloudEmptyState, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -75,9 +76,11 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const [configureEntry, setConfigureEntry] = useState<{ connectorId: string; entry: NimiRuntimeConnectorCatalogEntry } | null>(null);
   const [historyView, setHistoryView] = useState<{ connectorId?: string; days?: string } | null>(null);
   const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
-  const [connectorsLoaded, setConnectorsLoaded] = useState(false);
-  const [autoCheckingId, setAutoCheckingId] = useState('');
-  const autoChecked = useRef(new Set<string>());
+  const [connectorListStatus, setConnectorListStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [autoChecking, setAutoChecking] = useState<ConnectorCheckIdentity | null>(null);
+  const checkingConnector = model.checkingConnector ?? autoChecking;
+  const listRequest = useRef(0);
+  const autoChecked = useRef(new Map<string, ConnectorCheckIdentity['configurationVersion']>());
   const connectorsRef = useRef(state.connectors);
   connectorsRef.current = state.connectors;
   const reportError = useCallback((label: string, error: unknown) => {
@@ -261,55 +264,35 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       }));
   }, [managedProviderCatalog, state.connectors]);
   const refreshConnectorsFromSdk = useCallback(async () => {
-    const connectors = await sdkListConnectors();
-    updateState((prev) => {
-      const drafts = prev.connectors.filter((c) => c.isDraft);
-      return replaceConnectorsInState(prev, [...connectors, ...drafts]);
-    });
-  }, [updateState]);
-  const connectorLoadCallbacksRef = useRef({
-    reportError,
-    updateState,
-  });
-  const connectorListFromSdkRef = useRef(sdkListConnectors);
-  connectorLoadCallbacksRef.current = {
-    reportError,
-    updateState,
-  };
-  connectorListFromSdkRef.current = sdkListConnectors;
+    const request = ++listRequest.current;
+    setConnectorListStatus('loading');
+    try {
+      const connectors = await sdkListConnectors();
+      if (request !== listRequest.current) return;
+      updateState(prev => replaceConnectorsInState(prev, [...connectors, ...prev.connectors.filter(connector => connector.isDraft)]));
+      setConnectorListStatus('ready');
+      return connectors;
+    } catch {
+      if (request === listRequest.current) setConnectorListStatus('failed');
+      return undefined;
+    }
+  }, [sdkListConnectors, updateState]);
   useEffect(() => {
-    let cancelled = false;
-    void connectorListFromSdkRef.current()
-      .then((connectors) => {
-        if (cancelled) return;
-        const callbacks = connectorLoadCallbacksRef.current;
-        callbacks.updateState((prev) => {
-          const drafts = prev.connectors.filter((c) => c.isDraft);
-          return replaceConnectorsInState(prev, [...connectors, ...drafts]);
-        });
-        setConnectorsLoaded(true);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          connectorLoadCallbacksRef.current.reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void refreshConnectorsFromSdk();
+    return () => { listRequest.current++; };
+  }, [refreshConnectorsFromSdk]);
   // @nimi-authority: rule.nimi.runtime.ai-provider.r025
   useEffect(() => {
-    if (!connectorsLoaded || autoCheckingId || model.testingConnector) return;
+    if (connectorListStatus !== 'ready' || checkingConnector) return;
     const candidate = state.connectors.find(connector => connector.hasCredential && !connector.isDraft && connector.managementStatus !== 'disabled'
-      && !connector.lastCheckedAt && !autoChecked.current.has(connector.id));
+      && !connector.lastCheckedAt && (!autoChecked.current.has(connector.id) || autoChecked.current.get(connector.id) !== connector.configurationVersion));
     if (!candidate) return;
-    autoChecked.current.add(candidate.id);
-    setAutoCheckingId(candidate.id);
+    autoChecked.current.set(candidate.id, candidate.configurationVersion);
+    setAutoChecking({ id: candidate.id, configurationVersion: candidate.configurationVersion });
     void testSelectedConnectorCommand({ t, state, selectedConnector: candidate, connectorSdk, now: bindings.clock.now,
       testingConnector: false, updateState, setStatusBanner: () => {}, setControlFeedback: () => {} })
-      .finally(() => setAutoCheckingId(''));
-  }, [t, connectorsLoaded, autoCheckingId, state, model.testingConnector, connectorSdk, bindings.clock.now, updateState]);
+      .finally(() => setAutoChecking(null));
+  }, [t, connectorListStatus, checkingConnector, state, connectorSdk, bindings.clock.now, updateState]);
   useEffect(() => {
     let cancelled = false;
     void loadProviderCatalog()
@@ -453,6 +436,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   };
   const uncheckedConnectors = state.connectors.filter((connector) => connector.hasCredential && !connector.isDraft && connector.status === 'idle');
   const hasConnectors = state.connectors.length > 0;
+  const hasObservedConnectors = state.connectors.some(connector => !connector.isDraft);
   const showConnectionPicker = hasConnectors && (orderedConnectors.length > 1 || !selectedConnector);
   const openReferencedOwner = (reference: DesktopConnectorReference) => {
     const owner = reference.owner?.owner;
@@ -486,7 +470,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         connectors={orderedConnectors}
         onSelectConnector={onSelectConnector}
         selectedConnectorId={selectedConnectorId}
-        checkingConnectorId={autoCheckingId || (model.testingConnector ? selectedConnectorId : '')}
+        checkingConnector={checkingConnector}
         uncheckedCount={uncheckedConnectors.length}
         onAddConnector={onAddConnector}
         onOpenHistory={() => setHistoryView({})}
@@ -505,9 +489,20 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             <h2 className="desktop-module-section-title">{t('runtimeConfig.nav.cloudServices')}</h2>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setHistoryView({})}>{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button>
-              {hasConnectors ? <Button variant="primary" size="sm" onClick={onAddConnector} icon={<PlusIcon />}>{t('runtimeConfig.cloud.addConnector')}</Button> : null}
+              {hasConnectors || connectorListStatus === 'failed' ? <Button variant="primary" size="sm" onClick={onAddConnector} icon={<PlusIcon />}>{t('runtimeConfig.cloud.addConnector')}</Button> : null}
             </div>
           </header> : null}
+          {connectorListStatus === 'loading' ? (
+            <p role="status" className="mb-4 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.connectionsLoading')}</p>
+          ) : null}
+          {connectorListStatus === 'failed' ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="cloud-connector-list-unavailable">
+              <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">
+                {t(hasObservedConnectors ? 'runtimeConfig.cloudWorkspace.connectionsStale' : 'runtimeConfig.cloudWorkspace.connectionsReadFailed')}
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => { void refreshConnectorsFromSdk(); }}>{t('Common.retry')}</Button>
+            </div>
+          ) : null}
           {hasConnectors && !selectedConnector ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.connectionUnavailable')}</p> : null}
           {hasConnectors ? (
             <CloudConnectorDetailPanel
@@ -533,7 +528,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
               isMachineGlobal={isMachineGlobal}
               isRuntimeSystem={isRuntimeSystem}
               isSystemOwned={isSystemOwned}
-              model={{ ...model, testingConnector: model.testingConnector || autoCheckingId === selectedConnectorId }}
+              model={{ ...model, checkingConnector }}
               onAcquireManagedOAuth={onAcquireManagedOAuth}
               onCancelManagedOAuth={() => invalidateManagedOAuth('ChatGPT sign-in was canceled')}
               onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
@@ -558,9 +553,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
               tokenSavedConnectorId={tokenSavedConnectorId}
               vendorOptions={vendorOptions}
             />
-          ) : (
-            <CloudEmptyState onAddConnector={onAddConnector} t={t} />
-          )}
+          ) : connectorListStatus === 'ready' ? <CloudEmptyState onAddConnector={onAddConnector} t={t} /> : null}
         </ScrollArea>
       </Surface>
       <CatalogOverridesDrawer
@@ -579,20 +572,13 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
           const entry = navigation.getSnapshot();
           setCreateDialogOpen(false);
           void (async () => {
-            try {
-              const connectors = await sdkListConnectors();
-              updateState((prev) => {
-                const drafts = prev.connectors.filter((connector) => connector.isDraft);
-                const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
-                return next;
-              });
+            const connectors = await refreshConnectorsFromSdk();
+            if (connectors) {
               if (navigation.getSnapshot().generation === entry.generation && navigation.getSnapshot().current.key === entry.current.key) void navigation.push({ id: 'cloud', runtime: { connectorId } });
               const created = connectors.find(connector => connector.id === connectorId);
               if (created && created.authMode === 'oauth_managed' && isNimiBrowserManagedConnectorProfile(created.providerAuthProfile) && !chatGPTPlanDisclosureSeen()) {
                 setChatGPTPlanWelcomeOpen(true);
               }
-            } catch (error) {
-              reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
             }
             model.onVaultChanged();
           })();

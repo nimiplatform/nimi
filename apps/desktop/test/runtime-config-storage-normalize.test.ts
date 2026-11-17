@@ -20,6 +20,7 @@ test('runtime config storage normalization drops retired local node state', () =
     } as never,
   } as never);
 
+  assert.equal('initializedByV11' in normalized, false);
   assert.equal('endpoint' in normalized.local, false);
   assert.equal('nodeMatrix' in normalized.local, false);
   assert.deepEqual(normalized.connectors, []);

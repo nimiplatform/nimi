@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React, { act, useSyncExternalStore } from 'react';
+import React, { act, useState, useSyncExternalStore } from 'react';
 import { JSDOM } from 'jsdom';
 
 async function setup() {
@@ -36,10 +36,14 @@ async function setup() {
     normalizeConnectorV11({ id: 'missing', label: 'Missing', hasCredential: false, status: 'idle' }),
     normalizeConnectorV11({ id: 'disabled', label: 'Disabled', hasCredential: true, status: 'healthy', managementStatus: 'disabled' }),
   ];
+  let replaceVersion!: () => void;
   function Harness() {
+    const [version, changeVersion] = useState('first');
+    replaceVersion = () => changeVersion('replacement');
     const snapshot = useSyncExternalStore(navigation.subscribe, navigation.getSnapshot);
     return <CloudConnectorListPanel
-      connectors={connectors}
+      connectors={connectors.map(connector => connector.id === 'healthy' ? { ...connector, configurationVersion: version } : connector)}
+      checkingConnector={{ id: 'healthy', configurationVersion: 'first' }}
       selectedConnectorId={snapshot.current.destination.runtime?.connectorId ?? ''}
       onSelectConnector={async connectorId => (await navigation.push({ id: 'cloud', runtime: { connectorId } })).status === 'committed'}
       defaultEndpointFor={() => ''}
@@ -57,7 +61,7 @@ async function setup() {
     await act(async () => dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
   };
   return {
-    dom, navigation, rail,
+    dom, navigation, rail, replaceVersion,
     selected: () => navigation.getSnapshot().current.destination.runtime?.connectorId,
     rows: () => [...rail().querySelectorAll('[role="listitem"] .desktop-sidebar__label')].map(row => row.textContent),
     activeRow: () => rail().querySelector('[aria-current="page"] .desktop-sidebar__label')?.textContent,
@@ -151,4 +155,21 @@ test('filter selection respects search and empty results identify the retained d
     assert.equal(ui.activeRow(), 'Missing');
     assert.doesNotMatch(ui.rail().textContent!, /不在当前/);
   } finally { await ui.close(); }
+});
+
+test('a connection check stays on the initiating row and disappears after credential revision changes', async () => {
+  const ui = await setup();
+  const row = (label: string) => [...ui.rail().querySelectorAll('[role="listitem"]')].find(node => node.textContent?.includes(label))!;
+  try {
+    assert.match(row('Healthy').textContent!, /测试中/);
+    await useSelection('failed');
+    assert.equal(ui.activeRow(), 'Failed');
+    assert.doesNotMatch(row('Failed').textContent!, /测试中/);
+    assert.match(row('Healthy').textContent!, /测试中/);
+    await act(async () => ui.replaceVersion());
+    assert.doesNotMatch(row('Healthy').textContent!, /测试中/);
+  } finally { await ui.close(); }
+  async function useSelection(connectorId: string) {
+    await act(async () => { await ui.navigation.push({ id: 'cloud', runtime: { connectorId } }); });
+  }
 });

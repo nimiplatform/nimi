@@ -7,6 +7,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { endpointHost } from './runtime-config-page-cloud-primitives';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { getVendorLabelV11 } from './runtime-config-state-types';
+import { matchesConnectorCheck, type ConnectorCheckIdentity } from './runtime-config-connector-test-command.js';
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -64,7 +65,7 @@ export function CloudConnectorListPanel(props: {
   onOpenHistory: () => void;
   selectedConnectorId: string;
   uncheckedCount: number;
-  checkingConnectorId?: string;
+  checkingConnector: ConnectorCheckIdentity | null;
   t: Translate;
 }) {
   const { connectors, t, uncheckedCount } = props;
@@ -135,7 +136,7 @@ export function CloudConnectorListPanel(props: {
               key={connector.id}
               active={connector.id === props.selectedConnectorId}
               connector={connector}
-              checking={connector.id === props.checkingConnectorId}
+              checking={matchesConnectorCheck(props.checkingConnector, connector)}
               duplicateLabel={connectors.some(other => other.id !== connector.id && other.label.trim().toLocaleLowerCase() === connector.label.trim().toLocaleLowerCase())}
               showEndpoint={!props.defaultEndpointFor(connector)
                 || connector.endpoint.replace(/\/+$/, '') !== props.defaultEndpointFor(connector).replace(/\/+$/, '')

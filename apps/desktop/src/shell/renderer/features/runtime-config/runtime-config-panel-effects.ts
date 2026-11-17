@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
-import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
 import { normalizeRuntimeHealthResult } from './runtime-config-connector-discovery';
 import { useRuntimeHealthCoordinatorState } from './runtime-health-coordinator';
 
@@ -14,7 +12,6 @@ type RuntimeConfigPanelEffectsInput = {
   setHydrated: (next: boolean) => void;
   state: RuntimeConfigStateV11 | null;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  setStatusBanner: (banner: InlineFeedbackState | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
 };
@@ -27,18 +24,12 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     hydrated: input.hydrated,
     setHydrated: input.setHydrated,
     setState: input.setState,
-    setStatusBanner: input.setStatusBanner,
   });
 
   useRuntimeConfigVaultSyncEffect({
     state: input.state,
     setVaultEntryCount: input.setVaultEntryCount,
     vaultVersion: input.vaultVersion,
-  });
-
-  useRuntimeConfigRouteInitEffect({
-    state: input.state,
-    setState: input.setState,
   });
 
   useEffect(() => {

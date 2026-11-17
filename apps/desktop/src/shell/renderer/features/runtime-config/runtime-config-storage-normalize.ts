@@ -32,7 +32,6 @@ export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigSt
   // truth. Renderer storage keeps UI preferences only.
   return {
     version: 16,
-    initializedByV11: Boolean(parsed.initializedByV11),
     diagnosticsCollapsed: parsed.diagnosticsCollapsed !== false,
     uiMode: normalizeUiModeV11(parsed.uiMode || fallback.uiMode),
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),

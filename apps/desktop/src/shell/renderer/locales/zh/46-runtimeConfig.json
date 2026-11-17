@@ -2848,6 +2848,10 @@
     }
   },
   "cloudWorkspace": {
+    "connectionsLoading": "正在读取连接…",
+    "connectionsReadFailed": "无法读取连接。",
+    "connectionsStale": "无法刷新连接，目前显示上一次读取的列表。",
+    "anotherCheck": "有一项连接检查仍在进行。",
     "connectionSections": "连接内容",
     "switchConnection": "切换连接",
     "noConnectionsMatch": "没有符合当前搜索或筛选条件的连接。",

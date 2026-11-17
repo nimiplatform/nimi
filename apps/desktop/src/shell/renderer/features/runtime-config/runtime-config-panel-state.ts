@@ -1,4 +1,5 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
+import type { ConnectorCheckIdentity } from './runtime-config-connector-test-command.js';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export type RuntimeConfigPanelStateModel = {
@@ -14,8 +15,8 @@ export type RuntimeConfigPanelStateModel = {
   setVaultEntryCount: Dispatch<SetStateAction<number>>;
   vaultVersion: number;
   setVaultVersion: Dispatch<SetStateAction<number>>;
-  testingConnector: boolean;
-  setTestingConnector: Dispatch<SetStateAction<boolean>>;
+  checkingConnector: ConnectorCheckIdentity | null;
+  setCheckingConnector: Dispatch<SetStateAction<ConnectorCheckIdentity | null>>;
   checkingHealth: boolean;
   setCheckingHealth: Dispatch<SetStateAction<boolean>>;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
@@ -28,7 +29,7 @@ export function useRuntimeConfigPanelState(): RuntimeConfigPanelStateModel {
   const [connectorModelQuery, setConnectorModelQuery] = useState('');
   const [vaultEntryCount, setVaultEntryCount] = useState(0);
   const [vaultVersion, setVaultVersion] = useState(0);
-  const [testingConnector, setTestingConnector] = useState(false);
+  const [checkingConnector, setCheckingConnector] = useState<ConnectorCheckIdentity | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
 
   const updateState = useCallback((updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => {
@@ -48,8 +49,8 @@ export function useRuntimeConfigPanelState(): RuntimeConfigPanelStateModel {
     setVaultEntryCount,
     vaultVersion,
     setVaultVersion,
-    testingConnector,
-    setTestingConnector,
+    checkingConnector,
+    setCheckingConnector,
     checkingHealth,
     setCheckingHealth,
     updateState,

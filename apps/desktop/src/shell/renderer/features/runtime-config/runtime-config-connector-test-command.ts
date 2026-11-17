@@ -7,9 +7,17 @@ import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { checkConnectorHealth } from './runtime-config-connector-discovery';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
-import { replaceConnectorsInState } from './runtime-config-connector-actions.js';
 import type { TFunction } from 'i18next';
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
+
+export type ConnectorCheckIdentity = Pick<RuntimeConfigStateV11['connectors'][number], 'id' | 'configurationVersion'>;
+
+export function matchesConnectorCheck(
+  check: ConnectorCheckIdentity | null,
+  connector: ConnectorCheckIdentity | null | undefined,
+): boolean {
+  return !!check && !!connector && check.id === connector.id && check.configurationVersion === connector.configurationVersion;
+}
 
 function connectorTestFailureKind(status: string): InlineFeedbackState['kind'] {
   return status === 'degraded' ? 'warning' : 'error';
@@ -35,6 +43,8 @@ export async function runSelectedConnectorTestCommand(input: {
     connectorSdk: input.connectorSdk,
     now: input.now,
   });
+
+  if (configurationVersion !== input.selectedConnector.configurationVersion) return;
 
   input.updateState((prev) => ({
     ...prev,
@@ -96,7 +106,16 @@ export async function markSelectedConnectorTestFailedCommand(input: {
 
   try {
     const connectors = await input.connectorSdk.sdkListConnectors();
-    input.updateState(prev => replaceConnectorsInState(prev, [...connectors, ...prev.connectors.filter(connector => connector.isDraft)]));
+    const observed = connectors.find(connector => matchesConnectorCheck(input.selectedConnector, connector));
+    const checkedAt = observed?.lastCheckedAt;
+    if (observed && checkedAt) {
+      input.updateState(prev => ({
+        ...prev,
+        connectors: prev.connectors.map(connector => matchesConnectorCheck(input.selectedConnector, connector)
+          && (!connector.lastCheckedAt || Date.parse(checkedAt) > Date.parse(connector.lastCheckedAt))
+          ? observed : connector),
+      }));
+    }
   } catch {
     // A failed owner read cannot manufacture a new connection observation.
   }

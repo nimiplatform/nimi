@@ -9,10 +9,12 @@ import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
 import type { TFunction } from 'i18next';
 
+import type { ConnectorCheckIdentity } from './runtime-config-connector-test-command.js';
+
 export type RuntimeConfigPanelAsyncGuardContext = {
   testingConnector: boolean;
   checkingHealth: boolean;
-  setTestingConnector: (next: boolean) => void;
+  setCheckingConnector: (next: ConnectorCheckIdentity | null) => void;
   setCheckingHealth: (next: boolean) => void;
 };
 

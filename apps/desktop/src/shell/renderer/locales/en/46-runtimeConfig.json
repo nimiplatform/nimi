@@ -2848,6 +2848,10 @@
     }
   },
   "cloudWorkspace": {
+    "connectionsLoading": "Loading connections…",
+    "connectionsReadFailed": "Couldn’t load connections.",
+    "connectionsStale": "Couldn’t refresh connections. Showing the last available list.",
+    "anotherCheck": "A connection check is still running.",
     "connectionSections": "Connection workspace",
     "switchConnection": "Switch connection",
     "noConnectionsMatch": "No connections match the current search or filter.",
