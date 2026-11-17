@@ -5,9 +5,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { StaticPage } from '../src/pages/static-page.js';
 import { PlatformPage } from '../src/pages/platform-page.js';
+import { PlatformCapabilityPreview } from '../src/pages/platform-capability-preview.js';
+import type { CapabilityId } from '../src/pages/platform-capability-samples.js';
 import { DevelopersPage } from '../src/pages/developers-page.js';
 import { PublicNotFoundPage } from '../src/pages/public-site-shell.js';
 import { getStoryCopy } from '../src/landing/content/story-copy.js';
+import { CREATE_APP_COMMAND } from '../src/landing/content/story-model.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from '../src/landing/config/landing-links.js';
 
 function renderRoute(path: string, routePath: string, element: ReactElement): string {
@@ -127,35 +130,54 @@ test('apps page distinguishes Nimi Official vs Open-Source Nimi Adapted apps acr
 });
 
 test('platform page renders three-domain boundaries, selected capability routes, and StoryContentCheck without deferred or vendor claims', () => {
-  const activeCapabilities = [
-    'text.generate',
-    'text.embed',
-    'image.generate',
-    'video.generate',
-    'vision.locate',
-    'realtime.interact',
-    'audio.synthesize',
-    'audio.transcribe',
-    'music.generate',
-    'voice.create',
-    'audio.separate',
-  ];
   for (const locale of ['zh', 'en'] as const) {
     const html = renderRoute(`/platform?lang=${locale}`, '/platform', createElement(PlatformPage));
     for (const domain of ['runtime', 'cognition', 'realm']) {
       assert.ok(html.includes(`data-domain="${domain}"`), domain);
     }
-    for (const capability of activeCapabilities) {
-      assert.ok(html.includes(`<code>${capability}</code>`), capability);
-    }
-    assert.ok(html.includes('class="story-content-check"'));
+    assert.match(html, /data-capability="text.generate" class="is-active" aria-pressed="true" aria-controls="platform-capability-sample"/);
+    assert.match(html, /data-capability="text.embed" aria-pressed="false"/);
+    assert.match(html, /data-sample="text.generate"/);
+    assert.match(html, /The main object is a bright orange ceramic mug/);
+    assert.match(html, /class="public-capability-route-counts">[\s\S]*?<strong>\d+<\/strong>[\s\S]*?<strong>\d+<\/strong>/);
+    assert.match(html, /<details class="story-content-check">/);
     assert.ok(html.includes('id="content-check-demo-note"'));
+    assert.ok(html.includes('<label for="security-draft">'));
+    assert.ok(html.includes('aria-describedby="content-check-demo-note"'));
     assert.doesNotMatch(html, /world\.generate|agent\.autonomy|memory\.manage/);
     assert.doesNotMatch(html, /\b(OpenAI|Anthropic|Claude|Gemini|DeepSeek|Ollama)\b/i);
   }
 });
 
-test('developers page renders 4-tab StoryBuilder including Vercel AI SDK 7 adapter and honest in-repo source bindings', () => {
+test('all eleven Lab previews render a recorded observation and mark missing media', () => {
+  const results = {
+    'text.generate': 'bright orange ceramic mug',
+    'text.embed': '0.7590',
+    'image.generate': '1024 × 1024',
+    'video.generate': '512 × 288',
+    'vision.locate': '0.655',
+    'realtime.interact': 'and the next train leaves at ten',
+    'audio.synthesize': '5.68 s',
+    'audio.transcribe': 'A green notebook is on the table. The next train leaves at ten.',
+    'music.generate': '30.77 s',
+    'voice.create': 'The next train leaves at 10.',
+    'audio.separate': '2 / 4',
+  } satisfies Record<CapabilityId, string>;
+
+  for (const capability of Object.keys(results) as CapabilityId[]) {
+    for (const locale of ['zh', 'en'] as const) {
+      const html = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability, locale }));
+      assert.ok(html.includes(results[capability]), `${capability} (${locale})`);
+    }
+  }
+
+  const speech = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'audio.synthesize', locale: 'zh' }));
+  assert.match(speech, /<blockquote lang="zh">橙色的杯子放在窗边，下一班火车十点出发。/);
+  assert.match(speech, /原始音频未收录/);
+  assert.doesNotMatch(speech, /<audio\b/);
+});
+
+test('developers page renders the StoryBuilder and a command-first toolchain with separate repository references', () => {
   for (const locale of ['zh', 'en'] as const) {
     const html = renderRoute(`/developers?lang=${locale}`, '/developers', createElement(DevelopersPage));
     assert.ok(html.includes('id="developers"'));
@@ -164,7 +186,20 @@ test('developers page renders 4-tab StoryBuilder including Vercel AI SDK 7 adapt
     assert.ok(html.includes('@nimiplatform/sdk-adapter-vercel-ai'));
     assert.ok(html.includes('@nimiplatform/kit'));
     assert.ok(html.includes('@nimiplatform/app-tools'));
-    assert.ok(html.includes('sdks/rust · sdks/go · sdks/python'));
+    const toolchain = html.slice(html.indexOf('<section id="surfaces"'), html.indexOf('<aside class="public-info-card public-adaptation-cta"'));
+    const commands = [...toolchain.matchAll(/<pre tabindex="0"><code>([^<]+)<\/code><\/pre>/gi)]
+      .map(([, command]) => command?.replaceAll('&quot;', '"'));
+    assert.deepEqual(commands, [
+      CREATE_APP_COMMAND,
+      'pnpm add @nimiplatform/sdk',
+      'pnpm add @nimiplatform/sdk-adapter-vercel-ai @nimiplatform/sdk "ai@^7" "@ai-sdk/provider@^4"',
+      'pnpm add @nimiplatform/kit @nimiplatform/sdk',
+    ]);
+    const references = toolchain.slice(toolchain.indexOf('<div class="public-toolchain-references">'));
+    assert.match(toolchain, /<h3>Kit<\/h3>[^]*?<small>MIT<\/small>/);
+    assert.match(references, /href="https:\/\/github\.com\/nimiplatform\/nimi\/tree\/main\/sdks"/);
+    assert.match(references, /href="https:\/\/github\.com\/nimiplatform\/nimi\/tree\/main\/\.nimi\/spec"/);
+    assert.doesNotMatch(references, /<code>/);
     assert.doesNotMatch(html, /Mastra/i);
   }
 });

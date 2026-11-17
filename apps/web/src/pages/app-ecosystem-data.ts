@@ -111,6 +111,7 @@ export type EcosystemFilterId = 'all' | 'nimi-official' | 'open-source-adapted' 
 
 export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
   eyebrow: string;
+  heroAvailability: string;
   provenanceCalloutTitle: string;
   provenanceCalloutOfficial: string;
   provenanceCalloutAdapted: string;
@@ -138,6 +139,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
 }>> = {
   zh: {
     eyebrow: '应用生态 · 官方原生与开源适配',
+    heroAvailability: '点击应用卡片即可预览。可安装的版本和设备要求请在 Nimi Home 的应用目录中查看。',
     provenanceCalloutTitle: '两类来源，同一套个人 AI 底座',
     provenanceCalloutOfficial: 'Nimi 官方原生：由 Nimi 团队面向个人陪伴、创作与生活记录原生设计并发布。',
     provenanceCalloutAdapted: '开源项目 · Nimi 适配：本为优秀的第三方开源项目（如 Vane、SillyTavern、OpenMontage 等），由 Nimi 完成 Fork 与底座适配，使其无需各自捆绑模型环境或重复填写 API Key 即可直接调用 Nimi 算力。',
@@ -196,6 +198,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
   },
   en: {
     eyebrow: 'App Ecosystem · First-Party & Open-Source Adaptations',
+    heroAvailability: 'Select an app card to preview it. Check the Nimi Home catalog for installable versions and device requirements.',
     provenanceCalloutTitle: 'Two origins, one personal AI foundation',
     provenanceCalloutOfficial: 'Nimi Official: Built and published natively by Nimi for companion continuity, creative studios, and personal records.',
     provenanceCalloutAdapted: 'Open-Source · Nimi Adapted: Established third-party open-source projects (such as Vane, SillyTavern, and OpenMontage) forked and adapted by Nimi so they consume your unified Nimi Runtime without bundling duplicate model stacks or per-app API keys.',

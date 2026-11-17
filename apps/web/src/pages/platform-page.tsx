@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -7,7 +7,6 @@ import {
   Globe,
   Laptop,
   Radio,
-  Server,
   ShieldCheck,
   Smartphone,
 } from 'lucide-react';
@@ -15,12 +14,11 @@ import { Link } from 'react-router-dom';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
 import { StoryContentCheck } from '../landing/components/story/story-security.js';
 import { getStoryCopy, type StoryText } from '../landing/content/story-copy.js';
-import {
-  PROVIDER_CAPABILITIES,
-  type AdmittedCapability,
-} from '../landing/generated/index.js';
+import { PROVIDER_CAPABILITIES } from '../landing/generated/index.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import { CAPABILITY_LABELS } from './informational-content.js';
+import { PlatformCapabilityPreview } from './platform-capability-preview.js';
+import { PLATFORM_CAPABILITIES, type CapabilityGroup, type CapabilityId } from './platform-capability-samples.js';
 import {
   PublicSiteShell,
   usePublicDocumentMetadata,
@@ -31,61 +29,55 @@ import { usePublicPageLocale } from './use-page-locale.js';
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-positioning
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-owner-boundary
-const ACTIVE_CAPABILITIES: ReadonlyArray<{
-  id: AdmittedCapability;
-  group: 'text' | 'audio' | 'visual';
-}> = [
-  { id: 'text.generate', group: 'text' },
-  { id: 'text.embed', group: 'text' },
-  { id: 'image.generate', group: 'visual' },
-  { id: 'video.generate', group: 'visual' },
-  { id: 'vision.locate', group: 'visual' },
-  { id: 'realtime.interact', group: 'visual' },
-  { id: 'audio.synthesize', group: 'audio' },
-  { id: 'audio.transcribe', group: 'audio' },
-  { id: 'music.generate', group: 'audio' },
-  { id: 'voice.create', group: 'audio' },
-  { id: 'audio.separate', group: 'audio' },
-];
+const CAPABILITY_GROUPS = ['text', 'visual', 'audio'] as const;
+const ACTIVE_CAPABILITIES = CAPABILITY_GROUPS.flatMap((group) => (
+  PLATFORM_CAPABILITIES[group].map((id) => ({ id, group }))
+));
+
+const DOMAIN_ICONS = { runtime: Cpu, cognition: BrainCircuit, realm: Globe } as const;
+const STAGE_ICONS = { desktop: Laptop, remote: Smartphone, roadmap: Radio } as const;
+const PLATFORM_CAPABILITY_LABELS: typeof CAPABILITY_LABELS = {
+  ...CAPABILITY_LABELS,
+  en: {
+    ...CAPABILITY_LABELS.en,
+    'text.generate': 'Text generation',
+    'image.generate': 'Image generation',
+    'video.generate': 'Video generation',
+    'music.generate': 'Music generation',
+    'realtime.interact': 'Realtime interaction',
+  },
+};
 
 const PLATFORM_COPY: Readonly<Record<LandingLocale, {
   metaTitle: string;
   metaDescription: string;
-  eyebrow: string;
   title: string;
   lead: string;
   downloadCta: string;
   sourceCta: string;
   specCta: string;
-  domainsEyebrow: string;
   domainsTitle: string;
-  domainsBody: string;
   domains: ReadonlyArray<{
-    id: string;
-    badge: string;
+    id: keyof typeof DOMAIN_ICONS;
     title: string;
     summary: string;
-    bullets: ReadonlyArray<string>;
   }>;
   openSourceBoundary: string;
-  matrixEyebrow: string;
   matrixTitle: string;
-  matrixBody: string;
-  groups: Record<'text' | 'audio' | 'visual', string>;
-  localBadge: (count: number) => string;
-  remoteBadge: (count: number) => string;
+  groups: Record<CapabilityGroup, string>;
+  capabilityGroupsLabel: string;
+  capabilityFiltersLabel: string;
+  capabilitySampleSource: string;
+  localColumn: string;
+  remoteColumn: string;
   costBoundaryTitle: string;
   costBoundaryBody: string;
-  trustEyebrow: string;
   trustTitle: string;
-  trustBody: string;
-  trustCards: ReadonlyArray<{ title: string; body: string }>;
-  signingLinkLabel: string;
-  topologyEyebrow: string;
+  permissions: { title: string; body: string };
+  signing: { title: string; body: string; link: string };
   topologyTitle: string;
-  topologyBody: string;
   topologyStages: ReadonlyArray<{
-    stage: string;
+    id: keyof typeof STAGE_ICONS;
     status: string;
     title: string;
     body: string;
@@ -94,196 +86,144 @@ const PLATFORM_COPY: Readonly<Record<LandingLocale, {
   zh: {
     metaTitle: '平台底座与架构 | Nimi',
     metaDescription: '了解 Nimi 的 Runtime、Cognition、Realm 三域架构、11 项多模态能力路由矩阵、权限信任边界与跨终端拓扑。',
-    eyebrow: '平台底座 · 架构与信任边界',
-    title: '面向个人设备的三域 AI 底座',
-    lead: 'Nimi 将模型算力调度（Runtime）、可溯源伙伴记忆（Cognition）与生态身份服务（Realm）解耦为清晰契约，让上层应用共享连续上下文，同时守住本机数据控制权。',
-    downloadCta: '下载公开 Beta',
-    sourceCta: '查看开源仓库',
-    specCta: '查看平台规范',
-    domainsEyebrow: '三域职责划分',
-    domainsTitle: 'Runtime · Cognition · Realm',
-    domainsBody: '每一层都有明确的所有权边界：算力与长期记忆驻留在你的设备上，账号与共享世界图谱按需与托管服务交互。',
+    title: 'Nimi 平台底座',
+    lead: 'Nimi 是可安装的开源个人 AI 平台。在自己的电脑上运行 AI，在授权的应用之间延续伙伴记忆。',
+    downloadCta: '下载 Nimi Beta',
+    sourceCta: '开源仓库',
+    specCta: '平台规范',
+    domainsTitle: '平台架构',
     domains: [
       {
         id: 'runtime',
-        badge: '开源 · Apache-2.0 · 本机执行面',
-        title: 'Nimi Runtime',
-        summary: '运行在个人电脑上的多模态 AI 算力调度中心与受保护会话守卫。',
-        bullets: [
-          '统一纳管本机推理引擎与用户配置的云端连接器，按模态声明路由调用。',
-          '基于受保护本地会话校验应用声明权限，拒绝未授权或隐式越权请求。',
-          '支持设备所有者通过受准入客户端安全连回家庭主 Runtime。',
-        ],
+        title: 'Runtime',
+        summary: '在你的电脑上调度本地模型和你配置的云端连接器。',
       },
       {
         id: 'cognition',
-        badge: '开源 · Apache-2.0 · 记忆治理层',
-        title: 'Nimi Cognition',
-        summary: '围绕每位本地智能体（Local Agent）构建的可审查、可修正长期记忆引擎。',
-        bullets: [
-          '每条记忆保留来源记录，用户可随时查看、编辑修正或彻底删除。',
-          '支持在已授权的应用（如 Nimi Home 与织羽）之间延续同一位伙伴的上下文。',
-          '严格隔离应用私有业务库——共享伙伴记忆不等于合并各应用的本地数据。',
-        ],
+        title: 'Cognition',
+        summary: '在本机保存伙伴的长期记忆。你可以查看来源、修正或删除记忆，各应用的私有数据独立存放。',
       },
       {
         id: 'realm',
-        badge: '托管服务 · 账号与世界图谱',
-        title: 'Nimi Realm',
-        summary: '承载 Nimi 账号认证、社交隐私关系以及共享世界与角色设定的在线服务层。',
-        bullets: [
-          '通过浏览器完成安全登录、双因素验证、会话管理与主 Runtime 绑定校验。',
-          '维护公开世界设定、角色资料与好友隐私投影，不包含网页在线聊天壳。',
-          '仅同步身份与所选生态元数据；本机模型与 nimi_data 默认留在本地设备。',
-        ],
+        title: 'Realm',
+        summary: '托管 Nimi 账号、好友隐私设置与公开世界资料。本地模型与应用数据默认留在设备上。',
       },
     ],
-    openSourceBoundary: '开源边界说明：Runtime、Cognition、Desktop、TypeScript SDK、Kit 与 App Tools 均在公开仓库以 Apache-2.0 / MIT 许可证开放源码；Realm 服务端实现由 Nimi Network Limited 私有维护。',
-    matrixEyebrow: '单一事实源能力矩阵',
-    matrixTitle: '11 项常用多模态 AI 能力',
-    matrixBody: '下表按公开 Runtime 配置展示这些能力的路由。可用的本地引擎和云端连接器因能力而异，实际执行取决于应用权限与用户配置。',
+    openSourceBoundary: 'Runtime 和 Cognition 开源。Realm 服务端由 Nimi Network Limited 私有维护。',
+    matrixTitle: `${ACTIVE_CAPABILITIES.length} 种 AI 能力`,
     groups: {
-      text: '文本生成与向量嵌入',
-      visual: '视觉、视频与实时多模态',
-      audio: '语音、音乐与声线创作',
+      text: '文本',
+      visual: '视觉与实时交互',
+      audio: '音频',
     },
-    localBadge: (count) => (count > 0 ? `支持本机引擎 (${count})` : '云端连接器路由'),
-    remoteBadge: (count) => `${count} 类云端连接器`,
-    costBoundaryTitle: '费用与数据流向透明边界',
-    costBoundaryBody: 'Nimi 本身免费。使用本机模型时推理在你的硬件上完成；当你主动选择云端服务时，请求所需的输入与上下文会发送给你所选的服务商并按其标准计费；第三方 App 是否收费由其发布者独立决定。',
-    trustEyebrow: '调用治理与安全基线',
-    trustTitle: '显式授权、发布验签与内容检查预览',
-    trustBody: 'Nimi 对受管调用实施失败关闭（Fail-Closed）策略，并在源码构建中提供面向敏感凭证格式的内容检查开发预览。',
-    trustCards: [
-      {
-        title: '应用最小声明权限',
-        body: '每个 Nimi 应用必须在清单中声明所需 AI 能力、MCP 资料源或消息通道；未获当前受保护会话授权的调用会被直接拒绝。',
-      },
-      {
-        title: 'Ed25519 清单验签与受保护目录',
-        body: '公开 Beta（nimi/v0.2.4）的更新清单可用平台 Ed25519 公钥验签（P-SUPD-012）。清单记录安装包 SHA-256；Windows 安装文件清单单独发布。',
-      },
-    ],
-    signingLinkLabel: '阅读完整代码签名与校验政策',
-    topologyEyebrow: '跨终端连接拓扑',
-    topologyTitle: '从个人桌面主机到多屏远端协同',
-    topologyBody: '明确区分当前 Beta 已交付能力、受准入远端客户端形态与长期协议演进方向。',
+    capabilityGroupsLabel: '能力类型',
+    capabilityFiltersLabel: '选择要查看的能力',
+    capabilitySampleSource: 'Nimi Lab 测试记录',
+    localColumn: '本地引擎',
+    remoteColumn: '云端连接器',
+    costBoundaryTitle: '费用与数据去向',
+    costBoundaryBody: 'Nimi 免费。使用云端服务时，所需输入与上下文会发送给所选服务商，费用按服务商定价计算。第三方应用由发布者定价。',
+    trustTitle: '权限与安全',
+    permissions: {
+      title: '应用权限',
+      body: '应用须声明所需的 AI 能力、MCP 资料源和消息通道。Nimi 会拒绝受管会话中未经授权的调用。',
+    },
+    signing: {
+      title: '安装包校验',
+      body: '公开 Beta 的更新清单支持 Ed25519 验签，并记录安装包的 SHA-256 摘要。',
+      link: '代码签名与校验政策',
+    },
+    topologyTitle: '跨设备连接',
     topologyStages: [
       {
-        stage: '当前已交付 · Beta v0.2.4',
-        status: '现已可用',
-        title: '个人电脑主 Runtime（macOS arm64 & Windows x86_64）',
-        body: '在 Apple Silicon Mac 或 Windows x86_64 电脑安装 Nimi Beta，通过桌面托管的 Nimi Home 配置本地模型或云端连接。应用目录与开发模式的可用性取决于应用、平台和主机版本。',
+        id: 'desktop',
+        status: '公开 Beta',
+        title: '电脑主 Runtime',
+        body: '在 Apple Silicon Mac 或 Windows x86_64 电脑安装 Nimi Beta，然后在桌面端的 Nimi Home 配置模型。原生应用通过经过验证的本机会话使用 Runtime。应用目录和开发者模式的可用性取决于应用、平台和宿主版本。',
       },
       {
-        stage: '跨设备直连 · 按客户端准入',
-        status: '官网提供主 Runtime 管理入口',
-        title: '受准入的客户端可直连电脑主 Runtime',
-        body: '登录官网账号后，可在账号中心连接并管理已绑定的主 Runtime。首次连接需在电脑端确认，且客户端必须能直连主机。独立 Web 应用与 Android 应用需分别通过 Registry 准入，并遵循各自的操作范围。',
+        id: 'remote',
+        status: '按客户端准入',
+        title: '远程直连',
+        body: '在官网账号中心管理已绑定的主 Runtime。首次连接需在 Nimi Home 确认，且客户端须能直连主机。Web 和 Android 应用各有独立准入与操作范围。',
       },
       {
-        stage: '长期底座演进 · 路线蓝图',
-        status: '持续探索',
-        title: '常驻家庭算力盒、座舱与具身终端',
-        body: '依托与硬件解耦的开放协议契约，逐步向低功耗家庭常驻主机、车载空间与专用个人硬件延伸同一套记忆与能力底座。',
+        id: 'roadmap',
+        status: '长期方向',
+        title: '家庭主机与专用设备',
+        body: '探索让家庭常驻主机、车载终端和专用硬件使用同一套 AI 能力与记忆。',
       },
     ],
   },
   en: {
     metaTitle: 'Platform Architecture & Foundation | Nimi',
     metaDescription: 'Explore Nimi’s Runtime, Cognition, and Realm three-domain architecture, 11-capability multimodal matrix, trust boundaries, and cross-terminal topology.',
-    eyebrow: 'Platform Foundation · Architecture & Trust Boundaries',
-    title: 'A three-domain AI foundation for personal devices',
-    lead: 'Nimi separates compute scheduling (Runtime), inspectable companion memory (Cognition), and ecosystem identity (Realm) behind typed contracts—so apps share continuous context while you keep local control.',
-    downloadCta: 'Download Public Beta',
-    sourceCta: 'Browse Open-Source Repo',
-    specCta: 'Read the platform specification',
-    domainsEyebrow: 'Three-Domain Separation',
-    domainsTitle: 'Runtime · Cognition · Realm',
-    domainsBody: 'Each domain has a strict ownership boundary: compute and long-term companion memory live on your machine, while identity and shared world graphs interact explicitly with hosted services.',
+    title: 'Nimi Platform',
+    lead: 'Nimi is an open-source AI platform you install on your own computer. Run AI locally and carry companion memory across authorized apps.',
+    downloadCta: 'Download Nimi Beta',
+    sourceCta: 'Source on GitHub',
+    specCta: 'Platform specification',
+    domainsTitle: 'Platform architecture',
     domains: [
       {
         id: 'runtime',
-        badge: 'Open Source · Apache-2.0 · Local Execution Plane',
-        title: 'Nimi Runtime',
-        summary: 'The multimodal AI compute router and protected session guardian running on your personal computer.',
-        bullets: [
-          'Schedules local inference engines alongside user-configured cloud connectors across modality-typed contracts.',
-          'Enforces per-app declared permissions in protected local sessions and fails closed on unauthorized calls.',
-          'Supports authenticated direct owner connections back to your primary home Runtime.',
-        ],
+        title: 'Runtime',
+        summary: 'Routes AI requests from your computer to local models or the cloud connectors you configure.',
       },
       {
         id: 'cognition',
-        badge: 'Open Source · Apache-2.0 · Memory Governance',
-        title: 'Nimi Cognition',
-        summary: 'Inspectable, user-correctable long-term memory scoped to each on-device Local Agent.',
-        bullets: [
-          'Every memory retains source provenance so you can inspect, edit, or delete what a companion remembers.',
-          'Carries companion context across authorized apps such as Nimi Home and Zhiyu.',
-          'Keeps each app’s own business database isolated—shared companion memory never merges private app storage.',
-        ],
+        title: 'Cognition',
+        summary: 'Stores long-term companion memory on your device. You can review sources, edit memories, or delete them. Each app keeps its own private storage.',
       },
       {
         id: 'realm',
-        badge: 'Hosted Service · Identity & World Graph',
-        title: 'Nimi Realm',
-        summary: 'The online service layer for Nimi account authentication, social privacy controls, and shared worlds.',
-        bullets: [
-          'Handles browser sign-in, 2FA, session management, and verified primary Runtime binding.',
-          'Maintains published world lore, persona registries, and friendship privacy projections without hosting web chat on nimi.ai.',
-          'Syncs only identity and selected ecosystem metadata while local models and nimi_data stay on your computer.',
-        ],
+        title: 'Realm',
+        summary: 'Hosts Nimi accounts, friendship privacy settings, and public world data. Local models and app data stay on your device by default.',
       },
     ],
-    openSourceBoundary: 'Open-source boundary: Runtime, Cognition, Desktop, TypeScript SDK, Kit, and App Tools are open source in the public repository under Apache-2.0 / MIT licenses; the Realm backend implementation is privately operated by Nimi Network Limited.',
-    matrixEyebrow: 'Config-Derived Capability Matrix',
-    matrixTitle: '11 common multimodal AI capabilities',
-    matrixBody: 'This selection shows routing from the public Runtime configuration. Local engines and cloud connectors vary by capability, and execution depends on app permissions and user configuration.',
+    openSourceBoundary: 'Runtime and Cognition are open source. Nimi Network Limited maintains the Realm backend privately.',
+    matrixTitle: `${ACTIVE_CAPABILITIES.length} AI capabilities`,
     groups: {
-      text: 'Text Generation & Embeddings',
-      visual: 'Vision, Video & Realtime',
-      audio: 'Speech, Music & Voice Design',
+      text: 'Text & embeddings',
+      visual: 'Visual & realtime',
+      audio: 'Audio',
     },
-    localBadge: (count) => (count > 0 ? `Local engines (${count})` : 'Cloud connector routed'),
-    remoteBadge: (count) => `${count} cloud connectors`,
-    costBoundaryTitle: 'Transparent cost & data-flow boundary',
-    costBoundaryBody: 'Nimi itself is free. Local models run on your own hardware; when you select a cloud service, required inputs and context are sent to that provider under its pricing and terms; whether a third-party app charges is up to its publisher.',
-    trustEyebrow: 'Invocation Governance & Safety',
-    trustTitle: 'Explicit permissions, signed manifests & content-check preview',
-    trustBody: 'Nimi enforces fail-closed boundaries on managed calls and includes a developer-preview content check for supported secret formats.',
-    trustCards: [
-      {
-        title: 'Declared per-app permissions',
-        body: 'Every Nimi App declares required AI capabilities, MCP sources, and messaging channels up front; ungranted calls are rejected by the protected session.',
-      },
-      {
-        title: 'Ed25519 manifest verification',
-        body: 'The platform’s Ed25519 public key verifies the Beta (nimi/v0.2.4) update manifests (P-SUPD-012). They bind each installer’s SHA-256 digest. The Windows installed file inventory is published separately.',
-      },
-    ],
-    signingLinkLabel: 'Read the full Code Signing & Verification Policy',
-    topologyEyebrow: 'Cross-Terminal Topology',
-    topologyTitle: 'From your desktop hub to multi-screen continuity',
-    topologyBody: 'A clear distinction between what ships in Beta v0.2.4 today, admitted remote client carriers, and long-term protocol direction.',
+    capabilityGroupsLabel: 'Capability types',
+    capabilityFiltersLabel: 'Choose a capability to inspect',
+    capabilitySampleSource: 'Nimi Lab test record',
+    localColumn: 'Local engines',
+    remoteColumn: 'Cloud connectors',
+    costBoundaryTitle: 'Costs and data',
+    costBoundaryBody: 'Nimi is free. When you choose a cloud service, it receives the required inputs and context and charges according to its pricing. Third-party publishers set their own app prices.',
+    trustTitle: 'Permissions and security',
+    permissions: {
+      title: 'App permissions',
+      body: 'Apps declare the AI capabilities, MCP sources, and messaging channels they need. Nimi rejects unauthorized calls in managed sessions.',
+    },
+    signing: {
+      title: 'Installer verification',
+      body: 'Public Beta update manifests support Ed25519 verification and include the installers’ SHA-256 digests.',
+      link: 'Code Signing & Verification Policy',
+    },
+    topologyTitle: 'Connect across devices',
     topologyStages: [
       {
-        stage: 'Shipping Today · Beta v0.2.4',
-        status: 'Available now',
-        title: 'Primary PC Runtime (macOS arm64 & Windows x86_64)',
-        body: 'Install Nimi Beta on an Apple Silicon Mac or Windows x86_64 PC and configure local models or cloud connections in Desktop-hosted Nimi Home. Catalog and Developer Mode availability depends on the app, platform, and host version.',
+        id: 'desktop',
+        status: 'Public Beta',
+        title: 'Primary PC Runtime',
+        body: 'Install Nimi Beta on an Apple Silicon Mac or Windows x86_64 PC and configure models in Nimi Home on desktop. Native apps use Runtime through verified local sessions. Catalog and Developer Mode availability depends on the app, platform, and host version.',
       },
       {
-        stage: 'Direct remote access · Admitted per client',
-        status: 'Primary Runtime management on the website',
-        title: 'Admitted clients can connect to your primary PC Runtime',
-        body: 'Sign in to the account center to connect to and manage your account-bound Runtime. First use requires confirmation in Nimi Home, and the client must be able to reach the host directly. Standalone Web and Android apps require separate Registry admission and have their own operation scopes.',
+        id: 'remote',
+        status: 'Admitted per client',
+        title: 'Direct remote access',
+        body: 'Manage your linked primary Runtime in the online account center. First use requires confirmation in Nimi Home and a direct connection to the host. Web and Android apps have separate admission and operation scopes.',
       },
       {
-        stage: 'Long-Term Direction · Architecture Roadmap',
-        status: 'Future horizon',
-        title: 'Always-on home hubs, cabins & dedicated hardware',
-        body: 'Because capability and memory contracts are decoupled from UI shells, the same personal foundation can extend to dedicated home nodes and embedded terminals over time.',
+        id: 'roadmap',
+        status: 'Long-term direction',
+        title: 'Home hubs and dedicated devices',
+        body: 'Nimi is exploring how to bring the same capabilities and memory to always-on home hubs, in-vehicle systems, and dedicated hardware.',
       },
     ],
   },
@@ -291,8 +231,9 @@ const PLATFORM_COPY: Readonly<Record<LandingLocale, {
 
 export function PlatformPage() {
   const [locale, setLocale] = usePublicPageLocale();
+  const [selectedCapability, setSelectedCapability] = useState<CapabilityId>('text.generate');
   const copy = PLATFORM_COPY[locale];
-  const capLabels = CAPABILITY_LABELS[locale];
+  const capLabels = PLATFORM_CAPABILITY_LABELS[locale];
   const storyCopy = getStoryCopy(locale);
   const t: StoryText = (key) => storyCopy[key];
   const links = useResolvedPublicLinks(locale);
@@ -317,36 +258,41 @@ export function PlatformPage() {
       };
     });
   }, [capLabels]);
+  const selectedItem = capabilityStats.find((item) => item.id === selectedCapability)!;
+  const activeGroup = selectedItem.group;
+  const groupCapabilities = capabilityStats.filter((item) => item.group === activeGroup);
 
-  const domainIcons = {
-    runtime: Cpu,
-    cognition: BrainCircuit,
-    realm: Globe,
-  } as const;
-
-  const stageIcons = [Laptop, Smartphone, Radio] as const;
+  const selectGroup = (group: CapabilityGroup) => {
+    if (group !== activeGroup) setSelectedCapability(PLATFORM_CAPABILITIES[group][0]);
+  };
 
   return (
-    <PublicSiteShell locale={locale} onLocaleChange={setLocale} activePath="/platform">
-      <section className="public-hero-section">
-        <div className="story-container">
-          <div className="public-hero-header">
-            <span className="public-eyebrow">{copy.eyebrow}</span>
-            <h1>{copy.title}</h1>
+    <PublicSiteShell
+      locale={locale}
+      onLocaleChange={setLocale}
+      activePath="/platform"
+      shellClassName="public-platform-page"
+    >
+      <section className="public-hero-section public-platform-hero">
+        <div className="story-container public-hero-header public-platform-hero-layout">
+          <h1>{copy.title}</h1>
+          <div className="public-platform-hero-intro">
             <p className="public-hero-lead">{copy.lead}</p>
             <div className="public-hero-actions">
               <Link to={links.downloadUrl} className="story-button">
                 <span>{copy.downloadCta}</span>
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
-              <a href={links.githubUrl} className="story-button story-button-outline">
-                <span>{copy.sourceCta}</span>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-              <a href="https://github.com/nimiplatform/nimi/tree/main/.nimi/spec" className="story-button story-button-outline">
-                <span>{copy.specCta}</span>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
+              <div className="public-platform-reference-links">
+                <a href={links.githubUrl} className="story-link">
+                  <span>{copy.sourceCta}</span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+                <a href="https://github.com/nimiplatform/nimi/tree/main/.nimi/spec" className="story-link">
+                  <span>{copy.specCta}</span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -355,136 +301,159 @@ export function PlatformPage() {
       <section id="domains" className="public-page-section" aria-labelledby="domains-heading">
         <div className="story-container">
           <header className="story-heading">
-            <span className="story-eyebrow">{copy.domainsEyebrow}</span>
             <h2 id="domains-heading">{copy.domainsTitle}</h2>
-            <p>{copy.domainsBody}</p>
           </header>
 
-          <div className="public-domain-grid">
+          <div className="public-domain-grid public-platform-domain-list">
             {copy.domains.map((domain) => {
-              const Icon = domainIcons[domain.id as keyof typeof domainIcons] ?? Server;
+              const Icon = DOMAIN_ICONS[domain.id];
               return (
                 <article key={domain.id} className="public-domain-card" data-domain={domain.id}>
-                  <div className="public-domain-card-top">
+                  <div className="public-platform-card-heading">
                     <span className="story-pillar-icon" aria-hidden="true">
                       <Icon size={20} />
                     </span>
-                    <span className="public-domain-badge">{domain.badge}</span>
+                    <h3>{domain.title}</h3>
                   </div>
-                  <h3>{domain.title}</h3>
                   <p className="public-domain-summary">{domain.summary}</p>
-                  <ul className="public-bullet-list">
-                    {domain.bullets.map((bullet) => (
-                      <li key={bullet}>{bullet}</li>
-                    ))}
-                  </ul>
                 </article>
               );
             })}
           </div>
 
-          <p className="public-boundary-banner">{copy.openSourceBoundary}</p>
+          <p className="public-platform-source-note">{copy.openSourceBoundary}</p>
         </div>
       </section>
 
-      <section id="capabilities" className="public-page-section public-section-tinted" aria-labelledby="capabilities-heading">
+      <section id="capabilities" className="public-page-section public-section-tinted public-capabilities-section" aria-labelledby="capabilities-heading">
         <div className="story-container">
-          <header className="story-heading">
-            <span className="story-eyebrow">{copy.matrixEyebrow}</span>
+          <header className="story-heading story-portals-heading">
             <h2 id="capabilities-heading">{copy.matrixTitle}</h2>
-            <p>{copy.matrixBody}</p>
           </header>
 
-          <div className="public-capability-groups">
-            {(['text', 'visual', 'audio'] as const).map((groupKey) => (
-              <div key={groupKey} className="public-capability-group">
-                <h3>{copy.groups[groupKey]}</h3>
-                <div className="public-capability-matrix">
-                  {capabilityStats
-                    .filter((item) => item.group === groupKey)
-                    .map((item) => (
-                      <div key={item.id} className="public-capability-row">
-                        <div className="public-capability-row-title">
-                          <strong>{item.label}</strong>
-                          <code>{item.id}</code>
-                        </div>
-                        <div className="public-capability-row-planes">
-                          <span
-                            className={`public-plane-pill${item.localCount > 0 ? ' is-local' : ''}`}
-                          >
-                            {copy.localBadge(item.localCount)}
-                          </span>
-                          <span className="public-plane-pill is-remote">
-                            {copy.remoteBadge(item.remoteCount)}
-                          </span>
-                        </div>
-                      </div>
+          <div className="public-capability-showcase" data-group={activeGroup}>
+            <div className="public-capability-group-switch" role="group" aria-label={copy.capabilityGroupsLabel}>
+              {CAPABILITY_GROUPS.map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  className={group === activeGroup ? 'is-active' : undefined}
+                  data-group={group}
+                  aria-pressed={group === activeGroup}
+                  aria-controls="platform-capability-sample"
+                  onClick={() => selectGroup(group)}
+                >
+                  <span className="public-capability-group-dot" aria-hidden="true" />
+                  <span>{copy.groups[group]}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="public-capability-stage">
+              <section className="public-capability-preview" id="platform-capability-sample" aria-labelledby="capability-sample-heading">
+                <PlatformCapabilityPreview
+                  key={selectedItem.id}
+                  capability={selectedItem.id}
+                  locale={locale}
+                  title={selectedItem.label}
+                  sourceLabel={copy.capabilitySampleSource}
+                  headingId="capability-sample-heading"
+                  routeCounts={(
+                    <div className="public-capability-route-counts">
+                      <span><Laptop size={13} aria-hidden="true" /><strong>{selectedItem.localCount}</strong>{copy.localColumn}</span>
+                      <span><Globe size={13} aria-hidden="true" /><strong>{selectedItem.remoteCount}</strong>{copy.remoteColumn}</span>
+                    </div>
+                  )}
+                />
+              </section>
+
+              <div className="public-capability-browser-footer">
+                <div className="public-capability-filter-scroll">
+                  <div className="public-capability-filters" role="group" aria-label={copy.capabilityFiltersLabel}>
+                    {groupCapabilities.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-capability={item.id}
+                        className={item.id === selectedCapability ? 'is-active' : undefined}
+                        aria-pressed={item.id === selectedCapability}
+                        aria-controls="platform-capability-sample"
+                        onClick={() => setSelectedCapability(item.id)}
+                      >
+                        {item.label}
+                      </button>
                     ))}
+                  </div>
                 </div>
+                <Link to={links.downloadUrl} className="public-capability-download">
+                  <span>{copy.downloadCta}</span>
+                </Link>
               </div>
-            ))}
+            </div>
           </div>
 
           <aside className="public-info-card public-cost-callout" aria-labelledby="cost-boundary-heading">
-            <h3 id="cost-boundary-heading">{copy.costBoundaryTitle}</h3>
-            <p>{copy.costBoundaryBody}</p>
+            <span className="public-cost-callout-icon" aria-hidden="true"><ShieldCheck size={24} /></span>
+            <div>
+              <h3 id="cost-boundary-heading">{copy.costBoundaryTitle}</h3>
+              <p>{copy.costBoundaryBody}</p>
+            </div>
           </aside>
         </div>
       </section>
 
       <section id="trust" className="public-page-section" aria-labelledby="trust-heading">
         <div className="story-container">
-          <header className="story-heading">
-            <span className="story-eyebrow">{copy.trustEyebrow}</span>
+          <header className="story-heading story-portals-heading">
             <h2 id="trust-heading">{copy.trustTitle}</h2>
-            <p>{copy.trustBody}</p>
           </header>
 
           <div className="public-two-column-cards">
-            {copy.trustCards.map((card) => (
-              <article key={card.title} className="public-info-card">
-                <div className="public-card-icon-row">
-                  <ShieldCheck size={20} aria-hidden="true" />
-                  <h3>{card.title}</h3>
-                </div>
-                <p>{card.body}</p>
-              </article>
-            ))}
+            <article className="public-info-card">
+              <span className="story-portal-icon" aria-hidden="true">
+                <ShieldCheck size={20} />
+              </span>
+              <h3>{copy.permissions.title}</h3>
+              <p>{copy.permissions.body}</p>
+            </article>
+            <article className="public-info-card">
+              <span className="story-portal-icon" aria-hidden="true">
+                <ShieldCheck size={20} />
+              </span>
+              <h3>{copy.signing.title}</h3>
+              <p>{copy.signing.body}</p>
+              <Link to={withLocaleQuery('/code-signing', locale)} className="story-link">
+                <span>{copy.signing.link}</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+            </article>
           </div>
 
           <div className="public-security-workbench-wrap">
-            <StoryContentCheck key={locale} t={t} links={links} defaultOpen />
-            <p className="public-availability-note">{t('security.noSandbox')}</p>
-            <Link to={withLocaleQuery('/code-signing', locale)} className="story-link">
-              <span>{copy.signingLinkLabel}</span>
-              <ArrowRight size={15} aria-hidden="true" />
-            </Link>
+            <StoryContentCheck key={locale} t={t} links={links} />
           </div>
         </div>
       </section>
 
       <section id="topology" className="public-page-section public-section-tinted" aria-labelledby="topology-heading">
         <div className="story-container">
-          <header className="story-heading">
-            <span className="story-eyebrow">{copy.topologyEyebrow}</span>
+          <header className="story-heading story-portals-heading">
             <h2 id="topology-heading">{copy.topologyTitle}</h2>
-            <p>{copy.topologyBody}</p>
           </header>
 
           <div className="public-domain-grid">
-            {copy.topologyStages.map((stage, index) => {
-              const Icon = stageIcons[index] ?? Laptop;
+            {copy.topologyStages.map((stage) => {
+              const Icon = STAGE_ICONS[stage.id];
               return (
-                <article key={stage.title} className="public-domain-card">
+                <article key={stage.id} className="public-domain-card">
                   <div className="public-domain-card-top">
-                    <span className="story-pillar-icon" aria-hidden="true">
+                    <span className="story-pillar-icon story-portal-icon" aria-hidden="true">
                       <Icon size={20} />
                     </span>
-                    <span className={`public-domain-badge${index === 0 ? ' is-live' : ''}`}>
+                    <span className={`public-domain-badge story-portal-badge${stage.id === 'desktop' ? ' is-live' : ''}`}>
                       {stage.status}
                     </span>
                   </div>
-                  <small className="public-stage-kicker">{stage.stage}</small>
                   <h3>{stage.title}</h3>
                   <p className="public-domain-summary">{stage.body}</p>
                 </article>

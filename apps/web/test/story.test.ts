@@ -3,6 +3,7 @@ import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { getStoryCopy } from '../src/landing/content/story-copy.js';
 import { DEFAULT_STORY_AGENT, galleryDragSelection, wrapGalleryIndex, STORY_APPS } from '../src/landing/content/story-model.js';
 import { createCoreHeroDemo } from '../src/landing/content/core-hero-demo.js';
@@ -24,8 +25,8 @@ test('the bilingual landing copy has complete key and interpolation parity', () 
   }
   assert.match(zh['security.checkDetail'], /未加密/);
   assert.match(en['security.checkDetail'], /unencrypted/);
-  assert.match(zh['security.note'], /开发预览/);
-  assert.match(en['security.note'], /developer preview/i);
+  assert.match(zh['security.check'], /开发预览/);
+  assert.match(en['security.check'], /developer preview/i);
 });
 
 test('gallery selection wraps in either direction and drag direction follows the hand', () => {
@@ -42,11 +43,13 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
     const demo = createCoreHeroDemo(locale);
     const localizedLinks = resolveLocalizedLinks(resolveLandingLinks({}), locale);
     const copy = getStoryCopy(locale);
-    const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, {
-      demo,
-      children: createElement(StoryPage, { locale, links: localizedLinks, onLocale() {} }),
-    }));
-    for (const id of ['hero-demo', 'foundation-pillars', 'apps', 'home-demo', 'explore-layers']) {
+    const html = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [`/?lang=${locale}`] },
+      createElement(HeroDemoSessionProvider, {
+        demo,
+        children: createElement(StoryPage, { locale, links: localizedLinks, onLocale() {} }),
+      }),
+    ));
+    for (const id of ['hero-demo', 'apps', 'home-demo', 'explore-layers']) {
       assert.ok(html.includes(`id="${id}"`), id);
     }
     assert.ok(!html.includes('story-power'));
@@ -57,7 +60,6 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
     const sections = [...html.matchAll(/<section [^>]*class="(?:story-section )?(story-[\w-]+)"/g)].map(match => match[1]);
     assert.deepEqual(sections, [
       'story-hero',
-      'story-pillars',
       'story-experience',
       'story-runtime',
       'story-portals',
@@ -107,7 +109,7 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
 
     const navigation = html.match(/<nav id="story-navigation"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
     assert.ok(navigation);
-    const navLinks = [...navigation.matchAll(/<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(match => [
+    const navLinks = [...navigation.matchAll(/<a\b[^>]*\bhref="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(match => [
       match[1],
       (match[2] ?? '').replace(/<[^>]+>/g, '').trim(),
     ]);
@@ -133,12 +135,13 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
       assert.ok(ownership.includes(copy[`experience.${key}Title`]));
       assert.ok(ownership.includes(copy[`experience.${key}Body`]));
       assert.ok(ownership.includes(copy[`experience.${key}Window`]));
-      assert.ok(ownership.includes(`href="#ownership-${key}"`));
-      assert.ok(ownership.includes(`id="ownership-${key}-copy"`));
+      assert.ok(ownership.includes(`href="/?lang=${locale}#ownership-${key}"`));
+      assert.ok(ownership.includes(`id="ownership-${key}-step"`));
       assert.ok(ownership.includes(`id="ownership-${key}"`));
       assert.ok(ownership.includes(`data-ownership-chapter="${key}" data-active="${key === 'models'}"`));
+      assert.ok(ownership.includes(`data-hash-target="ownership-${key}-step"`));
     }
-    assert.match(ownership, /href="#ownership-models" aria-current="location"/);
+    assert.match(ownership, /<a\b(?=[^>]*aria-current="location")(?=[^>]*href="[^"#]*#ownership-models")/);
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
 
     const portals = html.match(/<section id="explore-layers"[\s\S]*?<\/section>/)?.[0];
@@ -175,12 +178,22 @@ test('a memory change refreshes an already-open peer view of the same demo agent
   unsubscribe(); home.session.dispose(); stage.session.dispose();
 });
 
-test('the ownership preview follows the copy across the reading line in both directions', async () => {
+test('the ownership preview switches when a chapter reaches the sticky stage, in both directions', async () => {
   const { findActiveOwnershipChapter } = await import('../src/landing/components/story/story-experience.js');
-  const centers = [180, 620, 1100];
-  assert.equal(findActiveOwnershipChapter(centers, 100), 0);
-  assert.equal(findActiveOwnershipChapter(centers, 620), 1);
-  assert.equal(findActiveOwnershipChapter(centers, 900), 1);
-  assert.equal(findActiveOwnershipChapter(centers, 1200), 2);
-  assert.equal(findActiveOwnershipChapter(centers, 500), 0);
+  const starts = [180, 620, 1100];
+  assert.equal(findActiveOwnershipChapter(starts, 100), 0);
+  assert.equal(findActiveOwnershipChapter(starts, 620), 1);
+  assert.equal(findActiveOwnershipChapter(starts, 900), 1);
+  assert.equal(findActiveOwnershipChapter(starts, 1100), 2);
+  assert.equal(findActiveOwnershipChapter(starts, 619), 0);
+});
+
+test('the ownership bar fills across a chapter and rewinds with scroll', async () => {
+  const { getOwnershipChapterProgress } = await import('../src/landing/components/story/story-experience.js');
+  assert.equal(getOwnershipChapterProgress(80, 480), 0);
+  assert.equal(getOwnershipChapterProgress(-100, 300), 0.25);
+  assert.equal(getOwnershipChapterProgress(-300, 100), 0.75);
+  assert.equal(getOwnershipChapterProgress(-400, 0), 1);
+  assert.equal(getOwnershipChapterProgress(-460, -60), 1);
+  assert.equal(getOwnershipChapterProgress(-200, 200), 0.5);
 });

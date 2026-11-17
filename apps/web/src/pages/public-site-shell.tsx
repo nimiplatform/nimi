@@ -62,7 +62,6 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
   downloadCta: string;
   openMenu: string;
   closeMenu: string;
-  footerTagline: string;
   footerProductHeading: string;
   footerResourcesHeading: string;
   footerTrustHeading: string;
@@ -91,7 +90,6 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
     downloadCta: '下载 Beta',
     openMenu: '打开导航菜单',
     closeMenu: '关闭导航菜单',
-    footerTagline: '个人 AI 底座 · 本地算力与跨应用上下文连续',
     footerProductHeading: '产品与架构',
     footerResourcesHeading: '开发者与社区',
     footerTrustHeading: '信任与条款',
@@ -120,7 +118,6 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
     downloadCta: 'Download Beta',
     openMenu: 'Open navigation menu',
     closeMenu: 'Close navigation menu',
-    footerTagline: 'Personal AI foundation · Local compute & cross-app continuity',
     footerProductHeading: 'Product & Architecture',
     footerResourcesHeading: 'Developers & Community',
     footerTrustHeading: 'Trust & Legal',
@@ -388,7 +385,6 @@ export function PublicSiteFooter({
             <img src="/logo.svg" alt="" width={28} height={28} />
             <strong>Nimi</strong>
           </PublicSiteLink>
-          <p>{copy.footerTagline}</p>
           <small>Nimi Network Limited</small>
         </div>
 

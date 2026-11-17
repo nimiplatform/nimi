@@ -30,7 +30,7 @@ export function scrollHashIntoView(hash: string): boolean {
   const delegatedId = target.dataset.hashTarget;
   const delegated = delegatedId ? document.getElementById(delegatedId) : null;
   const destination = delegated && delegated.getClientRects().length > 0 ? delegated : target;
-  destination.scrollIntoView({ block: destination === target ? 'start' : 'center' });
+  destination.scrollIntoView({ block: 'start' });
   return true;
 }
 
@@ -51,7 +51,7 @@ function scheduleCurrentHashScroll() {
   };
 }
 
-export function useHashScroll(enabled: boolean) {
+export function useHashScroll(enabled: boolean, routeHash?: string) {
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') {
       return;
@@ -68,5 +68,5 @@ export function useHashScroll(enabled: boolean) {
       cancelScheduledScroll();
       window.removeEventListener('hashchange', onHashChange);
     };
-  }, [enabled]);
+  }, [enabled, routeHash]);
 }

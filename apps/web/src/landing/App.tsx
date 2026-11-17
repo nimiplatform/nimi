@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
 import { StoryPage } from './components/story/story-page.js';
 import { getStoryCopy } from './content/story-copy.js';
@@ -9,12 +10,13 @@ import { usePublicDocumentMetadata, useResolvedPublicLinks } from '../pages/publ
 import { usePublicPageLocale } from '../pages/use-page-locale.js';
 
 export function App() {
+  const { hash } = useLocation();
   const [locale, setLocale] = usePublicPageLocale();
   const copy = getStoryCopy(locale);
   const demo = useMemo(() => createCoreHeroDemo(locale), [locale]);
   const links = useResolvedPublicLinks(locale);
 
-  useHashScroll(true);
+  useHashScroll(true, hash);
   usePublicDocumentMetadata(copy['hero.metaTitle'], copy['hero.metaDescription'], '/', locale);
 
   return (

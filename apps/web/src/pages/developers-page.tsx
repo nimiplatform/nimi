@@ -2,6 +2,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   Blocks,
+  Check,
+  Clipboard,
   Code2,
   FileCode2,
   GitFork,
@@ -12,7 +14,9 @@ import {
 import { Link } from 'react-router-dom';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
 import { StoryBuilder } from '../landing/components/story/story-builder.js';
+import { useCopyCommand } from '../landing/components/use-copy-command.js';
 import { getStoryCopy, type StoryText } from '../landing/content/story-copy.js';
+import { CREATE_APP_COMMAND } from '../landing/content/story-model.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import {
   PublicSiteShell,
@@ -20,6 +24,45 @@ import {
   useResolvedPublicLinks,
 } from './public-site-shell.js';
 import { usePublicPageLocale } from './use-page-locale.js';
+
+const TOOLCHAIN_PACKAGES = [
+  {
+    id: 'tools',
+    Icon: Package,
+    license: 'Apache-2.0',
+    command: CREATE_APP_COMMAND,
+    href: 'https://github.com/nimiplatform/nimi/tree/main/app-tools',
+  },
+  {
+    id: 'sdk',
+    Icon: Code2,
+    license: 'Apache-2.0',
+    command: 'pnpm add @nimiplatform/sdk',
+    href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript',
+  },
+  {
+    id: 'vercel',
+    Icon: Sparkles,
+    license: 'Apache-2.0',
+    command: 'pnpm add @nimiplatform/sdk-adapter-vercel-ai @nimiplatform/sdk "ai@^7" "@ai-sdk/provider@^4"',
+    href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript/adapters/vercel-ai',
+  },
+  {
+    id: 'kit',
+    Icon: PanelsTopLeft,
+    license: 'MIT',
+    command: 'pnpm add @nimiplatform/kit @nimiplatform/sdk',
+    href: 'https://github.com/nimiplatform/nimi/tree/main/kit',
+  },
+] as const;
+
+const TOOLCHAIN_REFERENCES = [
+  { id: 'bindings', Icon: FileCode2, href: 'https://github.com/nimiplatform/nimi/tree/main/sdks' },
+  { id: 'spec', Icon: Blocks, href: 'https://github.com/nimiplatform/nimi/tree/main/.nimi/spec' },
+] as const;
+
+type ToolchainPackage = typeof TOOLCHAIN_PACKAGES[number];
+type ToolchainPackageCopy = { title: string; description: string };
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-supported-completeness
@@ -39,15 +82,15 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
     title: string;
     body: string;
   }>;
-  stackEyebrow: string;
   stackTitle: string;
   stackBody: string;
-  packages: ReadonlyArray<{
-    name: string;
-    posture: string;
-    license: string;
+  sourceAction: string;
+  copyAction: string;
+  copyError: string;
+  packages: Record<ToolchainPackage['id'], ToolchainPackageCopy>;
+  references: Record<typeof TOOLCHAIN_REFERENCES[number]['id'], {
+    label: string;
     description: string;
-    href: string;
   }>;
   adaptationBannerTitle: string;
   adaptationBannerBody: string;
@@ -79,53 +122,39 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
         body: '使用 App Tools 在本地开发模式调试，通过根目录 NIMI_APP.md 向用户呈现应用说明、所需配置与数据边界。',
       },
     ],
-    stackEyebrow: '开发包与协议表面',
-    stackTitle: '工具链矩阵与分发状态',
-    stackBody: '区分面向本地应用开发的 TypeScript 工具链与仓库内维护的多语言协议绑定源码。',
-    packages: [
-      {
-        name: '@nimiplatform/sdk',
-        posture: 'TypeScript 核心 SDK',
-        license: 'Apache-2.0',
+    stackTitle: '开发工具链',
+    stackBody: '创建应用、接入 Nimi Runtime，或把现有的 AI SDK 项目接到 Nimi。',
+    sourceAction: '源码',
+    copyAction: '复制命令',
+    copyError: '复制失败。请选择命令后手动复制。',
+    packages: {
+      tools: {
+        title: 'App Tools',
+        description: '创建独立 Nimi 应用，校验应用清单和权限声明，并在本地调试。',
+      },
+      sdk: {
+        title: 'TypeScript SDK',
         description: '类型化多模态 AI 调用、受保护本地会话握手以及 Local Agent / Cognition 记忆读写客户端。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript',
       },
-      {
-        name: '@nimiplatform/sdk-adapter-vercel-ai',
-        posture: 'Vercel AI SDK 7 适配器',
-        license: 'Apache-2.0',
-        description: '将 client.ai 桥接为 AI SDK 7 语言模型接口，保留调用方自有的流式输出与工具执行闭环（请与当前 App Tools / Runtime 版本配套使用）。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript/adapters/vercel-ai',
+      vercel: {
+        title: 'Vercel AI SDK 适配器',
+        description: '把 Nimi 接入 AI SDK 7，保留现有的流式输出和工具循环。搭配匹配版本的 App Tools 和 Runtime 使用。',
       },
-      {
-        name: '@nimiplatform/kit',
-        posture: 'UI 组件与 Shell 桥接',
-        license: 'Apache-2.0',
-        description: '提供共享设计系统原语、标准桌面本地应用桥接层以及智能体记忆中心视图。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/kit',
+      kit: {
+        title: 'Kit',
+        description: '复用基于 React 19 的界面组件、桌面应用桥接层和智能体记忆中心视图。',
       },
-      {
-        name: '@nimiplatform/app-tools',
-        posture: '脚手架与本地调试 CLI',
-        license: 'Apache-2.0',
-        description: '通过 nimi-app create 初始化独立应用工程，校验应用清单、权限声明与 NIMI_APP.md 规范。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/app-tools',
+    },
+    references: {
+      bindings: {
+        label: '浏览协议绑定源码',
+        description: '仓库内维护的 Rust、Go 和 Python Runtime 协议绑定。',
       },
-      {
-        name: 'sdks/rust · sdks/go · sdks/python',
-        posture: '仓库内协议源码绑定',
-        license: '仓库源码（Apache-2.0）',
-        description: '主仓库 sdks/* 目录下维护的多语言 Runtime / 协议绑定源码，供原生服务与协议集成方直接引用（非独立包管理器分发保证）。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks',
+      spec: {
+        label: '查看平台规范',
+        description: '核心协议、能力路由、应用准入与安全边界。',
       },
-      {
-        name: '.nimi/spec',
-        posture: '规范权威事实源',
-        license: '规范契约',
-        description: '覆盖核心协议、能力路由、应用生态准入与安全边界的结构化机器可校验规范。',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/.nimi/spec',
-      },
-    ],
+    },
     adaptationBannerTitle: '想把现有的开源 AI 工具迁移到 Nimi？',
     adaptationBannerBody: '先在应用生态页预览 Vane、Next AI Draw.io、OpenMontage、SillyTavern 等开源项目的适配效果，再对照创建指南在本地开发模式启动你的第一个工程。',
     adaptationBannerAction: '浏览应用生态与开源适配',
@@ -156,58 +185,84 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
         body: 'Scaffold and debug locally with App Tools and Desktop developer mode, and present your app in Nimi Home through a clear root NIMI_APP.md.',
       },
     ],
-    stackEyebrow: 'Packages & Protocol Surfaces',
-    stackTitle: 'Toolchain matrix & availability posture',
-    stackBody: 'A transparent overview of TypeScript Local App packages alongside in-repo protocol bindings and canonical specs.',
-    packages: [
-      {
-        name: '@nimiplatform/sdk',
-        posture: 'Core TypeScript SDK',
-        license: 'Apache-2.0',
+    stackTitle: 'Developer toolchain',
+    stackBody: 'Create an app, connect to Nimi Runtime, or bring an existing AI SDK project to Nimi.',
+    sourceAction: 'Source',
+    copyAction: 'Copy command',
+    copyError: 'Couldn’t copy the command. Select it and copy it manually.',
+    packages: {
+      tools: {
+        title: 'App Tools',
+        description: 'Create a standalone Nimi app, validate its manifest and capabilities, and debug it locally.',
+      },
+      sdk: {
+        title: 'TypeScript SDK',
         description: 'Typed multimodal AI invocation, protected local session handshakes, and Local Agent / Cognition memory clients.',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript',
       },
-      {
-        name: '@nimiplatform/sdk-adapter-vercel-ai',
-        posture: 'Vercel AI SDK 7 Adapter',
-        license: 'Apache-2.0',
-        description: 'Bridges client.ai into AI SDK 7 language model interfaces while preserving caller-owned streaming and tool loops (pair with your matching App Tools / Runtime cohort).',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks/typescript/adapters/vercel-ai',
+      vercel: {
+        title: 'Vercel AI SDK Adapter',
+        description: 'Connect Nimi to AI SDK 7 and keep your existing streaming and tool loops. Use matching App Tools and Runtime versions.',
       },
-      {
-        name: '@nimiplatform/kit',
-        posture: 'UI System & Shell Bridge',
-        license: 'Apache-2.0',
-        description: 'Shared React UI primitives, the standard Local App shell bridge, and inspectable Agent Center memory components.',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/kit',
+      kit: {
+        title: 'Kit',
+        description: 'Reuse React 19 UI components, the desktop app shell bridge, and Agent Center memory views.',
       },
-      {
-        name: '@nimiplatform/app-tools',
-        posture: 'Scaffolding & Dev CLI',
-        license: 'Apache-2.0',
-        description: 'Initialize standalone app projects with nimi-app create and validate manifests, capability declarations, and NIMI_APP.md.',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/app-tools',
+    },
+    references: {
+      bindings: {
+        label: 'Browse protocol bindings',
+        description: 'Rust, Go, and Python Runtime protocol bindings maintained in the repository.',
       },
-      {
-        name: 'sdks/rust · sdks/go · sdks/python',
-        posture: 'In-Repo Source Bindings',
-        license: 'In-repo source (Apache-2.0)',
-        description: 'Multi-language Runtime and protocol bindings maintained in the monorepo under sdks/* for native services and protocol consumers (source tree bindings rather than standalone registry guarantees).',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/sdks',
+      spec: {
+        label: 'Read the platform specification',
+        description: 'Core protocol, capability routing, app admission, and security boundaries.',
       },
-      {
-        name: '.nimi/spec',
-        posture: 'Canonical Authority',
-        license: 'Spec contracts',
-        description: 'Machine-checked YAML and Markdown specifications defining protocol boundaries, capability routing, and ecosystem admission rules.',
-        href: 'https://github.com/nimiplatform/nimi/tree/main/.nimi/spec',
-      },
-    ],
+    },
     adaptationBannerTitle: 'Adapting an existing open-source AI project?',
     adaptationBannerBody: 'Preview how Vane, Next AI Draw.io, OpenMontage, and SillyTavern connect to Nimi on the Apps page, then follow the quickstart guide in local developer mode.',
     adaptationBannerAction: 'Explore Apps & Open-Source Adaptations',
   },
 };
+
+function ToolchainCard({ pkg, copy, t }: {
+  pkg: ToolchainPackage;
+  copy: typeof DEVELOPERS_COPY[LandingLocale];
+  t: StoryText;
+}) {
+  const { Icon, href, command, license } = pkg;
+  const { title, description } = copy.packages[pkg.id];
+  const { copy: copyCommand, copyStatus } = useCopyCommand(command);
+  const copyLabel = `${copy.copyAction} · ${title}`;
+
+  return (
+    <article className="public-domain-card">
+      <span className="story-pillar-icon" aria-hidden="true"><Icon size={20} /></span>
+      <h3>{title}</h3>
+      <p className="public-domain-summary">{description}</p>
+      <div className="public-pkg-footer">
+        <small>{license}</small>
+        <a href={href} target="_blank" rel="noreferrer" className="public-external-link" aria-label={`${copy.sourceAction} · ${title}`}>
+          {copy.sourceAction}
+          <ArrowUpRight size={14} aria-hidden="true" />
+        </a>
+      </div>
+      <div className="public-toolchain-command">
+        <pre tabIndex={0}><code>{command}</code></pre>
+        <button
+          type="button"
+          onClick={copyCommand}
+          aria-label={copyLabel}
+          title={copyStatus === 'copied' ? t('builder.copiedCommand') : copyLabel}
+        >
+          {copyStatus === 'copied' ? <Check size={17} aria-hidden="true" /> : <Clipboard size={17} aria-hidden="true" />}
+        </button>
+      </div>
+      <span role="status" className={copyStatus === 'error' ? 'public-command-copy-error' : 'sr-only'}>
+        {copyStatus === 'copied' ? t('builder.copiedCommand') : copyStatus === 'error' ? copy.copyError : ''}
+      </span>
+    </article>
+  );
+}
 
 export function DevelopersPage() {
   const [locale, setLocale] = usePublicPageLocale();
@@ -219,7 +274,6 @@ export function DevelopersPage() {
   usePublicDocumentMetadata(copy.metaTitle, copy.metaDescription, '/developers', locale);
 
   const whyIcons = [Code2, GitFork, Blocks] as const;
-  const pkgIcons = [Code2, Sparkles, PanelsTopLeft, Package, FileCode2, Blocks] as const;
 
   return (
     <PublicSiteShell locale={locale} onLocaleChange={setLocale} activePath="/developers">
@@ -267,32 +321,26 @@ export function DevelopersPage() {
       <section id="surfaces" className="public-page-section" aria-labelledby="surfaces-heading">
         <div className="story-container">
           <header className="story-heading">
-            <span className="story-eyebrow">{copy.stackEyebrow}</span>
             <h2 id="surfaces-heading">{copy.stackTitle}</h2>
             <p>{copy.stackBody}</p>
           </header>
 
-          <div className="public-domain-grid">
-            {copy.packages.map((pkg, index) => {
-              const Icon = pkgIcons[index] ?? Package;
+          <div className="public-toolchain-grid">
+            {TOOLCHAIN_PACKAGES.map((pkg) => <ToolchainCard key={pkg.id} pkg={pkg} copy={copy} t={t} />)}
+          </div>
+
+          <div className="public-toolchain-references">
+            {TOOLCHAIN_REFERENCES.map(({ id, Icon, href }) => {
+              const { label, description } = copy.references[id];
               return (
-                <article key={pkg.name} className="public-domain-card">
-                  <div className="public-domain-card-top">
-                    <span className="story-pillar-icon" aria-hidden="true">
-                      <Icon size={20} />
-                    </span>
-                    <span className="public-domain-badge">{pkg.posture}</span>
-                  </div>
-                  <h3 className="public-mono-heading">{pkg.name}</h3>
-                  <p className="public-domain-summary">{pkg.description}</p>
-                  <div className="public-pkg-footer">
-                    <small>{pkg.license}</small>
-                    <a href={pkg.href} target="_blank" rel="noreferrer" className="public-external-link">
-                      <span>GitHub</span>
-                      <ArrowUpRight size={14} aria-hidden="true" />
-                    </a>
-                  </div>
-                </article>
+                <a key={id} href={href} target="_blank" rel="noreferrer" className="public-toolchain-reference">
+                  <Icon size={19} aria-hidden="true" />
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{description}</small>
+                  </span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
               );
             })}
           </div>

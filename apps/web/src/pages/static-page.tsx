@@ -467,68 +467,89 @@ function AppsPageInner({
   });
 
   return (
-    <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
-      <section className="public-hero-section">
-        <div className="story-container">
-          <div className="public-hero-header">
-            <span className="public-eyebrow">{ecosystemCopy.eyebrow}</span>
-            <h1>{copy.apps.title}</h1>
-            <p className="public-hero-lead">{copy.apps.intro}</p>
-            <p className="public-availability-note">{copy.apps.statusNote}</p>
+    <PublicSiteShell
+      locale={locale}
+      onLocaleChange={onLocaleChange}
+      activePath="/apps"
+      shellClassName="public-apps-page"
+    >
+      <section className="story-hero public-apps-hero" aria-labelledby="apps-page-heading">
+        <div className="story-hero-copy public-apps-hero-copy">
+          <span className="story-hero-eyebrow">{ecosystemCopy.eyebrow}</span>
+          <h1 id="apps-page-heading">{copy.apps.title}</h1>
+          <p className="story-hero-lead">{copy.apps.intro}</p>
+          <div className="story-hero-actions">
+            <a href="#apps-catalog" className="story-button">
+              <span>{copy.apps.listTitle}</span>
+              <ArrowRight size={16} aria-hidden="true" />
+            </a>
+            <a href="#create-your-own" className="story-hero-continue">
+              <span>{copy.apps.createTitle}</span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </a>
           </div>
+          <p className="story-hero-availability">{ecosystemCopy.heroAvailability}</p>
+        </div>
 
-          <div className="public-provenance-banner" aria-label={ecosystemCopy.provenanceCalloutTitle}>
-            <div className="public-provenance-item" data-origin="nimi-official">
-              <span className="public-app-badge" data-origin="nimi-official">
-                {ecosystemCopy.originBadge['nimi-official']} · {counts['nimi-official']}
+        <div className="public-apps-hero-showcase" aria-label={copy.apps.listTitle}>
+          {ecosystemApps.slice(0, 3).map((app, index) => (
+            <button
+              key={app.id}
+              type="button"
+              className="public-apps-hero-card"
+              data-position={index}
+              onClick={() => openInteractivePreview(app.id)}
+              aria-label={`${ecosystemCopy.previewAction} · ${app.name}`}
+            >
+              <span className="public-apps-hero-card-chrome" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <span>{app.name}</span>
               </span>
-              <p>{ecosystemCopy.provenanceCalloutOfficial}</p>
-            </div>
-            <div className="public-provenance-item" data-origin="open-source-adapted">
-              <span className="public-app-badge" data-origin="open-source-adapted">
-                {ecosystemCopy.originBadge['open-source-adapted']} · {counts['open-source-adapted']}
+              <img
+                src={app.previewImageSrc}
+                alt=""
+                className="public-apps-hero-card-image"
+                loading={index === 1 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+              <span className="public-apps-hero-card-footer">
+                <span className="public-apps-hero-card-identity">
+                  {app.iconSrc ? <img src={app.iconSrc} alt="" width={28} height={28} /> : null}
+                  <strong>{app.name}</strong>
+                </span>
+                <span className="public-apps-hero-card-preview">
+                  <Play size={12} aria-hidden="true" />
+                  <span>{ecosystemCopy.previewAction}</span>
+                </span>
               </span>
-              <p>{ecosystemCopy.provenanceCalloutAdapted}</p>
-            </div>
-          </div>
-
-          <div className="public-posture-breakdown" aria-label={ecosystemCopy.availabilityBreakdownLabel}>
-            {ecosystemCopy.availabilityBreakdown.filter((tier) => postureCounts[tier.posture] > 0).map((tier) => (
-              <div key={tier.posture} className="public-posture-tier" data-posture={tier.posture}>
-                <div className="public-posture-tier-head">
-                  <span className="public-app-badge is-posture" data-posture={tier.posture}>
-                    {tier.title}
-                  </span>
-                  <strong>{postureCounts[tier.posture]}</strong>
-                </div>
-                <p>{tier.body}</p>
-              </div>
-            ))}
-          </div>
+            </button>
+          ))}
         </div>
       </section>
 
-      <section className="public-page-section" aria-labelledby="apps-catalog-heading">
+      <section id="apps-catalog" className="public-page-section public-apps-catalog" aria-labelledby="apps-catalog-heading">
         <div className="story-container">
-          <div className="public-apps-toolbar">
-            <div>
-              <h2 id="apps-catalog-heading">{copy.apps.listTitle}</h2>
-              <p className="public-apps-subnote">{ecosystemCopy.platformsSummary} · {ecosystemCopy.previewFootnote}</p>
-            </div>
-            <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
-              {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
-                <button
-                  key={filterId}
-                  type="button"
-                  aria-pressed={activeFilter === filterId}
-                  className={activeFilter === filterId ? 'is-active' : undefined}
-                  onClick={() => setActiveFilter(filterId)}
-                >
-                  <span>{ecosystemCopy.filters[filterId]}</span>
-                  <small>{counts[filterId]}</small>
-                </button>
-              ))}
-            </div>
+          <header className="story-heading public-apps-catalog-heading">
+            <h2 id="apps-catalog-heading">{copy.apps.listTitle}</h2>
+            <p>{ecosystemCopy.previewFootnote}</p>
+            <span className="public-apps-platform-note">{ecosystemCopy.platformsSummary}</span>
+          </header>
+
+          <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
+            {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
+              <button
+                key={filterId}
+                type="button"
+                aria-pressed={activeFilter === filterId}
+                className={activeFilter === filterId ? 'is-active' : undefined}
+                onClick={() => setActiveFilter(filterId)}
+              >
+                <span>{ecosystemCopy.filters[filterId]}</span>
+                <small>{counts[filterId]}</small>
+              </button>
+            ))}
           </div>
 
           <ul className="public-apps-grid">
@@ -546,6 +567,9 @@ function AppsPageInner({
                     loading="lazy"
                     decoding="async"
                   />
+                  <span className="public-app-badge public-app-card-origin" data-origin={app.origin}>
+                    {ecosystemCopy.originBadge[app.origin]}
+                  </span>
                   <span className="public-app-card-play">
                     <Play size={13} aria-hidden="true" />
                     <span>{ecosystemCopy.previewAction}</span>
@@ -553,25 +577,22 @@ function AppsPageInner({
                 </button>
 
                 <div className="public-app-card-body">
+                  <div className="public-app-card-heading">
+                    {app.iconSrc ? (
+                      <img src={app.iconSrc} alt="" width={44} height={44} loading="lazy" decoding="async" />
+                    ) : null}
+                    <h3>{app.name}</h3>
+                  </div>
+
+                  <p className="public-app-card-description">{app.description}</p>
+
                   <div className="public-app-badges">
-                    <span className="public-app-badge" data-origin={app.origin}>
-                      {ecosystemCopy.originBadge[app.origin]}
-                    </span>
                     <span className="public-app-badge is-posture" data-posture={app.posture}>
                       {app.catalog
                         ? `${ecosystemCopy.postureBadge[app.posture]} · ${app.catalog.license}`
                         : ecosystemCopy.postureBadge[app.posture]}
                     </span>
                   </div>
-
-                  <div className="public-app-card-heading">
-                    {app.iconSrc ? (
-                      <img src={app.iconSrc} alt="" width={40} height={40} loading="lazy" decoding="async" />
-                    ) : null}
-                    <h3>{app.name}</h3>
-                  </div>
-
-                  <p className="public-app-card-description">{app.description}</p>
 
                   {app.tags.length > 0 ? (
                     <div className="public-capability-pills">
@@ -607,14 +628,69 @@ function AppsPageInner({
         </div>
       </section>
 
+      <section className="public-page-section public-app-ecosystem-notes" aria-labelledby="app-provenance-heading">
+        <div className="story-container">
+          <header className="story-heading public-app-ecosystem-notes-heading">
+            <h2 id="app-provenance-heading">{ecosystemCopy.provenanceCalloutTitle}</h2>
+          </header>
+
+          <div className="public-provenance-banner">
+            <div className="public-provenance-item" data-origin="nimi-official">
+              <span className="public-app-badge" data-origin="nimi-official">
+                {ecosystemCopy.originBadge['nimi-official']} · {counts['nimi-official']}
+              </span>
+              <p>{ecosystemCopy.provenanceCalloutOfficial}</p>
+            </div>
+            <div className="public-provenance-item" data-origin="open-source-adapted">
+              <span className="public-app-badge" data-origin="open-source-adapted">
+                {ecosystemCopy.originBadge['open-source-adapted']} · {counts['open-source-adapted']}
+              </span>
+              <p>{ecosystemCopy.provenanceCalloutAdapted}</p>
+            </div>
+          </div>
+
+          <div className="public-posture-breakdown" aria-label={ecosystemCopy.availabilityBreakdownLabel}>
+            {ecosystemCopy.availabilityBreakdown.filter((tier) => postureCounts[tier.posture] > 0).map((tier) => (
+              <div key={tier.posture} className="public-posture-tier" data-posture={tier.posture}>
+                <div className="public-posture-tier-head">
+                  <span className="public-app-badge is-posture" data-posture={tier.posture}>
+                    {tier.title}
+                  </span>
+                  <strong>{postureCounts[tier.posture]}</strong>
+                </div>
+                <p>{tier.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <StoryIntegrations t={t} links={links} />
 
-      <section id="create-your-own" className="public-page-section">
+      <section id="create-your-own" className="public-page-section public-create-section">
         <div className="story-container">
           <div className="public-info-card public-create-card">
-            <h2>{copy.apps.createTitle}</h2>
-            <p>{copy.apps.createIntro}</p>
-            <ol className="public-step-list">
+            <div className="public-create-copy">
+              <h2>{copy.apps.createTitle}</h2>
+              <p>{copy.apps.createIntro}</p>
+              <p className="public-availability-note">{copy.apps.createCaveat}</p>
+              <div className="public-hero-actions">
+                <a
+                  href={links.createGuideUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="story-button"
+                >
+                  <span>{copy.apps.guideCta}</span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+                <PublicSiteLink to={withLocaleQuery('/developers', locale)} className="story-button story-button-outline">
+                  <span>{locale === 'zh' ? '查看 SDK 与开发者工具' : 'Explore SDK & Developer Tools'}</span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </PublicSiteLink>
+              </div>
+            </div>
+            <ol className="public-step-list public-create-steps">
               {copy.apps.createSteps.map((step, index) => (
                 <li key={step}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
@@ -622,22 +698,6 @@ function AppsPageInner({
                 </li>
               ))}
             </ol>
-            <p className="public-availability-note">{copy.apps.createCaveat}</p>
-            <div className="public-hero-actions">
-              <a
-                href={links.createGuideUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="story-button"
-              >
-                <span>{copy.apps.guideCta}</span>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-              <PublicSiteLink to={withLocaleQuery('/developers', locale)} className="story-button story-button-outline">
-                <span>{locale === 'zh' ? '查看 SDK 与开发者工具' : 'Explore SDK & Developer Tools'}</span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </PublicSiteLink>
-            </div>
           </div>
         </div>
       </section>

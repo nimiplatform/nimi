@@ -3,6 +3,7 @@ import { Check, Clipboard, Code2, Package, PanelsTopLeft, Sparkles } from 'lucid
 import type { StoryText } from '../../content/story-copy.js';
 import type { LandingLinks } from '../../config/landing-links.js';
 import { CREATE_APP_COMMAND, kitExample, SDK_EXAMPLE, VERCEL_AI_EXAMPLE } from '../../content/story-model.js';
+import { useCopyCommand } from '../use-copy-command.js';
 import { StoryHeading, StoryLink } from './story-shared.js';
 
 const examples = [
@@ -14,17 +15,7 @@ const examples = [
 
 export function StoryBuilder({ t, links }: { t: StoryText; links: LandingLinks }) {
   const [mode, setMode] = useState<(typeof examples)[number]['id']>('sdk');
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(CREATE_APP_COMMAND);
-      setCopyStatus('copied');
-    } catch {
-      setMode('tools');
-      setCopyStatus('error');
-    }
-  };
+  const { copy, copyStatus } = useCopyCommand(CREATE_APP_COMMAND, () => setMode('tools'));
 
   const code = mode === 'sdk' ? SDK_EXAMPLE
     : mode === 'vercel' ? VERCEL_AI_EXAMPLE

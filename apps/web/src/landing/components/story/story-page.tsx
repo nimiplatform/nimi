@@ -3,12 +3,9 @@ import {
   ArrowDown,
   ArrowRight,
   Blocks,
-  BrainCircuit,
   Code2,
   Compass,
-  Cpu,
   Layers3,
-  ShieldCheck,
 } from 'lucide-react';
 import type { HeroDemoSurface } from '../../content/landing-content.js';
 import { withLocaleQuery, type LandingLinks } from '../../config/landing-links.js';
@@ -63,27 +60,6 @@ export function StoryPage({
       setSelectedId(id);
     }
   }, [session.current.surface, session.current.target, session.demo.chat.agents]);
-
-  const foundationPillars = [
-    {
-      index: '01',
-      Icon: Cpu,
-      title: t('pillars.computeTitle'),
-      body: t('pillars.computeBody'),
-    },
-    {
-      index: '02',
-      Icon: BrainCircuit,
-      title: t('pillars.contextTitle'),
-      body: t('pillars.contextBody'),
-    },
-    {
-      index: '03',
-      Icon: ShieldCheck,
-      title: t('pillars.governanceTitle'),
-      body: t('pillars.governanceBody'),
-    },
-  ] as const;
 
   const featuredCompanions = session.demo.chat.agents.slice(0, 4);
   const featuredApps = [
@@ -273,35 +249,6 @@ export function StoryPage({
               }
               disablePreviewModal={expandedHome}
             />
-          </div>
-        </section>
-
-        <section
-          id="foundation-pillars"
-          className="story-section story-pillars"
-          aria-labelledby="pillars-heading"
-          data-story-scene
-        >
-          <div className="story-container">
-            <header className="story-heading story-pillars-heading">
-              <span className="story-eyebrow">{t('pillars.eyebrow')}</span>
-              <h2 id="pillars-heading">{t('pillars.title')}</h2>
-              <p>{t('pillars.body')}</p>
-            </header>
-            <div className="story-pillars-grid">
-              {foundationPillars.map(({ index, Icon, title, body }) => (
-                <article key={index} className="story-pillar-card">
-                  <div className="story-pillar-card-top">
-                    <span className="story-pillar-icon" aria-hidden="true">
-                      <Icon size={20} />
-                    </span>
-                    <span className="story-ownership-number">{index}</span>
-                  </div>
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </article>
-              ))}
-            </div>
           </div>
         </section>
 
