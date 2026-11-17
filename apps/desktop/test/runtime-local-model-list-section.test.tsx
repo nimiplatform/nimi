@@ -36,7 +36,7 @@ function wirePlan(candidateLoadoutId: string, dependencyState: string) {
     cloudOnlyImpact: '', state: 'ready', reasonCode: '',
     dependencies: [dependencyState, 'ready_managed'].map((state, index) => ({ dependencyFamily: 'llama', dependencyId: index ? 'driver' : 'llama.cpp', consumerScope: '', required: true, state, sourceKind: '', confirmationRequired: false, environmentKey: 'k', selectedSourceRecordId: '', canonicalRoot: '', reasonCode: '', detail: '' })),
     requiredDependencyFamilies: [], aggregateSizeKnown: true, aggregateSizeBytes: 0, storageCategories: [], sourceOwners: [], noSystemMutation: true,
-    candidateLoadoutId, candidateRevision: '',
+    candidateLoadoutId, candidateRevision: '1',
   };
 }
 
@@ -539,14 +539,15 @@ test('profile library card menu offers export and delete, and delete removes the
 test('the home lists on-device models, expands with read-only candidate checks, refreshes and opens setup without any Loadout write', async () => {
   await withHome(async (ui) => {
     // Render: the default configuration reuses the inventory plan; the unidentified file says so.
-    const defaultBadge = await ui.waitFor('[data-testid="local-model-configuration-badge:L-default"]');
+    const defaultBadge = await ui.waitFor('[data-testid="local-model-configuration-badge:L-default"]',
+      element => !element.querySelector('[data-state]'));
     assert.equal(defaultBadge.querySelector('[data-state]'), null, 'ready status stays out of the collapsed summary');
     assert.ok(!defaultBadge.textContent?.includes('runtimeConfig.localModels.defaultLabel'));
     assert.ok(ui.document.querySelector('[data-testid="local-model-variant:c-mystery"] [data-testid="local-model-use-not-identified"]'));
     // A known model family shows its brand mark; an unrecognized file keeps its monogram.
     assert.ok(await ui.waitFor('[data-testid="local-model:content:c1"] [data-model-family-logo="google-color"]'));
     assert.ok(!ui.document.querySelector('[data-testid="local-model:content:c-mystery"] [data-model-family-logo]'));
-    assert.deepEqual(ui.calls.environmentPlans.filter(Boolean), [], 'nothing resolves a candidate plan before a row is expanded');
+    assert.deepEqual(ui.calls.environmentPlans.filter(Boolean), ['L-default'], 'only the selected configuration resolves before a row is expanded');
     assert.ok(!ui.document.querySelector('[data-testid="local-model-configuration:L-custom"]'), 'non-default configurations stay collapsed');
 
     // Expand: the non-default configurations resolve their own candidate plans; a failed check stays unknown.
@@ -562,7 +563,7 @@ test('the home lists on-device models, expands with read-only candidate checks, 
     const failing = await ui.waitFor('[data-testid="local-model-configuration:L-failing"]', (element) => element.getAttribute('data-reason') === 'check-failed');
     assert.equal(failing.getAttribute('data-state'), 'unknown');
     assert.ok(ui.document.querySelector('[data-testid="local-model-configuration-check:L-failing"]'), 'a failed check offers a retry');
-    assert.deepEqual([...new Set(ui.calls.environmentPlans.filter(Boolean))].sort(), ['L-custom', 'L-failing']);
+    assert.deepEqual([...new Set(ui.calls.environmentPlans.filter(Boolean))].sort(), ['L-custom', 'L-default', 'L-failing']);
 
     // Refresh through the home button: the list is still there and still read-only.
     await ui.click('[data-testid="ai-capabilities-home"]');
@@ -674,6 +675,11 @@ test('current configuration checks its own dependencies, fails visibly and recov
     await ui.click('[data-testid="configuration-environment-refresh"]');
     await ui.waitFor('[data-testid="capability-state-badge"]', element => element.textContent?.includes('state.ready') === true);
     assert.doesNotMatch(ui.document.body.textContent ?? '', /configurationCheckFailed/);
+    const previousChecks = ui.calls.environmentPlans.length;
+    ui.setDependencyState('L-default', 'needs_confirmation');
+    await ui.refreshInventory();
+    await ui.waitFor('[data-testid="capability-state-badge"]', element => element.textContent?.includes('state.attention') === true);
+    assert.deepEqual(ui.calls.environmentPlans.slice(previousChecks), ['L-default'], 'the inventory invalidation refreshes only this exact configuration');
     assert.deepEqual(ui.calls.loadoutWrites, []);
   });
 });

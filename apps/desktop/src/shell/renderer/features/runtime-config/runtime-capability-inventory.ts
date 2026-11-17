@@ -7,10 +7,11 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { useUnobservedRuntimeRead } from './use-unobserved-runtime-read.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useRuntimeSetupTasks, type RuntimeSetupTask } from './runtime-setup-task-store.js';
 import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library.js';
-import { LOADOUT_ENVIRONMENT_KEY, loadoutPreparationStatus } from './runtime-local-model-status.js';
+import { LOADOUT_ENVIRONMENT_KEY, loadoutPreparationStatus, matchesLoadoutEnvironment } from './runtime-local-model-status.js';
 
 export const CAPABILITY_INVENTORY_KEY = ['runtime', 'capability-inventory'] as const;
 const CAPABILITY_PRESENTATION_ORDER = [
@@ -77,7 +78,7 @@ export function capabilityPreparationState(input: {
   if (task?.status === 'failed' || task?.status === 'needs-attention')
     return { state: 'attention', task, replacement: false, reason: 'setup-task' };
   if (!selectedId) return { state: 'unset', task, replacement: false };
-  if (configured && !environment) return { state: 'unknown', task, replacement: false };
+  if (!selected || preparation?.state === 'unknown') return { state: 'unknown', task, replacement: false };
   // Attention always says why: the hover and accessible label carry it.
   const reason: CapabilityAttentionReason = !configured
     ? 'configuration'
@@ -106,7 +107,18 @@ export function useRuntimeCapabilityInvalidation() {
   }, [queryClient, revision]);
 }
 
-export function useCapabilityInventory(options: { readonly enabled?: boolean } = {}) {
+function selectedPlanTargets(aggregate: NimiMachineLoadouts | undefined) {
+  if (!aggregate) return [];
+  const loadouts = new Map(aggregate.loadouts.map(item => [item.loadoutId, item]));
+  return aggregate.selections.flatMap(selection => {
+    const loadout = loadouts.get(selection.loadoutId);
+    return loadout?.revision && loadout.capabilityContract === selection.capabilityContract
+      ? [{ capabilityContract: loadout.capabilityContract, loadoutId: loadout.loadoutId, revision: loadout.revision }]
+      : [];
+  }).sort((left, right) => left.capabilityContract.localeCompare(right.capabilityContract));
+}
+
+export function useCapabilityInventory(options: { readonly enabled?: boolean; readonly includePreparation?: boolean } = {}) {
   const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();
   const tasks = useRuntimeSetupTasks();
@@ -114,117 +126,97 @@ export function useCapabilityInventory(options: { readonly enabled?: boolean } =
   const query = useQuery({
     queryKey: CAPABILITY_INVENTORY_KEY,
     enabled,
-    queryFn: async ({ signal }): Promise<CapabilityInventory> => {
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    queryFn: async ({ signal }): Promise<Omit<CapabilityInventory, 'environments'>> => {
       const flowId = createRendererFlowId('capability-inventory');
       const startedAt = performance.now();
-      const initial = queryClient.getQueryState(CAPABILITY_INVENTORY_KEY);
-      const hasData = initial?.data !== undefined;
-      const dataAgeMs = hasData && initial?.dataUpdatedAt ? Math.max(0, Date.now() - initial.dataUpdatedAt) : null;
-      const fetchFailureCount = initial?.fetchFailureCount ?? 0;
-      let stage: 'base' | 'plans' = 'base';
-      let outcome: 'success' | 'failed' = 'failed';
-      let planCount = 0, plansStarted = 0;
-      let plansFulfilled: number | null = null, plansRejected: number | null = null;
-      let hostProfileAvailable: boolean | null = null;
-      const log = (event: 'start' | 'base-ready' | 'abort' | 'settled') => {
-        const current = queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+      const current = () => queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
+      const initial = current()?.state;
+      const log = (event: 'start' | 'base-ready' | 'abort' | 'settled', outcome?: string) => {
         logRendererEvent({ area: 'runtime-capability-inventory', message: `phase:capability-inventory:${event}`, flowId,
           costMs: Math.max(0, performance.now() - startedAt),
-          details: { atUnixMs: Date.now(), hasData, dataAgeMs, fetchFailureCount, stage,
-            active: current?.isActive() ?? false, observerCount: current?.getObserversCount() ?? 0,
-            planCount, plansStarted, plansFulfilled, plansRejected, hostProfileAvailable,
-            ...(event === 'settled' ? { outcome: signal.aborted ? 'aborted' : outcome } : {}),
+          details: { atUnixMs: Date.now(), hasData: initial?.data !== undefined,
+            dataAgeMs: initial?.dataUpdatedAt ? Math.max(0, Date.now() - initial.dataUpdatedAt) : null,
+            fetchFailureCount: initial?.fetchFailureCount ?? 0, stage: 'base',
+            active: current()?.isActive() ?? false, observerCount: current()?.getObserversCount() ?? 0,
+            ...(outcome ? { outcome } : {}),
           },
         });
       };
       const onAbort = () => log('abort');
+      let successful = false;
       log('start');
       signal.addEventListener('abort', onAbort, { once: true });
-      if (signal.aborted) onAbort();
       try {
         signal.throwIfAborted();
         const loadouts = sdk.machineProduct().local.loadouts;
-        const environment = createNimiRuntimeLocalEnvironmentClient({ local: () => sdk.localEnvironmentRpc(), callOptions: { signal } });
         const [aggregate, recipes] = await Promise.all([loadouts.get({ signal }), loadouts.listRecipes('', { signal })]);
         signal.throwIfAborted();
-        const capabilities = [...new Set(aggregate.selections.map((item) => item.capabilityContract))];
-        planCount = capabilities.length;
+        successful = true;
         log('base-ready');
-        stage = 'plans';
-        // One fresh Runtime observation belongs to this read only. Apply/Job
-        // admission collects its own current facts, never this UI snapshot.
-        const hostProfile = capabilities.length > 0
-          ? await environment.collectDeviceProfile().catch(() => undefined)
-          : undefined;
-        signal.throwIfAborted();
-        hostProfileAvailable = capabilities.length > 0 ? !!hostProfile : null;
-        if (capabilities.length > 0 && !hostProfile) {
-          plansFulfilled = 0;
-          plansRejected = 0;
-          outcome = 'success';
-          return { aggregate, recipes, environments: Object.fromEntries(capabilities.map(capability => [capability, undefined])) };
-        }
-        const plans = await Promise.allSettled(
-          capabilities.map((capabilityContract) => {
-            signal.throwIfAborted();
-            plansStarted++;
-            return environment.resolveEnvironmentPlan({ capabilityContract, hostProfile });
-          }),
-        );
-        plansFulfilled = plans.filter(plan => plan.status === 'fulfilled').length;
-        plansRejected = plans.length - plansFulfilled;
-        signal.throwIfAborted();
-        outcome = 'success';
-        return {
-          aggregate,
-          recipes,
-          environments: Object.fromEntries(
-            capabilities.map((capability, index) => {
-              const plan = plans[index]!;
-              return [capability, plan.status === 'fulfilled' ? plan.value : undefined];
-            }),
-          ),
-        };
+        return { aggregate, recipes };
       } finally {
         signal.removeEventListener('abort', onAbort);
-        log('settled');
+        log('settled', signal.aborted ? 'aborted' : successful ? 'success' : 'failed');
       }
     },
-    staleTime: 15_000,
-    refetchOnWindowFocus: true,
   });
-  useEffect(() => {
-    const cancelWhenUnobserved = () => queueMicrotask(() => {
-      // Keep-alive pages retain disabled observers. Recheck after the whole
-      // navigation commit so another visible consumer can keep its shared read.
-      const current = queryClient.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
-      if (current && !current.isActive() && current.state.fetchStatus !== 'idle') {
-        void queryClient.cancelQueries({ queryKey: CAPABILITY_INVENTORY_KEY, exact: true });
-      }
-    });
-    if (!enabled) cancelWhenUnobserved();
-    return cancelWhenUnobserved;
-  }, [enabled, queryClient, query.fetchStatus]);
-  const refetch = useCallback((...args: Parameters<typeof query.refetch>) => {
+  useUnobservedRuntimeRead(CAPABILITY_INVENTORY_KEY, enabled, query.fetchStatus);
+  const targets = useMemo(() => selectedPlanTargets(query.data?.aggregate), [query.data?.aggregate]);
+  const plansKey = useMemo(() => [...CAPABILITY_INVENTORY_KEY, 'plans', targets] as const, [targets]);
+  const includePreparation = enabled && options.includePreparation !== false && targets.length > 0;
+  const observePlans = includePreparation && !query.isError && !query.isFetching;
+  const plans = useQuery({
+    queryKey: plansKey,
+    enabled: observePlans,
+    staleTime: 15_000,
+    queryFn: async ({ signal }): Promise<CapabilityInventory['environments']> => {
+      const client = createNimiRuntimeLocalEnvironmentClient({ local: () => sdk.localEnvironmentRpc(), callOptions: { signal } });
+      const hostProfile = await client.collectDeviceProfile().catch(() => undefined);
+      signal.throwIfAborted();
+      const observations = hostProfile ? await Promise.allSettled(targets.map(async target => {
+        const plan = await client.resolveEnvironmentPlan({
+          capabilityContract: target.capabilityContract, candidateLoadoutId: target.loadoutId, hostProfile,
+        });
+        return matchesLoadoutEnvironment(plan, target) ? plan : undefined;
+      })) : [];
+      signal.throwIfAborted();
+      return Object.fromEntries(targets.map(({ capabilityContract }, index) => {
+        const plan = observations[index];
+        return [capabilityContract, plan?.status === 'fulfilled' ? plan.value : undefined];
+      }));
+    },
+  });
+  useUnobservedRuntimeRead(plansKey, observePlans, plans.fetchStatus);
+  const data = useMemo(() => query.data ? { ...query.data, environments: plans.data ?? {} } : undefined, [query.data, plans.data]);
+  const refetch = useCallback(async (...args: Parameters<typeof query.refetch>) => {
     logRendererEvent({ area: 'runtime-capability-inventory', message: 'action:capability-inventory:explicit-refetch',
       details: { atUnixMs: Date.now() } });
-    return query.refetch(...args);
-  }, [query.refetch]);
+    const base = await query.refetch(...args);
+    // Changed targets start their own fresh query. Only repeat the plans this
+    // render owns when the base read returned the same target/revision set.
+    if (observePlans && !base.isError && JSON.stringify(targets) === JSON.stringify(selectedPlanTargets(base.data?.aggregate))) {
+      await queryClient.invalidateQueries({ queryKey: plansKey, exact: true });
+    }
+    return base;
+  }, [query.refetch, queryClient, plansKey, observePlans, targets]);
   const capabilities = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...(query.data?.recipes.map((recipe) => recipe.capabilityContract) ?? []),
-          ...(query.data?.aggregate.loadouts.map((loadout) => loadout.capabilityContract) ?? []),
-        ]),
-      ].sort((left, right) => {
-        const rank = (id: string) => {
-          const index = CAPABILITY_PRESENTATION_ORDER.indexOf(id);
-          return index < 0 ? CAPABILITY_PRESENTATION_ORDER.length : index;
-        };
-        return rank(left) - rank(right) || left.localeCompare(right);
-      }),
+    () => [...new Set([
+      ...(query.data?.recipes.map(recipe => recipe.capabilityContract) ?? []),
+      ...(query.data?.aggregate.loadouts.map(loadout => loadout.capabilityContract) ?? []),
+    ])].sort((left, right) => {
+      const rank = (id: string) => {
+        const index = CAPABILITY_PRESENTATION_ORDER.indexOf(id);
+        return index < 0 ? CAPABILITY_PRESENTATION_ORDER.length : index;
+      };
+      return rank(left) - rank(right) || left.localeCompare(right);
+    }),
     [query.data],
   );
-  return { ...query, refetch, capabilities, tasks: tasks.tasks };
+  return {
+    ...query, data, refetch, capabilities, tasks: tasks.tasks,
+    isFetching: query.isFetching || plans.isFetching,
+    preparationPending: includePreparation && plans.isPending,
+  };
 }

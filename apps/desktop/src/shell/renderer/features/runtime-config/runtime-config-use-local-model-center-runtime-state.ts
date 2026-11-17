@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
 
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useRuntimeInstalledAssets } from './use-runtime-model-library.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import {
@@ -27,14 +27,12 @@ export function useLocalModelCenterRuntimeState() {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
-  const [modelAssets, setModelAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
-  const [loadingInstalledAssets, setLoadingInstalledAssets] = useState(false);
+  const installedAssets = useRuntimeInstalledAssets();
+  const refreshInstalledAssets = installedAssets.refreshAfterMutation;
   const [runtimeInventoryErrors, setRuntimeInventoryErrors] = useState<RuntimeInventoryErrors>({});
   const [assetBusy, setAssetBusy] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const importMenuRef = useRef<HTMLDivElement>(null);
-  const installedAssetsRequestSeqRef = useRef(0);
-  const mountedRef = useRef(true);
 
   const setRuntimeInventoryError = useCallback((slot: RuntimeInventoryErrorSlot, message: string) => {
     setRuntimeInventoryErrors((current) => {
@@ -46,12 +44,6 @@ export function useLocalModelCenterRuntimeState() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!showImportMenu) return undefined;
     return bindings.app.events.subscribeDocumentMouseDown((event) => {
       if (importMenuRef.current && !importMenuRef.current.contains(event.target as Node)) {
@@ -59,31 +51,6 @@ export function useLocalModelCenterRuntimeState() {
       }
     });
   }, [bindings.app.events, showImportMenu]);
-
-  const refreshInstalledAssets = useCallback(async () => {
-    const requestId = ++installedAssetsRequestSeqRef.current;
-    setLoadingInstalledAssets(true);
-    try {
-      const rows = await localEnvironmentClient.listModelAssets();
-      if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) return;
-      setModelAssets([...rows]);
-      setRuntimeInventoryError('model-assets', '');
-    } catch (error) {
-      if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) return;
-      setRuntimeInventoryError(
-        'model-assets',
-        runtimeInventoryErrorMessage(error, 'Runtime ModelAsset inventory failed.'),
-      );
-    } finally {
-      if (mountedRef.current && requestId === installedAssetsRequestSeqRef.current) {
-        setLoadingInstalledAssets(false);
-      }
-    }
-  }, [localEnvironmentClient, setRuntimeInventoryError]);
-
-  useEffect(() => {
-    void refreshInstalledAssets();
-  }, [refreshInstalledAssets]);
 
   const importActions = useLocalModelCenterImportActions({
     onRefreshAssets: refreshInstalledAssets,
@@ -141,8 +108,8 @@ export function useLocalModelCenterRuntimeState() {
     assetImportError: importActions.assetImportError,
     dismissAssetImportError: importActions.dismissAssetImportError,
     importMenuRef,
-    loadingInstalledAssets,
-    modelAssets,
+    loadingInstalledAssets: installedAssets.isFetching,
+    modelAssets: installedAssets.data ?? [],
     onCancelDownload: importActions.onCancelDownload,
     onDismissSession: importActions.onDismissSession,
     onPauseDownload: importActions.onPauseDownload,
@@ -150,7 +117,10 @@ export function useLocalModelCenterRuntimeState() {
     refreshInstalledAssets,
     removeInstalledAsset,
     inspectInstalledAssetRemoval,
-    runtimeInventoryError: runtimeInventoryErrorFromSlots(runtimeInventoryErrors),
+    runtimeInventoryError: runtimeInventoryErrorFromSlots({
+      ...runtimeInventoryErrors,
+      ...(installedAssets.error ? { 'model-assets': runtimeInventoryErrorMessage(installedAssets.error, 'Runtime ModelAsset inventory failed.') } : {}),
+    }),
     setShowImportMenu,
     showImportMenu,
     importPickedAssetFile: importActions.importPickedAssetFile,

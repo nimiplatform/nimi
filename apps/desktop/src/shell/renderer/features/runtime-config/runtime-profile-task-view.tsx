@@ -38,7 +38,7 @@ export function RuntimeProfileTaskView(props: {
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled });
+  const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled, includePreparation: false });
   const ownerLabel = (appId?: string) =>
     appId === sdk.appId() ? 'Nimi Chat' : (appId ?? t('runtimeConfig.setupTask.sourceLocalAgent'));
   const snapshot = useRuntimeSetupTasks(props.store);

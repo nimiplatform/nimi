@@ -30,7 +30,7 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
   const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
-  const cached: CapabilityInventory = { aggregate: { loadouts: [], selections: [
+  const cached: CapabilityInventory = { aggregate: { loadouts: [{ loadoutId: 'text', revision: '1', capabilityContract: 'text.generate' }, { loadoutId: 'image', revision: '1', capabilityContract: 'image.generate' }] as CapabilityInventory['aggregate']['loadouts'], selections: [
     { capabilityContract: 'text.generate', loadoutId: 'text', effectiveDefaults: {} },
     { capabilityContract: 'image.generate', loadoutId: 'image', effectiveDefaults: {} },
   ], selectionRevisions: {} }, recipes: [], environments: {} };
@@ -77,16 +77,16 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
           },
         }),
       },
-      app: { commands: { firstRun: { getRecord: async () => ({ record: { dataRoot: { rootActivationId: 'inventory-query-test' } } }) } } },
+      app: { commands: { firstRun: { getSelectedDataRoot: async () => ({ state: 'ready_for_use', hostProfileScopeRoot: '/test', dataRoot: { status: 'ready', rootActivationId: 'inventory-query-test' } }) } } },
     } as unknown as DesktopCanonicalRendererBindings;
     let latest!: ReturnType<typeof useCapabilityInventory>;
-    function Consumer({ enabled }: { enabled: boolean }) { latest = useCapabilityInventory({ enabled }); return null; }
+    function Consumer({ enabled, includePreparation }: { enabled: boolean; includePreparation: boolean }) { latest = useCapabilityInventory({ enabled, includePreparation }); return null; }
     const container = document.createElement('div'); document.body.appendChild(container);
     const root = createRoot(container);
-    const show = async (consumers: number | readonly boolean[]) => act(async () => root.render(
+    const show = async (consumers: number | readonly boolean[], includePreparation = true) => act(async () => root.render(
       <QueryClientProvider client={client}><DesktopRendererBindingProvider bindings={bindings}>
         <GlobalDownloadsProvider>{(typeof consumers === 'number' ? Array.from({ length: consumers }, () => true) : consumers)
-          .map((enabled, index) => <Consumer key={index} enabled={enabled} />)}</GlobalDownloadsProvider>
+          .map((enabled, index) => <Consumer key={index} enabled={enabled} includePreparation={includePreparation} />)}</GlobalDownloadsProvider>
       </DesktopRendererBindingProvider></QueryClientProvider>,
     ));
     return { client, reads, show, get latest() { return latest; },
@@ -143,7 +143,8 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         assert.equal(view.reads.profiles[0]?.aborted, true);
         await act(async () => release()); await flush();
         assert.equal(view.reads.plans.length, 0);
-        assert.equal(view.latest.data, undefined);
+        assert.deepEqual(view.latest.data?.aggregate, cached.aggregate);
+        assert.deepEqual(view.latest.data?.environments, {});
       } finally { release(); await view.close(); }
     });
 
@@ -166,9 +167,7 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         const attempt = view.logs.filter(log => log.flowId === starts[0]!.flowId);
         assert.deepEqual(attempt.map(log => log.message.split(':').at(-1)), ['start', 'base-ready', 'settled']);
         assert.equal(attempt.at(-1)!.details.outcome, 'success');
-        assert.equal(attempt.at(-1)!.details.plansStarted, 2);
-        assert.equal(attempt.at(-1)!.details.plansFulfilled, 0);
-        assert.equal(attempt.at(-1)!.details.plansRejected, 2);
+        assert.equal(view.reads.plans.length, 2);
         assert.ok(attempt.every(log => typeof log.costMs === 'number' && log.costMs >= 0 && typeof log.details.atUnixMs === 'number'));
       } finally { release(); await view.close(); }
     });
@@ -184,7 +183,6 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         const aborted = view.logs.find(log => log.flowId === firstFlow && log.message.endsWith(':abort'));
         assert.equal(aborted?.details.stage, 'base');
         assert.equal(aborted?.details.active, false);
-        assert.equal(aborted?.details.plansStarted, 0);
         assert.equal(view.logs.some(log => log.flowId === firstFlow && log.message.endsWith(':settled')), false, 'abort logging does not wait for a non-cooperative reader');
         releaseResumed = view.hold();
         await view.show([true]); await flush();
@@ -201,24 +199,23 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
       } finally { release(); releaseResumed(); await view.close(); }
     });
 
-    await t.test('plan-stage cancellation has one immediate abort and one eventual aborted settlement', async () => {
+    await t.test('base capabilities are usable while plans run, and hiding the last consumer aborts only those plans', async () => {
       const view = await mount();
       const release = view.holdPlans();
-      view.client.setQueryData(CAPABILITY_INVENTORY_KEY, cached, { updatedAt: Date.now() - 30_000 });
       try {
         await view.show(1); await until(() => view.reads.plans.length === 2);
-        const flow = view.logs.find(log => log.message.endsWith(':start'))!.flowId;
+        assert.equal(view.latest.isPending, false);
+        assert.equal(view.latest.preparationPending, true);
+        assert.deepEqual(view.latest.data?.aggregate, cached.aggregate);
+        assert.deepEqual(view.latest.data?.environments, {});
+        const planSignal = view.reads.plans[0]!.signal;
+        assert.ok(planSignal instanceof AbortSignal);
         await view.show([false]); await flush();
-        const aborts = view.logs.filter(log => log.flowId === flow && log.message.endsWith(':abort'));
-        assert.equal(aborts.length, 1);
-        assert.equal(aborts[0]!.details.stage, 'plans');
-        assert.equal(aborts[0]!.details.plansStarted, 2);
-        assert.equal(aborts[0]!.details.plansRejected, null, 'unfinished aggregate results are not presented as a count');
+        assert.equal(planSignal.aborted, true);
+        assert.equal(view.reads.get[0]?.aborted, false);
         await act(async () => release()); await flush();
-        const settlements = view.logs.filter(log => log.flowId === flow && log.message.endsWith(':settled'));
-        assert.equal(settlements.length, 1);
-        assert.equal(settlements[0]!.details.outcome, 'aborted');
-        assert.equal(view.client.getQueryData(CAPABILITY_INVENTORY_KEY), cached);
+        assert.deepEqual(view.latest.data?.aggregate, cached.aggregate);
+        assert.deepEqual(view.latest.data?.environments, {}, 'no late aborted plan is presented');
       } finally { release(); await view.close(); }
     });
 
@@ -233,7 +230,7 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         const starts = view.logs.filter(log => log.message.endsWith(':start'));
         assert.deepEqual(starts.map(log => log.details.fetchFailureCount), [0, 1]);
         const settlements = view.logs.filter(log => log.message.endsWith(':settled'));
-        assert.deepEqual(settlements.map(log => [log.details.stage, log.details.outcome]), [['base', 'failed'], ['plans', 'success']]);
+        assert.deepEqual(settlements.map(log => [log.details.stage, log.details.outcome]), [['base', 'failed'], ['base', 'success']]);
         assert.equal(view.logs.filter(log => log.message.endsWith(':base-ready')).length, 1);
         assert.doesNotMatch(JSON.stringify(view.logs), /secret-fixture|model\.gguf|text\.generate|image\.generate/u);
       } finally { await view.close(); }
@@ -264,12 +261,12 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         assert.equal(view.reads.recipes.length, 1);
         await act(async () => release());
         await until(() => !view.latest.isFetching);
-        assert.deepEqual(view.reads.plans.map(read => read.capability), ['text.generate', 'image.generate']);
+        assert.deepEqual(view.reads.plans.map(read => read.capability).sort(), ['image.generate', 'text.generate']);
         const signal = view.reads.get[0];
         assert.ok(signal instanceof AbortSignal);
         assert.equal(view.reads.recipes[0], signal);
-        assert.ok(view.reads.plans.every(read => read.signal === signal));
-        assert.deepEqual(Object.keys(view.latest.data!.environments), ['text.generate', 'image.generate'], 'non-cancellation plan failures remain explicit unavailable entries');
+        assert.ok(view.reads.plans.every(read => read.signal === view.reads.profiles[0] && read.signal !== signal));
+        assert.deepEqual(Object.keys(view.latest.data!.environments).sort(), ['image.generate', 'text.generate'], 'non-cancellation plan failures remain explicit unavailable entries');
         await act(async () => { const result = await view.latest.refetch({ cancelRefetch: false }); assert.equal(result.status, 'success'); });
         assert.equal(view.logs.filter(log => log.message.endsWith(':explicit-refetch')).length, 1);
         assert.equal(view.reads.get.length, 2);
@@ -305,14 +302,16 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
         await act(async () => { store.updateTask(task.taskId, () => ({ status: 'done' })); });
         await until(() => !view.latest.isFetching);
         assert.equal(view.reads.get.length, 1);
-        assert.deepEqual(invalidations.sort(), keys.map(key => JSON.stringify(key)).sort());
+        assert.deepEqual(invalidations.filter(v => !v.includes('"plans"')).sort(), keys.map(key => JSON.stringify(key)).sort());
+        assert.equal(invalidations.filter(v => v.includes('"plans"')).length, 1);
         assert.equal(view.logs.filter(log => log.message.endsWith(':invalidate') && log.details.cause === 'setup-revision').length, 1);
         assert.doesNotMatch(JSON.stringify(view.logs), /inventory-query-task|test-account/u);
         invalidations.length = 0; seed();
         await act(async () => { store.updateTask(task.taskId, () => ({ candidateRevisionBaseline: 'next-selection' })); });
         await until(() => !view.latest.isFetching);
         assert.equal(view.reads.get.length, 2, 'selection baseline changes still refresh the query');
-        assert.deepEqual(invalidations.sort(), keys.map(key => JSON.stringify(key)).sort());
+        assert.deepEqual(invalidations.filter(v => !v.includes('"plans"')).sort(), keys.map(key => JSON.stringify(key)).sort());
+        assert.equal(invalidations.filter(v => v.includes('"plans"')).length, 1);
         invalidations.length = 0;
         await act(async () => { store.updateTask(task.taskId, () => ({ nextAction: 'return-to-source' })); });
         await flush();
@@ -337,24 +336,20 @@ test('capability inventory owns each query once across consumer lifetimes', asyn
       } finally { release(); await view.close(); }
     });
 
-    await t.test('cancelled environment reads reject the query function instead of returning a partial inventory', async () => {
+    await t.test('a base-only consumer can open and refresh without collecting hardware or plans', async () => {
       const view = await mount();
-      const release = view.holdPlans();
-      view.client.setQueryData(CAPABILITY_INVENTORY_KEY, cached);
       try {
-        await view.show(1);
-        const queryFn = view.client.getQueryCache().find({ queryKey: CAPABILITY_INVENTORY_KEY })?.options.queryFn;
-        assert.equal(typeof queryFn, 'function');
-        if (typeof queryFn !== 'function') throw Error('Expected registered inventory query function');
-        const controller = new AbortController();
-        const request = Promise.resolve(queryFn({ client: view.client, queryKey: CAPABILITY_INVENTORY_KEY, signal: controller.signal, meta: undefined }));
-        const rejection = assert.rejects(request, error => error instanceof DOMException && error.name === 'AbortError');
-        await until(() => view.reads.plans.length === 2);
-        controller.abort();
-        release();
-        await rejection;
-        assert.ok(view.reads.plans.every(read => read.signal === controller.signal && read.signal.aborted));
-      } finally { release(); await view.close(); }
+        await view.show(1, false); await until(() => !view.latest.isFetching);
+        assert.deepEqual(view.latest.data?.aggregate, cached.aggregate);
+        assert.equal(view.reads.profiles.length, 0);
+        assert.equal(view.reads.plans.length, 0);
+        await act(async () => { await view.latest.refetch(); });
+        assert.equal(view.reads.get.length, 2);
+        assert.equal(view.reads.profiles.length, 0);
+        await view.show(1); await until(() => view.reads.plans.length === 2 && !view.latest.isFetching);
+        assert.equal(view.reads.get.length, 2);
+        assert.equal(view.reads.profiles.length, 1);
+      } finally { await view.close(); }
     });
 
     await t.test('a mounted hidden consumer stops its query and returns fresh after inactive invalidation', async () => {

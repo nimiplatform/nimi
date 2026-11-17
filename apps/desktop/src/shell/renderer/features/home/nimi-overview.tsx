@@ -96,7 +96,7 @@ export function NimiOverview() {
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
   const destination = useHomeDestination();
-  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' || destination.id === 'notification' });
+  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' && (destination.homeSection ?? 'overview') === 'overview' });
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
   const homeEntryDestination = destination.id === 'notification' ? 'center' : destination.homeSection ?? 'overview';
@@ -253,7 +253,7 @@ export function NimiOverview() {
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 px-2 text-xs text-[var(--nimi-text-secondary)]" data-testid="home-status-line">
       {inventory.isError ? (
         <span>{t('runtimeConfig.capabilities.readFailed')}</span>
-      ) : inventory.isPending ? null : (
+      ) : inventory.isPending || inventory.preparationPending ? null : (
         <button
           type="button"
           className="inline-flex min-h-9 items-center gap-0.5 rounded-md font-medium text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"

@@ -89,8 +89,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const position = destination.runtime;
   const inventoryEnabled = destination.id === 'diagnostics'
     || destination.id === 'runtime' && (position?.page ?? 'aiSettings') === 'aiSettings';
-  const inventory = useCapabilityInventory({ enabled: inventoryEnabled });
-  const library = useRuntimeModelLibrary();
   const store = getRuntimeSetupTaskStore();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
@@ -106,6 +104,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const focusedReturnTarget = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
   const cloudEntryTask = focusedReturnTarget?.kind === 'destination' && focusedReturnTarget.destination.id === 'cloud';
   const visibleCapability = props.advancedDiagnostics ? null : focusedTask?.capabilityContract ?? capability;
+  const inventory = useCapabilityInventory({
+    enabled: inventoryEnabled,
+    includePreparation: inventoryEnabled && !visibleCapability && !props.advancedDiagnostics,
+  });
+  const library = useRuntimeModelLibrary(inventoryEnabled && !props.advancedDiagnostics);
   const contentViewportRef = useRef<HTMLDivElement>(null);
   const diagnosticsActive = !!props.advancedDiagnostics;
   useEffect(() => {
@@ -125,14 +128,15 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   );
   const selected = inventory.data?.aggregate.loadouts.find((item) => item.loadoutId === selection?.loadoutId);
   const configurationEnvironment = useRuntimeEnvironmentObservation(
-    visibleCapability && selected && !modelConfiguration
+    inventoryEnabled && inventory.fetchStatus === 'idle' && visibleCapability && selected && !modelConfiguration
       ? { capabilityContract: visibleCapability, candidateLoadoutId: selected.loadoutId }
       : null,
     false,
-    `${selected?.revision ?? ''}|${visibleCapability ? inventory.data?.environments[visibleCapability]?.planId ?? '' : ''}`,
+    `${selected?.revision ?? ''}|${inventory.dataUpdatedAt}`,
+    selected?.revision ?? '',
   );
   const environment = configurationEnvironment.data?.plan
-    ?? (!configurationEnvironment.error && visibleCapability ? inventory.data?.environments[visibleCapability] : undefined);
+    ?? (inventory.fetchStatus === 'idle' && !configurationEnvironment.error && !configurationEnvironment.checking && visibleCapability ? inventory.data?.environments[visibleCapability] : undefined);
   const observedInventory = useMemo(() => inventory.data && visibleCapability && selected && !modelConfiguration
     ? { ...inventory.data, environments: { ...inventory.data.environments, [visibleCapability]: environment } }
     : inventory.data,
@@ -330,7 +334,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   // The first-setup fallback reads the same preparation facts as the rail.
   const conversationEntry = railEntries.find((entry) => entry.id === CONVERSATION_CAPABILITY);
   const conversation: RuntimeProfileQuickStartConversation = {
-    pending: inventory.isPending,
+    enabled: inventoryEnabled,
+    pending: inventory.isPending || inventory.preparationPending,
     preparation:
       conversationEntry?.state ??
       capabilityPreparationState({
@@ -623,7 +628,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     busy: configurationEnvironment.busy,
                     error: configurationEnvironment.error ?? configurationEnvironment.actionError,
                     reasonCode: configurationEnvironment.reasonCode,
-                    onRefresh: () => { void Promise.all([configurationEnvironment.refresh(), inventory.refetch()]); },
+                    onRefresh: () => { void inventory.refetch(); },
                     onCancel: (jobId) => { void configurationEnvironment.cancelJob(jobId).then(() => inventory.refetch()); },
                   }}
                   status={status!}

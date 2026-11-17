@@ -10,7 +10,7 @@ import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell
 import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalModelCenter } from './runtime-config-local-model-center';
 import type { LocalModelCenterSection } from './runtime-config-local-model-center-runtime-view';
-import { useRuntimeModelLibrary } from './use-runtime-model-library';
+import { useRuntimeInstalledAssets } from './use-runtime-model-library';
 
 const MODEL_LIBRARY_SECTIONS: ReadonlyArray<{
   id: LocalModelCenterSection;
@@ -37,7 +37,7 @@ export function ModelLibraryPage(props: {
   const navigation = useHomeNavigation();
   const destination = useHomeDestination();
   // The downloaded tab carries the installed-asset count badge.
-  const downloadedCount = useRuntimeModelLibrary().data?.assets.length ?? 0;
+  const downloadedCount = useRuntimeInstalledAssets().data?.length ?? 0;
   // Local-files intents open on the downloaded files from the first render, so
   // discovery never mounts (or queries the market) on the way there.
   const section = destination.runtime?.section === 'downloaded' ? 'downloaded' : 'discover';

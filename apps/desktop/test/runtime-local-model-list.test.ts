@@ -81,11 +81,11 @@ const loadout = (
   validationState: NimiMachineLoadout['validationState'] = 'configured',
   recipeId = '',
 ): NimiMachineLoadout =>
-  ({ loadoutId, capabilityContract: capability, displayName, validationState, recipeId, modelAxes: axes }) as unknown as NimiMachineLoadout;
+  ({ loadoutId, capabilityContract: capability, displayName, validationState, recipeId, revision: '1', modelAxes: axes }) as unknown as NimiMachineLoadout;
 
 const plan = (dependencies: readonly { id: string; required: boolean; state: string }[], state = 'ready'): NimiRuntimeLocalEnvironmentPlan =>
   ({
-    state,
+    state, candidateLoadoutId: 'L', candidateRevision: '1',
     dependencies: dependencies.map((item) => ({ dependencyId: item.id, dependencyFamily: 'f', required: item.required, state: item.state })),
   }) as unknown as NimiRuntimeLocalEnvironmentPlan;
 
@@ -428,5 +428,19 @@ test('the same Loadout and plan yield the same state as the capability rail', ()
     const rail = capabilityPreparationState({ capability, inventory, tasks: [] }).state;
     const row = loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: environment } }).state;
     assert.equal(row, rail);
+  }
+});
+
+test('a ready environment belongs only to the inspected Loadout revision', () => {
+  const ready = plan([]);
+  for (const foreign of [{ ...ready, candidateLoadoutId: 'B' }, { ...ready, candidateRevision: '2' }]) {
+    assert.equal(loadoutPreparationStatus({ loadout: configured, check: { kind: 'checked', plan: foreign } }).state, 'unknown');
+    assert.equal(capabilityPreparationState({
+      capability: 'text.generate', tasks: [],
+      inventory: {
+        aggregate: { loadouts: [configured], selections: [{ capabilityContract: 'text.generate', loadoutId: configured.loadoutId, effectiveDefaults: {} }], selectionRevisions: {} },
+        recipes: [], environments: { 'text.generate': foreign },
+      },
+    }).state, 'unknown');
   }
 });

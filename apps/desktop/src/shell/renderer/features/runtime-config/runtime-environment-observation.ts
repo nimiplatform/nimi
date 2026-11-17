@@ -1,5 +1,8 @@
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { matchesLoadoutEnvironment } from './runtime-local-model-status.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  createNimiRuntimeLocalEnvironmentClient,
   type NimiRuntimeLocalEnvironmentClient,
   type NimiRuntimeLocalEnvironmentPlanInput,
 } from '@nimiplatform/sdk/runtime';
@@ -27,14 +30,16 @@ export function useRuntimeEnvironmentObservation(
   resolution: NimiRuntimeLocalEnvironmentPlanInput | null,
   polling = false,
   revision = '',
+  expectedLoadoutRevision?: string,
 ) {
   const client = useRuntimeConfigLocalEnvironmentClient();
+  const sdk = useDesktopRendererSdk();
   const requestKey = resolution ? JSON.stringify(resolution) : '';
   const key = requestKey ? JSON.stringify([requestKey, revision]) : '';
   const currentKey = useRef(key);
   currentKey.current = key;
   const generation = useRef(0);
-  const inFlight = useRef<{ key: string; request: number } | null>(null);
+  const inFlight = useRef<{ key: string; request: number; abort: AbortController } | null>(null);
   const [result, setResult] = useState<{
     key: string;
     data?: Awaited<ReturnType<typeof observeRuntimeEnvironment>>;
@@ -50,22 +55,33 @@ export function useRuntimeEnvironmentObservation(
     if (!key || currentKey.current !== key) return;
     if (!force && inFlight.current?.key === key && inFlight.current.request === generation.current) return;
     const request = ++generation.current;
-    inFlight.current = { key, request };
+    inFlight.current?.abort.abort();
+    const abort = new AbortController();
+    inFlight.current = { key, request, abort };
     setMutation(previous => previous.key === key && !previous.busy ? { key, busy: false } : previous);
     setResult(previous => ({ key, ...(previous.key === key ? { data: previous.data } : {}), checking: true }));
     try {
-      const data = await observeRuntimeEnvironment(client, JSON.parse(requestKey) as NimiRuntimeLocalEnvironmentPlanInput);
+      const resolution = JSON.parse(requestKey) as NimiRuntimeLocalEnvironmentPlanInput;
+      const readClient = createNimiRuntimeLocalEnvironmentClient({
+        local: () => sdk.localEnvironmentRpc(), callOptions: { signal: abort.signal },
+      });
+      const data = await observeRuntimeEnvironment(readClient, resolution);
+      const { candidateLoadoutId } = resolution;
+      if (candidateLoadoutId && expectedLoadoutRevision !== undefined
+        && !matchesLoadoutEnvironment(data.plan, { loadoutId: candidateLoadoutId, revision: expectedLoadoutRevision })) {
+        throw new Error('loadout-environment-version-mismatch');
+      }
       if (generation.current === request && currentKey.current === key) setResult({ key, data, checking: false });
     } catch (error) {
       if (generation.current === request && currentKey.current === key) setResult({ key, checking: false, error: error instanceof Error ? error.message : String(error), reasonCode: extractNimiErrorFields(error).reasonCode });
     } finally {
       if (inFlight.current?.request === request) inFlight.current = null;
     }
-  }, [client, key, requestKey]);
+  }, [sdk, key, requestKey, expectedLoadoutRevision]);
 
   useEffect(() => {
     void refresh();
-    return () => { generation.current += 1; };
+    return () => { generation.current += 1; inFlight.current?.abort.abort(); };
   }, [refresh]);
 
   const data = result.key === key ? result.data : undefined;

@@ -53,6 +53,7 @@ export type RuntimeOverviewCapability = {
  * the actions it may take when no capability is prepared yet.
  */
 export type RuntimeProfileQuickStartConversation = {
+  readonly enabled?: boolean;
   readonly pending: boolean;
   readonly preparation: ReturnType<typeof capabilityPreparationState>;
   readonly onOpenDetail: () => void;
@@ -253,7 +254,7 @@ export function RuntimeProfileQuickStart(props: {
       </QuickStartShell>
     );
   }
-  return <RecommendationQuickStart disabled={props.disabled} onUse={props.onUse} />;
+  return <RecommendationQuickStart enabled={conversation.enabled !== false} disabled={props.disabled} onUse={props.onUse} />;
 }
 
 
@@ -323,14 +324,16 @@ function Fact(props: { readonly tone: 'good' | 'muted' | 'pending'; readonly chi
  * what it costs to prepare. The button says what will actually happen.
  */
 function RecommendationQuickStart(props: {
+  readonly enabled: boolean;
   readonly disabled: boolean;
   readonly onUse: (profile: NimiPortableAIProfile) => void;
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
-  const library = useRuntimeModelLibrary();
+  const library = useRuntimeModelLibrary(props.enabled);
   const available = useQuery({
     queryKey: ['runtime', 'conversation-starter-recipes'],
+    enabled: props.enabled,
     queryFn: () => sdk.machineProduct().local.loadouts.listRecipes(CONVERSATION_CAPABILITY),
     staleTime: 60_000,
   });

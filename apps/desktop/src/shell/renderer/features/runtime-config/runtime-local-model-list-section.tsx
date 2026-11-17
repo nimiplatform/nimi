@@ -21,6 +21,7 @@ import {
 } from './runtime-local-model-list.js';
 import {
   loadoutPreparationStatus,
+  matchesLoadoutEnvironment,
   loadoutEnvironmentSummary,
   LOADOUT_ENVIRONMENT_KEY,
   type LoadoutEnvironmentCheck,
@@ -398,6 +399,9 @@ function useConfigurationStatus(input: {
     check = { kind: 'checked', plan: candidate.data };
   } else {
     check = { kind: 'not-checked' };
+  }
+  if (check.kind === 'checked' && (!loadout || !matchesLoadoutEnvironment(check.plan, loadout))) {
+    check = { kind: 'failed' };
   }
   const status = loadoutPreparationStatus({
     loadout: loadout ?? { loadoutId: input.configuration.loadoutId, capabilityContract: capability, validationState: input.configuration.validationState },

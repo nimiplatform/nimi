@@ -1,3 +1,4 @@
+import { RUNTIME_MODEL_LIBRARY_KEY } from '../src/shell/renderer/features/runtime-config/use-runtime-model-library.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { act } from 'react';
@@ -542,9 +543,9 @@ function communityCandidate(offerRef: string, category: string): NimiRuntimeMode
 function seededDiscoveryClient() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
   const feed = (items: NimiRuntimeModelAssetMarketCandidate[]) => ({ source: { availability: 'available', freshness: 'fresh' }, items });
-  queryClient.setQueryData(['model-market', 'collection-catalog'], catalog);
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'verified'], catalog);
   queryClient.setQueryData(['model-market', 'collection-recipes'], recipes);
-  queryClient.setQueryData(['model-market', 'collection-assets'], []);
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'installed'], []);
   queryClient.setQueryData(['model-market', 'featured', 'all'], feed(['a', 'b', 'c', 'd', 'e'].map((offerRef) => communityCandidate(offerRef, 'chat'))));
   queryClient.setQueryData(['model-market', 'featured', 'image'], feed([]));
   return queryClient;
@@ -625,9 +626,9 @@ test('discovery opens on All with the Nimi collection above community picks', as
 
 test('a failed installed-files read does not hide the Nimi collection', async () => {
   const markup = await renderDiscovery(null, (client) => {
-    client.setQueryData(['model-market', 'collection-catalog'], catalog);
+    client.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'verified'], catalog);
     client.setQueryData(['model-market', 'collection-recipes'], recipes);
-    client.getQueryCache().build(client, { queryKey: ['model-market', 'collection-assets'] }).setState({
+    client.getQueryCache().build(client, { queryKey: [...RUNTIME_MODEL_LIBRARY_KEY, 'installed'] }).setState({
       status: 'error',
       error: new Error('AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED'),
     });

@@ -70,7 +70,7 @@ import type {
   RuntimeConfigModelMarketSlotContext,
   RuntimeConfigPanelControllerModel,
 } from './runtime-config-panel-types';
-import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library';
+import { useRuntimeAssetCatalog, useRuntimeInstalledAssets } from './use-runtime-model-library';
 
 // The market toolbar keeps search, the filter popover, and the sort select on
 // one row; the sort trigger shares field tokens with the adjacent search field.
@@ -163,21 +163,13 @@ export function RecommendPage(props: RecommendPageProps) {
   });
   // The catalog and recipes make up the collection. The installed files only
   // add the on-device mark, so a failed inventory read never hides browsing.
-  const catalogQuery = useQuery({
-    queryKey: ['model-market', 'collection-catalog'],
-    queryFn: () => client.listVerifiedAssets(),
-    refetchOnWindowFocus: false,
-  });
+  const catalogQuery = useRuntimeAssetCatalog();
   const recipesQuery = useQuery({
     queryKey: ['model-market', 'collection-recipes'],
     queryFn: () => sdk.machineProduct().local.loadouts.listRecipes(),
     refetchOnWindowFocus: false,
   });
-  const assetsQuery = useQuery({
-    queryKey: ['model-market', 'collection-assets'],
-    queryFn: () => client.listModelAssets(),
-    refetchOnWindowFocus: false,
-  });
+  const assetsQuery = useRuntimeInstalledAssets();
   const collection = useMemo(
     () => buildNimiCollection({ catalog: catalogQuery.data ?? [], recipes: recipesQuery.data ?? [] }),
     [catalogQuery.data, recipesQuery.data],
@@ -200,7 +192,6 @@ export function RecommendPage(props: RecommendPageProps) {
     if (result.status === 'completed') {
       await Promise.all([
         props.onModelInstalled(),
-        queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY }),
         queryClient.invalidateQueries({ queryKey: ['model-market'] }),
       ]);
     }
