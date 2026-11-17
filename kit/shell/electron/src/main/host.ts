@@ -70,7 +70,7 @@ import { openElectronShellFileDialog } from './file-dialog.js';
 import { revealElectronShellFile } from './file-reveal.js';
 import { dispatchElectronFloatingWindowCommand, isElectronFloatingWindowCommand } from './floating-window.js';
 import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
-import { listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
+import { createElectronOauthCallbackHost, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
 import { handoffElectronAvatarHost } from './avatar-host-handoff.js';
@@ -232,6 +232,7 @@ export function registerNimiElectronRuntimeBridge(
     NimiElectronFormalAppLocalHostResourceScope
   >();
   const invalidatedBundledAvatarSenders = new WeakSet<object>();
+  const oauthCallbacks = createElectronOauthCallbackHost();
   let formalOwnersStopped = false;
   let unregistered = false;
   const disposeFormalAppResources = async (): Promise<void> => {
@@ -333,6 +334,7 @@ export function registerNimiElectronRuntimeBridge(
   };
   // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
   const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(async () => {
+    oauthCallbacks.close();
     input.standardShellHost?.chromeHost?.invalidateAll();
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
@@ -436,16 +438,22 @@ export function registerNimiElectronRuntimeBridge(
     } else if (rendererProfile.commandPolicy && command === 'runtime_account_invoke_realm_unary') {
       realmMethodId = normalizeRequiredToken(asRecord(payload.payload, 'Realm request must be an object').methodId, 'methodId');
     }
-    await assertElectronHostCommandPolicyAllowed(rendererProfile.commandPolicy, {
-      command, commandKind, appId: effectiveAppId,
-      ...(runtimeMethodId ? { runtimeMethodId } : {}),
-      ...(realmMethodId ? { realmMethodId } : {}),
-      ...(runtimeCancellation ? { runtimeCancellation } : {}),
-    });
-    if (rendererProfile.bundledAvatarProfile) {
-      assertBundledAvatarSenderActive(event.sender as object);
+    const authorize = async () => {
+      await assertElectronHostCommandPolicyAllowed(rendererProfile.commandPolicy, {
+        command, commandKind, appId: effectiveAppId,
+        ...(runtimeMethodId ? { runtimeMethodId } : {}),
+        ...(realmMethodId ? { realmMethodId } : {}),
+        ...(runtimeCancellation ? { runtimeCancellation } : {}),
+      });
+      if (rendererProfile.bundledAvatarProfile) {
+        assertBundledAvatarSenderActive(event.sender as object);
+      }
+      assertElectronStandardShellCommandAllowed(command, commandKind, rendererProfile.capabilitySet, effectiveAppId, Boolean(effectiveStandardShellHost));
+    };
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) {
+      return oauthCallbacks.invoke(event.sender, payload, command, authorize);
     }
-    assertElectronStandardShellCommandAllowed(command, commandKind, rendererProfile.capabilitySet, effectiveAppId, Boolean(effectiveStandardShellHost));
+    await authorize();
     if (command === commandNames.unary) {
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
       if (runtimePayload.cancel === true) {
@@ -609,7 +617,6 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return runDataRootOperation(() => inDocumentOrder(() => writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command)));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return runDataRootOperation(() => inDocumentOrder(() => removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command)));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
     if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.hostHandoff']) return handoffElectronAvatarHost({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
@@ -768,6 +775,7 @@ export function registerNimiElectronRuntimeBridge(
       : {}),
     unregister: () => {
       unregistered = true;
+      oauthCallbacks.close();
       input.standardShellHost?.chromeHost?.dispose();
       rendererStreams.dispose();
       input.ipcMain.removeHandler?.(invokeChannel);

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
-import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
+import { NimiElectronShellHostError, type NimiElectronIpcMainInvokeEvent, type NimiElectronStandardShellHost } from './types.js';
 import { createElectronCapabilityUnavailableError, errorMessage } from './errors.js';
 import { normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber, standardNestedPayload } from './paths.js';
 
@@ -24,10 +24,74 @@ export async function openElectronExternalUrl(
   await opener(parsed.toString());
   return { opened: true };
 }
+export function createElectronOauthCallbackHost() {
+  const pending = new Map<NimiElectronIpcMainInvokeEvent['sender'], Map<string, AbortController>>();
+  return {
+    async invoke(
+      sender: NimiElectronIpcMainInvokeEvent['sender'],
+      payload: Readonly<Record<string, unknown>>,
+      command: string,
+      authorize: () => Promise<void>,
+    ) {
+      const input = standardNestedPayload(payload, command);
+      if (input.requestId === undefined && input.cancel === undefined) {
+        await authorize();
+        return listenElectronOauthForCode(input, command);
+      }
+      const { requestId, cancel } = input;
+      if (!sender || typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(requestId)
+        || (cancel !== undefined && (cancel !== true || Object.keys(input).length !== 2))) {
+        throw new NimiElectronShellHostError({
+          code: 'invalid-payload', message: 'Invalid OAuth listener request', reasonCode: 'electron-oauth-listener-request-invalid', actionHint: 'retry_oauth_authorization',
+        });
+      }
+      let senderWaits = pending.get(sender);
+      if (cancel) {
+        await authorize();
+        // Identity is scoped both to this renderer and to its exact wait.
+        const wait = senderWaits?.get(requestId);
+        wait?.abort();
+        return { canceled: Boolean(wait) };
+      }
+      if (!senderWaits) {
+        senderWaits = new Map();
+        pending.set(sender, senderWaits);
+      }
+      if (senderWaits.has(requestId)) {
+        throw new NimiElectronShellHostError({
+          code: 'invalid-payload', message: 'Duplicate OAuth listener request', reasonCode: 'electron-oauth-listener-request-duplicate', actionHint: 'retry_oauth_authorization',
+        });
+      }
+      // Reserve before awaiting policy. An already-dispatched cancellation can
+      // retire this entry even while authorization is pending.
+      const wait = new AbortController();
+      senderWaits.set(requestId, wait);
+      const close = () => wait.abort();
+      sender.on?.('destroyed', close);
+      sender.on?.('render-process-gone', close);
+      try {
+        await authorize();
+        return await listenElectronOauthForCode(input, command, wait.signal);
+      } finally {
+        sender.removeListener?.('destroyed', close);
+        sender.removeListener?.('render-process-gone', close);
+        senderWaits.delete(requestId);
+        if (!senderWaits.size) pending.delete(sender);
+      }
+    },
+    close() {
+      for (const waits of pending.values()) {
+        for (const wait of waits.values()) wait.abort();
+      }
+    },
+  };
+}
+
 // @nimi-authority: rule.nimi.desktop.bridge-ipc.r021
 export async function listenElectronOauthForCode(
   payload: Readonly<Record<string, unknown>>,
   command: string,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
   const commandPayload = standardNestedPayload(payload, command);
   const redirect = parseElectronOauthRedirectUri(normalizeRequiredToken(commandPayload.redirectUri, 'redirectUri'), command);
@@ -91,6 +155,7 @@ export async function listenElectronOauthForCode(
       }
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener('abort', cancel);
       // The caller's result must never depend on another HTTP peer finishing.
       // Preserve only the accepted response's bounded flush window.
       server.close();
@@ -110,7 +175,17 @@ export async function listenElectronOauthForCode(
         details: { command, redirectUri: redirect.redirectUri, cause: errorMessage(error) },
       }));
     });
-    server.listen(redirect.port, redirect.bindHost);
+    const cancel = () => settle(new NimiElectronShellHostError({
+      code: 'host-internal-error',
+      message: 'Electron OAuth callback wait ended',
+      reasonCode: 'electron-oauth-callback-canceled',
+      actionHint: 'retry_oauth_authorization',
+    }));
+    if (signal?.aborted) cancel();
+    else {
+      signal?.addEventListener('abort', cancel, { once: true });
+      server.listen(redirect.port, redirect.bindHost);
+    }
   });
 }
 

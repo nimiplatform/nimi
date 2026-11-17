@@ -33,9 +33,12 @@ export function isDesktopBrowserAuthWaitEnded(error: unknown): boolean {
   return error instanceof DesktopBrowserAuthWaitEndedError;
 }
 
-function untilCallbackOrEnd<T>(task: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+function untilWaitEnds<T>(task: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
   if (!signal) return task;
-  if (signal.aborted) return Promise.reject(new DesktopBrowserAuthWaitEndedError());
+  if (signal.aborted) {
+    void task.catch(() => undefined);
+    return Promise.reject(new DesktopBrowserAuthWaitEndedError());
+  }
   return new Promise<T>((resolve, reject) => {
     const end = () => reject(new DesktopBrowserAuthWaitEndedError());
     signal.addEventListener('abort', end, { once: true });
@@ -138,40 +141,40 @@ export async function performDesktopBrowserAuth(
     throw new Error(AUTH_COPY.desktopBrowserAuthUnsupported);
   }
 
+  const signal = options.signal;
+  if (signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
   const callbackUrl = createDesktopCallbackRedirectUri();
   const timeoutMs = options.timeoutMs ?? DESKTOP_CALLBACK_TIMEOUT_MS;
   const runtimeBroker = options.runtimeAccountBroker;
 
-  const runtimeAttempt = await runtimeBroker.begin({
-    callbackUrl,
-    timeoutMs,
-  });
+  const runtimeAttempt = await untilWaitEnds(runtimeBroker.begin({ callbackUrl, timeoutMs }), signal);
+  if (signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
   const launchUrl = validateRuntimeOAuthAuthorizationUrl(runtimeAttempt.authorizationUrl);
   const expectedState = String(runtimeAttempt.state || '').trim();
   if (!expectedState) {
     throw new Error(AUTH_COPY.desktopBrowserStateInvalid);
   }
 
-  const listenTask = bridge.oauthListenForCode({
-    redirectUri: callbackUrl,
-    expectedState,
-    timeoutMs,
-  });
-  // Browser launch can fail before the listener is awaited. Its eventual
-  // timeout must still be handled; the owner remains responsible for expiry.
-  void listenTask.catch(() => undefined);
-
-  const launchResult = await bridge.openExternalUrl(launchUrl);
-  if (!launchResult.opened) {
-    throw new Error(AUTH_COPY.desktopBrowserOpenFailed);
-  }
-  options.onOpened?.();
-  options.onBrowserOpened?.(async () => (await bridge.openExternalUrl(launchUrl)).opened);
-
-  const callback = await untilCallbackOrEnd(listenTask, options.signal);
-  // Once the wait ended, a callback arriving later is never completed here.
-  if (options.signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
+  const listener = new AbortController();
+  const closeListener = () => listener.abort();
+  signal?.addEventListener('abort', closeListener, { once: true });
+  let callbackReceived = false;
   try {
+    const callbackTask = bridge.oauthListenForCode({ redirectUri: callbackUrl, expectedState, timeoutMs }, listener.signal);
+    // If the host fails to listen while the browser open is pending, retire
+    // this wait as soon as either operation fails.
+    const opened = async () => {
+      if (signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
+      const result = await bridge.openExternalUrl(launchUrl);
+      if (!result.opened) throw new Error(AUTH_COPY.desktopBrowserOpenFailed);
+      if (listener.signal.aborted) return;
+      options.onOpened?.();
+      options.onBrowserOpened?.(async () => !listener.signal.aborted && (await bridge.openExternalUrl(launchUrl)).opened);
+    };
+    const [callback] = await untilWaitEnds(Promise.all([callbackTask, opened()]), signal);
+    if (signal?.aborted) throw new DesktopBrowserAuthWaitEndedError();
+    callbackReceived = true;
+    closeListener();
     if (callback.error) {
       throw new Error(`网页授权失败：${callback.error}`);
     }
@@ -196,8 +199,10 @@ export async function performDesktopBrowserAuth(
 
     return { user: completion.user };
   } finally {
+    closeListener();
+    signal?.removeEventListener('abort', closeListener);
     // Return to Desktop after the account result is ready, including a rejected
     // callback. A window activation failure must not replace the account result.
-    await bridge.focusMainWindow().catch(() => undefined);
+    if (callbackReceived && !signal?.aborted) await bridge.focusMainWindow().catch(() => undefined);
   }
 }

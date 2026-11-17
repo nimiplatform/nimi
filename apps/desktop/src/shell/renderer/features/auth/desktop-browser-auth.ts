@@ -12,7 +12,7 @@ import type { DesktopRendererAuthPort } from '../../renderer/auth-port.js';
 
 export const desktopOAuthBridge: ShellOAuthCodeBridge = {
   hasShellHostInvoke: () => desktopBridge.hasElectronInvoke(),
-  oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
+  oauthListenForCode: (payload, signal) => desktopBridge.oauthListenForCode(payload, signal),
   openExternalUrl: (url) => desktopBridge.openExternalUrl(url),
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };

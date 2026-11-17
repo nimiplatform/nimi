@@ -74,7 +74,7 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
 
 export type ShellOAuthCodeBridge = {
   hasShellHostInvoke: () => boolean;
-  oauthListenForCode: (payload: OauthListenForCodePayload) => Promise<OauthListenForCodeResult>;
+  oauthListenForCode: (payload: OauthListenForCodePayload, signal?: AbortSignal) => Promise<OauthListenForCodeResult>;
   openExternalUrl: (url: string) => Promise<{ opened: boolean }>;
   focusMainWindow: () => Promise<void>;
 };

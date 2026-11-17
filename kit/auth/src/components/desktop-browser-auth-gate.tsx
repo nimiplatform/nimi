@@ -42,6 +42,7 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
   const descriptionId = useId();
 
   const begin = useCallback(async () => {
+    if (waitRef.current) return;
     props.onEntryAction?.();
     const wait = new AbortController();
     waitRef.current = wait;
@@ -58,7 +59,7 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
       if (!result.user) {
         throw new Error('Runtime completed login without an authenticated account projection.');
       }
-      props.onAuthenticated(result.user);
+      if (waitRef.current === wait) props.onAuthenticated(result.user);
     } catch (reason) {
       if (waitRef.current !== wait) return;
       if (isDesktopBrowserAuthWaitEnded(reason)) {
@@ -69,12 +70,27 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
       setStatus('error');
       setError(toDesktopBrowserAuthErrorMessage(reason));
     } finally {
-      if (waitRef.current === wait) setReopen(null);
+      if (waitRef.current === wait) {
+        waitRef.current = null;
+        setReopen(null);
+      }
     }
   }, [props]);
 
   const endWait = useCallback(() => {
-    waitRef.current?.abort();
+    const wait = waitRef.current;
+    if (!wait) return;
+    waitRef.current = null;
+    wait.abort();
+    setReopen(null);
+    setWaitEnded(true);
+    setStatus('idle');
+  }, []);
+
+  useEffect(() => () => {
+    const wait = waitRef.current;
+    waitRef.current = null;
+    wait?.abort();
   }, []);
 
   useEffect(() => {

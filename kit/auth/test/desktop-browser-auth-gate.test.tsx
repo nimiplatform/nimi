@@ -18,6 +18,7 @@ function renderGate(notice?: string, withLogo = true) {
   document.body.appendChild(container);
   const root = createRoot(container);
   const onEntryAction = vi.fn();
+  const onAuthenticated = vi.fn();
 
   act(() => {
     root.render(
@@ -31,14 +32,14 @@ function renderGate(notice?: string, withLogo = true) {
         pendingMessage="请在浏览器中完成登录"
         retryLabel="重试"
         notice={notice}
-        onAuthenticated={vi.fn()}
+        onAuthenticated={onAuthenticated}
         onEntryAction={onEntryAction}
         actionTestId="login-action"
       />,
     );
   });
 
-  return { container, root, onEntryAction };
+  return { container, root, onEntryAction, onAuthenticated };
 }
 
 describe('DesktopBrowserAuthGate presentation', () => {
@@ -113,4 +114,30 @@ describe('DesktopBrowserAuthGate presentation', () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  it('re-enables sign-in immediately and keeps the next wait when a retired completion settles', async () => {
+    const waits: { signal: AbortSignal; resolve: (value: { user: { id: string } }) => void }[] = [];
+    performDesktopBrowserAuth.mockImplementation((_bridge: unknown, input: { signal: AbortSignal }) =>
+      new Promise(resolve => waits.push({ signal: input.signal, resolve })));
+    const { container, root, onAuthenticated } = renderGate();
+    try {
+      const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]')!;
+      const end = () => [...container.querySelectorAll('button')].find(button => button.textContent === '结束等待')!;
+      await act(async () => action.click());
+      await act(async () => end().click());
+      expect(action.disabled).toBe(false);
+      expect(waits[0]?.signal.aborted).toBe(true);
+      await act(async () => action.click());
+      await act(async () => waits[0]?.resolve({ user: { id: 'previous' } }));
+      expect(onAuthenticated).not.toHaveBeenCalled();
+      expect(action.disabled).toBe(true);
+      expect(waits[1]?.signal.aborted).toBe(false);
+      await act(async () => waits[1]?.resolve({ user: { id: 'current' } }));
+      expect(onAuthenticated).toHaveBeenCalledExactlyOnceWith({ id: 'current' });
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
 });

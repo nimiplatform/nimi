@@ -331,6 +331,35 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
   });
 
+  it('retires only the exact OAuth listener owned by the requesting sender', async () => {
+    const { event } = createInvokeEvent();
+    const { event: other } = createInvokeEvent();
+    const ipcMain = new FakeIpcMain();
+    const host = registerNimiElectronRuntimeBridge({
+      appId: 'acme.widget', runtimeEndpoint: '127.0.0.1:46371', allowedOrigins: ['http://localhost:1430'], ipcMain,
+      standardShellHost: { allowAllStandardShellCommands: true },
+    });
+    const command = NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode'];
+    const port = await findFreePort();
+    const nextPort = await findFreePort();
+    const uri = `http://127.0.0.1:${port}/oauth/callback`;
+    const nextUri = `http://127.0.0.1:${nextPort}/oauth/callback`;
+    const older = 'e8f189e3-7db1-4521-ad94-d063154c67c2';
+    const newer = 'e8f189e3-7db1-4521-ad94-d063154c67c3';
+    const invoke = (sender: typeof event, payload: Record<string, unknown>) => invokeBridge(ipcMain, sender, { command, payload: { payload } });
+    try {
+      const first = invoke(event, { requestId: older, redirectUri: uri, expectedState: 'old-state' });
+      const stopped = expect(first).rejects.toMatchObject({ reasonCode: 'electron-oauth-callback-canceled' });
+      await expect(invoke(other, { requestId: older, cancel: true })).resolves.toEqual({ canceled: false });
+      const next = invoke(event, { requestId: newer, redirectUri: nextUri, expectedState: 'new-state' });
+      await expect(invoke(event, { requestId: older, cancel: true })).resolves.toEqual({ canceled: true });
+      await stopped;
+      await expect(fetch(uri)).rejects.toThrow();
+      expect(await fetchOkText(`${nextUri}?code=next-code&state=new-state`)).toContain('Authorization received');
+      await expect(next).resolves.toMatchObject({ code: 'next-code', state: 'new-state' });
+    } finally { host.unregister(); }
+  });
+
   it('never admits OAuth token exchange as a renderer shell command', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
