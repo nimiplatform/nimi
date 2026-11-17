@@ -1,8 +1,8 @@
-import { Suspense, lazy, useState, useEffect } from 'react';
+import { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type AuthStatus } from '../providers/app-store';
+import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import { useAppStore, useAppStoreApi, type AuthStatus } from '../providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -13,7 +13,7 @@ import { AmbientBackground } from '@nimiplatform/kit/ui';
 import { DesktopRecoveryActions, SharedStatusShell, STATUS_SHELL_PRIMARY_BUTTON, STATUS_SHELL_SECONDARY_BUTTON } from './status-shell';
 import { RuntimeMaintenanceRecoveryScreen } from './runtime-maintenance-recovery';
 import { retryRuntimeAccountConnectionNow } from '../../infra/bootstrap/auth-state-watcher.js';
-import type { DesktopHomeProfileStatus } from '../../bridge/runtime-bridge/product-control.js';
+import { useDesktopProductAdmission } from './desktop-product-admission.js';
 import { DesktopFormalSessionGate } from './desktop-formal-session-gate.js';
 
 const LoginPage = lazy(async () => {
@@ -61,41 +61,6 @@ function BootstrapErrorScreen({ message, retryRuntimeService = false }: { messag
   );
 }
 
-// Wave 1 of the route-admission single-point refactor: route decisions live
-// at AppRoutes top-level only (LoginPage and ProductControlWorkflow never
-// render `<Navigate>`). Pre-Wave-1 had those two surfaces racing each other
-// and tripping Electron's `history.replaceState() > 100 / 10s` throttle.
-//
-// `desktopBridge.getProductControlRecord()` returns the persisted projection
-// of `~/.nimi/nimi.json` — it does NOT re-run the backend admission. When
-// the file's last write was `not_logged_in` (e.g. a previous session ended
-// in failure), repeated reads will keep reporting `not_logged_in` forever;
-// the only way to advance the file's state is the backend admission op
-// `admitProductReadyForUse`, which is the sole writer of `ready_for_use`
-// per P-COLD-016. So when we observe `not_logged_in` while the renderer
-// store says authenticated, we request a fresh admission (the backend
-// re-verifies all evidence including the runtime account session) and route
-// on whatever state the backend returns:
-//
-//  - `ready_for_use`     → `ready`, mounts the ordinary shell
-//  - `not_logged_in`     → `admission-failed`, surfaces the failure
-//  - any other state     → `first-run`, hands off to the wizard
-//
-// Wave 8 behavioural invariant unchanged: only `ready_for_use` produces
-// `ready`. Renderer never mints `ready_for_use`; it only requests admission.
-type DesktopOrdinaryShellAdmission =
-  | 'checking'
-  | 'requesting-admission'
-  | 'admission-failed'
-  | 'login'
-  | 'first-run'
-  | 'ready';
-
-type DesktopOrdinaryShellAdmissionHandle = {
-  readonly admission: DesktopOrdinaryShellAdmission;
-  readonly retry: () => void;
-};
-
 function accountRetainsOrdinaryShell(status: AuthStatus): boolean {
   return status === 'authenticated' || status === 'refresh-pending';
 }
@@ -107,105 +72,9 @@ function accountRequiresLogin(status: AuthStatus): boolean {
     || status === 'reauth-required';
 }
 
-function useDesktopOrdinaryShellAdmission(
-  authStatus: AuthStatus,
-): DesktopOrdinaryShellAdmissionHandle {
-  const [admission, setAdmission] = useState<DesktopOrdinaryShellAdmission>('checking');
-  const [retryToken, setRetryToken] = useState(0);
-  const bindings = useDesktopRendererBindings();
-
-  useEffect(() => {
-    if (authStatus === 'refresh-pending') {
-      // Refresh is an in-place account transition. Preserve the last admitted
-      // product shell instead of re-reading product control while Runtime is
-      // deliberately pausing new Realm work. Reconciliation resumes from a
-      // fresh authenticated projection after rotation completes.
-      return;
-    }
-    if (authStatus === 'bootstrapping' || authStatus === 'unavailable') {
-      setAdmission('checking');
-      return;
-    }
-    let cancelled = false;
-    let admissionRequested = false;
-
-    const projectVerdict = (projection: { state: NimiProductControlState }) => {
-      if (cancelled) return;
-      const decision = projectNimiProductControlAdmission(projection.state);
-      if (decision.kind === 'ordinary-shell') {
-        setAdmission('ready');
-        return;
-      }
-      if (decision.kind === 'login') {
-        if (authStatus !== 'authenticated') {
-          setAdmission('login');
-          return;
-        }
-        // Only happens when the persisted record's last write was a failed
-        // admission. The renderer cannot rescue this by reading harder; it
-        // must request a fresh backend admission once. If the admission
-        // result is still `not_logged_in`, the failure is real and we
-        // surface it to the user.
-        if (admissionRequested) {
-          logRendererEvent({
-            level: 'warn',
-            area: 'shell',
-            message: 'route-admission:backend-admission-returned-not-logged-in',
-            details: { productControlState: projection.state },
-          });
-          setAdmission('admission-failed');
-          return;
-        }
-        admissionRequested = true;
-        setAdmission('requesting-admission');
-        void bindings.app.commands.firstRun.admitReadyForUse()
-          .then((next) => {
-            projectVerdict(next);
-          })
-          .catch((error) => {
-            if (cancelled) return;
-            logRendererEvent({
-              level: 'warn',
-              area: 'shell',
-              message: 'route-admission:admit-ready-for-use-failed',
-              details: {
-                error: error instanceof Error ? error.message : String(error),
-              },
-            });
-            setAdmission('admission-failed');
-          });
-        return;
-      }
-      // Any other state is genuine first-run setup work. The first-run gate
-      // owns ongoing projection refresh and calls onReadyForUse when setup
-      // completes; avoid a parent-shell poll loop while setup is visible.
-      setAdmission('first-run');
-    };
-
-    // Product Control owns first-run before account login. Read its local
-    // projection for anonymous as well as authenticated account states so a
-    // missing data root takes over the window before /login. Keep the current
-    // verdict visible while an authenticated projection is rechecked (notably
-    // after refresh-pending -> authenticated).
-    void bindings.app.commands.firstRun.getRecord()
-      .then(projectVerdict)
-      .catch(() => {
-        if (!cancelled) setAdmission('first-run');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [authStatus, bindings, retryToken]);
-
-  return {
-    admission,
-    retry: () => setRetryToken((token) => token + 1),
-  };
-}
-
 function DesktopFirstRunGate(props: {
-  readonly onLoginRequired: () => void;
-  readonly onReadyForUse: () => void;
+  readonly projection: NimiProductControlRecordProjection;
+  readonly onProjectionChange: () => void;
 }) {
   return (
     <AmbientBackground
@@ -215,8 +84,8 @@ function DesktopFirstRunGate(props: {
       <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
         <Suspense fallback={<RuntimeLoadingScreen />}>
           <FirstRunGatePanel
-            onLoginRequired={props.onLoginRequired}
-            onReadyForUse={props.onReadyForUse}
+            projection={props.projection}
+            onProjectionChange={props.onProjectionChange}
           />
         </Suspense>
       </div>
@@ -228,31 +97,6 @@ function ReadyDesktopShell() {
   // The ordinary UI slice starts at Home. Do not overwrite an explicit App or
   // Chat intent already admitted while this shell was mounting.
   return <MainLayout />;
-}
-
-// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-017a
-function useHomeProfileStatus(enabled: boolean): DesktopHomeProfileStatus | null {
-  const bindings = useDesktopRendererBindings();
-  const [status, setStatus] = useState<DesktopHomeProfileStatus | null>(null);
-  useEffect(() => {
-    if (!enabled) {
-      setStatus(null);
-      return;
-    }
-    let disposed = false;
-    const read = () => {
-      void bindings.app.commands.firstRun.getHomeProfileStatus().then((next) => {
-        if (!disposed) setStatus(next);
-      }).catch(() => {
-        if (!disposed) setStatus({ mode: 'bootstrap', workAllowed: false, relaunchRequested: false });
-      });
-    };
-    read();
-    // Reuse the existing Product Control observation rather than another poller.
-    const unsubscribe = bindings.app.events.subscribeProductControlRecord(read);
-    return () => { disposed = true; unsubscribe(); };
-  }, [bindings, enabled]);
-  return status;
 }
 
 function HomeProfileRepairScreen() {
@@ -289,28 +133,16 @@ function DesktopOrdinaryShellGate() {
   const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const logoutDependencies = useLogoutSessionDependencies();
-  const { admission: observedAdmission, retry: retryAdmission } = useDesktopOrdinaryShellAdmission(authStatus);
-  const [firstRunReady, setFirstRunReady] = useState(false);
-  const [firstRunLoginRequired, setFirstRunLoginRequired] = useState(false);
-  const navigate = useNavigate();
-
+  const { t } = useTranslation();
+  const { admission, retry: retryAdmission, homeProfile, profileUnavailable, projection, error } = useDesktopProductAdmission(authStatus);
+  const { navigation } = useAppStoreApi();
+  const hadAdmission = useRef(false);
+  const workAllowed = admission === 'ready' && homeProfile?.workAllowed === true && accountRetainsOrdinaryShell(authStatus);
   useEffect(() => {
-    if (!accountRetainsOrdinaryShell(authStatus)) {
-      setFirstRunReady(false);
-    }
-  }, [authStatus]);
-
-  // Single root admission: unauthenticated renderer-store routes to /login
-  // via an imperative navigate inside an effect. Rendering `<Navigate>` here
-  // would re-fire history.replaceState on every gate re-render (react-router's
-  // <Navigate> uses a no-deps effect), which is precisely what tripped the
-  // pre-Wave-1 throttle when paired with LoginPage's reverse-Navigate.
-  const admission: DesktopOrdinaryShellAdmission = firstRunLoginRequired
-    ? 'login'
-    : firstRunReady && accountRetainsOrdinaryShell(authStatus)
-      ? 'ready'
-      : observedAdmission;
-  const homeProfile = useHomeProfileStatus(admission === 'ready');
+    if (!workAllowed && hadAdmission.current) navigation.reset({ id: 'home' });
+    hadAdmission.current = workAllowed;
+  }, [navigation, workAllowed]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (
@@ -331,7 +163,7 @@ function DesktopOrdinaryShellGate() {
         onSignOut={() => {
           // logoutAndClearSession is the canonical desktop sign-out path: it
           // calls runtime.account.logout (so Runtime revokes its session and
-          // token custody), kills in-flight streams, and
+          // token custody) and
           // clears the React Query cache — in addition to clearAuthSession.
           // A bare clearAuthSession() would leave the runtime session intact,
           // so the admission-failed surface looks unresponsive.
@@ -343,16 +175,37 @@ function DesktopOrdinaryShellGate() {
       />
     );
   }
-  if (admission === 'first-run') {
+  if (homeProfile?.sourceRuntimeRestartRequired) {
     return (
-      <DesktopFirstRunGate
-        onLoginRequired={() => setFirstRunLoginRequired(true)}
-        onReadyForUse={() => setFirstRunReady(true)}
-      />
+      <SharedStatusShell title={t('Support.homeProfileTitle')} description={t('Bootstrap.maintenanceSourceRestart')}>
+        <SupportDegradedEntry />
+      </SharedStatusShell>
     );
+  }
+  if (admission === 'unavailable') {
+    return (
+      <SharedStatusShell title={t('DataManagement.dataRootReadFailed')}>
+        <DesktopRecoveryActions
+          testId="desktop-product-control-unavailable"
+          retryLabel={t('Bootstrap.admissionFailedRetry')}
+          onRetry={retryAdmission}
+          technicalDetail={error}
+        />
+      </SharedStatusShell>
+    );
+  }
+  if (admission === 'first-run' && projection) {
+    return <DesktopFirstRunGate projection={projection} onProjectionChange={retryAdmission} />;
   }
   if (!accountRetainsOrdinaryShell(authStatus)) {
     return <RuntimeLoadingScreen />;
+  }
+  if (profileUnavailable) {
+    return (
+      <SharedStatusShell title={t('Support.homeProfileStillUnavailable')}>
+        <DesktopRecoveryActions testId="desktop-home-profile-unavailable" retryLabel={t('Bootstrap.admissionFailedRetry')} onRetry={retryAdmission} />
+      </SharedStatusShell>
+    );
   }
   if (!homeProfile) return <RuntimeLoadingScreen />;
   if (!homeProfile.workAllowed) return <HomeProfileRepairScreen />;

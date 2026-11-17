@@ -68,7 +68,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     attachOfflineCoordinatorBindings({
       coordinator,
       setOfflineTier: (tier) => effects.push(`tier:${tier}`),
-      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
@@ -93,7 +92,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     attachOfflineCoordinatorBindings({
       coordinator,
       setOfflineTier: (tier) => effects.push(`tier:${tier}`),
-      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
@@ -118,7 +116,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     attachOfflineCoordinatorBindings({
       coordinator,
       setOfflineTier: (tier) => effects.push(`tier:${tier}`),
-      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => false,
       hasPendingRealmRecoveryWork: async () => true,
@@ -149,7 +146,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     attachOfflineCoordinatorBindings({
       coordinator,
       setOfflineTier: (tier) => effects.push(`tier:${tier}`),
-      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
       probeRealmReachability: async () => true,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,
@@ -189,7 +185,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     const detach = attachOfflineCoordinatorBindings({
       coordinator,
       setOfflineTier: () => {},
-      suspendRuntimeCallbacksForL2: () => {},
       probeRealmReachability: () => probe,
       probeRuntimeReachability: async () => true,
       hasPendingRealmRecoveryWork: async () => true,

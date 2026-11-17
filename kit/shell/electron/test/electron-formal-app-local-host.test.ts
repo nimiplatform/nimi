@@ -1298,7 +1298,7 @@ describe('Electron formal App local host', () => {
     expect(calls).toBe(2);
   });
 
-  it('renews after mutation admission failure without blindly replaying the mutation', async () => {
+  it.each(['desktop', 'avatar'] as const)('reports %s formal invalidation and renews without replaying a mutation', async profile => {
     const calls: string[] = [];
     const unary = vi.fn(async (input: { methodId: string }) => {
       calls.push(input.methodId);
@@ -1314,15 +1314,19 @@ describe('Electron formal App local host', () => {
       }
       throw new Error(`unexpected formal App method: ${input.methodId}`);
     });
-    const host = createNimiElectronFormalAppLocalHost({
-      profile: 'avatar', appId: 'nimi.avatar',
-      control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    const lost = vi.fn(() => calls.push('owner-invalidated'));
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: profile === 'desktop' ? 'nimi.desktop' : 'nimi.avatar',
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAppUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+      onSessionInvalidated: profile === 'desktop' ? lost : undefined,
     });
+    const host = owner.host;
 
     await expect(host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` }))
       .rejects.toMatchObject({ reasonCode: 'revoked' });
     expect(calls).toEqual([
       '/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation',
+      ...(profile === 'desktop' ? ['owner-invalidated'] : []),
       '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
     ]);
   });

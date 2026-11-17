@@ -205,6 +205,7 @@ export function registerNimiElectronRuntimeBridge(
         appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
         revealInOs: input.standardShellHost.revealInOs,
         activityLaunch: input.standardShellHost.appActivitySourceLaunch,
+        onSessionInvalidated: input.onDesktopFormalSessionInvalidated,
       })
     : undefined;
   let desktopFormalHostOwner = createDesktopFormalOwner();
@@ -730,6 +731,7 @@ export function registerNimiElectronRuntimeBridge(
     get bundledAvatarLocalAppHost() { return bundledAvatarStandardShellHost?.localAppHost; },
     ...(desktopControlHost && desktopFormalHostOwner
       ? {
+          captureDesktopFormalScope: () => desktopFormalHostOwner!.captureScope(),
           resolveDesktopAgentReference: (request: Readonly<{ localAgentRef: string }>) => (
             desktopFormalHostOwner!.resolveDesktopAgentReference(request)
           ),

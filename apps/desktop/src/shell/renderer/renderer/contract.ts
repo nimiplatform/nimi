@@ -6,7 +6,6 @@ import type {
 
 import type { NimiNavigationResult } from '@nimiplatform/kit/core/navigation';
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
-import type { AuthStatus } from '../app-shell/providers/store-types.js';
 import type {
   NimiManagedConnectorCredentialAcquisitionHost,
   NimiProductControlRecordProjection,
@@ -101,9 +100,6 @@ export interface DesktopRendererCommandPort {
   pickLocalRuntimeAssetFile(): Promise<string | null>;
   pickLocalRuntimeAssetDirectory(): Promise<string | null>;
   revealLocalRuntimeAssetsRootFolder(): Promise<void>;
-  reconcileLoginState(input: {
-    readonly authStatus: AuthStatus;
-  }): Promise<{ readonly clearAuthSession: boolean }>;
   reloadApplication(): void;
   startWindowDrag(): Promise<void>;
   listLocalDevelopmentRegistrations(): Promise<LocalDevelopmentRegistration[]>;
@@ -138,6 +134,7 @@ export interface DesktopRendererEventPort {
   ): () => void;
   subscribeAttention(listener: () => void): () => void;
   subscribeDeveloperMode(listener: (enabled: boolean) => void): () => void;
+  subscribeFormalSessionInvalidation(listener: () => void): () => void;
   subscribeProductControlRecord(
     listener: (result:
       | { readonly ok: true; readonly projection: NimiProductControlRecordProjection }

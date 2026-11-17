@@ -1,26 +1,14 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { NimiToaster } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
 import { DesktopBrowserAuthGateSurface } from './desktop-browser-auth-gate.js';
 
 export function LoginPage() {
-  const bindings = useDesktopRendererBindings();
   const location = useLocation();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
-  const clearAuthSession = useAppStore((state) => state.clearAuthSession);
-
-  useEffect(() => {
-    let active = true;
-    void bindings.app.commands.reconcileLoginState({ authStatus }).then((result) => {
-      if (active && result.clearAuthSession) clearAuthSession();
-    });
-    return () => { active = false; };
-  }, [authStatus, bindings, clearAuthSession]);
 
   if (authStatus === 'authenticated') {
     // Wave 1 route-admission single-point: LoginPage no longer self-redirects

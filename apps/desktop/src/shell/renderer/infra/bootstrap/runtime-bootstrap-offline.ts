@@ -3,7 +3,6 @@ import type { OfflineCoordinator, OfflineTier } from '@nimiplatform/kit/core/off
 export type OfflineCoordinatorBindingsInput = {
   coordinator: OfflineCoordinator;
   setOfflineTier: (tier: OfflineTier) => void;
-  suspendRuntimeCallbacksForL2: () => void;
   probeRealmReachability: () => Promise<boolean>;
   probeRuntimeReachability: () => Promise<boolean>;
   hasPendingRealmRecoveryWork: () => Promise<boolean>;
@@ -30,12 +29,7 @@ export function attachOfflineCoordinatorBindings(input: OfflineCoordinatorBindin
     },
     hasPendingRealmRecoveryWork: () => probeWhileActive(input.hasPendingRealmRecoveryWork),
   });
-  const unsubscribeTier = input.coordinator.subscribeTier((change) => {
-    input.setOfflineTier(change.to);
-    if (change.to === 'L2') {
-      input.suspendRuntimeCallbacksForL2();
-    }
-  });
+  const unsubscribeTier = input.coordinator.subscribeTier((change) => { input.setOfflineTier(change.to); });
   const unsubscribeRealmReconnect = input.coordinator.subscribeRealmReconnect(async () => {
     if (!active) return;
     await Promise.all([input.invalidateRealmQueries(), input.refreshAccountProfile()]);

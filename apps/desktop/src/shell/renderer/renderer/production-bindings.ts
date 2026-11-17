@@ -1,3 +1,4 @@
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createNimiCanonicalRendererHostBindings,
   type NimiRendererHostFacadeV1,
@@ -62,7 +63,8 @@ import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
 import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
 import { createDesktopProductionOfflinePort } from '../infra/offline/production-offline-port.js';
 import { deletedOfflineAccount } from '../infra/offline/account-cleanup.js';
-import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronInvoke, listenShell } from '@nimiplatform/kit/shell/renderer/bridge';
+import { DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT } from '../../shared/formal-session.js';
 import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
@@ -82,6 +84,28 @@ export function createDesktopProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
 ): DesktopCanonicalRendererBindings {
   const dependencies = createProductionAppStoreDependencies();
+  type ProductControlListener = Parameters<DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']>[0];
+  const productControlListeners = new Set<ProductControlListener>();
+  let productControlTimer: number | undefined;
+  let refreshInFlight = false;
+  let refreshRequested = false;
+  const refreshProductControl = async () => {
+    if (!productControlListeners.size || refreshInFlight) return;
+    refreshInFlight = true;
+    let result: Parameters<ProductControlListener>[0];
+    try {
+      result = { ok: true, projection: await desktopBridge.getProductControlRecord() };
+    } catch (error) {
+      result = { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+    refreshInFlight = false;
+    if (refreshRequested) {
+      refreshRequested = false;
+      void refreshProductControl();
+      return;
+    }
+    for (const listener of productControlListeners) listener(result);
+  };
   const attention = createBrowserAppAttentionSource();
   const accountManagementUrl = (page: 'security' | 'runtime' = 'security') => resolveAccountManagementUrl(String(
     (page === 'runtime' ? (import.meta as { env?: { NIMI_RUNTIME_MANAGER_WEB_URL?: string } }).env?.NIMI_RUNTIME_MANAGER_WEB_URL : '')
@@ -262,12 +286,6 @@ export function createDesktopProductionBindings(
         pickLocalRuntimeAssetFile,
         pickLocalRuntimeAssetDirectory,
         revealLocalRuntimeAssetsRootFolder,
-        async reconcileLoginState({ authStatus }: Parameters<
-          DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
-        >[0]) {
-          void authStatus;
-          return Object.freeze({ clearAuthSession: false });
-        },
         reloadApplication() {
           window.location.reload();
         },
@@ -336,33 +354,33 @@ export function createDesktopProductionBindings(
         },
         subscribeAttention: attention.subscribe,
         subscribeDeveloperMode,
-        subscribeProductControlRecord(listener: Parameters<
-          DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']
-        >[0]) {
+        subscribeFormalSessionInvalidation(listener: () => void) {
           let active = true;
-          let refreshInFlight = false;
-          const refresh = async () => {
-            if (!active || refreshInFlight) return;
-            refreshInFlight = true;
-            try {
-              const projection = await desktopBridge.getProductControlRecord();
-              if (active) listener({ ok: true, projection });
-            } catch (error) {
-              if (active) listener({
-                ok: false,
-                error: error instanceof Error ? error.message : String(error || 'product control record unavailable'),
-              });
-            } finally {
-              refreshInFlight = false;
-            }
-          };
-          const interval = window.setInterval(refresh, 3_000);
-          window.addEventListener('focus', refresh);
-          void refresh();
+          const subscription = listenShell(DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT, () => {
+            if (active) listener();
+          }).catch((error: unknown) => {
+            logRendererEvent({ level: 'warn', area: 'shell', message: 'formal-session:invalidation-listener-failed',
+              details: { error: error instanceof Error ? error.message : String(error) } });
+          });
           return () => {
             active = false;
-            window.clearInterval(interval);
-            window.removeEventListener('focus', refresh);
+            void subscription.then(unsubscribe => unsubscribe?.());
+          };
+        },
+        subscribeProductControlRecord(listener: ProductControlListener) {
+          productControlListeners.add(listener);
+          if (productControlTimer === undefined) {
+            productControlTimer = window.setInterval(refreshProductControl, 3_000);
+            window.addEventListener('focus', refreshProductControl);
+          }
+          if (refreshInFlight) refreshRequested = true;
+          else void refreshProductControl();
+          return () => {
+            productControlListeners.delete(listener);
+            if (productControlListeners.size) return;
+            window.clearInterval(productControlTimer);
+            window.removeEventListener('focus', refreshProductControl);
+            productControlTimer = undefined;
           };
         },
         connectDesktopOpenIntents: (

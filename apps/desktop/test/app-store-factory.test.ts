@@ -352,7 +352,6 @@ function createCanonicalBindings(input: {
         async pickLocalRuntimeAssetFile() { return null; },
         async pickLocalRuntimeAssetDirectory() { return null; },
         async revealLocalRuntimeAssetsRootFolder() {},
-        async reconcileLoginState() { return { clearAuthSession: false }; },
         reloadApplication() {},
         async startWindowDrag() {},
         async listLocalDevelopmentRegistrations() { return []; },
@@ -375,6 +374,7 @@ function createCanonicalBindings(input: {
         observeIntersection: () => () => undefined,
         subscribeAttention: () => () => undefined,
         subscribeDeveloperMode: () => () => undefined,
+        subscribeFormalSessionInvalidation: () => () => undefined,
         subscribeProductControlRecord: () => () => undefined,
         connectDesktopOpenIntents: () => () => undefined,
         connectLifecycle(lifecycle: Parameters<

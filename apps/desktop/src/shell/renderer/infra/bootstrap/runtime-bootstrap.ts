@@ -1,6 +1,5 @@
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '../../bridge';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { getOfflineCoordinator } from '../offline/coordinator';
@@ -13,19 +12,11 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
-  applyRuntimeAccountStatusProjection,
   applyRuntimeAccountUnavailableProjection,
   startAuthStateWatcher,
   stopAuthStateWatcher,
 } from './auth-state-watcher';
-import { createDesktopAccountProfileHydrator, type DesktopAccountProfileHydrator } from './runtime-bootstrap-account-profile';
-import { loadCurrentUserProfile } from '../../features/social/data/profile-data.js';
-import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
-import {
-  runtimeDaemonUnavailable,
-  syncDesktopRuntimeBootstrapConfig,
-} from './runtime-bootstrap-config-sync';
 import {
   clearDesktopNimiClientSession,
   configureDesktopRuntimeRealmSession,
@@ -41,12 +32,7 @@ import { RUNTIME_STORED_DATA_UNSUPPORTED } from '../../../shared/runtime-mainten
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBinding: { lifecycle: DesktopRendererLifecyclePort; unsubscribe: () => void } | null = null;
-let accountProfileHydration: { lifecycle: DesktopRendererLifecyclePort; hydrator: DesktopAccountProfileHydrator } | null = null;
 let pendingRebootstrap = false;
-let unsubscribeRealmConnectivityEvents: (() => void) | null = null;
-
-function suspendRuntimeCallbacksForL2(): void {
-}
 
 function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
   if (offlineCoordinatorBinding?.lifecycle === lifecycle) {
@@ -60,7 +46,6 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
   const unsubscribe = attachOfflineCoordinatorBindings({
     coordinator,
     setOfflineTier,
-    suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
       const authStatus = lifecycle.auth().status;
       if (authStatus !== 'authenticated' || !isDesktopNimiClientSessionReady()) {
@@ -98,18 +83,13 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
       ]);
     },
     refreshAccountProfile: async () => {
-      if (accountProfileHydration?.lifecycle === lifecycle) await accountProfileHydration.hydrator.hydrate();
+      await lifecycle.invalidateQueries([['current-user-profile']]);
     },
     rebootstrapRuntime: async () => {
       await rebootstrapRuntime(lifecycle);
     },
   });
   offlineCoordinatorBinding = { lifecycle, unsubscribe };
-}
-
-function invalidateAccountProfileHydration(): void {
-  accountProfileHydration?.hydrator.dispose();
-  accountProfileHydration = null;
 }
 
 function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
@@ -121,7 +101,6 @@ function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
 
 // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
 export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
-  invalidateAccountProfileHydration();
   pendingRebootstrap = true;
   if (rebootstrapPromise) {
     return rebootstrapPromise;
@@ -148,15 +127,11 @@ export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Pro
 }
 
 async function teardownBootstrapState(): Promise<void> {
-  invalidateAccountProfileHydration();
   stopAuthStateWatcher();
-  unsubscribeRealmConnectivityEvents?.();
-  unsubscribeRealmConnectivityEvents = null;
   clearDesktopNimiClientSession();
 }
 
 export async function disposeRuntimeBootstrap(): Promise<void> {
-  invalidateAccountProfileHydration();
   offlineCoordinatorBinding?.unsubscribe();
   offlineCoordinatorBinding = null;
   pendingRebootstrap = false;
@@ -183,21 +158,9 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     return bootstrapPromise;
   }
 
-  invalidateAccountProfileHydration();
   bootstrapPromise = (async () => {
     const flowId = createRendererFlowId('renderer-bootstrap');
-    const profileHydrator: DesktopAccountProfileHydrator = createDesktopAccountProfileHydrator({
-      flowId,
-      lifecycle,
-      readClientScope: () => isDesktopNimiClientSessionReady() ? getDesktopRealm() : null,
-      isCurrentBootstrap: () => accountProfileHydration?.hydrator === profileHydrator
-        && offlineCoordinatorBinding?.lifecycle === lifecycle,
-      loadCurrentUser: () => loadCurrentUserProfile(callRealmApi, emitRealmDataError),
-      logEvent: logRendererEvent,
-    });
-    accountProfileHydration = { lifecycle, hydrator: profileHydrator };
     const startedAt = performance.now();
-    const flags = getShellFeatureFlags();
     lifecycle.setAuthBootstrapping();
     lifecycle.setBootstrapReady(false);
 
@@ -237,6 +200,31 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         },
       },
     );
+    if (desktopBridge.hasElectronInvoke() && !daemonStatus.running && daemonStatus.launchMode !== 'SOURCE'
+      && daemonStatus.lastError !== RUNTIME_STORED_DATA_UNSUPPORTED) {
+      try {
+        daemonStatus = await desktopBridge.startRuntimeBridge();
+        if (!daemonStatus.running && !daemonStatus.lastError) {
+          // A fixed-service start can return pending. Read the owner's status
+          // once rather than dispatching another start into that transition.
+          daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+        }
+        logRendererEvent({
+          level: daemonStatus.running ? 'info' : 'warn',
+          area: 'renderer-bootstrap',
+          message: daemonStatus.running ? 'phase:runtime-bridge:started' : 'phase:runtime-bridge:start-unavailable',
+          flowId,
+          details: { running: daemonStatus.running, managed: daemonStatus.managed,
+            grpcAddr: daemonStatus.grpcAddr, launchMode: daemonStatus.launchMode, lastError: daemonStatus.lastError || null },
+        });
+      } catch (error) {
+        daemonStatus = { ...daemonStatus, running: false, lastError: safeBootstrapErrorMessage(error) };
+        logRendererEvent({
+          level: 'warn', area: 'renderer-bootstrap', message: 'phase:runtime-bridge:start-failed',
+          flowId, details: { error: daemonStatus.lastError },
+        });
+      }
+    }
     // @nimi-authority: rule.nimi.desktop.shell-runtime.r025
     // A Runtime that refused its stored data serves only its maintenance
     // surface: Home shows the startup recovery page and opens no account,
@@ -256,89 +244,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       return;
     }
     lifecycle.setRuntimeMaintenance(null);
-    let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-    if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
-      try {
-        daemonStatus = await desktopBridge.startRuntimeBridge();
-        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-        logRendererEvent({
-          level: runtimeUnavailable ? 'warn' : 'info',
-          area: 'renderer-bootstrap',
-          message: runtimeUnavailable
-            ? 'phase:runtime-bridge:start-unavailable'
-            : 'phase:runtime-bridge:started',
-          flowId,
-          details: {
-            running: daemonStatus.running,
-            managed: daemonStatus.managed,
-            grpcAddr: daemonStatus.grpcAddr,
-            launchMode: daemonStatus.launchMode,
-            lastError: daemonStatus.lastError || null,
-          },
-        });
-      } catch (error) {
-        daemonStatus = {
-          ...daemonStatus,
-          running: false,
-          lastError: safeBootstrapErrorMessage(error),
-        };
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:runtime-bridge:start-failed',
-          flowId,
-          details: {
-            error: daemonStatus.lastError,
-          },
-        });
-      }
-    }
-    const configSync = await syncDesktopRuntimeBootstrapConfig({
-      daemonStatus,
-      realmDefaults: defaults.realm,
-      flowId,
-      preserveLocalRuntimeStatePath: false,
-    });
-    daemonStatus = configSync.daemonStatus;
-    runtimeUnavailable = configSync.runtimeUnavailable;
-    const bootstrapRuntimeConfigWarning = configSync.bootstrapRuntimeConfigWarning;
-    if (desktopBridge.hasElectronInvoke() && runtimeUnavailable) {
-      try {
-        daemonStatus = await desktopBridge.startRuntimeBridge();
-        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-        logRendererEvent({
-          level: runtimeUnavailable ? 'warn' : 'info',
-          area: 'renderer-bootstrap',
-          message: runtimeUnavailable
-            ? 'phase:runtime-bridge:start-unavailable'
-            : 'phase:runtime-bridge:started',
-          flowId,
-          details: {
-            running: daemonStatus.running,
-            managed: daemonStatus.managed,
-            grpcAddr: daemonStatus.grpcAddr,
-            launchMode: daemonStatus.launchMode,
-            lastError: daemonStatus.lastError || null,
-          },
-        });
-      } catch (error) {
-        runtimeUnavailable = true;
-        daemonStatus = {
-          ...daemonStatus,
-          running: false,
-          lastError: safeBootstrapErrorMessage(error),
-        };
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:runtime-bridge:start-failed',
-          flowId,
-          details: {
-            error: daemonStatus.lastError,
-          },
-        });
-      }
-    }
+    const runtimeUnavailable = !daemonStatus.running;
     const versionResult = checkRuntimeDaemonVersion(
       daemonStatus.version,
       DESKTOP_VERSION_FALLBACK,
@@ -352,8 +258,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       throw new Error(versionResult.message);
     }
     clearDesktopNimiClientSession();
-    unsubscribeRealmConnectivityEvents?.();
-    unsubscribeRealmConnectivityEvents = null;
 
     let accountStatus: Awaited<ReturnType<
       typeof desktopBridge.getRuntimeAccountSessionStatus
@@ -380,33 +284,24 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         },
       });
     }
-    const accountProjection = accountStatus?.accountProjection;
-    if (accountStatus) {
-      applyRuntimeAccountStatusProjection(accountStatus, lifecycle);
-    } else {
-      applyRuntimeAccountUnavailableProjection(lifecycle);
-    }
+    if (!accountStatus) applyRuntimeAccountUnavailableProjection(lifecycle);
 
+    // These clients bind the existing Electron transport without calling Runtime.
+    // Account observation can recover after an unavailable initial handshake.
+    await configureDesktopRuntimeRealmSession({
+      appId: 'nimi.desktop',
+      runtimeTransport: resolveDesktopRuntimeTransport(),
+    });
     if (!runtimeUnavailable) {
-      await configureDesktopRuntimeRealmSession({
-        appId: 'nimi.desktop',
-        runtimeTransport: resolveDesktopRuntimeTransport(),
-      });
       // agentHandle values are scoped to the protected Runtime session. A
       // Runtime restart must remint them before an attached Conversation can
       // issue its next canonical Agent operation.
       await lifecycle.invalidateQueries([
         ['desktop-local-app-agent-references'],
       ]);
-      if (accountStatus?.state === 'authenticated' && accountProjection?.accountId) {
-        await profileHydrator.hydrate();
-      }
     }
-    startAuthStateWatcher(lifecycle);
-
-    getOfflineCoordinator().markRuntimeReachability(
-      !runtimeUnavailable && accountStatus ? 'reachable' : 'unreachable',
-    );
+    if (!accountStatus) getOfflineCoordinator().markRuntimeReachability('unreachable');
+    startAuthStateWatcher(lifecycle, accountStatus ?? undefined);
 
     if (runtimeUnavailable) {
       logRendererEvent({
@@ -419,13 +314,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         },
       });
     }
-    if (bootstrapRuntimeConfigWarning) {
-      lifecycle.setStatusBanner({
-        kind: 'warning',
-        message: bootstrapRuntimeConfigWarning,
-      });
-    }
-
     lifecycle.setBootstrapReady(true);
     lifecycle.setBootstrapError(null);
     logRendererEvent({
@@ -434,9 +322,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       message: 'phase:bootstrap:done',
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
-      details: {
-        localAiRuntimeBootstrap: flags.enableRuntimeBootstrap,
-      },
     });
   })().catch(async (error) => {
     // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation

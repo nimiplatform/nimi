@@ -1,4 +1,5 @@
 import { SOURCE_DATA_ROOT_RESTART_REQUIRED } from './data-root-operation-gate.js';
+import { DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT } from '../src/shell/shared/formal-session.js';
 import { parseZhiyuConversationOpenTarget } from '../../zhiyu/src/shell/app/conversation-open.js';
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { writeDesktopStderr } from './stderr-log.js';
@@ -942,6 +943,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       commandPolicy: createDesktopHomeCommandPolicy(normalHomeWorkAllowed),
+      onDesktopFormalSessionInvalidated: () => {
+        const window = mainWindow;
+        if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
+          window.webContents.send(`${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT}`, null);
+        }
+      },
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeDeploymentProfile,
       runtimeLifecycleProfile,

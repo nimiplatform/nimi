@@ -2,8 +2,6 @@ import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSess
 import { getOfflineCoordinator } from '../offline/coordinator';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
-import { getDesktopFormalAppClient } from '../sdk/desktop-nimi-client-session.js';
-import { recoverRuntimeAppSession } from './runtime-app-session-recovery.js';
 import {
   advanceRuntimeAccountStreamCursor,
   createRuntimeAccountStreamCursor,
@@ -18,40 +16,6 @@ let generation = 0;
 let retryAttempt = 0;
 let watcherRunning = false;
 let activeLifecycle: DesktopRendererLifecyclePort | null = null;
-let appSessionRecoveryRevision = 0;
-type AccountRecoveryIdentity = { accountId: string; realmEnvironmentId: string; authorizationRevision: string };
-// Suppresses only duplicate Account-driven recovery after an observed success.
-// This is not App/PPS readiness; independent owner failures keep their gates.
-// @nimi-authority: rule.nimi.runtime.protected-session.r031
-let recoveredAccount: AccountRecoveryIdentity | null = null;
-
-function recoveryIdentity(auth: ReturnType<DesktopRendererLifecyclePort['auth']>): AccountRecoveryIdentity | null {
-  const accountId = auth.user?.id;
-  const realmEnvironmentId = auth.user?.realmEnvironmentId;
-  if (typeof accountId !== 'string' || !accountId || typeof realmEnvironmentId !== 'string' || !realmEnvironmentId
-    || !auth.authorizationRevision) return null;
-  return { accountId, realmEnvironmentId, authorizationRevision: auth.authorizationRevision };
-}
-
-function sameRecoveryIdentity(left: AccountRecoveryIdentity | null, right: AccountRecoveryIdentity | null): boolean {
-  return !!left && !!right && left.accountId === right.accountId && left.realmEnvironmentId === right.realmEnvironmentId
-    && left.authorizationRevision === right.authorizationRevision;
-}
-
-function logRecoveryDecision(
-  previous: ReturnType<DesktopRendererLifecyclePort['auth']>,
-  current: ReturnType<DesktopRendererLifecyclePort['auth']>,
-  recoveryCause: string,
-): void {
-  logRendererEvent({ level: 'info', area: 'auth-state-watcher', message: 'phase:account-recovery:decision', details: {
-    atUnixMs: Date.now(), fromState: previous.status, toState: current.status,
-    samePrincipal: !!previous.user?.id && !!previous.user.realmEnvironmentId
-      && previous.user.id === current.user?.id && previous.user.realmEnvironmentId === current.user?.realmEnvironmentId,
-    revisionChanged: previous.authorizationRevision !== current.authorizationRevision,
-    recoveryCause,
-  } });
-}
-
 export function applyRuntimeAccountStatusProjection(
   status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
   lifecycle: Pick<
@@ -60,17 +24,7 @@ export function applyRuntimeAccountStatusProjection(
   >,
 ): void {
   const current = lifecycle.auth();
-  if (status.state !== current.status
-    || status.accountProjection?.accountId !== current.user?.id
-    || status.accountProjection?.realmEnvironmentId !== current.user?.realmEnvironmentId
-    || status.authorizationRevision !== current.authorizationRevision) {
-    appSessionRecoveryRevision += 1;
-  }
-  lifecycle.applyRuntimeAccountProjection(
-    projectRuntimeAccountAuthState(status, current.user),
-  );
-  if ((status.state !== 'authenticated' && status.state !== 'refresh-pending')
-    || !sameRecoveryIdentity(recoveredAccount, recoveryIdentity(lifecycle.auth()))) recoveredAccount = null;
+  lifecycle.applyRuntimeAccountProjection(projectRuntimeAccountAuthState(status, current.user));
 
   if (status.auditDiagnostic) lifecycle.setStatusBanner({ kind: 'warning', message: lifecycle.translate('Feedback.auditResultUnrecorded') });
 
@@ -85,13 +39,15 @@ export function applyRuntimeAccountStatusProjection(
   }
 }
 
-export function startAuthStateWatcher(lifecycle: DesktopRendererLifecyclePort): void {
+export function startAuthStateWatcher(
+  lifecycle: DesktopRendererLifecyclePort,
+  initialStatus?: DesktopAccountSessionStatus,
+): void {
   if (watcherRunning) return;
   watcherRunning = true;
-  recoveredAccount = null;
   activeLifecycle = lifecycle;
   const runGeneration = ++generation;
-  void resyncAndSubscribe(runGeneration, lifecycle, 'startup');
+  void resyncAndSubscribe(runGeneration, lifecycle, initialStatus);
 }
 
 /**
@@ -106,14 +62,12 @@ export function retryRuntimeAccountConnectionNow(): void {
     retryTimer = null;
   }
   const runGeneration = ++generation;
-  recoveredAccount = null;
-  void resyncAndSubscribe(runGeneration, activeLifecycle, 'explicit-retry');
+  void resyncAndSubscribe(runGeneration, activeLifecycle);
 }
 
 export function stopAuthStateWatcher(): void {
   watcherRunning = false;
   activeLifecycle = null;
-  recoveredAccount = null;
   generation += 1;
   unsubscribe?.();
   unsubscribe = null;
@@ -127,18 +81,15 @@ export function stopAuthStateWatcher(): void {
 async function resyncAndSubscribe(
   runGeneration: number,
   lifecycle: DesktopRendererLifecyclePort,
-  recoveryCause: string,
+  initialStatus?: DesktopAccountSessionStatus,
 ): Promise<void> {
   unsubscribe?.();
   unsubscribe = null;
   try {
-    const status = await desktopBridge.getRuntimeAccountSessionStatus();
+    const status = initialStatus ?? await desktopBridge.getRuntimeAccountSessionStatus();
     if (runGeneration !== generation) return;
     getOfflineCoordinator().markRuntimeReachability('reachable');
-    const previous = lifecycle.auth();
     applyRuntimeAccountStatusProjection(status, lifecycle);
-    logRecoveryDecision(previous, lifecycle.auth(), recoveryCause);
-    restoreAppSession(runGeneration, lifecycle);
     await openSubscription(runGeneration, status.sequence, lifecycle);
     if (runGeneration === generation && unsubscribe) {
       retryAttempt = 0;
@@ -153,7 +104,7 @@ async function resyncAndSubscribe(
       message: 'phase:runtime-account-status:unavailable',
       details: { error: error instanceof Error ? error.message : String(error) },
     });
-    scheduleRetry(runGeneration, lifecycle, 'status-retry');
+    scheduleRetry(runGeneration, lifecycle);
   }
 }
 
@@ -179,7 +130,7 @@ async function openSubscription(
     // prove which account owns cached product data. Hide the last projection
     // and clear account-scoped queries before asking Runtime for fresh truth.
     applyRuntimeAccountUnavailableProjection(lifecycle, `account stream ${reason}`);
-    scheduleRetry(runGeneration, lifecycle, 'stream-resync');
+    scheduleRetry(runGeneration, lifecycle);
   };
 
   const nextUnsubscribe = await desktopBridge.subscribeRuntimeAccountSessionEvents(afterSequence, {
@@ -191,23 +142,7 @@ async function openSubscription(
         return;
       }
       cursor = advance.cursor;
-      const previousRevision = appSessionRecoveryRevision;
-      const previous = lifecycle.auth();
       applyRuntimeAccountStatusProjection(event, lifecycle);
-      if (previousRevision !== appSessionRecoveryRevision) {
-        const current = lifecycle.auth();
-        // @nimi-authority: rule.nimi.runtime.protected-session.r031
-        const continuousRefresh = previous.status === 'refresh-pending' && current.status === 'authenticated'
-          && sameRecoveryIdentity(recoveryIdentity(previous), recoveryIdentity(current))
-          && sameRecoveryIdentity(recoveredAccount, recoveryIdentity(current));
-        const cause = continuousRefresh ? 'same-authorization-refresh'
-          : current.status !== 'authenticated' ? 'not-authenticated'
-          : previous.user?.id !== current.user?.id || previous.user?.realmEnvironmentId !== current.user?.realmEnvironmentId
-            ? 'principal-changed'
-            : previous.authorizationRevision !== current.authorizationRevision ? 'authorization-changed' : 'account-restored';
-        logRecoveryDecision(previous, current, cause);
-        if (!continuousRefresh && current.status === 'authenticated') restoreAppSession(runGeneration, lifecycle);
-      }
     },
     onError: (error) => {
       logRendererEvent({
@@ -237,8 +172,6 @@ export function applyRuntimeAccountUnavailableProjection(
   lifecycle: DesktopRendererLifecyclePort,
   failureDetail?: string,
 ): void {
-  appSessionRecoveryRevision += 1;
-  recoveredAccount = null;
   const current = lifecycle.auth();
   lifecycle.applyRuntimeAccountProjection({
     status: 'unavailable',
@@ -249,43 +182,22 @@ export function applyRuntimeAccountUnavailableProjection(
     user: null,
     ...(failureDetail ? { failureDetail: failureDetail.slice(0, 400) } : {}),
   });
+  if (current.status === 'authenticated' || current.status === 'refresh-pending') {
+    lifecycle.navigation.reset({ id: 'home' });
+  }
   void lifecycle.cancelAndClearQueries();
   getOfflineCoordinator().markRealmRestReachability('unknown');
-}
-
-function restoreAppSession(runGeneration: number, lifecycle: DesktopRendererLifecyclePort): void {
-  // A failed forced retry must not leave an earlier successful baseline usable.
-  recoveredAccount = null;
-  const revision = appSessionRecoveryRevision;
-  const isCurrent = () => runGeneration === generation && revision === appSessionRecoveryRevision;
-  void recoverRuntimeAppSession({
-    lifecycle,
-    readStatus: () => getDesktopFormalAppClient().auth.status(),
-    isCurrent,
-  }).then((recovered) => {
-    if (recovered && isCurrent()) recoveredAccount = recoveryIdentity(lifecycle.auth());
-  }).catch((error: unknown) => {
-    if (!isCurrent()) return;
-    // App-session failure does not change the Runtime account projection.
-    logRendererEvent({
-      level: 'warn',
-      area: 'auth-state-watcher',
-      message: 'phase:runtime-app-session:unavailable',
-      details: { error: error instanceof Error ? error.message : String(error) },
-    });
-  });
 }
 
 function scheduleRetry(
   runGeneration: number,
   lifecycle: DesktopRendererLifecyclePort,
-  recoveryCause: string,
 ): void {
   if (retryTimer || runGeneration !== generation) return;
   const delayMs = Math.min(1_000 * (2 ** retryAttempt), 30_000);
   retryAttempt += 1;
   retryTimer = setTimeout(() => {
     retryTimer = null;
-    void resyncAndSubscribe(runGeneration, lifecycle, recoveryCause);
+    void resyncAndSubscribe(runGeneration, lifecycle);
   }, delayMs);
 }

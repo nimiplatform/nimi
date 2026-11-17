@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 import type { AppStoreState, RuntimeAccountAuthProjection } from '../src/shell/renderer/app-shell/providers/store-types.js';
-import { createDesktopAccountProfileHydrator } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-account-profile.js';
 import { projectRuntimeAccountAuthState } from '../src/shell/renderer/infra/bootstrap/runtime-account-state-machine.js';
 
 function seededStore(status: AppStoreState['auth']['status'] = 'authenticated') {
@@ -60,21 +59,12 @@ for (const status of ['anonymous', 'unavailable', 'logging-out'] as const) {
   });
 }
 
-test('hydration followed by the real Runtime snapshot projector retains the recovered profile in the real store', async () => {
+test('profile loaded by Home survives the next Runtime snapshot only under the same authorization', () => {
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => {} });
   const status = { state: 'authenticated' as const, sequence: '1', reasonCode: 0, accountReasonCode: 0,
     authorizationRevision: 'revision-1', accountProjection: { accountId: 'account-a', realmEnvironmentId: 'realm-a', displayName: 'Runtime A' } };
   store.getState().applyRuntimeAccountProjection(projectRuntimeAccountAuthState(status, null));
-  const clientScope = {};
-  const hydrator = createDesktopAccountProfileHydrator({
-    flowId: 'hydrate-then-snapshot',
-    lifecycle: { auth: () => store.getState().auth, setAuthSession: user => store.getState().setAuthSession(user) },
-    readClientScope: () => clientScope,
-    isCurrentBootstrap: () => true,
-    loadCurrentUser: async () => ({ id: 'account-a', displayName: 'Realm A', email: 'a@example.test', avatarUrl: '/a.png' }),
-    logEvent: () => {},
-  });
-  await hydrator.hydrate();
+  store.getState().applyCurrentUserProfile({ id: 'account-a', displayName: 'Realm A', email: 'a@example.test', avatarUrl: '/a.png' }, 'realm-a');
   store.getState().applyRuntimeAccountProjection(projectRuntimeAccountAuthState({ ...status, sequence: '2' }, store.getState().auth.user));
   assert.equal(store.getState().auth.user?.email, 'a@example.test');
   assert.equal(store.getState().auth.user?.avatarUrl, '/a.png');
@@ -84,5 +74,4 @@ test('hydration followed by the real Runtime snapshot projector retains the reco
   store.getState().applyRuntimeAccountProjection(projectRuntimeAccountAuthState({ ...status, sequence: '3', authorizationRevision: 'revision-2' }, store.getState().auth.user));
   assert.equal(store.getState().auth.user?.email, undefined);
   assert.equal(store.getState().auth.user?.avatarUrl, undefined);
-  hydrator.dispose();
 });

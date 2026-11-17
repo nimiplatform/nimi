@@ -421,6 +421,7 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
   readonly commandPolicy?: NimiElectronHostCommandPolicy;
   readonly standardShellHost?: NimiElectronStandardShellHost;
+  readonly onDesktopFormalSessionInvalidated?: () => void;
   readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
   /** Fixed Desktop main sender binding; required for first-party product profiles. */
   readonly desktopHost?: NimiElectronDesktopHost;
@@ -438,6 +439,7 @@ export type NimiElectronAppActivityOpenLaunchTarget = Readonly<{
 export type RegisteredNimiElectronRuntimeBridge = {
   readonly invokeChannel: string;
   /** Main-only fresh projection from the Runtime-owned account carrier. */
+  readonly captureDesktopFormalScope?: () => AbortSignal;
   readonly readDesktopAccountSessionStatus?: () => Promise<import('#nimi-shell-account-projection').DesktopAccountSessionStatus>;
   /** Main-only observation; null invalidates a stale projection without inventing Account state. */
   readonly subscribeDesktopAccountSessionProjection?: (listener: (projection: import('#nimi-shell-account-projection').DesktopAccountSessionStatus | null) => void) => () => void;

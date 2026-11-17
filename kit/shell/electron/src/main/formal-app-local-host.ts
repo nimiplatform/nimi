@@ -104,6 +104,7 @@ export type NimiElectronFormalAppLocalHostOwner = Readonly<{
   /** Desktop-Host-private exact source resolution for one pending open request. */
   resolveAppActivityOpenLaunch: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   createResourceScope: () => NimiElectronFormalAppLocalHostResourceScope;
+  captureScope: () => AbortSignal;
   invalidateResources: () => Promise<void>;
   dispose: () => Promise<void>;
   /** Host-private critical shutdown barrier; disposal diagnostics are not success. */
@@ -137,6 +138,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
   readonly activityLaunch?: NimiElectronAppActivityLaunch;
+  readonly onSessionInvalidated?: () => void;
 }): NimiElectronFormalAppLocalHostOwner {
   const inFlightOperations = new Set<Promise<unknown>>();
   const streamClosures = new Set<Promise<void>>();
@@ -232,7 +234,9 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     pullStreams.delete(streamId);
     return { closed: Boolean(stream) };
   };
+  let scope = new AbortController();
   const invalidateFormalSessionResources = (): Promise<void> => {
+    scope.abort();
     invalidationInFlight ??= (async () => {
       const scopeResults = await Promise.allSettled(
         [...resourceScopes].map(scope => disposed ? scope.shutdown() : scope.invalidateResources()),
@@ -1237,7 +1241,13 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       { localAgentRef }, { signal, timeoutMs: DESKTOP_AGENT_REFERENCE_TIMEOUT_MS },
     ), DESKTOP_AGENT_REFERENCE_TIMEOUT_MS);
   };
-  const wrapped = wrapFormalHost({ ...implemented, resolveDesktopAgentReference }, invalidateFormalSessionResources, rebindFormalSession, trackOperation);
+  const wrapped = wrapFormalHost(
+    { ...implemented, resolveDesktopAgentReference },
+    invalidateFormalSessionResources,
+    rebindFormalSession,
+    trackOperation,
+    input.onSessionInvalidated,
+  );
   const { resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner, ...standardHost } = wrapped;
   publicHost = Object.freeze(standardHost);
   const createResourceScope = (): NimiElectronFormalAppLocalHostResourceScope => {
@@ -1279,6 +1289,10 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner,
     resolveAppActivityOpenLaunch,
     createResourceScope,
+    captureScope: () => {
+      if (scope.signal.aborted && !disposed && !invalidationInFlight) scope = new AbortController();
+      return scope.signal;
+    },
     invalidateResources,
     dispose: () => logFormalDisposalFailure(disposeOwner(), `${input.profile} formal App owner disposal`),
     // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-006
@@ -1713,6 +1727,7 @@ function wrapFormalHost(
   invalidateResources: () => Promise<void>,
   rebindSession: () => Promise<void>,
   trackOperation: FormalOperationTracker,
+  onSessionInvalidated?: () => void,
 ): FormalAppHostOperations {
   let sessionRevision = 0;
   let renewalInFlight: Promise<void> | undefined;
@@ -1758,7 +1773,9 @@ function wrapFormalHost(
           result = await invoke();
         } catch (error) {
           if (!isFormalSessionInvalid(error) || observedRevision !== sessionRevision) throw error;
-          try { await renewAfter(observedRevision); }
+          const renewal = renewAfter(observedRevision);
+          if (name !== 'sessionStatus') onSessionInvalidated?.();
+          try { await renewal; }
           catch (rebindError) {
             if (name === 'sessionStatus') throw rebindError;
             throw error;

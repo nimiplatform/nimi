@@ -7,8 +7,6 @@ import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
-import { StreamControllerProvider } from '../src/shell/renderer/features/turns/stream-controller-context.js';
-import type { StreamController } from '../src/shell/renderer/features/turns/stream-controller.js';
 import { SupportTroubleshooting } from '../src/shell/renderer/features/support/support-troubleshooting.js';
 import { initI18n } from '../src/shell/renderer/i18n/index.js';
 import {
@@ -33,22 +31,28 @@ async function setup() {
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(dom.window.document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => {} });
-  store.getState().setAuthSession({ id: 'account-a' });
+  const authenticate = (id: string, revision: string) => store.setState(({ auth }) => ({ auth: {
+    ...auth, status: 'authenticated', authorizationRevision: revision, user: { id, realmEnvironmentId: 'realm-a' },
+  } }));
+  authenticate('account-a', 'same-account-authorization');
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   const probes: ReturnType<typeof deferred<typeof ready>>[] = [];
   const business: string[] = [];
-  let stops = 0, cleanups = 0;
+  let cleanups = 0;
   let handle!: DesktopFormalSessionReadiness;
+  let sessionInvalidated: (() => void) | undefined;
   const bindings = {
     sdk: { appProduct: () => ({ auth: { status: () => {
       const probe = deferred<typeof ready>(); probes.push(probe); return probe.promise;
     } } }) },
-    app: { commands: { supportRepair: {
+    app: { events: { subscribeFormalSessionInvalidation: (listener: () => void) => {
+      sessionInvalidated = listener;
+      return () => { sessionInvalidated = undefined; };
+    } }, commands: { supportRepair: {
       loadProductControlRecord: async () => ({ state: 'ready_for_use', record: { repair: { required: false } } }),
       loadStorageDirs: async () => null,
     } } },
   } as unknown as DesktopCanonicalRendererBindings;
-  const streams = { clearAllStreams: () => { stops++; } } as unknown as StreamController;
   function Business() {
     const account = store.getState().auth.user?.id as string;
     useEffect(() => { business.push(account); return () => { cleanups++; }; }, [account]);
@@ -62,14 +66,14 @@ async function setup() {
   }
   await act(async () => root.render(
     <QueryClientProvider client={queryClient}><AppStoreProvider store={store}>
-      <DesktopRendererBindingProvider bindings={bindings}><StreamControllerProvider controller={streams}>
+      <DesktopRendererBindingProvider bindings={bindings}>
         <Consumer />
-      </StreamControllerProvider></DesktopRendererBindingProvider>
+      </DesktopRendererBindingProvider>
     </AppStoreProvider></QueryClientProvider>,
   ));
   return {
-    dom, store, queryClient, probes, business, handle: () => handle,
-    stops: () => stops, cleanups: () => cleanups,
+    dom, store, queryClient, probes, business, authenticate, invalidate: () => sessionInvalidated?.(), handle: () => handle,
+    cleanups: () => cleanups,
     async close() {
       await act(async () => root.unmount()); queryClient.clear(); dom.window.close();
       for (const [key, descriptor] of previous) {
@@ -114,7 +118,6 @@ test('failed technical readiness stays closed and an explicit retry coalesces wi
     await act(async () => fixture.probes[3]!.resolve(ready));
     assert.equal(fixture.handle().status, 'ready');
     assert.deepEqual(fixture.business, ['account-a', 'account-a']);
-    assert.ok(fixture.stops() >= 4);
   } finally { await fixture.close(); }
 });
 
@@ -126,7 +129,7 @@ test('account change hides old work immediately, cancels queries and ignores its
     const oldRead = fixture.queryClient.fetchQuery({ queryKey: ['account-a-body'], queryFn: ({ signal }) => {
       oldSignal = signal; return oldBody.promise;
     } }).catch(() => undefined);
-    await act(async () => fixture.store.getState().setAuthSession({ id: 'account-b' }));
+    await act(async () => fixture.authenticate('account-b', 'authorization-b'));
     assert.equal(fixture.handle().status, 'checking');
     assert.equal(oldSignal.aborted, true);
     assert.equal(fixture.probes.length, 2);
@@ -166,5 +169,25 @@ test('Account authorization continuity cannot turn an independently failed App s
     assert.equal(fixture.handle().reasonCode, 'local-app-snapshot-unavailable');
     assert.equal(fixture.probes.length, 1);
     assert.deepEqual(fixture.business, []);
+  } finally { await fixture.close(); }
+});
+
+
+test('owner loss and an authorization replacement each retire the established gate', async () => {
+  const fixture = await setup();
+  try {
+    await act(async () => fixture.probes[0]!.resolve(ready));
+    fixture.queryClient.setQueryData(['old-business'], 'old');
+    await act(async () => fixture.invalidate());
+    assert.equal(fixture.handle().status, 'checking');
+    assert.equal(fixture.cleanups(), 1);
+    assert.equal(fixture.queryClient.getQueryData(['old-business']), undefined);
+    await act(async () => fixture.probes[1]!.resolve({ sessionBound: false, reasonCode: 'session-invalid' }));
+    assert.equal(fixture.handle().status, 'failed');
+    await act(async () => fixture.authenticate('account-a', 'replacement-authorization'));
+    assert.equal(fixture.handle().status, 'checking');
+    await act(async () => fixture.probes[2]!.resolve(ready));
+    assert.equal(fixture.handle().status, 'ready');
+    assert.deepEqual(fixture.business, ['account-a', 'account-a']);
   } finally { await fixture.close(); }
 });

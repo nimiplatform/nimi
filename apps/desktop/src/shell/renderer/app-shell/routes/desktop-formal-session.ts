@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore, useAppStoreApi } from '../providers/app-store.js';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useStreamController } from '../../features/turns/stream-controller-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { captureAccountActionScope } from '../providers/account-action-scope.js';
+import type { AppStoreState } from '../providers/store-types.js';
 
 type Readiness = {
-  readonly accountId: string;
+  readonly scopeKey: string;
   readonly attempt: number;
   readonly status: 'checking' | 'ready' | 'failed';
   readonly reasonCode?: string;
@@ -23,33 +24,44 @@ export function useDesktopFormalSessionRecovery(): (() => void) | null {
   return useContext(DesktopFormalSessionRecoveryContext);
 }
 
+function formalScopeKey({ auth }: AppStoreState): string {
+  return (auth.status === 'authenticated' || auth.status === 'refresh-pending')
+    && auth.user?.id && auth.user.realmEnvironmentId && auth.authorizationRevision
+    ? JSON.stringify([auth.user.id, auth.user.realmEnvironmentId, auth.authorizationRevision])
+    : '';
+}
+
 // @nimi-authority: rule.nimi.runtime.protected-session.r017
 export function useDesktopFormalSessionReadiness(): DesktopFormalSessionReadiness {
-  const sdk = useDesktopRendererSdk();
+  const { sdk, app: { events } } = useDesktopRendererBindings();
   const store = useAppStoreApi();
   const queryClient = useQueryClient();
-  const streams = useStreamController();
   const authStatus = useAppStore(state => state.auth.status);
-  const accountId = useAppStore(state => typeof state.auth.user?.id === 'string' ? state.auth.user.id : '');
-  const enabled = authStatus === 'authenticated' || authStatus === 'refresh-pending';
+  const scopeKey = useAppStore(formalScopeKey);
+  const startedScope = useRef('');
+  const enabled = Boolean(scopeKey) && (authStatus === 'authenticated' || startedScope.current === scopeKey);
   const [attempt, setAttempt] = useState(0);
-  const [readiness, setReadiness] = useState<Readiness>({ accountId: '', attempt: 0, status: 'checking' });
+  const [readiness, setReadiness] = useState<Readiness>({ scopeKey: '', attempt: 0, status: 'checking' });
   const pending = useRef(false);
 
   useEffect(() => {
-    let active = true;
-    pending.current = enabled && Boolean(accountId);
-    setReadiness({ accountId, attempt, status: 'checking' });
-    if (!pending.current) return () => { active = false; };
+    if (!enabled) {
+      startedScope.current = '';
+      pending.current = false;
+      setReadiness({ scopeKey: '', attempt, status: 'checking' });
+      return;
+    }
+    const scope = captureAccountActionScope(store, { allowRefreshing: true });
+    if (!scope || formalScopeKey(store.getState()) !== scopeKey) {
+      scope?.dispose();
+      return;
+    }
+    if (startedScope.current && startedScope.current !== scopeKey) store.navigation.reset({ id: 'home' });
+    startedScope.current = scopeKey;
+    pending.current = true;
+    const stillCurrent = () => scope.isCurrent() && formalScopeKey(store.getState()) === scopeKey;
 
-    const stillCurrent = () => {
-      const auth = store.getState().auth;
-      return active && auth.user?.id === accountId
-        && (auth.status === 'authenticated' || auth.status === 'refresh-pending');
-    };
     // Retire UI work and cache before a technical probe can replace scope.
-    // Recovery never runs a saved business operation or restores its tab.
-    streams.clearAllStreams();
     const cancellation = queryClient.cancelQueries();
     queryClient.clear();
     void (async () => {
@@ -59,30 +71,29 @@ export function useDesktopFormalSessionReadiness(): DesktopFormalSessionReadines
         const projection = await sdk.appProduct().auth.status();
         if (!stillCurrent()) return;
         setReadiness({
-          accountId, attempt,
+          scopeKey, attempt,
           status: projection.sessionBound ? 'ready' : 'failed',
           ...(projection.sessionBound ? {} : { reasonCode: safeReasonCode(projection.reasonCode) }),
         });
       } catch (error) {
-        if (stillCurrent()) setReadiness({ accountId, attempt, status: 'failed', reasonCode: safeReasonCode(error) });
+        if (stillCurrent()) setReadiness({ scopeKey, attempt, status: 'failed', reasonCode: safeReasonCode(error) });
       } finally {
-        if (active) pending.current = false;
+        if (!scope.signal.aborted) pending.current = false;
       }
     })();
-    return () => { active = false; };
-  }, [accountId, attempt, enabled, queryClient, sdk, store, streams]);
+    return () => scope.dispose();
+  }, [scopeKey, attempt, enabled, queryClient, sdk, store]);
 
   const retry = useCallback(() => {
-    if (pending.current || !enabled || !accountId) return;
+    if (pending.current || !enabled) return;
     pending.current = true;
-    streams.clearAllStreams();
     store.navigation.reset({ id: 'home' });
     setAttempt(value => value + 1);
-  }, [accountId, enabled, store, streams]);
+  }, [enabled, store]);
+  useEffect(() => events.subscribeFormalSessionInvalidation(retry), [events, retry]);
 
-  // Hide the previous account/attempt in the same render, before effects or
-  // a late old technical projection can grant access to its children.
-  if (!enabled || !accountId || readiness.accountId !== accountId || readiness.attempt !== attempt) {
+  // A changed scope or invalidated attempt hides children before effects run.
+  if (!enabled || readiness.scopeKey !== scopeKey || readiness.attempt !== attempt) {
     return { status: 'checking', retry };
   }
   return { status: readiness.status, reasonCode: readiness.reasonCode, retry };
