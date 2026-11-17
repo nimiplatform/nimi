@@ -44,6 +44,7 @@ export function resolveRealmChatAttachmentPreviewText(payload: unknown): string 
   const record = asRecord(payload);
   const attachment = asRecord(record?.attachment);
   const preview = asRecord(attachment?.preview);
+  if (resolveTimelineAttachmentRecord(payload)?.unavailable === true) return 'Attachment unavailable';
   const attachmentTitle = normalizeString(attachment?.title || attachment?.subtitle);
   if (attachmentTitle) {
     return attachmentTitle;
@@ -75,6 +76,7 @@ export function resolveTimelineAttachmentRecord(payload: unknown): Record<string
   if (!attachment) {
     return null;
   }
+  if (attachment.unavailable === true) return attachment;
   const attachmentDisplayKind = normalizeString(attachment.displayKind).toUpperCase();
   if (attachmentDisplayKind === 'IMAGE' || attachmentDisplayKind === 'VIDEO') {
     return attachment;
@@ -87,8 +89,10 @@ export function resolveTimelineAttachmentRecord(payload: unknown): Record<string
   return attachment;
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.media-delivery
 export function resolveRealmChatMediaUrl(payload: unknown, realmBaseUrl: string): string {
   const attachment = resolveTimelineAttachmentRecord(payload);
+  if (attachment?.unavailable === true) return '';
   const delivery = readMediaDelivery(attachment?.delivery);
   if (delivery) return delivery.previewUrl ?? delivery.video?.hlsUrl ?? selectMediaImage(delivery, 'chat')?.src ?? '';
   return resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: normalizeString(attachment?.externalUrl) }) || '';

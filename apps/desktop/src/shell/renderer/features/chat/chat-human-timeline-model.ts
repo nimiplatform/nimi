@@ -195,6 +195,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
 
   const canonicalMessages: ConversationCanonicalMessage[] = useMemo(
     () => timelineMessages.map((message) => {
+      const attachment = resolveTimelineAttachmentRecord(message.payload);
       const display = getRealmChatTimelineDisplayModel(message, currentUserId);
       const attachmentDisplayKind = resolveAttachmentDisplayKind(message.payload);
       const mediaUrl = display.isMediaMessage
@@ -231,7 +232,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
         senderKind: 'human' as const,
         metadata: {
           realmMessage: message,
-          mediaDelivery: readMediaDelivery(resolveTimelineAttachmentRecord(message.payload)?.delivery),
+          mediaDelivery: attachment?.unavailable === true ? null : readMediaDelivery(attachment?.delivery),
           refreshMedia: () => realmHumanChatData.refreshMessageMedia(String(selectedChatId), String(message.id)),
           openMediaOriginal: openExternalUrl,
           display,

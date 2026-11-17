@@ -367,7 +367,8 @@ export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
       // `around` is the existing Realm-owned message-id read, not a synthesized paging cursor.
       const result = await sdk.realm().humanChats.listMessages({ path: { chatId }, query: { around: messageId, limit: 1 } });
       const message = result.items.find((item) => item.id === messageId && item.chatId === chatId);
-      return readMediaDelivery(resolveTimelineAttachmentRecord(normalizeRealmMessagePayload(message?.payload))?.delivery);
+      const attachment = resolveTimelineAttachmentRecord(normalizeRealmMessagePayload(message?.payload));
+      return attachment?.unavailable === true ? null : readMediaDelivery(attachment?.delivery);
     },
     loadMoreChatMessages: (chatId: string, cursor?: string, pageSize = 20) =>
       loadMoreChatMessages(chatId, cursor, pageSize, service, emit),

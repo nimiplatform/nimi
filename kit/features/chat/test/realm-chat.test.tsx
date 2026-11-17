@@ -641,6 +641,14 @@ describe('chat realm helpers', () => {
   });
 
   it('resolves canonical attachment urls and nested previews without legacy ids', () => {
+    const unavailable = { attachment: { targetType: 'RESOURCE', targetId: 'resource-1', unavailable: true, displayKind: 'CARD',
+      externalUrl: 'https://media.example/stale', preview: { displayKind: 'IMAGE', externalUrl: 'https://media.example/stale-preview' } } };
+    expect(resolveRealmChatMediaUrl(unavailable, 'https://realm.example')).toBe('');
+    expect(resolveRealmChatAttachmentPreviewText(unavailable)).toBe('Attachment unavailable');
+    const availableImage = { attachment: { displayKind: 'IMAGE', externalUrl: 'https://media.example/available',
+      preview: { displayKind: 'IMAGE', unavailable: true } } };
+    expect(resolveRealmChatMediaUrl(availableImage, '')).toBe('https://media.example/available');
+    expect(resolveRealmChatAttachmentPreviewText(availableImage)).toBe('Image');
     expect(resolveRealmChatMediaUrl({
       attachment: { externalUrl: 'https://cdn.example.com/media.mp4' },
       imageId: 'legacy-image',
