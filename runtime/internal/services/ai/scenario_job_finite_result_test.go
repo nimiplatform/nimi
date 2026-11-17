@@ -1,11 +1,13 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,6 +16,95 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
+
+type cancelBetweenFiniteJobBodyReads struct {
+	*runtimeartifact.DiskStore
+	secondRead chan struct{}
+}
+
+func (store *cancelBetweenFiniteJobBodyReads) OpenJobBody(ctx context.Context, jobID, id string) (*runtimeartifact.ArtifactSource, bool) {
+	if strings.HasSuffix(id, "-result-2") {
+		close(store.secondRead)
+		<-ctx.Done()
+	}
+	return store.DiskStore.OpenJobBody(ctx, jobID, id)
+}
+
+func TestFiniteMultiBodyCancelReleasesDiskReaders(t *testing.T) {
+	image := l1CarrierPNGBytes(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprintf(w, `{"data":{"image_urls":["http://%s/first","http://%s/second"]},"base_resp":{"status_code":0}}`, r.Host, r.Host)
+		case http.MethodGet:
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(image)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	f := newManagedCloudScenarioTestFixture(t, "minimax", "image-01", server.URL, Config{AllowLoopbackEndpoint: true})
+	jobs, err := newScenarioJobStoreForLocalStatePath(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	disk, err := runtimeartifact.NewDiskStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifacts := &cancelBetweenFiniteJobBodyReads{DiskStore: disk, secondRead: make(chan struct{})}
+	f.service.scenarioJobs = jobs
+	f.service.SetRuntimeArtifactStore(artifacts)
+	owner := scenarioJobUserContext("nimi.desktop", "user-001")
+	submitted, err := f.service.SubmitScenarioJob(withCloudScenarioTestIntent(owner, "image.generate", f.targetRef), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "two images", N: testInt32(2), ResponseFormat: "url"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := submitted.GetJob().GetJobId()
+	t.Cleanup(func() {
+		_, _ = f.service.CancelScenarioJob(owner, &runtimev1.CancelScenarioJobRequest{JobId: id})
+		waitScenarioJobWorkExit(t, jobs, id)
+	})
+	select {
+	case <-artifacts.secondRead:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the worker did not reach the second body with the first held")
+	}
+	otherOwner := &runtimeartifact.ArtifactOwner{SubjectUserID: "user-001", RegisteredAppSubject: "other-subject", AppID: "other.app"}
+	written := make(chan error, 1)
+	go func() {
+		written <- disk.Put("other-result", runtimeartifact.ArtifactRecord{Owner: otherOwner, Bytes: []byte("independent")})
+	}()
+	select {
+	case err := <-written:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("the other App could not write during the first App's held read")
+	}
+	canceled, err := f.service.CancelScenarioJob(owner, &runtimev1.CancelScenarioJobRequest{JobId: id})
+	if err != nil || canceled.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("Cancel did not persist the expected status: %v %v", canceled, err)
+	}
+	waitScenarioJobWorkExit(t, jobs, id)
+	for _, suffix := range []string{"-result-1", "-result-2"} {
+		if _, visible := disk.Stat(id + suffix); visible {
+			t.Fatalf("canceled Job published %s", suffix)
+		}
+		if err := disk.DeleteJobBody(id, id+suffix); err != nil {
+			t.Fatalf("body %s still has a reader after work exit: %v", suffix, err)
+		}
+	}
+	if result, ok := disk.Get("other-result"); !ok || result.Owner.AppID != otherOwner.AppID || string(result.Bytes) != "independent" {
+		t.Fatalf("the other App did not retain its result: %v", result)
+	}
+}
 
 func TestFiniteURLsRemainOwnedAcrossPartialDownloadAndReopen(t *testing.T) {
 	var creates, firstBodies, secondBodies atomic.Int32

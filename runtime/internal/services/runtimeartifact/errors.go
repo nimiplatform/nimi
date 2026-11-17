@@ -10,6 +10,7 @@ var ErrInvalidArtifactID = errors.New("runtimeartifact: artifact_id is required"
 // be normalized safely.
 var ErrInvalidArtifactRecord = errors.New("runtimeartifact: artifact record is invalid")
 
-// ErrArtifactTooLarge is returned before committing custody that exceeds the
-// Runtime-owned streamed artifact bound.
+// ErrArtifactTooLarge reports a body that exceeds its custody or read bound.
 var ErrArtifactTooLarge = errors.New("runtimeartifact: artifact body is too large")
+
+var errArtifactUnavailable = errors.New("runtimeartifact: artifact body is unavailable")

@@ -144,6 +144,13 @@ func (s *countedCloudCaptureStore) Open(ctx context.Context, id string) (*runtim
 	return s.MemoryStore.Open(ctx, id)
 }
 
+func (s *countedCloudCaptureStore) OpenChecked(ctx context.Context, id string, check func(runtimeartifact.ArtifactRecord) error) (*runtimeartifact.ArtifactSource, error) {
+	if id == "owned-image" {
+		s.opens.Add(1)
+	}
+	return s.MemoryStore.OpenChecked(ctx, id, check)
+}
+
 func TestCloudActionLookupAvoidsRecaptureWithoutWholeRowReservation(t *testing.T) {
 	f, ctx := cloudImageArtifactFixture(t)
 	store, err := newScenarioJobStoreForLocalStatePath(filepath.Join(t.TempDir(), "state.json"))

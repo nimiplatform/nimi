@@ -34,9 +34,6 @@ func (s *Service) ReadLocalAppArtifact(ctx context.Context, req *runtimev1.ReadL
 	}
 	defer func() { _ = source.Body.Close() }()
 	record := source.Record
-	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
-	}
 	payload, readErr := io.ReadAll(io.LimitReader(source.Body, runtimeartifact.MaxInlineBytes+1))
 	if readErr != nil || int64(len(payload)) != record.SizeBytes {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)

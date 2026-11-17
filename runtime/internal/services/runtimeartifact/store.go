@@ -116,6 +116,9 @@ type Store interface {
 	PutStream(context.Context, string, ArtifactRecord, io.ReadCloser) error
 	Stat(string) (ArtifactRecord, bool)
 	Open(context.Context, string) (*ArtifactSource, bool)
+	// OpenChecked applies check to the metadata of the same body it would
+	// open, before reading bytes. A rejected check is returned to the caller.
+	OpenChecked(context.Context, string, func(ArtifactRecord) error) (*ArtifactSource, error)
 	Delete(artifactID string) error
 	CleanupGeneratedVoiceArtifacts(selector GeneratedVoiceArtifactSelector) ([]string, error)
 	Len() int
@@ -216,19 +219,42 @@ func (s *MemoryStore) Stat(artifactID string) (ArtifactRecord, bool) {
 // Open returns one immutable in-memory snapshot that remains readable after a
 // concurrent delete or overwrite attempt.
 func (s *MemoryStore) Open(ctx context.Context, artifactID string) (*ArtifactSource, bool) {
-	if err := ctx.Err(); err != nil {
-		return nil, false
+	source, err := s.OpenChecked(ctx, artifactID, nil)
+	return source, err == nil
+}
+
+func (s *MemoryStore) OpenChecked(ctx context.Context, artifactID string, check func(ArtifactRecord) error) (*ArtifactSource, error) {
+	if ctx == nil {
+		return nil, errArtifactUnavailable
 	}
-	record, ok := s.Get(artifactID)
-	if !ok || !artifactRecordIntegrityValid(record) {
-		return nil, false
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	s.mu.RLock()
+	record, ok := s.records[strings.TrimSpace(artifactID)]
+	s.mu.RUnlock()
+	if !ok || (record.JobCandidate != nil && !record.JobCandidate.Published) {
+		return nil, errArtifactUnavailable
+	}
+	metadata := record
+	metadata.Bytes = nil
+	metadata = cloneArtifactRecord(metadata)
+	if check != nil {
+		if err := check(metadata); err != nil {
+			return nil, err
+		}
+	}
+	if !artifactRecordIntegrityValid(record) {
+		return nil, errArtifactUnavailable
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	payload := bytes.Clone(record.Bytes)
-	record.Bytes = nil
 	return &ArtifactSource{
-		Record: record,
+		Record: metadata,
 		Body:   &memoryArtifactBody{Reader: *bytes.NewReader(payload)},
-	}, true
+	}, nil
 }
 
 // Delete removes an artifact record. Idempotent: deleting missing id is

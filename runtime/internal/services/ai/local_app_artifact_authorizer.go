@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -39,6 +40,9 @@ func (s *Service) openAuthorizedLocalAppArtifact(
 	source, err := runtimeartifact.OpenAuthorizedLocalAppArtifact(ctx, s.runtimeArtifacts, artifactID, runtimeartifact.LocalAppArtifactOwner{
 		AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject,
 	}, operation)
+	if errors.Is(err, runtimeartifact.ErrArtifactTooLarge) {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	}
 	if err != nil {
 		return forbidden()
 	}

@@ -39,6 +39,14 @@ func (s *captureReadCountingStore) Open(ctx context.Context, id string) (*runtim
 	return source, ok
 }
 
+func (s *captureReadCountingStore) OpenChecked(ctx context.Context, id string, check func(runtimeartifact.ArtifactRecord) error) (*runtimeartifact.ArtifactSource, error) {
+	source, err := s.DiskStore.OpenChecked(ctx, id, check)
+	if err == nil && id == "source-owned" {
+		source.Body = &captureReadCountingBody{ReadSeekCloser: source.Body, seeks: &s.seeks}
+	}
+	return source, err
+}
+
 type typedMusicBodyTestHost struct{ calls atomic.Int32 }
 
 func (h *typedMusicBodyTestHost) ExecuteMusic(ctx context.Context, plan *capabilitydriver.MusicInvocationPlan, onStart localexecution.MusicExecutionStartFunc) (localexecution.MusicResult, error) {

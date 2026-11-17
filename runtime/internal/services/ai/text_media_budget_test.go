@@ -48,6 +48,11 @@ func (s *trackedBudgetArtifactStore) Open(ctx context.Context, id string) (*runt
 	return s.Store.Open(ctx, id)
 }
 
+func (s *trackedBudgetArtifactStore) OpenChecked(ctx context.Context, id string, check func(runtimeartifact.ArtifactRecord) error) (*runtimeartifact.ArtifactSource, error) {
+	s.opened = append(s.opened, id)
+	return s.Store.OpenChecked(ctx, id, check)
+}
+
 func TestOwnedMediaBudgetStopsBeforeNextBodyOpenAndCleansMaterializedFiles(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("TMP", dir)

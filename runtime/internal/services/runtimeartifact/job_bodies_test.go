@@ -266,3 +266,111 @@ func TestJobBodyBorrowReleaseCannotReleaseLaterBorrow(t *testing.T) {
 		t.Fatalf("old release removed new pin: %v", err)
 	}
 }
+
+func TestDiskJobBodyReaderAllowsOtherBodiesAndAppPublication(t *testing.T) {
+	store, err := NewDiskStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerA := &ArtifactOwner{SubjectUserID: "account", RegisteredAppSubject: "subject-a", AppID: "app-a"}
+	ownerB := &ArtifactOwner{SubjectUserID: "account", RegisteredAppSubject: "subject-b", AppID: "app-b"}
+	stage := func(job string, owner *ArtifactOwner, ids ...string) {
+		t.Helper()
+		slots := make([]JobBodySlot, 0, len(ids))
+		for _, id := range ids {
+			slots = append(slots, JobBodySlot{ArtifactID: id, MaxBytes: 1024})
+		}
+		if err := store.PrepareJobBodies(job, owner, slots); err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range ids {
+			if err := store.StageJobBody(t.Context(), id, ArtifactRecord{ProducerJobID: job, Owner: owner}, io.NopCloser(bytes.NewBufferString(id))); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	stage("job-a", ownerA, "first", "second")
+	stage("job-b", ownerB, "independent")
+	first, ok := store.OpenJobBody(t.Context(), "job-a", "first")
+	if !ok {
+		t.Fatal("first result did not open")
+	}
+	defer first.Body.Close()
+
+	committing, finishCommit := make(chan struct{}), make(chan struct{})
+	defer func() {
+		select {
+		case <-finishCommit:
+		default:
+			close(finishCommit)
+		}
+	}()
+	published := make(chan error, 1)
+	go func() {
+		published <- store.PublishJobBodies("job-b", []string{"independent"}, func() error {
+			close(committing)
+			<-finishCommit
+			return nil
+		})
+	}()
+	select {
+	case <-committing:
+	case <-time.After(time.Second):
+		t.Fatal("App B could not enter its commit while A held the first result")
+	}
+	opened := make(chan bool, 1)
+	go func() {
+		second, ok := store.OpenJobBody(t.Context(), "job-a", "second")
+		if ok {
+			_ = second.Body.Close()
+		}
+		opened <- ok
+	}()
+	close(finishCommit)
+	select {
+	case err := <-published:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("App B could not complete its commit")
+	}
+	select {
+	case ok := <-opened:
+		if !ok {
+			t.Fatal("second result did not open")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("the second result waited for the first to close")
+	}
+	record, ok := store.Get("independent")
+	if !ok || !artifactOwnersEqual(record.Owner, ownerB) || string(record.Bytes) != "independent" {
+		t.Fatalf("App B's independent result was unavailable: %+v", record)
+	}
+
+	// Each close belongs to one handle, even across reuse of the same ID.
+	other, ok := store.OpenJobBody(t.Context(), "job-a", "first")
+	if !ok {
+		t.Fatal("second reader of the first result did not open")
+	}
+	defer other.Body.Close()
+	_ = first.Body.Close()
+	_ = first.Body.Close()
+	if err := store.DeleteJobBody("job-a", "first"); !errors.Is(err, ErrJobBodyInUse) {
+		t.Fatalf("deletion while another reader holds the payload: %v", err)
+	}
+	_ = other.Body.Close()
+	if err := store.DeleteJobBody("job-a", "first"); err != nil {
+		t.Fatal(err)
+	}
+	stage("job-a", ownerA, "first")
+	newReader, ok := store.OpenJobBody(t.Context(), "job-a", "first")
+	if !ok {
+		t.Fatal("new payload did not open")
+	}
+	defer newReader.Body.Close()
+	_ = other.Body.Close()
+	if err := store.DeleteJobBody("job-a", "first"); !errors.Is(err, ErrJobBodyInUse) {
+		t.Fatalf("old close released a reader of the replacement: %v", err)
+	}
+}

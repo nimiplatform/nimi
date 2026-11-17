@@ -164,6 +164,9 @@ func (s *DiskStore) PrepareJobBodies(jobID string, owner *ArtifactOwner, slots [
 			}
 			continue
 		}
+		if s.bodyInUseLocked(slot.ArtifactID) {
+			return ErrJobBodyInUse
+		}
 		fresh = append(fresh, slot)
 	}
 	var created []diskArtifactRecord
@@ -251,7 +254,7 @@ func (s *DiskStore) openJobBodyImport(id string, record ArtifactRecord) (*os.Fil
 	if !ok || r.JobCandidate == nil || r.JobCandidate.Complete || r.ProducerJobID != record.ProducerJobID || !artifactOwnersEqual(artifactOwnerFromDisk(r.Owner), record.Owner) {
 		return nil, r, 0, ErrInvalidArtifactRecord
 	}
-	if s.activeJobBodies[id] {
+	if s.bodyInUseLocked(id) {
 		return nil, r, 0, ErrJobBodyInUse
 	}
 	file, err := os.OpenFile(filepath.Join(s.payloadsDir, r.PayloadFile), os.O_RDWR, 0600)
@@ -421,7 +424,7 @@ func (s *DiskStore) ReconcileJobBodyPublications(published func(string, string) 
 		if r.JobCandidate != nil && len(owned) > 0 && owned[0] != nil {
 			hasOwner = owned[0](r.ProducerJobID)
 		}
-		if r.JobCandidate != nil && !s.jobBodyVisibleLocked(r) && !s.activeJobBodies[r.ArtifactID] && !hasOwner {
+		if r.JobCandidate != nil && !s.jobBodyVisibleLocked(r) && !s.bodyInUseLocked(r.ArtifactID) && !hasOwner {
 			if err := s.deleteDiskRecordByRecordLocked(r); err != nil {
 				return fmt.Errorf("unpublished capture cleanup remains pending: %w", err)
 			}
@@ -470,16 +473,15 @@ func (s *DiskStore) DeleteJobBody(jobID, id string) error {
 	if r.ProducerJobID != jobID || r.JobCandidate == nil || r.JobCandidate.Published || s.publishedJobBodies[id] {
 		return ErrInvalidArtifactRecord
 	}
-	if s.activeJobBodies[id] {
-		return ErrJobBodyInUse
-	}
 	return s.deleteDiskRecordByRecordLocked(r)
 }
 
 // BorrowJobBodyFile pins a private complete input for an owned codec process.
-// Unlike Open's reader lock, this per-body use does not block writes to the
-// other owned output slots while the codec is reading its input.
+// The codec owns this borrow until it exits. Other artifacts remain usable.
 func (s *DiskStore) BorrowJobBodyFile(ctx context.Context, jobID, id string) (string, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return "", nil, err
+	}
 	s.mu.Lock()
 	r, ok := s.readDiskRecordLocked(id)
 	if !ok || r.ProducerJobID != jobID || r.JobCandidate == nil || !r.JobCandidate.Complete || s.activeJobBodies[id] {
@@ -502,6 +504,10 @@ func (s *DiskStore) BorrowJobBodyFile(ctx context.Context, jobID, id string) (st
 	hash := sha256.New()
 	size, err := copyArtifactStream(ctx, io.Discard, hash, file)
 	_ = file.Close()
+	if err := ctx.Err(); err != nil {
+		release()
+		return "", nil, err
+	}
 	if err != nil || size != r.SizeBytes || "sha256:"+hex.EncodeToString(hash.Sum(nil)) != r.ContentSHA256 {
 		release()
 		return "", nil, ErrInvalidArtifactRecord

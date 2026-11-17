@@ -197,6 +197,11 @@ func TestNativeJobReusesCompleteBodiesAndPublishesOnlyAfterWholeResultCommit(t *
 	defer server.Close()
 	endpoint = server.URL
 	f := newManagedCloudScenarioTestFixture(t, "dashscope", "wan2.6-t2i", endpoint, Config{AllowLoopbackEndpoint: true})
+	artifacts, err := runtimeartifact.NewDiskStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.service.SetRuntimeArtifactStore(artifacts)
 	owner := scenarioJobUserContext("nimi.desktop", "user-001")
 	response, err := f.service.SubmitScenarioJob(withCloudScenarioTestIntent(owner, "image.generate", f.targetRef), &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001"}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "two views", N: testInt32(2)}}}})
 	if err != nil {

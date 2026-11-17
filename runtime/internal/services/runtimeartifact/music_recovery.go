@@ -89,7 +89,7 @@ func (s *DiskStore) MusicRecoverySnapshot(now time.Time) (map[string]MusicRecove
 		if !ok {
 			return nil, 0, ErrInvalidArtifactRecord
 		}
-		if !now.Before(metadata.MusicRecoveryUntil) && (record.JobCandidate == nil || s.jobBodyVisibleLocked(record)) && !s.activeJobBodies[record.ArtifactID] {
+		if !now.Before(metadata.MusicRecoveryUntil) && (record.JobCandidate == nil || s.jobBodyVisibleLocked(record)) && !s.bodyInUseLocked(record.ArtifactID) {
 			if err := s.deleteDiskRecordByRecordLocked(record); err != nil {
 				return nil, 0, fmt.Errorf("expire music recovery body: %w", err)
 			}

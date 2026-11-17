@@ -29,6 +29,7 @@ type DiskStore struct {
 	root               string
 	recordsDir         string
 	payloadsDir        string
+	bodyReads          map[string]*diskArtifactReads
 	activeJobBodies    map[string]bool
 	jobBodyImports     map[string]int64
 	jobStagingRoots    []string
@@ -161,6 +162,9 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 		}
 		return nil
 	}
+	if s.bodyInUseLocked(artifactID) {
+		return ErrJobBodyInUse
+	}
 	if err := writeFileAtomic(filepath.Join(s.payloadsDir, payloadFile), normalized.Bytes, 0o600); err != nil {
 		return fmt.Errorf("write artifact payload: %w", err)
 	}
@@ -264,6 +268,9 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 		}
 		return writeFileAtomic(filepath.Join(s.recordsDir, key+".json"), mergedMetadata, 0o600)
 	}
+	if s.bodyInUseLocked(artifactID) {
+		return ErrJobBodyInUse
+	}
 	finalPayloadPath := filepath.Join(s.payloadsDir, payloadFile)
 	if err := os.Rename(candidatePath, finalPayloadPath); err != nil {
 		return fmt.Errorf("commit artifact payload: %w", err)
@@ -276,17 +283,12 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 }
 
 func (s *DiskStore) Get(artifactID string) (ArtifactRecord, bool) {
-	artifactID = strings.TrimSpace(artifactID)
-	if artifactID == "" {
+	diskRecord, release, ok := s.pinBody(strings.TrimSpace(artifactID), "")
+	if !ok {
 		return ArtifactRecord{}, false
 	}
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	if !ok || !s.jobBodyVisibleLocked(diskRecord) {
-		return ArtifactRecord{}, false
-	}
-	return s.artifactFromDiskRecordLocked(diskRecord)
+	defer release()
+	return s.artifactFromDiskRecord(diskRecord)
 }
 
 // Stat returns committed metadata without reading the payload body.
@@ -304,65 +306,136 @@ func (s *DiskStore) Stat(artifactID string) (ArtifactRecord, bool) {
 	return artifactMetadataFromDiskRecord(diskRecord)
 }
 
-// Open validates and pins one committed payload under a read lock. Delete and
-// cleanup wait until the returned body is closed, preventing mid-copy removal.
+// Open validates and pins one committed payload for the life of the returned
+// body. Other artifacts can be read and written while the caller holds it.
 func (s *DiskStore) Open(ctx context.Context, artifactID string) (*ArtifactSource, bool) {
-	return s.openBody(ctx, artifactID, "")
+	source, err := s.OpenChecked(ctx, artifactID, nil)
+	return source, err == nil
+}
+
+func (s *DiskStore) OpenChecked(ctx context.Context, artifactID string, check func(ArtifactRecord) error) (*ArtifactSource, error) {
+	return s.openBody(ctx, artifactID, "", check)
 }
 
 func (s *DiskStore) OpenJobBody(ctx context.Context, jobID, artifactID string) (*ArtifactSource, bool) {
 	if strings.TrimSpace(jobID) == "" {
 		return nil, false
 	}
-	return s.openBody(ctx, artifactID, jobID)
+	source, err := s.openBody(ctx, artifactID, jobID, nil)
+	return source, err == nil
 }
 
-func (s *DiskStore) openBody(ctx context.Context, artifactID, jobID string) (*ArtifactSource, bool) {
+func (s *DiskStore) openBody(ctx context.Context, artifactID, jobID string, check func(ArtifactRecord) error) (*ArtifactSource, error) {
 	artifactID = strings.TrimSpace(artifactID)
-	if ctx == nil || artifactID == "" {
-		return nil, false
+	if ctx == nil {
+		return nil, errArtifactUnavailable
 	}
-	s.mu.RLock()
-	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	privateAllowed := jobID != "" && diskRecord.ProducerJobID == jobID && diskRecord.JobCandidate != nil && diskRecord.JobCandidate.Complete
-	if !ok || (!s.jobBodyVisibleLocked(diskRecord) && !privateAllowed) {
-		s.mu.RUnlock()
-		return nil, false
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
+	diskRecord, release, ok := s.pinBody(artifactID, jobID)
+	if !ok {
+		return nil, errArtifactUnavailable
+	}
+	handedOff := false
+	defer func() {
+		if !handedOff {
+			release()
+		}
+	}()
 	metadata, ok := artifactMetadataFromDiskRecord(diskRecord)
 	if !ok {
-		s.mu.RUnlock()
-		return nil, false
+		return nil, errArtifactUnavailable
+	}
+	if check != nil {
+		if err := check(metadata); err != nil {
+			return nil, err
+		}
+	}
+	if metadata.SizeBytes > MaxCustodyBytes {
+		return nil, errArtifactUnavailable
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	file, err := os.Open(filepath.Join(s.payloadsDir, diskRecord.PayloadFile))
 	if err != nil {
-		s.mu.RUnlock()
-		return nil, false
+		return nil, errArtifactUnavailable
 	}
+	defer func() {
+		if !handedOff {
+			_ = file.Close()
+		}
+	}()
 	hasher := sha256.New()
-	observedSize, err := copyArtifactStream(ctx, io.Discard, hasher, file)
+	observedSize, err := copyArtifactStream(ctx, io.Discard, hasher, io.LimitReader(file, metadata.SizeBytes+1))
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
 	if err != nil || observedSize != metadata.SizeBytes ||
 		!strings.EqualFold(metadata.ContentSHA256, "sha256:"+hex.EncodeToString(hasher.Sum(nil))) {
-		_ = file.Close()
-		s.mu.RUnlock()
-		return nil, false
+		return nil, errArtifactUnavailable
 	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		_ = file.Close()
-		s.mu.RUnlock()
-		return nil, false
+		return nil, errArtifactUnavailable
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	handedOff = true
 	return &ArtifactSource{
 		Record:   metadata,
 		filePath: file.Name(),
-		Body: &lockedDiskArtifactBody{
-			File:   file,
-			unlock: s.mu.RUnlock,
+		Body: &pinnedDiskArtifactBody{
+			File:    file,
+			release: release,
 		},
+	}, nil
+}
+
+type diskArtifactReads struct {
+	count   int
+	drained chan struct{}
+}
+
+func (s *DiskStore) pinBody(artifactID, jobID string) (diskArtifactRecord, func(), bool) {
+	if artifactID == "" {
+		return diskArtifactRecord{}, nil, false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, ok := s.readDiskRecordLocked(artifactID)
+	privateAllowed := jobID != "" && record.ProducerJobID == jobID && record.JobCandidate != nil && record.JobCandidate.Complete
+	if !ok || (!s.jobBodyVisibleLocked(record) && !privateAllowed) {
+		return diskArtifactRecord{}, nil, false
+	}
+	reads := s.bodyReads[artifactID]
+	if reads == nil {
+		if s.bodyReads == nil {
+			s.bodyReads = make(map[string]*diskArtifactReads)
+		}
+		reads = &diskArtifactReads{}
+		s.bodyReads[artifactID] = reads
+	}
+	reads.count++
+	return record, func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		reads.count--
+		if reads.count == 0 {
+			delete(s.bodyReads, artifactID)
+			if reads.drained != nil {
+				close(reads.drained)
+			}
+		}
 	}, true
 }
 
-func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) (ArtifactRecord, bool) {
+func (s *DiskStore) bodyInUseLocked(artifactID string) bool {
+	return s.activeJobBodies[artifactID] || s.bodyReads[artifactID] != nil
+}
+
+func (s *DiskStore) artifactFromDiskRecord(diskRecord diskArtifactRecord) (ArtifactRecord, bool) {
 	payload, err := os.ReadFile(filepath.Join(s.payloadsDir, diskRecord.PayloadFile))
 	if err != nil {
 		return ArtifactRecord{}, false
@@ -392,12 +465,11 @@ func (s *DiskStore) Delete(artifactID string) error {
 	if artifactID == "" {
 		return ErrInvalidArtifactID
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.activeJobBodies[artifactID] {
-		return ErrJobBodyInUse
-	}
-	return s.deleteDiskRecordLocked(artifactID)
+	path := filepath.Join(s.recordsDir, diskArtifactKey(artifactID)+".json")
+	_, err := s.deleteMatchingRecord(path, func(record diskArtifactRecord) bool {
+		return record.ArtifactID == artifactID
+	})
+	return err
 }
 
 func (s *DiskStore) CleanupGeneratedVoiceArtifacts(selector GeneratedVoiceArtifactSelector) ([]string, error) {
@@ -406,8 +478,6 @@ func (s *DiskStore) CleanupGeneratedVoiceArtifacts(selector GeneratedVoiceArtifa
 	if agentID == "" && conversationAnchorID == "" {
 		return nil, ErrInvalidArtifactID
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	entries, err := os.ReadDir(s.recordsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -415,26 +485,24 @@ func (s *DiskStore) CleanupGeneratedVoiceArtifacts(selector GeneratedVoiceArtifa
 		}
 		return nil, err
 	}
+	matches := func(record diskArtifactRecord) bool {
+		metadata := record.GeneratedVoice
+		return metadata != nil &&
+			(agentID == "" || strings.TrimSpace(metadata.AgentID) == agentID) &&
+			(conversationAnchorID == "" || strings.TrimSpace(metadata.ConversationAnchorID) == conversationAnchorID)
+	}
 	deleted := make([]string, 0)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
-		diskRecord, ok := s.readDiskRecordFileLocked(filepath.Join(s.recordsDir, entry.Name()))
-		if !ok || diskRecord.GeneratedVoice == nil {
-			continue
-		}
-		metadata := diskRecord.GeneratedVoice
-		if agentID != "" && strings.TrimSpace(metadata.AgentID) != agentID {
-			continue
-		}
-		if conversationAnchorID != "" && strings.TrimSpace(metadata.ConversationAnchorID) != conversationAnchorID {
-			continue
-		}
-		if err := s.deleteDiskRecordByRecordLocked(diskRecord); err != nil {
+		id, err := s.deleteMatchingRecord(filepath.Join(s.recordsDir, entry.Name()), matches)
+		if err != nil {
 			return deleted, err
 		}
-		deleted = append(deleted, diskRecord.ArtifactID)
+		if id != "" {
+			deleted = append(deleted, id)
+		}
 	}
 	return deleted, nil
 }
@@ -493,15 +561,38 @@ func (s *DiskStore) readDiskRecordFileLocked(path string) (diskArtifactRecord, b
 	return diskRecord, true
 }
 
-func (s *DiskStore) deleteDiskRecordLocked(artifactID string) error {
-	diskRecord, ok := s.readDiskRecordLocked(artifactID)
-	if !ok {
-		return nil
+// Explicit deletion waits for readers of just this payload. Recheck the
+// record and selector after dropping the store lock.
+func (s *DiskStore) deleteMatchingRecord(path string, matches func(diskArtifactRecord) bool) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		record, ok := s.readDiskRecordFileLocked(path)
+		if !ok || !matches(record) {
+			return "", nil
+		}
+		id := record.ArtifactID
+		if s.activeJobBodies[id] {
+			return "", ErrJobBodyInUse
+		}
+		reads := s.bodyReads[id]
+		if reads == nil {
+			return id, s.deleteDiskRecordByRecordLocked(record)
+		}
+		if reads.drained == nil {
+			reads.drained = make(chan struct{})
+		}
+		drained := reads.drained
+		s.mu.Unlock()
+		<-drained
+		s.mu.Lock()
 	}
-	return s.deleteDiskRecordByRecordLocked(diskRecord)
 }
 
 func (s *DiskStore) deleteDiskRecordByRecordLocked(diskRecord diskArtifactRecord) error {
+	if s.bodyInUseLocked(diskRecord.ArtifactID) {
+		return ErrJobBodyInUse
+	}
 	if err := s.removeJobStagingLinksLocked(diskRecord); err != nil {
 		return err
 	}
@@ -677,17 +768,17 @@ func copyArtifactStream(ctx context.Context, destination io.Writer, hasher hash.
 	}
 }
 
-type lockedDiskArtifactBody struct {
+type pinnedDiskArtifactBody struct {
 	*os.File
-	once   sync.Once
-	unlock func()
+	once    sync.Once
+	release func()
+	err     error
 }
 
-func (body *lockedDiskArtifactBody) Close() error {
-	var err error
+func (body *pinnedDiskArtifactBody) Close() error {
 	body.once.Do(func() {
-		err = body.File.Close()
-		body.unlock()
+		body.err = body.File.Close()
+		body.release()
 	})
-	return err
+	return body.err
 }

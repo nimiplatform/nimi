@@ -58,12 +58,19 @@ func OpenAuthorizedLocalAppArtifact(
 		(use != LocalAppArtifactUseInlineRead && use != LocalAppArtifactUseScenarioInput && use != LocalAppArtifactUseAdoption && use != LocalAppArtifactUseAudioPreparation) {
 		return nil, ErrLocalAppArtifactUnavailable
 	}
-	source, ok := store.Open(ctx, artifactID)
-	if !ok || source == nil || source.Body == nil {
-		return nil, ErrLocalAppArtifactUnavailable
+	source, err := store.OpenChecked(ctx, artifactID, func(record ArtifactRecord) error {
+		if !localAppArtifactOwnerValid(record, owner) {
+			return ErrLocalAppArtifactUnavailable
+		}
+		if use == LocalAppArtifactUseInlineRead && record.SizeBytes > MaxInlineBytes {
+			return ErrArtifactTooLarge
+		}
+		return nil
+	})
+	if errors.Is(err, ErrArtifactTooLarge) {
+		return nil, ErrArtifactTooLarge
 	}
-	if !localAppArtifactOwnerValid(source.Record, owner) {
-		_ = source.Body.Close()
+	if err != nil || source == nil || source.Body == nil {
 		return nil, ErrLocalAppArtifactUnavailable
 	}
 	return source, nil

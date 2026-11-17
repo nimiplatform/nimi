@@ -246,6 +246,14 @@ func (corruptAdoptionArtifactStore) Open(context.Context, string) (*runtimeartif
 		Body: &adoptionReadSeekCloser{Reader: *bytes.NewReader([]byte("tampered"))},
 	}, true
 }
+func (s corruptAdoptionArtifactStore) OpenChecked(ctx context.Context, id string, check func(runtimeartifact.ArtifactRecord) error) (*runtimeartifact.ArtifactSource, error) {
+	source, _ := s.Open(ctx, id)
+	if err := check(source.Record); err != nil {
+		_ = source.Body.Close()
+		return nil, err
+	}
+	return source, nil
+}
 func (corruptAdoptionArtifactStore) Delete(string) error { return nil }
 func (corruptAdoptionArtifactStore) CleanupGeneratedVoiceArtifacts(runtimeartifact.GeneratedVoiceArtifactSelector) ([]string, error) {
 	return nil, nil

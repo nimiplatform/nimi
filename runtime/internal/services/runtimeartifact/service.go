@@ -10,6 +10,7 @@ package runtimeartifact
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sort"
@@ -132,20 +133,25 @@ func (s *Service) ReadArtifactBytes(
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 
-	source, ok := s.store.Open(ctx, artifactID)
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+	source, err := s.store.OpenChecked(ctx, artifactID, func(record ArtifactRecord) error {
+		if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
+			(s.protectedGeneratedVoiceAuthorizer == nil ||
+				!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
+		if record.SizeBytes > MaxInlineBytes {
+			return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, errArtifactUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
+		}
+		return nil, err
 	}
 	defer func() { _ = source.Body.Close() }()
 	record := source.Record
-	if !artifactOwnerMatches(record.Owner, principal.AccountID, principal.AppID) &&
-		(s.protectedGeneratedVoiceAuthorizer == nil ||
-			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record)) {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
-	}
-	if record.SizeBytes > MaxInlineBytes {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
-	}
 	payload, err := io.ReadAll(io.LimitReader(source.Body, MaxInlineBytes+1))
 	if err != nil || int64(len(payload)) != record.SizeBytes {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
