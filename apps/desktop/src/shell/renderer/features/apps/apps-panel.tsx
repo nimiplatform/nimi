@@ -91,24 +91,20 @@ export function AppsPanel({
   }, [sdk]);
   const startInstall = useCallback((approvedTargetSelector: Uint8Array) => (
     startAppsPackageInstall(sdk.machineProduct().apps.startAppPackageInstall, approvedTargetSelector)
-  ), [sdk]);
+      .finally(downloads.observer.refreshAfterMutation)
+  ), [sdk, downloads.observer]);
   const startUpdate = useCallback((approvedTargetSelector: Uint8Array, launchSelector: Uint8Array, installedVersion: string) => (
     startAppsPackageUpdate(sdk.machineProduct().apps.startAppPackageUpdate, approvedTargetSelector, launchSelector, installedVersion)
-  ), [sdk]);
-  const listPackageJobs = useCallback(async () => {
-    await downloads.observer.refresh();
-    const snapshot = downloads.observer.getSnapshot();
-    if (snapshot.status !== 'ready') throw new Error(snapshot.error ?? 'App jobs are unavailable');
-    return snapshot.jobs;
-  }, [downloads.observer]);
+      .finally(downloads.observer.refreshAfterMutation)
+  ), [sdk, downloads.observer]);
   const cancelPackageJob = useCallback(async (job: AppPackageJob) => {
     const response = await sdk.machineProduct().apps.cancelAppPackageJob({
       jobId: job.jobId,
       expectedPhase: job.phase,
       reasonCode: 'user-canceled',
-    });
+    }).finally(downloads.observer.refreshAfterMutation);
     assertCanceledPackageJobResponse(job, response);
-  }, [sdk]);
+  }, [sdk, downloads.observer]);
   const uninstall = useCallback(async (entry: DesktopAppsEntry) => {
     const release = entry.committedRelease;
     if (!release) throw new Error('App is not installed');
@@ -128,8 +124,10 @@ export function AppsPanel({
         await sdk.machineProduct().apps.cancelAppPackageJob({ jobId: job.jobId, expectedPhase: AppPackageJobPhase.QUEUED, reasonCode: 'uninstall-not-completed' }).catch(() => undefined);
       }
       throw error;
+    } finally {
+      await downloads.observer.refreshAfterMutation();
     }
-  }, [sdk]);
+  }, [sdk, downloads.observer]);
   const controller = useAppsPanelController({
     selectedEntryKey: requestedDetailEntryKey,
     cancelPackageJob,
@@ -138,7 +136,7 @@ export function AppsPanel({
     startUpdate,
     uninstall,
     listCommittedReleases,
-    listPackageJobs,
+    listPackageJobs: downloads.observer.readJobs,
     readAppAIConfig,
     readPackageInfo,
   });
@@ -158,7 +156,7 @@ export function AppsPanel({
   const getLocalImportClient = useCallback(() => sdk.machineProduct().apps, [sdk]);
   const localImportStarted = useCallback((job: AppPackageJob) => {
     void navigation.replace({ id: 'apps' });
-    void downloads.observer.refresh();
+    void downloads.observer.refreshAfterMutation();
     downloads.openDownloads(packageJobKey(job));
   }, [navigation, downloads.observer, downloads.openDownloads]);
   const localImport = useAppsLocalImport(getLocalImportClient, localImportStarted);
@@ -234,7 +232,9 @@ export function AppsPanel({
         onOpenDeveloperMode={() => {
           void navigation.push({ id: 'settings', settingsSection: 'developer' });
         }}
-        onRetry={retryProjection}
+        onRetry={() => {
+          void downloads.observer.refresh().then(retryProjection);
+        }}
         onAIConfigChanged={acknowledgeAIConfigMutation}
         actionError={actionError}
         pendingActions={pendingActions}

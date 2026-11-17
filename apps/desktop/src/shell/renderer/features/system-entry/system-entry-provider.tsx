@@ -91,7 +91,15 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
   useEffect(() => { if (nativeEnabled) void publisher.refreshContext(); }, [authenticated, ownerUserId, nativeEnabled, publisher]);
   useEffect(() => {
     if (!nativeEnabled) return;
-    return bindings.app.events.subscribeProductControlRecord(() => { void publisher.refreshContext(); });
+    let last: string | undefined;
+    return bindings.app.events.subscribeProductControlRecord(result => {
+      const root = result.ok ? result.projection.record?.dataRoot : undefined;
+      const next = result.ok
+        ? JSON.stringify([result.projection.state, root?.rootActivationId, root?.status, Boolean(result.projection.error)])
+        : 'unavailable';
+      if (last !== undefined && last !== next) void publisher.refreshContext();
+      last = next;
+    });
   }, [bindings.app.events, nativeEnabled, publisher]);
   const scope = authenticated && ownerUserId && contextOwner.current === ownerUserId && hostContext?.state === 'ready'
     ? `${hostContext.generation}:${ownerUserId}` : null;

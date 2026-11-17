@@ -145,3 +145,23 @@ test('unchanged owner job lists do not republish while actual progress still doe
   assert.equal(updates.length, count + 1);
   assert.equal(observer.getSnapshot().jobs[0]?.bytesCompleted, '125');
 });
+
+test('read-only consumers reuse the job observation, while a completed owner mutation requests a fresh read', async () => {
+  let calls = 0;
+  const first = deferred<ReturnType<typeof listed>>();
+  const client = { listAppPackageJobs: async () => ++calls === 1 ? first.promise : listed([job(2)]) } as unknown as Client;
+  const observer = createAppsJobsObserver(client, () => undefined, async () => 'root-a');
+  const initial = observer.readJobs();
+  const start = observer.start();
+  const other = observer.readJobs();
+  const afterMutation = observer.refreshAfterMutation();
+  first.resolve(listed([job(1)]));
+  assert.deepEqual(await initial, [job(1)]);
+  assert.deepEqual(await other, [job(1)]);
+  await start;
+  await afterMutation;
+  assert.equal(calls, 2);
+  assert.deepEqual(await observer.readJobs(), [job(2)]);
+  assert.equal(calls, 2);
+  observer.dispose();
+});

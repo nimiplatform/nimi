@@ -70,10 +70,14 @@ export function createSystemEntryPublisher(input: {
         queued = false;
         const draft = input.draft();
         if (!draft || context?.state !== 'ready' || draft.generation !== context.generation) continue;
-        const nextSignature = JSON.stringify(draft);
+        // Health samples can advance the envelope timestamp every second.
+        // The native heartbeat already owns liveness; section facts and their
+        // observation times still participate in the published signature.
+        const { observedAt, ...facts } = draft;
+        const nextSignature = JSON.stringify(facts);
         if (nextSignature === signature) continue;
         const captured = epoch;
-        const projection = { ...draft, revision: ++revision };
+        const projection = { ...facts, observedAt, revision: ++revision };
         try {
           await input.publish(projection);
           if (!active || captured !== epoch || context?.generation !== projection.generation) continue;

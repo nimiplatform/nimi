@@ -45,7 +45,12 @@ function errorText(error: unknown): string {
 }
 
 /** One Home observer over the existing App job List and exact control surface. */
-export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: AppsJobsSnapshot) => void, readOwnerActivation: () => Promise<string>) {
+export function createAppsJobsObserver(
+  client: AppRuntime,
+  commit: (snapshot: AppsJobsSnapshot) => void,
+  readOwnerActivation: () => Promise<string>,
+  readMutationActivation = readOwnerActivation,
+) {
   let snapshot: AppsJobsSnapshot = { jobs: [], status: 'loading', pendingIds: [], error: null };
   let disposed = false;
   let readGeneration = 0;
@@ -71,6 +76,7 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
         publish({ ...snapshot, jobs: [], status: 'loading', error: null });
       }
       const response = await client.listAppPackageJobs({});
+      if (disposed || generation !== readGeneration) return;
       const after = await readOwnerActivation();
       if (disposed || generation !== readGeneration) return;
       if (after !== owner) {
@@ -88,7 +94,16 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
   };
   return {
     getSnapshot: () => snapshot,
-    start() { disposed = false; reading = null; return refresh(); },
+    async readJobs() {
+      if (snapshot.status === 'loading') await refresh();
+      if (disposed || snapshot.status !== 'ready') throw new Error(snapshot.error ?? 'App jobs are unavailable');
+      return snapshot.jobs;
+    },
+    async refreshAfterMutation() {
+      await reading;
+      await refresh();
+    },
+    start() { disposed = false; return refresh(); },
     refresh,
     async control(command: AppDownloadCommand, jobs: readonly AppPackageJob[], beforeJobId: Uint8Array = new Uint8Array()): Promise<readonly { jobId: string; error: string | null }[]> {
       if (disposed || controlling || snapshot.status !== 'ready' || ownerActivation === null) return [];
@@ -104,7 +119,7 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
         const jobId = packageJobKey(job);
         let ownerConfirmed = false;
         try {
-          const before = await readOwnerActivation();
+          const before = await readMutationActivation();
           if (disposed) break;
           if (before !== commandOwner) {
             ownerActivation = before;
@@ -118,7 +133,7 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
                 : await client.cancelAppPackageJob({ jobId: job.jobId, expectedPhase: job.phase, reasonCode: 'user-canceled' });
           if (disposed) break;
           ownerConfirmed = false;
-          const after = await readOwnerActivation();
+          const after = await readMutationActivation();
           if (disposed) break;
           if (after !== commandOwner) {
             ownerActivation = after;
@@ -150,6 +165,6 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
       await refresh();
       return results;
     },
-    dispose() { disposed = true; ++readGeneration; },
+    dispose() { disposed = true; ++readGeneration; reading = null; },
   };
 }

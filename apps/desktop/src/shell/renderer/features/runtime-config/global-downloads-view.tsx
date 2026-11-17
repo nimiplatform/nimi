@@ -64,17 +64,19 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
   const total = activeTransfers.reduce((sum, item) => sum + (item.bytesTotal ?? 0), 0)
     + activeAppJobs.reduce((sum, job) => sum + Number(job.bytesTotal ?? 0), 0);
   const fraction = known && total > 0 ? Math.min(1, received / total) : null;
-  const active = (downloads?.activeCount ?? 0) > 0;
+  const unavailable = Boolean(downloads?.errors.length) || apps?.status === 'unavailable';
+  const label = unavailable ? `${t('runtimeConfig.downloads.title')} · ${t('runtimeConfig.downloads.readFailed')}` : t('runtimeConfig.downloads.title');
+  const active = !unavailable && (downloads?.activeCount ?? 0) > 0;
   return (
     <Tooltip
-      content={active && fraction !== null ? `${t('runtimeConfig.downloads.title')} · ${Math.round(fraction * 100)}%` : t('runtimeConfig.downloads.title')}
+      content={active && fraction !== null ? `${label} · ${Math.round(fraction * 100)}%` : label}
       placement="right"
     >
       <div className="relative flex size-11 items-center justify-center">
         <IconButton
           size="sm"
           data-testid="global-downloads-entry"
-          aria-label={t('runtimeConfig.downloads.title')}
+          aria-label={label}
           aria-current={selected ? 'page' : undefined}
           icon={<Download size={19} />}
           onClick={onOpen}
@@ -90,7 +92,7 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
             {fraction === null ? <span aria-hidden="true" className="mx-auto block size-1 rounded-full bg-[var(--nimi-action-primary-bg)]" /> : null}
           </div>
         ) : null}
-        {downloads?.activeCount && downloads.activeCount > 1 ? (
+        {active && downloads && downloads.activeCount > 1 ? (
           <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1 text-[10px] leading-4 text-[var(--nimi-action-primary-text)]">
             {downloads.activeCount}
           </span>
@@ -123,8 +125,9 @@ export function GlobalDownloadsView() {
   const [pendingClear, setPendingClear] = useState<{ scope: string; count: number; records: readonly DownloadHistoryRecord[] } | null>(null);
   const destination = useHomeDestination();
   const [appDetails, setAppDetails] = useState(false);
-  const inventory = useCapabilityInventory({ enabled: destination.id === 'downloads' && !appDetails });
-  const modelLibrary = useRuntimeModelLibrary();
+  const modelDownloadsVisible = destination.id === 'downloads' && !appDetails;
+  const inventory = useCapabilityInventory({ enabled: modelDownloadsVisible, includePreparation: false });
+  const modelLibrary = useRuntimeModelLibrary(modelDownloadsVisible);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // Cancelling a transfer with received bytes discards them; confirm that first.

@@ -1,3 +1,4 @@
+import { readDownloadRootActivation } from '../runtime-config/download-root-observation.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
@@ -34,12 +35,20 @@ export function AppsDownloadsProvider({ children, nativeVisible = true }: PropsW
     [navigation],
   );
   const showLibrary = useCallback(() => setView('library'), []);
-  const observer = useMemo(() => createAppsJobsObserver(bindings.sdk.machineProduct().apps, setSnapshot, async () => {
-    const projection = await bindings.app.commands.firstRun.getRecord();
-    const root = projection.record?.dataRoot;
-    if (projection.error || root?.status !== 'ready' || !root.rootActivationId) throw new Error(projection.error ?? 'App data root is unavailable');
-    return root.rootActivationId;
-  }), [bindings]);
+  const firstRun = bindings.app.commands.firstRun;
+  const observer = useMemo(() => createAppsJobsObserver(
+    bindings.sdk.machineProduct().apps,
+    setSnapshot,
+    () => readDownloadRootActivation(firstRun),
+    async () => {
+      const projection = await firstRun.getRecord();
+      const root = projection.record?.dataRoot;
+      if (projection.error || root?.status !== 'ready' || !root.rootActivationId) {
+        throw new Error(projection.error ?? 'App data root is unavailable');
+      }
+      return root.rootActivationId;
+    },
+  ), [bindings.sdk, firstRun]);
   useEffect(() => {
     setSnapshot(observer.getSnapshot());
     void observer.start();

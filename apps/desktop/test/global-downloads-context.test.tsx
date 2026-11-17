@@ -36,7 +36,7 @@ test('local task creation wakes idle Downloads before appearing in Runtime and r
       }),
       machineProduct: () => ({ local: { loadouts: {} } }),
     },
-    app: { commands: { firstRun: { getRecord: async () => ({ record: { dataRoot: { rootActivationId: 'test-root' } } }) } } },
+    app: { commands: { firstRun: { getSelectedDataRoot: async () => ({ state: 'ready_for_use', hostProfileScopeRoot: '/test', dataRoot: { status: 'ready', rootActivationId: 'test-root' } }) } } },
   } as unknown as DesktopCanonicalRendererBindings;
   let client!: ReturnType<typeof useRuntimeConfigLocalEnvironmentClient>;
   let setup!: ReturnType<typeof createRuntimeSetupTaskRunnerPorts>;

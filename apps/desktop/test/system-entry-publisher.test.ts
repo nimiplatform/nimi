@@ -233,3 +233,22 @@ test('active heartbeat refresh and owner recovery retain their publication behav
     assert.equal(calls.at(-1)?.revision, 1);
   } finally { publisher.stop(); }
 });
+
+test('an envelope timestamp alone does not republish an unchanged section', async () => {
+  let current = draft('a');
+  const calls: SystemEntryProjection[] = [];
+  const publisher = createSystemEntryPublisher({
+    readContext: async () => ({ generation: 'a', state: 'ready', homeVisible: true }),
+    heartbeat: async () => {}, publish: async value => { calls.push(value); }, draft: () => current,
+    onContext: () => {}, onPublished: () => {}, refreshSources: async () => {},
+  });
+  try {
+    publisher.start(); await publisher.refreshContext(); publisher.update(); await flush();
+    current = { ...current, observedAt: '2026-10-23T03:00:01.000Z' }; publisher.update(); await flush();
+    assert.equal(calls.length, 1);
+    current = { ...current, service: 'degraded', apps: { ...current.apps, observedAt: current.observedAt } };
+    publisher.update(); await flush();
+    assert.equal(calls[1]?.service, 'degraded');
+    assert.equal(calls[1]?.apps.observedAt, current.observedAt);
+  } finally { publisher.stop(); }
+});

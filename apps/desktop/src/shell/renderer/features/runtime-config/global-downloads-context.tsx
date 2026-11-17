@@ -1,3 +1,4 @@
+import { readDownloadRootActivation } from './download-root-observation.js';
 import { startDownloadPolling } from './download-polling.js';
 import { reconcileDownloadPhases, type DownloadPhaseSnapshot } from './download-phase-snapshot.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -79,19 +80,22 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
   const appPhases = apps?.jobs.map((job) => `${job.jobId}:${job.phase}`).join('|') ?? '';
   useEffect(() => {
     void queryClient.invalidateQueries({ queryKey: ['desktop', 'apps-overview'] });
-  }, [appPhases, queryClient]);
+  }, [appPhases, apps?.status, queryClient]);
   useEffect(() => {
     let active = true,
       reading = false,
-      hasActiveJobs = false;
+      activeTransfers = false,
+      activeEnvironments = false;
     const refresh = async () => {
       if (reading) return;
       reading = true;
       try {
-        const before = (await bindings.app.commands.firstRun.getRecord()).record?.dataRoot?.rootActivationId;
-        if (!before) throw Error('Download state is unavailable until the data root is ready');
+        const before = await readDownloadRootActivation(bindings.app.commands.firstRun);
+        if (!active) return;
         if (activation.current !== before) {
           activation.current = before;
+          activeTransfers = false;
+          activeEnvironments = false;
           if (active) {
             setRootActivationId(before);
             setTransfers([]);
@@ -103,21 +107,30 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
           local.listTransfers(),
           local.listEnvironmentDependencyJobs(),
         ]);
-        hasActiveJobs = (results[0].status === 'fulfilled' && results[0].value.some((item) => !isDownloadTerminal(item.state)))
-          || (results[1].status === 'fulfilled' && results[1].value.some((item) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state)));
-        const after = (await bindings.app.commands.firstRun.getRecord()).record?.dataRoot?.rootActivationId;
+        if (!active) return;
+        const after = await readDownloadRootActivation(bindings.app.commands.firstRun);
         if (!active) return;
         if (after !== before) {
+          activation.current = '';
+          activeTransfers = false;
+          activeEnvironments = false;
+          setRootActivationId('');
           setTransfers([]);
           setEnvironments([]);
           throw Error('Data location changed; refresh downloads');
         }
         const failures: string[] = [];
         setTransferStatus(results[0].status === 'fulfilled' ? 'ready' : 'unavailable');
-        if (results[0].status === 'fulfilled') { const items = results[0].value; setTransfers((previous) => replaceEqualDeep(previous, items)); }
-        else failures.push(String(results[0].reason));
-        if (results[1].status === 'fulfilled') { const items = results[1].value; setEnvironments((previous) => replaceEqualDeep(previous, items)); }
-        else failures.push(String(results[1].reason));
+        if (results[0].status === 'fulfilled') {
+          const items = results[0].value;
+          activeTransfers = items.some(item => !isDownloadTerminal(item.state));
+          setTransfers(previous => replaceEqualDeep(previous, items));
+        } else failures.push(String(results[0].reason));
+        if (results[1].status === 'fulfilled') {
+          const items = results[1].value;
+          activeEnvironments = items.some(item => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state));
+          setEnvironments(previous => replaceEqualDeep(previous, items));
+        } else failures.push(String(results[1].reason));
         const phases = reconcileDownloadPhases(phaseSnapshot.current, {
           activation: before,
           transfers: results[0].status === 'fulfilled'
@@ -159,7 +172,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
         if (active) setLoading(false);
       }
     };
-    const observer = startDownloadPolling(refresh, () => hasActiveJobs || pendingDownloads.current > 0, undefined, () => nativeVisibleRef.current);
+    const observer = startDownloadPolling(refresh, () => activeTransfers || activeEnvironments || pendingDownloads.current > 0, undefined, () => nativeVisibleRef.current);
     polling.current = observer;
     return () => {
       active = false;

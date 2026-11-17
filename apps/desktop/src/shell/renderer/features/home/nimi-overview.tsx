@@ -190,11 +190,11 @@ export function NimiOverview() {
       kind: 'download',
       id: item.installSessionId,
       title: item.sourceLabel || item.modelAssetId || item.installSessionId,
-      detail: [
+      detail: downloads?.transferStatus === 'unavailable' ? t('runtimeConfig.downloads.readFailed') : [
         item.bytesTotal ? `${formatBytes(item.bytesReceived + item.bytesReused)} / ${formatBytes(item.bytesTotal)}` : formatBytes(item.bytesReceived + item.bytesReused),
         formatTransferRate(item.speedBytesPerSec),
       ].filter(Boolean).join(' · '),
-      progress: item.bytesTotal ? { value: item.bytesReceived + item.bytesReused, max: item.bytesTotal } : null,
+      progress: downloads?.transferStatus === 'ready' && item.bytesTotal ? { value: item.bytesReceived + item.bytesReused, max: item.bytesTotal } : null,
       time: item.createdAt || null,
       app: null,
       open: () => navigation.push({ id: 'downloads' }),

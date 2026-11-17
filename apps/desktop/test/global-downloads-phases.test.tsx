@@ -1,3 +1,4 @@
+import { readDownloadRootActivation } from '../src/shell/renderer/features/runtime-config/download-root-observation.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { act } from 'react';
@@ -39,7 +40,7 @@ test('Downloads invalidates confirmed phase changes, not order or failed observa
         return { jobs };
       },
     }) },
-    app: { commands: { firstRun: { getRecord: async () => ({ record: { dataRoot: { rootActivationId: activation } } }) } } },
+    app: { commands: { firstRun: { getSelectedDataRoot: async () => ({ state: 'ready_for_use', hostProfileScopeRoot: '/test', dataRoot: { status: 'ready', rootActivationId: activation } }) } } },
   } as unknown as DesktopCanonicalRendererBindings;
   let downloads!: NonNullable<ReturnType<typeof useGlobalDownloads>>;
   function Consumer() { downloads = useGlobalDownloads()!; return null; }
@@ -123,4 +124,17 @@ test('Downloads invalidates confirmed phase changes, not order or failed observa
       else Reflect.deleteProperty(globalThis, key);
     }
   }
+});
+
+test('download lists require a selected root bound to the current Runtime process', async () => {
+  const projection = {
+    exists: true, path: '/test/.nimi/nimi.json', state: 'ready_for_use' as const,
+    error: null, hostProfileScopeRoot: '/test/profile',
+    dataRoot: {
+      path: '/test', status: 'ready' as const, rootActivationId: 'root-a',
+      selectedAt: '', verifiedAt: '', selectedAtUnixMs: 0, verifiedAtUnixMs: 0,
+    },
+  };
+  assert.equal(await readDownloadRootActivation({ getSelectedDataRoot: async () => projection }), 'root-a');
+  await assert.rejects(readDownloadRootActivation({ getSelectedDataRoot: async () => ({ ...projection, hostProfileScopeRoot: null }) }), /unavailable/);
 });

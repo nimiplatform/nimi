@@ -108,8 +108,12 @@ export function projectSystemEntryDownloads(input: {
   }
   const validTimes = timestamps.filter(Number.isFinite);
   const complete = !input.loading && !input.unavailable;
+  const lastKnown = input.locale === 'zh' ? '上次状态' : 'Last known status';
+  const visibleItems = items.slice(0, 20).map(item => input.unavailable
+    ? { ...item, detail: `${lastKnown} · ${item.detail}` }
+    : item);
   return { complete, failures,
     section: { status: complete ? 'available' : input.loading ? 'loading' : items.length ? 'partial' : 'unavailable',
       observedAt: validTimes.length ? new Date(Math.max(...validTimes)).toISOString() : null,
-      total: complete ? items.length : null, items: items.slice(0, 20) } };
+      total: complete ? items.length : null, items: visibleItems } };
 }

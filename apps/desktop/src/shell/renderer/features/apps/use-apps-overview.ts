@@ -1,3 +1,4 @@
+import { useAppsDownloads } from './apps-downloads-context.js';
 import { ReasonCode, type ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -81,6 +82,7 @@ export function useAppsOverviewQuery(source: DesktopAppsProjectionSource, option
 /** Read-only reuse of the Apps inventory projection for Home and target choice. */
 export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
   const presentationCache = useAppsPresentationCache();
+  const jobs = useAppsDownloads()?.observer;
   const sdk = useDesktopRendererSdk();
   const source = useMemo<DesktopAppsProjectionSource>(() => {
     const apps = sdk.machineProduct().apps;
@@ -97,11 +99,11 @@ export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
         if (r.reasonCode !== ReasonCode.ACTION_EXECUTED) throw Error(String(r.reasonCode));
         return r.releases;
       },
-      listPackageJobs: async () => {
+      listPackageJobs: jobs?.readJobs ?? (async () => {
         const r = await apps.listAppPackageJobs({});
         if (r.reasonCode !== ReasonCode.ACTION_EXECUTED) throw Error(String(r.reasonCode));
         return r.jobs;
-      },
+      }),
       listApprovedCatalogTargets: async () => {
         const r = await apps.listApprovedAppCatalogTargets({});
         if (r.reasonCode !== ReasonCode.ACTION_EXECUTED) throw Error(String(r.reasonCode));
@@ -113,6 +115,6 @@ export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
         return r.info;
       },
     };
-  }, [sdk, presentationCache]);
+  }, [sdk, presentationCache, jobs]);
   return useAppsOverviewQuery(source, options);
 }
