@@ -355,7 +355,7 @@ function createCanonicalBindings(input: {
         async setDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
       }),
       events: Object.freeze({
-        connectChatRealtimeSync: () => () => undefined,
+        connectChatRealtimeSync: () => ({ selectChat() {}, dispose() {} }),
         subscribeWindowFocus: () => () => undefined,
         subscribeDocumentVisibility: () => () => undefined,
         subscribeWindowResize: () => () => undefined,

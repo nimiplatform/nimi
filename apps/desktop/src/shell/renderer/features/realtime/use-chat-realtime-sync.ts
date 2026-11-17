@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { loadNimiRealmUserNotificationSettings } from '@nimiplatform/sdk/realm';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
+import type { DesktopRendererEventPort } from '../../renderer/contract.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
 import { humanChatListQueryKey } from '../chat/use-human-chat-list.js';
@@ -26,9 +27,17 @@ export function useChatRealtimeSync(): void {
   presentation.current = projection;
   const tracker = useMemo(createHumanChatNoticeTracker, [auth.user?.id, auth.user?.realmEnvironmentId, auth.authorizationRevision]);
   const selectedChatId = homeChat.humanThreadId;
+  const selectedRef = useRef(selectedChatId);
+  selectedRef.current = selectedChatId;
+  const connected = useRef<ReturnType<DesktopRendererEventPort['connectChatRealtimeSync']> | null>(null);
+  const accountActive = auth.status === 'authenticated' || auth.status === 'refresh-pending';
+  const realmBaseUrl = useAppStore(state => state.runtimeDefaults?.realm.realmBaseUrl);
   useEffect(() => {
-    const scope = captureAccountActionScope(store);
-    if (!scope) return undefined;
+    const scope = captureAccountActionScope(store, { allowRefreshing: true });
+    if (!accountActive || !auth.authorizationRevision || !scope?.realmBaseUrl || !scope.realmEnvironmentId) {
+      scope?.dispose();
+      return undefined;
+    }
     const chatKey = humanChatListQueryKey(scope.realmEnvironmentId, scope.accountId);
     const sync = createHumanChatNoticeSync({
       queryClient, chatKey, tracker, loadChat: chatData.loadChatById, isCurrent: scope.isCurrent,
@@ -46,18 +55,23 @@ export function useChatRealtimeSync(): void {
         await invoke(SHOW_HUMAN_CHAT_NOTICE, { payload: { generation: projection.generation, notice } });
       },
     });
-    const disconnect = bindings.app.events.connectChatRealtimeSync({
+    const connection = bindings.app.events.connectChatRealtimeSync({
       queryClient,
-      selectedChatId,
       async onInboxRefreshed(refresh) {
         try { await sync.onInboxRefreshed(refresh); }
         catch { /* Reminder failures do not terminate message delivery. */ }
       },
     });
-    return () => {
+    connected.current = connection;
+    connection.selectChat(selectedRef.current);
+    const close = () => {
+      connected.current = null;
       sync.dispose();
-      scope.dispose();
-      disconnect();
+      connection.dispose();
     };
-  }, [auth.status, tracker, bindings, chatData, queryClient, selectedChatId, store]);
+    scope.signal.addEventListener('abort', close, { once: true });
+    return () => { scope.dispose(); };
+  }, [accountActive, auth.authorizationRevision, realmBaseUrl, tracker, bindings, chatData, queryClient, store]);
+
+  useEffect(() => connected.current?.selectChat(selectedChatId), [selectedChatId]);
 }

@@ -116,10 +116,9 @@ export type ChatInboxRefresh = { readonly kind: 'ready' } | { readonly kind: 'ch
 export interface DesktopRendererEventPort {
   connectChatRealtimeSync(input: {
     readonly queryClient: QueryClient;
-    readonly selectedChatId: string | null;
     /** Ready precedes the authoritative list refetch, allowing recovery to survive a failed read. */
     readonly onInboxRefreshed?: (refresh: ChatInboxRefresh) => Promise<void>;
-  }): () => void;
+  }): { selectChat(chatId: string | null): void; dispose(): void };
   subscribeWindowFocus(listener: (focused: boolean) => void): () => void;
   subscribeDocumentVisibility(listener: (visible: boolean) => void): () => void;
   subscribeWindowResize(listener: () => void): () => void;

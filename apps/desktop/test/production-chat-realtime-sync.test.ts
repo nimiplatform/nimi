@@ -59,7 +59,17 @@ function controlledSubscription(events: readonly NimiRealmRealtimeEvent[] = []) 
       return: async () => { await cancel(); return { done: true, value: undefined }; },
     }),
   };
-  return { subscription, nextCalls: () => nextCalls, cancellations: () => cancellations };
+  return {
+    subscription,
+    nextCalls: () => nextCalls,
+    cancellations: () => cancellations,
+    emit(event: NimiRealmRealtimeEvent) {
+      if (!pending) { queued.push(event); return; }
+      const reader = pending;
+      pending = null;
+      reader.resolve({ done: false, value: event });
+    },
+  };
 }
 
 function realtimeFixture(overrides: Partial<NimiRealmRealtimeClient> = {}) {
@@ -109,7 +119,7 @@ test('a channel opened after stop is closed without subscribing', async (t) => {
     subscribe: async () => { subscriptions += 1; return controlledSubscription().subscription; },
   });
   const { queryClient, onCleanup } = await installClient(t, fixture.client);
-  const stop = connectProductionChatRealtimeSync({ queryClient, selectedChatId: null });
+  const stop = connectProductionChatRealtimeSync({ queryClient }).dispose;
   onCleanup(stop);
   stop(); clearDesktopNimiClientSession();
   pending.resolve(opened); await flush();
@@ -125,7 +135,7 @@ test('late subscriptions after stop are cancelled before any next and cleanup us
     subscribe: input => input.target.type === 'presence' ? pendingPresence.promise : pendingInbox.promise,
   });
   const { queryClient, onCleanup } = await installClient(t, fixture.client);
-  const stop = connectProductionChatRealtimeSync({ queryClient, selectedChatId: null });
+  const stop = connectProductionChatRealtimeSync({ queryClient }).dispose;
   onCleanup(stop);
   await flush();
   clearDesktopNimiClientSession();
@@ -145,7 +155,9 @@ test('stop during chat invalidation prevents a late acknowledgement or future pu
   t.mock.method(queryClient, 'invalidateQueries', async (filters?: { queryKey?: readonly unknown[] }) => {
     if (filters?.queryKey?.[0] === 'messages') await pendingInvalidation.promise;
   });
-  const stop = connectProductionChatRealtimeSync({ queryClient, selectedChatId: 'chat-1' });
+  const sync = connectProductionChatRealtimeSync({ queryClient });
+  const stop = sync.dispose;
+  sync.selectChat('chat-1');
   onCleanup(stop);
   await flush();
   assert.equal(chat.nextCalls(), 1);
@@ -157,24 +169,84 @@ test('stop during chat invalidation prevents a late acknowledgement or future pu
   assert.deepEqual(fixture.closedChannels, ['channel-1']);
 });
 
-test('one failed consumer closes its channel and peers including a late subscription without reopening', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval'] });
-  const presence = controlledSubscription(), chat = controlledSubscription();
-  const failedInbox = deferred<NimiRealmRealtimeSubscription>(), lateChat = deferred<NimiRealmRealtimeSubscription>();
-  const fixture = realtimeFixture({ subscribe: async input => input.target.type === 'presence' ? presence.subscription
-    : input.target.type === 'inbox' ? failedInbox.promise : lateChat.promise });
-  const { queryClient, document, onCleanup } = await installClient(t, fixture.client);
-  const stop = connectProductionChatRealtimeSync({ queryClient, selectedChatId: 'chat-1' });
-  onCleanup(stop);
-  await flush(); assert.equal(presence.nextCalls(), 1);
-  failedInbox.reject(new Error('REALM_UNAVAILABLE')); await flush();
-  assert.equal(presence.cancellations(), 1);
-  assert.deepEqual(fixture.closedChannels, ['channel-1']);
-  lateChat.resolve(chat.subscription); await flush();
-  assert.equal(chat.cancellations(), 1); assert.equal(chat.nextCalls(), 0);
-  t.mock.timers.tick(15_000); document.dispatchEvent(new Event('visibilitychange')); await flush();
-  assert.equal(fixture.opens(), 1, 'Desktop does not become a second reconnect owner');
-  assert.equal(getOfflineCoordinator().getStatus().realm.socket, 'unreachable');
+test('Inbox delivers unrelated chats across selection, subscription rejection and terminal failure', async (t) => {
+  const control = (subscriptionId: string, lifecycle: 'ready' | 'failed'): NimiRealmRealtimeEvent => ({
+    ...chatEvent, subscriptionId,
+    event: { type: 'control', control: {
+      ...opened.control, subscriptionId, lifecycle,
+      terminalReason: lifecycle === 'failed' ? 'permission-denied' : '',
+    } },
+  });
+  const presence = controlledSubscription();
+  const inbox = controlledSubscription([control('inbox-sub', 'ready')]);
+  const chat = controlledSubscription([control('chat-sub', 'ready')]);
+  const targets: string[] = [];
+  const fixture = realtimeFixture({ subscribe: async ({ target }) => {
+    targets.push(target.type === 'chat' ? target.chatId : target.type);
+    if (target.type === 'presence') return presence.subscription;
+    if (target.type === 'inbox') return inbox.subscription;
+    if (target.chatId === 'rejected') throw new Error('subscription rejected');
+    return chat.subscription;
+  } });
+  const { queryClient, onCleanup } = await installClient(t, fixture.client);
+  const refreshes: unknown[] = [], invalidations: unknown[] = [];
+  t.mock.method(queryClient, 'invalidateQueries', async (filters?: { queryKey?: readonly unknown[] }) => {
+    invalidations.push(filters?.queryKey);
+  });
+  const sync = connectProductionChatRealtimeSync({ queryClient, onInboxRefreshed: async event => { refreshes.push(event); } });
+  onCleanup(sync.dispose);
+  await flush();
+  assert.deepEqual(refreshes, [{ kind: 'ready' }]);
+
+  sync.selectChat('rejected');
+  await flush();
+  assert.equal(getOfflineCoordinator().getStatus().realm.socket, 'reachable');
+  const incoming = (chatId: string): NimiRealmRealtimeEvent => ({
+    ...chatEvent, subscriptionId: 'inbox-sub',
+    event: { type: 'inbox', chatId, highWatermarkSeq: '1', occurredAt: chatEvent.occurredAt },
+  });
+  inbox.emit(incoming('unselected-a'));
+  sync.selectChat('chat-1');
+  await flush();
+  chat.emit(control('chat-sub', 'failed'));
+  await flush();
+  inbox.emit(incoming('unselected-b'));
+  sync.selectChat(null);
+  await flush();
+
+  assert.deepEqual(targets, ['inbox', 'presence', 'rejected', 'chat-1']);
+  assert.equal(fixture.opens(), 1);
+  assert.deepEqual(fixture.closedChannels, []);
+  assert.deepEqual(fixture.closedSubscriptions, ['chat-sub']);
+  assert.equal(inbox.cancellations(), 0);
+  assert.equal(presence.cancellations(), 0);
+  assert.equal(getOfflineCoordinator().getStatus().realm.socket, 'reachable');
+  assert.deepEqual(refreshes.slice(1), [
+    { kind: 'chat', chatId: 'unselected-a' }, { kind: 'chat', chatId: 'unselected-b' },
+  ]);
+  assert.ok(invalidations.some(key => JSON.stringify(key) === '["messages","unselected-b"]'));
+});
+
+test('switching cancels a late previous selection without touching the new chat or Inbox', async (t) => {
+  const pendingChat = deferred<NimiRealmRealtimeSubscription>();
+  const inbox = controlledSubscription(), oldChat = controlledSubscription(), newChat = controlledSubscription();
+  const fixture = realtimeFixture({ subscribe: async ({ target }) => {
+    if (target.type !== 'chat') return target.type === 'inbox' ? inbox.subscription : controlledSubscription().subscription;
+    return target.chatId === 'chat-1' ? pendingChat.promise : newChat.subscription;
+  } });
+  const { queryClient, onCleanup } = await installClient(t, fixture.client);
+  const sync = connectProductionChatRealtimeSync({ queryClient });
+  onCleanup(sync.dispose);
+  sync.selectChat('chat-1');
+  await flush();
+  sync.selectChat('chat-2');
+  pendingChat.resolve(oldChat.subscription);
+  await flush();
+  assert.equal(oldChat.cancellations(), 1);
+  assert.equal(oldChat.nextCalls(), 0);
+  assert.equal(newChat.nextCalls(), 1);
+  assert.equal(inbox.nextCalls(), 1);
+  assert.equal(fixture.opens(), 1);
 });
 
 test('an active chat still invalidates and acknowledges before consuming its next event', async (t) => {
@@ -186,7 +258,9 @@ test('an active chat still invalidates and acknowledges before consuming its nex
   t.mock.method(queryClient, 'invalidateQueries', async (filters?: { queryKey?: readonly unknown[] }) => {
     if (filters?.queryKey) keys.push([...filters.queryKey]);
   });
-  const stop = connectProductionChatRealtimeSync({ queryClient, selectedChatId: 'chat-1' });
+  const sync = connectProductionChatRealtimeSync({ queryClient });
+  const stop = sync.dispose;
+  sync.selectChat('chat-1');
   onCleanup(stop);
   await flush();
   assert.ok(keys.some(key => key[0] === 'chats'));
