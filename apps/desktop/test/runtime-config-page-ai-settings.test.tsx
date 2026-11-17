@@ -10,7 +10,7 @@ const capability = 'image.generate';
 function inventory(selected = true, ready = true): CapabilityInventory {
   return {
     aggregate: {
-      loadouts: [{ loadoutId: 'A', capabilityContract: capability, validationState: 'configured' }],
+      loadouts: [{ loadoutId: 'A', capabilityContract: capability, validationState: 'configured', revision: '1' }],
       selections: selected ? [{ capabilityContract: capability, loadoutId: 'A' }] : [],
       selectionRevisions: {},
     },
@@ -18,6 +18,8 @@ function inventory(selected = true, ready = true): CapabilityInventory {
     environments: {
       [capability]: {
         state: 'ready',
+        candidateLoadoutId: 'A',
+        candidateRevision: '1',
         dependencies: [{ required: true, state: ready ? 'ready_managed' : 'needs_confirmation' }],
       },
     },
