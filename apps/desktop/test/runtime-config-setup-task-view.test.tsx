@@ -262,6 +262,12 @@ test('the plan review marks an installed variant as a rebind instead of a downlo
         variantLabel: 'f16',
         sizeBytes: 4096,
         installedModelAssetId: 'asset-companion',
+      }, {
+        offerRef: 'offer:alternate',
+        title: 'Alternate projector',
+        variantLabel: 'q8',
+        sizeBytes: 8192,
+        installedModelAssetId: 'asset-alternate',
       }],
     }],
     unavailable: [],
@@ -273,17 +279,31 @@ test('the plan review marks an installed variant as a rebind instead of a downlo
     selectionRevision: 'sel-1',
   };
   const markup = renderView(
-    <SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />,
+    <SetupTaskPlanReview plan={plan} choices={{ 'companion.mmproj': 'offer:companion' }} onChoiceChange={() => {}} />,
   );
   assert.match(markup, /runtime-setup-task-plan/);
-  // Both the acquire row and the choice option show the installed-rebind
-  // honesty label instead of a download size.
+  // Both the acquire row and the chosen version identify an installed asset.
   const occurrences = markup.match(/Already on this machine/gu) ?? [];
   assert.equal(occurrences.length, 2);
   assert.doesNotMatch(markup, /2048|4096/);
+  assert.doesNotMatch(markup, /runtime-setup-download-scope/);
   // Several model files are told apart by their part, never by a raw slot label.
   assert.match(markup, />Main model</);
   assert.match(markup, />Vision projector</);
+});
+
+test('only an unsupported optional component remains when reusing the installed model', () => {
+  const plan = {
+    reuse: [{ slotId: 'main.gguf', label: 'Main model', modelAssetId: 'installed' }],
+    acquire: [], awaitingChoice: [], unavailable: [], options: [],
+    components: [{ dependencyFamily: 'accelerator.cuda.runtime', dependencyId: 'cuda', label: 'CUDA', state: 'unsupported', required: false }],
+    environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false, componentsDownloadBytes: null,
+  } satisfies RuntimeSetupPreparationPlan;
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
+  assert.match(markup, /Already on this machine/);
+  assert.match(markup, /Optional/);
+  assert.match(markup, />unsupported</);
+  assert.doesNotMatch(markup, /runtime-setup-download-scope/);
 });
 
 test('review shows unavailable resources and marks the device recommendation without a separate accept button', () => {
@@ -327,12 +347,14 @@ test('a version choice shows the selected version on one line and groups the ver
   assert.match(closed, /Gemma 4 2B · Q8/);
   assert.match(closed, /Recommended for this device/);
   assert.match(closed, /4\.70 GB/);
+  assert.match(closed, /directly from their publisher/);
   assert.match(closed, /Change version/);
   assert.doesNotMatch(closed, /type="radio"/);
 
   // Without a selection the versions start open, grouped by model size.
   const open = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
   assert.match(open, /No version selected/);
+  assert.doesNotMatch(open, /runtime-setup-download-scope/);
   assert.equal((open.match(/type="radio"/gu) ?? []).length, 3);
   const small = open.indexOf('>Gemma 4 2B<');
   const large = open.indexOf('>Gemma 4 26B<');
@@ -636,7 +658,7 @@ test('the review names Python components by family, shows offer terms, and block
   assert.match(markup, /runtime-setup-offer-terms:text\.model/);
   assert.match(markup, /runtime-setup-download-scope/);
   assert.match(markup, /directly from their publisher/);
-  assert.match(markup, /not included in the model download above/);
+  assert.match(markup, /Runtime components need to be downloaded\. Their download size is unknown/);
   assert.doesNotMatch(markup, /runtime-setup-environment-unavailable/);
 
   const refused = renderView(<SetupTaskPlanReview

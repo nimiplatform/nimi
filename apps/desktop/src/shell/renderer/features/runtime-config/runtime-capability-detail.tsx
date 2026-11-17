@@ -44,6 +44,7 @@ import {
   modelFamilySeed,
   modelFeatureLocaleKeys,
   recipeOfferSummary,
+  type RecipeOfferSummary,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
 import { RuntimeEnvironmentCheck, RuntimeEnvironmentDependencies, type RuntimeEnvironmentActions } from './runtime-environment-details.js';
@@ -159,13 +160,13 @@ export function RuntimeCapabilityDetail(props: Props) {
   const editingRecipe = props.recipes.find(recipe => recipe.recipeId === editing?.recipeId);
   const unboundImports = props.assets.some(asset => !asset.catalogVerified
     && !loadouts.some(loadout => loadout.modelAxes.some(axis => axis.modelAssetId === asset.modelAssetId)));
-  const costOf = (recipe: NimiLoadoutRecipe, saved: readonly NimiMachineLoadout[]): ModelCost => {
+  const costOf = (summary: RecipeOfferSummary, saved: readonly NimiMachineLoadout[]): ModelCost => {
     if (props.modelsLoading || props.libraryLoading) return { text: t('Common.loading'), tone: 'muted' };
     if (props.modelsError || props.libraryError) return { text: t('runtimeConfig.product.preparationUnknown'), tone: 'muted' };
     if (saved.length > 0) return { text: t('runtimeConfig.product.savedConfiguration'), tone: 'muted' };
-    const summary = recipeOfferSummary(recipe);
     if (summary.withoutOffer > 0) return { text: t('runtimeConfig.product.noDirectDownload'), tone: 'muted' };
     if (summary.missing === 0) return { text: t('runtimeConfig.product.modelsOnDevice'), tone: 'ready' };
+    if (summary.downloadVariesByVersion) return { text: t('runtimeConfig.product.downloadSizeInReview'), tone: 'muted' };
     if (summary.downloadBytes === null) return { text: t('runtimeConfig.product.downloadSizeUnknown'), tone: 'muted' };
     return { text: t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.downloadBytes) }), tone: 'download' };
   };
@@ -208,14 +209,15 @@ export function RuntimeCapabilityDetail(props: Props) {
               {ordered.map(recipe => {
                 const saved = loadouts.filter(item => item.recipeId === recipe.recipeId && item.validationState === 'configured');
                 const current = props.selected?.recipeId === recipe.recipeId;
-                const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
+                const summary = recipeOfferSummary(recipe);
+                const noDirectDownload = !props.modelsLoading && !props.modelsError && summary.withoutOffer > 0;
                 const features = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
                 const settings = (loadout?: NimiMachineLoadout) => {
                   const target = loadout ?? (current ? props.selected : undefined);
                   setEditing({ recipeId: recipe.recipeId, loadoutId: target?.loadoutId, chooseConfiguration: !target && saved.length > 1 });
                 };
                 return <ModelChoiceCard key={recipe.recipeId} recipe={recipe} title={modelDisplayTitle(recipe.title)}
-                  description={features.map(key => t(key)).join(' · ')} cost={costOf(recipe, saved)} current={current}
+                  description={features.map(key => t(key)).join(' · ')} cost={costOf(summary, saved)} current={current}
                   enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId} saved={saved}
                   noDirectDownload={!noDirectDownload ? null : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
                   selectedLoadoutId={props.selected?.loadoutId} recipes={props.recipes} catalog={props.catalog} busy={controlsDisabled}

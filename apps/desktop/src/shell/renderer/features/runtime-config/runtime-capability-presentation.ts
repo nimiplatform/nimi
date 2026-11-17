@@ -247,8 +247,8 @@ export function recipeResourceSummary(
  * Runtime-projected acquisition facts for a recipe's required model slots.
  * A slot counts as installed only when Runtime reports the exact installed
  * distribution on its offer; matching content bytes alone never do. The
- * download size is the offer's source transfer size, never its installed
- * total, and stays null whenever any missing offer's transfer size is unknown.
+ * Use source transfer bytes when the required work identifies a single offer.
+ * A version chosen during review may have a different transfer size.
  */
 export type RecipeOfferSummary = {
   readonly required: number;
@@ -257,7 +257,7 @@ export type RecipeOfferSummary = {
   /** Required slots without any installable or installed offer for this device. */
   readonly withoutOffer: number;
   readonly downloadBytes: number | null;
-  readonly installedBytes: number | null;
+  readonly downloadVariesByVersion: boolean;
 };
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
@@ -267,30 +267,32 @@ export function recipeOfferSummary(recipe: NimiLoadoutRecipe): RecipeOfferSummar
   let missing = 0;
   let withoutOffer = 0;
   let downloadBytes: number | null = 0;
-  let installedBytes: number | null = 0;
+  let downloadVariesByVersion = false;
   const counted = new Set<string>();
   for (const slot of required) {
     const usable = slot.offers.filter((offer) => offer.applicability !== 'unsupported');
-    const present = usable.find((offer) => offer.installedModelAssetId);
-    const offer = present ?? usable.find((item) => item.candidate.installable);
-    if (!offer) {
-      withoutOffer++;
-      installedBytes = null;
-      continue;
-    }
-    if (counted.has(offer.candidate.offerRef)) continue;
-    counted.add(offer.candidate.offerRef);
-    const size = offer.candidate.totalSizeBytes;
-    installedBytes = installedBytes !== null && size !== undefined && size > 0 ? installedBytes + size : null;
-    if (present) {
+    if (usable.some((offer) => offer.installedModelAssetId)) {
       installed++;
       continue;
     }
+    const installable = usable.filter((offer) => offer.candidate.installable);
+    const candidate = installable[0]?.candidate;
+    if (!candidate) {
+      withoutOffer++;
+      continue;
+    }
     missing++;
-    const transfer = offer.candidate.downloadSizeBytes;
+    if (installable.length > 1) {
+      downloadVariesByVersion = true;
+      downloadBytes = null;
+      continue;
+    }
+    if (counted.has(candidate.offerRef)) continue;
+    counted.add(candidate.offerRef);
+    const transfer = candidate.downloadSizeBytes;
     downloadBytes = downloadBytes !== null && transfer !== undefined && transfer > 0 ? downloadBytes + transfer : null;
   }
-  return { required: required.length, installed, missing, withoutOffer, downloadBytes, installedBytes };
+  return { required: required.length, installed, missing, withoutOffer, downloadBytes, downloadVariesByVersion };
 }
 
 /** A context size the way model capacity is usually read: 262144 is "256K". */

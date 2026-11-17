@@ -766,6 +766,7 @@ test('inside the capability card the review leads with the model and keeps both 
     };
     let candidate: unknown;
     let proposed: Record<string, unknown>;
+    let components: 'none' | 'optional' | 'required' = 'none';
     const writes: string[] = [];
     const ports = {
       loadouts: {
@@ -774,7 +775,14 @@ test('inside the capability card the review leads with the model and keeps both 
         prepare: async (input: Record<string, unknown>) => { writes.push('prepare'); proposed = input; return { prepareId: 'proposal' }; },
         commit: async () => { writes.push('commit-candidate'); candidate = { ...proposed, loadoutId: 'candidate', revision: 'r1' }; return { loadoutId: 'candidate', revision: 'r1' }; },
       },
-      environment: { resolveEnvironmentPlan: async () => ({ planId: 'environment', dependencies: [] }) },
+      environment: { resolveEnvironmentPlan: async () => ({
+        planId: 'environment',
+        dependencies: components === 'required'
+          ? [{ dependencyFamily: 'engine', dependencyId: 'llama', required: true, state: 'needs_confirmation' }]
+          : components === 'optional'
+            ? [{ dependencyFamily: 'accelerator.cuda.runtime', dependencyId: 'cuda', required: false, state: 'unsupported' }]
+            : [],
+      }) },
       install: {
         resolveOfferInstallPlan: async (offerRef: string) => ({ templateId: offerRef === 'offer:Q8_0' ? 'template:q8' : 'template:other', installAvailable: true }),
         install: async () => { writes.push('download'); throw new Error('Unexpected download before confirmation'); },
@@ -801,6 +809,21 @@ test('inside the capability card the review leads with the model and keeps both 
     assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-and-use"]')?.textContent, 'Download and use · 4.70 GB');
     assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-only"]')?.textContent, 'Download only, don’t switch');
     assert.equal(ui.document.querySelector('details'), null);
+
+    components = 'optional';
+    await ui.render(<RuntimeConfigSetupTaskView key="optional-component" taskId={task.taskId} store={store} ports={ports} embedded onClose={() => { closed += 1; }} />);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    const downloads = ui.document.querySelector('[data-testid="runtime-setup-download-scope"]');
+    assert.match(downloads?.textContent ?? '', /directly from their publisher/);
+    assert.doesNotMatch(downloads?.textContent ?? '', /Runtime component/);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-only"]')?.textContent, 'Download only, don’t switch');
+
+    components = 'required';
+    await ui.render(<RuntimeConfigSetupTaskView key="needs-engine" taskId={task.taskId} store={store} ports={ports} embedded onClose={() => { closed += 1; }} />);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    assert.match(ui.document.querySelector('[data-testid="runtime-setup-task-plan"]')?.textContent ?? '', /4\.70 GB/);
+    assert.match(ui.document.querySelector('[data-testid="runtime-setup-download-scope"]')?.textContent ?? '', /Runtime components need to be downloaded\. Their download size is unknown/);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-and-use"]')?.textContent, 'runtimeConfig.setupTask.prepareAndUse');
 
     // Closing is an icon control with its name, and leaving the unconfirmed setup writes nothing more.
     const close = ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-close"]')!;
@@ -842,6 +865,9 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
         recipe('spacy-md-en', [offer('offer-en')]),
         recipe('spacy-md-de', [offer('offer-de')]),
         recipe('spacy-md-it', [offer('offer-it')]),
+        recipe('two-versions', [offer('small'), offer('large', { downloadSizeBytes: 113248256 })]),
+        recipe('unreported-size', [offer('unreported', { downloadSizeBytes: undefined })]),
+        recipe('cached-version', [{ ...offer('cached'), installedModelAssetId: 'asset' }, offer('alternative')]),
         recipe('face.swap', []),
       ],
       catalog: [], assets: [], libraryLoading: false, libraryError: false, status: { state: 'unset', replacement: false }, taskModel: '',
@@ -862,9 +888,14 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
 
     // The downloadable offer names its source transfer size and a device-fit
     // statement about the recommended model only.
-    assert.match(card('spacy-md-de').textContent ?? '', /runtimeConfig\.product\.downloadSize/);
+    assert.match(card('spacy-md-de').textContent ?? '', /runtimeConfig\.product\.downloadSize 31\.9 MB/);
     assert.match(card('spacy-md-de').textContent ?? '', /runtimeConfig\.product\.modelFit\.supported/);
     assert.doesNotMatch(card('spacy-md-de').textContent ?? '', /hostFit|downloadSizeUnknown/);
+    assert.match(card('two-versions').textContent ?? '', /runtimeConfig\.product\.downloadSizeInReview/);
+    assert.doesNotMatch(card('two-versions').textContent ?? '', /\d (?:MB|GB)/);
+    assert.ok(button('two-versions', 'runtimeConfig.product.selectModel'));
+    assert.match(card('unreported-size').textContent ?? '', /runtimeConfig\.product\.downloadSizeUnknown/);
+    assert.match(card('cached-version').textContent ?? '', /runtimeConfig\.product\.modelsOnDevice/);
     await act(async () => button('spacy-md-de', 'runtimeConfig.product.selectModel').click());
     assert.deepEqual(starts.at(-1), ['spacy-md-de']);
 

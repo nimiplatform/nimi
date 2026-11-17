@@ -466,15 +466,16 @@ export function SetupTaskPlanReview(props: {
       })}
     </dl>
   );
-  const downloads = props.plan.acquire.some((item) => !item.offer.installedModelAssetId) || props.plan.awaitingChoice.length > 0;
-  const downloadScope = downloads || props.plan.components.length > 0 ? (
+  const downloads = setupPlanDownloads(props.plan, props.choices);
+  const needsComponents = props.plan.components.some((item) => item.required);
+  const downloadScope = downloads || needsComponents ? (
     <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]" data-testid="runtime-setup-download-scope">
       {[
         downloads ? t('runtimeConfig.setupTask.directDownloadNote', { defaultValue: 'Models are downloaded by this device directly from their publisher; using them is subject to each license.' }) : '',
-        props.plan.components.length > 0
+        needsComponents
           ? typeof props.plan.componentsDownloadBytes === 'number'
-            ? t('runtimeConfig.setupTask.componentsDownloadKnown', { defaultValue: 'Runtime components download about {{size}} more.', size: formatBytes(props.plan.componentsDownloadBytes) })
-            : t('runtimeConfig.setupTask.componentsDownloadUnknown', { defaultValue: 'Runtime components also need downloading; their size can’t be estimated yet and is not included in the model download above.' })
+            ? t('runtimeConfig.setupTask.componentsDownloadKnown', { defaultValue: 'Runtime component download: about {{size}}.', size: formatBytes(props.plan.componentsDownloadBytes) })
+            : t('runtimeConfig.setupTask.componentsDownloadUnknown', { defaultValue: 'Runtime components need to be downloaded. Their download size is unknown.' })
           : '',
       ].filter(Boolean).join(' ')}
     </p>
@@ -1164,14 +1165,17 @@ export function RuntimeConfigSetupTaskView(props: {
           : undefined;
         const blockedConfirm = busy || advancedOpen || !plan || plan.unavailable.length > 0 || Boolean(plan.environmentUnavailable)
           || plan.awaitingChoice.some((choice) => !choices[choice.slotId]);
-        const downloadBytes = plan ? setupPlanDownloadBytes(plan, choices) : null;
+        const needsComponents = plan?.components.some((item) => item.required);
+        const downloadBytes = plan && !needsComponents
+          ? setupPlanDownloadBytes(plan, choices)
+          : null;
         const confirmLabel = direct
           ? t('runtimeConfig.product.useTheseSettings')
           : downloadBytes !== null && downloadBytes > 0
             ? t('runtimeConfig.setupTask.downloadAndUse', { defaultValue: 'Download and use · {{size}}', size: formatBytes(downloadBytes) })
             : t('runtimeConfig.setupTask.prepareAndUse');
         // "Download only" is exact only while downloading is all that preparing does.
-        const prepareOnlyLabel = plan && plan.components.length === 0 && setupPlanDownloads(plan, choices)
+        const prepareOnlyLabel = plan && !needsComponents && setupPlanDownloads(plan, choices)
           ? t('runtimeConfig.setupTask.downloadOnly', { defaultValue: 'Download only, don’t switch' })
           : t('runtimeConfig.setupTask.prepareOnly', { defaultValue: 'Prepare only' });
         // The consequence sits right above the two confirmations; model and settings changes stay at the far end.
@@ -1523,7 +1527,7 @@ function setupPlanDownloads(plan: RuntimeSetupPreparationPlan, choices: Readonly
     });
 }
 
-/** Total bytes the plan will download, or null when any size is unknown. */
+/** Model download bytes, or null when any selected model's transfer size is unknown. */
 function setupPlanDownloadBytes(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): number | null {
   let total = 0;
   const offers = [
