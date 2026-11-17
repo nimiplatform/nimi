@@ -577,7 +577,7 @@ export function IntegrationsPanel({
   };
   return (
     <div
-      className="desktop-module-workspace px-3 pb-3 pt-2"
+      className="desktop-module-workspace pb-3 pr-3 pt-2"
       data-testid="integrations-panel"
     >
       <IntegrationSidebar

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, OverlayShell } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell, ScrollShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { ProductRetentionPreview, ProductRetentionResult } from '../../../shared/product-update.js';
 import type { DesktopProductUpdatePort } from '../../renderer/product-update-port.js';
@@ -46,14 +46,16 @@ export function ProductRetentionDialog({ port, disabled }: { port: DesktopProduc
           <p>{t(selected.length ? 'ProductUpdate.retention.summary' : 'ProductUpdate.retention.empty', {
             count: selected.length, size: bytes(selected.reduce((sum, entry) => sum + entry.logicalBytes, 0)),
           })}</p>
-          <ul className="max-h-80 space-y-3 overflow-y-auto">
-            {preview.entries.map(entry => <li key={entry.path} className="rounded-lg border border-[var(--nimi-border-default)] p-3">
-              <p className="font-medium">{entry.version} · {entry.eligible ? bytes(entry.logicalBytes) : t('ProductUpdate.retention.kept')}</p>
-              <p className="break-all text-xs text-[var(--nimi-text-muted)]">{entry.path}</p>
-              {!entry.eligible ? <p>{t(`ProductUpdate.retention.reasons.${entry.reason}`, { defaultValue: t('ProductUpdate.retention.reasons.unknown') })}</p> : null}
-              {entry.identitySha256 ? <details className="text-xs"><summary>{t('ProductUpdate.details')}</summary><code className="break-all">{entry.identitySha256}</code></details> : null}
-            </li>)}
-          </ul>
+          <ScrollShell className="max-h-80">
+            <ul className="space-y-3">
+              {preview.entries.map(entry => <li key={entry.path} className="rounded-lg border border-[var(--nimi-border-default)] p-3">
+                <p className="font-medium">{entry.version} · {entry.eligible ? bytes(entry.logicalBytes) : t('ProductUpdate.retention.kept')}</p>
+                <p className="break-all text-xs text-[var(--nimi-text-muted)]">{entry.path}</p>
+                {!entry.eligible ? <p>{t(`ProductUpdate.retention.reasons.${entry.reason}`, { defaultValue: t('ProductUpdate.retention.reasons.unknown') })}</p> : null}
+                {entry.identitySha256 ? <details className="text-xs"><summary>{t('ProductUpdate.details')}</summary><code className="break-all">{entry.identitySha256}</code></details> : null}
+              </li>)}
+            </ul>
+          </ScrollShell>
           {selected.length ? <p>{t('ProductUpdate.retention.confirmation')}</p> : null}
         </> : null}
         {result ? <ul className="space-y-2" role="status">{result.results.map(item => <li key={item.version}>

@@ -58,7 +58,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-3 pr-3 pt-2">
         <Surface
           as="main"
           tone="panel"
@@ -87,7 +87,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-2">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-3 pr-3 pt-2">
       <div className={workspaceActive ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
         <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
           <AiSettingsPage

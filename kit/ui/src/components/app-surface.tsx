@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, CSSProperties, ElementType, HTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ComponentPropsWithRef, CSSProperties, ElementType, HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { Button, IconButton } from './button.js';
@@ -148,7 +148,7 @@ export function FieldTrigger(
   );
 }
 
-export type ScrollShellProps = HTMLAttributes<HTMLDivElement>;
+export type ScrollShellProps = ComponentPropsWithRef<'div'>;
 
 export function ScrollShell({ className, ...props }: ScrollShellProps) {
   return (

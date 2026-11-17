@@ -305,22 +305,24 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               placeholder={t('runtimeConfig.profiles.authoring.searchCapabilities')} value={search}
               onClear={() => setSearch('')} clearLabel={t('Common.clear')}
               data-testid="ai-profile-authoring-search" onChange={(event) => setSearch(event.currentTarget.value)} />
-            <nav aria-label={t('runtimeConfig.profiles.authoring.capabilitiesTitle')} className="max-h-56 space-y-1 overflow-y-auto md:max-h-[50vh]">
-              {visibleCapabilities.map((capability) => (
-                <button key={capability.draftId} type="button"
-                  aria-current={activeView === capability.draftId ? 'page' : undefined}
-                  className={authoringNavigationClassName(activeView === capability.draftId)}
-                  onClick={() => selectEditor(capability.draftId)}
-                  data-testid={`ai-profile-authoring-nav:${capability.capabilityContract}`}>
-                  <span className="block">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</span>
-                  <span className="mt-1 block text-xs font-normal text-[var(--nimi-text-muted)]">
-                    {t(`runtimeConfig.profiles.authoring.${capability.route === 'local' ? 'routeLocal' : 'routeCloud'}`)}
-                  </span>
-                </button>
-              ))}
-              {visibleCapabilities.length === 0 ? <p className="px-2 py-3 text-xs text-[var(--nimi-text-muted)]">
-                {t(`runtimeConfig.profiles.authoring.${props.state.draft.capabilities.length ? 'noSearchResults' : 'noCapabilities'}`)}
-              </p> : null}
+            <nav aria-label={t('runtimeConfig.profiles.authoring.capabilitiesTitle')}>
+              <ScrollShell className="max-h-56 space-y-1 md:max-h-[50vh]">
+                {visibleCapabilities.map((capability) => (
+                  <button key={capability.draftId} type="button"
+                    aria-current={activeView === capability.draftId ? 'page' : undefined}
+                    className={authoringNavigationClassName(activeView === capability.draftId)}
+                    onClick={() => selectEditor(capability.draftId)}
+                    data-testid={`ai-profile-authoring-nav:${capability.capabilityContract}`}>
+                    <span className="block">{displayRuntimeConfigCapabilityLabel(capability.capabilityContract, t)}</span>
+                    <span className="mt-1 block text-xs font-normal text-[var(--nimi-text-muted)]">
+                      {t(`runtimeConfig.profiles.authoring.${capability.route === 'local' ? 'routeLocal' : 'routeCloud'}`)}
+                    </span>
+                  </button>
+                ))}
+                {visibleCapabilities.length === 0 ? <p className="px-2 py-3 text-xs text-[var(--nimi-text-muted)]">
+                  {t(`runtimeConfig.profiles.authoring.${props.state.draft.capabilities.length ? 'noSearchResults' : 'noCapabilities'}`)}
+                </p> : null}
+              </ScrollShell>
             </nav>
             <Button
               type="button"
@@ -344,7 +346,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
                 placeholder={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')} value={addSearch}
                 onClear={() => setAddSearch('')} clearLabel={t('Common.clear')}
                 data-testid="ai-profile-authoring-add-search" onChange={(event) => setAddSearch(event.currentTarget.value)} />
-              <div className="grid max-h-[60vh] gap-2 overflow-y-auto sm:grid-cols-2">
+              <ScrollShell className="grid max-h-[60vh] gap-2 sm:grid-cols-2">
                 {availableContracts.map((contract) => (
                   <button key={contract} type="button" disabled={usedCapabilities.has(contract)}
                     data-testid={`ai-profile-authoring-add:${contract}`}
@@ -361,7 +363,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
                     {usedCapabilities.has(contract) ? <span className="mt-2 block text-xs">{t('runtimeConfig.profiles.authoring.alreadyAdded')}</span> : null}
                   </button>
                 ))}
-              </div>
+              </ScrollShell>
               {availableContracts.length === 0 ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.profiles.authoring.noSearchResults')}</p> : null}
             </Surface>
           ) : activeView === 'metadata' ? (

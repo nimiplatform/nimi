@@ -24,6 +24,10 @@ export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = Object.free
   reduceMotion: false,
 });
 
+export function getSystemDarkModeQuery(): MediaQueryList | undefined {
+  return globalThis.window?.matchMedia?.('(prefers-color-scheme: dark)');
+}
+
 export function projectAppearancePreferences(payload: Record<string, unknown>): AppearancePreferences {
   const theme = typeof payload.theme === 'string'
     && (APPEARANCE_THEMES as readonly string[]).includes(payload.theme)

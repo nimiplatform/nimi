@@ -8,6 +8,7 @@ import {
   createRendererEntryModuleLoader,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
+import { getSystemDarkModeQuery } from './features/settings/settings-device-preferences.js';
 import './foundation.css';
 import './styles.css';
 import './features/world/world-atlas.css';
@@ -82,7 +83,7 @@ class EntryErrorBoundary extends React.Component<PropsWithChildren, EntryErrorBo
 function EntryBootSurface(props: { title: string; description: string; detail: string }) {
     const prefersReducedMotion = usePrefersReducedMotion();
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--nimi-canvas-bg,#f8fafc)] px-6 text-[var(--nimi-text-primary,#111827)]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--nimi-surface-canvas,transparent)] px-6 text-[var(--nimi-text-primary,CanvasText)]">
         <motion.div
           initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -126,9 +127,13 @@ if (!rootElement) {
 // never collapse into an unobservable blank webview.
 createRoot(rootElement).render(
   <EntryErrorBoundary>
-    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
+    <NimiThemeProvider
+      accentPack="nimi-accent"
+      defaultScheme={getSystemDarkModeQuery()?.matches ? 'dark' : 'light'}
+      defaultDensity="compact"
+    >
       <Suspense
-        fallback={<div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)]" />}
+        fallback={<div className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)]" />}
       >
         <App />
       </Suspense>

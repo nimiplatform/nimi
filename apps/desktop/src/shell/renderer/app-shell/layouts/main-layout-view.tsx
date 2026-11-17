@@ -30,6 +30,10 @@ import {
 import { OfflineShellStrip } from './offline-shell-strip';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
+  SHELL_CHROME_RAIL_ICON_SIZE,
+  SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
+  SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_CHROME_RAIL_WIDTH_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
 import {
@@ -99,11 +103,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const [pendingAccountAction, setPendingAccountAction] = useState<'logout' | 'switch-account' | null>(null);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     bottom: 16,
-    left: 84,
+    left: 54,
   });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
-  const sidebarWidthClass = 'w-[60px]';
+  const sidebarWidthClass = SHELL_CHROME_RAIL_WIDTH_CLASS;
   const reducedMotion = useDesktopReducedMotion();
   const interactiveMotion = useDesktopInteractiveMotion();
 
@@ -118,6 +122,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     activeTab: props.activeTab,
     profileDetailOverlayOpen,
   });
+  const showPrimaryRail = !hidePrimaryRail && !isAnonymousShell && railVisible;
   const windowFocused = useWindowFocused(
     bindings.app.projection.windowFocused(),
     bindings.app.events.subscribeWindowFocus,
@@ -138,17 +143,18 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const hasUnreadHumanChat = humanChats.data?.items.some(chat => chat.unreadCount > 0);
   const hasUnreadMessages = (unreadCountQuery.data?.total ?? 0) > 0 || activityUnread;
   const integrationsRailActive = props.activeTab === 'home' && homeEntryDestination === 'integrations';
+  const homeRailActive = navigationColumn === 'home' && !integrationsRailActive;
 
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
     if (!triggerRect) {
-      setSettingsMenuPosition({ bottom: 16, left: 84 });
+      setSettingsMenuPosition({ bottom: 16, left: 54 });
       return;
     }
     const viewportHeight = bindings.app.projection.viewportHeight();
     setSettingsMenuPosition({
       bottom: Math.max(12, Math.round(viewportHeight - triggerRect.bottom)),
-      left: Math.max(12, Math.round(triggerRect.right + 12)),
+      left: Math.max(12, Math.round(triggerRect.right + 10)),
     });
   }, [bindings]);
 
@@ -214,16 +220,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       imageUrl={props.userAvatarUrl}
       name={props.displayName}
       kind="human"
-      sizeClassName="h-9 w-9"
-      className="shrink-0"
-      textClassName="text-xs"
+      sizeClassName="h-6 w-6"
+      className="shrink-0 ring-1 ring-black/8"
+      textClassName="text-[11px]"
     />
   );
   const nimiHomeNode = (
     <img
       src={logoImage}
       alt="Nimi"
-      className="h-9 w-9 shrink-0 object-contain mix-blend-multiply"
+      className="relative z-10 h-6 w-6 shrink-0 object-contain mix-blend-multiply"
     />
   );
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
@@ -280,14 +286,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     >
       <ExecutionNotificationPreferenceSync />
       <div
-        className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 pt-3"
+        className={`relative z-10 flex min-h-0 flex-1 pb-3 pr-3 ${
+          showPrimaryRail ? 'gap-0 pl-0 pt-2' : 'gap-3 pl-3 pt-3'
+        }`}
       >
-        {hidePrimaryRail || isAnonymousShell || !railVisible ? null : (
+        {!showPrimaryRail ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
             className={`flex h-full shrink-0 flex-col ${sidebarWidthClass}`}
           >
-            <div className="flex h-16 shrink-0 items-center justify-center">
+            <div className="flex shrink-0 items-center justify-center pb-5">
               <Tooltip
                 content={t('Navigation.home', { defaultValue: 'Home' })}
                 placement="right"
@@ -297,13 +305,18 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   type="button"
                   data-testid={E2E_IDS.navTab('home')}
                   data-nimi-semantic-id="desktop-main-shell-primary"
+                  aria-current={homeRailActive ? 'page' : undefined}
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
-                  className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
+                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                    homeRailActive
+                      ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                      : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
+                  }`}
                   aria-label={t('Navigation.home', { defaultValue: 'Home' })}
                   onClick={() => {
-              setSettingsMenuOpen(false);
+                    setSettingsMenuOpen(false);
                     props.onNav('home');
                   }}
                 >
@@ -311,9 +324,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </motion.button>
               </Tooltip>
             </div>
-            <nav className="flex-1">
-              <ScrollArea className="flex-1" viewportClassName="pt-2">
-                <div className="flex flex-col gap-1">
+            <nav className="flex min-h-0 flex-1 flex-col">
+              <ScrollArea className="min-h-0 flex-1" viewportClassName="py-1">
+                <div className="flex flex-col gap-1.5">
                   {primaryCoreNavItems.map((item) => (
                     <NavLink
                       key={item.id}
@@ -325,7 +338,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   ))}
                   {/* Integrations keeps its Home-owned destination below Cloud. */}
                   <NavLink
-                    item={{ id: 'integrations', label: t('Integrations.title'), icon: <Plug size={18} /> }}
+                    item={{ id: 'integrations', label: t('Integrations.title'), icon: <Plug size={SHELL_CHROME_RAIL_ICON_SIZE} strokeWidth={SHELL_CHROME_RAIL_ICON_STROKE_WIDTH} /> }}
                     active={integrationsRailActive}
                     collapsed
                     testId="integrations-rail-entry"
@@ -344,7 +357,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </div>
               </ScrollArea>
             </nav>
-            <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
+            <div className="flex shrink-0 flex-col items-center gap-1.5 pt-1">
               <ProductUpdateNotice />
               <GlobalDownloadsNavigation selected={props.activeTab === 'downloads'} onOpen={() => props.onNav('downloads')} />
               <Tooltip
@@ -358,28 +371,28 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
-                  className={`relative flex h-11 w-11 items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     props.activeTab === 'notification'
-                      ? 'text-[var(--nimi-action-primary-bg)]'
-                      : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+                      ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'
                   }`}
                   aria-label={t('Common.openNotifications')}
                   aria-current={props.activeTab === 'notification' ? 'page' : undefined}
                 >
                   <svg
-                    width="20"
-                    height="20"
+                    width={SHELL_CHROME_RAIL_ICON_SIZE}
+                    height={SHELL_CHROME_RAIL_ICON_SIZE}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth={SHELL_CHROME_RAIL_ICON_STROKE_WIDTH}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
-                  {hasUnreadMessages ? <span className="absolute right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)]" role="status" aria-label={t('runtimeConfig.overview.messages.hasUnread')} /> : null}
+                  {hasUnreadMessages ? <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)]" role="status" aria-label={t('runtimeConfig.overview.messages.hasUnread')} /> : null}
                 </motion.button>
               </Tooltip>
               <Tooltip
@@ -387,7 +400,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 placement="right"
                 contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
               >
-                <div ref={settingsTriggerRef} className="flex h-11 items-center">
+                <div ref={settingsTriggerRef} className={`flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center`}>
                   <motion.button
                     type="button"
                     data-testid="desktop-account-menu-trigger"
@@ -395,7 +408,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     whileHover={interactiveMotion.whileHover}
                     whileTap={interactiveMotion.whileTap}
                     transition={interactiveMotion.transition}
-                    className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
+                    className={`flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center p-0 text-[var(--nimi-text-primary)] transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                      settingsMenuOpen
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                        : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
+                    }`}
                     aria-label={t('Common.openAccountMenu')}
                     aria-expanded={settingsMenuOpen}
                   >

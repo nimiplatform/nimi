@@ -259,7 +259,7 @@ export function AppsPanelView({
   }));
 
   return (
-    <div className="desktop-module-workspace px-3 pb-3 pt-2">
+    <div className={`desktop-module-workspace pb-3 pr-3 pt-2${downloadsOnly ? ' pl-3' : ''}`}>
       {!downloadsOnly ? (
         <AppsRail
         projection={projection}

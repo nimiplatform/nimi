@@ -5,7 +5,7 @@ import {
 } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
-import { ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, SelectField, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -289,7 +289,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
 
         {mode.kind === 'list' ? (
-          <header className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--nimi-surface-panel)] px-2 py-2">
+          <header className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--desktop-workspace-bg,var(--nimi-surface-panel))] px-2 py-2">
             <h2 className="desktop-module-section-title">{t('runtimeConfig.aiSettings.profileLibraryTitle')}</h2>
             <div className="flex shrink-0 flex-wrap items-center gap-1" data-testid="runtime-ai-settings-profile-transfer">
               <Button tone="ghost" size="sm" onClick={() => setImporting(true)} data-testid="runtime-ai-settings-profile-import">
@@ -749,7 +749,9 @@ function ProfileUsePanel(props: {
         </div> : null}
         <details className="rounded-lg border border-[var(--nimi-border-subtle)] px-4 py-3 text-sm">
           <summary className="cursor-pointer text-[var(--nimi-text-secondary)]">{t('runtimeConfig.aiSettings.profileFileDetails')}</summary>
-          <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-[var(--nimi-surface-subtle)] p-3 text-xs text-[var(--nimi-text-secondary)]">{JSON.stringify(profile.source, null, 2)}</pre>
+          <ScrollShell className="mt-3 max-h-80 rounded-lg bg-[var(--nimi-surface-subtle)] p-3">
+            <pre className="whitespace-pre-wrap break-all text-xs text-[var(--nimi-text-secondary)]">{JSON.stringify(profile.source, null, 2)}</pre>
+          </ScrollShell>
         </details>
       </section>
       <section className="border-t border-[var(--nimi-border-subtle)] pt-6" aria-label={t('runtimeConfig.aiSettings.profileScope')}>

@@ -4,7 +4,13 @@ import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/run
 import { Download, RefreshCw, Trash2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
+import {
+  SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
+  SHELL_CHROME_RAIL_ICON_SIZE,
+  SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
+  SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_PAGE_WIDTH_CLASS,
+} from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useHomeDestination } from '../../app-shell/providers/app-store.js';
 
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
@@ -72,18 +78,22 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
       content={active && fraction !== null ? `${label} · ${Math.round(fraction * 100)}%` : label}
       placement="right"
     >
-      <div className="relative flex size-11 items-center justify-center">
+      <div className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center`}>
         <IconButton
           size="sm"
           data-testid="global-downloads-entry"
           aria-label={label}
           aria-current={selected ? 'page' : undefined}
-          icon={<Download size={19} />}
+          icon={<Download size={SHELL_CHROME_RAIL_ICON_SIZE} strokeWidth={SHELL_CHROME_RAIL_ICON_STROKE_WIDTH} />}
           onClick={onOpen}
-          className={`size-11 rounded-xl ${selected ? 'bg-[var(--nimi-surface-active)]' : ''} ${selected || active ? 'text-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)]' : ''}`}
+          className={`${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+            selected
+              ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+              : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
+          } ${selected || active ? 'text-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)]' : ''}`}
         />
         {active ? (
-          <div className="pointer-events-none absolute bottom-1 left-1/2 w-5 -translate-x-1/2">
+          <div className="pointer-events-none absolute bottom-1 left-1/2 w-4 -translate-x-1/2">
             <ProgressIndicator
               value={fraction === null ? undefined : fraction * 100}
               aria-label={t('runtimeConfig.downloads.title')}

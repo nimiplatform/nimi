@@ -3,11 +3,10 @@ import { useNimiTheme } from '@nimiplatform/kit/ui';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import {
   DEFAULT_APPEARANCE_PREFERENCES,
+  getSystemDarkModeQuery,
   type AppearancePreferences,
 } from './settings-device-preferences.js';
 import { useSetDesktopAppReducedMotionPreference } from '../../ui/motion/desktop-motion.js';
-
-const DARK_SCHEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 /**
  * Applies the Appearance settings page's device preferences to the real app:
@@ -27,7 +26,7 @@ export function AppearanceEffects() {
     } catch {
       preferences = DEFAULT_APPEARANCE_PREFERENCES;
     }
-    const media = globalThis.window?.matchMedia?.(DARK_SCHEME_MEDIA_QUERY);
+    const media = getSystemDarkModeQuery();
 
     const apply = () => {
       const resolvedScheme = preferences.theme === 'system'

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, FieldShell, InlineAlert, OverlayShell, SelectField, TextareaField } from '@nimiplatform/kit/ui';
+import { Button, FieldShell, InlineAlert, OverlayShell, ScrollShell, SelectField, TextareaField } from '@nimiplatform/kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
@@ -65,7 +65,11 @@ function ScopedReportUserDialog({ target, message, onClose }: ReportUserDialogPr
         <FieldShell label={t('Relationship.report.description')} message={description.length + '/500'}><TextareaField value={description} rows={4} maxLength={500} disabled={pending} onChange={event => setDescription(event.target.value)} /></FieldShell>
         {message ? <div className="space-y-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includeMessage} disabled={pending} onChange={event => setIncludeMessage(event.target.checked)} />{t('Relationship.report.includeMessage')}</label>
-          {message.previewText ? <blockquote className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-sm text-[var(--nimi-text-secondary)]">{message.previewText}</blockquote> : null}
+          {message.previewText ? (
+            <ScrollShell className="max-h-40">
+              <blockquote className="whitespace-pre-wrap break-words text-sm text-[var(--nimi-text-secondary)]">{message.previewText}</blockquote>
+            </ScrollShell>
+          ) : null}
           {message.attachmentLabel ? <p className="text-sm text-[var(--nimi-text-secondary)]">{message.attachmentLabel}</p> : null}
           <p className="text-sm text-[var(--nimi-text-secondary)]">{t('Relationship.report.evidenceScope')}</p>
         </div> : null}

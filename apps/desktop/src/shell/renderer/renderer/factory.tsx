@@ -4,6 +4,7 @@ import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { AppProviders } from '../app-shell/providers/app-providers.js';
 import { AppErrorBoundary } from '../infra/error-boundary/app-error-boundary.js';
 import { AppearanceEffects } from '../features/settings/appearance-effects.js';
+import { getSystemDarkModeQuery } from '../features/settings/settings-device-preferences.js';
 import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { DesktopRendererContent } from './content.js';
 import { createDesktopRendererResources } from './resources.js';
@@ -29,7 +30,11 @@ function DesktopMainSurface(props: {
   }, [props.resources]);
 
   return (
-    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
+    <NimiThemeProvider
+      accentPack="nimi-accent"
+      defaultScheme={getSystemDarkModeQuery()?.matches ? 'dark' : 'light'}
+      defaultDensity="compact"
+    >
       <DesktopMotionProvider>
         <div
           className="nimi-ui-module--desktop"

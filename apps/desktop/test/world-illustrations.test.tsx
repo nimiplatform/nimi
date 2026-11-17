@@ -66,11 +66,13 @@ test('illustrations learn external dimensions, retain the gallery layout, and of
     await act(async () => trigger.click());
     assert.ok(dialog());
     assert.equal(dialog()!.querySelector('img')?.getAttribute('src'), mainImage().getAttribute('src'));
+    const viewport = document.querySelector<HTMLElement>('[data-testid="world-illustration-viewport"]')!;
+    Object.defineProperties(viewport, { clientWidth: { value: 320 }, clientHeight: { value: 200 } });
     await act(async () => button('Zoom in').click());
     assert.match(dialog()!.textContent!, /150%/);
+    assert.deepEqual([viewport.scrollLeft, viewport.scrollTop], [80, 50]);
     await act(async () => button('Fit to window').click());
     assert.match(dialog()!.textContent!, /100%/);
-    const viewport = document.querySelector<HTMLElement>('[data-testid="world-illustration-viewport"]')!;
     await act(async () => viewport.dispatchEvent(new dom.window.Event('dblclick', { bubbles: true })));
     assert.match(dialog()!.textContent!, /200%/);
     await act(async () => viewport.dispatchEvent(new dom.window.Event('dblclick', { bubbles: true })));

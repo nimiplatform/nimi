@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { Button, IconButton, NimiText, OverlayShell } from '@nimiplatform/kit/ui';
+import { Button, IconButton, NimiText, OverlayShell, ScrollShell } from '@nimiplatform/kit/ui';
 import type { WorldIllustration } from './world-detail-illustrations.js';
 
 function IllustrationViewport({ illustration, alt, zoom, onZoomChange, onUnavailable }: {
@@ -24,15 +24,15 @@ function IllustrationViewport({ illustration, alt, zoom, onZoomChange, onUnavail
     }
     previousZoom.current = zoom;
   }, [zoom]);
-  return <div ref={viewportRef}
-    className="min-h-0 flex-1 overflow-auto rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-action-primary-bg)]"
+  return <ScrollShell ref={viewportRef}
+    className="flex-1 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-action-primary-bg)]"
     tabIndex={0} role="region" aria-label={t('WorldDetail.discovery.imageViewport')} data-testid="world-illustration-viewport"
     onDoubleClick={() => onZoomChange(zoom === 1 ? 2 : 1)}>
     <div className="world-illustration-viewer-canvas" style={{ '--world-illustration-zoom': zoom } as CSSProperties}>
       <MediaImage delivery={illustration.delivery} externalUrl={illustration.url} purpose="detail" sizes="auto, 1600px" loading="eager"
         alt={alt} className="block h-full w-full object-contain select-none" draggable={false} onUnavailable={onUnavailable} />
     </div>
-  </div>;
+  </ScrollShell>;
 }
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r014

@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
-import { Avatar, Button, IconButton, Popover, PopoverContent, PopoverTrigger, SearchField } from '@nimiplatform/kit/ui';
+import { Avatar, Button, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SearchField } from '@nimiplatform/kit/ui';
 import { Check, ChevronDown, LayoutGrid, MessageCircle, Settings2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { messageSourceLabel } from './home-message-card.js';
@@ -171,7 +171,7 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
               }}
             />
           </div>
-          <div ref={listRef} id={listId} role="listbox" aria-label={t('runtimeConfig.overview.messages.sourceFilterLabel')} onKeyDown={navigate} className="min-h-0 overflow-y-auto overscroll-contain">
+          <ScrollShell ref={listRef} id={listId} role="listbox" aria-label={t('runtimeConfig.overview.messages.sourceFilterLabel')} onKeyDown={navigate}>
             {option(null)}
             {DOMAINS.map((domain) => {
               const items = visible.filter((source) => source.domain === domain);
@@ -182,7 +182,7 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
                 </div>
               ) : null;
             })}
-          </div>
+          </ScrollShell>
           {!visible.length ? <p role="status" className="px-3 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.messages.noMatchingSources')}</p> : null}
         </PopoverContent>
       </Popover>

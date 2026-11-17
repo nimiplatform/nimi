@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AppCardSurface, Button, InlineAlert, OverlayShell, StatusBadge } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, InlineAlert, OverlayShell, ScrollShell, StatusBadge } from '@nimiplatform/kit/ui';
 import { ArrowRight, BellRing, ChevronDown, History, PanelRightClose, Trash2 } from 'lucide-react';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
@@ -267,34 +267,36 @@ export function HomeExecutionNotices({ appArtworkFor }: {
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]" data-testid="execution-notices-title-icon"><BellRing size={17} aria-hidden="true" /></span>
       <div className="flex min-w-0 flex-1 items-center gap-2"><span className="truncate">{t('Notifications.execution.notices')}</span>{notices.length ? <StatusBadge tone="neutral" className="shrink-0">{notices.length}</StatusBadge> : null}</div>
     </div>}
-      onClose={() => setOpen(false)} panelClassName="flex h-full flex-col" contentClassName="min-h-0 flex-1 overflow-y-auto px-5 pb-6"
+      onClose={() => setOpen(false)} panelClassName="flex h-full flex-col" contentClassName="flex min-h-0 flex-1 flex-col p-0"
       data-testid="execution-notices-drawer">
-      {query.isError ? <div className="mb-4"><InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert></div> : null}
-      <ul className="flex flex-col gap-3" data-testid="execution-notices-list">
-        {notices.map(notice => {
-          const artwork = appArtworkFor?.(notice.displayName) ?? null;
-          return <AppCardSurface key={notice.id} as="li" kind="operational-solid" className="p-4" data-testid="execution-notice-row">
-            <div className="flex items-start gap-3">
-              <AppArtworkIcon appId={artwork?.appId ?? notice.displayName} displayName={notice.displayName} iconUrl={artwork?.iconUrl} size="md" className="execution-notice-app-icon" />
-              <div className="min-w-0 flex-1">
-                <h3 className="break-words text-sm font-semibold">{notice.displayName}</h3>
-                <div className="mt-2"><StatusBadge tone="warning" shape="dot">{t(`Notifications.execution.${notice.kind}`)}</StatusBadge></div>
+      <ScrollShell className="flex-1 px-5 pt-2 pb-6">
+        {query.isError ? <div className="mb-4"><InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert></div> : null}
+        <ul className="flex flex-col gap-3" data-testid="execution-notices-list">
+          {notices.map(notice => {
+            const artwork = appArtworkFor?.(notice.displayName) ?? null;
+            return <AppCardSurface key={notice.id} as="li" kind="operational-solid" className="p-4" data-testid="execution-notice-row">
+              <div className="flex items-start gap-3">
+                <AppArtworkIcon appId={artwork?.appId ?? notice.displayName} displayName={notice.displayName} iconUrl={artwork?.iconUrl} size="md" className="execution-notice-app-icon" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="break-words text-sm font-semibold">{notice.displayName}</h3>
+                  <div className="mt-2"><StatusBadge tone="warning" shape="dot">{t(`Notifications.execution.${notice.kind}`)}</StatusBadge></div>
+                </div>
               </div>
-            </div>
-            <p className={`mt-3 text-[13px] leading-5 ${notice.availableNow ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`} data-testid="execution-notice-availability">{t(notice.availableNow === null ? 'Notifications.execution.unconfirmed' : notice.availableNow ? 'Notifications.execution.restored' : 'Notifications.execution.noResume')}</p>
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] pt-2.5">
-              <time className="text-xs tabular-nums text-[var(--nimi-text-muted)]" dateTime={notice.occurredAt}>{new Date(notice.occurredAt).toLocaleString()}</time>
-              <Button tone="ghost" size="sm" className="-mr-2 shrink-0 text-[var(--nimi-text-secondary)]" leadingIcon={<Trash2 size={13} aria-hidden="true" />} disabled={dismiss.isPending} onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.dismiss')}</Button>
-            </div>
-            {notice.notification !== 'shown' ? <details className="group mt-3 rounded-xl bg-[var(--nimi-status-neutral-soft-bg)] px-3 py-2.5 text-xs text-[var(--nimi-text-muted)]">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md text-[var(--nimi-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden"><span>{t('Notifications.execution.notificationDetails')}</span><ChevronDown size={14} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" /></summary>
-              <p className="mt-2 leading-5">{t(`Notifications.execution.notification-${notice.notification}`)}</p>
-            </details> : null}
-            {dismiss.isError && dismiss.variables === notice.id ? <div role="alert" className="mt-3 text-sm text-[var(--nimi-status-danger)]">{t('Notifications.execution.dismissFailed')} <Button tone="ghost" size="sm" onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.retry')}</Button></div> : null}
-          </AppCardSurface>;
-        })}
-      </ul>
-      {!notices.length && !query.isError ? <div role="status" className="flex flex-col items-center px-6 py-14 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]"><History size={22} aria-hidden="true" /></span><p className="mt-4 text-sm font-medium text-[var(--nimi-text-secondary)]">{t('Notifications.execution.empty')}</p></div> : null}
+              <p className={`mt-3 text-[13px] leading-5 ${notice.availableNow ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`} data-testid="execution-notice-availability">{t(notice.availableNow === null ? 'Notifications.execution.unconfirmed' : notice.availableNow ? 'Notifications.execution.restored' : 'Notifications.execution.noResume')}</p>
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] pt-2.5">
+                <time className="text-xs tabular-nums text-[var(--nimi-text-muted)]" dateTime={notice.occurredAt}>{new Date(notice.occurredAt).toLocaleString()}</time>
+                <Button tone="ghost" size="sm" className="-mr-2 shrink-0 text-[var(--nimi-text-secondary)]" leadingIcon={<Trash2 size={13} aria-hidden="true" />} disabled={dismiss.isPending} onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.dismiss')}</Button>
+              </div>
+              {notice.notification !== 'shown' ? <details className="group mt-3 rounded-xl bg-[var(--nimi-status-neutral-soft-bg)] px-3 py-2.5 text-xs text-[var(--nimi-text-muted)]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md text-[var(--nimi-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden"><span>{t('Notifications.execution.notificationDetails')}</span><ChevronDown size={14} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" /></summary>
+                <p className="mt-2 leading-5">{t(`Notifications.execution.notification-${notice.notification}`)}</p>
+              </details> : null}
+              {dismiss.isError && dismiss.variables === notice.id ? <div role="alert" className="mt-3 text-sm text-[var(--nimi-status-danger)]">{t('Notifications.execution.dismissFailed')} <Button tone="ghost" size="sm" onClick={() => dismiss.mutate(notice.id)}>{t('Notifications.execution.retry')}</Button></div> : null}
+            </AppCardSurface>;
+          })}
+        </ul>
+        {!notices.length && !query.isError ? <div role="status" className="flex flex-col items-center px-6 py-14 text-center"><span className="flex size-12 items-center justify-center rounded-2xl bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]"><History size={22} aria-hidden="true" /></span><p className="mt-4 text-sm font-medium text-[var(--nimi-text-secondary)]">{t('Notifications.execution.empty')}</p></div> : null}
+      </ScrollShell>
     </OverlayShell>
   </>;
 }

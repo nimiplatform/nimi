@@ -1,4 +1,4 @@
-import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, OverlayShell } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, OverlayShell, ScrollShell } from '@nimiplatform/kit/ui';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAssetDescriptor, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { X } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -36,10 +36,10 @@ export function RuntimeCapabilitySettingsDialog(props: {
   return (
     <>
       <OverlayShell open kind="dialog" size="lg" onClose={applying ? undefined : close} closeOnBackdrop={!applying}
-        panelClassName="flex max-h-[calc(100dvh-4rem)] flex-col overflow-hidden" contentClassName="min-h-0 overflow-y-auto pb-4"
+        panelClassName="flex max-h-[calc(100dvh-4rem)] flex-col overflow-hidden" contentClassName="flex min-h-0 flex-col p-0"
         title={<span className="block pr-8">{t('runtimeConfig.product.settings.title', { model: name })}</span>}
         data-testid="capability-model-settings">
-        <div className="space-y-4" data-testid="capability-settings-content" data-loadout-id={props.selected?.loadoutId} data-recipe-id={props.recipe?.recipeId}>
+        <ScrollShell className="space-y-4 px-6 pt-2 pb-4" data-testid="capability-settings-content" data-loadout-id={props.selected?.loadoutId} data-recipe-id={props.recipe?.recipeId}>
           {props.configurations ? <div className="space-y-3">
             <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.settings.chooseConfiguration')}</p>
             <ul className="divide-y divide-[var(--nimi-border-subtle)]">
@@ -66,7 +66,7 @@ export function RuntimeCapabilitySettingsDialog(props: {
             disabled={props.disabled || props.recipe!.applicability === 'unsupported'} onStateChange={onStateChange} onApply={props.onApply}
             onCancel={props.onClose} applyLabel={t(props.current ? 'runtimeConfig.product.customization.apply' : 'runtimeConfig.product.settings.applyAndSelect')} />}
           </>}
-        </div>
+        </ScrollShell>
         <IconButton size="sm" aria-label={t('Common.close')} icon={<X size={16} />} disabled={applying} onClick={close}
           className="absolute right-4 top-4" data-testid="capability-model-settings-close" />
       </OverlayShell>

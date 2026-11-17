@@ -7,10 +7,37 @@
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx}";
 
-/* Home dashboard modules keep only a faint ambient lift; a stronger offset
-   shadow stacks into a visible gray slab under each card. */
-:root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"] {
+/* Desktop light-scheme canvas and unified chrome backdrop (#f0f7fd); inner
+   cards and panels keep their white-tier surface tokens. Home dashboard
+   modules keep only a faint ambient lift so shadows do not stack into gray. */
+[data-nimi-scheme="light"] {
+  --nimi-app-background: #f0f7fd;
+  --nimi-surface-canvas: #f0f7fd;
+  --nimi-ambient-mesh-base-start: #f0f7fd;
+  --nimi-ambient-mesh-base-end: #f0f7fd;
+  --nimi-ambient-mesh-color-1: transparent;
+  --nimi-ambient-mesh-color-2: transparent;
+  --nimi-ambient-mesh-color-3: transparent;
+  --nimi-ambient-mesh-color-4: transparent;
   --nimi-home-card-elevation: 0 2px 12px rgba(15,23,42,0.04);
+}
+
+:root[data-nimi-scheme="light"] [data-nimi-ambient-layer="halo"] {
+  display: none;
+}
+
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop .nimi-app-chrome {
+  background-color: var(--nimi-surface-canvas);
+  border-bottom-color: transparent;
+}
+
+/* Let primary right-hand module workspaces reveal the #f0f7fd desktop canvas
+   while keeping sidebars, floating sheets, and inner cards in the white tier. */
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop :is(.desktop-module-panel[data-nimi-tone="panel"], main[data-nimi-tone="panel"]) {
+  --desktop-workspace-bg: var(--nimi-surface-canvas);
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"] {
