@@ -2,10 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
-import { BROWSER_SESSION_RESPONSE, createWebBrowserRealm } from './browser-realm.js';
+import { BROWSER_SESSION_RESPONSE, runWebBrowserSessionLogin } from './browser-realm.js';
 import {
   completeTikTokAccountOAuth,
-  confirmCurrentWebBrowserSession,
 } from './web-provider-link.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
 
@@ -54,10 +53,11 @@ export function ProviderLinkCallbackPage() {
     event.preventDefault();
     if (!twoFactor || code.length !== 6) return;
     setError(null);
-    void createWebBrowserRealm('').auth.verify2Fa({
-      path: {},
-      body: { tempToken: twoFactor.tempToken, code },
-    }, BROWSER_SESSION_RESPONSE).then((response) => {
+    void runWebBrowserSessionLogin(async realm => {
+      const response = await realm.auth.verify2Fa({
+        path: {},
+        body: { tempToken: twoFactor.tempToken, code },
+      }, BROWSER_SESSION_RESPONSE);
       if (response && typeof response === 'object' && ('accessToken' in response || 'refreshToken' in response)) {
         throw createNimiError({
           message: t('Account.bearerForbidden'),
@@ -66,8 +66,7 @@ export function ProviderLinkCallbackPage() {
           source: 'sdk',
         });
       }
-      return confirmCurrentWebBrowserSession();
-    }).then(() => {
+    }, '').then(() => {
       finishLogin(twoFactor.oauthNext, t('Account.oauthContinuationExpired'));
     }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason || t('Account.twoFaFailed'))));
   };

@@ -21,6 +21,7 @@ import {
 } from './oauth-continuation.js';
 import { webHomeAuthPalette } from './web-auth-appearance.js';
 import type { AccountRouteContext } from '../site-router.js';
+import { BrowserSessionRenewalBlockedError } from './browser-session-reader.js';
 
 // Keep the landing homepage neutral surfaces; focus and action accents come
 // from the shared Nimi auth theme.
@@ -54,6 +55,9 @@ function resolveAccountHref(search: string): string {
 }
 
 function formatSessionError(error: unknown, fallback: string, isZh: boolean): string {
+  if (error instanceof BrowserSessionRenewalBlockedError) return isZh
+    ? '无法自动续期，请重新登录后继续。已保存的数据保持不变。'
+    : 'Automatic session renewal is unavailable. Sign in again to continue; your saved data is unchanged.';
   if (!(error instanceof Error) || !error.message.trim()) return fallback;
   const raw = error.message.trim();
   if (/failed to fetch|networkerror|load failed|econnrefused|http 5\d\d|unexpected token|fetch/iu.test(raw)) {
@@ -138,7 +142,7 @@ export function WebAccountPage() {
       if (deleted) setCurrentUser(null);
       else setSessionFailure({ error });
       setChecking(false);
-      return deleted || ordinaryLogin;
+      return deleted || ordinaryLogin || error instanceof BrowserSessionRenewalBlockedError;
     });
     sessionCheck.current = check;
     return () => {
@@ -171,6 +175,13 @@ export function WebAccountPage() {
             <p role="alert">{sessionError}</p>
           </div>
           <nav className="web-account-session-actions">
+            {sessionFailure?.error instanceof BrowserSessionRenewalBlockedError ? <button
+              type="button"
+              className={`${buttonBase} ${buttonOutline} web-account-session-action`}
+              onClick={() => setSessionFailure(null)}
+            >
+              {isZh ? '重新登录' : 'Sign in again'}
+            </button> : null}
             <button
               type="button"
               className={`${buttonBase} ${buttonDefault} web-account-session-action`}

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback } from 'react';
 import { asNimiError } from '@nimiplatform/sdk/types';
+import { BrowserSessionRenewalBlockedError } from './browser-session-reader.js';
 
 export const accountCenterCopy = {
   connect: ['Connect an application', '连接应用'],
@@ -31,6 +32,7 @@ export const accountCenterCopy = {
   runtimeWrongAccount: ['Sign in with the Nimi account that started this request.', '请使用发起此请求的 Nimi 账号登录。'],
   runtimeFailed: ['Could not read or confirm the Runtime binding. Check your sign-in and connection, then retry.', '无法读取或确认主绑定，请检查登录和网络后重试。'],
   accountUnavailable: ["Your account information is temporarily unavailable", "暂时无法读取账号信息"],
+  renewalBlocked: ['Automatic session renewal is unavailable. Sign in again to continue; your saved data is unchanged.', '无法自动续期，请重新登录后继续。已保存的数据保持不变。'],
   sending: ['Sending…', '正在发送…'],
   keepEditing: ['Keep editing', '继续编辑'],
   discardChanges: ['Discard changes', '放弃更改'],
@@ -286,6 +288,7 @@ export function useAccountCopy() {
 }
 
 export function accountReadProblem(reason: unknown, copy: (key: AccountCopyKey) => string): string {
+  if (reason instanceof BrowserSessionRenewalBlockedError) return copy('renewalBlocked');
   const failure = asNimiError(reason);
   if (failure.details?.status === 429) return copy('tooManyRequests');
   if (failure.reasonCode === 'AUTH_ACCOUNT_CONTEXT_CHANGED' || failure.message === copy('changed'))

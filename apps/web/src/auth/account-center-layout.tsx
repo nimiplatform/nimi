@@ -284,9 +284,12 @@ export function AccountSignedOut({
         {!error ? <p>{c('signedOutHint')}</p> : null}
         <AccountFeedback error={error} />
         {error ? (
-          <button className="ac-button" onClick={onRetry}>
-            {c('retry')}
-          </button>
+            <>
+              <button className="ac-button" onClick={onRetry}>
+                {c('retry')}
+              </button>
+              <Link className="ac-text-link" to={loginUrl}>{c('signedOut')}</Link>
+            </>
         ) : (
           <Link className="ac-button" to={loginUrl}>
             {c('signedOut')}

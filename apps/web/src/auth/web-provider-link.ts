@@ -2,11 +2,10 @@ import {
   NIMI_REALM_OAUTH_PROVIDER,
   linkNimiRealmOAuth,
   loginNimiRealmOAuth,
-  toNimiRealmAuthUserRecord,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
-import { BROWSER_SESSION_RESPONSE, createWebBrowserRealm } from './browser-realm.js';
+import { BROWSER_SESSION_RESPONSE, runWebBrowserSessionLogin, createWebBrowserRealm } from './browser-realm.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
 
 const TIKTOK_AUTHORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
@@ -122,13 +121,6 @@ function browserSessionContractError(message: string): Error {
   });
 }
 
-export async function confirmCurrentWebBrowserSession(): Promise<void> {
-  const currentUser = toNimiRealmAuthUserRecord(await createWebBrowserRealm('').me());
-  if (!currentUser) {
-    throw browserSessionContractError('Realm did not confirm the current browser session.');
-  }
-}
-
 export async function completeTikTokAccountOAuth(search: string, invalidAccountMessage = 'Could not confirm the account to link. Please try again.'): Promise<CompletedTikTokAccountOAuth> {
   const pending = consumePendingProviderLink();
   const query = new URLSearchParams(search);
@@ -148,12 +140,10 @@ export async function completeTikTokAccountOAuth(search: string, invalidAccountM
     await linkNimiRealmOAuth(createWebBrowserRealm(''), { ...input, expectedAccountId: pending.expectedAccountId });
     return { mode: pending.mode };
   }
-  const loginResult = await loginNimiRealmOAuth(createWebBrowserRealm(''), input, BROWSER_SESSION_RESPONSE);
-  if (loginResult.tokens != null) {
-    throw browserSessionContractError('Realm 向 Web browser session 返回了禁止的 bearer。');
-  }
-  if (loginResult.loginState === 'ok' || loginResult.loginState === 'needs_onboarding') {
-    await confirmCurrentWebBrowserSession();
-  }
+  const loginResult = await runWebBrowserSessionLogin(async realm => {
+    const result = await loginNimiRealmOAuth(realm, input, BROWSER_SESSION_RESPONSE);
+    if (result.tokens != null) throw browserSessionContractError('Realm 向 Web browser session 返回了禁止的 bearer。');
+    return result;
+  }, '');
   return { mode: pending.mode, oauthNext: pending.oauthNext, loginResult };
 }

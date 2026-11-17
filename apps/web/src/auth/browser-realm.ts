@@ -1,6 +1,6 @@
-import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
+import { Realm, createRealmFetchTransport, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
 import { isSecureBrowserSessionOrigin, readValidatedOauthNext } from './oauth-continuation.js';
-import { createBrowserSessionReader } from './browser-session-reader.js';
+import { createBrowserSessionReader, createBrowserSessionRenewal } from './browser-session-reader.js';
 
 export const BROWSER_SESSION_RESPONSE = Object.freeze({
   metadata: Object.freeze({ 'x-nimi-auth-response': 'browser-session' }),
@@ -37,6 +37,40 @@ export function createWebBrowserRealm(search = window.location.search): Realm {
 type BrowserAccount = Awaited<ReturnType<Realm['me']>>;
 const accountReaders = new Map<string, () => Promise<BrowserAccount>>();
 
+function browserSessionRenewal(origin: string, realm: Realm) {
+  return createBrowserSessionRenewal({
+    storage: {
+      getItem: (key) => window.localStorage.getItem(key),
+      setItem: (key, value) => window.localStorage.setItem(key, value),
+      removeItem: (key) => window.localStorage.removeItem(key),
+    },
+    key: `nimi:browser-session-renewal:${origin}`,
+    renew: async () => {
+      await realm.generated.refreshBrowserSession({ path: {}, headers: BROWSER_SESSION_RESPONSE.metadata });
+    },
+  });
+}
+
+// Keep cookie replacement and marker completion in the same existing lock as
+// refresh, so a late confirmation cannot clear another tab's uncertain rotation.
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r046
+export async function runWebBrowserSessionLogin<T extends NimiRealmOAuthLoginResult | void>(
+  authenticate: (realm: Realm) => Promise<T>,
+  search = window.location.search,
+): Promise<T> {
+  const realm = createWebBrowserRealm(search);
+  const origin = realmOrigin(search);
+  const login = async () => {
+    const result = await authenticate(realm);
+    if (!result || result.loginState === 'ok' || result.loginState === 'needs_onboarding') {
+      await browserSessionRenewal(origin, realm).confirmLogin(() => realm.account.getMe({ path: {} }));
+    }
+    return result;
+  };
+  if (!navigator.locks) return login();
+  return navigator.locks.request(`nimi:browser-session:${origin}`, login);
+}
+
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005c
 export function readWebBrowserAccount() {
   const origin = webRealmOrigin();
@@ -56,12 +90,7 @@ export function readWebBrowserAccount() {
           return { error, noRefreshCookie: hint === 'no-refresh' };
         }
       },
-      renew: async () => {
-        await realm.generated.refreshBrowserSession({
-          path: {},
-          headers: BROWSER_SESSION_RESPONSE.metadata,
-        });
-      },
+      renew: () => browserSessionRenewal(origin, realm).renew(),
       exclusive: (work, originalError) => {
         // Without an origin-wide lock, require ordinary sign-in instead of racing
         // rotation against another tab. No credentials are read into JavaScript.
