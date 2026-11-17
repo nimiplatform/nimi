@@ -27165,8 +27165,8 @@ type RealmEconomyControllerGetGemHistoryOperationPath struct {
 }
 
 type RealmEconomyControllerGetGemHistoryOperationQuery struct {
-	Limit  float64 `json:"limit,omitempty"`
-	Cursor string  `json:"cursor,omitempty"`
+	Limit  int64  `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RealmEconomyControllerGetGemHistoryOperationHeaders struct {
@@ -27215,8 +27215,8 @@ type RealmEconomyControllerGetSparkHistoryOperationPath struct {
 }
 
 type RealmEconomyControllerGetSparkHistoryOperationQuery struct {
-	Limit  float64 `json:"limit,omitempty"`
-	Cursor string  `json:"cursor,omitempty"`
+	Limit  int64  `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RealmEconomyControllerGetSparkHistoryOperationHeaders struct {
@@ -27314,8 +27314,8 @@ type RealmEconomyControllerGetWithdrawalHistoryOperationPath struct {
 }
 
 type RealmEconomyControllerGetWithdrawalHistoryOperationQuery struct {
-	Limit  float64 `json:"limit,omitempty"`
-	Cursor string  `json:"cursor,omitempty"`
+	Limit  int64  `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RealmEconomyControllerGetWithdrawalHistoryOperationHeaders struct {
@@ -27430,8 +27430,8 @@ type RealmFeedbackControllerGetMyFeedbacksOperationPath struct {
 }
 
 type RealmFeedbackControllerGetMyFeedbacksOperationQuery struct {
-	Limit  float64 `json:"limit,omitempty"`
-	Cursor string  `json:"cursor,omitempty"`
+	Limit  int64  `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RealmFeedbackControllerGetMyFeedbacksOperationHeaders struct {
@@ -27565,8 +27565,8 @@ type RealmGetMutualFriendsOperationPath struct {
 }
 
 type RealmGetMutualFriendsOperationQuery struct {
-	Cursor string  `json:"cursor,omitempty"`
 	Limit  float64 `json:"limit,omitempty"`
+	Cursor string  `json:"cursor,omitempty"`
 }
 
 type RealmGetMutualFriendsOperationHeaders struct {

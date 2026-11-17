@@ -1988,10 +1988,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2008,7 +2008,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2021,10 +2021,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2041,7 +2041,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2157,10 +2157,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2177,7 +2177,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2190,10 +2190,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2210,7 +2210,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2461,10 +2461,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2481,7 +2481,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2494,10 +2494,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2514,7 +2514,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2918,10 +2918,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2938,7 +2938,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -2951,10 +2951,10 @@
           "required": false,
           "schema": {
             "kind": "scalar",
-            "type": "number",
+            "type": "integer",
             "format": null,
-            "minimum": null,
-            "maximum": null,
+            "minimum": 1,
+            "maximum": 100,
             "min_length": null,
             "max_length": null,
             "pattern": null
@@ -2971,7 +2971,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -3028,12 +3028,38 @@
             "ref_name": "FeedbackResponseDto"
           },
           "schema_ref": "#/components/schemas/FeedbackResponseDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "201",
           "schema_ref": "#/components/schemas/FeedbackResponseDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
     },
@@ -3400,6 +3426,21 @@
       ],
       "parameters": [
         {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
           "name": "cursor",
           "in": "query",
           "required": false,
@@ -3410,22 +3451,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         },
@@ -3464,6 +3490,21 @@
       ],
       "query_parameters": [
         {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
           "name": "cursor",
           "in": "query",
           "required": false,
@@ -3474,22 +3515,7 @@
             "minimum": null,
             "maximum": null,
             "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "scalar",
-            "type": "number",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
+            "max_length": 1024,
             "pattern": null
           }
         }
@@ -6993,6 +7019,15 @@
             "ref_name": "AuthErrorDto"
           },
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "response_schema_refs": [
@@ -7010,6 +7045,10 @@
         },
         {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
@@ -9875,6 +9914,15 @@
             "ref_name": "AuthErrorDto"
           },
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ],
       "empty_success_statuses": [
@@ -9895,6 +9943,10 @@
         },
         {
           "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]

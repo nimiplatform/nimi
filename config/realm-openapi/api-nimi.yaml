@@ -9949,6 +9949,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Verify 2FA
       tags:
         - Auth
@@ -10986,6 +10992,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
       summary: Password login
       tags:
         - Auth
@@ -11695,11 +11707,15 @@ paths:
           name: limit
           required: false
           schema:
-            type: number
+            default: 20
+            maximum: 100
+            minimum: 1
+            type: integer
         - in: query
           name: cursor
           required: false
           schema:
+            maxLength: 1024
             type: string
       responses:
         '200':
@@ -11801,11 +11817,15 @@ paths:
           name: limit
           required: false
           schema:
-            type: number
+            default: 20
+            maximum: 100
+            minimum: 1
+            type: integer
         - in: query
           name: cursor
           required: false
           schema:
+            maxLength: 1024
             type: string
       responses:
         '200':
@@ -12028,11 +12048,15 @@ paths:
           name: limit
           required: false
           schema:
-            type: number
+            default: 20
+            maximum: 100
+            minimum: 1
+            type: integer
         - in: query
           name: cursor
           required: false
           schema:
+            maxLength: 1024
             type: string
       responses:
         '200':
@@ -12176,18 +12200,20 @@ paths:
         user and the target user.
       operationId: getMutualFriends
       parameters:
-        - description: Pagination cursor (user ID)
-          in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - description: Max items per page (default 20, max 100)
-          in: query
+        - in: query
           name: limit
           required: false
           schema:
+            default: 20
+            maximum: 100
+            minimum: 1
             type: number
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            maxLength: 1024
+            type: string
         - description: Target user ID
           in: path
           name: id
@@ -14263,6 +14289,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResourceDetailDto'
           description: ''
+        '413':
+          description: Text JSON envelope exceeds the route byte budget.
+        '503':
+          description: Text submission is busy; retry without changing requestId.
       security:
         - bearer: []
       summary: Submit text resource for verified publication
@@ -14514,11 +14544,15 @@ paths:
           name: limit
           required: false
           schema:
-            type: number
+            default: 20
+            maximum: 100
+            minimum: 1
+            type: integer
         - in: query
           name: cursor
           required: false
           schema:
+            maxLength: 1024
             type: string
       responses:
         '200':
@@ -14549,6 +14583,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeedbackResponseDto'
           description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '429':
+          description: Feedback submission rate limit reached
       summary: Submit feedback
       tags:
         - Support (Feedback)

@@ -4415,8 +4415,8 @@ export interface RealmGetMutualFriendsOperationRequest {
     readonly id: string;
   };
   readonly query?: {
-    readonly cursor?: string;
     readonly limit?: number;
+    readonly cursor?: string;
   };
   readonly headers?: {
 

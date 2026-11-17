@@ -4083,7 +4083,7 @@ class RealmEconomyControllerGetGemHistoryOperationPath:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetGemHistoryOperationQuery:
-    limit: float | None = None
+    limit: int | None = None
     cursor: str | None = None
 
 
@@ -4150,7 +4150,7 @@ class RealmEconomyControllerGetSparkHistoryOperationPath:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetSparkHistoryOperationQuery:
-    limit: float | None = None
+    limit: int | None = None
     cursor: str | None = None
 
 
@@ -4283,7 +4283,7 @@ class RealmEconomyControllerGetWithdrawalHistoryOperationPath:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetWithdrawalHistoryOperationQuery:
-    limit: float | None = None
+    limit: int | None = None
     cursor: str | None = None
 
 
@@ -4439,7 +4439,7 @@ class RealmFeedbackControllerGetMyFeedbacksOperationPath:
 
 @dataclass(frozen=True)
 class RealmFeedbackControllerGetMyFeedbacksOperationQuery:
-    limit: float | None = None
+    limit: int | None = None
     cursor: str | None = None
 
 
@@ -4616,8 +4616,8 @@ class RealmGetMutualFriendsOperationPath:
 
 @dataclass(frozen=True)
 class RealmGetMutualFriendsOperationQuery:
-    cursor: str | None = None
     limit: float | None = None
+    cursor: str | None = None
 
 
 @dataclass(frozen=True)
