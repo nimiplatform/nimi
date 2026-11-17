@@ -1,7 +1,7 @@
 import { SupportAppHostCacheCard } from '../support/support-storage-tools.js';
 import { useProductUpdate } from '../home/product-update-context.js';
 import { useCallback, useEffect, useState } from 'react';
-import { ConfirmDialog } from '@nimiplatform/kit/ui';
+import { Button as KitButton, ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
@@ -23,7 +23,6 @@ import { isExecutableCheckSyncNextAction } from '../../../shared/check-sync-next
 import { useCheckSyncPolling } from './check-sync-polling.js';
 
 type StorageSnapshot = {
-  queryCacheBytes: number;
   localStorageBytes: number;
   estimatedUsageBytes: number;
   estimatedQuotaBytes: number;
@@ -39,17 +38,20 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 }
 
-function estimateQueryCacheBytes(queryClient: QueryClient): number {
+function estimateQueryCacheBytes(queryClient: QueryClient): { bytes: number; incomplete: boolean } {
   const queries = queryClient.getQueryCache().findAll();
   let total = 0;
+  let incomplete = false;
   for (const query of queries) {
     try {
-      total += JSON.stringify(query.state.data ?? null).length * 2;
+      const text = JSON.stringify(query.state.data);
+      if (typeof text === 'string') total += text.length * 2;
+      else if (query.state.data !== undefined) incomplete = true;
     } catch {
-      total += 0;
+      incomplete = true;
     }
   }
-  return total;
+  return { bytes: total, incomplete };
 }
 
 export function DataManagementPage() {
@@ -63,6 +65,7 @@ export function DataManagementPage() {
   const [dataRootBusy, setDataRootBusy] = useState(false);
   const [pendingDataRoot, setPendingDataRoot] = useState<string | null>(null);
   const [storage, setStorage] = useState<StorageSnapshot | null>(null);
+  const [queryCacheEstimate, setQueryCacheEstimate] = useState<ReturnType<typeof estimateQueryCacheBytes> | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [dirsError, setDirsError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -70,14 +73,13 @@ export function DataManagementPage() {
   const refreshStorageSnapshot = useCallback(async () => {
     setStorage(null);
     setStorageError(null);
-    const queryCacheBytes = estimateQueryCacheBytes(queryClient);
     try {
       const usage = await bindings.app.commands.settings.estimateStorageUsage();
-      setStorage({ queryCacheBytes, ...usage });
+      setStorage(usage);
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : 'DESKTOP_STORAGE_ESTIMATE_UNAVAILABLE');
     }
-  }, [bindings.app.commands.settings, queryClient]);
+  }, [bindings.app.commands.settings]);
 
   useEffect(() => {
     void refreshStorageSnapshot();
@@ -176,8 +178,8 @@ export function DataManagementPage() {
 
   const handleClearCache = () => {
     queryClient.clear();
+    setQueryCacheEstimate(null);
     setFeedback({ kind: 'success', message: t('DataManagement.cacheCleared') });
-    void refreshStorageSnapshot();
   };
 
   return (
@@ -192,10 +194,21 @@ export function DataManagementPage() {
             <p>{t(storageError ? 'DataManagement.storageReadFailed' : 'Common.loading')}</p>
             {storageError ? <Button variant="secondary" onClick={() => { void refreshStorageSnapshot(); }}>{t('Common.retry')}</Button> : null}
           </div> : <div className="divide-y divide-[var(--nimi-border-subtle)]">
-            <InfoRow label={t('DataManagement.storageChats')} value={formatBytes(storage.queryCacheBytes)} />
             <InfoRow label={t('DataManagement.storageMediaFiles')} value={formatBytes(storage.estimatedUsageBytes)} />
             <InfoRow label={t('DataManagement.storageCache')} value={formatBytes(storage.localStorageBytes)} />
           </div>}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
+            <span className="text-sm text-[var(--nimi-text-secondary)]">{t('DataManagement.storageChats')}</span>
+            <KitButton tone="secondary" data-testid="data-management-estimate-query-cache" onClick={() => {
+              setQueryCacheEstimate(estimateQueryCacheBytes(queryClient));
+            }}>{t('DataManagement.estimateQueryCache')}</KitButton>
+          </div>
+          {queryCacheEstimate ? (
+            <p role="status" className="mt-2 text-sm" data-testid="data-management-query-cache-result">
+              {t('DataManagement.queryCacheApproximate', { size: formatBytes(queryCacheEstimate.bytes) })}
+              {queryCacheEstimate.incomplete ? ` ${t('DataManagement.queryCacheEstimateIncomplete')}` : null}
+            </p>
+          ) : null}
           <p className="mt-3 text-xs text-[var(--nimi-text-muted)]">{t('DataManagement.separateStorageScopes')}</p>
         </Card>
       </Section>
