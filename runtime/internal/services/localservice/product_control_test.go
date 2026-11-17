@@ -1421,3 +1421,48 @@ func mustProductControlForTest(t *testing.T, response *runtimev1.ProductControlP
 	}
 	return response
 }
+
+func TestRuntimeProductControlInspectsBeforeReplacementAndRejectsStaleActivation(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "current")
+	ready := readyProductControlForReplacementTest(t, service, current)
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	ctx := context.Background()
+	invalid := filepath.Join(home, "invalid-layout")
+	if err := os.MkdirAll(invalid, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(invalid, "models"), []byte("not a directory"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rejectedReply, rejectedErr := service.ReplaceProductControlDataRoot(ctx, &runtimev1.ReplaceProductControlDataRootRequest{InspectTargetRoot: invalid})
+	rejected := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, rejectedReply, rejectedErr))
+	if rejected.Error == nil || rejected.InspectedTargetRoot != "" || handoff.closed != 0 {
+		t.Fatalf("invalid layout was not projected before stopping: %+v", rejected)
+	}
+	target := filepath.Join(home, "next")
+	reply, err := service.ReplaceProductControlDataRoot(ctx, &runtimev1.ReplaceProductControlDataRootRequest{InspectTargetRoot: target})
+	inspection := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, reply, err))
+	if inspection.InspectedTargetRoot != target || inspection.Record.DataRoot.RootActivationID != ready.Record.DataRoot.RootActivationID {
+		t.Fatalf("unexpected inspection: %+v", inspection)
+	}
+	_, err = service.ReplaceProductControlDataRoot(ctx, &runtimev1.ReplaceProductControlDataRootRequest{
+		InspectedTargetRoot: target, ExpectedRootActivationId: "stale",
+	})
+	if err == nil || handoff.closed != 0 {
+		t.Fatalf("stale replacement reached handoff: err=%v, closed=%d", err, handoff.closed)
+	}
+	if _, err := os.Lstat(target); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("inspection modified the target: %v", err)
+	}
+	reply, err = service.ReplaceProductControlDataRoot(ctx, &runtimev1.ReplaceProductControlDataRootRequest{
+		InspectedTargetRoot:      inspection.InspectedTargetRoot,
+		ExpectedRootActivationId: inspection.Record.DataRoot.RootActivationID,
+	})
+	replaced := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, reply, err))
+	if replaced.Activation == nil || !replaced.Activation.Activated || replaced.Record.DataRoot.Path != target || handoff.closed != 1 {
+		t.Fatalf("inspected replacement did not commit: %+v, closed=%d", replaced, handoff.closed)
+	}
+}

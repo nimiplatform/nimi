@@ -138,6 +138,8 @@ export function DataManagementPage() {
       } catch (error) { refreshError = error instanceof Error ? error.message : String(error); }
       if (projection.auditDiagnostic) {
         setFeedback({ kind: 'warning', message: t('DataManagement.dataRootReplacedAuditUnrecorded'), technicalDetail: projection.auditDiagnostic.reasonCode });
+      } else if (projection.error?.startsWith('DATA_ROOT_HANDOFF_INCOMPLETE_AFTER_HOST_STOP:')) {
+        setFeedback({ kind: 'warning', message: t('DataManagement.dataRootHandoffIncomplete'), technicalDetail: projection.error });
       } else if (projection.error || refreshError) {
         setFeedback({ kind: projection.activation?.activated ? 'warning' : 'error', message: t(projection.activation?.activated ? 'DataManagement.dataRootReplaced' : 'DataManagement.dataRootReplaceFailed'), technicalDetail: projection.error ?? refreshError ?? undefined });
       } else if (projection.activation?.activated) {
@@ -148,7 +150,8 @@ export function DataManagementPage() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: t('DataManagement.dataRootReplaceFailed'),
+        message: t(error instanceof Error && error.message.startsWith('DATA_ROOT_HANDOFF_INCOMPLETE_AFTER_HOST_STOP:')
+          ? 'DataManagement.dataRootHandoffIncomplete' : 'DataManagement.dataRootReplaceFailed'),
         technicalDetail: error instanceof Error ? error.message : String(error || ''),
       });
     } finally {

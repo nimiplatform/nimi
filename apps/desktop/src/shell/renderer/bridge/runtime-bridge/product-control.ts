@@ -345,6 +345,7 @@ export type DesktopHomeProfileStatus = {
   readonly workAllowed: boolean;
   readonly relaunchRequested: boolean;
   readonly startupFailure?: string | null;
+  readonly sourceRuntimeRestartRequired?: boolean;
 };
 
 export function getDesktopHomeProfileStatus(): Promise<DesktopHomeProfileStatus> {
@@ -355,9 +356,13 @@ export function getDesktopHomeProfileStatus(): Promise<DesktopHomeProfileStatus>
       || typeof item.workAllowed !== 'boolean' || typeof item.relaunchRequested !== 'boolean') {
       throw new Error('home-profile-status-invalid');
     }
+    if (item.sourceRuntimeRestartRequired !== undefined && typeof item.sourceRuntimeRestartRequired !== 'boolean') {
+      throw new Error('home-profile-status-invalid');
+    }
     if (item.startupFailure != null && typeof item.startupFailure !== 'string') throw new Error('home-profile-status-invalid');
     return { mode: item.mode, workAllowed: item.workAllowed, relaunchRequested: item.relaunchRequested,
-      startupFailure: item.startupFailure as string | null | undefined };
+      startupFailure: item.startupFailure as string | null | undefined,
+      sourceRuntimeRestartRequired: item.sourceRuntimeRestartRequired };
   });
 }
 

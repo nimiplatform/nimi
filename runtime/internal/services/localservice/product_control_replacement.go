@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -38,7 +39,22 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	s.productControlReplacementMu.Lock()
 	defer s.productControlReplacementMu.Unlock()
 
-	target, err := normalizeProductControlDataRootPath(strings.TrimSpace(req.GetTargetRoot()))
+	inspect := req.GetInspectTargetRoot() != ""
+	rawTarget := req.GetTargetRoot()
+	if inspect {
+		if rawTarget != "" || req.GetInspectedTargetRoot() != "" || req.GetExpectedRootActivationId() != "" {
+			return nil, errors.New("invalid Product Control replacement preflight")
+		}
+		rawTarget = req.GetInspectTargetRoot()
+	} else if req.GetInspectedTargetRoot() != "" {
+		if rawTarget != "" || req.GetExpectedRootActivationId() == "" {
+			return nil, errors.New("invalid inspected Product Control replacement")
+		}
+		rawTarget = req.GetInspectedTargetRoot()
+	} else if req.GetExpectedRootActivationId() != "" {
+		return nil, errors.New("missing inspected Product Control replacement target")
+	}
+	target, err := normalizeProductControlDataRootPath(strings.TrimSpace(rawTarget))
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +77,10 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	}
 	if record.State != productControlStateReadyForUse || record.DataRoot == nil || record.DataRoot.Status != productDataRootStatusReady || strings.TrimSpace(record.DataRoot.RootActivationID) == "" {
 		return nil, fmt.Errorf("explicit data-root replacement requires a valid ready_for_use activation, got state=%s", record.State)
+	}
+	if req.GetInspectedTargetRoot() != "" &&
+		(target != req.GetInspectedTargetRoot() || record.DataRoot.RootActivationID != req.GetExpectedRootActivationId()) {
+		return nil, errors.New("Product Control replacement preflight is stale")
 	}
 	current := selectedProductDataRootPath(record)
 	if current == "" {
@@ -109,7 +129,27 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	if handoff == nil {
 		return nil, errors.New("Runtime root-handoff lifecycle is unavailable")
 	}
-	if err := ensureNimiDataRootLayout(target, s.productControlDataRootSecurityBinding()); err != nil {
+	security := s.productControlDataRootSecurityBinding()
+	if inspect {
+		if state, failure := s.verifyProductControlReadyRecord(ctx, record); failure != "" {
+			return productControlJSON(productControlRecordProjection{
+				Path: path, Exists: true, State: state, Record: record, Error: &failure,
+			}, nil)
+		}
+		if err := inspectProductControlReplacementLayout(target, security); err != nil {
+			resultRecorded = true
+			s.recordDataRootReplacementRefusal(ctx, "DATA_ROOT_LAYOUT_FAILED", nil)
+			return productControlJSON(productControlRecordProjection{
+				Path: path, Exists: true, State: record.State, Record: record,
+				Error: stringPtr(fmt.Sprintf("inspect replacement data root: %v", err)),
+			}, nil)
+		}
+		return productControlJSON(productControlRecordProjection{
+			Path: path, Exists: true, State: record.State, Record: record,
+			InspectedTargetRoot: target,
+		}, nil)
+	}
+	if err := ensureNimiDataRootLayout(target, security); err != nil {
 		// Candidate access/layout failure does not invalidate the authenticated
 		// Desktop transport or the current root. Keep it in the owner projection
 		// so Settings can display the failure without losing its mounted state.
@@ -180,6 +220,30 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 	handoff.CommitRootHandoff()
 
 	return productControlJSON(committedProductControlActivationProjection(path, record, target, configWriter, commitErr), nil)
+}
+
+// inspectProductControlReplacementLayout checks existing layout without creating
+// directories or probing writes. Commit still verifies actual write access.
+func inspectProductControlReplacementLayout(target string, security ProductControlDataRootSecurityBinding) error {
+	// The macOS fixed carrier installs verified ACLs only for the commit.
+	// Inspection still validates the direct path and layout without changing them.
+	if security.RuntimeServiceSID != "" || security.InteractiveUserSID != "" || security.PerUserRuntime {
+		if err := validateProductControlDataRootPlatform(target, security); err != nil {
+			return err
+		}
+	}
+	for _, dir := range append([]string{""}, nimiDataRootRequiredDirectories...) {
+		path := filepath.Join(target, dir)
+		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
+			return err
+		}
+		if err := validateProductControlDataRootPlatform(path, ProductControlDataRootSecurityBinding{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // mintProductControlActivation prepares record for a new activation of

@@ -14380,6 +14380,12 @@ pub struct ReplaceLocalAppAssetMetadata {
 pub struct ReplaceProductControlDataRootRequest {
     #[serde(rename = "target_root", skip_serializing_if = "Option::is_none")]
     pub target_root: Option<String>,
+    #[serde(rename = "inspect_target_root", skip_serializing_if = "Option::is_none")]
+    pub inspect_target_root: Option<String>,
+    #[serde(rename = "inspected_target_root", skip_serializing_if = "Option::is_none")]
+    pub inspected_target_root: Option<String>,
+    #[serde(rename = "expected_root_activation_id", skip_serializing_if = "Option::is_none")]
+    pub expected_root_activation_id: Option<String>,
 }
 
 impl ReplaceProductControlDataRootRequest {
@@ -14401,6 +14407,21 @@ impl ReplaceProductControlDataRootRequest {
         out.target_root = match object.get("target_root") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("target_root"))?),
+            None => None,
+        };
+        out.inspect_target_root = match object.get("inspect_target_root") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("inspect_target_root"))?),
+            None => None,
+        };
+        out.inspected_target_root = match object.get("inspected_target_root") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("inspected_target_root"))?),
+            None => None,
+        };
+        out.expected_root_activation_id = match object.get("expected_root_activation_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expected_root_activation_id"))?),
             None => None,
         };
         Ok(out)

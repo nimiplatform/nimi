@@ -1182,7 +1182,19 @@ export interface ReplaceProductControlDataRootRequest {
     /**
      * @generated from protobuf field: string target_root = 1
      */
-    targetRoot: string;
+    targetRoot: string; // Maintenance recovery target.
+    /**
+     * @generated from protobuf field: string inspect_target_root = 2
+     */
+    inspectTargetRoot: string; // Read-only ordinary replacement preflight.
+    /**
+     * @generated from protobuf field: string inspected_target_root = 3
+     */
+    inspectedTargetRoot: string; // Canonical target admitted by preflight.
+    /**
+     * @generated from protobuf field: string expected_root_activation_id = 4
+     */
+    expectedRootActivationId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StartProductControlCheckSyncRequest
@@ -5190,12 +5202,18 @@ export const InitializeProductControlRootActivationRequest = new InitializeProdu
 class ReplaceProductControlDataRootRequest$Type extends MessageType<ReplaceProductControlDataRootRequest> {
     constructor() {
         super("nimi.runtime.v1.ReplaceProductControlDataRootRequest", [
-            { no: 1, name: "target_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "target_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "inspect_target_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "inspected_target_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_root_activation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ReplaceProductControlDataRootRequest>): ReplaceProductControlDataRootRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.targetRoot = "";
+        message.inspectTargetRoot = "";
+        message.inspectedTargetRoot = "";
+        message.expectedRootActivationId = "";
         if (value !== undefined)
             reflectionMergePartial<ReplaceProductControlDataRootRequest>(this, message, value);
         return message;
@@ -5207,6 +5225,15 @@ class ReplaceProductControlDataRootRequest$Type extends MessageType<ReplaceProdu
             switch (fieldNo) {
                 case /* string target_root */ 1:
                     message.targetRoot = reader.string();
+                    break;
+                case /* string inspect_target_root */ 2:
+                    message.inspectTargetRoot = reader.string();
+                    break;
+                case /* string inspected_target_root */ 3:
+                    message.inspectedTargetRoot = reader.string();
+                    break;
+                case /* string expected_root_activation_id */ 4:
+                    message.expectedRootActivationId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5223,6 +5250,15 @@ class ReplaceProductControlDataRootRequest$Type extends MessageType<ReplaceProdu
         /* string target_root = 1; */
         if (message.targetRoot !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.targetRoot);
+        /* string inspect_target_root = 2; */
+        if (message.inspectTargetRoot !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.inspectTargetRoot);
+        /* string inspected_target_root = 3; */
+        if (message.inspectedTargetRoot !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.inspectedTargetRoot);
+        /* string expected_root_activation_id = 4; */
+        if (message.expectedRootActivationId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedRootActivationId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -1,3 +1,5 @@
+export const SOURCE_DATA_ROOT_RESTART_REQUIRED = 'desktop-source-runtime-restart-required-after-data-root-activation';
+
 // Data-root admission for Home. Root replacement, cleanup and Runtime restart
 // are exclusive; managed App launches, ordinary commands and long
 // independent calls (a synchronous generation, a transcription, its cancel)
@@ -17,6 +19,7 @@ export type DesktopDataRootOperationGate = {
   close(reason: string): void;
   open(): void;
   isClosed(): boolean;
+  blockingReason(): string | null;
 };
 
 type Admission = { readonly exclusive: boolean; readonly start: () => void };
@@ -80,6 +83,7 @@ export function createDesktopDataRootOperationGate(): DesktopDataRootOperationGa
     open(): void {
       closedReason = null;
     },
+    blockingReason: () => closedReason,
     isClosed(): boolean {
       return closedReason !== null;
     },

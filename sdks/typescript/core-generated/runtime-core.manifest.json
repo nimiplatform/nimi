@@ -41408,6 +41408,27 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "inspect_target_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "inspected_target_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_root_activation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"

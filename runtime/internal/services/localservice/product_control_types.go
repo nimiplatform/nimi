@@ -65,15 +65,16 @@ type productRepairRecord struct {
 }
 
 type productControlRecordProjection struct {
-	Path            string                         `json:"path"`
-	Exists          bool                           `json:"exists"`
-	State           productControlState            `json:"state"`
-	Record          *productControlRecord          `json:"record"`
-	Error           *string                        `json:"error"`
-	ConfigMutation  *productControlConfigMutation  `json:"configMutation,omitempty"`
-	Activation      *productControlActivation      `json:"activation,omitempty"`
-	RootHandoff     *productControlRootHandoff     `json:"rootHandoff,omitempty"`
-	AuditDiagnostic *productControlAuditDiagnostic `json:"auditDiagnostic,omitempty"`
+	InspectedTargetRoot string                         `json:"inspectedTargetRoot,omitempty"`
+	Path                string                         `json:"path"`
+	Exists              bool                           `json:"exists"`
+	State               productControlState            `json:"state"`
+	Record              *productControlRecord          `json:"record"`
+	Error               *string                        `json:"error"`
+	ConfigMutation      *productControlConfigMutation  `json:"configMutation,omitempty"`
+	Activation          *productControlActivation      `json:"activation,omitempty"`
+	RootHandoff         *productControlRootHandoff     `json:"rootHandoff,omitempty"`
+	AuditDiagnostic     *productControlAuditDiagnostic `json:"auditDiagnostic,omitempty"`
 }
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.r001

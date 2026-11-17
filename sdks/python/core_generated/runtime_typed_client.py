@@ -6803,6 +6803,9 @@ class ReplaceLocalAppAssetMetadata:
 @dataclass(frozen=True)
 class ReplaceProductControlDataRootRequest:
     target_root: str | None = None
+    inspect_target_root: str | None = None
+    inspected_target_root: str | None = None
+    expected_root_activation_id: str | None = None
 
 @dataclass(frozen=True)
 class RequestPresenceVerificationRequest:

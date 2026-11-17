@@ -12294,8 +12294,17 @@ pub struct SelectProductControlDataRootRequest {
 pub struct InitializeProductControlRootActivationRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReplaceProductControlDataRootRequest {
+    /// Maintenance recovery target.
     #[prost(string, tag = "1")]
     pub target_root: ::prost::alloc::string::String,
+    /// Read-only ordinary replacement preflight.
+    #[prost(string, tag = "2")]
+    pub inspect_target_root: ::prost::alloc::string::String,
+    /// Canonical target admitted by preflight.
+    #[prost(string, tag = "3")]
+    pub inspected_target_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub expected_root_activation_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StartProductControlCheckSyncRequest {}

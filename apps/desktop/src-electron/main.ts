@@ -1,3 +1,4 @@
+import { SOURCE_DATA_ROOT_RESTART_REQUIRED } from './data-root-operation-gate.js';
 import { parseZhiyuConversationOpenTarget } from '../../zhiyu/src/shell/app/conversation-open.js';
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { writeDesktopStderr } from './stderr-log.js';
@@ -1100,6 +1101,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           mode: homeHostProfile?.mode ?? 'bootstrap',
           workAllowed: normalHomeWorkAllowed(),
           relaunchRequested: homeRelaunchRequested,
+          sourceRuntimeRestartRequired: dataRootOperationGate.blockingReason() === SOURCE_DATA_ROOT_RESTART_REQUIRED,
           startupFailure: runtimeStartupFailure,
         }),
         desktop_home_profile_retry: async () => {

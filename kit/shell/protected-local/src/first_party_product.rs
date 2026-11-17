@@ -94,49 +94,51 @@ pub(crate) async fn invoke_machine_unary(
     channel: tonic::transport::Channel,
     request: DesktopMachineProductUnaryRequest,
 ) -> Result<DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError> {
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
-    if request.method == DesktopMachineProductUnaryMethod::SelectProductControlDataRoot
-        || (cfg!(target_os = "macos")
-            && request.method == DesktopMachineProductUnaryMethod::ReplaceProductControlDataRoot)
-    {
-        use prost::Message;
-        let data_root =
-            if request.method == DesktopMachineProductUnaryMethod::SelectProductControlDataRoot {
-                crate::generated::SelectProductControlDataRootRequest::decode(
-                    request.request_bytes.as_slice(),
-                )
-                .map(|selection| selection.data_root)
-            } else {
-                crate::generated::ReplaceProductControlDataRootRequest::decode(
-                    request.request_bytes.as_slice(),
-                )
-                .map(|replacement| replacement.target_root)
-            }
-            .map_err(|_| DesktopFirstPartyProductError::new("invalid-payload", false))?;
-        let data_root = std::path::PathBuf::from(data_root);
+    use prost::Message;
+    let data_root = match request.method {
+        DesktopMachineProductUnaryMethod::SelectProductControlDataRoot => Some(
+            crate::generated::SelectProductControlDataRootRequest::decode(
+                request.request_bytes.as_slice(),
+            )
+            .map_err(|_| DesktopFirstPartyProductError::new("invalid-payload", false))?
+            .data_root,
+        ),
         #[cfg(target_os = "macos")]
-        let should_prepare = request.method
-            != DesktopMachineProductUnaryMethod::ReplaceProductControlDataRoot
-            || replacement_target_needs_access(&channel, &data_root, request.timeout).await?;
-        #[cfg(not(target_os = "macos"))]
-        let should_prepare = true;
-        if should_prepare {
-            tokio::task::spawn_blocking(move || crate::prepare_fixed_runtime_data_root(&data_root))
-                .await
-                .map_err(|_| {
-                    DesktopFirstPartyProductError::new("runtime-service-repair-required", false)
-                })?
-                .map_err(|error| {
-                    let reason = match error.stage() {
-                        "validate-selected-root"
-                        | "create-selected-root"
-                        | "inspect-selected-root"
-                        | "prepare-existing-data-access" => "invalid-payload",
-                        _ => "runtime-service-repair-required",
-                    };
-                    DesktopFirstPartyProductError::new(reason, false)
-                })?;
+        DesktopMachineProductUnaryMethod::ReplaceProductControlDataRoot => {
+            match replacement_access_target(&request.request_bytes)? {
+                Some((root, activation))
+                    if replacement_target_needs_access(
+                        &channel,
+                        std::path::Path::new(&root),
+                        activation.as_deref(),
+                        request.timeout,
+                    )
+                    .await? =>
+                {
+                    Some(root)
+                }
+                _ => None,
+            }
         }
+        _ => None,
+    };
+    if let Some(data_root) = data_root {
+        let data_root = std::path::PathBuf::from(data_root);
+        tokio::task::spawn_blocking(move || crate::prepare_fixed_runtime_data_root(&data_root))
+            .await
+            .map_err(|_| {
+                DesktopFirstPartyProductError::new("runtime-service-repair-required", false)
+            })?
+            .map_err(|error| {
+                let reason = match error.stage() {
+                    "validate-selected-root"
+                    | "create-selected-root"
+                    | "inspect-selected-root"
+                    | "prepare-existing-data-access" => "invalid-payload",
+                    _ => "runtime-service-repair-required",
+                };
+                DesktopFirstPartyProductError::new(reason, false)
+            })?;
     }
     invoke_unary(
         channel,
@@ -149,9 +151,36 @@ pub(crate) async fn invoke_machine_unary(
 }
 
 #[cfg(target_os = "macos")]
+fn replacement_access_target(
+    bytes: &[u8],
+) -> Result<Option<(String, Option<String>)>, DesktopFirstPartyProductError> {
+    use prost::Message;
+    let invalid = || DesktopFirstPartyProductError::new("invalid-payload", false);
+    let request = crate::generated::ReplaceProductControlDataRootRequest::decode(bytes)
+        .map_err(|_| invalid())?;
+    match (
+        request.target_root.is_empty(),
+        request.inspect_target_root.is_empty(),
+        request.inspected_target_root.is_empty(),
+        request.expected_root_activation_id.is_empty(),
+    ) {
+        // Only the actual replacement can prepare access. The Runtime is
+        // the owner of read-only target inspection and rejection.
+        (true, false, true, true) => Ok(None),
+        (true, true, false, false) => Ok(Some((
+            request.inspected_target_root,
+            Some(request.expected_root_activation_id),
+        ))),
+        (false, true, true, true) => Ok(Some((request.target_root, None))),
+        _ => Err(invalid()),
+    }
+}
+
+#[cfg(target_os = "macos")]
 async fn replacement_target_needs_access(
     channel: &tonic::transport::Channel,
     target: &std::path::Path,
+    expected_activation: Option<&str>,
     timeout: Option<Duration>,
 ) -> Result<bool, DesktopFirstPartyProductError> {
     use prost::Message;
@@ -174,6 +203,17 @@ async fn replacement_target_needs_access(
             .map_err(|_| DesktopFirstPartyProductError::new("runtime-service-untrusted", false))?;
     let projection: serde_json::Value = serde_json::from_str(&response.json)
         .map_err(|_| DesktopFirstPartyProductError::new("runtime-service-untrusted", false))?;
+    if let Some(expected) = expected_activation {
+        if projection.get("state").and_then(serde_json::Value::as_str) != Some("ready_for_use")
+            || projection
+                .pointer("/dataRoot/rootActivationId")
+                .and_then(serde_json::Value::as_str)
+                != Some(expected)
+        {
+            // Leave the rejection to Runtime. Do not touch the target's ACL.
+            return Ok(false);
+        }
+    }
     replacement_target_is_disjoint(&target, &projection)
 }
 
@@ -342,6 +382,42 @@ mod tests {
                 "runtime-service-untrusted"
             );
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn root_inspection_never_prepares_access_and_commit_uses_the_inspected_path() {
+        use crate::generated::ReplaceProductControlDataRootRequest as Request;
+        use prost::Message;
+
+        let target = "/Users/owner/TestRoot".to_owned();
+        let inspect = Request {
+            inspect_target_root: target.clone(),
+            ..Default::default()
+        };
+        assert_eq!(
+            replacement_access_target(&inspect.encode_to_vec()).unwrap(),
+            None
+        );
+        let commit = Request {
+            inspected_target_root: target.clone(),
+            expected_root_activation_id: "current".into(),
+            ..Default::default()
+        };
+        assert_eq!(
+            replacement_access_target(&commit.encode_to_vec()).unwrap(),
+            Some((target.clone(), Some("current".to_owned())))
+        );
+        let mixed = Request {
+            target_root: target,
+            ..inspect
+        };
+        assert_eq!(
+            replacement_access_target(&mixed.encode_to_vec())
+                .unwrap_err()
+                .reason_code(),
+            "invalid-payload"
+        );
     }
 
     #[cfg(any(target_os = "windows", target_os = "macos"))]

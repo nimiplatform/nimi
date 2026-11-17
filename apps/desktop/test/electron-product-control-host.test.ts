@@ -81,6 +81,33 @@ function readyProjectionJson(
   return JSON.stringify(projection);
 }
 
+// The older restart/recovery fixtures describe successive canonical records.
+// Use their first record as the owner preflight result as well.
+function createReplacementHost(input: Parameters<typeof createDesktopElectronProductControlHost>[0]) {
+  const control = input?.control;
+  assert.ok(control);
+  let inspectedRoot: Uint8Array | undefined;
+  return createDesktopElectronProductControlHost({
+    ...input,
+    control: {
+      async machineProductUnary(call) {
+        if (call.methodId === GET_SELECTED_DATA_ROOT && inspectedRoot) return inspectedRoot;
+        const inspected = call.methodId === REPLACE_DATA_ROOT
+          ? ReplaceProductControlDataRootRequest.fromBinary(call.requestBytes).inspectTargetRoot : '';
+        if (!inspected) return control.machineProductUnary(call);
+        const response = await control.machineProductUnary({ ...call, methodId: GET_RECORD, requestBytes: new Uint8Array() });
+        const projection = JSON.parse(ProductControlProjectionJson.fromBinary(response).json);
+        inspectedRoot = ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
+          json: JSON.stringify({ ...projection, dataRoot: projection.record.dataRoot }),
+        }));
+        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
+          json: JSON.stringify({ ...projection, inspectedTargetRoot: inspected }),
+        }));
+      },
+    },
+  });
+}
+
 function checkSyncJson(rootActivationId: string, obligationState: 'required' | 'completed' = 'required'): Uint8Array {
   return CheckSyncProjectionJson.toBinary(CheckSyncProjectionJson.create({
     json: JSON.stringify({
@@ -272,7 +299,7 @@ test('Electron Product Control supervises committed replacement through fixed Ru
       return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json: JSON.stringify(state) }));
     },
   };
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     control,
     runtimeLifecycleProfile: 'fixed',
     restartRuntime: async () => { events.push('restart'); },
@@ -293,7 +320,7 @@ test('Electron Product Control supervises committed replacement through fixed Ru
   assert.ok(replaceCall >= 0);
 
   const encodedCalls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
-  const payloadHost = createDesktopElectronProductControlHost({
+  const payloadHost = createReplacementHost({
     control: {
       machineProductUnary: async (input) => {
         encodedCalls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
@@ -308,12 +335,14 @@ test('Electron Product Control supervises committed replacement through fixed Ru
   });
   const encodedReplace = encodedCalls.find((call) => call.methodId === REPLACE_DATA_ROOT);
   assert.ok(encodedReplace);
-  assert.equal(ReplaceProductControlDataRootRequest.fromBinary(encodedReplace.requestBytes).targetRoot, 'D:/NimiDataNext');
+  const commit = ReplaceProductControlDataRootRequest.fromBinary(encodedReplace.requestBytes);
+  assert.equal(commit.inspectedTargetRoot, 'D:/NimiDataNext');
+  assert.equal(commit.expectedRootActivationId, 'rootact_test');
 });
 
 test('Electron Product Control reopens host root state only when replacement did not commit', async () => {
   const events: string[] = [];
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     control: {
       machineProductUnary: async (input) => {
         events.push(input.methodId);
@@ -338,7 +367,7 @@ test('Electron Product Control reopens host root state only when replacement did
   assert.deepEqual(events, [GET_RECORD, 'quiesce', REPLACE_DATA_ROOT, 'abort']);
 
   const quiesceEvents: string[] = [];
-  const quiesceFailureHost = createDesktopElectronProductControlHost({
+  const quiesceFailureHost = createReplacementHost({
     control: {
       machineProductUnary: async () => {
         quiesceEvents.push('runtime-call');
@@ -407,7 +436,7 @@ test('Electron Product Control reconnects source Runtime through the explicit Ch
       return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json: JSON.stringify(state) }));
     },
   };
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     control,
     runtimeLifecycleProfile: 'source',
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
@@ -451,7 +480,7 @@ test('Electron Product Control uses canonical activation to resolve a lost repla
   const events: string[] = [];
   let recordReads = 0;
   const gate = createDesktopDataRootOperationGate();
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     operationGate: gate,
     runtimeLifecycleProfile: 'fixed',
     restartRuntime: async () => { events.push('restart'); },
@@ -504,7 +533,7 @@ test('Electron Product Control uses canonical activation to resolve a lost repla
 test('Electron Product Control resumes the former Host root only after canonical non-commit evidence', async () => {
   const events: string[] = [];
   const gate = createDesktopDataRootOperationGate();
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     operationGate: gate,
     runtimeLifecycleProfile: 'fixed',
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
@@ -535,7 +564,7 @@ test('Electron Product Control does not adopt a different committed target after
   let recordReads = 0;
   const events: string[] = [];
   const gate = createDesktopDataRootOperationGate();
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     operationGate: gate,
     runtimeLifecycleProfile: 'fixed',
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
@@ -570,7 +599,7 @@ test('Electron Product Control keeps an ambiguous transport failure closed until
   const events: string[] = [];
   let recordReads = 0;
   const gate = createDesktopDataRootOperationGate();
-  const host = createDesktopElectronProductControlHost({
+  const host = createReplacementHost({
     operationGate: gate,
     runtimeLifecycleProfile: 'source',
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
@@ -960,4 +989,52 @@ test('Runtime recovery bypasses queued exclusive work but waits for an active ex
   assert.deepEqual(events, ['restart', 'exclusive']);
   releaseExclusive(); await exclusive; await recovery;
   assert.deepEqual(events, ['restart', 'exclusive', 'recovery']);
+});
+
+test('owner inspection refusal or missing approval leaves running Hosts alone', async () => {
+  for (const reason of ['DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT', null]) {
+    let stops = 0;
+    const host = createDesktopElectronProductControlHost({
+      quiesceHostDataRoot: async () => { stops++; },
+      control: {
+        async machineProductUnary(input) {
+          assert.equal(input.methodId, REPLACE_DATA_ROOT);
+          const request = ReplaceProductControlDataRootRequest.fromBinary(input.requestBytes);
+          assert.equal(request.inspectTargetRoot, 'D:/chosen');
+          assert.equal(request.targetRoot, '');
+          const state = JSON.parse(readyProjectionJson('D:/current', 'rootact_old'));
+          if (reason) state.activation = {
+            activated: false, reasonCode: reason,
+            actionHint: reason === 'DATA_ROOT_UNCHANGED' ? 'run_check_sync' : 'choose_path_disjoint_root',
+          };
+          return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json: JSON.stringify(state) }));
+        },
+      },
+    });
+    const action = host.commandHandlers.product_control_data_root_replace({
+      command: 'product_control_data_root_replace', payload: { payload: { targetRoot: 'D:/chosen' } },
+    });
+    if (reason) assert.equal((await action as { activation: { reasonCode: string } }).activation.reasonCode, reason);
+    else await assert.rejects(action, /preflight-unavailable/);
+    assert.equal(stops, 0);
+  }
+});
+
+test('Host rejects a changed activation after inspection and before attempting to stop any App', async () => {
+  let stopped = false;
+  const host = createDesktopElectronProductControlHost({
+    quiesceHostDataRoot: async () => { stopped = true; },
+    control: {
+      async machineProductUnary(call) {
+        const json = call.methodId === REPLACE_DATA_ROOT
+          ? { ...JSON.parse(readyProjectionJson('D:/current', 'rootact_old')), inspectedTargetRoot: 'D:/new' }
+          : { ...JSON.parse(readyProjectionJson('D:/other', 'rootact_new')), dataRoot: { path: 'D:/other', status: 'ready', rootActivationId: 'rootact_new' } };
+        return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json: JSON.stringify(json) }));
+      },
+    },
+  });
+  await assert.rejects(host.commandHandlers.product_control_data_root_replace({
+    command: 'product_control_data_root_replace', payload: { payload: { targetRoot: 'D:/new' } },
+  }), /preflight-stale/);
+  assert.equal(stopped, false);
 });

@@ -8930,7 +8930,10 @@ type ReplaceLocalAppAssetMetadata struct {
 }
 
 type ReplaceProductControlDataRootRequest struct {
-	TargetRoot string `json:"target_root,omitempty"`
+	TargetRoot               string `json:"target_root,omitempty"`
+	InspectTargetRoot        string `json:"inspect_target_root,omitempty"`
+	InspectedTargetRoot      string `json:"inspected_target_root,omitempty"`
+	ExpectedRootActivationId string `json:"expected_root_activation_id,omitempty"`
 }
 
 type RequestPresenceVerificationRequest struct {

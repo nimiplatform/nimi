@@ -11,6 +11,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   createDesktopDataRootOperationGate,
+  SOURCE_DATA_ROOT_RESTART_REQUIRED,
   type DesktopDataRootOperationGate,
 } from './data-root-operation-gate.js';
 import {
@@ -71,6 +72,7 @@ type ProductControlHostProjection = Omit<NimiProductControlRecordProjection, 're
     readonly actionHint: string;
   };
   readonly activation?: ProductControlHostActivation | null;
+  readonly inspectedTargetRoot?: string | null;
   readonly rootHandoff?: null | {
     readonly disposition: 'active_current_process' | 'activation_not_bound' | 'committed_restart_required' | 'committed_repair_required';
     readonly rootActivationId: string;
@@ -432,23 +434,35 @@ class ElectronProductControlHost {
   // @nimi-authority: rule.nimi.desktop.product-surfaces.r034
   private async replaceDataRoot(targetRoot: string): Promise<ProductControlHostProjection> {
     return this.operationGate.runExclusive(async () => {
-      const before = await this.record();
-      const beforeActivationId = before.record?.dataRoot?.rootActivationId ?? null;
-      const beforePath = before.record?.dataRoot?.path?.trim() || null;
+      const before = await this.projection(METHOD.replaceDataRoot, { inspectTargetRoot: targetRoot }, 10_000);
+      if (before.activation?.activated === false || before.error) return before;
+      const beforeActivationId = before.record?.dataRoot?.rootActivationId;
+      const beforePath = before.record?.dataRoot?.path;
+      const inspectedTargetRoot = before.inspectedTargetRoot;
+      if (before.state !== 'ready_for_use' || !beforeActivationId || !beforePath || !inspectedTargetRoot) {
+        throw new Error('desktop-data-root-preflight-unavailable');
+      }
+      const current = await this.selectedDataRoot();
+      if (current.error || current.state !== 'ready_for_use' || current.dataRoot?.status !== 'ready'
+        || current.dataRoot.rootActivationId !== beforeActivationId || !hostPathsEqual(current.dataRoot.path, beforePath)) {
+        throw new Error('desktop-data-root-preflight-stale');
+      }
       try {
         await this.quiesceHostDataRoot();
       } catch (error) {
         this.abortHostDataRoot();
-        throw error;
+        throw incompleteRootHandoff(error);
       }
       let projection: ProductControlHostProjection;
       try {
-        projection = await this.projection(METHOD.replaceDataRoot, { targetRoot }, 30_000);
+        projection = await this.projection(METHOD.replaceDataRoot, {
+          inspectedTargetRoot, expectedRootActivationId: beforeActivationId,
+        }, 30_000);
       } catch (error) {
         this.pendingHandoff = {
           beforeActivationId,
           beforePath,
-          targetPath: targetRoot,
+          targetPath: inspectedTargetRoot,
           committedActivationId: null,
           disposition: 'ambiguous',
         };
@@ -457,7 +471,7 @@ class ElectronProductControlHost {
           canonical = await this.record();
         } catch {
           this.operationGate.close('desktop-data-root-handoff-disposition-ambiguous');
-          throw error;
+          throw incompleteRootHandoff(error);
         }
         if (
           sameCanonicalRoot(this.pendingHandoff, canonical)
@@ -465,25 +479,25 @@ class ElectronProductControlHost {
         ) {
           this.abortHostDataRoot();
           this.pendingHandoff = null;
-          throw error;
+          throw incompleteRootHandoff(error);
         }
         const committedActivationId = canonical.record?.dataRoot?.rootActivationId ?? null;
         const committedPath = canonical.record?.dataRoot?.path?.trim() || '';
         if (
           !committedActivationId
           || committedActivationId === beforeActivationId
-          || !hostPathsEqual(committedPath, targetRoot)
+          || !hostPathsEqual(committedPath, inspectedTargetRoot)
           || !['committed_restart_required', 'committed_repair_required'].includes(
             canonical.rootHandoff?.disposition ?? '',
           )
         ) {
           this.operationGate.close('desktop-data-root-handoff-disposition-ambiguous');
-          throw error;
+          throw incompleteRootHandoff(error);
         }
         this.pendingHandoff = {
           beforeActivationId,
           beforePath,
-          targetPath: targetRoot,
+          targetPath: inspectedTargetRoot,
           committedActivationId,
           disposition: 'committed',
         };
@@ -497,13 +511,13 @@ class ElectronProductControlHost {
       }
       if (!projection.activation?.activated) {
         this.abortHostDataRoot();
-        return projection;
+        return { ...projection, error: incompleteRootHandoff(projection.error ?? projection.activation?.reasonCode ?? '').message };
       }
       const committedActivationId = projection.record?.dataRoot?.rootActivationId ?? null;
       this.pendingHandoff = {
         beforeActivationId,
         beforePath,
-        targetPath: targetRoot,
+        targetPath: inspectedTargetRoot,
         committedActivationId,
         disposition: 'committed',
       };
@@ -533,7 +547,7 @@ class ElectronProductControlHost {
       return projection;
     }
     if (this.runtimeLifecycleProfile !== 'fixed') {
-      this.operationGate.close('desktop-source-runtime-restart-required-after-data-root-activation');
+      this.operationGate.close(SOURCE_DATA_ROOT_RESTART_REQUIRED);
       return {
         ...projection,
         error: projection.error ?? (response.transportLost
@@ -653,6 +667,10 @@ class ElectronProductControlHost {
   }
 }
 
+function incompleteRootHandoff(error: unknown): Error {
+  return new Error(`DATA_ROOT_HANDOFF_INCOMPLETE_AFTER_HOST_STOP: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+}
+
 function sameCanonicalRoot(
   pending: Pick<PendingDataRootHandoff, 'beforeActivationId' | 'beforePath'>,
   projection: ProductControlHostProjection,
@@ -753,6 +771,7 @@ function extendProductControlProjection(
     activation,
     configMutation,
     rootHandoff,
+    ...(raw.inspectedTargetRoot !== undefined ? { inspectedTargetRoot: boundedText(raw.inspectedTargetRoot, 32_768) } : {}),
   };
 }
 

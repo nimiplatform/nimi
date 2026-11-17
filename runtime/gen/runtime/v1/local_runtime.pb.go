@@ -3891,10 +3891,13 @@ func (*InitializeProductControlRootActivationRequest) Descriptor() ([]byte, []in
 }
 
 type ReplaceProductControlDataRootRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetRoot    string                 `protobuf:"bytes,1,opt,name=target_root,json=targetRoot,proto3" json:"target_root,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	TargetRoot               string                 `protobuf:"bytes,1,opt,name=target_root,json=targetRoot,proto3" json:"target_root,omitempty"`                              // Maintenance recovery target.
+	InspectTargetRoot        string                 `protobuf:"bytes,2,opt,name=inspect_target_root,json=inspectTargetRoot,proto3" json:"inspect_target_root,omitempty"`       // Read-only ordinary replacement preflight.
+	InspectedTargetRoot      string                 `protobuf:"bytes,3,opt,name=inspected_target_root,json=inspectedTargetRoot,proto3" json:"inspected_target_root,omitempty"` // Canonical target admitted by preflight.
+	ExpectedRootActivationId string                 `protobuf:"bytes,4,opt,name=expected_root_activation_id,json=expectedRootActivationId,proto3" json:"expected_root_activation_id,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ReplaceProductControlDataRootRequest) Reset() {
@@ -3930,6 +3933,27 @@ func (*ReplaceProductControlDataRootRequest) Descriptor() ([]byte, []int) {
 func (x *ReplaceProductControlDataRootRequest) GetTargetRoot() string {
 	if x != nil {
 		return x.TargetRoot
+	}
+	return ""
+}
+
+func (x *ReplaceProductControlDataRootRequest) GetInspectTargetRoot() string {
+	if x != nil {
+		return x.InspectTargetRoot
+	}
+	return ""
+}
+
+func (x *ReplaceProductControlDataRootRequest) GetInspectedTargetRoot() string {
+	if x != nil {
+		return x.InspectedTargetRoot
+	}
+	return ""
+}
+
+func (x *ReplaceProductControlDataRootRequest) GetExpectedRootActivationId() string {
+	if x != nil {
+		return x.ExpectedRootActivationId
 	}
 	return ""
 }
@@ -4464,10 +4488,13 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"(EnsureProductControlRecordCreatedRequest\"B\n" +
 	"#SelectProductControlDataRootRequest\x12\x1b\n" +
 	"\tdata_root\x18\x01 \x01(\tR\bdataRoot\"/\n" +
-	"-InitializeProductControlRootActivationRequest\"G\n" +
+	"-InitializeProductControlRootActivationRequest\"\xea\x01\n" +
 	"$ReplaceProductControlDataRootRequest\x12\x1f\n" +
 	"\vtarget_root\x18\x01 \x01(\tR\n" +
-	"targetRoot\"%\n" +
+	"targetRoot\x12.\n" +
+	"\x13inspect_target_root\x18\x02 \x01(\tR\x11inspectTargetRoot\x122\n" +
+	"\x15inspected_target_root\x18\x03 \x01(\tR\x13inspectedTargetRoot\x12=\n" +
+	"\x1bexpected_root_activation_id\x18\x04 \x01(\tR\x18expectedRootActivationId\"%\n" +
 	"#StartProductControlCheckSyncRequest\"#\n" +
 	"!GetProductControlCheckSyncRequest\"}\n" +
 	",SetProductControlFirstRunInstallLevelRequest\x12#\n" +

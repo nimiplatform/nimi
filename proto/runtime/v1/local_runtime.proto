@@ -491,7 +491,10 @@ message SelectProductControlDataRootRequest {
 message InitializeProductControlRootActivationRequest {}
 
 message ReplaceProductControlDataRootRequest {
-  string target_root = 1;
+  string target_root = 1; // Maintenance recovery target.
+  string inspect_target_root = 2; // Read-only ordinary replacement preflight.
+  string inspected_target_root = 3; // Canonical target admitted by preflight.
+  string expected_root_activation_id = 4;
 }
 
 message StartProductControlCheckSyncRequest {}
