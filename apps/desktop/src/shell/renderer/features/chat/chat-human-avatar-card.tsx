@@ -2,7 +2,8 @@ import { useState, type ReactElement } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, MapPin, Languages, MoreHorizontal } from 'lucide-react';
-import { EntityAvatar } from '../../components/entity-avatar.js';
+import { RealmHumanAvatar } from './realm-human-avatar.js';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useAppStore, useAppStoreApi, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -12,7 +13,7 @@ import { useHumanProfileActions } from '../relationship/use-human-profile-action
 import { useHumanContactAdmission } from './chat-human-contact-admission.js';
 import { ChatAvatarPopover } from './chat-avatar-popover.js';
 
-export type ChatHumanIdentity = { id: string; name: string; handle?: string | null; avatarUrl?: string | null; deleted?: boolean };
+export type ChatHumanIdentity = { id: string; name: string; handle?: string | null; avatarUrl?: string | null; avatarResourceId?: string | null; avatarMedia?: RealmModel<'MediaDeliveryDto'> | null; deleted?: boolean };
 type Props = { person: ChatHumanIdentity; placement: 'composer' | 'rail' | 'message'; onSelect?: () => void; children: ReactElement };
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r030
@@ -74,7 +75,7 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
   const location = [profile?.city, profile?.countryCode ? readable(regionNames, profile.countryCode.toUpperCase()) : null].filter(Boolean).join(' · ');
   const openProfile = () => {
     if (!authenticated || person.deleted) return;
-    if (!self) cache.setQueryData(['chat-peer-identity', environment, viewerId, person.id], { id: person.id, displayName: name, handle: handle || '', avatarUrl: profile?.avatarUrl || person.avatarUrl || null });
+    if (!self) cache.setQueryData(['chat-peer-identity', environment, viewerId, person.id], { id: person.id, displayName: name, handle: handle || '', avatarUrl: profile ? profile.avatarUrl : person.avatarUrl, avatarResourceId: profile ? profile.avatarResourceId : person.avatarResourceId, avatarMedia: profile ? profile.avatarMedia : person.avatarMedia });
     setOpen(false); void navigation.push({ id: navigation.getSnapshot().current.destination.id === 'contacts' ? 'contacts' : 'profile', profileId: person.id });
   };
   return <>
@@ -82,7 +83,7 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
       label={name} testId="chat-human-profile-card" className="human-profile-preview" trigger={children}>
       <div className="human-profile-preview-body">
         <div className="human-profile-preview-identity">
-          <EntityAvatar name={name} imageUrl={profile?.avatarUrl || person.avatarUrl} media={profile?.avatarMedia} kind="human" sizeClassName="h-16 w-16 shrink-0" textClassName="text-xl font-semibold" />
+          <RealmHumanAvatar accountId={person.id} name={name} imageUrl={profile ? profile.avatarUrl : person.avatarUrl} media={profile ? profile.avatarMedia : person.avatarMedia} resourceId={profile ? profile.avatarResourceId : person.avatarResourceId} className="h-16 w-16 shrink-0 text-xl font-semibold" />
           <div className="min-w-0 flex-1"><h3>{name}</h3>{handle ? <p>@{handle.replace(/^@+/, '')}</p> : null}</div>
           {menu.length ? <details className="human-profile-preview-more"><summary aria-label={t('Chat.humanCard.more')}><MoreHorizontal aria-hidden size={19} /></summary>
             <div role="group" aria-label={t('Relationship.contacts.personActions', { name })}>{menu.map(item => <button key={item.id} type="button" disabled={actions.props.actionsPending} onClick={() => act(item.action)}>{item.label}</button>)}</div>

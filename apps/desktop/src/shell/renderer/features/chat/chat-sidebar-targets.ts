@@ -1,6 +1,7 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import type { RealmSocialData } from '../social/data/realm-social-data.js';
 import { useMemo } from 'react';
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
@@ -100,6 +101,8 @@ export function toHumanFriendTargetSummary(
     handle: toAtHandle(record.handle),
     bio: normalizeText(record.bio) || null,
     avatarUrl: normalizeText(record.avatarUrl) || null,
+    avatarResourceId: normalizeText(record.avatarResourceId) || null,
+    avatarMedia: readMediaDelivery(record.avatarMedia),
     avatarFallback: title.charAt(0).toUpperCase() || 'H',
     previewText: null,
     updatedAt: null,

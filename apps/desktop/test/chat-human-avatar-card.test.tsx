@@ -29,13 +29,17 @@ test('human preview keeps its own target, rechecks private data, and retires old
   authenticate('viewer');
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   const reads: string[] = [], writes: string[] = [];
+  const avatarMedia = { resourceId: 'avatar-person-b', contentVersion: 'a'.repeat(64), publicationGeneration: 1,
+    policyVersion: 'v1', expiresAt: '2099-01-01T00:00:00Z', originalUrl: null, previewUrl: null, video: null,
+    images: [{ purpose: 'avatar', families: [{ mimeType: 'image/webp', sources: [{ url: 'https://media.example/avatar.webp', width: 80, height: 80, mimeType: 'image/webp' }] }] }] };
   let restriction = false, delayed = false;
   let finish: (() => void) | undefined;
   const social = { loadUserProfile: async (id: string) => {
     reads.push(id);
     if (delayed) await new Promise<void>(resolve => { finish = resolve; });
     if (restriction) throw Object.assign(new Error('Private'), { status: 403 });
-    return { id, displayName: `Profile ${id}`, handle: id, bio: 'Allowed biography', city: 'Allowed city', tags: ['Allowed tag'], languages: ['en', 'zh'] };
+    return { id, displayName: `Profile ${id}`, handle: id, avatarUrl: null, avatarResourceId: avatarMedia.resourceId, avatarMedia,
+      bio: 'Allowed biography', city: 'Allowed city', tags: ['Allowed tag'], languages: ['en', 'zh'] };
   } } as never;
   const relationship = { state: 'active', relationshipId: 'relationship-b', blockedByMe: false, canMessage: true, canRequest: false };
   const bindings = { sdk: { realm: () => ({ social: { getMyRelationshipWithUser: async () => relationship,
@@ -56,12 +60,14 @@ test('human preview keeps its own target, rechecks private data, and retires old
   try {
     await render(); assert.deepEqual(reads, [], 'closed avatar does not fetch a profile');
     await open(); assert.match(card()?.textContent ?? '', /Allowed biography/);
+    assert.equal(card()?.querySelector('picture img')?.getAttribute('src'), 'https://media.example/avatar.webp', 'uploaded avatar renders without legacy avatarUrl');
     await act(async () => view().click());
     assert.equal(store.navigation.getSnapshot().current.destination.profileId, 'person-b');
     await settle(); restriction = true; delayed = true;
     await open(); assert.doesNotMatch(card()?.textContent ?? '', /Allowed biography|Allowed city|Allowed tag/, 'do not display cached full facts while permission is rechecked');
     await act(async () => finish?.()); await settle();
     assert.match(card()?.textContent ?? '', /full profile is private/);
+    assert.equal(card()?.querySelector('picture img'), null, 'private profile does not reuse the previous delivery');
     assert.doesNotMatch(card()?.textContent ?? '', /Allowed biography|Allowed city|Allowed tag/);
     assert.equal(view().disabled, false, 'restricted profile still has a profile destination');
     await act(async () => view().click()); await settle();

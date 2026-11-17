@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Realm human avatar delivery (next 0.x minor)
+
+`ConversationTargetSummary` adds optional `avatarResourceId` and `avatarMedia` fields. Realm human chat projections retain these fields so consumers can display uploaded avatars without treating a delivery URL as resource identity. This is an additive public type change; existing callers remain valid. This source change is not published.
+
 ## Unreleased — Open Friends & chat (next 0.x minor)
 
 Standard shell callers can pass the parameter-free `{ kind: 'open-contacts' }` to `openDesktopIntent`. A matching running Nimi opens Friends & chat or focuses the current conversation or section. The intent grants no access to Realm data.

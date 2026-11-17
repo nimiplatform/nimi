@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { MediaDeliveryDto } from '@nimiplatform/kit/core/sdk-contract';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
 export const CONVERSATION_MODES = ['ai', 'human', 'agent'] as const;
@@ -252,6 +253,8 @@ export type ConversationTargetSummary = {
   handle?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  avatarResourceId?: string | null;
+  avatarMedia?: MediaDeliveryDto | null;
   avatarFallback?: string | null;
   previewText?: string | null;
   updatedAt?: string | null;

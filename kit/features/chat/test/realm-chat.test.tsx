@@ -214,6 +214,11 @@ describe('chat realm helpers', () => {
     expect(getRealmHumanTargetId(aliceNewer)).toBe('user-1');
     expect(getRealmHumanChatTitle(aliceNewer)).toBe('Alice');
 
+    const uploadedAvatar = { resourceId: 'avatar-resource', contentVersion: 'a'.repeat(64), publicationGeneration: 1,
+      policyVersion: 'v1', expiresAt: null, images: [], originalUrl: null, previewUrl: null, video: null };
+    aliceNewer.otherUser.avatarResourceId = uploadedAvatar.resourceId;
+    aliceNewer.otherUser.avatarMedia = uploadedAvatar;
+    aliceNewer.otherUser.avatarUrl = null;
     expect(toRealmHumanTargetSummary(aliceNewer, {
       noMessagesFallback: 'No messages',
       unknownTitle: 'Unknown',
@@ -225,6 +230,9 @@ describe('chat realm helpers', () => {
       handle: '@alice',
       previewText: 'newer',
       unreadCount: 2,
+      avatarUrl: null,
+      avatarResourceId: uploadedAvatar.resourceId,
+      avatarMedia: uploadedAvatar,
       metadata: {
         otherUserId: 'user-1',
       },

@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { Button, ConfirmDialog, IconButton, InlineAlert, NimiTabs, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '../../components/entity-avatar.js';
+import { RealmHumanAvatar } from '../chat/realm-human-avatar.js';
 import { useAppStore, useAppStoreApi, useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
@@ -207,7 +207,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl, unreadByUserId, onOpenC
                 aria-label={t('Relationship.contacts.previewPerson', { name })}
                 onClick={() => openProfile(row)}
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-default">
-                <EntityAvatar name={name} imageUrl={row.isDeleted ? null : row.avatarUrl} media={row.isDeleted ? null : row.avatarMedia} kind="human" sizeClassName="h-11 w-11 shrink-0" fallbackClassName="bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" />
+                <RealmHumanAvatar accountId={row.id} name={name} imageUrl={row.isDeleted ? null : row.avatarUrl} media={row.isDeleted ? null : row.avatarMedia} resourceId={row.isDeleted ? null : row.avatarResourceId} className="h-11 w-11 shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
                     <span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{name}</span>

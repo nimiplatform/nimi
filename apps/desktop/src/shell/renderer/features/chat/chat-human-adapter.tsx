@@ -288,6 +288,8 @@ export function useHumanConversationModeHost(
         leadingAvatar={selectedChat ? {
           name: getRealmHumanChatTitle(selectedChat, unknownTitle),
           imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
+          avatarResourceId: selectedChat.otherUser?.avatarResourceId,
+          avatarMedia: selectedChat.otherUser?.avatarMedia,
           fallbackLabel: getRealmHumanChatTitle(selectedChat, unknownTitle).charAt(0).toUpperCase() || 'H',
           targetId: String(selectedChat.otherUser?.id || '').trim() || null,
           handle: String(selectedChat.otherUser?.handle || '').trim() || null,

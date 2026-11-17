@@ -1,4 +1,5 @@
 import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
+import { RealmHumanAvatar } from './realm-human-avatar.js';
 import { ConversationReadMarker } from '@nimiplatform/kit/features/chat/ui';
 import {
   useCallback,
@@ -124,14 +125,16 @@ function useHumanMessageRenderers(input: {
     const id = isMe ? input.model.currentUserId : input.model.contactId;
     const name = isMe ? String(viewer?.displayName || viewer?.handle || t('ChatTimeline.you')) : input.model.contactName;
     const avatarUrl = isMe ? input.model.currentUserAvatarUrl : input.model.contactAvatarUrl;
+    const avatarMedia = isMe ? input.model.currentUserAvatarMedia : input.model.contactAvatarMedia;
+    const avatarResourceId = isMe ? input.model.currentUserAvatarResourceId : input.model.contactAvatarResourceId;
     const display = (message.metadata as Record<string, unknown> | undefined)?.display as HumanRealmChatTimelineDisplay | undefined;
-    const visual = <EntityAvatar imageUrl={avatarUrl} name={name} kind="human" sizeClassName="h-8 w-8" textClassName="text-xs font-medium" />;
+    const visual = <RealmHumanAvatar accountId={id ?? ''} imageUrl={avatarUrl} media={avatarMedia} resourceId={avatarResourceId} name={name} className="h-8 w-8 text-xs font-medium" />;
     if (!id || !isMe && input.model.deletedPeer) return visual;
-    return <ChatHumanAvatarCard person={{ id, name, avatarUrl, handle: isMe ? String(viewer?.handle || '') : message.senderHandle }} placement="message">
+    return <ChatHumanAvatarCard person={{ id, name, avatarUrl, avatarMedia, avatarResourceId, handle: isMe ? String(viewer?.handle || '') : message.senderHandle }} placement="message">
       <button type="button" className={`${display?.isMediaMessage ? 'mt-0' : 'mt-1'} shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]`}
         aria-label={isMe ? t('ChatTimeline.viewMyProfile') : t('Chat.humanCard.open', { name })}>{visual}</button>
     </ChatHumanAvatarCard>;
-  }, [input.model.contactAvatarUrl, input.model.contactId, input.model.contactName, input.model.currentUserAvatarUrl, input.model.currentUserId, input.model.deletedPeer, viewer, t]);
+  }, [input.model.contactAvatarUrl, input.model.contactAvatarMedia, input.model.contactAvatarResourceId, input.model.contactId, input.model.contactName, input.model.currentUserAvatarUrl, input.model.currentUserAvatarMedia, input.model.currentUserAvatarResourceId, input.model.currentUserId, input.model.deletedPeer, viewer, t]);
 
   const renderMessageAccessory = useCallback<CanonicalMessageAccessorySlot>((message) => {
     const realmMessage = message.metadata?.realmMessage as { type?: string } | undefined;

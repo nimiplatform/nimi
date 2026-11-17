@@ -134,6 +134,7 @@ function resolveRealmHumanChatTimestamp(chat: RealmChatViewDto): string {
   return String(chat.lastMessageAt || chat.lastMessage?.createdAt || chat.createdAt || '');
 }
 
+// @nimi-authority: rule.nimi.platform.ui-design-system.media-delivery
 export function toRealmHumanTargetSummary(
   chat: RealmChatViewDto,
   options: RealmHumanChatProjectionOptions = {},
@@ -149,6 +150,8 @@ export function toRealmHumanTargetSummary(
     handle: handle ? `@${handle}` : null,
     bio: null,
     avatarUrl: String(chat.otherUser?.avatarUrl || '').trim() || null,
+    avatarResourceId: chat.otherUser?.avatarResourceId ?? null,
+    avatarMedia: chat.otherUser?.avatarMedia ?? null,
     avatarFallback: title.charAt(0).toUpperCase() || 'H',
     previewText: getRealmHumanChatPreview(chat, options.noMessagesFallback),
     updatedAt: resolveRealmHumanChatTimestamp(chat),

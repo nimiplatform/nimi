@@ -1,5 +1,6 @@
 import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
-import { EntityAvatar } from '../../components/entity-avatar.js';
+import { RealmHumanAvatar } from './realm-human-avatar.js';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { finalizeNimiRealmTransferredFile, uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
@@ -74,6 +75,7 @@ type HumanCanonicalComposerProps = {
   selectedChatId: string | null;
   contactAdmission: HumanContactAdmission;
   leadingAvatar?: {
+    avatarMedia?: RealmModel<'MediaDeliveryDto'> | null; avatarResourceId?: string | null;
     name: string; imageUrl?: string | null; fallbackLabel?: string | null;
     targetId?: string | null; handle?: string | null; worldName?: string | null;
   } | null;
@@ -293,9 +295,9 @@ function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
       attachmentsSlot={({ attachments, removeAttachment }) => <HumanAttachmentStrip attachments={attachments} removeAttachment={removeAttachment} />}
       attachLabel={t('Chat.humanCard.addMedia')} layout="stacked"
       leadingSlot={<ChatHumanAvatarCard person={{ id: props.peerAccountId, name: props.leadingAvatar!.name,
-        handle: props.leadingAvatar?.handle, avatarUrl: props.leadingAvatar?.imageUrl, deleted: props.contactAdmission.deleted }} placement="composer">
+        handle: props.leadingAvatar?.handle, avatarUrl: props.leadingAvatar?.imageUrl, avatarMedia: props.leadingAvatar?.avatarMedia, avatarResourceId: props.leadingAvatar?.avatarResourceId, deleted: props.contactAdmission.deleted }} placement="composer">
         <button type="button" disabled={props.contactAdmission.deleted} className="human-composer-identity" aria-label={t('Chat.humanCard.open', { name: props.leadingAvatar!.name })}>
-          <EntityAvatar name={props.leadingAvatar!.name} imageUrl={props.contactAdmission.deleted ? null : props.leadingAvatar?.imageUrl} kind="human" sizeClassName="h-8 w-8 shrink-0" textClassName="text-xs font-medium" />
+          <RealmHumanAvatar accountId={props.peerAccountId} name={props.leadingAvatar!.name} imageUrl={props.contactAdmission.deleted ? null : props.leadingAvatar?.imageUrl} media={props.contactAdmission.deleted ? null : props.leadingAvatar?.avatarMedia} resourceId={props.contactAdmission.deleted ? null : props.leadingAvatar?.avatarResourceId} className="h-8 w-8 shrink-0 text-xs font-medium" />
           <span>{props.contactAdmission.deleted ? t('Relationship.contacts.deletedUser') : props.leadingAvatar!.name}</span>
         </button>
       </ChatHumanAvatarCard>}

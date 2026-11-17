@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
+import { RealmHumanAvatar } from './realm-human-avatar.js';
 import { ChatPartnerAvatarCard } from './chat-partner-avatar-card.js';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import './chat-relationship-rail.css';
@@ -60,11 +61,11 @@ function RelationshipAvatar({ target, selected, onSelect }: { target: Conversati
   const label = `${t('Chat.hoverCardOpenChat')}: ${target.title}${unread ? ` · ${t('Relationship.contacts.unreadMessages', { count: unread })}` : ''}`;
   return <div className="group relative flex h-11 w-full items-center justify-center">
     <div aria-hidden className={`absolute right-0 w-[3px] rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-all ${selected ? 'h-8' : 'h-0 group-hover:h-4'}`} />
-    <ChatHumanAvatarCard person={{ id, name: target.title, handle: target.handle, avatarUrl: target.avatarUrl, deleted: target.metadata?.isDeleted === true }} placement="rail" onSelect={onSelect}>
+    <ChatHumanAvatarCard person={{ id, name: target.title, handle: target.handle, avatarUrl: target.avatarUrl, avatarMedia: target.avatarMedia, avatarResourceId: target.avatarResourceId, deleted: target.metadata?.isDeleted === true }} placement="rail" onSelect={onSelect}>
       <button type="button" data-testid={E2E_IDS.chatRow(String(target.canonicalSessionId || target.id))} aria-label={label} aria-current={selected ? 'page' : undefined}
         className="relative flex h-11 w-11 items-center justify-center rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
         <span className={`flex h-10 w-10 items-center justify-center overflow-hidden bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] transition-all duration-200 ${selected ? 'rounded-2xl' : 'rounded-full'}`}>
-          {target.avatarUrl ? <img src={target.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span>{(target.avatarFallback || target.title || '?').charAt(0)}</span>}
+          <RealmHumanAvatar accountId={id} name={target.title} imageUrl={target.avatarUrl} media={target.avatarMedia} resourceId={target.avatarResourceId} className="h-full w-full" />
         </span>
         {unread ? <span aria-hidden className="absolute -right-0.5 -top-0.5 rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] font-bold text-white">{unread > 99 ? '99+' : unread}</span> : null}
       </button>

@@ -3,7 +3,7 @@ import { Button, ScrollArea } from '@nimiplatform/kit/ui';
 import { Copy, Pencil, Shield, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '../../components/entity-avatar.js';
+import { RealmHumanAvatar } from '../chat/realm-human-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { formatProfileDate } from '../profile/profile-model';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -38,11 +38,11 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
       <div className="relative space-y-8 px-5 pb-8 sm:px-8">
         <div className={profile.coverMedia || profile.coverUrl ? 'relative -mt-8 pt-0' : 'pt-4'}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <EntityAvatar imageUrl={profile.avatarUrl} media={profile.avatarMedia} refreshMedia={async () => {
+            <RealmHumanAvatar accountId={profile.id} imageUrl={profile.avatarUrl} media={profile.avatarMedia} resourceId={profile.avatarResourceId} refreshMedia={async () => {
               const updated = input.isOwnProfile ? await bindings.sdk.realm().account.getMe({ path: {} })
                 : await bindings.sdk.realm().social.getUser({ path: { id: profile.id } });
               return updated.avatarMedia ?? null;
-            }} name={profile.displayName} kind="human" sizeClassName="h-20 w-20 shrink-0" textClassName="text-3xl font-semibold" fallbackClassName="bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" />
+            }} name={profile.displayName} className="h-20 w-20 shrink-0 text-3xl font-semibold" />
             <div className="min-w-0 flex-1">
               <h1 className="break-words text-2xl font-semibold text-[var(--nimi-text-primary)]">{profile.displayName}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">

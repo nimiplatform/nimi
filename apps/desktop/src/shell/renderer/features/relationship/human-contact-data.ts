@@ -11,6 +11,7 @@ export type ContactRow = {
   displayName: string | null;
   handle: string | null;
   avatarUrl: string | null;
+  avatarResourceId?: string | null;
   avatarMedia?: RealmModel<'MediaDeliveryDto'> | null;
   isDeleted: boolean;
   requestMessage?: string | null;
