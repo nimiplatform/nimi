@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 )
-
-// maintenanceStopBudget bounds how long in-flight maintenance calls may hold
-// shutdown after a restart request or signal.
-const maintenanceStopBudget = 10 * time.Second
 
 func newMaintenanceDaemon(cfg config.Config, logger *slog.Logger, maintenance *grpcserver.MaintenanceServer, closeProtectedState func() error) *Daemon {
 	if logger == nil {
@@ -73,12 +68,29 @@ func (d *Daemon) runMaintenance(ctx context.Context, desktopListener net.Listene
 			d.logger.Error("runtime maintenance server exited with error", "error", serveErr)
 		}
 	}
-	stopCtx, cancel := context.WithTimeout(context.Background(), maintenanceStopBudget)
+	stopCtx, cancel := context.WithDeadline(context.Background(), d.BeginShutdown())
 	defer cancel()
-	d.maintenance.Stop(stopCtx)
-	_ = desktopListener.Close()
-	closeErr := d.closeProtectedState()
-	d.state.SetStatus(health.StatusStopped, "stopped")
+	finished := make(chan error, 1)
+	go func() {
+		d.maintenance.Stop(stopCtx)
+		_ = desktopListener.Close()
+		if err := stopCtx.Err(); err != nil {
+			finished <- err
+			return
+		}
+		finished <- d.closeProtectedState()
+	}()
+	var closeErr error
+	select {
+	case closeErr = <-finished:
+	case <-stopCtx.Done():
+		closeErr = stopCtx.Err()
+	}
+	if closeErr == nil {
+		d.state.SetStatus(health.StatusStopped, "stopped")
+	} else {
+		d.state.SetStatus(health.StatusStopped, "shutdown incomplete")
+	}
 	if serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {
 		return errors.Join(serveErr, closeErr)
 	}

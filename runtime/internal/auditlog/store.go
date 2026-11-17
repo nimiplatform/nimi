@@ -174,13 +174,18 @@ func unrecorded(err error) error {
 // AppendEventChecked is the fail-closed write contract. It returns only after
 // the record is durably committed, or an error wrapping ErrUnrecorded.
 func (s *Store) AppendEventChecked(event *runtimev1.AuditEventRecord) error {
+	return s.AppendEventCheckedContext(context.Background(), event)
+}
+
+// AppendEventCheckedContext bounds an owner audit by the caller's deadline.
+func (s *Store) AppendEventCheckedContext(ctx context.Context, event *runtimev1.AuditEventRecord) error {
 	if event == nil || event.GetTimestamp() == nil {
 		return unrecorded(errors.New("audit event and timestamp are required"))
 	}
 	if err := event.GetTimestamp().CheckValid(); err != nil {
 		return unrecorded(fmt.Errorf("audit event timestamp: %w", err))
 	}
-	return s.append(event)
+	return s.append(ctx, event)
 }
 
 // AppendEvent is the best-effort write used by emitters whose owner outcome
@@ -189,7 +194,7 @@ func (s *Store) AppendEvent(event *runtimev1.AuditEventRecord) {
 	if s == nil || event == nil {
 		return
 	}
-	if err := s.append(event); err != nil {
+	if err := s.append(context.Background(), event); err != nil {
 		s.ReportUnrecorded(event.GetDomain(), event.GetOperation(), err)
 	}
 }
@@ -265,7 +270,7 @@ func (s *Store) CommitRecorded(event *runtimev1.AuditEventRecord, commit func() 
 	}
 }
 
-func (s *Store) append(event *runtimev1.AuditEventRecord) error {
+func (s *Store) append(ctx context.Context, event *runtimev1.AuditEventRecord) error {
 	backend, err := s.writer()
 	if err != nil {
 		return unrecorded(err)
@@ -276,7 +281,6 @@ func (s *Store) append(event *runtimev1.AuditEventRecord) error {
 	}
 	// Wait for the writer's real outcome: a canceled wait could report a
 	// record as missing after the writer committed it.
-	ctx := context.Background()
 	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		return s.insertTx(ctx, tx, record)
 	}); err != nil {

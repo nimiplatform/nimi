@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"google.golang.org/protobuf/proto"
 	"os"
 	"path/filepath"
@@ -177,8 +178,18 @@ func TestJobCancelPersistsBeforeActiveWorkExits(t *testing.T) {
 	if got, changed, err := store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, nil); err != nil || changed || !proto.Equal(got, canceled) {
 		t.Fatal("late result reopened publication")
 	}
-	if _, err := store.finishExecution(job.JobId); err != nil {
-		t.Fatal(err)
+	svc := newTestService(nil)
+	svc.scenarioJobs = store
+	drain, stopDrain := context.WithTimeout(t.Context(), 10*time.Millisecond)
+	defer stopDrain()
+	if err := svc.DrainRuntimeJobs(drain); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("shutdown treated terminal Cancel as worker exit: %v", err)
+	}
+	svc.finishScenarioJobExecution(job.JobId)
+	drainAfterExit, stopDrainAfterExit := context.WithTimeout(t.Context(), time.Second)
+	defer stopDrainAfterExit()
+	if err := svc.DrainRuntimeJobs(drainAfterExit); err != nil {
+		t.Fatalf("shutdown did not observe actual work exit: %v", err)
 	}
 	final, _ := store.get(job.JobId)
 	if !proto.Equal(final, canceled) {

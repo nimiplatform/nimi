@@ -49,6 +49,9 @@ func (s *Service) scenarioJobOutboundContext(ctx context.Context, id string) con
 func (s *scenarioJobStore) markScenarioDispatchPossible(ctx context.Context, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.runtimeStopping.Load() {
+		return runtimeJobStopping()
+	}
 	r := s.jobs[id]
 	if r == nil || ctx.Err() != nil {
 		return fmt.Errorf("Job dispatch admission is closed")

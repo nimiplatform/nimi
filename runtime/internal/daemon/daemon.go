@@ -53,8 +53,12 @@ type Daemon struct {
 	startupDegradedReason   string
 	readyOnce               sync.Once
 	readyCh                 chan struct{}
-	stopSupervisedOnce      sync.Once
-	stopSupervisedFn        func()
+	shutdownOnce            sync.Once
+	finishShutdownOnce      sync.Once
+	shutdownErr             error
+	shutdownDeadline        time.Time
+	shutdownForceCtx        context.Context
+	forceSupervisedStop     context.CancelFunc
 	restartRequested        atomic.Bool
 	productStopRequested    atomic.Bool
 	productStop             <-chan struct{}
@@ -467,11 +471,20 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 	}
 	defer stop()
 	d.auditStore = d.grpc.AuditStore()
-	d.state.SetStatus(health.StatusStarting, "booting")
-	d.grpc.SyncServingState()
+	d.setServingStatus(health.StatusStarting, "booting")
 	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
 	defer cancelBackground()
 	var backgroundWG sync.WaitGroup
+	finish := func() error {
+		d.BeginShutdown()
+		cancelBackground()
+		drained := make(chan struct{})
+		go func() {
+			backgroundWG.Wait()
+			close(drained)
+		}()
+		return d.shutdownAfterBackground(drained)
+	}
 	backgroundWG.Add(1)
 	go func() {
 		defer backgroundWG.Done()
@@ -488,14 +501,11 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 		d.startSupervisedEngines(backgroundCtx)
 	}()
 	startupDegradedReason := d.consumeStartupDegradedReason()
-	d.state.SetStatus(health.StatusReady, "ready")
-	d.grpc.SyncServingState()
+	d.setServingStatus(health.StatusReady, "ready")
 	d.readyOnce.Do(func() { close(d.readyCh) })
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
 		if err := agentSvc.StartLifeFrameLoop(backgroundCtx); err != nil {
-			cancelBackground()
-			backgroundWG.Wait()
-			if shutdownErr := d.shutdown(); shutdownErr != nil {
+			if shutdownErr := finish(); shutdownErr != nil {
 				return fmt.Errorf("start runtime-agent life-frame loop: %w (shutdown: %v)", err, shutdownErr)
 			}
 			return fmt.Errorf("start runtime-agent life-frame loop: %w", err)
@@ -530,10 +540,8 @@ waitForShutdown:
 	for remainingServers > 0 {
 		select {
 		case <-d.productStop:
-			d.logger.Info("Nimi product shutdown requested")
 			break waitForShutdown
 		case <-ctx.Done():
-			d.logger.Info("runtime shutdown requested")
 			break waitForShutdown
 		case err := <-errCh:
 			remainingServers--
@@ -546,13 +554,7 @@ waitForShutdown:
 			break waitForShutdown
 		}
 	}
-	stop()
-	cancelBackground()
-	backgroundWG.Wait()
-	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
-		agentSvc.StopLifeFrameLoop()
-	}
-	shutdownErr := d.shutdown()
+	shutdownErr := finish()
 	if serveErr != nil {
 		if shutdownErr != nil {
 			return fmt.Errorf("serve error: %w (shutdown: %v)", serveErr, shutdownErr)
@@ -561,35 +563,116 @@ waitForShutdown:
 	}
 	return shutdownErr
 }
-func (d *Daemon) shutdown() error {
-	d.state.SetStatus(health.StatusStopping, "shutting down")
-	d.grpc.SyncServingState()
-	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
-	defer cancel()
-	if d.restartRequested.Load() {
-		if aiSvc := d.grpc.AIService(); aiSvc != nil {
-			aiSvc.BeginRuntimeRestart()
+
+// BeginShutdown freezes the budget at the first accepted stop. Platform
+// hosts use this same deadline to supervise the daemon's actual exit.
+// @nimi-authority: rule.nimi.runtime.service-operations.r057
+func (d *Daemon) BeginShutdown() time.Time {
+	d.shutdownOnce.Do(func() {
+		d.startupStatusMu.Lock()
+		defer d.startupStatusMu.Unlock()
+		d.shutdownDeadline = time.Now().Add(d.shutdownBudget())
+		d.shutdownForceCtx, d.forceSupervisedStop = context.WithCancel(context.Background())
+		if d.grpc != nil {
+			if d.restartRequested.Load() {
+				if aiSvc := d.grpc.AIService(); aiSvc != nil {
+					aiSvc.BeginRuntimeRestart()
+				}
+			}
+			d.grpc.BeginShutdown()
 		}
-	}
-	activeAtStart := d.grpc.BeginShutdown()
-	if len(activeAtStart) > 0 {
-		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
-	}
-	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
-	d.stopSupervisedEngines(ctx, "stopping supervised engines")
-	httpErr := d.http.Shutdown(ctx)
-	// The lifecycle record is written before the server releases the Runtime
-	// persistence backend that holds the audit plane.
-	grpcResult := d.grpc.StopWithShutdownRecord(ctx, func(result grpcserver.StopResult) {
-		appendShutdownAudit(d.auditStore, result.Shutdown)
+		d.state.SetStatus(health.StatusStopping, "shutting down")
+		if d.grpc != nil {
+			d.grpc.SyncServingState()
+		}
 	})
-	logShutdownSummary(d.logger, grpcResult.Shutdown)
-	protectedStateErr := d.closeProtectedState()
-	d.state.SetStatus(health.StatusStopped, "stopped")
-	if joined := errors.Join(httpErr, protectedStateErr); joined != nil {
-		return fmt.Errorf("shutdown runtime: %w", joined)
+	return d.shutdownDeadline
+}
+
+func (d *Daemon) shutdownBudget() time.Duration {
+	if d.cfg.ShutdownTimeout > 0 {
+		return d.cfg.ShutdownTimeout
 	}
+	return config.DefaultShutdownTimeout
+}
+
+func (d *Daemon) shutdown() error {
+	return d.shutdownAfterBackground(nil)
+}
+
+func (d *Daemon) shutdownAfterBackground(background <-chan struct{}) error {
+	d.finishShutdownOnce.Do(func() { d.shutdownErr = d.finishShutdown(background) })
+	return d.shutdownErr
+}
+
+func (d *Daemon) finishShutdown(background <-chan struct{}) error {
+	deadline := d.BeginShutdown()
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+	defer d.forceSupervisedStop()
+	forceAt := deadline.Add(-min(d.shutdownBudget()/10, maxShutdownDrainWait))
+	drainCtx, cancelDrain := context.WithDeadline(ctx, forceAt)
+	defer cancelDrain()
+	engineForceCtx, cancelEngineForce := context.WithDeadline(d.shutdownForceCtx, forceAt)
+	defer cancelEngineForce()
+
+	enginesDone := make(chan error, 1)
+	go func() {
+		if background != nil {
+			select {
+			case <-background:
+			case <-ctx.Done():
+				enginesDone <- fmt.Errorf("stop Runtime background work: %w", ctx.Err())
+				return
+			}
+		}
+		enginesDone <- d.stopSupervisedEngines(ctx, engineForceCtx, "stopping supervised engines")
+	}()
+	httpDone := make(chan error, 1)
+	go func() { httpDone <- d.http.Shutdown(ctx) }()
+	waitDependencies := func() error {
+		var errs []error
+		for _, done := range []<-chan error{enginesDone, httpDone} {
+			select {
+			case err := <-done:
+				errs = append(errs, err)
+			case <-ctx.Done():
+				return errors.Join(append(errs, ctx.Err())...)
+			}
+		}
+		return errors.Join(errs...)
+	}
+	result := d.grpc.StopWithin(ctx, drainCtx, waitDependencies, func(result grpcserver.StopResult) {
+		appendShutdownAudit(ctx, d.auditStore, result)
+	})
+	if result.Err == nil {
+		result.Err = d.closeProtectedStateWithin(ctx)
+	}
+	if result.Err != nil {
+		d.logger.Warn("runtime shutdown incomplete", "error", result.Err, "forced_transport_stop", result.Shutdown.Forced)
+		d.state.SetStatus(health.StatusStopped, "shutdown incomplete")
+		return fmt.Errorf("shutdown runtime: %w", result.Err)
+	}
+	logShutdownSummary(d.logger, result.Shutdown)
+	d.state.SetStatus(health.StatusStopped, "stopped")
 	return nil
+}
+
+func (d *Daemon) closeProtectedStateWithin(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if d.protectedStateClose == nil {
+		return nil
+	}
+	done := make(chan error, 1)
+	go func() { done <- d.closeProtectedState() }()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("close protected Runtime state: %w", ctx.Err())
+	}
 }
 
 func (d *Daemon) closeProtectedState() error {
@@ -604,72 +687,52 @@ func (d *Daemon) closeProtectedState() error {
 	return d.protectedStateCloseErr
 }
 func (d *Daemon) EmergencyStopSupervisedEngines() {
-	forced, cancel := context.WithCancel(context.Background())
-	cancel()
-	d.stopSupervisedEngines(forced, "forcing supervised engines to stop after repeated shutdown signal")
+	d.BeginShutdown()
+	d.forceSupervisedStop()
 }
 
-// stopSupervisedEngines stops every private host within the daemon's shutdown
-// deadline. The hosts stop in parallel; the engine manager kills what is still
-// running at the deadline, and a host that has not returned by then no longer
-// holds shutdown, since its engines end with this Runtime's owner guard.
-//
-// @nimi-authority: rule.nimi.runtime.service-operations.r057
-func (d *Daemon) stopSupervisedEngines(ctx context.Context, reason string) {
-	d.stopSupervisedOnce.Do(func() {
-		d.logger.Info(reason)
-		if stopFn := d.stopSupervisedFn; stopFn != nil {
-			stopFn()
-		}
-		var wg sync.WaitGroup
-		stopHost := func(name string, stop func() error) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := stop(); err != nil {
-					d.logger.Warn("stop "+name+" failed", "error", err)
-				}
-			}()
-		}
-		if d.imageExecutionHost != nil {
-			stopHost("image execution host", d.imageExecutionHost.Stop)
-		}
-		if d.musicExecutionHost != nil {
-			stopHost("music execution host", d.musicExecutionHost.Stop)
-		}
-		if d.audioCppSpeechHost != nil {
-			stopHost("audio.cpp speech execution host", d.audioCppSpeechHost.Stop)
-		}
-		if d.videoExecutionHost != nil {
-			stopHost("video execution host", d.videoExecutionHost.Stop)
-		}
-		if d.engineMgr != nil {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				d.engineMgr.StopAll(ctx)
-			}()
-		}
-		stopped := make(chan struct{})
+// The engine manager escalates at forceCtx. Unsettled Hosts keep their
+// ownership until the process exits, which also triggers their owner guards.
+func (d *Daemon) stopSupervisedEngines(ctx, forceCtx context.Context, reason string) error {
+	d.logger.Info(reason)
+	var stopping []<-chan error
+	stopHost := func(name string, stop func() error) {
+		done := make(chan error, 1)
+		stopping = append(stopping, done)
 		go func() {
-			wg.Wait()
-			close(stopped)
-		}()
-		select {
-		case <-stopped:
-		case <-ctx.Done():
-			select {
-			case <-stopped:
-			case <-time.After(supervisorHostsStopGrace):
-				d.logger.Warn("supervised hosts still stopping at the shutdown deadline")
+			err := stop()
+			if err != nil {
+				err = fmt.Errorf("stop %s: %w", name, err)
 			}
+			done <- err
+		}()
+	}
+	if d.imageExecutionHost != nil {
+		stopHost("image execution host", d.imageExecutionHost.Stop)
+	}
+	if d.musicExecutionHost != nil {
+		stopHost("music execution host", d.musicExecutionHost.Stop)
+	}
+	if d.audioCppSpeechHost != nil {
+		stopHost("audio.cpp speech execution host", d.audioCppSpeechHost.Stop)
+	}
+	if d.videoExecutionHost != nil {
+		stopHost("video execution host", d.videoExecutionHost.Stop)
+	}
+	if d.engineMgr != nil {
+		stopHost("managed engines", func() error { return d.engineMgr.StopAllWithin(ctx, forceCtx) })
+	}
+	var errs []error
+	for _, done := range stopping {
+		select {
+		case err := <-done:
+			errs = append(errs, err)
+		case <-ctx.Done():
+			return errors.Join(append(errs, fmt.Errorf("supervised Hosts still stopping at the Runtime deadline: %w", ctx.Err()))...)
 		}
-	})
+	}
+	return errors.Join(errs...)
 }
-
-// supervisorHostsStopGrace lets the engine manager finish killing what ran past
-// the deadline before shutdown moves on.
-const supervisorHostsStopGrace = 2 * time.Second
 
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
@@ -683,21 +746,6 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 			runtime.ReadMemStats(&ms)
 			d.state.SetResource(0, int64(ms.Alloc), 0)
 		}
-	}
-}
-func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {
-	wait := timeout / 10
-	if wait > maxShutdownDrainWait {
-		wait = maxShutdownDrainWait
-	}
-	if wait <= 0 {
-		return
-	}
-	timer := time.NewTimer(wait)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-	case <-timer.C:
 	}
 }
 func logShutdownSummary(logger *slog.Logger, summary grpcserver.ShutdownSummary) {
@@ -739,7 +787,16 @@ func (d *Daemon) setDegradedStatus(reason string) {
 	d.transitionToDegraded(trimmedReason)
 }
 func (d *Daemon) transitionToDegraded(reason string) {
-	d.state.SetStatus(health.StatusDegraded, reason)
+	d.setServingStatus(health.StatusDegraded, reason)
+}
+
+func (d *Daemon) setServingStatus(status health.Status, reason string) {
+	d.startupStatusMu.Lock()
+	defer d.startupStatusMu.Unlock()
+	if !d.shutdownDeadline.IsZero() {
+		return
+	}
+	d.state.SetStatus(status, reason)
 	d.grpc.SyncServingState()
 }
 func (d *Daemon) consumeStartupDegradedReason() string {
@@ -749,7 +806,10 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 	d.startupDegradedReason = ""
 	return reason
 }
-func (d *Daemon) startSupervisedEngines(_ context.Context) {
+func (d *Daemon) startSupervisedEngines(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
 	svc := d.grpc.LocalService()
 	d.logger.Info("initializing Runtime-owned local execution hosts",
 		"llama_enabled", d.cfg.EngineLlamaEnabled,
@@ -783,6 +843,12 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	// creates an ambient provider route.
 	engineWorkRequested := d.cfg.EngineLlamaEnabled || d.cfg.EngineSpeechEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
+	if ctx.Err() != nil {
+		if mgr != nil {
+			_ = mgr.StopAll(ctx)
+		}
+		return
+	}
 	if err != nil {
 		// Runtime core readiness is independent from local environment
 		// materializers (K-LENG-028). When no engine work is requested, a

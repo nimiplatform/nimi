@@ -205,21 +205,71 @@ func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	}
 }
 
-func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
-	daemon := &Daemon{
-		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+func TestDaemonShutdownFreezesBudgetBeforeWaitingForBackgroundOwner(t *testing.T) {
+	const budget = time.Second
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      budget,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 	}
-	stops := 0
-	daemon.stopSupervisedFn = func() {
-		stops++
+	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	daemon.stopSupervisedEngines(context.Background(), "first stop")
-	daemon.EmergencyStopSupervisedEngines()
-	daemon.stopSupervisedEngines(context.Background(), "third stop")
-
-	if stops != 1 {
-		t.Fatalf("expected supervised engines to stop once, got %d", stops)
+	entered, unblock, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	daemon.newEngineManager = func(*slog.Logger, engine.ManagedRoots, engine.StateChangeFunc) (*engine.Manager, error) {
+		close(entered)
+		<-unblock
+		close(finished)
+		return nil, errors.New("fixture released")
+	}
+	t.Cleanup(func() {
+		close(unblock)
+		select {
+		case <-finished:
+		case <-time.After(time.Second):
+			t.Error("fixture owner did not return")
+		}
+		cleanup, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		daemon.grpc.Stop(cleanup)
+	})
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	exit := make(chan error, 1)
+	go func() { exit <- daemon.Run(ctx) }()
+	select {
+	case <-entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("fixture background owner did not begin")
+	}
+	ready, cancelReady := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancelReady()
+	if err := daemon.WaitReady(ready); err != nil {
+		t.Fatal(err)
+	}
+	deadline := daemon.BeginShutdown()
+	stop()
+	if repeated := daemon.BeginShutdown(); repeated != deadline {
+		t.Fatalf("second stop changed deadline from %s to %s", deadline, repeated)
+	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusStopping {
+		t.Fatalf("background wait preceded STOPPING: %v", snapshot)
+	}
+	select {
+	case err := <-exit:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("unsettled owner was not reported: %v", err)
+		}
+	case <-time.After(time.Until(deadline) + time.Second):
+		t.Fatal("uncooperative background owner held the daemon after its deadline")
+	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusStopped || snapshot.Reason != "shutdown incomplete" {
+		t.Fatalf("unsettled owner was reported as a clean stop: %v", snapshot)
 	}
 }
 

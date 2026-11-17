@@ -138,31 +138,36 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	case waitErr = <-done:
 	case <-ctx.Done():
 		if err := signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL); err != nil {
-			_ = signalSupervisorProcessDirect(command.Process.Pid, syscall.SIGKILL)
+			_ = command.Process.Kill()
 		}
 		if _, err := waitAudioCppProcessExit(done, audioCppProcessTerminationWait); err != nil {
 			// A stop budget is not proof of exit. Keep this Host claim and all
 			// captured resources until the owned process actually acknowledges it.
 			for {
 				_ = signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL)
-				_ = signalSupervisorProcessDirect(command.Process.Pid, syscall.SIGKILL)
+				_ = command.Process.Kill()
 				if _, err := waitAudioCppProcessExit(done, audioCppProcessForceWait); err == nil {
 					break
 				}
 			}
 		}
-		waitAudioCppProcessTreeExit(lifecycle)
-		ownerRelease.release()
-		cleanupAudioCppStaging(output, tempOutput)
-		if errors.Is(ctx.Err(), context.Canceled) {
-			return audioCppProcessOutcome{}, &localexecution.ExecutionError{
-				Kind: localexecution.FailureCanceled, Err: context.Canceled, ProcessExitConfirmed: true,
-			}
-		}
-		return audioCppProcessOutcome{}, audioCppContextFailure(ctx.Err())
 	}
-	waitAudioCppProcessTreeExit(lifecycle)
+	treeReleaseErr := waitAudioCppProcessTreeExit(ctx, lifecycle)
 	ownerRelease.release()
+	if canceled := ctx.Err(); canceled != nil {
+		cleanupAudioCppStaging(output, tempOutput)
+		kind := localexecution.FailureCanceled
+		if errors.Is(canceled, context.DeadlineExceeded) {
+			kind = localexecution.FailureTimeout
+		}
+		return audioCppProcessOutcome{}, &localexecution.ExecutionError{
+			Kind: kind, Err: errors.Join(canceled, treeReleaseErr), ProcessExitConfirmed: true,
+		}
+	}
+	if treeReleaseErr != nil {
+		cleanupAudioCppStaging(output, tempOutput)
+		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureProcessCrash, treeReleaseErr)
+	}
 	if waitErr != nil {
 		cleanupAudioCppStaging(output, tempOutput)
 		kind, detail := classifyAudioCppProcessFailure(stdout, stderr)
@@ -300,14 +305,25 @@ func (b *boundedAudioCppOutput) String() string {
 // The parent exit alone does not release a Job's private source/output files:
 // native/Python descendants belong to the same captured process lifecycle.
 // @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-execution-scope
-func waitAudioCppProcessTreeExit(lifecycle *supervisorProcessLifecycle) {
+func waitAudioCppProcessTreeExit(ctx context.Context, lifecycle *supervisorProcessLifecycle) error {
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	canceled := ctx.Done()
+	killSent := false
 	for {
 		exited, err := supervisorProcessLifecycleExited(lifecycle)
 		if err == nil && exited {
-			_ = releaseSupervisorProcessLifecycle(lifecycle)
-			return
+			return releaseSupervisorProcessLifecycle(lifecycle)
 		}
-		_ = signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL)
-		time.Sleep(25 * time.Millisecond)
+		if !killSent {
+			killSent = signalSupervisorProcessLifecycle(lifecycle, syscall.SIGKILL) == nil
+		}
+		// Cancellation can force an immediate recheck. The Host keeps its
+		// resources until the exit is observed or its Runtime owner exits.
+		select {
+		case <-canceled:
+			canceled = nil
+		case <-ticker.C:
+		}
 	}
 }

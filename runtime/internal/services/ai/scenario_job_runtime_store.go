@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -95,6 +96,7 @@ type scenarioJobRecord struct {
 	cancelRequested         bool
 	cancelReason            string
 	executionStarted        bool
+	runtimeWorkTracked      bool
 	createdAt               time.Time
 	updatedAt               time.Time
 	terminalAt              time.Time
@@ -151,6 +153,8 @@ type scenarioPendingCloudCustody struct {
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
 	recoveryIncomplete   bool
+	runtimeStopping      atomic.Bool
+	runtimeWorkers       sync.WaitGroup
 	captureRows          map[string]*scenarioJobRecord
 	jobBodies            runtimeartifact.JobBodyStore
 	actionClaims         map[scenarioActionKey]*scenarioActionClaim
@@ -325,6 +329,10 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
+	if s.runtimeStopping.Load() {
+		s.mu.Unlock()
+		return nil, false, runtimeJobStopping()
+	}
 	if submission != nil {
 		if existing := s.musicSubmissionLocked(owner, submission.ID); existing != nil {
 			if scenarioJobPublicExpired(existing, nowTime) {
@@ -713,6 +721,11 @@ func (s *scenarioJobStore) transitionWithResults(
 		s.mu.Unlock()
 		return job, false, nil
 	}
+	if s.runtimeStopping.Load() {
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false, runtimeJobStopping()
+	}
 	if record.cancelRequested && status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		job := cloneScenarioJob(record.job)
 		s.mu.Unlock()
@@ -1090,6 +1103,9 @@ func (s *Service) failScenarioJobPersistencePrecondition(jobID string, reason st
 }
 
 func (s *Service) finishScenarioJobExecution(jobID string) {
+	if s.scenarioJobs.takeTrackedRuntimeWork(jobID) {
+		defer s.scenarioJobs.runtimeWorkers.Done()
+	}
 	var err error
 	for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
 		_, err = s.scenarioJobs.finishExecution(jobID)
@@ -1327,13 +1343,12 @@ func (s *scenarioJobStore) startAuthorizedExecution(jobID string) (bool, func())
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
-	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
+	if s.runtimeStopping.Load() || !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
 		s.mu.Unlock()
 		return false, nil
 	}
 
-	record.executionStarted = true
-	record.executionDone = make(chan struct{})
+	s.startClaimLocked(record)
 	s.mu.Unlock()
 	return true, nil
 }
@@ -1926,6 +1941,10 @@ func cloneScenarioArtifact(input *runtimev1.ScenarioArtifact) *runtimev1.Scenari
 // captured inputs. Restored interrupted jobs are terminal and cannot be claimed.
 func (s *scenarioJobStore) claimPreparedEmbedding(ctx context.Context, id string) (context.Context, context.CancelFunc, error) {
 	s.mu.Lock()
+	if s.runtimeStopping.Load() {
+		s.mu.Unlock()
+		return nil, nil, runtimeJobStopping()
+	}
 	record, ok := s.jobs[id]
 	if !ok || record == nil || record.job == nil || record.job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED || record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
 		s.mu.Unlock()
@@ -1934,8 +1953,7 @@ func (s *scenarioJobStore) claimPreparedEmbedding(ctx context.Context, id string
 	jobCtx, cancel := context.WithCancel(ctx)
 	oldCancel := record.cancel
 	record.cancel = cancel
-	record.executionStarted = true
-	record.executionDone = make(chan struct{})
+	s.startClaimLocked(record)
 	s.mu.Unlock()
 	if oldCancel != nil {
 		oldCancel()

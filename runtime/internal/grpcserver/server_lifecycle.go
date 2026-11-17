@@ -2,10 +2,13 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -61,43 +64,83 @@ func (s *Server) ServeVerifiedNativeLocalApp(listener net.Listener) error {
 
 type StopResult struct {
 	Shutdown ShutdownSummary
+	Err      error
 }
 
-func (s *Server) BeginShutdown() []activeRPCSnapshot {
-	if s.rpcRegistry == nil {
-		if s.remoteAccessService != nil {
-			s.remoteAccessService.Close()
-		}
-		return []activeRPCSnapshot{}
+func (s *Server) BeginShutdown() {
+	if s.aiSvc != nil {
+		s.aiSvc.BeginRuntimeShutdown()
 	}
-	snapshot := s.rpcRegistry.BeginShutdown()
-	if s.remoteAccessService != nil {
-		s.remoteAccessService.Close()
+	if s.rpcRegistry != nil {
+		s.rpcRegistry.BeginShutdown()
 	}
-	return snapshot
 }
 
 // Stop drains the transports and releases every owner.
 func (s *Server) Stop(ctx context.Context) StopResult {
-	return s.StopWithShutdownRecord(ctx, nil)
+	return s.StopWithin(ctx, ctx, nil, nil)
 }
 
-// StopWithShutdownRecord drains the transports and lets record observe the
-// drain summary while the durable owners, including the audit store, are still
-// open; only then are the owners released.
-func (s *Server) StopWithShutdownRecord(ctx context.Context, record func(StopResult)) StopResult {
-	defer s.releaseOwners()
-	result := s.drain(ctx)
-	if record != nil {
-		record(result)
+// StopWithin drains transports, detached work, and the caller's daemon
+// dependencies before closing the shared stores. Both contexts derive from
+// the daemon's single deadline; the earlier drain limit reserves time to force
+// the transports and record what actually happened.
+func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func() error, record func(StopResult)) StopResult {
+	s.BeginShutdown()
+	remoteDone := make(chan struct{})
+	go func() {
+		defer close(remoteDone)
+		if s.remoteAccessService != nil {
+			s.remoteAccessService.Close()
+		}
+	}()
+	jobsDone := make(chan error, 1)
+	go func() { jobsDone <- s.aiSvc.DrainRuntimeJobs(ctx) }()
+	result := s.drain(ctx, drainCtx)
+
+	ownersDone := make(chan error, 1)
+	go func(result StopResult) {
+		if result.Err == nil && s.agentService != nil {
+			// The RPC gate is closed and any root handoff RPC has returned.
+			// Use the Agent's owner drain before waiting on other subsystems.
+			result.Err = s.agentService.QuiesceDataRootContext(ctx)
+		}
+		select {
+		case <-remoteDone:
+		case <-ctx.Done():
+			result.Err = errors.Join(result.Err, fmt.Errorf("close remote access: %w", ctx.Err()))
+		}
+		select {
+		case err := <-jobsDone:
+			result.Err = errors.Join(result.Err, err)
+		case <-ctx.Done():
+			result.Err = errors.Join(result.Err, fmt.Errorf("drain Scenario Jobs: %w", ctx.Err()))
+		}
+		if waitDependencies != nil {
+			result.Err = errors.Join(result.Err, waitDependencies())
+		}
+		result.Err = errors.Join(result.Err, ctx.Err())
+		if result.Err == nil {
+			result.Err = s.releaseOwners(ctx)
+		}
+		if record != nil {
+			record(result)
+		}
+		result.Err = errors.Join(result.Err, ctx.Err())
+		if result.Err == nil && s.persistenceBackend != nil {
+			result.Err = s.persistenceBackend.Close()
+		}
+		ownersDone <- result.Err
+	}(result)
+	select {
+	case result.Err = <-ownersDone:
+	case <-ctx.Done():
+		result.Err = errors.Join(result.Err, fmt.Errorf("Runtime owners did not finish shutdown: %w", ctx.Err()))
 	}
 	return result
 }
 
-func (s *Server) releaseOwners() {
-	if s.remoteAccessService != nil {
-		s.remoteAccessService.Close()
-	}
+func (s *Server) releaseOwners(ctx context.Context) error {
 	if s.appService != nil {
 		s.appService.CloseLocalAppStorage()
 	}
@@ -122,62 +165,75 @@ func (s *Server) releaseOwners() {
 	if s.aiSvc != nil {
 		s.aiSvc.ShutdownRealtime()
 	}
-	if s.aiObservation != nil {
-		_ = s.aiObservation.Close()
-	}
-	if s.persistenceBackend != nil {
-		_ = s.persistenceBackend.Close()
-	}
 	if s.realmRealtimeService != nil {
 		s.realmRealtimeService.Close()
 	}
 	if s.localService != nil {
 		s.localService.Close()
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	var errs []error
+	if s.aiObservation != nil {
+		errs = append(errs, s.aiObservation.Close())
+	}
 	if s.localDevelopmentStore != nil {
-		_ = s.localDevelopmentStore.Close()
+		errs = append(errs, s.localDevelopmentStore.Close())
 	}
 	if s.localAppKernel != nil {
-		_ = s.localAppKernel.Close()
+		errs = append(errs, s.localAppKernel.Close())
 	}
+	return errors.Join(errs...)
 }
 
-func (s *Server) drain(ctx context.Context) StopResult {
-	s.BeginShutdown()
+func (s *Server) drain(ctx, drainCtx context.Context) StopResult {
+	graceful := s.stopTransports((*grpc.Server).GracefulStop)
+	select {
+	case <-graceful:
+		if s.rpcRegistry == nil || s.rpcRegistry.WaitForIdle(drainCtx) == nil {
+			return s.completeTransportShutdown(false)
+		}
+	case <-drainCtx.Done():
+	}
+
+	result := s.completeTransportShutdown(true)
+	forced := s.stopTransports((*grpc.Server).Stop)
+	select {
+	case <-forced:
+	case <-ctx.Done():
+		result.Err = fmt.Errorf("force Runtime transports to stop: %w", ctx.Err())
+		return result
+	}
+	if s.rpcRegistry != nil {
+		if err := s.rpcRegistry.WaitForIdle(ctx); err != nil {
+			result.Err = fmt.Errorf("Runtime handlers remained active after force stop: %w", err)
+		}
+	}
+	return result
+}
+
+func (s *Server) completeTransportShutdown(forced bool) StopResult {
+	result := StopResult{Shutdown: ShutdownSummary{Forced: forced}}
+	if s.rpcRegistry != nil {
+		result.Shutdown = s.rpcRegistry.CompleteShutdown(forced)
+	}
+	return result
+}
+
+func (s *Server) stopTransports(stop func(*grpc.Server)) <-chan struct{} {
+	var wg sync.WaitGroup
+	for _, server := range []*grpc.Server{s.protectedServer, s.localAppServer, s.grpcServer} {
+		if server != nil {
+			wg.Go(func() { stop(server) })
+		}
+	}
 	done := make(chan struct{})
 	go func() {
-		if s.protectedServer != nil {
-			s.protectedServer.GracefulStop()
-		}
-		if s.localAppServer != nil {
-			s.localAppServer.GracefulStop()
-		}
-		s.grpcServer.GracefulStop()
-		if s.rpcRegistry != nil && s.rpcRegistry.WaitForIdle(ctx) != nil {
-			return
-		}
+		wg.Wait()
 		close(done)
 	}()
-
-	select {
-	case <-done:
-		if s.rpcRegistry == nil {
-			return StopResult{}
-		}
-		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(false)}
-	case <-ctx.Done():
-		if s.protectedServer != nil {
-			s.protectedServer.Stop()
-		}
-		if s.localAppServer != nil {
-			s.localAppServer.Stop()
-		}
-		s.grpcServer.Stop()
-		if s.rpcRegistry == nil {
-			return StopResult{}
-		}
-		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(true)}
-	}
+	return done
 }
 
 // SyncServingState maps runtime health status to grpc health checks.

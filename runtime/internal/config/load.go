@@ -11,6 +11,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
+const DefaultShutdownTimeout = 10 * time.Second
+
 // Load resolves configuration from environment with sane defaults.
 // Priority: env var > FileConfig field > default value. (K-DAEMON-009)
 func Load() (Config, error) {
@@ -82,7 +84,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		GRPCAddr:                        readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
 		HTTPAddr:                        readString("NIMI_RUNTIME_HTTP_ADDR", nimillm.FirstNonEmpty(fileCfg.HTTPAddr, defaultHTTPAddr)),
-		ShutdownTimeout:                 10 * time.Second,
+		ShutdownTimeout:                 DefaultShutdownTimeout,
 		LocalStatePath:                  resolveLocalStatePath(fileCfg),
 		LocalModelsPath:                 resolveLocalModelsPath(fileCfg),
 		RuntimeID:                       resolveRuntimeID(fileCfg),

@@ -70,6 +70,9 @@ func newUnaryActivityInterceptor(registry *activeRPCRegistry) grpc.UnaryServerIn
 		trackedCtx, finish, admitted := registry.TrackUnary(ctx, info.FullMethod)
 		defer finish()
 		if !admitted {
+			if registry.stopping() {
+				return nil, status.Error(codes.Unavailable, "runtime is shutting down")
+			}
 			return nil, rootHandoffUnavailable()
 		}
 		return handler(trackedCtx, req)
@@ -84,6 +87,9 @@ func newStreamActivityInterceptor(registry *activeRPCRegistry) grpc.StreamServer
 		trackedCtx, signal, finish, touch, admitted := registry.TrackStream(ss.Context(), info.FullMethod, info)
 		defer finish()
 		if !admitted {
+			if registry.stopping() {
+				return status.Error(codes.Unavailable, "runtime is shutting down")
+			}
 			return rootHandoffUnavailable()
 		}
 		wrapped := &trackedServerStream{

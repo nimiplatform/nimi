@@ -45,6 +45,9 @@ func TestDaemonShutdownRecordSurvivesRestart(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)
 	}
+	if err := daemon.shutdown(); err != nil {
+		t.Fatalf("repeated shutdown changed the stop outcome: %v", err)
+	}
 
 	backend, err := runtimepersistence.Open(nil, cfg.LocalStatePath)
 	if err != nil {
@@ -59,10 +62,19 @@ func TestDaemonShutdownRecordSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	completed := 0
 	for _, event := range response.GetEvents() {
 		if event.GetOperation() == "shutdown.completed" {
-			return
+			fields := event.GetPayload().GetFields()
+			if fields["forced"] == nil || fields["forced"].GetBoolValue() ||
+				fields["active_methods"].GetStructValue() == nil ||
+				fields["remaining_methods"].GetStructValue() == nil {
+				t.Fatalf("incomplete graceful shutdown audit: %v", event.GetPayload())
+			}
+			completed++
 		}
 	}
-	t.Fatalf("shutdown record was not durable: %v", response.GetEvents())
+	if completed != 1 {
+		t.Fatalf("expected one persisted shutdown lifecycle event, got %d", completed)
+	}
 }

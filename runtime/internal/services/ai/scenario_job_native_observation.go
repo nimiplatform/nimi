@@ -64,6 +64,9 @@ func (s *Service) observeScenarioNativeJob(ctx context.Context, jobID string) er
 	claim := func() error {
 		s.scenarioJobs.mu.Lock()
 		defer s.scenarioJobs.mu.Unlock()
+		if s.scenarioJobs.runtimeStopping.Load() {
+			return runtimeJobStopping()
+		}
 		r := s.scenarioJobs.jobs[jobID]
 		cleanupPending := pikaInputCleanupPending(r)
 		if r == nil || r.executionStarted || r.pendingTerminal != nil || (r.nativeReceipt == nil && r.nativeResult == nil && r.resultCandidate == nil && !cleanupPending) || scenarioJobPublicExpired(r, time.Now()) || !scenarioNativeObservationAllowed(r.job) && !cleanupPending {
@@ -90,8 +93,8 @@ func (s *Service) observeScenarioNativeJob(ctx context.Context, jobID string) er
 			return fmt.Errorf("native work generation exhausted")
 		}
 		version = r.nativeWorkVersion
-		r.nativeObservation, r.executionStarted = true, true
-		r.executionDone = make(chan struct{})
+		r.nativeObservation = true
+		s.scenarioJobs.startClaimLocked(r)
 		r.cancel = cancel
 		if permit != nil {
 			permit.jobID = jobID

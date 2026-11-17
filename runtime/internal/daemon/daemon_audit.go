@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -113,29 +114,45 @@ func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string,
 	})
 }
 
-func appendShutdownAudit(store *auditlog.Store, summary grpcserver.ShutdownSummary) {
+func appendShutdownAudit(ctx context.Context, store *auditlog.Store, result grpcserver.StopResult) {
+	summary := result.Shutdown
 	if store == nil || summary.StartedAt.IsZero() {
 		return
+	}
+	methodCounts := func(counts map[string]int) map[string]any {
+		fields := make(map[string]any, len(counts))
+		for method, count := range counts {
+			fields[method] = count
+		}
+		return fields
 	}
 	payload := auditPayloadStruct(map[string]any{
 		"forced":              summary.Forced,
 		"duration_ms":         summary.Duration.Milliseconds(),
-		"active_methods":      summary.ActiveByMethod,
-		"cancelled_methods":   summary.CancelledByMethod,
-		"remaining_methods":   summary.RemainingByMethod,
+		"active_methods":      methodCounts(summary.ActiveByMethod),
+		"cancelled_methods":   methodCounts(summary.CancelledByMethod),
+		"remaining_methods":   methodCounts(summary.RemainingByMethod),
 		"active_rpc_count":    len(summary.ActiveAtStart),
 		"remaining_rpc_count": len(summary.RemainingAtForceStop),
 	})
-	store.AppendEvent(&runtimev1.AuditEventRecord{
+	operation := "shutdown.completed"
+	reason := runtimev1.ReasonCode_ACTION_EXECUTED
+	if result.Err != nil {
+		operation = "shutdown.incomplete"
+		reason = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	if err := store.AppendEventCheckedContext(ctx, &runtimev1.AuditEventRecord{
 		AuditId:    ulid.Make().String(),
 		Domain:     "runtime.lifecycle",
-		Operation:  "shutdown.completed",
-		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		Operation:  operation,
+		ReasonCode: reason,
 		TraceId:    ulid.Make().String(),
 		Timestamp:  timestamppb.New(time.Now().UTC()),
 		Payload:    payload,
 		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
 		CallerId:   "runtime-daemon",
 		SurfaceId:  "daemon",
-	})
+	}); err != nil {
+		store.ReportUnrecorded("runtime.lifecycle", operation, err)
+	}
 }

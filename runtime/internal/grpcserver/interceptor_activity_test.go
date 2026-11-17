@@ -29,6 +29,65 @@ func TestRegistryDrainWaitsForDirectDispatchCompletion(t *testing.T) {
 	}
 }
 
+func TestRuntimeForceStopPreservesActiveHandlerUntilActualReturn(t *testing.T) {
+	registry := newActiveRPCRegistry(nil)
+	server := &Server{grpcServer: grpc.NewServer(), rpcRegistry: registry}
+	const method = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	active, finish, admitted := registry.TrackUnary(t.Context(), method)
+	if !admitted {
+		t.Fatal("pre-stop work was not accepted")
+	}
+	defer finish()
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	drain, force := context.WithCancel(ctx)
+	defer force()
+	stopped := make(chan StopResult, 1)
+	go func() { stopped <- server.StopWithin(ctx, drain, nil, nil) }()
+	select {
+	case <-active.Done():
+	case <-ctx.Done():
+		t.Fatal("stop did not signal the active handler")
+	}
+	_, lateFinish, admitted := registry.TrackUnary(t.Context(), method)
+	lateFinish()
+	if admitted {
+		t.Fatal("another mutating call won admission during STOPPING")
+	}
+	_, readFinish, admitted := registry.TrackUnary(t.Context(), protectedGetRuntimeServiceStateMethod)
+	readFinish()
+	if !admitted {
+		t.Fatal("read-only process state lost admission during STOPPING")
+	}
+	force()
+	for {
+		registry.mu.Lock()
+		forced := registry.shutdown.completed
+		registry.mu.Unlock()
+		if forced {
+			break
+		}
+		if ctx.Err() != nil {
+			t.Fatal("the transport force boundary was not reached")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	probe, cancelProbe := context.WithTimeout(t.Context(), 10*time.Millisecond)
+	defer cancelProbe()
+	if err := registry.WaitForIdle(probe); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("force discarded the still-active handler: %v", err)
+	}
+	finish()
+	select {
+	case result := <-stopped:
+		if result.Err != nil || !result.Shutdown.Forced || result.Shutdown.RemainingByMethod[method] != 1 {
+			t.Fatalf("incorrect force evidence: %+v", result)
+		}
+	case <-ctx.Done():
+		t.Fatal("shutdown waited after the handler actually returned")
+	}
+}
+
 func TestActivityInterceptorFailsClosedWithoutRegistry(t *testing.T) {
 	unaryCalled := false
 	_, err := newUnaryActivityInterceptor(nil)(

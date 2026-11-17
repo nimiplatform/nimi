@@ -502,13 +502,22 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 // StopAll ends every engine within ctx: starts in flight are canceled,
 // running engines stop in parallel, and whatever still runs when ctx ends is
 // killed as a process tree.
-func (m *Manager) StopAll(ctx context.Context) {
+func (m *Manager) StopAll(ctx context.Context) error {
+	return m.StopAllWithin(ctx, ctx)
+}
+
+// StopAllWithin allows the daemon to escalate within the remaining process
+// budget and still wait for actual tree termination.
+func (m *Manager) StopAllWithin(ctx, forceCtx context.Context) error {
 	type managedSupervisor struct {
 		kind EngineKind
 		sup  *Supervisor
 	}
 	if ctx == nil {
 		ctx = context.Background()
+	}
+	if forceCtx == nil {
+		forceCtx = ctx
 	}
 
 	m.mu.Lock()
@@ -521,11 +530,11 @@ func (m *Manager) StopAll(ctx context.Context) {
 	}
 
 	m.mu.Lock()
-	for len(m.starting) > 0 && ctx.Err() == nil {
+	for len(m.starting) > 0 && forceCtx.Err() == nil {
 		changed := m.startStateChanged
 		m.mu.Unlock()
 		select {
-		case <-ctx.Done():
+		case <-forceCtx.Done():
 		case <-changed:
 		}
 		m.mu.Lock()
@@ -537,6 +546,7 @@ func (m *Manager) StopAll(ctx context.Context) {
 	m.mu.Unlock()
 
 	var wg sync.WaitGroup
+	failures := make(chan error, len(sups))
 	for _, entry := range sups {
 		if entry.sup == nil {
 			m.removeSupervisorIfCurrent(entry.kind, nil)
@@ -546,10 +556,7 @@ func (m *Manager) StopAll(ctx context.Context) {
 		go func(entry managedSupervisor) {
 			defer wg.Done()
 			if err := entry.sup.Stop(); err != nil {
-				m.logger.Warn("stop engine failed",
-					"engine", entry.sup.cfg.Kind,
-					"error", err,
-				)
+				failures <- err
 				return
 			}
 			m.removeSupervisorIfCurrent(entry.kind, entry.sup)
@@ -560,10 +567,23 @@ func (m *Manager) StopAll(ctx context.Context) {
 		wg.Wait()
 		close(stopped)
 	}()
+	collect := func() error {
+		close(failures)
+		var errs []error
+		for err := range failures {
+			errs = append(errs, err)
+		}
+		m.mu.RLock()
+		if len(m.starting) > 0 {
+			errs = append(errs, errors.New("engine start cleanup remains active"))
+		}
+		m.mu.RUnlock()
+		return errors.Join(errs...)
+	}
 	select {
 	case <-stopped:
-		return
-	case <-ctx.Done():
+		return collect()
+	case <-forceCtx.Done():
 	}
 	if m.logger != nil {
 		m.logger.Warn("engine shutdown deadline reached; killing remaining engine process trees")
@@ -575,14 +595,11 @@ func (m *Manager) StopAll(ctx context.Context) {
 	}
 	select {
 	case <-stopped:
-	case <-time.After(supervisorStopAllForceWait):
+		return collect()
+	case <-ctx.Done():
+		return fmt.Errorf("engine process tree exit remains unconfirmed: %w", ctx.Err())
 	}
 }
-
-// supervisorStopAllForceWait bounds how long StopAll waits for trees it
-// killed after its deadline; a tree still present then ends with its owner
-// guard once this Runtime exits.
-const supervisorStopAllForceWait = time.Second
 
 func (m *Manager) QuiesceDataRoot(ctx context.Context) error {
 	if m == nil {

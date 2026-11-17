@@ -25,9 +25,21 @@ func guardSupervisorProcessOwner(_ *exec.Cmd, _ time.Duration) (*os.File, *super
 func (*supervisorOwnerRelease) release() {}
 
 type supervisorProcessLifecycle struct {
-	mu     sync.Mutex
-	job    windows.Handle
-	closed bool
+	mu            sync.Mutex
+	job           windows.Handle
+	exitConfirmed bool
+}
+
+// JOBOBJECT_BASIC_ACCOUNTING_INFORMATION, returned by the kernel for this Job.
+type jobObjectAccounting struct {
+	totalUserTime            int64
+	totalKernelTime          int64
+	thisPeriodUserTime       int64
+	thisPeriodKernelTime     int64
+	totalPageFaultCount      uint32
+	totalProcesses           uint32
+	activeProcesses          uint32
+	totalTerminatedProcesses uint32
 }
 
 func setSupervisorProcessGroup(cmd *exec.Cmd) {
@@ -106,33 +118,37 @@ func signalSupervisorProcessLifecycle(lifecycle *supervisorProcessLifecycle, sig
 	}
 	lifecycle.mu.Lock()
 	defer lifecycle.mu.Unlock()
-	if lifecycle.closed || lifecycle.job == 0 {
+	if lifecycle.exitConfirmed {
 		return nil
+	}
+	if lifecycle.job == 0 {
+		return fmt.Errorf("supervised Job Object closed before process exit was confirmed")
 	}
 	return windows.TerminateJobObject(lifecycle.job, 1)
 }
 
 func supervisorProcessLifecycleExited(lifecycle *supervisorProcessLifecycle) (bool, error) {
 	if lifecycle == nil {
-		return true, nil
+		return false, fmt.Errorf("supervised process lifecycle is unavailable")
 	}
 	lifecycle.mu.Lock()
 	defer lifecycle.mu.Unlock()
-	if lifecycle.closed || lifecycle.job == 0 {
+	if lifecycle.exitConfirmed {
 		return true, nil
 	}
-	result, err := windows.WaitForSingleObject(lifecycle.job, 0)
-	if err != nil {
-		return false, err
+	if lifecycle.job == 0 {
+		return false, fmt.Errorf("supervised Job Object closed before process exit was confirmed")
 	}
-	switch result {
-	case windows.WAIT_OBJECT_0:
-		return true, nil
-	case uint32(windows.WAIT_TIMEOUT):
-		return false, nil
-	default:
-		return false, fmt.Errorf("unexpected Job Object wait result %#x", result)
+	var accounting jobObjectAccounting
+	if err := windows.QueryInformationJobObject(
+		lifecycle.job, windows.JobObjectBasicAccountingInformation,
+		uintptr(unsafe.Pointer(&accounting)), uint32(unsafe.Sizeof(accounting)), nil,
+	); err != nil {
+		return false, fmt.Errorf("query supervised Job Object accounting: %w", err)
 	}
+	// The Job is private and receives no new assignments after binding.
+	lifecycle.exitConfirmed = accounting.activeProcesses == 0
+	return lifecycle.exitConfirmed, nil
 }
 
 func releaseSupervisorProcessLifecycle(lifecycle *supervisorProcessLifecycle) error {
@@ -141,11 +157,10 @@ func releaseSupervisorProcessLifecycle(lifecycle *supervisorProcessLifecycle) er
 	}
 	lifecycle.mu.Lock()
 	defer lifecycle.mu.Unlock()
-	if lifecycle.closed || lifecycle.job == 0 {
+	if lifecycle.job == 0 {
 		return nil
 	}
 	err := windows.CloseHandle(lifecycle.job)
 	lifecycle.job = 0
-	lifecycle.closed = true
 	return err
 }

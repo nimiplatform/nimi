@@ -37,18 +37,9 @@ type windowsRuntimeService struct {
 	version string
 }
 
-type windowsRuntimeEmergencyStopper interface {
-	EmergencyStopSupervisedEngines()
-}
-
-type windowsRuntimeServiceCloser interface {
-	Close() error
-}
-
 const (
 	windowsRuntimeServiceStartWaitHint       = 30 * time.Second
 	windowsRuntimeServiceStartCheckpointTick = 2 * time.Second
-	windowsRuntimeServiceStopTimeout         = 25 * time.Second
 	windowsRuntimeServiceStopCheckpointTick  = 2 * time.Second
 	windowsRuntimeServiceStopTimeoutCode     = 0xA5F0
 	windowsRuntimeServiceRestartExitCode     = 0xA5F1
@@ -170,6 +161,11 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 
 	done := make(chan error, 1)
 	go func() { done <- runtimeDaemon.RunProtectedWithLocalApp(ctx, desktopListener, localAppListener) }()
+	stopRuntime := func() (bool, uint32) {
+		deadline := runtimeDaemon.BeginShutdown()
+		cancel()
+		return waitForWindowsRuntimeServiceStop(done, statuses, deadline, windowsRuntimeServiceStopCheckpointTick)
+	}
 	ready := make(chan error, 1)
 	go func() { ready <- runtimeDaemon.WaitReady(ctx) }()
 	readyReached := false
@@ -178,8 +174,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 		case err := <-ready:
 			if err != nil {
 				writeWindowsRuntimeFailure(err)
-				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
-				_, _ = waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+				_, _ = stopRuntime()
 				return true, uint32(windowsRuntimeStartupDaemon)
 			}
 			readyReached = true
@@ -225,9 +220,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			case svc.Interrogate:
 				statuses <- request.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
-				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
-				serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+				serviceSpecific, code := stopRuntime()
 				if code != 0 {
 					writeWindowsRuntimeFailure(fmt.Errorf("Runtime stop completed with serviceSpecific=%t code=%d", serviceSpecific, code))
 				}
@@ -237,9 +230,7 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 				return false, 0
 			}
 		case <-restartRequested:
-			statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
-			initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
-			_, _ = waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+			_, _ = stopRuntime()
 			// A non-zero service-specific exit delegates replacement to the
 			// installer's fixed SCM recovery policy. Desktop never performs a
 			// direct stop/start sequence.
@@ -284,50 +275,47 @@ func windowsRuntimeStartPendingStatus(checkpoint uint32, waitHint time.Duration)
 	return svc.Status{State: svc.StartPending, CheckPoint: checkpoint, WaitHint: uint32(waitHintMillis)}
 }
 
-func initiateWindowsRuntimeServiceStop(cancel context.CancelFunc, runtime windowsRuntimeEmergencyStopper, closers ...windowsRuntimeServiceCloser) {
-	if cancel != nil {
-		cancel()
-	}
-	if runtime != nil {
-		runtime.EmergencyStopSupervisedEngines()
-	}
-	for _, closer := range closers {
-		if closer != nil {
-			_ = closer.Close()
-		}
-	}
-}
-
-func waitForWindowsRuntimeServiceStop(done <-chan error, statuses chan<- svc.Status, timeout, checkpointTick time.Duration) (bool, uint32) {
-	if timeout <= 0 || checkpointTick <= 0 || checkpointTick >= timeout {
+func waitForWindowsRuntimeServiceStop(done <-chan error, statuses chan<- svc.Status, deadline time.Time, checkpointTick time.Duration) (bool, uint32) {
+	if checkpointTick <= 0 {
 		return true, windowsRuntimeServiceStopTimeoutCode
 	}
-	timer := time.NewTimer(timeout)
+	timer := time.NewTimer(time.Until(deadline))
 	defer timer.Stop()
 	ticker := time.NewTicker(checkpointTick)
 	defer ticker.Stop()
 	checkpoint := uint32(1)
+	statusUpdates := statuses
+	pendingStatus := windowsRuntimeStopPendingStatus(checkpoint, time.Until(deadline))
+	result := func(err error) (bool, uint32) {
+		if err != nil {
+			return false, 1
+		}
+		return false, 0
+	}
 	for {
 		select {
 		case err := <-done:
-			if err != nil {
-				return false, 1
-			}
-			return false, 0
+			return result(err)
+		case statusUpdates <- pendingStatus:
+			statusUpdates = nil
 		case <-ticker.C:
 			checkpoint++
-			statuses <- windowsRuntimeStopPendingStatus(checkpoint, timeout)
+			pendingStatus = windowsRuntimeStopPendingStatus(checkpoint, time.Until(deadline))
+			statusUpdates = statuses
 		case <-timer.C:
-			return true, windowsRuntimeServiceStopTimeoutCode
+			select {
+			case err := <-done:
+				return result(err)
+			default:
+				return true, windowsRuntimeServiceStopTimeoutCode
+			}
 		}
 	}
 }
 
 func windowsRuntimeStopPendingStatus(checkpoint uint32, timeout time.Duration) svc.Status {
 	waitHint := timeout.Milliseconds()
-	if waitHint <= 0 || waitHint > int64(^uint32(0)) {
-		waitHint = int64(^uint32(0))
-	}
+	waitHint = min(max(waitHint, 1), int64(^uint32(0)))
 	return svc.Status{State: svc.StopPending, CheckPoint: checkpoint, WaitHint: uint32(waitHint)}
 }
 

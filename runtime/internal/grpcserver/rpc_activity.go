@@ -122,7 +122,8 @@ func classifyUnaryDisposition(method string) rpcShutdownDisposition {
 func (r *activeRPCRegistry) register(entry *activeRPC) (uint64, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.rootHandoff.closed && !r.rootHandoffMethodAdmittedLocked(entry.Method) {
+	if (r.shutdown.started && !isReadOnlyMethod(entry.Method)) ||
+		(r.rootHandoff.closed && !r.rootHandoffMethodAdmittedLocked(entry.Method)) {
 		entry.cancel()
 		return 0, false
 	}
@@ -138,6 +139,12 @@ func (r *activeRPCRegistry) register(entry *activeRPC) (uint64, bool) {
 	}
 	r.signalChangedLocked()
 	return entry.id, true
+}
+
+func (r *activeRPCRegistry) stopping() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.shutdown.started
 }
 
 func (r *activeRPCRegistry) unregister(id uint64) {
@@ -276,11 +283,11 @@ func (r *activeRPCRegistry) touch(id uint64) {
 	r.mu.Unlock()
 }
 
-func (r *activeRPCRegistry) BeginShutdown() []activeRPCSnapshot {
+func (r *activeRPCRegistry) BeginShutdown() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.shutdown.started {
-		return cloneSnapshots(r.shutdown.activeAtStart)
+		return
 	}
 	r.shutdown.started = true
 	r.shutdown.startedAt = r.now()
@@ -296,7 +303,6 @@ func (r *activeRPCRegistry) BeginShutdown() []activeRPCSnapshot {
 		r.shutdown.cancelledMethods[entry.Method]++
 		entry.cancel()
 	}
-	return cloneSnapshots(r.shutdown.activeAtStart)
 }
 
 func (r *activeRPCRegistry) CompleteShutdown(forced bool) ShutdownSummary {
@@ -306,7 +312,6 @@ func (r *activeRPCRegistry) CompleteShutdown(forced bool) ShutdownSummary {
 	remaining := []activeRPCSnapshot{}
 	if forced {
 		remaining = r.snapshotLocked()
-		r.entries = make(map[uint64]*activeRPC)
 	}
 	r.shutdown.completed = true
 	return ShutdownSummary{

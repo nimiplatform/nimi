@@ -104,8 +104,9 @@ func runNonProductionDaemonFromArgsWithConstructor(program string, args []string
 		for sig := range signalCh {
 			signalCount++
 			if signalCount == 1 {
-				logger.Info("runtime shutdown signal received", "signal", sig.String())
+				d.BeginShutdown()
 				cancel()
+				logger.Info("runtime shutdown signal received", "signal", sig.String())
 				continue
 			}
 			logger.Warn("runtime repeated shutdown signal received; forcing supervised engine cleanup", "signal", sig.String())

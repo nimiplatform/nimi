@@ -3,24 +3,12 @@
 package entrypoint
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
 )
-
-type recordingWindowsRuntimeStopper struct{ calls int }
-
-func (stopper *recordingWindowsRuntimeStopper) EmergencyStopSupervisedEngines() { stopper.calls++ }
-
-type recordingWindowsRuntimeCloser struct{ calls int }
-
-func (closer *recordingWindowsRuntimeCloser) Close() error {
-	closer.calls++
-	return nil
-}
 
 func TestWindowsRuntimeStartupExitCodesAreStableAndUnique(t *testing.T) {
 	stages := []windowsRuntimeStartupStage{
@@ -60,7 +48,7 @@ func TestWindowsRuntimeServiceStopIsCheckpointedAndBounded(t *testing.T) {
 	done := make(chan error)
 	statuses := make(chan svc.Status, 16)
 	started := time.Now()
-	serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, statuses, 40*time.Millisecond, 5*time.Millisecond)
+	serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, statuses, started.Add(40*time.Millisecond), 5*time.Millisecond)
 	if !serviceSpecific || code != windowsRuntimeServiceStopTimeoutCode {
 		t.Fatalf("stop timeout outcome = (%v, %x)", serviceSpecific, code)
 	}
@@ -68,14 +56,16 @@ func TestWindowsRuntimeServiceStopIsCheckpointedAndBounded(t *testing.T) {
 		t.Fatalf("bounded stop wait took %s", elapsed)
 	}
 	close(statuses)
-	lastCheckpoint := uint32(1)
+	lastCheckpoint := uint32(0)
+	lastHint := uint32(40)
 	count := 0
 	for status := range statuses {
 		count++
-		if status.State != svc.StopPending || status.CheckPoint <= lastCheckpoint || status.WaitHint != 40 {
+		if status.State != svc.StopPending || status.CheckPoint <= lastCheckpoint || status.WaitHint > lastHint {
 			t.Fatalf("stop status = %#v after checkpoint %d", status, lastCheckpoint)
 		}
 		lastCheckpoint = status.CheckPoint
+		lastHint = status.WaitHint
 	}
 	if count == 0 {
 		t.Fatal("bounded stop wait emitted no SCM checkpoints")
@@ -95,7 +85,7 @@ func TestWindowsRuntimeServiceStopPreservesDaemonOutcome(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			done := make(chan error, 1)
 			done <- test.err
-			serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, make(chan svc.Status, 1), time.Second, 100*time.Millisecond)
+			serviceSpecific, code := waitForWindowsRuntimeServiceStop(done, make(chan svc.Status, 1), time.Now().Add(time.Second), 100*time.Millisecond)
 			if serviceSpecific || code != test.code {
 				t.Fatalf("stop outcome = (%v, %d), want code %d", serviceSpecific, code, test.code)
 			}
@@ -103,17 +93,20 @@ func TestWindowsRuntimeServiceStopPreservesDaemonOutcome(t *testing.T) {
 	}
 }
 
-func TestWindowsRuntimeServiceStopCancelsAndClosesOwnedRuntimeResources(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	stopper := &recordingWindowsRuntimeStopper{}
-	installed := &recordingWindowsRuntimeCloser{}
-	desktop := &recordingWindowsRuntimeCloser{}
-	initiateWindowsRuntimeServiceStop(cancel, stopper, installed, desktop)
-	if ctx.Err() != context.Canceled {
-		t.Fatalf("service stop context = %v", ctx.Err())
-	}
-	if stopper.calls != 1 || installed.calls != 1 || desktop.calls != 1 {
-		t.Fatalf("service stop calls = stopper:%d installed:%d desktop:%d", stopper.calls, installed.calls, desktop.calls)
+func TestWindowsRuntimeServiceStopStatusBackpressureDoesNotExtendDaemonDeadline(t *testing.T) {
+	result := make(chan uint32, 1)
+	deadline := time.Now().Add(30 * time.Millisecond)
+	go func() {
+		_, code := waitForWindowsRuntimeServiceStop(make(chan error), make(chan svc.Status), deadline, 5*time.Millisecond)
+		result <- code
+	}()
+	select {
+	case code := <-result:
+		if code != windowsRuntimeServiceStopTimeoutCode {
+			t.Fatalf("stop returned code %x", code)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("SCM status backpressure prevented bounded shutdown")
 	}
 }
 
