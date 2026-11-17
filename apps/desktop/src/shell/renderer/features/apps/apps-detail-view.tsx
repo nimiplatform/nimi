@@ -63,7 +63,7 @@ import {
   canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import { appRunTransition, appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
+import { appRunTransition, appRunVisualState, appSourceForEntry, installedFocusFailure } from './apps-card-fields.js';
 import { AppArtworkIcon, AppPackageStatusLine, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
 import { AppsReadmeMarkdown, readmeExternalHref } from './apps-readme-markdown.js';
 import { AppsDistributionDocuments } from './apps-distribution-info.js';
@@ -462,6 +462,7 @@ function InstalledAppsDetailView({
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
   const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
+  const focusFailure = activeAction === 'launch' ? null : installedFocusFailure(installedRun);
   const [confirmingUninstall, setConfirmingUninstall] = useState(false);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [copiedAppId, setCopiedAppId] = useState(false);
@@ -759,7 +760,8 @@ function InstalledAppsDetailView({
               {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}
             </InlineAlert>
           ) : null}
-          {release && installedRun?.message ? <InlineAlert tone="danger" className="mt-3">{installedRun.message}</InlineAlert> : null}
+          {focusFailure ? <AppsActionErrorAlert className="mt-3" testId="apps-focus-failed" error={{ message: t('Apps.focusFailed'), detail: focusFailure }} />
+            : release && installedRun?.message ? <InlineAlert tone="danger" className="mt-3">{installedRun.message}</InlineAlert> : null}
           <NimiTabs
             className="mt-4"
             items={tabItems}

@@ -13,6 +13,7 @@ import type {
   AppsInstallStartResult,
 } from './apps-install-intent.js';
 import { approvedCatalogTargetMatchesIntent, createAppsInstallIntentController } from './apps-install-intent.js';
+import { mergeInstalledFocusResult } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { useAppsPresentationCache } from './use-apps-presentation-cache.js';
 import {
@@ -433,6 +434,15 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           else if (entry.committedRelease && liveBridge.launchInstalled) {
             const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
             if (run.state === 'crashed') failAction(entryKey, installedLaunchFailureMessage(run, t));
+            else if (run.state === 'running') {
+              const current = projectionRef.current;
+              if (current?.status === 'loaded') {
+                setProjection({
+                  ...current,
+                  entries: current.entries.map(item => item.identity.entryKey === entryKey ? mergeInstalledFocusResult(item, run) : item),
+                });
+              }
+            }
           } else throw new Error('Installed App launch is unavailable');
         } else if (action === 'stop') {
           if (entry.localDevelopment) await liveBridge.stopRun(entry.localDevelopment.selector);
@@ -454,7 +464,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         endPendingAction();
       }
     })();
-  }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, failAction, failActionWith, installIntentController, liveBridge, projection, reload, t]);
+  }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, failAction, failActionWith, installIntentController, liveBridge, projection, reload, setProjection, t]);
 
   const retryProjection = useCallback((): void => {
     setActionFailure(null);

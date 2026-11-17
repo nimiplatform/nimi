@@ -6,6 +6,7 @@
  * Runtime-projected owner data (appId, displayName) as the stable fallback.
  */
 import { isLocalDevelopmentRunActive, type AppCardActionId } from './apps-card-actions.js';
+import type { InstalledAppRun } from '../../../shared/installed-app-types.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobKind,
@@ -14,6 +15,20 @@ import {
   AppPackageTerminalResult,
   type AppPackageJob,
 } from '@nimiplatform/sdk/runtime/wire-types';
+
+/** Host focus failures can coexist with a running App and independent Access. */
+export function installedFocusFailure(run: DesktopAppsEntry['run']): string | null {
+  if (!run || !('launchSelector' in run) || run.state !== 'running') return null;
+  return run.message || run.reasonCode || null;
+}
+
+export function mergeInstalledFocusResult(entry: DesktopAppsEntry, result: InstalledAppRun): DesktopAppsEntry {
+  const { run, committedRelease } = entry;
+  if (result.state !== 'running' || !run || !('launchSelector' in run) || run.state !== 'running'
+    || !committedRelease || committedRelease.launchSelector.length !== result.launchSelector.length
+    || !committedRelease.launchSelector.every((value, index) => value === result.launchSelector[index])) return entry;
+  return { ...entry, run: { ...run, message: result.message, reasonCode: result.reasonCode } };
+}
 
 /**
  * Stable identity fallback. The Runtime-projected display name is already

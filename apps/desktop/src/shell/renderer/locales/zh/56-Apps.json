@@ -91,6 +91,7 @@
     "readFailed": "现在无法读取应用目录，请稍后再试。"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
+  "focusFailed": "未能显示 App 窗口，可以再试一次。",
   "actionFailed": "这个操作没有完成，可以稍后重试。",
   "installedAccess": {
     "ready": "Nimi Access 已就绪",

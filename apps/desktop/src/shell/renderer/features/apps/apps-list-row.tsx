@@ -19,6 +19,7 @@ import {
   appRunTransition,
   appRunVisualState,
   appSourceForEntry,
+  installedFocusFailure,
   type AppRunVisualState,
 } from './apps-card-fields.js';
 import {
@@ -180,6 +181,7 @@ export const AppListRow = memo(function AppListRow({
   const { identity, localDevelopment } = entry;
   const aiConfigSummary = aiConfigSummaryPresentation(entry, t);
   const source = appSourceForEntry(entry);
+  const focusFailure = activeAction === 'launch' ? null : installedFocusFailure(entry.run);
   const { menuItems, confirmElement } = useAppEntryMenu({
     entry,
     actionsDisabled,
@@ -261,6 +263,12 @@ export const AppListRow = memo(function AppListRow({
             >
               <span className="truncate">{aiConfigSummary.label}</span>
             </button>
+          ) : null}
+          {focusFailure ? (
+            <details className="relative z-10 basis-full text-xs text-[var(--nimi-status-danger)]" data-testid="apps-focus-failed">
+              <summary className="w-fit cursor-pointer"><span role="status">{t('Apps.focusFailed')}</span></summary>
+              <p className="mt-1 break-words text-[var(--nimi-text-secondary)]">{focusFailure}</p>
+            </details>
           ) : null}
           {localDevelopment === null ? <AppPackageStatusLine entry={entry} presentation={presentation === 'update' ? 'update' : 'default'} /> : null}
         </div>

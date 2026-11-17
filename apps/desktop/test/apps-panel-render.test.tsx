@@ -932,6 +932,27 @@ function installedRun(state: InstalledAppRun['state']): InstalledAppRun {
   return { launchSelector: [1], state, accessAvailable: state === 'running', accessReasonCode: '', message: '' };
 }
 
+test('installed focus refusal is readable beside its action while running and Access stay independent', async () => {
+  await initI18n();
+  const base = installedRuntimeEntry();
+  const installed: DesktopAppsEntry = {
+    ...base, packageJob: null, run: { ...installedRun('running'), message: 'native activation refused' },
+  };
+  const projection = { status: 'loaded' as const, catalogStatus: 'loaded' as const, runtimeError: null, entries: [installed] };
+  const home = renderView(baseProps({ projection }));
+  const detail = renderView(baseProps({ projection, selectedEntryKey: installed.identity.entryKey }));
+  assert.match(home, /data-testid="apps-focus-failed"[^>]*><summary/);
+  assert.match(detail, /data-testid="apps-focus-failed"/);
+  assert.match(home, /data-run-visual="running"/);
+  assert.match(home, /native activation refused/);
+  assert.match(home, new RegExp(`apps-entry-${installed.identity.entryKey}-launch`));
+  assert.doesNotMatch(home, /data-run-visual="failed"/);
+  const recovered = renderView(baseProps({
+    projection: { ...projection, entries: [{ ...installed, run: installedRun('running') }] },
+  }));
+  assert.doesNotMatch(recovered, /apps-focus-failed|native activation refused/);
+});
+
 test('An action locks only its own App while other Apps stay available', async () => {
   await initI18n();
   await changeLocale('en');
