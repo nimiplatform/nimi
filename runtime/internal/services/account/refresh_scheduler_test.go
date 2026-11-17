@@ -35,7 +35,7 @@ func TestRefreshFailureDispositionControlsCustodyAndAccountState(t *testing.T) {
 		{name: "not dispatched", disposition: refreshFailurePreDispatch, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED, retainsToken: true},
 		{name: "token invalid", disposition: refreshFailureTokenInvalid, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID},
 		{name: "contract invalid", disposition: refreshFailureContractInvalid, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID},
-		{name: "outcome ambiguous", disposition: refreshFailureOutcomeAmbiguous, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS},
+		{name: "outcome ambiguous", disposition: refreshFailureOutcomeAmbiguous, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

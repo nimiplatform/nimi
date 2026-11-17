@@ -269,18 +269,38 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 	return materialFromRefreshTokenResponse(resp, material)
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 func materialFromRefreshTokenResponse(resp *http.Response, current AccountMaterial) (AccountMaterial, error) {
 	if resp == nil || resp.Body == nil {
 		return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, errors.New("refresh response is unavailable"))
 	}
 	if resp.StatusCode != realmv1.RefreshTokenOperation.SuccessStatus() {
-		if accountDeleted, ok := realmAccountDeletedRefreshFailureFromHTTP(resp, current.AccountID); ok {
-			return AccountMaterial{}, accountDeleted
+		ownerError, validOwnerError := readRefreshAuthError(resp)
+		// Realm's auth rate limiter rejects before entering the refresh owner.
+		// A generic 503 (including AUTH_TOKEN_VERIFICATION_UNAVAILABLE) is not
+		// equivalent: its Redis rotation may have committed before a lost reply.
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if validOwnerError && ownerError.ReasonCode == "AUTH_RATE_LIMITED" {
+				return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, errors.New("refresh rate limited before execution"))
+			}
+			return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, errors.New("unclassified refresh rate limit response"))
+		}
+		if validOwnerError {
+			if accountDeleted, ok := realmAccountDeletedRefreshFailureFromOwnerError(ownerError, current.AccountID); ok {
+				return AccountMaterial{}, accountDeleted
+			}
 		}
 		disposition := refreshFailureContractInvalid
 		switch resp.StatusCode {
 		case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity:
-			disposition = refreshFailureTokenInvalid
+			if validOwnerError {
+				switch ownerError.ReasonCode {
+				case "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED",
+					"AUTH_TOKEN_EXPIRED", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_TOKEN_TYPE", "AUTH_SESSION_REVOKED",
+					"AUTH_ACCOUNT_NOT_FOUND", "AUTH_ACCOUNT_RESTRICTED":
+					disposition = refreshFailureTokenInvalid
+				}
+			}
 		case http.StatusRequestTimeout, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 			disposition = refreshFailureOutcomeAmbiguous
 		default:
@@ -335,21 +355,25 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 	return next, nil
 }
 
-// @nimi-authority: rule.nimi.runtime.protected-session.r033
-func realmAccountDeletedRefreshFailureFromHTTP(resp *http.Response, accountID string) (error, bool) {
-	if resp == nil || resp.Body == nil || resp.StatusCode != http.StatusUnauthorized || strings.TrimSpace(accountID) == "" {
-		return nil, false
-	}
+func readRefreshAuthError(resp *http.Response) (realmv1.AuthErrorDto, bool) {
+	var ownerError realmv1.AuthErrorDto
 	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" {
-		return nil, false
+		return ownerError, false
 	}
 	payload, err := io.ReadAll(io.LimitReader(resp.Body, realmRefreshTokenResponseMaxBytes+1))
 	if err != nil || int64(len(payload)) > realmRefreshTokenResponseMaxBytes {
-		return nil, false
+		return ownerError, false
 	}
-	var ownerError realmv1.AuthErrorDto
-	if err := jsonstrict.Decode(payload, &ownerError); err != nil || ownerError.StatusCode != float64(http.StatusUnauthorized) || ownerError.ReasonCode != RealmAccountDeletedReason || strings.TrimSpace(ownerError.Message) == "" || ownerError.Message != strings.TrimSpace(ownerError.Message) || strings.TrimSpace(ownerError.TraceId) == "" || ownerError.TraceId != strings.TrimSpace(ownerError.TraceId) || ownerError.OperationId == "" || ownerError.DeletedAt == "" {
+	if err := jsonstrict.Decode(payload, &ownerError); err != nil || ownerError.StatusCode != float64(resp.StatusCode) || strings.TrimSpace(ownerError.Message) == "" || ownerError.Message != strings.TrimSpace(ownerError.Message) || strings.TrimSpace(ownerError.TraceId) == "" || ownerError.TraceId != strings.TrimSpace(ownerError.TraceId) {
+		return ownerError, false
+	}
+	return ownerError, true
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r033
+func realmAccountDeletedRefreshFailureFromOwnerError(ownerError realmv1.AuthErrorDto, accountID string) (error, bool) {
+	if ownerError.StatusCode != http.StatusUnauthorized || ownerError.ReasonCode != RealmAccountDeletedReason || strings.TrimSpace(accountID) == "" || ownerError.OperationId == "" || ownerError.DeletedAt == "" {
 		return nil, false
 	}
 	deletedAt, err := time.Parse(time.RFC3339Nano, ownerError.DeletedAt)

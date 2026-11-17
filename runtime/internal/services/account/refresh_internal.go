@@ -278,10 +278,14 @@ func (s *Service) failRefreshAndClearCustody(
 		}
 	}
 	s.transitionToReauthRequired(reason)
+	failureReason := runtimev1.ReasonCode_AUTH_TOKEN_INVALID
+	if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS {
+		failureReason = runtimev1.ReasonCode_REALM_UNAVAILABLE
+	}
 	return &refreshAccountSessionResult{
 		accepted:          false,
 		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED,
-		reasonCode:        runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+		reasonCode:        failureReason,
 		accountReasonCode: reason,
 	}
 }

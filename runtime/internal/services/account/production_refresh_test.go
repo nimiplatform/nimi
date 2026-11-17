@@ -226,6 +226,76 @@ func TestRealmTokenRefresherProjectsOnlyExactAccountDeletedError(t *testing.T) {
 	}
 }
 
+func TestRefreshHTTPFailurePreservesOnlyConfirmedNonExecution(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		body    string
+		retains bool
+	}{
+		{"auth limiter", 429, `{"statusCode":429,"message":"Too many requests","reasonCode":"AUTH_RATE_LIMITED","traceId":"trace-limited"}`, true},
+		{"unclassified limiter", 429, `{}`, false},
+		{"mismatched limiter status", 429, `{"statusCode":503,"message":"Unavailable","reasonCode":"AUTH_RATE_LIMITED","traceId":"trace-limited"}`, false},
+		{"unavailable rotation result", 503, `{"statusCode":503,"message":"Refresh could not be completed","reasonCode":"AUTH_TOKEN_VERIFICATION_UNAVAILABLE","traceId":"trace-unavailable"}`, false},
+		{"gateway failure", 502, `upstream unavailable`, false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var requests atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				requests.Add(1)
+				response.Header().Set("content-type", "application/json")
+				response.WriteHeader(test.status)
+				_, _ = response.Write([]byte(test.body))
+			}))
+			defer server.Close()
+			current := testMaterial("acct-refresh", "access-old", "refresh-old")
+			custody := &refreshRestartProofCustody{material: current, has: true}
+			service := New(nil, WithProductionActivation(), WithCustody(custody),
+				WithCustodyPartition("http-failure"),
+				WithRefresher(newRealmTokenRefresher(resolveProductionConfig(ProductionConfig{
+					RealmBaseURL: server.URL, HTTPClient: server.Client(),
+				}))),
+			)
+			stopAccountRefreshTimer(t, service)
+			current = service.material
+			result, err := service.refreshAccountSessionInternal(context.Background(), true)
+			if err != nil || result.accepted || requests.Load() != 1 {
+				t.Fatalf("unexpected refresh result: %+v %v requests=%d", result, err, requests.Load())
+			}
+			if test.retains {
+				if result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED ||
+					!custody.has || custody.clearCalls != 0 || !reflect.DeepEqual(custody.material, current) {
+					t.Fatalf("confirmed non-execution lost custody or identity: %+v", result)
+				}
+			} else {
+				if result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS {
+					t.Fatalf("unknown outcome misclassified: %+v", result)
+				}
+				_, _ = service.refreshAccountSessionInternal(context.Background(), true)
+				if requests.Load() != 1 {
+					t.Fatal("uncertain refresh was replayed")
+				}
+			}
+		})
+	}
+}
+
+func TestRefreshRejectsCredentialsOnlyForKnownOwnerReason(t *testing.T) {
+	for _, code := range []string{"AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_TOKEN_EXPIRED", "AUTH_INVALID_REQUEST"} {
+		response := &http.Response{StatusCode: http.StatusUnauthorized, Header: http.Header{"Content-Type": []string{"application/json"}},
+			Body: io.NopCloser(strings.NewReader(fmt.Sprintf(`{"statusCode":401,"message":"Rejected","reasonCode":%q,"traceId":"trace-rejected"}`, code)))}
+		_, err := materialFromRefreshTokenResponse(response, testMaterial("acct-refresh", "access-old", "refresh-old"))
+		want := refreshFailureTokenInvalid
+		if code == "AUTH_INVALID_REQUEST" {
+			want = refreshFailureContractInvalid
+		}
+		if refreshFailureDispositionOf(err) != want {
+			t.Fatalf("reason %s misclassified: %v", code, err)
+		}
+	}
+}
+
 func TestRealmTokenRefresherRejectsRedirectWithoutForwardingRefreshToken(t *testing.T) {
 	for _, status := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
