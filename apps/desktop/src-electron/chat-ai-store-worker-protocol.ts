@@ -2,6 +2,7 @@ const REQUEST_ID_PATTERN = /^chat-ai-[1-9][0-9]{0,15}$/u;
 
 export const CHAT_AI_COMMANDS = [
   'chat_ai_list_threads',
+  'chat_ai_commit_turn',
   'chat_ai_get_thread_bundle',
   'chat_ai_create_thread',
   'chat_ai_update_thread_metadata',
@@ -21,6 +22,7 @@ export type ChatAiStoreWorkerRequest = {
   readonly command: ChatAiCommand;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly selectedDataRoot: string;
+  readonly turnFence?: SharedArrayBuffer;
 };
 
 export type ChatAiStoreWorkerResponse =
@@ -38,7 +40,7 @@ export type ChatAiStoreWorkerResponse =
 export function parseChatAiStoreWorkerRequest(value: unknown): ChatAiStoreWorkerRequest {
   const record = exactRecord(
     value,
-    ['command', 'id', 'payload', 'selectedDataRoot'],
+    ['command', 'id', 'payload', 'selectedDataRoot', 'turnFence'],
     'chat-ai-store-worker-request-invalid',
   );
   const id = parseRequestId(record.id);
@@ -50,9 +52,13 @@ export function parseChatAiStoreWorkerRequest(value: unknown): ChatAiStoreWorker
   if (typeof record.selectedDataRoot !== 'string' || !record.selectedDataRoot.trim()) {
     throw new Error('chat-ai-store-worker-request-invalid');
   }
+  if (command === 'chat_ai_commit_turn' && (!(record.turnFence instanceof SharedArrayBuffer) || record.turnFence.byteLength !== 4)) {
+    throw new Error('chat-ai-store-worker-turn-fence-invalid');
+  }
   return {
     id,
     command,
+    turnFence: record.turnFence as SharedArrayBuffer | undefined,
     payload: payload as Readonly<Record<string, unknown>>,
     selectedDataRoot: record.selectedDataRoot,
   };

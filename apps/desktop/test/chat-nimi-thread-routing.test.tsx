@@ -13,14 +13,16 @@ import type { ChatAiThreadBundle } from '../src/shell/shared/chat-ai-store-types
 import { nimiComposerDraftRef, nimiComposerMemory } from '../src/shell/renderer/features/chat/chat-nimi-composer-draft.js';
 import { bundleQueryKey, THREADS_QUERY_KEY } from '../src/shell/renderer/features/chat/chat-nimi-shell-core.js';
 import { useAiConversationHostActions } from '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.js';
-import { createPlainTextMessageContent } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
+import { createPlainTextMessageContent, resolveAiConversationActiveThreadId } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 
 for (const route of ['leave for friends', 'direct switch', 'direct switch with empty draft'] as const) {
 for (const outcome of ['success', 'failure'] as const) {
   test(`after a ${route}, a historical thread owns the send and its ${outcome} cleanup`, async (t) => {
     const dataRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-chat-routing-'));
+    const scope = new AbortController();
     const host = createDesktopElectronChatAiStoreHost({
       resolveSelectedDataRoot: () => dataRoot,
+      resolveTurnScope: async () => ({ signal: scope.signal, revision: 'current' }),
       workerUrl: new URL('../src-electron/chat-ai-store-worker.ts', import.meta.url),
     });
     const globals = globalThis as Record<string, unknown>;
@@ -53,27 +55,29 @@ for (const outcome of ['success', 'failure'] as const) {
     });
     client.setQueryData(THREADS_QUERY_KEY, await chatAiStoreClient.listThreads());
     client.setQueryData(bundleQueryKey(history.id), await chatAiStoreClient.getThreadBundle(history.id));
-    let complete!: (result: { text: string; traceId: null }) => void;
+    let complete!: (result: { text: string; traceId: null; finishReason: 'stop' }) => void;
     let fail!: (error: Error) => void;
-    const execution = new Promise<{ text: string; traceId: null }>((resolve, reject) => { complete = resolve; fail = reject; });
-    let submittingThreadId: string | null = null;
+    const execution = new Promise<{ text: string; traceId: null; finishReason: 'stop' }>((resolve, reject) => { complete = resolve; fail = reject; });
+    let started!: () => void;
+    const executionStarted = new Promise<void>(resolve => { started = resolve; });
     const reported: unknown[] = [];
     function actions() {
       let result!: ReturnType<typeof useAiConversationHostActions>;
       function Hook() {
         const activeThreadId = navigation.getSnapshot().current.destination.chat?.threadId ?? null;
         const memory = nimiComposerMemory(navigation);
+        const { ephemeralThread } = memory.getSnapshot();
         const bundle = activeThreadId ? client.getQueryData<ChatAiThreadBundle>(bundleQueryKey(activeThreadId)) : null;
         result = useAiConversationHostActions({
-          activeThreadId, ephemeralThread: memory.ephemeralThread,
-          selectedThreadRecord: activeThreadId === history.id ? history : memory.ephemeralThread?.id === activeThreadId ? memory.ephemeralThread : null,
+          activeThreadId, ephemeralThread: ephemeralThread,
+          selectedThreadRecord: activeThreadId === history.id ? history : ephemeralThread?.id === activeThreadId ? ephemeralThread : null,
           currentDraftTextRef: nimiComposerDraftRef(navigation, activeThreadId, bundle?.draft?.text ?? ''),
-          submittingThreadId, setSubmittingThreadId: value => { submittingThreadId = value; },
-          setEphemeralThread: value => { memory.ephemeralThread = value; },
-          threads: [history, ...(memory.ephemeralThread ? [memory.ephemeralThread] : [])],
+          navigation, composerMemory: memory, reportTruncation() {}, reportExpiredSave() {},
+          setEphemeralThread: memory.setEphemeralThread,
+          threads: [history, ...(ephemeralThread ? [ephemeralThread] : [])],
           syncSelectionToThread: threadId => { void navigation.replace({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: threadId ?? undefined } }); },
           setBundleCache: (threadId, update) => { client.setQueryData<ChatAiThreadBundle | null>(bundleQueryKey(threadId), update); },
-          executeTextCapability: () => execution,
+          executeTextCapability: () => { started(); return execution; },
           clearHostError() {}, reportHostError: error => { reported.push(error); }, now: () => 100, queryClient: client,
         });
         return null;
@@ -83,7 +87,7 @@ for (const outcome of ['success', 'failure'] as const) {
     }
     await navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: history.id } });
     await actions().handleCreateThread();
-    const temporary = nimiComposerMemory(navigation).ephemeralThread!;
+    const temporary = nimiComposerMemory(navigation).getSnapshot().ephemeralThread!;
     const retainedDraft = nimiComposerDraftRef(navigation, temporary.id, '');
     const temporaryText = route === 'direct switch with empty draft' ? '' : 'Keep this unsent temporary draft';
     retainedDraft.current = temporaryText;
@@ -112,15 +116,25 @@ for (const outcome of ['success', 'failure'] as const) {
     const send = actions().handleSubmit(historicalDraft.current);
     // Register failure observation before settling the controlled model boundary.
     const settled = send.then(() => null, error => error);
-    assert.equal(submittingThreadId, history.id);
+    assert.equal(nimiComposerMemory(navigation).getSnapshot().pending?.threadId, history.id);
+    await executionStarted;
+    if (route === 'leave for friends') {
+      await navigation.push({ id: 'contacts' });
+      await navigation.push({ id: 'chat' });
+      assert.equal(resolveAiConversationActiveThreadId({
+        threads: [history], selectionThreadId: null, lastSelectedThreadId: null,
+        pendingThreadId: nimiComposerMemory(navigation).getSnapshot().pending?.threadId,
+      }), history.id);
+      await navigation.replace({ id: 'chat', chat: { mode: 'ai', threadId: history.id } });
+    }
     assert.equal(client.getQueryData(bundleQueryKey(temporary.id)), temporaryBundle);
     assert.equal(client.getQueryData<ChatAiThreadBundle>(bundleQueryKey(history.id))?.messages.at(-1)?.contentText, 'Send only in history');
-    if (outcome === 'success') complete({ text: 'Unit test model reply', traceId: null });
+    if (outcome === 'success') complete({ text: 'Unit test model reply', traceId: null, finishReason: 'stop' });
     else fail(new Error('Model execution failed'));
     const error = await settled;
-    assert.equal(submittingThreadId, null);
+    assert.equal(nimiComposerMemory(navigation).getSnapshot().pending, null);
     assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, history.id);
-    assert.equal(nimiComposerMemory(navigation).ephemeralThread?.id, temporary.id);
+    assert.equal(nimiComposerMemory(navigation).getSnapshot().ephemeralThread?.id, temporary.id);
     assert.equal(retainedDraft.current, temporaryText);
     assert.equal(client.getQueryData(bundleQueryKey(temporary.id)), temporaryBundle);
     if (outcome === 'success') {
@@ -132,8 +146,8 @@ for (const outcome of ['success', 'failure'] as const) {
       assert.deepEqual(persisted?.messages.map(message => message.contentText), ['Earlier message', 'Send only in history', 'Unit test model reply']);
       assert.equal(historicalDraft.current, '');
     } else {
-      assert.match(String(error), /Model execution failed/);
-      assert.deepEqual(reported, [error]);
+      assert.equal(error, null);
+      assert.match(String(reported[0]), /Model execution failed/);
       assert.equal(historicalDraft.current, 'Send only in history');
       assert.equal(client.getQueryData<ChatAiThreadBundle>(bundleQueryKey(history.id))?.draft?.text, 'Send only in history');
       assert.deepEqual((await chatAiStoreClient.getThreadBundle(history.id))?.messages.map(message => message.id), ['original-message']);

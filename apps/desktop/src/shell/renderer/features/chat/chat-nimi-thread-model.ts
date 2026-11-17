@@ -35,10 +35,12 @@ export function resolveAiConversationActiveThreadId(input: {
   threads: readonly ChatAiThreadSummary[];
   selectionThreadId: string | null | undefined;
   lastSelectedThreadId: string | null | undefined;
+  pendingThreadId?: string | null;
 }): string | null {
   if (hasAiConversationThread(input.threads, input.selectionThreadId)) {
     return normalizeText(input.selectionThreadId);
   }
+  if (input.pendingThreadId) return input.pendingThreadId;
   if (hasAiConversationThread(input.threads, input.lastSelectedThreadId)) {
     return normalizeText(input.lastSelectedThreadId);
   }

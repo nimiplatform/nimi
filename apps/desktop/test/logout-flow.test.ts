@@ -28,9 +28,6 @@ test('logout flow clears local state only after Runtime logout succeeds', async 
       logout: async () => {
         effects.push('server-logout');
       },
-      clearAllStreams: () => {
-        effects.push('clear-streams');
-      },
       clearQueryClient: () => {
         effects.push('clear-query');
       },
@@ -40,7 +37,6 @@ test('logout flow clears local state only after Runtime logout succeeds', async 
 
   assert.deepEqual(effects, [
     'server-logout',
-    'clear-streams',
     'clear-auth',
     'clear-query',
   ]);
@@ -67,9 +63,6 @@ test('logout flow fails closed when Runtime logout cannot be confirmed', async (
       logout: async () => {
         effects.push('server-logout');
         throw new Error('network timeout');
-      },
-      clearAllStreams: () => {
-        effects.push('clear-streams');
       },
       clearQueryClient: () => {
         effects.push('clear-query');
@@ -103,7 +96,6 @@ test('logout flow fails closed when Runtime returns a typed rejection', async ()
           accountReasonCode: 'ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH',
         };
       },
-      clearAllStreams: () => { effects.push('clear-streams'); },
       clearQueryClient: () => { effects.push('clear-query'); },
       translate: createTranslate(),
     },
@@ -122,7 +114,6 @@ test('switch account flow clears local projection only after Runtime switch succ
     },
     {
       switchAccount: async () => { effects.push('runtime-switch'); },
-      clearAllStreams: () => { effects.push('clear-streams'); },
       clearQueryClient: () => { effects.push('clear-query'); },
       translate: createTranslate(),
     },
@@ -131,7 +122,6 @@ test('switch account flow clears local projection only after Runtime switch succ
   assert.equal(switched, true);
   assert.deepEqual(effects, [
     'runtime-switch',
-    'clear-streams',
     'clear-auth',
     'clear-query',
     'feedback',

@@ -266,9 +266,7 @@ export function useHumanConversationModeHost(
               <RuntimeInspectCard
                 label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
                 value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
-                detail={canonicalSurface.diagnosticsSummary.isStreaming
-                  ? t('ChatTimeline.stopGenerating', 'Stop generating')
-                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+                detail={t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
               />
             )}
           />

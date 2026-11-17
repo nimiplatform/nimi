@@ -45,8 +45,6 @@ import {
   createDeterministicDesktopVirtualizationPort,
 } from './helpers/desktop-renderer-ports.js';
 import type { AppearancePreferences } from '../src/shell/renderer/features/settings/settings-device-preferences.js';
-import { createTestStreamController } from './helpers/test-stream-controller.js';
-import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
 import { createHomeNavigation, type HomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 
@@ -173,13 +171,7 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
         throw new Error('TEST_RUNTIME_UNAVAILABLE');
       }),
       Router: createRouter(entry),
-      scenarioJobController: createScenarioJobController({
-        now: () => 1,
-        schedule: () => () => undefined,
-        animationFrame: () => () => undefined,
-      }),
       store,
-      streamController: createTestStreamController(),
       worldFollowStore: createWorldFollowStore(
         createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
       ),
@@ -417,27 +409,19 @@ test('canonical Desktop resources are fresh for every factory invocation', async
 
   first.store.navigation.push({ id: 'explore' });
   first.queryClient.setQueryData(['instance'], 'first');
-  const firstAbortController = first.streamController.startStream('shared-chat');
-  first.scenarioJobController.startJobTracking('shared-job');
 
   assert.notEqual(first.store, second.store);
   assert.notEqual(first.queryClient, second.queryClient);
   assert.notEqual(first.i18n.instance, second.i18n.instance);
   assert.notEqual(first.Router, second.Router);
-  assert.notEqual(first.streamController, second.streamController);
   assert.equal(first.store.navigation.getSnapshot().current.destination.id, 'explore');
   assert.equal(second.store.navigation.getSnapshot().current.destination.id, 'home');
   assert.equal(first.queryClient.getQueryData(['instance']), 'first');
   assert.equal(second.queryClient.getQueryData(['instance']), undefined);
-  assert.equal(first.streamController.getStreamState('shared-chat').phase, 'waiting');
-  assert.equal(second.streamController.getStreamState('shared-chat').phase, 'idle');
-  assert.equal(first.scenarioJobController.getJobState('shared-job').phase, 'subscribing');
-  assert.equal(second.scenarioJobController.getJobState('shared-job').phase, 'idle');
   assert.equal(first.i18n.getCurrentLocale(), 'en');
   assert.equal(second.i18n.getCurrentLocale(), 'zh');
 
   first.dispose();
-  assert.equal(firstAbortController.signal.aborted, true);
   second.dispose();
 });
 

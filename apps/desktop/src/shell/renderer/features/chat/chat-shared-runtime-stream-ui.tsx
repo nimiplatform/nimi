@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ChatStreamStatus } from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import {
   type CanonicalMessageContentSlot,
   type ConversationCanonicalMessage,
 } from '@nimiplatform/kit/features/chat/headless';
-import type { StreamState } from '../turns/stream-controller';
-import { useStreamController } from '../turns/stream-controller-context.js';
 export { RuntimeVoiceMessageContent } from './chat-shared-runtime-voice-message-content';
 
 function normalizeReasoningText(value: unknown): string | null {
@@ -34,26 +31,6 @@ function resolveImageUrls(message: ConversationCanonicalMessage): string[] {
     return attachmentUrls;
   }
   return mediaUrl ? [mediaUrl] : [];
-}
-
-export function useConversationStreamState(chatId: string | null): StreamState | null {
-  const streamController = useStreamController();
-  const [state, setState] = useState<StreamState | null>(
-    () => (chatId ? streamController.getStreamState(chatId) : null),
-  );
-
-  useEffect(() => {
-    if (!chatId) {
-      setState(null);
-      return;
-    }
-    setState(streamController.getStreamState(chatId));
-    return streamController.subscribeStream(chatId, (updated) => {
-      setState({ ...updated });
-    });
-  }, [chatId, streamController]);
-
-  return state;
 }
 
 export function RuntimeReasoningMessageContent(props: {
@@ -188,79 +165,4 @@ export function createReasoningMessageContentRenderer(reasoningLabel: ReactNode)
       />
     );
   };
-}
-
-export function RuntimeStreamFooter(props: {
-  chatId: string;
-  assistantName: string;
-  assistantAvatarUrl: string | null;
-  assistantKind: 'agent' | 'human';
-  streamState: StreamState | null;
-  optimisticWaiting?: boolean;
-  stopLabel: string;
-  interruptedLabel: string;
-  reasoningLabel: ReactNode;
-  waitingLabel?: string;
-  waitingWarningLabel: string;
-  showStreamingText?: boolean;
-}) {
-  const streamController = useStreamController();
-  if (props.optimisticWaiting && (!props.streamState || props.streamState.phase === 'idle')) {
-    return (
-      <ChatStreamStatus
-        mode="streaming"
-        partialText={props.waitingLabel || '...'}
-        reasoningText=""
-        reasoningLabel={props.reasoningLabel}
-      />
-    );
-  }
-
-  if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
-    const showStreamingText = props.showStreamingText !== false;
-    const visiblePartialText = props.streamState.phase === 'waiting'
-      ? (
-        props.streamState.firstContentWarning
-          ? props.waitingWarningLabel
-          : (props.waitingLabel || '...')
-      )
-      : (showStreamingText ? props.streamState.partialText : (props.waitingLabel || '...'));
-    const stopIcon = (
-      <button
-        type="button"
-        onClick={() => streamController.cancelStream(props.chatId)}
-        className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-all duration-150 hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-95"
-        aria-label={props.stopLabel}
-        title={props.stopLabel}
-      >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="6" y="6" width="12" height="12" rx="2" />
-        </svg>
-      </button>
-    );
-    return (
-      <ChatStreamStatus
-        mode="streaming"
-        partialText={visiblePartialText}
-        reasoningText={props.streamState.partialReasoningText}
-        reasoningLabel={props.reasoningLabel}
-        actions={stopIcon}
-      />
-    );
-  }
-
-  if (props.streamState && (props.streamState.phase === 'error' || props.streamState.phase === 'cancelled') && props.streamState.interrupted) {
-    return (
-      <ChatStreamStatus
-        mode="interrupted"
-        partialText={props.streamState.partialText}
-        reasoningText={props.streamState.partialReasoningText}
-        reasoningLabel={props.reasoningLabel}
-        errorMessage={props.streamState.errorMessage}
-        interruptedSuffix={<span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[{props.interruptedLabel}]</span>}
-      />
-    );
-  }
-
-  return null;
 }

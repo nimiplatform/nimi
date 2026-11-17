@@ -449,3 +449,58 @@ test('electron chat ai store rejects a sibling symlinked chat database directory
     /chat-ai-data-root-escape/,
   );
 });
+
+test('whole Chat turn commits once, preserves a later draft, and rejects an old queued scope', async (t) => {
+  const dataRoot = await temporaryDataRoot('commit-turn');
+  let releaseRoot: (() => void) | undefined;
+  let enteredRoot: (() => void) | undefined;
+  const session = new AbortController();
+  const host = createDesktopElectronChatAiStoreHost({
+    resolveSelectedDataRoot: async () => {
+      if (enteredRoot) await new Promise<void>(resolve => { releaseRoot = resolve; enteredRoot?.(); });
+      return dataRoot;
+    },
+    resolveTurnScope: async () => ({ signal: session.signal, revision: 'account-a' }),
+    workerUrl: CHAT_AI_STORE_WORKER_URL,
+  });
+  t.after(async () => { await host.close(); await rm(dataRoot, { recursive: true, force: true }); });
+  const thread = { id: 'thread', title: 'History', createdAtMs: 100, updatedAtMs: 100, lastMessageAtMs: null };
+  const draft = { threadId: thread.id, text: 'old draft', attachments: [], updatedAtMs: 111 };
+  await invoke(host, 'chat_ai_create_thread', { payload: thread });
+  await invoke(host, 'chat_ai_put_draft', { payload: { ...draft, text: 'new draft', updatedAtMs: 120 } });
+  const message = (id: string, role: 'user' | 'assistant', parentMessageId: string | null) => ({
+    id, threadId: thread.id, role, status: 'complete', contentText: id,
+    content: content(id), parentMessageId, traceId: null, error: null, createdAtMs: 200, updatedAtMs: 200,
+  });
+  const scopeId = await invoke(host, 'chat_ai_begin_turn', {});
+  const payload = { scopeId, thread, user: message('user', 'user', null), assistant: message('assistant', 'assistant', 'user'), consumedDraft: draft };
+  const saved = await invoke(host, 'chat_ai_commit_turn', { payload });
+  const repeated = await invoke(host, 'chat_ai_commit_turn', { payload });
+  assert.deepEqual(repeated, saved);
+  const before = await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: thread.id } }) as { draft: typeof draft; messages: unknown[] };
+  assert.equal(before.messages.length, 2);
+  assert.equal(before.draft.text, 'new draft');
+
+  const queued = new Promise<void>(resolve => { enteredRoot = resolve; });
+  const late = invoke(host, 'chat_ai_commit_turn', { payload: { ...payload, user: message('late-user', 'user', null), assistant: message('late-reply', 'assistant', 'late-user') } });
+  const refused = assert.rejects(late, /chat-ai-turn-scope-ended/);
+  await queued;
+  host.observeAccountRevision('');
+  host.observeAccountRevision('account-a');
+  enteredRoot = undefined;
+  releaseRoot?.();
+  await refused;
+  assert.deepEqual(await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: thread.id } }), before);
+
+  // A uniqueness violation on the second message must roll back the first.
+  const other = { ...thread, id: 'other-thread' };
+  await invoke(host, 'chat_ai_create_thread', { payload: other });
+  await invoke(host, 'chat_ai_create_message', { payload: { ...message('existing-reply', 'assistant', null), threadId: other.id } });
+  const nextScope = await invoke(host, 'chat_ai_begin_turn', {});
+  await assert.rejects(invoke(host, 'chat_ai_commit_turn', { payload: {
+    ...payload, scopeId: nextScope, user: message('rollback-user', 'user', null), assistant: message('existing-reply', 'assistant', 'rollback-user'),
+  } }));
+  await host.close();
+  assert.equal(await host.resumeAfterFailedShutdown(), true);
+  assert.deepEqual(await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: thread.id } }), before);
+});

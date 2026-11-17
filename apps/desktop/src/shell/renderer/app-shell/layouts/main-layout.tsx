@@ -30,11 +30,6 @@ const ChatRealtimeSyncHost = lazy(async () => {
   };
 });
 
-const ScenarioJobStatusHost = lazy(async () => {
-  const mod = await import('../../features/turns/scenario-job-status-host');
-  return { default: mod.ScenarioJobStatusHost };
-});
-
 class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { hasError: boolean }> {
   constructor(props: PropsWithChildren) {
     super(props);
@@ -169,7 +164,6 @@ export function MainLayout() {
       <NonCriticalStartupBoundary>
         <Suspense fallback={null}>
           <ChatRealtimeSyncHost />
-          <ScenarioJobStatusHost />
         </Suspense>
       </NonCriticalStartupBoundary>
       </SystemEntryProvider>

@@ -741,6 +741,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
     chatAiStoreHost = createDesktopElectronChatAiStoreHost({
       resolveSelectedDataRoot: productControlHost.resolveReadyDataRoot,
+      resolveTurnScope: async () => {
+        const signal = registeredRuntimeBridge?.captureDesktopFormalScope?.();
+        const account = await registeredRuntimeBridge?.readDesktopAccountSessionStatus?.();
+        if (!signal || signal.aborted || account?.state !== 'authenticated' || !account.authorizationRevision) {
+          throw new Error('chat-ai-turn-scope-unavailable');
+        }
+        return { signal, revision: account.authorizationRevision };
+      },
       operationGate: dataRootOperationGate,
     });
     const supportLogsHost = createDesktopElectronSupportLogsHost({
@@ -1170,6 +1178,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
     systemEntryAccountUnsubscribe = registeredRuntimeBridge.subscribeDesktopAccountSessionProjection?.((projection) => {
+      chatAiStoreHost?.observeAccountRevision(projection?.authorizationRevision || '');
       systemEntryAdmission?.observeAccount(projection);
     });
     powerMonitor.on('lock-screen', lockDesktopSystemEntry);
@@ -1734,6 +1743,7 @@ async function buildMainWindow(): Promise<BrowserWindow> {
     systemEntryRendererReady = false;
     systemEntryAdmission?.invalidate();
     homeChromeHost?.invalidateAll();
+    chatAiStoreHost?.invalidateTurn();
     executionNotices.disableNotifications();
     for (const listener of desktopSenderInvalidationListeners) listener();
   };

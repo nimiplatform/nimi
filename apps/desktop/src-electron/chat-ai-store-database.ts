@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { lstat, mkdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
@@ -7,9 +8,8 @@ import {
   parseChatAiDraftRecord,
   parseChatAiMessageRecord,
   parseChatAiPutDraftInput,
-  parseChatAiThreadBundle,
   parseChatAiThreadRecord,
-  parseChatAiThreadSummaries,
+  parseChatAiThreadSummary,
   parseChatAiUpdateMessageInput,
   parseChatAiUpdateThreadMetadataInput,
 } from '../src/shell/shared/chat-ai-store-parsers.ts';
@@ -42,6 +42,7 @@ type ChatAiStoreOperationInput = {
   readonly command: ChatAiCommand;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly selectedDataRoot: string;
+  readonly turnFence?: SharedArrayBuffer;
 };
 
 // One Worker owns one connection. Path identity and schema cookies are checked
@@ -52,7 +53,13 @@ export function createDesktopChatAiStoreSession() {
   return {
     close,
     async run(input: ChatAiStoreOperationInput): Promise<unknown> {
-      const operation = prepareChatAiOperation(input.command, input.payload);
+      const assertCurrentTurn = () => {
+        if (!input.turnFence || Atomics.load(new Int32Array(input.turnFence), 0) !== 0) {
+          throw new Error('chat-ai-turn-scope-ended');
+        }
+      };
+      if (input.command === 'chat_ai_commit_turn') assertCurrentTurn();
+      const operation = prepareChatAiOperation(input.command, input.payload, assertCurrentTurn);
       try {
         const databasePath = await resolveChatAiDatabasePath(input.selectedDataRoot);
         const stat = await lstat(databasePath, { bigint: true }).catch((error: unknown) => { if (isMissingPathError(error)) return null; throw error; });
@@ -82,8 +89,22 @@ export function createDesktopChatAiStoreSession() {
 function prepareChatAiOperation(
   command: ChatAiCommand,
   payload: Readonly<Record<string, unknown>>,
+  assertCurrentTurn: () => void,
 ): ChatAiDatabaseOperation {
   switch (command) {
+    case 'chat_ai_commit_turn': {
+      const turn = requireNestedPayload(payload, ['thread', 'user', 'assistant', 'consumedDraft']);
+      const thread = checkedCreateThreadInput(turn.thread);
+      const user = checkedCreateMessageInput(turn.user);
+      const assistant = checkedCreateMessageInput(turn.assistant);
+      const consumedDraft = turn.consumedDraft === null ? null : parseChatAiDraftRecord(turn.consumedDraft);
+      if (user.threadId !== thread.id || assistant.threadId !== thread.id || user.id === assistant.id
+        || user.role !== 'user' || assistant.role !== 'assistant'
+        || user.status !== 'complete' || assistant.status !== 'complete'
+        || user.parentMessageId !== null || assistant.parentMessageId !== user.id
+        || (consumedDraft && consumedDraft.threadId !== thread.id)) throw new Error('chat-ai-turn-invalid');
+      return (database) => commitTurn(database, thread, user, assistant, consumedDraft, assertCurrentTurn);
+    }
     case 'chat_ai_list_threads':
       requireNestedPayload(payload, []);
       return listThreads;
@@ -483,15 +504,14 @@ function tableColumns(database: DatabaseSync, table: string): ReadonlySet<string
 }
 
 function listThreads(database: DatabaseSync): ChatAiThreadSummary[] {
-  const rows = database.prepare(`
+  return database.prepare(`
     SELECT id, title, updated_at_ms, last_message_at_ms
     FROM ai_threads
     WHERE EXISTS (
       SELECT 1 FROM ai_messages WHERE ai_messages.thread_id = ai_threads.id
     )
     ORDER BY updated_at_ms DESC, id DESC
-  `).all().map(threadSummaryFromRow);
-  return parseChatAiThreadSummaries(rows);
+  `).all().map(row => parseChatAiThreadSummary(threadSummaryFromRow(row)));
 }
 
 function getThreadBundle(
@@ -528,11 +548,54 @@ function getThreadBundle(
     FROM ai_thread_drafts
     WHERE thread_id = ?
   `).get(threadId);
-  return parseChatAiThreadBundle({
-    thread,
-    messages,
-    draft: draftRow ? draftRecordFromRow(draftRow) : null,
-  });
+  // Each row has crossed the SQLite validation boundary above. The renderer
+  // validates the transferred bundle independently at its own IPC boundary.
+  return { thread, messages, draft: draftRow ? draftRecordFromRow(draftRow) : null };
+}
+
+// @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
+function commitTurn(
+  database: DatabaseSync,
+  thread: ChatAiCreateThreadInput,
+  user: ChatAiCreateMessageInput,
+  assistant: ChatAiCreateMessageInput,
+  consumedDraft: ChatAiDraftRecord | null,
+  assertCurrent: () => void,
+): ChatAiThreadBundle {
+  assertCurrent();
+  database.exec('BEGIN IMMEDIATE');
+  try {
+    const existing = getThreadBundle(database, thread.id);
+    const existingUser = existing?.messages.find(message => message.id === user.id);
+    const existingReply = existing?.messages.find(message => message.id === assistant.id);
+    if (existingUser || existingReply) {
+      if (!existing || !isDeepStrictEqual(existingUser, user) || !isDeepStrictEqual(existingReply, assistant)) {
+        throw new Error('chat-ai-turn-identity-conflict');
+      }
+      assertCurrent();
+      database.exec('COMMIT');
+      return existing;
+    }
+
+    createThread(database, thread);
+    createMessage(database, user);
+    createMessage(database, assistant);
+    updateThreadMetadata(database, {
+      id: thread.id, title: thread.title, updatedAtMs: assistant.updatedAtMs, lastMessageAtMs: assistant.updatedAtMs,
+    });
+    if (consumedDraft && isDeepStrictEqual(existing?.draft, consumedDraft)) {
+      deleteDraft(database, thread.id);
+    }
+    const committed = getThreadBundle(database, thread.id);
+    if (!committed) throw new Error('chat-ai-turn-commit-unconfirmed');
+    // Linearize the synchronous SQLite commit against main's owner invalidation.
+    assertCurrent();
+    database.exec('COMMIT');
+    return committed;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 function createThread(

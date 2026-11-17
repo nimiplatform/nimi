@@ -17,9 +17,6 @@ import {
   CanonicalTranscriptView,
   type CanonicalTranscriptViewProps,
 } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
-import {
-  ChatStreamStatus,
-} from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import type { RealmChatViewDto } from '@nimiplatform/kit/features/chat/realm';
 import {
   type CanonicalMessageAccessorySlot,
@@ -31,8 +28,6 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
-import type { StreamState } from '../turns/stream-controller';
-import { useStreamController } from '../turns/stream-controller-context.js';
 import { RelationshipActionsMenu } from '../relationship/relationship-actions-menu.js';
 import { ReportUserDialog } from '../relationship/report-user-dialog.js';
 import {
@@ -46,70 +41,6 @@ import {
   type HumanVoiceUiState,
 } from './chat-human-voice-ui';
 export { HumanCanonicalComposer } from './chat-human-canonical-composer-profile';
-
-function HumanStreamFooter(props: {
-  selectedChatId: string | null;
-  contactName: string;
-  contactAvatarUrl: string | null;
-  streamState: StreamState | null;
-  isStreaming: boolean;
-}) {
-  const { t } = useTranslation();
-  const streamController = useStreamController();
-
-  if (props.streamState && props.isStreaming) {
-    return (
-      <ChatStreamStatus
-        mode="streaming"
-        partialText={props.streamState.partialText}
-        avatar={(
-          <EntityAvatar
-            imageUrl={props.contactAvatarUrl}
-            name={props.contactName}
-            kind="human"
-            sizeClassName="mt-1 h-8 w-8 shrink-0"
-            textClassName="text-xs font-medium"
-          />
-        )}
-        actions={(
-          <button
-            type="button"
-            onClick={() => {
-              if (props.selectedChatId) {
-                streamController.cancelStream(props.selectedChatId);
-              }
-            }}
-            className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]"
-          >
-            {t('ChatTimeline.stopGenerating', 'Stop generating')}
-          </button>
-        )}
-      />
-    );
-  }
-
-  if (props.streamState && (props.streamState.phase === 'error' || props.streamState.phase === 'cancelled') && props.streamState.interrupted) {
-    return (
-      <ChatStreamStatus
-        mode="interrupted"
-        partialText={props.streamState.partialText}
-        errorMessage={props.streamState.errorMessage}
-        avatar={(
-          <EntityAvatar
-            imageUrl={props.contactAvatarUrl}
-            name={props.contactName}
-            kind="human"
-            sizeClassName="mt-1 h-8 w-8 shrink-0"
-            textClassName="text-xs font-medium"
-          />
-        )}
-        interruptedSuffix={<span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>}
-      />
-    );
-  }
-
-  return null;
-}
 
 function useHumanMessageRenderers(input: {
   selectedChatId: string | null;
@@ -154,13 +85,6 @@ function useHumanMessageRenderers(input: {
 
   const footerContent = (
     <>
-    <HumanStreamFooter
-      selectedChatId={input.selectedChatId}
-      contactName={input.model.contactName}
-      contactAvatarUrl={input.model.contactAvatarUrl}
-      streamState={input.model.streamState}
-      isStreaming={input.model.isStreaming}
-    />
     {reportMessage ? <ReportUserDialog target={{ id: reportMessage.targetId,
       displayName: reportMessage.senderName || input.model.contactName }}
       message={{ chatId: reportMessage.sessionId, messageId: reportMessage.id, previewText: reportMessage.text }}
@@ -252,7 +176,6 @@ function createHumanCanonicalTranscriptProps(input: {
       return date.toLocaleDateString(input.locale);
     },
     historyIntro: input.model.hasOlderMessages ? input.t('MessagePane.historyIntro', { defaultValue: 'Earlier messages' }) : null,
-    pendingFirstBeat: input.model.isStreaming && input.model.canonicalMessages.length === 0,
     agentAvatarUrl: input.model.contactAvatarUrl,
     agentName: input.model.contactName,
     renderMessageAvatar: input.renderers.renderMessageAvatar,
@@ -307,7 +230,6 @@ function createHumanCanonicalStagePanelProps(input: {
   return {
     characterData: input.characterData,
     messages: input.model.canonicalMessages,
-    pendingFirstBeat: input.model.isStreaming && input.model.canonicalMessages.length === 0,
     anchorViewportRef: input.stageAnchorViewportRef,
     cardAnchorOffsetPx: input.stageCardAnchorOffsetPx,
     onIntentOpenHistory: input.onIntentOpenHistory,
@@ -368,7 +290,6 @@ export function useHumanCanonicalConversationSurface(props: {
     rightSidebarContent,
     diagnosticsSummary: {
       messageCount: model.canonicalMessages.length,
-      isStreaming: model.isStreaming,
     },
     rightSidebarAutoOpenKey: selectedVoiceMessage?.id || null,
     rightSidebarOverlayMenu: voiceUi.rightSidebarOverlayMenu,

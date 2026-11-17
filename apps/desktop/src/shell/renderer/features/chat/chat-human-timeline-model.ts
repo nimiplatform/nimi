@@ -19,8 +19,6 @@ import {
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore, useHomeNavigation } from '../../app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-context.js';
-import type { StreamState } from '../turns/stream-controller';
-import { useStreamController } from '../turns/stream-controller-context.js';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import type { PersistentOutboxEntry } from '../../infra/offline/types.js';
 
@@ -69,26 +67,6 @@ function timelineTimestamp(message: RealmMessageViewDto): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-function useHumanStreamState(chatId: string | null): StreamState | null {
-  const streamController = useStreamController();
-  const [state, setState] = useState<StreamState | null>(
-    () => (chatId ? streamController.getStreamState(chatId) : null),
-  );
-
-  useEffect(() => {
-    if (!chatId) {
-      setState(null);
-      return;
-    }
-    setState(streamController.getStreamState(chatId));
-    return streamController.subscribeStream(chatId, (updated) => {
-      setState({ ...updated });
-    });
-  }, [chatId, streamController]);
-
-  return state;
-}
-
 // @nimi-authority: rule.nimi.desktop.product-surfaces.human-chat-consumption
 export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: RealmChatViewDto | null) {
   const realmHumanChatData = useRealmHumanChatData();
@@ -100,8 +78,6 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
   const realmEnvironmentId = String(currentUser?.realmEnvironmentId || '');
   const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
   const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
-  const streamState = useHumanStreamState(selectedChatId);
-  const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
   const otherUser = selectedChat?.otherUser;
   const deletedPeer = isDeletedChatPeer(otherUser);
   const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
@@ -267,8 +243,6 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     messagesQuery,
     timelineMessages,
     canonicalMessages,
-    streamState,
-    isStreaming,
     acknowledgeRead,
     readError,
     newestMessageId: newestMessage?.id ?? null,

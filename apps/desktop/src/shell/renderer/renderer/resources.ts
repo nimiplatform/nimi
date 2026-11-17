@@ -6,8 +6,6 @@ import { createDesktopI18n, resolveSupportedLocale } from '../i18n/desktop-i18n.
 import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { createDesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { createDesktopRouteProvider } from './route-provider.js';
-import { createStreamController } from '../features/turns/stream-controller.js';
-import { createScenarioJobController } from '../features/turns/scenario-job-controller.js';
 import { createRealmSocialData } from '../features/social/data/realm-social-data.js';
 import { createRuntimeConfigConnectorSdkService } from '../features/runtime-config/runtime-config-connector-sdk-service.js';
 import { createRealmHumanChatData } from '../features/chat/data/realm-human-chat-data.js';
@@ -45,8 +43,6 @@ export function createDesktopRendererResources(
     },
   });
   const Router = createDesktopRouteProvider(bindings.route);
-  const streamController = createStreamController(bindings.clock);
-  const scenarioJobController = createScenarioJobController(bindings.clock);
   const chatUploadPlaceholders = createChatUploadPlaceholderStore(bindings.clock.now);
   const localModelCenterProgress = createLocalModelCenterProgressCache(
     bindings.app.commands.localModelProgress,
@@ -82,9 +78,7 @@ export function createDesktopRendererResources(
     realmSocialData,
     runtimeConnectorSdk,
     Router,
-    scenarioJobController,
     store,
-    streamController,
     worldFollowStore,
     dispose() {
       if (disposed) return;
@@ -94,8 +88,6 @@ export function createDesktopRendererResources(
       chatUploadPlaceholders.dispose();
       localModelCenterProgress.clear();
       runtimeConnectorSdk.clearCaches();
-      scenarioJobController.dispose();
-      streamController.dispose();
       queryClient.clear();
       realmSocialData.dispose();
       worldFollowStore.dispose();

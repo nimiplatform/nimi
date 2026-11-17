@@ -103,7 +103,7 @@ export function useAiConversationPresentation(
           key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
           adapter={adapter.composerAdapter}
           initialText={input.currentDraftTextRef.current}
-          disabled={Boolean(input.submittingThreadId)}
+          submitDisabled={Boolean(input.submittingThreadId)}
           placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
           layout="stacked"
           className={centerComposer ? 'px-0 pb-0' : undefined}

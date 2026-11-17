@@ -1,14 +1,32 @@
 import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import type { ChatAiThreadRecord } from '../../bridge/runtime-bridge/types.js';
 
-type ComposerMemory = { generation: number; text: Map<string, string>; ephemeralThread: ChatAiThreadRecord | null };
+type NimiChatPendingTurn = { threadId: string; phase: 'generating' | 'saving' | 'unconfirmed'; retrySave?: () => void };
+export type ComposerMemory = ReturnType<typeof createComposerMemory>;
+
+function createComposerMemory(generation: number) {
+  let state = { pending: null as NimiChatPendingTurn | null, ephemeralThread: null as ChatAiThreadRecord | null };
+  const listeners = new Set<() => void>();
+  const update = (next: typeof state) => {
+    state = next;
+    for (const listener of listeners) listener();
+  };
+  return {
+    generation,
+    text: new Map<string, string>(),
+    subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    getSnapshot: () => state,
+    setPending(pending: NimiChatPendingTurn | null) { update({ ...state, pending }); },
+    setEphemeralThread(ephemeralThread: ChatAiThreadRecord | null) { update({ ...state, ephemeralThread }); },
+  };
+}
 const drafts = new WeakMap<HomeNavigation, ComposerMemory>();
 
 export function nimiComposerMemory(navigation: HomeNavigation): ComposerMemory {
   const generation = navigation.getSnapshot().generation;
   let cache = drafts.get(navigation);
   if (!cache || cache.generation !== generation) {
-    cache = { generation, text: new Map(), ephemeralThread: null }; drafts.set(navigation, cache);
+    cache = createComposerMemory(generation); drafts.set(navigation, cache);
   }
   return cache;
 }

@@ -76,7 +76,30 @@ export async function deleteDraft(threadId: string): Promise<void> {
   }, () => undefined);
 }
 
+async function beginTurn(): Promise<string> {
+  return invokeChecked('chat_ai_begin_turn', {}, (value) => {
+    if (typeof value !== 'string' || !value) throw new Error('chat-ai-turn-scope-unavailable');
+    return value;
+  });
+}
+
+async function commitTurn(input: {
+  scopeId: string;
+  thread: ChatAiCreateThreadInput;
+  user: ChatAiCreateMessageInput;
+  assistant: ChatAiCreateMessageInput;
+  consumedDraft: ChatAiDraftRecord | null;
+}): Promise<ChatAiThreadBundle> {
+  return invokeChecked('chat_ai_commit_turn', { payload: input }, (value) => {
+    const bundle = parseChatAiThreadBundle(value);
+    if (!bundle) throw new Error('chat-ai-turn-commit-unconfirmed');
+    return bundle;
+  });
+}
+
 export const chatAiStoreClient = {
+  beginTurn,
+  commitTurn,
   listThreads,
   getThreadBundle,
   createThread,

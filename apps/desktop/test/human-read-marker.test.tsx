@@ -29,8 +29,6 @@ test('read receipts advance to the latest visible confirmed message even when it
   const { ConversationReadMarker } = await import('@nimiplatform/kit/features/chat/ui');
   const { ChatUploadPlaceholderProvider } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-context.js');
   const { createChatUploadPlaceholderStore } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-store.js');
-  const { StreamControllerProvider } = await import('../src/shell/renderer/features/turns/stream-controller-context.js');
-  const { createTestStreamController } = await import('./helpers/test-stream-controller.js');
   const root = createRoot(dom.window.document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   store.getState().applyRuntimeAccountProjection({ status: 'authenticated', user: { id: 'alice', realmEnvironmentId: 'realm' },
@@ -38,7 +36,6 @@ test('read receipts advance to the latest visible confirmed message even when it
   await store.navigation.push({ id: 'contacts', chat: { mode: 'human', threadId: 'chat' } });
   const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity } } });
   const uploads = createChatUploadPlaceholderStore(Date.now);
-  const streams = createTestStreamController();
   const acknowledgements: string[] = [];
   let failNextReceipt = false;
   const chatData = { async markChatAsRead(chatId: string, id: string) {
@@ -64,9 +61,9 @@ test('read receipts advance to the latest visible confirmed message even when it
       pages: pages.map(items => ({ items })), pageParams: pages.map((_, index) => index === 0 ? null : 'older'),
     });
     root.render(<QueryClientProvider client={queryClient}><AppStoreProvider store={store}>
-      <ChatUploadPlaceholderProvider store={uploads}><StreamControllerProvider controller={streams}>
+      <ChatUploadPlaceholderProvider store={uploads}>
         <RealmHumanChatDataProvider resource={chatData}><TimelineMarker /></RealmHumanChatDataProvider>
-      </StreamControllerProvider></ChatUploadPlaceholderProvider>
+      </ChatUploadPlaceholderProvider>
     </AppStoreProvider></QueryClientProvider>);
   });
   const intersect = (...values: boolean[]) => act(async () => {
@@ -120,7 +117,6 @@ test('read receipts advance to the latest visible confirmed message even when it
     assert.equal(acknowledgements.length, 4);
   } finally {
     queryClient.clear();
-    streams.dispose();
     uploads.dispose();
     store.navigation.dispose();
     dom.window.close();

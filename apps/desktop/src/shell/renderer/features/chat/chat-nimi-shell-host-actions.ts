@@ -1,3 +1,5 @@
+import { nimiComposerDraftRef, type ComposerMemory } from './chat-nimi-composer-draft.js';
+import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import { useCallback } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type {
@@ -18,8 +20,6 @@ import {
   appendOptimisticUserMessage,
   bundleQueryKey,
   createEmptyBundle,
-  replaceMessage,
-  restoreDraftAfterFailedSend,
   THREADS_QUERY_KEY,
   upsertThreadSummary,
   upsertBundleDraft,
@@ -29,7 +29,11 @@ type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
-  executeTextCapability: (text: string) => Promise<DesktopNimiTextCapabilityResult>;
+  executeTextCapability: (text: string, history: ChatAiThreadBundle['messages'], signal: AbortSignal) => Promise<DesktopNimiTextCapabilityResult>;
+  navigation: HomeNavigation;
+  composerMemory: ComposerMemory;
+  reportTruncation: () => void;
+  reportExpiredSave: () => void;
   clearHostError: () => void;
   now: () => number;
   queryClient: QueryClient;
@@ -40,41 +44,9 @@ type UseAiConversationHostActionsInput = {
     updater: (current: ChatAiThreadBundle | null | undefined) => ChatAiThreadBundle | null | undefined,
   ) => void;
   setEphemeralThread: (thread: ChatAiThreadRecord | null) => void;
-  setSubmittingThreadId: (threadId: string | null) => void;
-  submittingThreadId: string | null;
   syncSelectionToThread: (threadId: string | null) => void;
   threads: readonly ChatAiThreadSummary[];
 };
-
-export async function ensureChatAiThreadRecordPersisted(input: {
-  thread: ChatAiThreadRecord;
-  verifyExisting: boolean;
-}): Promise<{
-  thread: ChatAiThreadRecord;
-  recoveredMissingThread: boolean;
-}> {
-  if (input.verifyExisting) {
-    const existing = await chatAiStoreClient.getThreadBundle(input.thread.id);
-    if (existing?.thread) {
-      return {
-        thread: existing.thread,
-        recoveredMissingThread: false,
-      };
-    }
-  }
-
-  const persisted = await chatAiStoreClient.createThread({
-    id: input.thread.id,
-    title: input.thread.title,
-    createdAtMs: input.thread.createdAtMs,
-    updatedAtMs: input.thread.updatedAtMs,
-    lastMessageAtMs: input.thread.lastMessageAtMs,
-  });
-  return {
-    thread: persisted,
-    recoveredMissingThread: input.verifyExisting,
-  };
-}
 
 export function useAiConversationHostActions(
   input: UseAiConversationHostActionsInput,
@@ -115,7 +87,7 @@ export function useAiConversationHostActions(
   }, [input]);
 
   const handleCreateThread = useCallback(async () => {
-    if (input.submittingThreadId) return;
+    if (input.composerMemory.getSnapshot().pending) return;
     if (input.ephemeralThread) {
       input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
     }
@@ -133,7 +105,7 @@ export function useAiConversationHostActions(
   }, [input, syncAiThreadSelectionState]);
 
   const handleSelectThread = useCallback(async (threadId: string) => {
-    if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) return;
+    if (!threadId || threadId === input.activeThreadId || input.composerMemory.getSnapshot().pending) return;
     if (!input.threads.some((candidate) => candidate.id === threadId)) return;
     try {
       await persistDraftForThread(input.activeThreadId);
@@ -146,7 +118,7 @@ export function useAiConversationHostActions(
   // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
   const handleSubmit = useCallback(async (value: string) => {
     const text = value.trim();
-    if (!text || input.submittingThreadId) return;
+    if (!text || input.composerMemory.getSnapshot().pending) return;
     input.clearHostError();
     const createdAtMs = input.now();
     // A side flip retains unsent drafts, but only the selected thread owns this send.
@@ -168,99 +140,104 @@ export function useAiConversationHostActions(
         });
     const isFreshThread = !activeEphemeralThread
       && !(input.selectedThreadRecord && input.activeThreadId);
+    const { composerMemory, navigation, queryClient } = input;
+    const scope = new AbortController();
+    const isCurrent = () => navigation.getSnapshot().generation === composerMemory.generation;
+    let finished = false;
+    const clearPending = () => {
+      finished = true;
+      unsubscribe();
+      composerMemory.setPending(null);
+    };
+    const unsubscribe = navigation.subscribe(() => {
+      if (!isCurrent()) {
+        scope.abort();
+        clearPending();
+      }
+    });
     const userMessageId = createNimiClientId('ai-message-user');
-    const userContent = createPlainTextMessageContent(text);
-    input.setSubmittingThreadId(baseThread.id);
-    // The composer clears as soon as it hands the text over, so the transcript
-    // must show the sent message and the thinking indicator right away.
-    // Nothing is persisted until Runtime answers.
-    if (isFreshThread) {
-      input.setEphemeralThread(baseThread);
-    }
-    input.setBundleCache(baseThread.id, (current) => appendOptimisticUserMessage(current, baseThread, {
-      id: userMessageId,
-      threadId: baseThread.id,
-      role: 'user',
-      status: 'pending',
-      contentText: text,
-      content: userContent,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
-      createdAtMs,
-      updatedAtMs: createdAtMs,
-    }));
-    if (isFreshThread) {
-      syncAiThreadSelectionState(baseThread.id);
-    }
+    const replyId = createNimiClientId('ai-message-assistant');
+    const draft = nimiComposerDraftRef(navigation, baseThread.id, '');
+    const user = {
+      id: userMessageId, threadId: baseThread.id, role: 'user' as const, status: 'complete' as const,
+      contentText: text, content: createPlainTextMessageContent(text), error: null, traceId: null,
+      parentMessageId: null, createdAtMs, updatedAtMs: createdAtMs,
+    };
+    composerMemory.setPending({ threadId: baseThread.id, phase: 'generating' });
+    void queryClient.cancelQueries({ queryKey: bundleQueryKey(baseThread.id), exact: true });
+    if (isFreshThread) input.setEphemeralThread(baseThread);
+    input.setBundleCache(baseThread.id, current => appendOptimisticUserMessage(current, baseThread, { ...user, status: 'pending' }));
+    if (isFreshThread) syncAiThreadSelectionState(baseThread.id);
     input.currentDraftTextRef.current = '';
+    draft.current = '';
+
+    let result: DesktopNimiTextCapabilityResult;
+    let scopeId: string;
+    let confirmed: ChatAiThreadBundle | null = null;
     try {
-      // Runtime/Kit owns execution admission and implementation selection.
-      const result = await input.executeTextCapability(text);
-      const persisted = await ensureChatAiThreadRecordPersisted({
-        thread: baseThread,
-        verifyExisting: Boolean(input.selectedThreadRecord && !activeEphemeralThread),
-      });
-      const userMessage = await chatAiStoreClient.createMessage({
-        id: userMessageId,
-        threadId: persisted.thread.id,
-        role: 'user',
-        status: 'complete',
-        contentText: text,
-        content: userContent,
-        error: null,
-        traceId: null,
-        parentMessageId: null,
-        createdAtMs,
-        updatedAtMs: createdAtMs,
-      });
-      const assistantMessage = await chatAiStoreClient.createMessage({
-        id: createNimiClientId('ai-message-assistant'),
-        threadId: persisted.thread.id,
-        role: 'assistant',
-        status: 'complete',
-        contentText: result.text,
-        content: createAssistantMessageContent(result.text),
-        error: null,
-        traceId: result.traceId,
-        parentMessageId: userMessage.id,
-        createdAtMs: createdAtMs + 1,
-        updatedAtMs: createdAtMs + 1,
-      });
-      const updatedThread = await chatAiStoreClient.updateThreadMetadata({
-        id: persisted.thread.id,
-        title: resolveThreadTitleAfterFirstSend(persisted.thread.title, text),
-        updatedAtMs: assistantMessage.updatedAtMs,
-        lastMessageAtMs: assistantMessage.updatedAtMs,
-      });
-      await chatAiStoreClient.deleteDraft(updatedThread.id);
-      input.queryClient.setQueryData<ChatAiThreadBundle>(bundleQueryKey(updatedThread.id), (current) => ({
-        thread: updatedThread,
-        // The persisted user message replaces its optimistic twin by id.
-        messages: replaceMessage(replaceMessage(current?.messages ?? [], userMessage), assistantMessage),
-        draft: null,
-      }));
-      input.queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, (current) => (
-        upsertThreadSummary(Array.isArray(current) ? current : [], updatedThread)
-      ));
-      if (activeEphemeralThread || isFreshThread) input.setEphemeralThread(null);
-      input.currentDraftTextRef.current = '';
-      syncAiThreadSelectionState(updatedThread.id);
-      await input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
+      scopeId = await chatAiStoreClient.beginTurn();
+      scope.signal.throwIfAborted();
+      if (!isFreshThread && !activeEphemeralThread) {
+        confirmed = await chatAiStoreClient.getThreadBundle(baseThread.id);
+        if (confirmed?.thread.id !== baseThread.id) throw new Error('chat-ai-thread-unavailable');
+      }
+      scope.signal.throwIfAborted();
+      result = await input.executeTextCapability(text, confirmed?.messages ?? [], scope.signal);
     } catch (error) {
-      // Give the text back so the person can retry without retyping.
-      input.setBundleCache(baseThread.id, (current) => restoreDraftAfterFailedSend(current, userMessageId, {
-        threadId: baseThread.id,
-        text,
-        attachments: [],
-        updatedAtMs: input.now(),
-      }));
-      input.currentDraftTextRef.current = text;
-      input.reportHostError(error);
-      throw error;
-    } finally {
-      input.setSubmittingThreadId(null);
+      if (isCurrent()) {
+        if (!draft.current) draft.current = text;
+        input.setBundleCache(baseThread.id, current => current && {
+          ...current,
+          messages: current.messages.filter(message => message.id !== user.id),
+          draft: { threadId: baseThread.id, text: draft.current, attachments: [], updatedAtMs: input.now() },
+        });
+        input.reportHostError(error);
+      }
+      clearPending();
+      return;
     }
+
+    const commit = {
+      scopeId, user, consumedDraft: confirmed?.draft ?? null,
+      thread: { ...(confirmed?.thread ?? baseThread), title: resolveThreadTitleAfterFirstSend(confirmed?.thread.title ?? baseThread.title, text) },
+      assistant: {
+        ...user, id: replyId, role: 'assistant' as const, contentText: result.text,
+        content: createAssistantMessageContent(result.text), traceId: result.traceId,
+        parentMessageId: user.id, createdAtMs: createdAtMs + 1, updatedAtMs: createdAtMs + 1,
+      },
+    };
+    const save = async () => {
+      if (finished || composerMemory.getSnapshot().pending?.phase === 'saving') return;
+      if (!isCurrent()) { clearPending(); return; }
+      composerMemory.setPending({ threadId: baseThread.id, phase: 'saving' });
+      let saved: ChatAiThreadBundle;
+      try {
+        saved = await chatAiStoreClient.commitTurn(commit);
+      } catch (error) {
+        if (!isCurrent()) { clearPending(); return; }
+        if (error instanceof Error && error.message.includes('chat-ai-turn-scope-ended')) {
+          clearPending();
+          input.setBundleCache(baseThread.id, current => current && {
+            ...current, messages: current.messages.filter(message => message.id !== user.id),
+          });
+          input.reportExpiredSave();
+          void queryClient.invalidateQueries({ queryKey: bundleQueryKey(baseThread.id) });
+          return;
+        }
+        // The same commit checks both message IDs before making any changes.
+        // A retry can confirm a lost reply, and never executes the model again.
+        composerMemory.setPending({ threadId: baseThread.id, phase: 'unconfirmed', retrySave: () => { void save(); } });
+        return;
+      }
+      if (isCurrent()) {
+        queryClient.setQueryData(bundleQueryKey(baseThread.id), saved);
+        queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, current => upsertThreadSummary(current ?? [], saved.thread));
+        if (composerMemory.getSnapshot().ephemeralThread?.id === baseThread.id) input.setEphemeralThread(null);
+        if (result.finishReason === 'length') input.reportTruncation();
+      }
+      clearPending();
+    };
+    await save();
   }, [input, syncAiThreadSelectionState]);
 
   return {

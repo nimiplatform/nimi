@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { AppStoreState } from '../../app-shell/providers/store-types';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useStreamController } from '../turns/stream-controller-context.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 type LogoutAndClearSessionInput = {
@@ -26,7 +25,6 @@ type LogoutDependencies = {
     reasonCode?: unknown;
     accountReasonCode?: unknown;
   }>;
-  clearAllStreams: () => void;
   clearQueryClient: () => void;
   translate: LogoutTranslate;
 };
@@ -42,12 +40,10 @@ export function useLogoutSessionDependencies(): {
 } {
   const queryClient = useQueryClient();
   const i18n = useDesktopI18nResource().instance;
-  const streamController = useStreamController();
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const sdk = useDesktopRendererSdk();
   return useMemo(() => {
     const shared = {
-      clearAllStreams: streamController.clearAllStreams,
       clearQueryClient: () => queryClient.clear(),
       translate: i18n.t.bind(i18n),
     };
@@ -73,7 +69,7 @@ export function useLogoutSessionDependencies(): {
       },
       feedback: setStatusBanner,
     };
-  }, [i18n, queryClient, sdk, setStatusBanner, streamController]);
+  }, [i18n, queryClient, sdk, setStatusBanner]);
 }
 
 function toErrorMessage(error: unknown): string {
@@ -139,7 +135,6 @@ export async function logoutAndClearSession(
     return;
   }
 
-  deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();
 
@@ -166,7 +161,6 @@ export async function switchAccountAndClearSession(
     return false;
   }
 
-  deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();
   await emitLogoutFeedback(input, {

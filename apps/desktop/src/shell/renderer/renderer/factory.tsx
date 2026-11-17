@@ -51,9 +51,7 @@ function DesktopMainSurface(props: {
                 realmSocialData={props.resources.realmSocialData}
                 runtimeConnectorSdk={props.resources.runtimeConnectorSdk}
                 Router={props.resources.Router}
-                scenarioJobController={props.resources.scenarioJobController}
                 store={props.resources.store}
-                streamController={props.resources.streamController}
                 worldFollowStore={props.resources.worldFollowStore}
               >
                 <ProductUpdateProvider>

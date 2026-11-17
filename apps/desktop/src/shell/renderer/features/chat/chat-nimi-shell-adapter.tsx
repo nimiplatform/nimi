@@ -1,11 +1,12 @@
+import { ChatStreamStatus } from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { nimiComposerDraftRef, nimiComposerMemory } from './chat-nimi-composer-draft.js';
 import {
   useCallback,
   useEffect,
   useMemo,
-  type ReactNode,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -21,8 +22,6 @@ import {
 import type { NimiConversationSelection } from './chat-shell-types';
 import {
   createReasoningMessageContentRenderer,
-  RuntimeStreamFooter,
-  useConversationStreamState,
 } from './chat-shared-runtime-stream-ui';
 import {
   getChatThinkingUnsupportedCopy,
@@ -74,14 +73,12 @@ export function useAiConversationModeHost(
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data?.config);
   const textRouteUsesChatGPTPlan = desktopNimiTextIntentUsesChatGPTPlan(textIntent);
-  const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const navigation = useHomeNavigation();
   const composerMemory = nimiComposerMemory(navigation);
-  const [ephemeralThread, setLocalEphemeralThread] = useState<ChatAiThreadRecord | null>(composerMemory.ephemeralThread);
-  const setEphemeralThread = useCallback((thread: ChatAiThreadRecord | null) => {
-    composerMemory.ephemeralThread = thread; setLocalEphemeralThread(thread);
-  }, [composerMemory]);
+  const { pending, ephemeralThread } = useSyncExternalStore(composerMemory.subscribe, composerMemory.getSnapshot);
+  const submittingThreadId = pending?.threadId ?? null;
+  const setEphemeralThread = composerMemory.setEphemeralThread;
 
   const reportHostError = useCallback((error: unknown) => {
     const userFacing = toChatUserFacingRuntimeError(
@@ -123,8 +120,9 @@ export function useAiConversationModeHost(
       threads,
       selectionThreadId: input.selection.threadId,
       lastSelectedThreadId: input.lastSelectedThreadId,
+      pendingThreadId: pending?.threadId,
     }),
-    [input.lastSelectedThreadId, input.selection.threadId, threads],
+    [input.lastSelectedThreadId, input.selection.threadId, pending?.threadId, threads],
   );
 
   const selectedThreadRecord = useMemo(
@@ -150,9 +148,13 @@ export function useAiConversationModeHost(
     return t(copy.key, { defaultValue: copy.defaultValue });
   }, [t, thinkingSupport]);
 
-  const bundleQuery = useQuery(chatAiThreadBundleQueryOptions(
+  const bundleOptions = chatAiThreadBundleQueryOptions(
     activeThreadId, ephemeralThread?.id ?? null, (id) => chatAiStoreClient.getThreadBundle(id),
-  ));
+  );
+  const bundleQuery = useQuery({
+    ...bundleOptions,
+    enabled: bundleOptions.enabled && pending?.threadId !== activeThreadId,
+  });
 
   const bundle = bundleQuery.data || null;
   const generation = navigation.getSnapshot().generation;
@@ -164,13 +166,14 @@ export function useAiConversationModeHost(
       .filter((message) => !isEmptyPendingAssistantMessage(message)),
     [bundle?.messages],
   );
-  const streamState = useConversationStreamState(activeThreadId);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
   const composerReady = setupState.status === 'ready' && !isBundleLoading;
-  const executeTextCapability = useCallback((text: string) => runDesktopNimiTextCapability({
+  const executeTextCapability = useCallback((text: string, history: ChatAiMessageRecord[], signal: AbortSignal) => runDesktopNimiTextCapability({
     client: bindings.sdk.appProduct(),
     prompt: text,
+    history,
+    signal,
   }), [bindings.sdk]);
 
   const {
@@ -189,13 +192,14 @@ export function useAiConversationModeHost(
       setSelection({ threadId: null });
       return;
     }
-    if (!input.selection.threadId && activeThreadId && selectedThreadRecord) {
+    if (!input.selection.threadId && activeThreadId && (selectedThreadRecord || activeThreadId === pending?.threadId)) {
       syncSelectionToThread(activeThreadId);
     }
   }, [
     activeThreadId,
     input.selection.threadId,
     selectedThreadRecord,
+    pending?.threadId,
     setSelection,
     syncSelectionToThread,
     threads,
@@ -218,8 +222,10 @@ export function useAiConversationModeHost(
     selectedThreadRecord,
     setBundleCache,
     setEphemeralThread,
-    setSubmittingThreadId,
-    submittingThreadId,
+    composerMemory,
+    navigation,
+    reportExpiredSave: () => setHostFeedback({ kind: 'warning', message: t('Chat.nimiSaveScopeEnded') }),
+    reportTruncation: () => setHostFeedback({ kind: 'warning', message: t('Chat.nimiResponseTruncated') }),
     syncSelectionToThread,
     threads,
   });
@@ -332,46 +338,15 @@ export function useAiConversationModeHost(
     () => createReasoningMessageContentRenderer(reasoningLabel),
     [reasoningLabel],
   );
-  const footerContent = useMemo<ReactNode>(() => {
-    if (!activeThreadId) {
-      return null;
-    }
-    const optimisticWaiting = submittingThreadId === activeThreadId
-      && (!streamState || streamState.phase === 'idle');
-    return (
-      <RuntimeStreamFooter
-        chatId={activeThreadId}
-        assistantName={aiCharacterData.name}
-        assistantAvatarUrl={aiCharacterData.avatarUrl || null}
-        assistantKind="agent"
-        streamState={streamState}
-        optimisticWaiting={optimisticWaiting}
-        stopLabel={t('ChatTimeline.stopGenerating', 'Stop generating')}
-        interruptedLabel={t('ChatTimeline.streamInterrupted', 'Response interrupted')}
-        reasoningLabel={reasoningLabel}
-        waitingLabel={t('Chat.nimiSending', {
-          defaultValue: 'Generating response...',
-        })}
-        waitingWarningLabel={t(
-          'ChatTimeline.firstContentWaitingWarning',
-          'The response is taking longer than usual. Still waiting...',
-        )}
-      />
-    );
-  }, [activeThreadId, aiCharacterData.avatarUrl, aiCharacterData.name, reasoningLabel, streamState, submittingThreadId, t]);
-
-  const pendingFirstBeat = Boolean(
-    (
-      streamState
-      && streamState.phase === 'waiting'
-      && !streamState.partialText
-      && !streamState.partialReasoningText
-    )
-    || (
-      submittingThreadId === activeThreadId
-      && (!streamState || streamState.phase === 'idle')
-    ),
-  );
+  const pendingFirstBeat = Boolean(activeThreadId && submittingThreadId === activeThreadId && pending?.phase === 'generating');
+  const footerContent = pendingFirstBeat ? (
+    <ChatStreamStatus
+      mode="streaming"
+      partialText={t('Chat.nimiSending', { defaultValue: 'Generating response...' })}
+      reasoningText=""
+      reasoningLabel={reasoningLabel}
+    />
+  ) : null;
 
   const host = useAiConversationPresentation({
     activeThreadId,
@@ -385,7 +360,12 @@ export function useAiConversationModeHost(
     handleCreateThread,
     handleSelectThread,
     handleSubmit,
-    hostFeedback,
+    hostFeedback: pending?.retrySave ? {
+      kind: 'warning',
+      message: t('Chat.nimiSaveUnconfirmed'),
+      actionLabel: t('Chat.nimiConfirmSave'),
+      onAction: pending.retrySave,
+    } : pending?.phase === 'saving' ? { kind: 'info', message: t('Chat.nimiSavingReply') } : hostFeedback,
     isBundleLoading,
     messages,
     onDismissHostFeedback: () => setHostFeedback(null),
