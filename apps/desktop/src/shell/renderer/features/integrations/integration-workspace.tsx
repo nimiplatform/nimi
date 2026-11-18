@@ -72,12 +72,12 @@ export function IntegrationSidebar({
   const visible = services.filter((kind) =>
     `${serviceLabel(kind, t)} ${kind}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   );
-  const itemClass = 'desktop-sidebar__row flex w-full items-center text-left font-medium';
+  const itemClass = 'desktop-sidebar__row flex w-full items-center text-left';
   return (
     <DesktopModuleSidebar label={t('Integrations.title')} selectionKey={selected} data-testid="integrations-sidebar">
-      <div className="desktop-sidebar__header">
-        <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
-        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+      <div className="desktop-sidebar__header flex min-w-0 items-center justify-between gap-2">
+        <h1 className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
+        <p className="min-w-0 text-right text-xs leading-4 text-[var(--nimi-text-secondary)]">
           {t('Integrations.serviceCount', { count: services.length })}
         </p>
       </div>
@@ -92,7 +92,7 @@ export function IntegrationSidebar({
           }}
           placeholder={t('Integrations.searchServices')}
           aria-label={t('Integrations.searchServices')}
-          className="min-h-10"
+          className="min-w-0 flex-1"
         />
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body desktop-sidebar__items">

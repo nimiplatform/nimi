@@ -167,11 +167,11 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
     );
   };
   // Separate overview grid cells: the toolbar shares the greeting row so
-  // xl:self-baseline aligns both titles' text baselines, and only the list
-  // scrolls; below xl they stack in the page's single-column order.
+  // lg:self-baseline aligns both titles' text baselines, and only the list
+  // scrolls; below lg they stack in the page's single-column order.
   return (
     <>
-      <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-1.5 px-1 xl:col-start-2 xl:row-start-1 xl:self-baseline" data-testid="home-messages-toolbar">
+      <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-1.5 px-1 lg:col-start-2 lg:row-start-1 lg:self-baseline" data-testid="home-messages-toolbar">
         <h2 className="text-xl font-semibold tracking-tight">{t('runtimeConfig.overview.messages.title')}</h2>
         <button
           type="button"
@@ -214,8 +214,8 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           </Popover>
         </div>
       </div>
-      <aside className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-2 xl:min-h-0 xl:self-stretch" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
-        <ScrollArea className="xl:h-full" viewportClassName="bg-transparent" contentClassName="flex flex-col gap-5">
+      <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:self-stretch" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
+        <ScrollArea className="lg:h-full" viewportClassName="bg-transparent" contentClassName="flex flex-col gap-5">
           {filtered ? (
             <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
               <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>

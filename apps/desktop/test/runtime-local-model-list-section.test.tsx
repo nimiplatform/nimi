@@ -248,7 +248,10 @@ async function withHome(run: (ui: {
   function WorkspaceHarness() {
     const destination = useHomeDestination();
     const diagnostics = destination.id === 'diagnostics';
+    const modelFiles = destination.id === 'runtime' && destination.runtime?.page === 'modelLibrary'
+      && destination.runtime.section === 'downloaded';
     return <AiSettingsPage
+      modelFiles={modelFiles ? <div data-testid="model-files-test-content" /> : undefined}
       advancedDiagnostics={diagnostics ? {
         content: <div data-testid="diagnostics-test-content" />,
         onClose: () => { void store.navigation.push(homeRuntimeDestination('aiSettings')); },
@@ -260,7 +263,7 @@ async function withHome(run: (ui: {
       profileUseOwner={profileOwnerAppId ? { kind: 'app', ownerAppId: profileOwnerAppId, returnFocus: `apps:${profileOwnerAppId}` } : null}
       onOpenSetupTask={noop}
       onCloseSetupTask={() => { void store.navigation.push(homeRuntimeDestination('aiSettings')); }}
-      onOpenModelFiles={noop}
+      onOpenModelFiles={() => { void store.navigation.push(homeRuntimeDestination('modelLibrary', { section: 'downloaded' })); }}
       onOpenSavedConfigs={noop}
       onOpenModelMarket={noop}
       onOpenAdvancedDiagnostics={() => { void store.navigation.push(homeRuntimeDestination('advancedDiagnostics')); }}
@@ -497,6 +500,46 @@ test('diagnostics shares the right pane, preserves the capability rail and retur
     assert.strictEqual(ui.document.querySelector('[data-testid="ai-capability:text.generate"]'), row);
     assert.deepEqual(ui.calls.loadoutWrites, []);
   }, { diagnosticsInitiallyOpen: true });
+});
+
+test('capabilities and bottom tools keep one selection through navigation and history', async () => {
+  await withHome(async (ui) => {
+    const capability = '[data-testid="ai-capability:text.generate"]';
+    const modelFiles = '[data-testid="ai-capabilities-model-files"]';
+    const diagnostics = '[data-testid="ai-capabilities-advanced-diagnostics"]';
+    const railRow = await ui.waitFor(capability);
+    const assertSelection = (selector: string) => {
+      const active = ui.document.querySelectorAll('.desktop-module-sidebar [data-active="true"]');
+      const current = ui.document.querySelectorAll('.desktop-module-sidebar [aria-current="page"]');
+      assert.equal(active.length, 1);
+      assert.equal(current.length, 1);
+      assert.strictEqual(active[0], ui.document.querySelector(selector));
+      assert.strictEqual(current[0], active[0]);
+    };
+    await ui.click(capability);
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    assertSelection(capability);
+    await ui.click(modelFiles);
+    const files = await ui.waitFor('[data-testid="model-files-test-content"]');
+    assert.ok(ui.document.querySelector('[data-testid="ai-capabilities-detail-pane"]')?.contains(files));
+    assert.equal(ui.document.querySelector('[data-testid="ai-capability-detail:text.generate"]'), null);
+    assert.equal(ui.inventoryState().active, true, 'model files keeps the live capability rail');
+    assertSelection(modelFiles);
+    await ui.click(diagnostics);
+    await ui.waitFor('[data-testid="diagnostics-test-content"]');
+    assertSelection(diagnostics);
+    await ui.back();
+    await ui.waitFor('[data-testid="model-files-test-content"]');
+    assertSelection(modelFiles);
+    await ui.back();
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    assertSelection(capability);
+    await ui.forward();
+    await ui.waitFor('[data-testid="model-files-test-content"]');
+    assertSelection(modelFiles);
+    assert.strictEqual(ui.document.querySelector(capability), railRow);
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  });
 });
 
 test('an App profile entry opens the setup chooser with its owner instead of the capabilities overview', async () => {

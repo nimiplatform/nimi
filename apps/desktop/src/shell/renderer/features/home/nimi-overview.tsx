@@ -39,17 +39,17 @@ const HOME_APP_LIMIT = 8;
 const HOME_APP_TILE_WIDTH = 92;
 const HOME_APP_TILE_GAP = 4;
 
-/** Matches Tailwind's xl breakpoint, where the overview switches to split columns. */
-const XL_SPLIT_MEDIA_QUERY = '(min-width: 1280px)';
+/** Matches Tailwind's lg breakpoint so ordinary desktop windows retain Messages on the right. */
+const HOME_SPLIT_MEDIA_QUERY = '(min-width: 1024px)';
 
-function useXlSplitColumns(): boolean {
+function useSplitColumns(): boolean {
   return useSyncExternalStore(
     (onChange) => {
-      const media = window.matchMedia(XL_SPLIT_MEDIA_QUERY);
+      const media = window.matchMedia(HOME_SPLIT_MEDIA_QUERY);
       media.addEventListener('change', onChange);
       return () => media.removeEventListener('change', onChange);
     },
-    () => window.matchMedia(XL_SPLIT_MEDIA_QUERY).matches,
+    () => window.matchMedia(HOME_SPLIT_MEDIA_QUERY).matches,
     () => false,
   );
 }
@@ -111,7 +111,7 @@ export function NimiOverview() {
     setIntegrationIntent(intent ?? null);
     void navigation.push({ id: 'home', homeSection: 'integrations' });
   };
-  const splitColumns = useXlSplitColumns();
+  const splitColumns = useSplitColumns();
   const { ref: appsRowRef, capacity: appsRowCapacity } = useHomeRowCapacity({
     tileWidth: HOME_APP_TILE_WIDTH,
     tileGap: HOME_APP_TILE_GAP,
@@ -296,18 +296,18 @@ export function NimiOverview() {
 
   const renderOverview = (messages: HomeMessages | null) => (
     // The greeting/date header and conversation card stay above the main
-    // sections. From xl, the Messages toolbar joins the greeting row so both
+    // sections. From lg, the Messages toolbar joins the greeting row so both
     // titles share one text baseline, and the message list keeps its
     // independent right-hand scroll; narrow windows retain the single-page
     // stacking order.
-    <div className="grid items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[auto_auto_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 xl:col-start-1 xl:row-start-1 xl:self-baseline">
+    <div className="grid items-start gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 lg:col-start-1 lg:row-start-1 lg:self-baseline">
         {heading}
         <p className="shrink-0 text-[13px] text-[var(--nimi-text-secondary)]" data-testid="home-date">
           {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
         </p>
       </div>
-      <div className="min-w-0 xl:col-start-1 xl:row-start-2">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-2">
         <HomeAgentCard />
       </div>
       {messages ? (
@@ -318,9 +318,9 @@ export function NimiOverview() {
           onViewAll={() => openCenter('all')}
         />
       ) : null}
-      <div className="min-w-0 xl:col-start-1 xl:row-start-3 xl:min-h-0 xl:self-stretch">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-3 lg:min-h-0 lg:self-stretch">
         <ScrollArea
-          className="xl:h-full"
+          className="lg:h-full"
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName="flex flex-col gap-5"
         >

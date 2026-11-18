@@ -76,10 +76,13 @@ export function SettingsPanelBody() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
   return <div ref={container} className="flex min-h-0 min-w-0 flex-1 gap-3 pb-4 pr-4 pt-3" data-testid="panel:settings-body">
-    <div ref={sidebar} className={compact && view === 'detail' ? 'hidden' : 'contents'}><SidebarShell width={compact ? '100%' : width} className={`desktop-sidebar min-h-0 ${compact ? 'flex-1' : ''}`} data-testid="panel:settings-sidebar">
+    <div ref={sidebar} className={compact && view === 'detail' ? 'hidden' : 'contents'}><SidebarShell width={compact ? '100%' : width} className={`desktop-sidebar desktop-module-sidebar ${compact ? 'flex-1' : ''}`} data-testid="panel:settings-sidebar">
       <SidebarHeader className="desktop-sidebar__header" title={<h1 className="desktop-sidebar__title font-semibold">{t('Navigation.settings')}</h1>} />
-      <div className="px-3 pb-3" data-testid="settings-search"><SidebarSearch value={query} onValueChange={setQuery}
-        ariaLabel={t('Settings.search')} placeholder={t('Settings.search')} onClear={() => setQuery('')} clearLabel={t('Common.clear')} /></div>
+      <div className="desktop-sidebar__search" data-testid="settings-search">
+        <SidebarSearch className="w-full p-0" value={query} onValueChange={setQuery}
+          ariaLabel={t('Settings.search')} placeholder={t('Settings.search')}
+          onClear={() => setQuery('')} clearLabel={t('Common.clear')} />
+      </div>
       <ScrollArea className="min-h-0 flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__groups">
         {groups.map(group => <SidebarSection key={group.label} label={t(GROUP_KEYS[group.label]!)}>
           {group.items.map(item => <SidebarItem key={item.id} kind="nav-row" active={selectedId === item.id} aria-current={selectedId === item.id ? 'page' : undefined}

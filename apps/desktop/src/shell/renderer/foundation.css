@@ -7,18 +7,49 @@
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx}";
 
-/* Desktop light-scheme canvas and unified chrome backdrop (#f0f7fd); inner
-   cards and panels keep their white-tier surface tokens. Home dashboard
-   modules keep only a faint ambient lift so shadows do not stack into gray. */
+/* Desktop light-scheme Cool Neutral palette:
+   - Outer shell / canvas backdrop: #F1F6FB
+   - Middle sidebar surface: #FCFDFE with #EDF1F5 border
+   - Right module workspace: #FFFFFF with #EDF1F5 border
+   - Inner cards: #FFFFFF with #E3EBF4 border
+   - Sidebar active / hover: #E5F0FB / #EEF5FB
+   - Primary / secondary text: #1F2937 / #64748B
+   - Primary action: #1A73E8 */
+:root[data-nimi-scheme="light"],
 [data-nimi-scheme="light"] {
-  --nimi-app-background: #f0f7fd;
-  --nimi-surface-canvas: #f0f7fd;
-  --nimi-ambient-mesh-base-start: #f0f7fd;
-  --nimi-ambient-mesh-base-end: #f0f7fd;
+  --nimi-app-background: #f1f6fb;
+  --nimi-surface-canvas: #f1f6fb;
+  --nimi-surface-panel: #f7fafd;
+  --nimi-surface-card: #ffffff;
+  --nimi-surface-card-operational-solid-elevated: #ffffff;
+  --nimi-sidebar-canvas: #fcfdfe;
+  --nimi-sidebar-border: #edf1f5;
+  --nimi-sidebar-item-active: #e5f0fb;
+  --nimi-sidebar-item-hover: #eef5fb;
+  --nimi-sidebar-item-default: #64748b;
+  --nimi-sidebar-search: #ffffff;
+  --nimi-surface-active: #e5f0fb;
+  --nimi-action-ghost-hover: #eef5fb;
+  --nimi-action-primary-bg: #1a73e8;
+  --nimi-action-primary-bg-hover: #1557b0;
+  --nimi-action-primary-text: #ffffff;
+  --nimi-field-bg: #ffffff;
+  --nimi-field-border: #e3ebf4;
+  --nimi-field-text: #1f2937;
+  --nimi-field-placeholder: #64748b;
+  --nimi-field-focus: #1a73e8;
+  --nimi-focus-ring-color: #1a73e8;
+  --nimi-border-subtle: #e3ebf4;
+  --nimi-border-strong: #d0dceb;
+  --nimi-text-primary: #1f2937;
+  --nimi-text-secondary: #64748b;
+  --nimi-ambient-mesh-base-start: #f1f6fb;
+  --nimi-ambient-mesh-base-end: #f1f6fb;
   --nimi-ambient-mesh-color-1: transparent;
   --nimi-ambient-mesh-color-2: transparent;
   --nimi-ambient-mesh-color-3: transparent;
   --nimi-ambient-mesh-color-4: transparent;
+  --nimi-elevation-base: 0 1px 2px rgba(15,23,42,0.03);
   --nimi-home-card-elevation: 0 2px 12px rgba(15,23,42,0.04);
 }
 
@@ -31,9 +62,26 @@
   border-bottom-color: transparent;
 }
 
-/* Let primary right-hand module workspaces reveal the #f0f7fd desktop canvas
-   while keeping sidebars, floating sheets, and inner cards in the white tier. */
-:root[data-nimi-scheme="light"] .nimi-ui-module--desktop :is(.desktop-module-panel[data-nimi-tone="panel"], main[data-nimi-tone="panel"]) {
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop .desktop-module-sidebar :is(.desktop-sidebar__row, .desktop-sidebar__row-surface)[data-active="true"] {
+  box-shadow: none;
+}
+
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop .desktop-sidebar.nimi-sidebar-shell {
+  border-color: var(--nimi-sidebar-border);
+}
+
+/* White workspace surface; adjoining module sidebars share its outer outline. */
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop :is(.desktop-module-workspace > .desktop-module-panel[data-nimi-tone="panel"], main[data-nimi-tone="panel"]) {
+  --desktop-workspace-bg: var(--nimi-surface-card);
+  background: var(--nimi-surface-card) !important;
+  border-color: var(--nimi-sidebar-border) !important;
+  border-radius: var(--nimi-radius-md);
+  box-shadow: none;
+  backdrop-filter: none !important;
+}
+
+/* Settings keeps its existing transparent right canvas hierarchy. */
+:root[data-nimi-scheme="light"] .nimi-ui-module--desktop [data-testid="panel:settings-body"] > .desktop-module-panel[data-nimi-tone="panel"] {
   --desktop-workspace-bg: var(--nimi-surface-canvas);
   background: transparent !important;
   border-color: transparent !important;

@@ -226,7 +226,7 @@ export function AppsPanel({
         navigationEntryKey={navigationEntryKey}
         onCardAction={handleCardAction}
         onBack={() => {
-          void navigation.back();
+          void navigation.push({ id: 'apps' });
         }}
         onImportLocal={() => void localImport.choose()}
         onOpenDeveloperMode={() => {

@@ -2,7 +2,7 @@ import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../ap
 import { Button, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
-import { CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
+import { CircleDashed, FolderOpen, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -35,6 +35,7 @@ import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
 export type AiSettingsPageProps = {
   readonly advancedDiagnostics?: { readonly content: ReactNode; readonly onClose: () => void };
+  readonly modelFiles?: ReactNode;
   readonly runtimeWritesDisabled: boolean;
   readonly focusedTaskId: string | null;
   readonly actionFocus: RuntimeConfigActionFocus | null;
@@ -87,8 +88,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
 
   const destination = useHomeDestination();
   const position = destination.runtime;
+  const modelFilesActive = props.modelFiles != null;
   const inventoryEnabled = destination.id === 'diagnostics'
-    || destination.id === 'runtime' && (position?.page ?? 'aiSettings') === 'aiSettings';
+    || destination.id === 'runtime' && ((position?.page ?? 'aiSettings') === 'aiSettings' || modelFilesActive);
   const store = getRuntimeSetupTaskStore();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
@@ -103,17 +105,20 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const focusedTask = props.focusedTaskId ? store.getTask(props.focusedTaskId) : undefined;
   const focusedReturnTarget = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
   const cloudEntryTask = focusedReturnTarget?.kind === 'destination' && focusedReturnTarget.destination.id === 'cloud';
-  const visibleCapability = props.advancedDiagnostics ? null : focusedTask?.capabilityContract ?? capability;
+  const activeNavigationItem = props.advancedDiagnostics ? 'advancedDiagnostics'
+    : modelFilesActive ? 'modelLibrary' : focusedTask?.capabilityContract ?? capability;
+  const toolActive = activeNavigationItem === 'advancedDiagnostics' || activeNavigationItem === 'modelLibrary';
+  const visibleCapability = toolActive ? null : activeNavigationItem;
   const inventory = useCapabilityInventory({
     enabled: inventoryEnabled,
-    includePreparation: inventoryEnabled && !visibleCapability && !props.advancedDiagnostics,
+    includePreparation: inventoryEnabled && !visibleCapability && !toolActive,
   });
-  const library = useRuntimeModelLibrary(inventoryEnabled && !props.advancedDiagnostics);
+  const library = useRuntimeModelLibrary(inventoryEnabled && !toolActive);
   const contentViewportRef = useRef<HTMLDivElement>(null);
   const diagnosticsActive = !!props.advancedDiagnostics;
   useEffect(() => {
     resetRuntimePageViewport(contentViewportRef.current);
-  }, [diagnosticsActive, visibleCapability, props.focusedTaskId, modelConfiguration?.loadoutId, position?.profileViewId, position?.profileTaskDetailId]);
+  }, [diagnosticsActive, modelFilesActive, visibleCapability, props.focusedTaskId, modelConfiguration?.loadoutId, position?.profileViewId, position?.profileTaskDetailId]);
   const appsColumn = useCapabilityAppsColumn(visibleCapability);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
   useEffect(() => {
@@ -389,15 +394,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         <button
           type="button"
           onClick={onHome}
-          className="desktop-sidebar__header text-left"
+          className="desktop-sidebar__header flex min-w-0 items-center justify-between gap-2 text-left"
           data-testid="ai-capabilities-home"
         >
-          <span className="block space-y-1">
-            <span className="desktop-sidebar__title block font-semibold text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.capabilities.title')}
-            </span>
-            <span className="block text-xs text-[var(--nimi-text-secondary)]">{railSummary}</span>
+          <span className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.capabilities.title')}
           </span>
+          <span className="min-w-0 text-right text-xs leading-4 text-[var(--nimi-text-secondary)]">{railSummary}</span>
         </button>
         <ScrollArea
           className="min-h-0 flex-1"
@@ -405,81 +408,94 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           contentClassName="desktop-sidebar__body desktop-sidebar__groups min-w-0"
         >
           {groupCapabilities(railEntries.map((entry) => entry.id)).map(({ group, items }) => (
-            <div key={group} className="desktop-sidebar__items">
-              <p className="desktop-sidebar__section-label font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
+            <div key={group}>
+              <p className="desktop-sidebar__section-label">
                 {t(`runtimeConfig.capabilities.group.${group}`)}
               </p>
-              {items.map((id) => {
-                const entry = railEntries.find((item) => item.id === id)!;
-                const Icon = capabilityIcon(id);
-                const state = entry.state.state;
-                const preparingReplacement = entry.state.replacement && (
-                  entry.state.task?.status === 'preparing' || entry.state.task?.status === 'committing'
-                );
-                const stateText = state === 'ready' && entry.model ? entry.model : railStateLabel(entry);
-                const stateSuffix =
-                  entry.state.replacement && entry.state.task
-                    ? ` · ${t('runtimeConfig.quickStart.otherConfiguration')} · ${t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}`
+              <div className="desktop-sidebar__items">
+                {items.map((id) => {
+                  const entry = railEntries.find((item) => item.id === id)!;
+                  const Icon = capabilityIcon(id);
+                  const state = entry.state.state;
+                  const preparingReplacement = entry.state.replacement && (
+                    entry.state.task?.status === 'preparing' || entry.state.task?.status === 'committing'
+                  );
+                  const stateText = state === 'ready' && entry.model ? entry.model : railStateLabel(entry);
+                  const stateSuffix =
+                    entry.state.replacement && entry.state.task
+                      ? ` · ${t('runtimeConfig.quickStart.otherConfiguration')} · ${t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}`
+                      : '';
+                  const reason = state === 'attention' && entry.state.reason
+                    ? ` · ${t(`runtimeConfig.capabilities.attentionReason.${entry.state.reason}`)}`
                     : '';
-                const reason = state === 'attention' && entry.state.reason
-                  ? ` · ${t(`runtimeConfig.capabilities.attentionReason.${entry.state.reason}`)}`
-                  : '';
-                const markLabel = `${state === 'ready' ? railStateLabel(entry) : stateText}${reason}${stateSuffix}`;
-                const hasStatusDetails = state !== 'unset' || entry.downloaded;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-current={visibleCapability === id ? 'page' : undefined}
-                    title={hasStatusDetails ? undefined : markLabel}
-                    className="desktop-sidebar__row flex w-full items-center text-left"
-                    data-active={visibleCapability === id}
-                    onClick={() => openCapability(id)}
-                    data-testid={`ai-capability:${id}`}
-                  >
-                    <Icon
-                      size={16}
-                      className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0 flex-1 space-y-1">
-                      <span className="desktop-sidebar__label block font-medium text-[var(--nimi-text-primary)]">
-                        {label(id)}
-                      </span>
-                      {hasStatusDetails ? (
-                        <span className={`flex min-h-4 min-w-0 items-center gap-1.5 text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}>
-                          <RailStatusMark state={state} label={markLabel} preparingReplacement={preparingReplacement} />
-                          <span className="min-w-0 truncate" title={state === 'ready' ? `${stateText} · ${markLabel}` : markLabel}>
-                            {stateText}
-                          </span>
+                  const markLabel = `${state === 'ready' ? railStateLabel(entry) : stateText}${reason}${stateSuffix}`;
+                  const hasStatusDetails = state !== 'unset' || entry.downloaded;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={activeNavigationItem === id ? 'page' : undefined}
+                      title={hasStatusDetails ? undefined : markLabel}
+                      className="desktop-sidebar__row flex w-full items-center text-left"
+                      data-active={activeNavigationItem === id}
+                      onClick={() => openCapability(id)}
+                      data-testid={`ai-capability:${id}`}
+                    >
+                      <Icon
+                        size={16}
+                        className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
+                        aria-hidden="true"
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="desktop-sidebar__label block text-[var(--nimi-text-primary)]">
+                          {label(id)}
                         </span>
-                      ) : (
-                        <span className="sr-only">{markLabel}</span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
+                        {hasStatusDetails ? (
+                          <span className={`flex min-h-4 min-w-0 items-center gap-1.5 text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}>
+                            <RailStatusMark state={state} label={markLabel} preparingReplacement={preparingReplacement} />
+                            <span className="min-w-0 truncate" title={state === 'ready' ? `${stateText} · ${markLabel}` : markLabel}>
+                              {stateText}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="sr-only">{markLabel}</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ))}
           {inventory.isPending ? <p className="px-3 text-sm">{t('Common.loading')}</p> : null}
         </ScrollArea>
         <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
-          <Button tone="ghost" size="sm" className="desktop-sidebar__row justify-start text-left" onClick={props.onOpenModelFiles}>
-            {t('runtimeConfig.capabilities.manageFiles')}
-          </Button>
-          <Button
-            tone="ghost"
-            size="sm"
-            className="desktop-sidebar__row justify-start text-left"
-            data-active={Boolean(props.advancedDiagnostics)}
-            aria-current={props.advancedDiagnostics ? 'page' : undefined}
+          <button
+            type="button"
+            className="desktop-sidebar__row flex w-full min-w-0 items-center text-left"
+            data-active={activeNavigationItem === 'modelLibrary'}
+            aria-current={activeNavigationItem === 'modelLibrary' ? 'page' : undefined}
+            data-testid="ai-capabilities-model-files"
+            onClick={props.onOpenModelFiles}
+          >
+            <FolderOpen size={16} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" />
+            <span className="desktop-sidebar__label min-w-0 flex-1 truncate text-[var(--nimi-text-primary)]">{t('runtimeConfig.capabilities.manageFiles')}</span>
+          </button>
+          <button
+            type="button"
+            className="desktop-sidebar__row flex w-full min-w-0 items-center text-left"
+            data-active={activeNavigationItem === 'advancedDiagnostics'}
+            aria-current={activeNavigationItem === 'advancedDiagnostics' ? 'page' : undefined}
             data-testid="ai-capabilities-advanced-diagnostics"
             onClick={props.onOpenAdvancedDiagnostics}
           >
-            <SlidersHorizontal size={14} className="shrink-0" />
-            {t('runtimeConfig.nav.advancedDiagnostics')}
-          </Button>
+            <SlidersHorizontal
+              size={16}
+              className="shrink-0 text-[var(--nimi-text-muted)]"
+              aria-hidden="true"
+            />
+            <span className="desktop-sidebar__label min-w-0 flex-1 truncate text-[var(--nimi-text-primary)]">{t('runtimeConfig.nav.advancedDiagnostics')}</span>
+          </button>
         </div>
       </DesktopModuleSidebar> : null}
       <Surface
@@ -490,7 +506,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         padding="none"
         className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       >
-        <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-module-content">
+        {modelFilesActive ? props.modelFiles : <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-module-content">
           {props.advancedDiagnostics ? (
             props.advancedDiagnostics.content
           ) : (
@@ -670,7 +686,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               )}
             </>
           )}
-        </ScrollArea>
+        </ScrollArea>}
       </Surface>
     </div>
   );

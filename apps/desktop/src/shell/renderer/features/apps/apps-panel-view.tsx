@@ -89,7 +89,7 @@ import {
 } from './apps-update-preferences.js';
 import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AppsDownloadsContextValue } from './apps-downloads-context.js';
-import { AppsDownloadsView, isAppDownloadJob } from './apps-downloads-view.js';
+import { AppsDownloadsView, failedDownloadNeedsAttention, isAppDownloadJob } from './apps-downloads-view.js';
 import { packageJobIsTerminal } from './apps-downloads-observer.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
@@ -259,7 +259,7 @@ export function AppsPanelView({
   }));
 
   return (
-    <div className={`desktop-module-workspace pb-3 pr-3 pt-2${downloadsOnly ? ' pl-3' : ''}`}>
+    <div className={`desktop-module-workspace${downloadsOnly ? ' px-3 pb-3 pt-2' : ''}`}>
       {!downloadsOnly ? (
         <AppsRail
         projection={projection}
@@ -399,11 +399,11 @@ function AppsRail({
   );
   return (
     <DesktopModuleSidebar ref={sidebarRef} searchInputRef={searchInputRef} label={t('Navigation.apps')} selectionKey={selectedEntryKey} data-testid="apps-sidebar">
-      <div className="desktop-sidebar__header">
-        <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
+      <div className="desktop-sidebar__header flex min-w-0 items-center justify-between gap-2">
+        <h1 className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">
           {t('Navigation.apps', { defaultValue: 'Apps' })}
         </h1>
-        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+        <p className="min-w-0 text-right text-xs leading-4 text-[var(--nimi-text-secondary)]">
           {projection?.status === 'loaded'
             ? t('Apps.inventoryCount', { count: groupsCount })
             : t('Apps.sidebar.subtitle')}
@@ -423,7 +423,7 @@ function AppsRail({
           clearButtonTestId="apps-search-clear"
           placeholder={t('Apps.sidebar.searchPlaceholder')}
           aria-label={t('Apps.sidebar.searchLabel')}
-          className="min-h-10 min-w-0 flex-1"
+          className="min-w-0 flex-1"
         />
         <Popover>
           <PopoverTrigger asChild>
@@ -473,7 +473,7 @@ function AppsRail({
           <div className="desktop-sidebar__groups" data-app-rail-list>
             {runningGroups.length > 0 ? (
               <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="desktop-sidebar__items">
-                <h2 className="desktop-sidebar__section-label font-semibold text-[color:var(--nimi-text-muted)]">
+                <h2 className="desktop-sidebar__section-label">
                   {t('Apps.rail.runningSection')}
                 </h2>
                 <div className="desktop-sidebar__items">
@@ -501,7 +501,9 @@ function RailDownloadsEntry({
   readonly onLeaveDownloads: () => void;
 }): ReactElement {
   const { t } = useTranslation();
-  const activeCount = downloads.jobs.filter((job) => isAppDownloadJob(job) && !packageJobIsTerminal(job)).length;
+  const appJobs = downloads.jobs.filter(isAppDownloadJob);
+  const activeCount = appJobs.filter((job) => !packageJobIsTerminal(job)).length;
+  const failedCount = appJobs.filter((job) => failedDownloadNeedsAttention(job, appJobs)).length;
   const active = downloads.view === 'downloads';
   return (
     <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
@@ -517,14 +519,27 @@ function RailDownloadsEntry({
             downloads.openDownloads();
           }
         }}
-        className="desktop-sidebar__row flex w-full min-w-0 items-center text-left font-medium text-[var(--nimi-text-secondary)] transition-colors"
+        className="desktop-sidebar__row flex w-full min-w-0 items-center text-left"
         data-active={active}
       >
-        <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 flex-1">{t('Apps.downloads.title')}</span>
+        <Download
+          className={
+            active || activeCount > 0
+              ? 'text-[var(--nimi-action-primary-bg)]'
+              : failedCount > 0
+                ? 'text-[var(--nimi-status-danger)]'
+                : undefined
+          }
+          aria-hidden="true"
+        />
+        <span className="min-w-0 flex-1 truncate">{t('Apps.downloads.title')}</span>
         {activeCount > 0 ? (
-          <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[11px] font-medium leading-3 tabular-nums text-[var(--nimi-action-primary-bg)]">
+          <span className="shrink-0 text-xs font-medium tabular-nums text-[var(--nimi-action-primary-bg)]">
             {activeCount}
+          </span>
+        ) : failedCount > 0 ? (
+          <span className="shrink-0 text-xs font-medium tabular-nums text-[var(--nimi-status-danger)]">
+            {t('Apps.downloads.phase.failed')} {failedCount}
           </span>
         ) : null}
       </button>
@@ -656,10 +671,10 @@ const RailGroupRow = memo(function RailGroupRow({
               className={`desktop-sidebar__icon ${notInstalled ? 'opacity-60' : ''}`}
             />
             <span className={`desktop-sidebar__label min-w-0 flex-1 ${notInstalled
-              ? 'font-medium text-[color:var(--nimi-text-muted)]'
+              ? 'text-[color:var(--nimi-text-muted)]'
               : visual === 'running'
                 ? 'font-semibold text-[color:var(--nimi-text-primary)]'
-                : 'font-medium text-[color:var(--nimi-text-primary)]'
+                : 'text-[color:var(--nimi-text-primary)]'
             }`}>
               {group.displayName}
             </span>

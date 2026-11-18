@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAssetDescriptor, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
-import { capabilityModelIdentity, configurationVariantLabel, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
+import { capabilityIcon, capabilityModelIdentity, configurationVariantLabel, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
@@ -11,6 +12,13 @@ const recipe = (contents: string[]) => ({
   slots: contents.map(content => ({ presence: 'required', recommendedContentIds: [content], recommendedVariantIds: [`variant-${content}`] })),
 }) as unknown as NimiLoadoutRecipe;
 const catalog = (contents: string[]) => contents.map(content => ({ contentId: content, templateId: `variant-${content}`, totalSizeBytes: 100 })) as NimiRuntimeLocalVerifiedAssetDescriptor[];
+
+test('every catalog capability has a distinct icon in Home', () => {
+  const fallback = capabilityIcon('unknown');
+  const icons = CANONICAL_CAPABILITY_IDS.map(capabilityIcon);
+  assert.ok(!icons.includes(fallback), 'a catalog capability uses the generic icon');
+  assert.equal(new Set(icons).size, CANONICAL_CAPABILITY_IDS.length);
+});
 
 test('model preparation distinguishes cached files from download cost and counts shared content once', () => {
   const result = recipeResourceSummary(recipe(['a', 'b', 'b']), catalog(['a', 'b']), [{ contentId: 'a', contentVerified: true }] as NimiRuntimeModelAssetRecord[]);

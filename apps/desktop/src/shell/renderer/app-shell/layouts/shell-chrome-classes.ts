@@ -6,9 +6,9 @@ export const SHELL_CHROME_OVERLAY_CLASS =
 
 export const SHELL_CHROME_INTERACTIVE_RADIUS_CLASS = 'rounded-lg';
 
-export const SHELL_CHROME_RAIL_WIDTH_CLASS = 'w-[52px]';
+export const SHELL_CHROME_RAIL_WIDTH_CLASS = 'w-11';
 
-export const SHELL_CHROME_RAIL_ITEM_SIZE_CLASS = 'h-9 w-9';
+export const SHELL_CHROME_RAIL_ITEM_SIZE_CLASS = 'h-8 w-8';
 
 export const SHELL_CHROME_RAIL_ICON_SIZE = 18;
 

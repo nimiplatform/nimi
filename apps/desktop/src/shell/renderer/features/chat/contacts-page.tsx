@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, EmptyState, InlineAlert } from '@nimiplatform/kit/ui';
-import { UsersRound } from 'lucide-react';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import nimiGrayLogo from '../../assets/logo-gray.png';
 import { useAppStoreApi, useHomeDestination, useHomeEntryKey, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { captureHomeNavigationScope } from '../../app-shell/providers/home-navigation.js';
@@ -25,6 +26,91 @@ import { useContactsScope } from './contacts-scope.js';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 
 const EASE_STAGE = [0.05, 0.7, 0.1, 1] as const;
+
+function NimiLogoWatermark() {
+  return (
+    <img
+      src={nimiGrayLogo}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className="pointer-events-none h-24 w-24 select-none object-contain opacity-20 contrast-75"
+    />
+  );
+}
+
+function ContactsEmptyStage({
+  side,
+  contactsOpen,
+  canShowRail,
+  hasVisibleConversations,
+  suppressZeroPrompt,
+  onOpenContacts,
+}: {
+  side: 'human' | 'companion';
+  contactsOpen: boolean;
+  canShowRail: boolean;
+  hasVisibleConversations: boolean;
+  suppressZeroPrompt: boolean;
+  onOpenContacts: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (contactsOpen) {
+    return (
+      <div
+        data-testid="contacts-empty-stage"
+        data-empty-stage-mode="contacts-open"
+        className="flex min-h-0 flex-1 select-none flex-col items-center justify-center gap-2.5 p-6 text-center"
+      >
+        <NimiLogoWatermark />
+        <p className="max-w-xs text-xs leading-5 text-[var(--nimi-text-muted)] opacity-75">
+          {t('Chat.contactsSelectPromptHint')}
+        </p>
+      </div>
+    );
+  }
+
+  if (!canShowRail || hasVisibleConversations || suppressZeroPrompt) {
+    const showConversationPill = canShowRail && hasVisibleConversations;
+    return (
+      <div
+        data-testid="contacts-empty-stage"
+        data-empty-stage-mode={showConversationPill ? 'has-conversations' : 'quiet'}
+        className="flex min-h-0 flex-1 select-none flex-col items-center justify-center gap-3 p-6 text-center"
+      >
+        <NimiLogoWatermark />
+        {showConversationPill ? (
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_8%,transparent)] px-3.5 py-1 text-xs leading-5 text-[var(--nimi-text-muted)]">
+            {t(side === 'companion' ? 'Chat.contactsPickRightPartnerHint' : 'Chat.contactsPickRightAvatarHint')}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-testid="contacts-empty-stage"
+      data-empty-stage-mode="zero-conversations"
+      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+    >
+      <NimiLogoWatermark />
+      <p className="max-w-xs text-sm leading-6 text-[var(--nimi-text-muted)]">
+        {t(side === 'companion' ? 'Chat.contactsEmptyPartnerConversationsHint' : 'Chat.contactsEmptyConversationsHint')}
+      </p>
+      <Button
+        size="sm"
+        tone="secondary"
+        className="rounded-full px-4 font-medium"
+        trailingIcon={<ArrowRight size={14} aria-hidden="true" />}
+        onClick={onOpenContacts}
+      >
+        {t('Chat.contactsOpenContactsAction')}
+      </Button>
+    </div>
+  );
+}
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
 export function ContactsPage() {
@@ -81,10 +167,18 @@ export function ContactsPage() {
   });
 
   const humanTargets = useMemo(() => targets.filter(target => target.source === 'human'), [targets]);
+  const humanSessionTargets = useMemo(
+    () => humanTargets.filter(target => Boolean(target.canonicalSessionId)),
+    [humanTargets],
+  );
   const partnerTargets = useMemo(
     () => toRecentAgentTargets(references.data ?? [], appActivity.recent.records),
     [references.data, appActivity.recent.records],
   );
+  const visibleRailTargets = side === 'companion' ? partnerTargets : humanSessionTargets;
+  const loadingSideTargets = auth.status === 'refresh-pending'
+    || (side === 'companion' ? references.isLoading : humans.isLoading);
+  const sideTargetsFailed = side === 'companion' ? references.isError : humans.isError;
   const unreadByUserId = useMemo(() => {
     const map = new Map<string, number>();
     for (const target of humanTargets) {
@@ -184,20 +278,21 @@ export function ContactsPage() {
               }}
               onSetupAction={() => {}}
             />
-          ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-              <EmptyState
-                className="max-w-xs"
-                icon={<UsersRound size={20} aria-hidden="true" />}
-                title={t(contactsOpen ? 'Chat.contactsSelectPromptTitle' : 'Chat.contactsChooseConversation')}
-                description={t(contactsOpen ? 'Chat.contactsSelectPromptHint' : 'Chat.contactsChooseConversationHint')}
-                action={!contactsOpen && canShowRail ? (
-                  <Button size="sm" onClick={() => openContactsDrawer(side === 'companion' ? 'partners' : 'friends')}>
-                    {t('Relationship.contacts.title')}
-                  </Button>
-                ) : undefined}
-              />
+          ) : canShowRail && !contactsOpen && side === 'human' && humans.isError && humanSessionTargets.length === 0 ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+              <InlineAlert tone="warning" action={<Button size="sm" onClick={() => void humans.refetch()}>{t('Common.retry')}</Button>}>
+                {t('Chat.contactsConversationsUnavailable')}
+              </InlineAlert>
             </div>
+          ) : (
+            <ContactsEmptyStage
+              side={side}
+              contactsOpen={contactsOpen}
+              canShowRail={canShowRail}
+              hasVisibleConversations={visibleRailTargets.length > 0}
+              suppressZeroPrompt={loadingSideTargets || sideTargetsFailed}
+              onOpenContacts={() => openContactsDrawer(side === 'companion' ? 'partners' : 'friends')}
+            />
           )}
         </motion.div>
 
@@ -214,7 +309,7 @@ export function ContactsPage() {
 
       {canShowRail ? (
         <ContactsAvatarRail
-          targets={[...humanTargets.filter(target => target.canonicalSessionId), ...partnerTargets]}
+          targets={[...humanSessionTargets, ...partnerTargets]}
           selectedId={selectedId}
           side={side}
           contactsOpen={contactsOpen}

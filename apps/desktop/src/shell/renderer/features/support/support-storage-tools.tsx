@@ -66,18 +66,20 @@ export function SupportAppHostCacheCard() {
       title={t('Support.repairAppCacheTitle')}
       description={t('Support.repairAppCacheDescription')}
       testId="support-repair-app-cache"
+      action={
+        <Button
+          tone="secondary"
+          size="sm"
+          data-testid="support-repair-app-cache-plan-button"
+          disabled={busy}
+          onClick={() => { void handlePlan(); }}
+        >
+          {t('Support.repairAppCachePlanButton')}
+        </Button>
+      }
     >
-      <button
-        type="button"
-        data-testid="support-repair-app-cache-plan-button"
-        disabled={busy}
-        onClick={() => { void handlePlan(); }}
-        className="self-start rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
-      >
-        {t('Support.repairAppCachePlanButton')}
-      </button>
       {plan ? (
-        <div data-testid="support-repair-app-cache-plan" className="mt-4">
+        <div data-testid="support-repair-app-cache-plan">
           <div className="divide-y divide-[var(--nimi-border-subtle)]">
             <SupportInfoRow label={t('Support.repairAppCacheProfiles')} value={String(plan.profileCount)} />
             <SupportInfoRow label={t('Support.repairAppCacheSize')} value={formatBytes(plan.totalBytes)} />
@@ -137,6 +139,7 @@ function cleanupOwnerBlockedCopyKey(directory: string): string {
 export function SupportDataRootCleanupCard(props: {
   dirs: DesktopStorageDirs | null;
   dirsError: string | null;
+  embedded?: boolean;
 }) {
   const { t } = useTranslation();
   const repair = useDesktopRendererCommands().supportRepair;
@@ -205,12 +208,8 @@ export function SupportDataRootCleanupCard(props: {
     }
   }, [plan, confirmationInput, repair, t]);
 
-  return (
-    <SupportCard
-      title={t('Support.repairCleanupTitle')}
-      description={t('Support.repairCleanupDescription')}
-      testId="support-repair-cleanup"
-    >
+  const body = (
+    <>
       {props.dirsError ? (
         <p className="mb-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
           {props.dirsError}
@@ -234,15 +233,16 @@ export function SupportDataRootCleanupCard(props: {
           data-testid="support-repair-cleanup-directory-input"
           className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]"
         />
-        <button
-          type="button"
+        <Button
+          tone="secondary"
+          size="sm"
           data-testid="support-repair-cleanup-plan-button"
           disabled={busy}
           onClick={() => { void handlePlan(); }}
-          className="self-start rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
+          className="self-start"
         >
           {t('Support.repairCleanupPlanButton')}
-        </button>
+        </Button>
       </div>
 
       {plan ? (
@@ -315,6 +315,20 @@ export function SupportDataRootCleanupCard(props: {
           {feedback.message}
         </p>
       ) : null}
+    </>
+  );
+
+  if (props.embedded) {
+    return <div data-testid="support-repair-cleanup">{body}</div>;
+  }
+
+  return (
+    <SupportCard
+      title={t('Support.repairCleanupTitle')}
+      description={t('Support.repairCleanupDescription')}
+      testId="support-repair-cleanup"
+    >
+      {body}
     </SupportCard>
   );
 }

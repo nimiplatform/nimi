@@ -103,7 +103,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const [pendingAccountAction, setPendingAccountAction] = useState<'logout' | 'switch-account' | null>(null);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     bottom: 16,
-    left: 54,
+    left: 48,
   });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -148,12 +148,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
     if (!triggerRect) {
-      setSettingsMenuPosition({ bottom: 16, left: 54 });
+      setSettingsMenuPosition({ bottom: 16, left: 48 });
       return;
     }
     const viewportHeight = bindings.app.projection.viewportHeight();
     setSettingsMenuPosition({
-      bottom: Math.max(12, Math.round(viewportHeight - triggerRect.bottom)),
+      bottom: Math.max(8, Math.round(viewportHeight - triggerRect.bottom)),
       left: Math.max(12, Math.round(triggerRect.right + 10)),
     });
   }, [bindings]);
@@ -229,7 +229,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <img
       src={logoImage}
       alt="Nimi"
-      className="relative z-10 h-6 w-6 shrink-0 object-contain mix-blend-multiply"
+      className="relative z-10 h-5.5 w-5.5 shrink-0 object-contain mix-blend-multiply"
     />
   );
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
@@ -286,16 +286,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     >
       <ExecutionNotificationPreferenceSync />
       <div
-        className={`relative z-10 flex min-h-0 flex-1 pb-3 pr-3 ${
-          showPrimaryRail ? 'gap-0 pl-0 pt-2' : 'gap-3 pl-3 pt-3'
+        className={`relative z-10 flex min-h-0 flex-1 pr-2 ${
+          showPrimaryRail ? 'gap-0 pl-0' : 'gap-3 py-2 pl-2.5'
         }`}
       >
         {!showPrimaryRail ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
-            className={`flex h-full shrink-0 flex-col ${sidebarWidthClass}`}
+            className={`flex h-full shrink-0 flex-col pb-3 pt-2.5 ${sidebarWidthClass}`}
           >
-            <div className="flex shrink-0 items-center justify-center pb-5">
+            <div className="flex shrink-0 items-center justify-center pb-1">
               <Tooltip
                 content={t('Navigation.home', { defaultValue: 'Home' })}
                 placement="right"
@@ -325,8 +325,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </Tooltip>
             </div>
             <nav className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="min-h-0 flex-1" viewportClassName="py-1">
-                <div className="flex flex-col gap-1.5">
+              <ScrollArea className="min-h-0 flex-1" viewportClassName="py-0">
+                <div className="flex flex-col gap-1">
                   {primaryCoreNavItems.map((item) => (
                     <NavLink
                       key={item.id}
@@ -357,7 +357,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </div>
               </ScrollArea>
             </nav>
-            <div className="flex shrink-0 flex-col items-center gap-1.5 pt-1">
+            <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
               <ProductUpdateNotice />
               <GlobalDownloadsNavigation selected={props.activeTab === 'downloads'} onOpen={() => props.onNav('downloads')} />
               <Tooltip
@@ -424,7 +424,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           </aside>
         )}
 
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={`relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden${
+            showPrimaryRail ? ' pb-2 pt-1' : ''
+          }`}
+        >
           <OfflineShellStrip />
           <NimiToaster />
 

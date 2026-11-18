@@ -86,11 +86,11 @@ export function CloudConnectorListPanel(props: {
   };
   return (
     <DesktopModuleSidebar label={t('runtimeConfig.nav.cloudServices')} selectionKey={props.selectedConnectorId}>
-      <div className="desktop-sidebar__header">
+      <div className="desktop-sidebar__header flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <h2 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.nav.cloudServices')}
         </h2>
-        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.yourConnections', { count: connectors.length })}</p>
+        <p className="text-xs leading-4 text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.yourConnections', { count: connectors.length })}</p>
       </div>
       <div className="desktop-sidebar__search flex flex-wrap items-center">
         <SearchField
@@ -100,7 +100,7 @@ export function CloudConnectorListPanel(props: {
           clearLabel={t('Common.clear')}
           aria-label={t('runtimeConfig.cloudWorkspace.searchConnections')}
           placeholder={t('runtimeConfig.cloudWorkspace.searchConnections')}
-          className="min-h-10 min-w-0 flex-1"
+          className="min-w-0 flex-1"
         />
         <Popover>
           <PopoverTrigger asChild>
@@ -125,11 +125,11 @@ export function CloudConnectorListPanel(props: {
             />
           </PopoverContent>
         </Popover>
-        {filter === 'all' && !query.trim() && uncheckedCount > 0 ? <p className="basis-full px-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedCount })}</p> : null}
-        {selectedHidden ? <p className="basis-full text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.selectedHidden', { name: selectedConnector.label })} <button className="underline" onClick={() => { setQuery(''); setFilter('all'); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</button></p> : null}
+        {filter === 'all' && !query.trim() && uncheckedCount > 0 ? <p className="basis-full px-2 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedCount })}</p> : null}
+        {selectedHidden ? <p className="basis-full px-2 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.selectedHidden', { name: selectedConnector.label })} <button className="underline" onClick={() => { setQuery(''); setFilter('all'); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</button></p> : null}
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body min-w-0">
-        {connectors.length > 0 && !visibleConnectors.length ? <p className="px-3 py-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.cloudWorkspace.noConnectionsMatch')}</p> : null}
+        {connectors.length > 0 && !visibleConnectors.length ? <p className="px-2 py-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.cloudWorkspace.noConnectionsMatch')}</p> : null}
         <div className="desktop-sidebar__items" role="list" aria-label={t('runtimeConfig.product.yourConnections', { count: connectors.length })}>
           {visibleConnectors.map((connector) => (
             <CloudConnectorRow
@@ -181,12 +181,12 @@ function CloudConnectorRow(props: {
         type="button"
         onClick={() => props.onSelectConnector(connector.id)}
         aria-current={active ? 'page' : undefined}
-        className="desktop-sidebar__control flex w-full min-w-0 items-center gap-2 rounded-lg text-left"
+        className="desktop-sidebar__control flex w-full min-w-0 items-center gap-2.5 rounded-lg text-left"
       >
         <ProviderLogoTile provider={connector.provider || connector.vendor} label={vendorLabel} size="sm" className="desktop-sidebar__icon" />
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="desktop-sidebar__label min-w-0 font-medium text-[var(--nimi-text-primary)]" title={connector.label}>{connector.label}</span>
+            <span className="desktop-sidebar__label min-w-0 text-[var(--nimi-text-primary)]" title={connector.label}>{connector.label}</span>
             <CloudConnectorScopeBadge connector={connector} t={t} />
           </span>
           {subtitle ? <span className="mt-0.5 block truncate text-xs text-[var(--nimi-text-muted)]">{subtitle}</span> : null}

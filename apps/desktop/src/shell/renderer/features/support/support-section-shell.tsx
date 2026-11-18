@@ -9,7 +9,12 @@
 
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import {
+  NimiText,
+  SettingsPageShell,
+  Surface,
+  cn,
+} from '@nimiplatform/kit/ui';
 
 export function SupportSectionShell(props: {
   title: string;
@@ -19,33 +24,104 @@ export function SupportSectionShell(props: {
   embedded?: boolean;
   hideHeader?: boolean;
 }) {
-  const content = <div data-testid={props.testId} className="flex flex-col gap-5">
-    {!props.embedded && !props.hideHeader ? <header className="flex flex-col gap-1">
-      <h2 tabIndex={-1} className="nimi-type-page-title text-[var(--nimi-text-primary)]">{props.title}</h2>
-      {props.description ? <p className="text-sm text-[var(--nimi-text-secondary)]">{props.description}</p> : null}
-    </header> : null}
-    {props.children}
-  </div>;
-  return props.embedded ? content : <ScrollArea className="min-h-0 flex-1" contentClassName="w-full max-w-4xl px-5 py-5">{content}</ScrollArea>;
+  if (props.embedded) {
+    return (
+      <div data-testid={props.testId} className="flex flex-col gap-4">
+        {props.children}
+      </div>
+    );
+  }
 
+  return (
+    <SettingsPageShell
+      scrollClassName="bg-transparent"
+      viewportClassName="bg-transparent"
+      contentClassName="w-full max-w-4xl gap-4 px-5 py-5"
+    >
+      <div data-testid={props.testId} className="flex flex-col gap-4">
+        {!props.hideHeader ? (
+          <header className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <NimiText as="h2" role="page-title" tabIndex={-1}>
+                {props.title}
+              </NimiText>
+              {props.description ? (
+                <NimiText role="helper" className="mt-1">
+                  {props.description}
+                </NimiText>
+              ) : null}
+            </div>
+          </header>
+        ) : null}
+        {props.children}
+      </div>
+    </SettingsPageShell>
+  );
 }
 
 export function SupportCard(props: {
   title: string;
   description?: string;
+  status?: ReactNode;
+  action?: ReactNode;
   children?: ReactNode;
   testId?: string;
+  className?: string;
 }) {
   return (
     <section
       data-testid={props.testId}
-      className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5"
+      className={cn(
+        'rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-sm',
+        props.className,
+      )}
     >
-      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3>
-      {props.description ? (
-        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{props.description}</p>
-      ) : null}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3>
+          {props.description ? (
+            <p className="max-w-xl text-xs text-[var(--nimi-text-secondary)]">{props.description}</p>
+          ) : null}
+          {props.status}
+        </div>
+        {props.action ? <div className="flex shrink-0 items-center gap-2">{props.action}</div> : null}
+      </div>
       {props.children ? <div className="mt-4">{props.children}</div> : null}
+    </section>
+  );
+}
+
+export function SupportSectionBlock(props: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children?: ReactNode;
+  testId?: string;
+  className?: string;
+  bareContent?: boolean;
+}) {
+  return (
+    <section data-testid={props.testId} className={cn('mt-4', props.className)}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <NimiText as="h3" role="section-title">{props.title}</NimiText>
+          {props.description ? (
+            <NimiText role="helper" className="mt-1 max-w-2xl">
+              {props.description}
+            </NimiText>
+          ) : null}
+        </div>
+        {props.action ? <div className="flex shrink-0 items-center gap-2">{props.action}</div> : null}
+      </div>
+      {props.children ? (
+        props.bareContent ? (
+          <div className="mt-3">{props.children}</div>
+        ) : (
+          <Surface tone="card" material="solid" padding="md" className="mt-3">
+            {props.children}
+          </Surface>
+        )
+      ) : null}
     </section>
   );
 }

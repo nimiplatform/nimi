@@ -1675,7 +1675,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
 async function buildMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     ...createNimiElectronAppChromeWindowOptions(),
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b1220' : '#f0f7fd',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b1220' : '#f1f6fb',
     width: 1440,
     height: 940,
     minWidth: 390,

@@ -24,6 +24,7 @@ import {
   SupportFailClosed,
   SupportInfoRow,
   SupportLoading,
+  SupportSectionBlock,
   SupportSectionShell,
 } from './support-section-shell.js';
 import { DESKTOP_LOG_AREAS, DESKTOP_LOG_AREA_LABEL_KEY } from './support-log-areas.js';
@@ -72,26 +73,36 @@ function SupportLogsExportCard() {
       title={t('Support.logsExportTitle')}
       description={t('Support.logsExportDescription')}
       testId="support-logs-export"
+      className="mt-4"
+      action={
+        <Button
+          tone="secondary"
+          size="sm"
+          data-testid="support-logs-export-button"
+          disabled={exportState.status === 'running'}
+          onClick={() => {
+            void runExport();
+          }}
+        >
+          {exportState.status === 'running'
+            ? t('Support.logsExportRunning')
+            : t('Support.logsExportButton')}
+        </Button>
+      }
+      status={
+        exportState.status === 'running' ? (
+          <p role="status" className="text-xs font-medium text-[var(--nimi-text-muted)]">
+            {t('Support.logsExportRunning')}
+          </p>
+        ) : undefined
+      }
     >
-      <button
-        type="button"
-        data-testid="support-logs-export-button"
-        disabled={exportState.status === 'running'}
-        onClick={() => {
-          void runExport();
-        }}
-        className="inline-flex items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
-      >
-        {exportState.status === 'running'
-          ? t('Support.logsExportRunning')
-          : t('Support.logsExportButton')}
-      </button>
-
-      {exportState.status === 'running' ? <p role="status" className="mt-2 text-sm">{t('Support.logsExportRunning')}</p> : null}
       {exportState.status === 'done' ? (
         <div
-          role="status" aria-live="polite" data-testid="support-logs-export-done"
-          className="mt-4 space-y-2 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2"
+          role="status"
+          aria-live="polite"
+          data-testid="support-logs-export-done"
+          className="space-y-2 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2"
         >
           <p className="text-xs font-medium text-[var(--nimi-status-positive)]">
             {t('Support.logsExportSucceeded', {
@@ -111,11 +122,19 @@ function SupportLogsExportCard() {
         // rule.nimi.desktop.product-surfaces.r027: typed fail-closed state. The backend reason is surfaced
         // verbatim; no export artifact is fabricated.
         <div
-          role="alert" data-testid="support-logs-export-failed"
-          className="mt-4 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]"
+          role="alert"
+          data-testid="support-logs-export-failed"
+          className="break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]"
         >
-          {t(exportState.reason.includes('logs-directory-empty') || exportState.reason.includes('log-content-empty') ? 'Support.logsExportEmpty' : 'Support.logsExportUnavailable')}
-          <details className="mt-2"><summary>{t('Feedback.technicalDetails')}</summary>{exportState.reason}</details>
+          {t(
+            exportState.reason.includes('logs-directory-empty') || exportState.reason.includes('log-content-empty')
+              ? 'Support.logsExportEmpty'
+              : 'Support.logsExportUnavailable',
+          )}
+          <details className="mt-2">
+            <summary className="cursor-pointer font-medium">{t('Feedback.technicalDetails')}</summary>
+            {exportState.reason}
+          </details>
         </div>
       ) : null}
     </SupportCard>
@@ -169,52 +188,66 @@ export function SupportLogsSection() {
         title={t('Support.logsLocationTitle')}
         description={t('Support.logsLocationDescription')}
         testId="support-logs-location"
+        status={
+          copyState ? (
+            <p
+              role="status"
+              className={
+                copyState === 'copied'
+                  ? 'text-xs font-medium text-[var(--nimi-status-success)]'
+                  : 'text-xs font-medium text-[var(--nimi-text-muted)]'
+              }
+            >
+              {t(copyState === 'copied' ? 'Support.logsPathCopied' : 'Support.logsPathCopyFailed')}
+            </p>
+          ) : undefined
+        }
+        action={
+          <Button
+            size="sm"
+            tone="secondary"
+            disabled={!projection.data.logsDir}
+            onClick={async () => {
+              setCopyState(null);
+              try {
+                await commands.writeClipboardText(projection.data!.logsDir);
+                setCopyState('copied');
+              } catch {
+                setCopyState('failed');
+              }
+            }}
+          >
+            {t('Support.logsCopyPath')}
+          </Button>
+        }
       >
-        <div className="divide-y divide-[var(--nimi-border-subtle)]">
+        <div className="divide-y divide-[var(--nimi-border-subtle)] border-t border-[var(--nimi-border-subtle)] pt-2">
           <SupportInfoRow
             label={t('Support.logsDirectoryLabel')}
             value={projection.data.logsDir || t('Support.valueUnknown')}
           />
         </div>
-        <Button
-          size="sm"
-          tone="secondary"
-          className="mt-3"
-          disabled={!projection.data.logsDir}
-          onClick={async () => {
-            setCopyState(null);
-            try {
-              await commands.writeClipboardText(projection.data!.logsDir);
-              setCopyState('copied');
-            } catch {
-              setCopyState('failed');
-            }
-          }}
-        >{t('Support.logsCopyPath')}</Button>
-        {copyState ? <p role="status" className="mt-2 text-xs text-[var(--nimi-text-secondary)]">
-          {t(copyState === 'copied' ? 'Support.logsPathCopied' : 'Support.logsPathCopyFailed')}
-        </p> : null}
       </SupportCard>
 
-      <SupportCard
+      <SupportSectionBlock
         title={t('Support.logsAreasTitle')}
         description={t('Support.logsAreasDescription')}
         testId="support-logs-areas"
       >
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {DESKTOP_LOG_AREAS.map((area) => (
             <li
               key={area}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3 py-2"
+              className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3.5 py-2.5"
             >
-              <p className="text-xs font-medium text-[var(--nimi-text-primary)]">{area}</p>
-              <p className="mt-0.5 text-[11px] text-[var(--nimi-text-secondary)]">
+              <p className="font-mono text-xs font-medium text-[var(--nimi-text-primary)]">{area}</p>
+              <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">
                 {t(DESKTOP_LOG_AREA_LABEL_KEY[area])}
               </p>
             </li>
           ))}
         </ul>
-      </SupportCard>
+      </SupportSectionBlock>
 
       {/* rule.nimi.desktop.product-surfaces.r027: log export produces a user-locatable archive via the typed
           desktop_logs_export command; the action fails closed on a typed

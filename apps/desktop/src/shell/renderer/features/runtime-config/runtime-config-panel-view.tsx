@@ -41,7 +41,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
-  const workspaceActive = activePage === 'aiSettings' || activePage === 'advancedDiagnostics';
+  const modelFilesActive = activePage === 'modelLibrary' && !model.modelMarketContext;
+  const workspaceActive = activePage === 'aiSettings' || activePage === 'advancedDiagnostics' || modelFilesActive;
   const browseContext = activePage === 'modelLibrary' && model.modelMarketContext?.kind === 'browse'
     ? model.modelMarketContext
     : null;
@@ -58,13 +59,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-3 pr-3 pt-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Surface
           as="main"
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
+          className="desktop-module-panel flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
         >
           <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-2 px-4">
             <RuntimeSkeletonBlock className="h-7 w-32 rounded-xl" />
@@ -86,11 +87,37 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
+  const modelLibraryContent = activePage === 'modelLibrary' ? (
+    <>
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
+        <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={browseContext ? model.onReturnToContextualLoadout : () => model.onChangePage('aiSettings')} data-testid="runtime-model-library-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+          {browseContext
+            ? t('runtimeConfig.product.modelPicker.backToCapability', { capability: displayRuntimeConfigCapabilityLabel(browseContext.capabilityContract, t) })
+            : t('runtimeConfig.capabilities.backWorkspace')}
+        </Button>
+        <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
+      </div>
+      <ScrollArea
+        viewportRef={pageViewportRef}
+        className="min-h-0 min-w-0 flex-1"
+        contentClassName="min-w-0 pt-3"
+      >
+        <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
+          <ModelLibraryPage
+            model={model}
+            onClearActionFocus={model.clearActionFocus}
+          />
+        </Suspense>
+      </ScrollArea>
+    </>
+  ) : null;
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-3 pr-3 pt-2">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className={workspaceActive ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
         <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
           <AiSettingsPage
+            modelFiles={modelFilesActive ? modelLibraryContent : undefined}
             advancedDiagnostics={activePage === 'advancedDiagnostics' ? {
               content: (
                 <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
@@ -123,37 +150,15 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           <CloudServicesPage model={model} state={state} />
         </Suspense>
       ) : null}
-      {activePage === 'modelLibrary' ? (
+      {activePage === 'modelLibrary' && !modelFilesActive ? (
         <Surface
           as="main"
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
-            <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={browseContext ? model.onReturnToContextualLoadout : () => model.onChangePage('aiSettings')} data-testid="runtime-model-library-back">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-              {browseContext
-                ? t('runtimeConfig.product.modelPicker.backToCapability', { capability: displayRuntimeConfigCapabilityLabel(browseContext.capabilityContract, t) })
-                : t('runtimeConfig.capabilities.backWorkspace')}
-            </Button>
-            <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
-          </div>
-          <ScrollArea
-            viewportRef={pageViewportRef}
-            className="min-h-0 min-w-0 flex-1"
-            contentClassName="min-w-0 pt-3"
-          >
-            <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
-              {activePage === 'modelLibrary' ? (
-                <ModelLibraryPage
-                  model={model}
-                  onClearActionFocus={model.clearActionFocus}
-                />
-              ) : null}
-            </Suspense>
-          </ScrollArea>
+          {modelLibraryContent}
         </Surface>
       ) : null}
       <ConfirmDialog

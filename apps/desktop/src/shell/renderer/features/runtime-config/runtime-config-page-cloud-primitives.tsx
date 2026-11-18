@@ -123,7 +123,7 @@ export function endpointHost(endpoint: string): string {
   }
 }
 
-/** First-run state for the Cloud page: one welcoming card instead of an empty rail. */
+/** First-run state for the Cloud page with a single action to connect a service. */
 export function CloudEmptyState({
   onAddConnector,
   t,
@@ -133,8 +133,7 @@ export function CloudEmptyState({
 }) {
   return (
     <section
-      className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] px-6 py-12 text-center ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
-      style={{ background: 'var(--nimi-surface-hero)' }}
+      className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center"
       data-testid="cloud-empty-state"
     >
       <span className="flex size-16 items-center justify-center rounded-[20px] bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">

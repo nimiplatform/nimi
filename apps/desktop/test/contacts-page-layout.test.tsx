@@ -150,8 +150,13 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     }),
   };
 
+  let chatListItems: Array<Record<string, unknown>> = [];
+  let chatListUnavailable = false;
   const chatResource = {
-    loadChatList: async () => ({ items: [], nextCursor: null }),
+    loadChatList: async () => {
+      if (chatListUnavailable) throw new Error('Conversation list unavailable');
+      return { items: chatListItems, nextCursor: null };
+    },
     startChatWithTarget: async (targetId: string) => ({ chatId: `thread-${targetId}` }),
   };
 
@@ -206,16 +211,32 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     });
     await settle();
 
-    // 1. Default state renders unified rail in compact form on the right and conversation prompt in main pane.
+    // 1. Default 0-conversation state renders compact right rail and borderless zero-conversation prompt (no card).
     assert.equal(
       dom.window.document.querySelector('[data-contacts-rail-state]')?.getAttribute('data-contacts-rail-state'),
       'compact',
     );
     assert.ok(dom.window.document.querySelector('[data-testid="chat-list"]'), 'compact avatar rail is shown initially');
     assert.equal(dom.window.document.querySelector('[data-testid="contacts-right-panel"]'), null);
-    assert.match(dom.window.document.body.textContent ?? '', /Choose a conversation/);
+    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.getAttribute('data-empty-stage-mode'), 'zero-conversations');
+    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"] .nimi-empty-state'), null);
+    assert.match(dom.window.document.querySelector<HTMLImageElement>('[data-testid="contacts-empty-stage"] img')?.src ?? '', /logo-gray\.png$/);
+    assert.match(dom.window.document.body.textContent ?? '', /No active conversations yet/);
+    assert.match(dom.window.document.body.textContent ?? '', /Open Contacts/);
 
-    // 2. Clicking the persistent bottom Contacts button morphs the same rail into expanded form.
+    chatListUnavailable = true;
+    await act(async () => { await client.invalidateQueries({ queryKey: ['chats'] }); });
+    await settle();
+    assert.match(dom.window.document.body.textContent ?? '', /Could not load your conversations/);
+    assert.doesNotMatch(dom.window.document.body.textContent ?? '', /No active conversations yet/);
+    const retry = [...dom.window.document.querySelectorAll('button')].find(button => button.textContent === 'Retry');
+    assert.ok(retry);
+    chatListUnavailable = false;
+    await act(async () => retry.click());
+    await settle();
+    assert.match(dom.window.document.body.textContent ?? '', /No active conversations yet/);
+
+    // 2. Clicking the persistent bottom Contacts button morphs the same rail into expanded form and switches center stage to quiet watermark.
     const contactsEntry = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="human-contacts-entry"]');
     assert.ok(contactsEntry);
     assert.equal(contactsEntry.getAttribute('aria-expanded'), 'false');
@@ -226,6 +247,8 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
       dom.window.document.querySelector('[data-contacts-rail-state]')?.getAttribute('data-contacts-rail-state'),
       'expanded',
     );
+    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.getAttribute('data-empty-stage-mode'), 'contacts-open');
+    assert.doesNotMatch(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.textContent ?? '', /Open Contacts/);
     const rightPanel = dom.window.document.querySelector('[data-testid="contacts-right-panel"]');
     assert.ok(rightPanel, 'right Contacts panel opens');
     assert.equal(dom.window.document.querySelector('[data-testid="chat-list"]'), null, 'compact avatar list morphs into Contacts panel');
@@ -283,6 +306,33 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     assert.equal(dom.window.document.querySelector('[data-testid="contacts-right-panel"]'), null);
     assert.ok(dom.window.document.querySelector('[data-testid="chat-list"]'), 'compact avatar rail returns');
     assert.ok(dom.window.document.querySelector('[aria-label="Partner details"]'), 'main pane preserves Agent Profile');
+
+    // 6. When conversations exist on the current side and none is selected, center stage renders quiet watermark + selection pill without CTA button.
+    chatListItems = [{
+      id: 'chat-eric',
+      otherUser: { id: 'eric', displayName: 'Eric', handle: 'eric', avatarUrl: null },
+      lastMessage: { text: 'Hello', createdAt: '2026-11-18T00:00:00.000Z' },
+      unreadCount: 0,
+    }];
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['chats'] });
+      await store.navigation.push({ id: 'contacts' });
+    });
+    await settle();
+    await settle();
+
+    assert.equal(
+      dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.getAttribute('data-empty-stage-mode'),
+      'has-conversations',
+    );
+    assert.match(
+      dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.textContent ?? '',
+      /Select a conversation on the right to continue/,
+    );
+    assert.doesNotMatch(
+      dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.textContent ?? '',
+      /Open Contacts/,
+    );
   } finally {
     await act(async () => {
       root.unmount();

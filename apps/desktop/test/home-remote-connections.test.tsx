@@ -54,7 +54,7 @@ test('Home filters access sources, exposes approval scope and ends only the sele
   try {
     await act(async () => root.render(<QueryClientProvider client={client}><AppStoreProvider store={store}>
       <DesktopMotionProvider><DesktopRendererBindingProvider bindings={{ sdk: { accountProduct: () => ({ remoteAccess }) } } as never}>
-        <HomeRemoteAccess account="account" realm="realm" primaryBindingId="binding" thisRuntime primaryStateKnown validAfter="" />
+        <HomeRemoteAccess account="account" realm="realm" primaryBindingId="binding" thisRuntime primaryStatus="success" validAfter="" />
       </DesktopRendererBindingProvider></DesktopMotionProvider>
     </AppStoreProvider></QueryClientProvider>));
     await settle(() => document.querySelectorAll('[data-testid="remote-connection"]').length === 2);
@@ -97,6 +97,89 @@ test('Home filters access sources, exposes approval scope and ends only the sele
     await act(async () => { await store.navigation.push({ id: 'connections', connectionSourceId: 'pending' }); });
     await settle(() => Boolean(document.querySelector('[data-testid="remote-source:pending"]')));
     assert.equal(document.querySelectorAll('article').length, 1);
+  } finally {
+    await act(async () => root.unmount()); client.clear(); store.navigation.dispose(); dom.window.close();
+    for (const [key, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
+  }
+});
+
+test('Home exposes the appropriate access controls before and after this PC becomes primary', async () => {
+  const dom = new JSDOM('<div id="root"></div>');
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, React, IS_REACT_ACT_ENVIRONMENT: true };
+  const before = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
+  const { HomePrimaryRuntime } = await import('../src/shell/renderer/features/settings/home-primary-runtime.js');
+  const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+  const { RemoteAccessConnectionState } = await import('@nimiplatform/sdk/runtime/wire-types');
+  await initI18n(); await changeLocale('en');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  store.getState().setAuthSession({ id: 'account', realmEnvironmentId: 'realm' });
+  await store.navigation.push({ id: 'connections' });
+  let binding = { bindingId: 'other-binding', displayName: 'Office Workstation', thisRuntime: false, validAfter: '' };
+  let bindingReadFailed = false;
+  const primaryRuntime = {
+    async getPrimaryRuntimeState() {
+      if (bindingReadFailed) throw new Error('Binding unavailable');
+      return binding;
+    },
+    async preparePrimaryRuntime() {
+      throw new Error('not invoked');
+    },
+  };
+  const remoteAccess = {
+    async getRemoteAccessState() {
+      return {
+        enabled: false,
+        bindingId: '',
+        connectionState: RemoteAccessConnectionState.DISABLED,
+        reasonCode: '',
+        sources: [],
+        connectedPeers: 0,
+        connections: [],
+      };
+    },
+  };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const root = createRoot(document.getElementById('root')!);
+  const settle = async (predicate: () => boolean) => {
+    for (let i = 0; i < 40 && !predicate(); i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    assert.ok(predicate());
+  };
+  try {
+    await act(async () => root.render(<QueryClientProvider client={client}><AppStoreProvider store={store}>
+      <DesktopMotionProvider><DesktopRendererBindingProvider bindings={{ sdk: { accountProduct: () => ({ primaryRuntime, remoteAccess }) } } as never}>
+        <HomePrimaryRuntime />
+      </DesktopRendererBindingProvider></DesktopMotionProvider>
+    </AppStoreProvider></QueryClientProvider>));
+    await settle(() => Boolean(document.body.textContent?.includes('Current primary PC: Office Workstation')));
+    assert.equal(document.getElementById('primary-runtime-name'), null);
+    assert.equal(document.querySelectorAll('[aria-pressed]').length, 0);
+    const switchBtn = [...document.querySelectorAll<HTMLButtonElement>('button')].find(btn => btn.textContent === 'Use this PC instead');
+    assert.ok(switchBtn);
+    await act(async () => switchBtn.click());
+    assert.ok(document.getElementById('primary-runtime-name'));
+    assert.ok(document.body.textContent?.includes('Reinitialization ends the previous binding'));
+    assert.ok([...document.querySelectorAll<HTMLButtonElement>('button')].some(btn => btn.textContent === 'Reinitialize on this PC'));
+
+    binding = { ...binding, bindingId: 'new-binding', thisRuntime: true };
+    const refreshBinding = () => client.invalidateQueries({ queryKey: ['primary-runtime-binding'] });
+    const access = document.querySelector('section[aria-label="Application access"]')!;
+    await act(refreshBinding);
+    await settle(() => Boolean(access.textContent?.includes('Enable remote access on this primary Runtime')));
+    const enable = [...document.querySelectorAll<HTMLButtonElement>('button')].find(btn => btn.textContent === 'Enable remote access');
+    assert.equal(enable?.disabled, false);
+
+    bindingReadFailed = true;
+    await act(refreshBinding);
+    await settle(() => Boolean(access.textContent?.includes('Could not read or change remote access')));
+    assert.equal(enable?.disabled, true);
+    assert.equal(access.textContent?.includes('No sources have requested access yet.'), false);
   } finally {
     await act(async () => root.unmount()); client.clear(); store.navigation.dispose(); dom.window.close();
     for (const [key, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
