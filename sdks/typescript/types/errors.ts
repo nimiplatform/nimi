@@ -233,6 +233,7 @@ export function extractNimiErrorFields(error: unknown): NimiErrorFields {
     traceId: fields.traceId,
     retryable: fields.retryable,
     message: fields.message,
+    ...(fields.interruption ? { interruption: { ...fields.interruption } } : {}),
   };
 }
 

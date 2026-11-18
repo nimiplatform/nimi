@@ -6,6 +6,7 @@ import {
   createNimiClientId,
   createNimiUlid,
   createOfflineNimiError,
+  createNimiError,
   extractNimiErrorFields,
   getNimiErrorMessage,
   isJsonObject,
@@ -39,6 +40,20 @@ test('SDK types expose JSON and API error projection helpers', () => {
     }),
   });
   assert.equal(extractNimiErrorFields(error).reasonCode, 'REALM_RATE_LIMITED');
+});
+
+test('SDK error field extraction preserves Runtime interruption and resubmit disposition', () => {
+  for (const resubmitDisposition of ['caller-may-resubmit', 'outcome-uncertain'] as const) {
+    const interruption = { cause: 'runtime-restart' as const, resubmitDisposition };
+    const error = createNimiError({
+      reasonCode: 'AI_EXECUTION_INTERRUPTED', actionHint: 'review_outcome', traceId: 'test-trace',
+      interruption, message: 'Interrupted.', retryable: resubmitDisposition === 'caller-may-resubmit',
+    });
+    const fields = extractNimiErrorFields(error);
+    assert.deepEqual(fields.interruption, interruption);
+    assert.notEqual(fields.interruption, error.interruption);
+    assert.equal(fields.traceId, 'test-trace');
+  }
 });
 
 test('SDK JSON helpers parse objects and fail closed without throwing', async () => {
