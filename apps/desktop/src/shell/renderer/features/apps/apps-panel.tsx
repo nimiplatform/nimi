@@ -159,7 +159,7 @@ export function AppsPanel({
     void downloads.observer.refreshAfterMutation();
     downloads.openDownloads(packageJobKey(job));
   }, [navigation, downloads.observer, downloads.openDownloads]);
-  const localImport = useAppsLocalImport(getLocalImportClient, localImportStarted);
+  const localImport = useAppsLocalImport(getLocalImportClient, localImportStarted, listCommittedReleases);
   const handleCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     if (action === 'details' || action === 'open-ai-config') downloads.showLibrary();
     const entry = projection?.status === 'loaded'

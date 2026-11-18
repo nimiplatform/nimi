@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
-import { ReasonCode, type LocalAppPackagePreview } from '@nimiplatform/sdk/runtime/wire-types';
+import { AppPackageSourceClass, ReasonCode, type CommittedAppRelease, type LocalAppPackagePreview } from '@nimiplatform/sdk/runtime/wire-types';
 import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 
 // DOM and hook behavior with simulated RPC outcomes; native package lifecycle
@@ -31,16 +31,24 @@ test('local import releases invalid previews and keeps confirmation failures ins
   const selector = new TextEncoder().encode('a'.repeat(48));
   const valid = { candidateSelector: selector, appId: 'example.app', displayName: 'Example', version: '1.0.0', os: 'macos', arch: 'arm64', appAccess: [], macosNotarization: 'absent' } as LocalAppPackagePreview;
   let preview = valid;
+  let releases: CommittedAppRelease[] = [];
+  const listCommitted = async () => releases;
+  let updateBaseline = '';
   const discarded: Uint8Array[] = [];
   let rejectInstall!: (cause: Error) => void;
   const getClient = () => ({
     prepareLocalAppPackage: async () => ({ reasonCode: ReasonCode.ACTION_EXECUTED, preview }),
     discardLocalAppPackage: async (input: { candidateSelector: Uint8Array }) => { discarded.push(input.candidateSelector); return { reasonCode: ReasonCode.ACTION_EXECUTED }; },
+    startLocalAppPackageUpdate: async (input: { installedVersion: string; launchSelector: Uint8Array }) => {
+      updateBaseline = input.installedVersion;
+      assert.deepEqual(input.launchSelector, selector);
+      throw new Error('update failure');
+    },
     startLocalAppPackageInstall: () => new Promise((_resolve, reject) => { rejectInstall = reject; }),
   }) as unknown as NimiDesktopMachineProductRuntimeClient['apps'];
   let state!: ReturnType<typeof useAppsLocalImport>;
   const started = () => { throw new Error('failed install must not announce a started job'); };
-  function Harness() { state = useAppsLocalImport(getClient, started); return <AppsLocalImportFeedback state={state} entries={[]} />; }
+  function Harness() { state = useAppsLocalImport(getClient, started, listCommitted); return <AppsLocalImportFeedback state={state} entries={[]} />; }
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<Harness />); });
@@ -83,6 +91,18 @@ test('local import releases invalid previews and keeps confirmation failures ins
     assert.equal(dom.window.document.querySelectorAll('[role="alert"]').length, 1);
     await act(async () => { state.cancel(); });
     assert.equal(discarded.length, 3);
+    releases = [{ appId: valid.appId, version: '1.0.0-rc.1', launchSelector: selector,
+      sourceClass: AppPackageSourceClass.USER_IMPORTED } as CommittedAppRelease];
+    await act(async () => { await state.choose(); });
+    assert.equal(state.intent?.installed?.version, '1.0.0-rc.1');
+    await act(async () => { await state.confirm(); });
+    assert.equal(updateBaseline, '1.0.0-rc.1');
+    await act(async () => { state.cancel(); });
+    releases[0] = { ...releases[0]!, version: valid.version };
+    await act(async () => { await state.choose(); });
+    assert.equal(state.phase, 'idle');
+    assert.equal(state.intent, null);
+    assert.match(state.error ?? '', /newer version/i);
   } finally {
     await act(async () => { root.unmount(); });
     // Radix restores focus on the next task after unmount.

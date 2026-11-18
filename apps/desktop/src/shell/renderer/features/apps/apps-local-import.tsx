@@ -15,7 +15,8 @@ type LocalIntent = { readonly preview: LocalAppPackagePreview; readonly installe
 type ImportPhase = 'idle' | 'choosing' | 'preparing' | 'confirming' | 'starting';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
-export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRuntimeClient['apps'], onStarted: (job: AppPackageJob) => void) {
+export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRuntimeClient['apps'], onStarted: (job: AppPackageJob) => void,
+  listCommittedReleases: () => Promise<readonly CommittedAppRelease[]>) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [intent, setIntent] = useState<LocalIntent | null>(null);
@@ -81,7 +82,17 @@ export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRun
         if (result.preview?.candidateSelector.length) await discard({ preview: result.preview, installed });
         throw new Error(t('Apps.localImport.invalidPreview'));
       }
-      const next = { preview: result.preview, installed };
+      const preview = result.preview;
+      if (!installed && revision === operation.current.revision) {
+        try {
+          const releases = await listCommittedReleases();
+          installed = releases.find(release => release.sourceClass === AppPackageSourceClass.USER_IMPORTED && release.appId === preview.appId) ?? null;
+        } catch (cause) {
+          await discard({ preview, installed: null });
+          throw cause;
+        }
+      }
+      const next = { preview, installed };
       if (revision !== operation.current.revision) { await discard(next); return; }
       if (installed && (installed.sourceClass !== AppPackageSourceClass.USER_IMPORTED || installed.appId !== next.preview.appId || !semver.gt(next.preview.version, installed.version))) {
         await discard(next);
@@ -95,7 +106,7 @@ export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRun
     } finally {
       if (revision === operation.current.revision) { operation.current.busy = false; operation.current.abort = null; }
     }
-  }, [discard, failure, getClient, t]);
+  }, [discard, failure, getClient, listCommittedReleases, t]);
 
   const confirm = useCallback(async () => {
     const selected = intentRef.current;
