@@ -20,7 +20,7 @@
 - Fail closed on invalid launch context, binding, package, profile, backend load, audio, or geometry; never substitute placeholder success.
 
 ## Retrieval Defaults
-- Start with the observed Avatar consumer, its backend branch, direct Kit/SDK contract, and the exact authority unit it implements.
+- Start with the affected Avatar experience. Follow the backend branch or Kit/SDK contract when it determines the behavior in question. Consult the exact owner rule when changing or clarifying a contract such as readiness, hit regions, or audio timing.
 - Read `config/avatar-*.yaml` only for the affected route, profile, activity, scenario, or window policy; do not preload all backend docs or historical evidence.
 - Use `src/shell/renderer/{live2d,vrm}/**` only for the affected backend and the built-in semantic projection modules only for admitted activity/event projection; Desktop Electron Host code owns shell/window mechanics.
 

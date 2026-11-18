@@ -11,8 +11,7 @@
 - Keep public-site and personal account composition under `apps/web`; do not restore Web Shell, hash-shell routing, Desktop adapters, feeds, public social discovery or chat routes. Authenticated friendship management consumes the existing Realm graph and privacy projections.
 
 ## Retrieval Defaults
-- Start in the observed Web route, `apps/web/src/landing/**`, or the Web-owned account adapter and follow only public Kit/SDK contracts.
-- Skip Desktop renderer, Runtime internals, generated SDK output, and unrelated product layers unless a direct public-contract failure points there.
+- Start with the visitor's task and the affected Web route. For account behavior, follow the Web adapter and its public Kit/SDK contract. Inspect an upstream owner when a concrete dependency, contract question, or failure points there. Web implementation uses public interfaces only.
 
 ## Public Presentation
 - Organize product entry pages around an ordinary visitor's purpose and the actual result of the next action. Explain current availability and consequential restrictions before that action; identify developer previews by their audience and contents.

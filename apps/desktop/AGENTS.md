@@ -14,7 +14,7 @@
 - Desktop chat/UI must project runtime authority, not invent a parallel executable truth in renderer-local state.
 
 ## Retrieval Defaults
-- Start at the observed Desktop consumer, its direct adapter or bridge, and the exact authority it implements.
+- Start with the user's task and the affected Home surface. Follow its adapter or bridge when the behavior depends on it. Consult the exact owner rule when state meaning, action consequences, permissions, or ownership change or need clarification.
 - Skip generated bridge outputs, `dist/**`, large assets, and unrelated layers.
 
 ## Product Presentation

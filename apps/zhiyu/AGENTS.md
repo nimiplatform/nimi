@@ -12,7 +12,7 @@
 - Main product UI must remain user-facing and partner-centered. Diagnostics/dev mode may show technical truth, but it must not define the first screen.
 
 ## Retrieval Defaults
-- Start with the affected Zhiyu route, its direct facade or projection, and the exact authority unit when semantics are involved.
+- Start with the user's task and the affected Zhiyu route. Follow its facade or projection when it determines the state shown or the outcome of an action. Consult the exact authority unit when product semantics change or need clarification.
 - Do not load `.nimi/local/plans/zhiyu/**`, historical evidence, or unrelated platform owners unless the observed failure points there.
 
 ## Verification Commands

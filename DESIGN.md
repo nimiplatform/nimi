@@ -34,11 +34,6 @@ Canonical authority remains `.nimi/spec/platform/ui-design-system.authority.yaml
 
 ## Overview
 
-Use `kit/DESIGN.md` before creating or changing Nimi UI. If the desired behavior is not represented there, update the platform spec tables first and regenerate the projection.
+The public website, Home, and each App design their own pages and interactions within existing product and Kit contracts. A product-specific flow can combine existing primitives in ways this guide does not illustrate.
 
-## Do's and Don'ts
-
-- Do read `kit/DESIGN.md` for the compact operational summary and `kit/design-projection.json` for the complete token and component inventory.
-- Do treat `.nimi/spec/platform/ui-design-system.authority.yaml` as canonical authority.
-- Do regenerate all design artifacts from the same script after admitted spec changes.
-- Don't hand-edit generated DESIGN.md files.
+When changing a shared primitive, token, theme, or cross-App interaction contract, consult `kit/DESIGN.md` and the relevant owner. A fix that restores existing component behavior belongs in the implementation and its focused checks. Update the canonical rule when shared semantics change. Regenerate the affected projections when their source inputs change.

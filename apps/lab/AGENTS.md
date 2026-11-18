@@ -16,7 +16,7 @@
 - Lab-only entries live in `src/lab/lab-only/**` and join navigation through `descriptor.section`; they never change App Tools scaffold admission. Extend the existing inventory test, history policy and assets instead of adding a parallel capability list or evidence store.
 
 ## Retrieval Defaults
-- Read the affected lab route, its direct SDK/Kit or shell dependency, and the matching lab contract test.
+- Start with the task on the affected Lab route. Follow its SDK/Kit or shell dependency and the matching contract test when investigating or changing the behavior they cover.
 
 ## Internationalization
 - All user-visible copy in `src/lab/**` and product shell surfaces goes through `src/shell/i18n/index.js` (`useTranslation` in components, bare `t()` in pure modules); never import `react-i18next` directly.

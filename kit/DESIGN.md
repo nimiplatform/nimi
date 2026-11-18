@@ -219,7 +219,7 @@ artifacts:
 
 ## Overview
 
-Nimi Kit is the shared UI foundation for Nimi apps. It projects platform-owned semantic tokens, primitive contracts, and component usage rules into a compact DESIGN.md file that coding agents and design tools can read before touching UI/UX surfaces.
+Use this projection to look up shared Kit primitives, semantic tokens, themes, and their supported behavior.
 
 Ownership follows `P-DESIGN-001` and `P-KIT-010`: the Nimi design pattern owns cross-app primitive families, semantic-token taxonomy, theme-pack schema, material taxonomy, and external app integration behavior. Kit UI implements shared tokens, primitives, themes, generated visual contracts, reusable primitive families, and default visual behavior, while each app owns composition, information architecture, route placement, data schemas, and app-local inventories.
 
@@ -288,7 +288,7 @@ Typography roles use semantic Nimi token ids and preserve CJK-specific line-heig
 
 ## Layout
 
-Layout uses the Nimi spacing scale, not ad hoc pixel values. Reusable page shells, galleries, settings panels, tables, form rows, and overlays must be composed from Kit primitives and documented compositions before app-local layout rules are added.
+Use the Nimi spacing scale and shared Kit primitives. Reuse a documented composition when it fits the task. The website, Home, and Apps can arrange those primitives into a new layout or interaction flow within their existing contracts.
 
 - `0`: `0px`
 - `1`: `2px`
