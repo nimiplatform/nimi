@@ -194,6 +194,7 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
     tools.add(name);
   }
   const calls = new Map<string, string>();
+  const resolved = new Set<string>();
   const messages = input.messages.map((message): NimiLocalAppTextMessage => {
     assertExactKeys(message, ['role', 'text', 'turnItems', 'parts'], 'text message');
     const role = message.role;
@@ -218,7 +219,7 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
         assertExactKeys(item, ['type', 'output'], 'output turn item');
         const output = readOutputItem(item.output, false);
         if (output.type === 'tool-call') {
-          if (!tools.has(output.toolCall.name) || calls.has(output.toolCall.id)) invalid('undeclared or duplicate tool call');
+          if (calls.has(output.toolCall.id)) invalid('duplicate tool call');
           calls.set(output.toolCall.id, output.toolCall.name);
         }
         return Object.freeze({ type: 'output', output });
@@ -229,13 +230,17 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
       assertExactKeys(result, ['toolCallId', 'toolName', 'result', 'isError'], 'tool result');
       const toolCallId = identifier(result.toolCallId, invalid);
       const toolName = identifier(result.toolName, invalid);
-      if (calls.get(toolCallId) !== toolName) invalid('tool result association');
+      if (calls.get(toolCallId) !== toolName || resolved.has(toolCallId)) invalid('tool result association');
+      resolved.add(toolCallId);
       if (result.isError !== undefined && typeof result.isError !== 'boolean') invalid('tool result status');
       jsonValue(result.result, invalid);
       return Object.freeze({ type: 'tool-result', toolResult: Object.freeze({ toolCallId, toolName, result: result.result, ...(result.isError === undefined ? {} : { isError: result.isError }) }) });
     });
     return Object.freeze({ role: 'assistant', text: '', turnItems: Object.freeze(turnItems) });
   });
+  for (const [id, name] of calls) {
+    if (!tools.has(name) && !resolved.has(id)) invalid('undeclared tool call without a result');
+  }
   const hasContext = messages.some(message => message.text.trim() || message.parts?.length || message.turnItems?.some(item =>
     item.type === 'tool-result' || item.output.type === 'tool-call' || (item.output.type === 'text' && item.output.text.trim())));
   if (!hasContext) invalid('nonempty text, media or tool context required');

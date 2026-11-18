@@ -334,6 +334,8 @@ class AIConfigEffectiveSelection:
     cloud: AIConfigCloudResourceProjection | None = None
     text_replay: TextReplayCompatibility | None = None
     reasoning_input: ReasoningInputCapabilities | None = None
+    context_window_tokens: int | None = None
+    request_capacity_floor_tokens: int | None = None
 
 @dataclass(frozen=True)
 class AIConfigLocalIntent:
@@ -4979,10 +4981,12 @@ class LocalAppTextEmbedScenarioSpec:
 class LocalAppTextGenerateOutput:
     items: tuple[TextOutputItem, ...] = field(default_factory=tuple)
     finish_reason: FinishReason | None = None
+    usage: UsageStats | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextTurnCompleted:
     finish_reason: FinishReason | None = None
+    usage: UsageStats | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextTurnContinuity:

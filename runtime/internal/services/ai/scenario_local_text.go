@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -77,10 +78,10 @@ func executeLocalTextGenerateScenario(
 		err = s.checkTextResultRisk(result.Text, result.Items)
 	}
 	if err != nil {
-		s.finishLocalTextScenarioJobFailureWithUsage(requestCtx, jobID, err, localTextUsage(result, executionEffective.request))
+		s.finishLocalTextScenarioJobFailureWithUsage(requestCtx, jobID, err, result.MeasuredUsage())
 		return nil, err
 	}
-	usage := localTextUsage(result, executionEffective.request)
+	usage := result.MeasuredUsage()
 	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
 	if err := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); err != nil {
 		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
@@ -97,7 +98,7 @@ func executeLocalTextGenerateScenario(
 			},
 		},
 		FinishReason:           result.FinishReason,
-		Usage:                  usage,
+		Usage:                  localTextResponseUsage(ctx, result, usage),
 		RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		ModelResolved:          effective.modelResolved(),
 		TraceId:                job.GetTraceId(),
@@ -368,7 +369,7 @@ func streamLocalTextGenerateScenario(
 			}
 		})
 		if err == nil {
-			observedUsage = localTextUsage(result, executionEffective.request)
+			observedUsage = result.MeasuredUsage()
 		}
 		if contentErr != nil && requestCtx.Err() == nil {
 			err = contentErr
@@ -409,7 +410,7 @@ func streamLocalTextGenerateScenario(
 			if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
 				result.FinishReason = runtimev1.FinishReason_FINISH_REASON_STOP
 			}
-			usage := localTextUsage(result, executionEffective.request)
+			usage := observedUsage
 			artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
 			if completeErr := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, usage); completeErr != nil {
 				s.finishLocalTextScenarioJobFailure(requestCtx, jobID, completeErr)
@@ -419,7 +420,7 @@ func streamLocalTextGenerateScenario(
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
 					FinishReason: result.FinishReason,
-					Usage:        usage,
+					Usage:        localTextResponseUsage(ctx, result, usage),
 				}},
 			})
 		}
@@ -447,4 +448,14 @@ func streamLocalTextGenerateScenario(
 			ActionHint: actionHintFromStreamError(err),
 		}},
 	})
+}
+
+// The protected App response exposes aggregate counters. Runtime can still
+// retain compute-only usage in the Scenario job.
+// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+func localTextResponseUsage(ctx context.Context, result localexecution.TextResult, usage *runtimev1.UsageStats) *runtimev1.UsageStats {
+	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp && result.TokenUsage == nil {
+		return nil
+	}
+	return usage
 }

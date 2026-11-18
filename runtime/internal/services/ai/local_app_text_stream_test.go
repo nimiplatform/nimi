@@ -12,11 +12,85 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 type mockLocalAppTextTurnStream struct {
 	ctx    context.Context
 	events []*runtimev1.StreamLocalAppTextTurnEvent
+}
+
+func TestLocalAppTextTurnUsagePreservesAbsenceAndReportedZero(t *testing.T) {
+	for _, usage := range []*runtimev1.UsageStats{nil, {}, {InputTokens: 7, OutputTokens: 2, ComputeMs: 99, CachedInputTokens: 3}} {
+		mock := &mockLocalAppTextTurnStream{ctx: context.Background()}
+		bridge := &localAppTextTurnStreamBridge{ServerStreamingServer: mock}
+		if err := bridge.Send(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{
+			Delta: textOutputDelta(0, "answer", true),
+		}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := bridge.Send(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Completed{
+			Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: usage},
+		}}); err != nil {
+			t.Fatal(err)
+		}
+		got := mock.events[1].GetCompleted().GetUsage()
+		if usage == nil {
+			if got != nil {
+				t.Fatal("missing usage became reported zero")
+			}
+			continue
+		}
+		if got == nil || got == usage || got.InputTokens != usage.InputTokens || got.OutputTokens != usage.OutputTokens || got.ComputeMs != 0 || got.CachedInputTokens != 0 {
+			t.Fatalf("aggregate usage projection = %v from %v", got, usage)
+		}
+	}
+}
+
+func TestProtectedLocalTextResponsesSeparateTokenCountsFromTiming(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		result localexecution.TextResult
+	}{
+		{name: "timing-only", result: localexecution.TextResult{ComputeMS: 7}},
+		{name: "reported-zero", result: localexecution.TextResult{TokenUsage: &runtimev1.UsageStats{}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("text.generate"))); err != nil {
+				t.Fatal(err)
+			}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-usage", "app.gguf")})
+			tc.result.Text = "answer"
+			tc.result.FinishReason = runtimev1.FinishReason_FINISH_REASON_STOP
+			svc.SetLocalTextExecutionHost(&localTextHostStub{result: tc.result})
+			request := validLocalAppTextTurnRequest()
+
+			response, err := svc.ExecuteLocalAppScenario(localAppScenarioExecuteContext(), &runtimev1.ExecuteLocalAppScenarioRequest{
+				Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: request},
+			})
+			if err != nil || response.GetTextGenerate() == nil || !proto.Equal(response.GetTextGenerate().GetUsage(), tc.result.TokenUsage) {
+				t.Fatalf("protected sync response = %v, err = %v", response, err)
+			}
+
+			stream := &mockLocalAppTextTurnStream{ctx: localAppTextTurnContext()}
+			if err := svc.StreamLocalAppTextTurn(request, stream); err != nil {
+				t.Fatal(err)
+			}
+			completed := stream.events[len(stream.events)-1].GetCompleted()
+			if completed == nil || !proto.Equal(completed.GetUsage(), tc.result.TokenUsage) {
+				t.Fatalf("protected stream completion = %v", completed)
+			}
+
+			svc.scenarioJobs.mu.RLock()
+			defer svc.scenarioJobs.mu.RUnlock()
+			for _, record := range svc.scenarioJobs.jobs {
+				if record.job.GetUsage() == nil || record.job.GetUsage().GetComputeMs() != tc.result.ComputeMS {
+					t.Fatalf("job lost observed usage: %v", record.job.GetUsage())
+				}
+			}
+		})
+	}
 }
 
 func TestLocalAppSummaryEmptySealAndHiddenRefusal(t *testing.T) {

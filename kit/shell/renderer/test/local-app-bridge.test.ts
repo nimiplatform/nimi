@@ -577,6 +577,7 @@ describe('renderer local-app standard-shell surface', () => {
         capabilityContract: 'text.generate',
         state: 'ready',
         reasons: [],
+        requestCapacityFloorTokens: 8192,
           reasoningInput:{followsModelDefault:true,supportsDisabled:true,supportsRequired:true,supportsAdaptive:false,efforts:['low','xhigh'],supportsBudget:false,presentations:['hidden','summary']},
         resource: { oneofKind: 'cloud', cloud: {
           connector: { connectorRef: target.connectorRef, label: 'DeepSeek', provider: 'deepseek', state: 'ready', reasons: [] },

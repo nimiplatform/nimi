@@ -3160,6 +3160,12 @@ export interface LocalAppTextGenerateOutput {
      * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 2
      */
     finishReason: FinishReason;
+    /**
+     * Reported aggregate token counts. Absence means unknown, including zero.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 3
+     */
+    usage?: UsageStats;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioResponse
@@ -3993,6 +3999,12 @@ export interface LocalAppTextTurnCompleted {
      * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 1
      */
     finishReason: FinishReason;
+    /**
+     * Reported aggregate token counts. Absence means unknown, including zero.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 2
+     */
+    usage?: UsageStats;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnFailed
@@ -15437,7 +15449,8 @@ class LocalAppTextGenerateOutput$Type extends MessageType<LocalAppTextGenerateOu
     constructor() {
         super("nimi.runtime.v1.LocalAppTextGenerateOutput", [
             { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextOutputItem },
-            { no: 2, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] }
+            { no: 2, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
+            { no: 3, name: "usage", kind: "message", T: () => UsageStats }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextGenerateOutput>): LocalAppTextGenerateOutput {
@@ -15459,6 +15472,9 @@ class LocalAppTextGenerateOutput$Type extends MessageType<LocalAppTextGenerateOu
                 case /* nimi.runtime.v1.FinishReason finish_reason */ 2:
                     message.finishReason = reader.int32();
                     break;
+                case /* nimi.runtime.v1.UsageStats usage */ 3:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -15477,6 +15493,9 @@ class LocalAppTextGenerateOutput$Type extends MessageType<LocalAppTextGenerateOu
         /* nimi.runtime.v1.FinishReason finish_reason = 2; */
         if (message.finishReason !== 0)
             writer.tag(2, WireType.Varint).int32(message.finishReason);
+        /* nimi.runtime.v1.UsageStats usage = 3; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -17541,7 +17560,8 @@ export const LocalAppTextTurnReasoningSummary = new LocalAppTextTurnReasoningSum
 class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnCompleted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextTurnCompleted", [
-            { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] }
+            { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
+            { no: 2, name: "usage", kind: "message", T: () => UsageStats }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextTurnCompleted>): LocalAppTextTurnCompleted {
@@ -17559,6 +17579,9 @@ class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnComplet
                 case /* nimi.runtime.v1.FinishReason finish_reason */ 1:
                     message.finishReason = reader.int32();
                     break;
+                case /* nimi.runtime.v1.UsageStats usage */ 2:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -17574,6 +17597,9 @@ class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnComplet
         /* nimi.runtime.v1.FinishReason finish_reason = 1; */
         if (message.finishReason !== 0)
             writer.tag(1, WireType.Varint).int32(message.finishReason);
+        /* nimi.runtime.v1.UsageStats usage = 2; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

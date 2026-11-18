@@ -439,10 +439,10 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 	if reason, ok := grpcerr.ExtractReasonCode(continuityErr); !ok || reason != runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID {
 		t.Fatalf("reasoning continuity error = %v reason=%v present=%v", continuityErr, reason, ok)
 	}
-	if usage := localTextUsage(localexecution.TextResult{Text: "not measured"}, &runtimev1.TextGenerateScenarioSpec{}); usage != nil {
+	if usage := (localexecution.TextResult{Text: "not measured"}).MeasuredUsage(); usage != nil {
 		t.Fatalf("local execution synthesized usage: %+v", usage)
 	}
-	if usage := localTextUsage(localexecution.TextResult{ComputeMS: 7}, nil); usage == nil || usage.GetComputeMs() != 7 {
+	if usage := (localexecution.TextResult{ComputeMS: 7}).MeasuredUsage(); usage == nil || usage.GetComputeMs() != 7 {
 		t.Fatalf("local execution discarded measured compute usage: %+v", usage)
 	}
 }
@@ -668,7 +668,7 @@ func TestLocalTextStreamEmitsStartedDeltasAndRealUsage(t *testing.T) {
 	svc.SetLocalTextExecutionHost(&localTextHostStub{
 		streamDeltas: []localexecution.TextDelta{{Text: "hello from local stream"}},
 		result: localexecution.TextResult{
-			Text: "hello from local stream", InputTokens: 5, OutputTokens: 8, ComputeMS: 12,
+			Text: "hello from local stream", TokenUsage: &runtimev1.UsageStats{InputTokens: 5, OutputTokens: 8}, ComputeMS: 12,
 			FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 		},
 	})

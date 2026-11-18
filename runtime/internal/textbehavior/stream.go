@@ -51,7 +51,9 @@ func (delta OrderedDelta) HasPublicPayload() bool {
 type NormalizedResult struct {
 	Items []OrderedItem
 	// Usage may accompany an error; that does not authorize Items or completion.
-	Usage        *runtimev1.UsageStats
+	Usage *runtimev1.UsageStats
+	// Local engine timing is measured independently of aggregate token counts.
+	ComputeMS    int64
 	FinishReason runtimev1.FinishReason
 }
 

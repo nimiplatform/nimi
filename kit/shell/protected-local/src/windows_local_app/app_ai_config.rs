@@ -237,6 +237,16 @@ pub(super) fn project_effective_selection(
         "resource": resource,
         "reasons": selection.reasons,
     });
+    for (count, key, expected_route) in [
+        (selection.context_window_tokens, "contextWindowTokens", "local"),
+        (selection.request_capacity_floor_tokens, "requestCapacityFloorTokens", "cloud"),
+    ] {
+        if let Some(capacity) = count {
+            if capability_contract != "text.generate" || state != "ready" || capacity == 0 || capacity > 9_007_199_254_740_991
+                || projected["resource"]["oneofKind"] != expected_route { return Err(untrusted()); }
+            projected[key] = json!(capacity);
+        }
+    }
     if let Some(replay) = selection.text_replay {
         if capability_contract != "text.generate"
             || state != "ready"
@@ -920,6 +930,31 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn context_window_needs_a_ready_text_selection_and_exact_token_count() {
+        let mut selection = AiConfigEffectiveSelection {
+            capability_contract: "text.generate".into(),
+            state: AiConfigEffectiveState::Ready as i32, ..Default::default()
+        };
+        assert!(project_effective_selection(selection.clone()).unwrap().get("contextWindowTokens").is_none());
+        selection.context_window_tokens = Some(32768);
+        assert!(project_effective_selection(selection.clone()).is_err());
+        selection.resource = Some(ai_config_effective_selection::Resource::Local(AiConfigLocalResourceProjection {
+            loadout_ref: "test-loadout".into(), label: "Test".into(), capability_contract: "text.generate".into(),
+            state: AiConfigEffectiveState::Ready as i32,
+            implementation: Some(CapabilityImplementationIdentity { implementation_id: "test".into(), driver_id: "test".into(), driver_dialect: "test".into() }),
+            ..Default::default()
+        }));
+        assert_eq!(project_effective_selection(selection.clone()).unwrap()["contextWindowTokens"], 32768);
+        selection.state = AiConfigEffectiveState::Blocked as i32;
+        assert!(project_effective_selection(selection.clone()).is_err());
+        selection.state = AiConfigEffectiveState::Ready as i32;
+        for capacity in [0, 9_007_199_254_740_992] {
+            selection.context_window_tokens = Some(capacity);
+            assert!(project_effective_selection(selection.clone()).is_err());
+        }
+    }
 
     #[test]
     fn text_replay_projection_is_exact_and_owner_free() {

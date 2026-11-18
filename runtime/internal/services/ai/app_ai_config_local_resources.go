@@ -140,6 +140,9 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 		// Configuration reads project current identity. They must not enter Job
 		// admission and hash model payloads while holding inventory locks.
 		if identity := option.TextBehaviorIdentity; capability.GetCapabilityContract() == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY && identity != nil {
+			if option.ContextWindowTokens > 0 {
+				selection.ContextWindowTokens = proto.Uint64(option.ContextWindowTokens)
+			}
 			facts, factsErr := localTextBehaviorIdentityFacts(option.Implementation, identity.RecipeCustody, identity.PortableConfig, identity.Match)
 			if factsErr == nil {
 				selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
@@ -231,6 +234,12 @@ func (s *Service) projectCloudEffectiveSelection(
 		selection.GetCloud().GetTarget().Reasons = append([]string(nil), selection.Reasons...)
 		selection.TextReplay = nil
 		selection.ReasoningInput = nil
+	}
+	if capabilityContract == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+		metadata, err := s.speechCatalog.ResolveTextContextMetadataForSubject(accountNamespace, binding.Provider, binding.ProviderModelID)
+		if err == nil && metadata.ContextWindowTokens > 0 {
+			selection.RequestCapacityFloorTokens = proto.Uint64(metadata.ContextWindowTokens)
+		}
 	}
 	return selection
 }

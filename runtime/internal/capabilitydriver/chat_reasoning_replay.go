@@ -49,6 +49,10 @@ func parseReasoningChatResponse(payload []byte, spec *runtimev1.TextGenerateScen
 }
 
 func parseReasoningChatResponseWithPolicy(payload []byte, spec *runtimev1.TextGenerateScenarioSpec, kind string, requireToolReasoning bool) (textbehavior.NormalizedResult, error) {
+	return parseReasoningChatResponseWithToolValidator(payload, spec, kind, requireToolReasoning, textbehavior.ValidateToolArguments)
+}
+
+func parseReasoningChatResponseWithToolValidator(payload []byte, spec *runtimev1.TextGenerateScenarioSpec, kind string, requireToolReasoning bool, validate textbehavior.ToolArgumentsValidator) (textbehavior.NormalizedResult, error) {
 	if !utf8.Valid(payload) {
 		return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
 	}
@@ -71,7 +75,7 @@ func parseReasoningChatResponseWithPolicy(payload []byte, spec *runtimev1.TextGe
 	}
 	var result textbehavior.NormalizedResult
 	if len(spec.GetTools()) > 0 {
-		result, err = parseDeepseekToolResponse(clean, spec)
+		result, err = parseChatToolResponse(clean, spec, validate)
 	} else {
 		result, err = parseChatTextResponse(clean, spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT)
 	}
@@ -98,9 +102,13 @@ type reasoningChatStream struct {
 }
 
 func newReasoningChatStream(spec *runtimev1.TextGenerateScenarioSpec, kind string) textbehavior.StreamFragmentAssembler {
+	return newReasoningChatStreamWithToolValidator(spec, kind, textbehavior.ValidateToolArguments)
+}
+
+func newReasoningChatStreamWithToolValidator(spec *runtimev1.TextGenerateScenarioSpec, kind string, validate textbehavior.ToolArgumentsValidator) textbehavior.StreamFragmentAssembler {
 	var inner textbehavior.StreamFragmentAssembler
 	if len(spec.GetTools()) > 0 {
-		inner = newDeepseekToolStream(spec)
+		inner = newChatToolStream(spec, validate)
 	} else {
 		inner = &deepseekJSONStream{plainText: spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}
 	}

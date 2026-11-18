@@ -1304,6 +1304,49 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ completed: false, event });
   });
 
+  it('preserves missing and reported text usage through native Host validation', async () => {
+    for (const usage of [undefined, { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, { promptTokens: 7, completionTokens: 2, totalTokens: 9 }]) {
+      const output = { type: 'text-generate', items: [{ type: 'text', text: 'Answer.' }], finishReason: 'stop', ...(usage ? { usage } : {}) };
+      const event = { type: 'completed', sequence: '1', traceId: 'trace-usage', finishReason: 'stop', ...(usage ? { usage } : {}) };
+      const host = createNimiElectronLocalAppHostForBinding({
+        ...binding([]),
+        localAppScenarioExecute: async () => ({ status: 'ok' as const, value: { output, traceId: 'trace-usage' } }),
+        localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      });
+      await expect(host.scenarioExecute({ spec: {} })).resolves.toEqual({ output, traceId: 'trace-usage' });
+      await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+      await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).resolves.toEqual({ completed: false, event });
+    }
+  });
+
+  it('rejects invalid aggregate counts at the native Host boundary', async () => {
+    for (const usage of [{ promptTokens: -1, completionTokens: 2, totalTokens: 1 }, { promptTokens: 7, completionTokens: 2, totalTokens: 0 }]) {
+      const event = { type: 'completed', sequence: '1', traceId: 'trace-usage', finishReason: 'stop', usage };
+      const host = createNimiElectronLocalAppHostForBinding({
+        ...binding([]),
+        localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      });
+      await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+      await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).rejects.toThrow('runtime-service-untrusted');
+    }
+  });
+
+  it.each([['caller-may-resubmit', true], ['outcome-uncertain', true], [['outcome-uncertain'], false]])('validates the interrupted model disposition %j', async (resubmitDisposition, accepted) => {
+    const event = { type: 'failed', sequence: '1', traceId: 'trace-interrupted', reasonCode: 'ai-execution-interrupted', actionHint: 'review_result',
+      interruption: { cause: 'runtime-restart', resubmitDisposition } };
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+    });
+    await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+    const next = host.textTurnStreamNext({ streamId: 'text-turn-1' });
+    if (accepted) {
+      await expect(next).resolves.toEqual({ completed: false, event });
+    } else {
+      await expect(next).rejects.toThrow('runtime-service-untrusted');
+    }
+  });
+
   it('projects function-tool text output and stream items without treating business JSON as authority', async () => {
     const toolCall = { id: 'call-1', name: 'search', arguments: { token: 'business data' } };
     const output = { type: 'text-generate', items: [{ type: 'tool-call', toolCall }], finishReason: 'tool-calls' };

@@ -4860,6 +4860,8 @@ pub struct AIConfigEffectiveSelection {
     pub cloud: Option<Box<AIConfigCloudResourceProjection>>,
     pub text_replay: Option<Box<TextReplayCompatibility>>,
     pub reasoning_input: Option<Box<ReasoningInputCapabilities>>,
+    pub context_window_tokens: Option<u64>,
+    pub request_capacity_floor_tokens: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11670,11 +11672,13 @@ pub struct LocalAppTextEmbedScenarioSpec {
 pub struct LocalAppTextGenerateOutput {
     pub items: Vec<Box<TextOutputItem>>,
     pub finish_reason: Option<FinishReason>,
+    pub usage: Option<Box<UsageStats>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextTurnCompleted {
     pub finish_reason: Option<FinishReason>,
+    pub usage: Option<Box<UsageStats>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

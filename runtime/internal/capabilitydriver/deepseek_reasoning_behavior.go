@@ -137,16 +137,17 @@ func (p DeepseekTextBehavior) PlanMaterialization(ctx context.Context, spec *run
 	return prepared, budget, err
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 func (p DeepseekTextBehavior) Parse(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
 	thinking, _, err := p.validate(spec)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	if thinking {
-		return parseReasoningChatResponse(payload, spec, p.ContinuityKind())
+		return parseReasoningChatResponseWithToolValidator(payload, spec, p.ContinuityKind(), true, textbehavior.ValidateToolProposalArguments)
 	}
 	if len(spec.GetTools()) > 0 {
-		return parseDeepseekToolResponse(payload, spec)
+		return parseChatToolResponse(payload, spec, textbehavior.ValidateToolProposalArguments)
 	}
 	return parseChatTextResponse(payload, spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT)
 }
@@ -157,10 +158,10 @@ func (p DeepseekTextBehavior) Stream(spec *runtimev1.TextGenerateScenarioSpec) (
 		return nil, err
 	}
 	if thinking {
-		return newReasoningChatStream(spec, p.ContinuityKind()), nil
+		return newReasoningChatStreamWithToolValidator(spec, p.ContinuityKind(), textbehavior.ValidateToolProposalArguments), nil
 	}
 	if len(spec.GetTools()) > 0 {
-		return newDeepseekToolStream(spec), nil
+		return newChatToolStream(spec, textbehavior.ValidateToolProposalArguments), nil
 	}
 	return &deepseekJSONStream{plainText: spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}, nil
 }

@@ -350,7 +350,7 @@ export type NimiLocalAppTextDecideResult = {
 };
 
 export type NimiLocalAppScenarioExecuteResult =
-  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter'; readonly usage?: NimiUsage }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: NimiUsage }; readonly traceId: string }
   | NimiLocalAppTextDecideResult;
 
@@ -406,7 +406,7 @@ export type NimiLocalAppTextTurnEvent =
   | { readonly type: 'reasoning-continuity'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string; readonly itemIndex: number }
   | { readonly type: 'tool-call'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly toolCall: NimiLocalAppToolCall }
-  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }
+  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter'; readonly usage?: NimiUsage }
   | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string; readonly interruption?: NimiLocalAppExecutionInterruption };
 
 export type NimiLocalAppScenarioJobEvent = {
@@ -1446,9 +1446,9 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
     return Object.freeze({ ...base, type: 'reasoning-continuity', itemIndex: projectionInteger(record.itemIndex, 'continuity item index', 0, 4_294_967_295), carrier: projectLocalAppContinuity(record.carrier) });
   }
   if (record.type === 'completed') {
-    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], 'text-turn completed');
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason', ...(record.usage !== undefined ? ['usage'] : [])], 'text-turn completed');
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) localAppProjectionError('text-turn finishReason');
-    return Object.freeze({ ...base, type: 'completed', finishReason: record.finishReason }) as NimiLocalAppTextTurnEvent;
+    return Object.freeze({ ...base, type: 'completed', finishReason: record.finishReason, ...(record.usage === undefined ? {} : { usage: projectTokenUsage(record.usage) }) }) as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], 'text-turn failed');
@@ -1472,11 +1472,11 @@ function projectScenarioExecute(
     return Object.freeze({ output: validateNimiLocalAppTextDecideOutput(output, decide), traceId });
   }
   if (output.type === 'text-generate') {
-    assertExactProjectionKeys(output, ['type', 'items', 'finishReason'], 'text generate output');
+    assertExactProjectionKeys(output, ['type', 'items', 'finishReason', ...(output.usage !== undefined ? ['usage'] : [])], 'text generate output');
     const items = projectLocalAppTextItems(output.items);
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))
       || (output.finishReason === 'tool-calls' && !items.some((item) => item.type === 'tool-call'))) localAppProjectionError('text finish reason');
-    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items, finishReason: output.finishReason }), traceId }) as NimiLocalAppScenarioExecuteResult;
+    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items, finishReason: output.finishReason, ...(output.usage === undefined ? {} : { usage: projectTokenUsage(output.usage) }) }), traceId }) as NimiLocalAppScenarioExecuteResult;
   }
   assertSafeProjection(record);
   if (output.type === 'text-embed') {
@@ -1488,7 +1488,7 @@ function projectScenarioExecute(
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) localAppProjectionError('text embed vector');
       return Object.freeze([...vector] as number[]);
     });
-    const usage = output.usage === undefined ? undefined : projectEmbeddingUsage(output.usage);
+    const usage = output.usage === undefined ? undefined : projectTokenUsage(output.usage);
     return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId, ...(usage ? { usage } : {}) }), traceId });
   }
   return localAppProjectionError('scenario execute output type');
@@ -1895,13 +1895,20 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   };
 }
 
-function projectEmbeddingUsage(value: unknown): NimiUsage {
+function runtimeTokenUsage(usage: { readonly inputTokens: string; readonly outputTokens: string }): NimiUsage {
+  return {
+    promptTokens: Number(usage.inputTokens), completionTokens: Number(usage.outputTokens),
+    totalTokens: Number(usage.inputTokens) + Number(usage.outputTokens),
+  };
+}
+
+function projectTokenUsage(value: unknown): NimiUsage {
   const usage = asRecord(value);
-  assertExactProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], 'embedding usage');
-  const promptTokens = projectionInteger(usage.promptTokens, 'embedding prompt tokens', 0, Number.MAX_SAFE_INTEGER);
-  const completionTokens = projectionInteger(usage.completionTokens, 'embedding completion tokens', 0, Number.MAX_SAFE_INTEGER);
-  const totalTokens = projectionInteger(usage.totalTokens, 'embedding total tokens', 0, Number.MAX_SAFE_INTEGER);
-  if (totalTokens !== promptTokens + completionTokens) localAppProjectionError('embedding total tokens');
+  assertExactProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], 'token usage');
+  const promptTokens = projectionInteger(usage.promptTokens, 'prompt tokens', 0, Number.MAX_SAFE_INTEGER);
+  const completionTokens = projectionInteger(usage.completionTokens, 'completion tokens', 0, Number.MAX_SAFE_INTEGER);
+  const totalTokens = projectionInteger(usage.totalTokens, 'total tokens', 0, Number.MAX_SAFE_INTEGER);
+  if (totalTokens !== promptTokens + completionTokens) localAppProjectionError('total tokens');
   return Object.freeze({ promptTokens, completionTokens, totalTokens });
 }
 
@@ -2158,6 +2165,7 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
         ...base,
         type: 'completed',
         finishReason: runtimeFinishReason(event.payload.completed.finishReason),
+        ...(event.payload.completed.usage ? { usage: runtimeTokenUsage(event.payload.completed.usage) } : {}),
       };
     case 'failed':
       return {
@@ -2175,18 +2183,14 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
 function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenarioResponse): unknown {
   switch (response.output.oneofKind) {
     case 'textGenerate':
-      return { output: { type: 'text-generate', items: toNimiTextOutputItems(response.output.textGenerate.items).map(modelTextOutputToLocalApp), finishReason: runtimeFinishReason(response.output.textGenerate.finishReason) }, traceId: response.traceId };
+      return { output: { type: 'text-generate', items: toNimiTextOutputItems(response.output.textGenerate.items).map(modelTextOutputToLocalApp), finishReason: runtimeFinishReason(response.output.textGenerate.finishReason), ...(response.output.textGenerate.usage ? { usage: runtimeTokenUsage(response.output.textGenerate.usage) } : {}) }, traceId: response.traceId };
     case 'textEmbed':
       return {
         output: {
           type: 'text-embed',
           vectors: response.output.textEmbed.vectors.map((vector) => [...vector.values]),
           spaceId: response.output.textEmbed.spaceId,
-          ...(response.output.textEmbed.usage ? { usage: {
-            promptTokens: Number(response.output.textEmbed.usage.inputTokens),
-            completionTokens: Number(response.output.textEmbed.usage.outputTokens),
-            totalTokens: Number(response.output.textEmbed.usage.inputTokens) + Number(response.output.textEmbed.usage.outputTokens),
-          } } : {}),
+          ...(response.output.textEmbed.usage ? { usage: runtimeTokenUsage(response.output.textEmbed.usage) } : {}),
         },
         traceId: response.traceId,
       };

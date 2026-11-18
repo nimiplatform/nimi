@@ -229,7 +229,7 @@ func TestTextRiskOutputOwners(t *testing.T) {
 				}
 				s.SetRemoteTextExecutionHost(riskRemoteHost{fn: fn})
 				s.SetLocalTextExecutionHost(&localTextHostStub{
-					result: localexecution.TextResult{Text: token, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, InputTokens: 4, OutputTokens: 7},
+					result: localexecution.TextResult{Text: token, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, TokenUsage: &runtimev1.UsageStats{InputTokens: 4, OutputTokens: 7}},
 					streamFn: func(c context.Context, emit func(localexecution.TextDelta) error) (localexecution.TextResult, error) {
 						r, e := fn(c, func(d textbehavior.OrderedDelta) error {
 							if mode == "tool" || mode == "empty-completion" || mode == "normal" {
@@ -240,7 +240,7 @@ func TestTextRiskOutputOwners(t *testing.T) {
 						if e != nil {
 							return localexecution.TextResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: e}
 						}
-						return localexecution.TextResult{Text: text, Items: r.Items, FinishReason: r.FinishReason, InputTokens: r.Usage.GetInputTokens(), OutputTokens: r.Usage.GetOutputTokens()}, nil
+						return localexecution.TextResult{Text: text, Items: r.Items, FinishReason: r.FinishReason, TokenUsage: r.Usage}, nil
 					},
 				})
 				if mode == "sync" {

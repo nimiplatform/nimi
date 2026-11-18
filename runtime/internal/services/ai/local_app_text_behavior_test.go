@@ -132,6 +132,14 @@ func TestLocalAppTextBehaviorAcceptsOrderedToolTranscript(t *testing.T) {
 	if spec.GetTools()[0] == request.GetTools()[0] {
 		t.Fatal("request tool was not captured")
 	}
+	// The host declined this invalid proposal. The model must still receive its
+	// feedback after the host removes the old tool from the current declaration.
+	request.Messages[2].TurnItems[0].GetOutput().GetToolCall().ArgumentsJson = "{}"
+	request.Messages[2].TurnItems[1].GetToolResult().IsError = true
+	request.Tools = nil
+	if _, err = localAppTextGenerateSpec(request); err != nil {
+		t.Fatalf("resolved history depended on the current tools: %v", err)
+	}
 	request.Messages[2].TurnItems[1].GetToolResult().ToolCallId = "unknown"
 	_, err = localAppTextGenerateSpec(request)
 	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_TOOL_CALL_INVALID)
@@ -216,7 +224,7 @@ func TestLocalAppTextBehaviorRejectsInvalidOutputCallsAndChoice(t *testing.T) {
 	for name, mutate := range map[string]func(*runtimev1.ToolCall){
 		"unknown tool":         func(c *runtimev1.ToolCall) { c.Name = "other" },
 		"incomplete arguments": func(c *runtimev1.ToolCall) { c.ArgumentsJson = `{"query":` },
-		"wrong schema":         func(c *runtimev1.ToolCall) { c.ArgumentsJson = `{"query":7}` },
+		"non-object arguments": func(c *runtimev1.ToolCall) { c.ArgumentsJson = `[]` },
 	} {
 		t.Run(name, func(t *testing.T) {
 			call := localAppLookupCall()
@@ -228,6 +236,23 @@ func TestLocalAppTextBehaviorRejectsInvalidOutputCallsAndChoice(t *testing.T) {
 	}
 	_, err := projectLocalAppTextOutput(canonicalTextGenerateOutput("ignored tool choice", nil), runtimev1.FinishReason_FINISH_REASON_STOP, &runtimev1.TextGenerateScenarioSpec{Tools: []*runtimev1.ToolSpec{tool}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED})
 	assertLocalAppTextCandidateError(t, err, codes.Internal, runtimev1.ReasonCode_AI_TOOL_CALL_INVALID)
+}
+
+func TestLocalAppTextBehaviorProjectsSchemaInvalidProposal(t *testing.T) {
+	tool := localAppLookupTool(t)
+	call := localAppLookupCall()
+	call.ArgumentsJson = `{"query":7}`
+	sink := &mockLocalAppTextTurnStream{ctx: context.Background()}
+	bridge := &localAppTextTurnStreamBridge{
+		ServerStreamingServer: sink,
+		tools:                 map[string]*runtimev1.ToolSpec{tool.GetName(): tool},
+	}
+	if err := bridge.Send(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: toolCallOutputDelta(0, call)}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(sink.events) != 1 || !proto.Equal(sink.events[0].GetToolCall().GetToolCall(), call) {
+		t.Fatalf("proposal was lost or changed: %v", sink.events)
+	}
 }
 
 func TestExecuteLocalAppTextScenarioUsesAppAIConfig(t *testing.T) {

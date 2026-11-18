@@ -2338,7 +2338,7 @@ async function invokeScenarioExecute(
     return Object.freeze({ output: decision as NimiElectronLocalAppJson, traceId });
   }
   if (output.type === 'text-generate') {
-    if (!hasExactKeys(output, ['type', 'items', 'finishReason']) || !Array.isArray(output.items)
+    if (!hasExactKeys(output, ['type', 'items', 'finishReason', ...(output.usage !== undefined ? ['usage'] : [])]) || !Array.isArray(output.items)
       || output.items.length === 0 || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw untrustedRuntimeError();
     const ids = new Set<string>();
     const items = output.items.map((item) => {
@@ -2356,7 +2356,7 @@ async function invokeScenarioExecute(
       return Object.freeze({ type: 'tool-call', toolCall });
     });
     if (!items.some((item) => item.type === 'text' || item.type === 'tool-call') || (output.finishReason === 'tool-calls' && ids.size === 0)) throw untrustedRuntimeError();
-    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
+    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason), ...(output.usage === undefined ? {} : { usage: validateTokenUsage(output.usage) }) }), traceId });
   }
   if (output.type === 'text-embed') {
     if (!hasExactKeys(output, ['type', 'vectors', 'spaceId', ...(output.usage !== undefined ? ['usage'] : [])]) || !Array.isArray(output.vectors)
@@ -2369,15 +2369,7 @@ async function invokeScenarioExecute(
       }
       return Object.freeze([...vector]);
     });
-    let usage;
-    if (output.usage !== undefined) {
-      if (!isPlainRecord(output.usage) || !hasExactKeys(output.usage, ['promptTokens', 'completionTokens', 'totalTokens'])) throw untrustedRuntimeError();
-      const { promptTokens, completionTokens, totalTokens } = output.usage;
-      if (typeof promptTokens !== 'number' || typeof completionTokens !== 'number' || typeof totalTokens !== 'number'
-        || [promptTokens, completionTokens, totalTokens].some((value) => !Number.isSafeInteger(value) || value < 0)
-        || totalTokens !== promptTokens + completionTokens) throw untrustedRuntimeError();
-      usage = Object.freeze({ promptTokens, completionTokens, totalTokens });
-    }
+    const usage = output.usage === undefined ? undefined : validateTokenUsage(output.usage);
     return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId, ...(usage ? { usage } : {}) }), traceId });
   }
   if (output.type === 'image-generate') {
@@ -2797,21 +2789,32 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
       itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), carrier: validateTextContinuity(value.carrier) });
   }
   if (value.type === 'completed') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason'])
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason', ...(value.usage !== undefined ? ['usage'] : [])])
       || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
-    return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason) });
+    return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason), ...(value.usage === undefined ? {} : { usage: validateTokenUsage(value.usage) }) });
   }
   if (value.type === 'failed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : [])])) throw untrustedRuntimeError();
     const interruption = value.interruption == null ? undefined : value.interruption;
     if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted')) throw untrustedRuntimeError();
     if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
-      || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
+      || interruption.cause !== 'runtime-restart'
+      || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain'))) throw untrustedRuntimeError();
     return Object.freeze({ type: 'failed', sequence: value.sequence, traceId,
       reasonCode: boundedExactText(value.reasonCode, 128, false),
       actionHint: boundedExactText(value.actionHint, 512, true), ...(interruption ? { interruption: interruption as NimiElectronLocalAppRecord } : {}) });
   }
   throw untrustedRuntimeError();
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+function validateTokenUsage(value: unknown) {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['promptTokens', 'completionTokens', 'totalTokens'])) throw untrustedRuntimeError();
+  const { promptTokens, completionTokens, totalTokens } = value;
+  if (typeof promptTokens !== 'number' || typeof completionTokens !== 'number' || typeof totalTokens !== 'number'
+    || [promptTokens, completionTokens, totalTokens].some((count) => !Number.isSafeInteger(count) || count < 0)
+    || totalTokens !== promptTokens + completionTokens) throw untrustedRuntimeError();
+  return Object.freeze({ promptTokens, completionTokens, totalTokens });
 }
 
 function validateTextToolCall(value: unknown): NimiElectronLocalAppRecord {

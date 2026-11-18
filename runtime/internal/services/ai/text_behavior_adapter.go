@@ -867,6 +867,7 @@ func validateTextBehaviorToolRequestShape(spec *runtimev1.TextGenerateScenarioSp
 // @nimi-authority: rule.nimi.runtime.ai-provider.r119
 func validateTextBehaviorToolTranscript(spec *runtimev1.TextGenerateScenarioSpec, declared map[string]struct{}) error {
 	priorCalls := map[string]string{}
+	resolved := map[string]bool{}
 	for _, message := range spec.GetInput() {
 		for _, item := range message.GetTurnItems() {
 			if item == nil {
@@ -874,9 +875,6 @@ func validateTextBehaviorToolTranscript(spec *runtimev1.TextGenerateScenarioSpec
 			}
 			if call := item.GetOutput().GetToolCall(); call != nil {
 				if !exactNonEmptyTextBehaviorValue(call.GetId()) || !exactNonEmptyTextBehaviorValue(call.GetName()) {
-					return invalidTextBehaviorToolTranscriptError()
-				}
-				if _, ok := declared[call.GetName()]; !ok {
 					return invalidTextBehaviorToolTranscriptError()
 				}
 				if _, duplicate := priorCalls[call.GetId()]; duplicate {
@@ -891,10 +889,16 @@ func validateTextBehaviorToolTranscript(spec *runtimev1.TextGenerateScenarioSpec
 			}
 			if result := item.GetToolResult(); result != nil {
 				if !exactNonEmptyTextBehaviorValue(result.GetToolCallId()) || !exactNonEmptyTextBehaviorValue(result.GetToolName()) ||
-					priorCalls[result.GetToolCallId()] != result.GetToolName() {
+					priorCalls[result.GetToolCallId()] != result.GetToolName() || resolved[result.GetToolCallId()] {
 					return invalidTextBehaviorToolTranscriptError()
 				}
+				resolved[result.GetToolCallId()] = true
 			}
+		}
+	}
+	for id, name := range priorCalls {
+		if _, active := declared[name]; !active && !resolved[id] {
+			return invalidTextBehaviorToolTranscriptError()
 		}
 	}
 	return nil

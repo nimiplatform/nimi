@@ -110,6 +110,11 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 				identity.Match.ModelAssetID = axis.slot.GetModelAssetId()
 				identity.Match.VerifiedContentID = axis.slot.GetExpectedContentId()
 				identity.Match.EntrySHA256 = axis.entrySHA256
+				if driver, ok := validation.driver.(capabilitydriver.TextInvocationDriver); ok {
+					if capacity, err := driver.TextContextWindow(identity.PortableConfig, axis.contextWindow); err == nil {
+						option.ContextWindowTokens = capacity
+					}
+				}
 				identity.Match.TemplateIdentity = axis.templateIdentity
 				break
 			}

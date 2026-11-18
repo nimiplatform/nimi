@@ -2501,13 +2501,15 @@ type AIConfigCloudTargetProjection struct {
 }
 
 type AIConfigEffectiveSelection struct {
-	CapabilityContract string                           `json:"capability_contract,omitempty"`
-	State              AIConfigEffectiveState           `json:"state,omitempty"`
-	Local              *AIConfigLocalResourceProjection `json:"local,omitempty"`
-	Reasons            []string                         `json:"reasons,omitempty"`
-	Cloud              *AIConfigCloudResourceProjection `json:"cloud,omitempty"`
-	TextReplay         *TextReplayCompatibility         `json:"text_replay,omitempty"`
-	ReasoningInput     *ReasoningInputCapabilities      `json:"reasoning_input,omitempty"`
+	CapabilityContract         string                           `json:"capability_contract,omitempty"`
+	State                      AIConfigEffectiveState           `json:"state,omitempty"`
+	Local                      *AIConfigLocalResourceProjection `json:"local,omitempty"`
+	Reasons                    []string                         `json:"reasons,omitempty"`
+	Cloud                      *AIConfigCloudResourceProjection `json:"cloud,omitempty"`
+	TextReplay                 *TextReplayCompatibility         `json:"text_replay,omitempty"`
+	ReasoningInput             *ReasoningInputCapabilities      `json:"reasoning_input,omitempty"`
+	ContextWindowTokens        *uint64                          `json:"context_window_tokens,omitempty"`
+	RequestCapacityFloorTokens *uint64                          `json:"request_capacity_floor_tokens,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -7114,10 +7116,12 @@ type LocalAppTextEmbedScenarioSpec struct {
 type LocalAppTextGenerateOutput struct {
 	Items        []TextOutputItem `json:"items,omitempty"`
 	FinishReason FinishReason     `json:"finish_reason,omitempty"`
+	Usage        *UsageStats      `json:"usage,omitempty"`
 }
 
 type LocalAppTextTurnCompleted struct {
 	FinishReason FinishReason `json:"finish_reason,omitempty"`
+	Usage        *UsageStats  `json:"usage,omitempty"`
 }
 
 type LocalAppTextTurnContinuity struct {

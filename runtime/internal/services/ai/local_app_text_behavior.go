@@ -90,7 +90,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 				return nil, localAppTextInputInvalid()
 			}
 			for _, item := range items {
-				if err := validateLocalAppTextTurnItem(item, declared); err != nil {
+				if err := validateLocalAppTextTurnItem(item); err != nil {
 					return nil, err
 				}
 				hasContext = hasContext || item.GetToolResult() != nil || item.GetOutput().GetToolCall() != nil || strings.TrimSpace(item.GetOutput().GetText().GetText()) != ""
@@ -200,7 +200,7 @@ func validateLocalAppTextParts(parts []*runtimev1.ChatContentPart) error {
 	return nil
 }
 
-func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem, tools map[string]*runtimev1.ToolSpec) error {
+func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem) error {
 	if item == nil {
 		return localAppTextInputInvalid()
 	}
@@ -212,7 +212,11 @@ func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem, tools map[string
 			return nil
 		}
 		if call := output.GetToolCall(); call != nil {
-			return validateLocalAppTextToolCall(call, tools)
+			if call.GetDynamic() || call.GetProviderMetadata() != nil || !localAppBoundedIdentifier(call.GetId()) ||
+				!localAppBoundedIdentifier(call.GetName()) {
+				return invalidTextBehaviorToolTranscriptError()
+			}
+			return nil // The shared transcript validator checks arguments and associations.
 		}
 		if textbehavior.ValidContinuity(output.GetReasoningContinuity()) {
 			return nil
@@ -231,7 +235,7 @@ func validateLocalAppTextToolCall(call *runtimev1.ToolCall, tools map[string]*ru
 		call.GetDynamic() || call.GetProviderMetadata() != nil || tools[call.GetName()] == nil {
 		return invalidTextBehaviorToolTranscriptError()
 	}
-	if err := textbehavior.ValidateToolArguments(tools[call.GetName()], call.GetArgumentsJson()); err != nil {
+	if err := textbehavior.ValidateToolProposalArguments(tools[call.GetName()], call.GetArgumentsJson()); err != nil {
 		return invalidTextBehaviorToolTranscriptError()
 	}
 	return nil

@@ -1367,6 +1367,8 @@ message LocalAppTextGenerateOutput {
   // Only text and function ToolCall items are admitted at this App boundary.
   repeated TextOutputItem items = 1;
   FinishReason finish_reason = 2;
+  // Reported aggregate token counts. Absence means unknown, including zero.
+  UsageStats usage = 3;
 }
 
 message ExecuteLocalAppScenarioResponse {
@@ -1639,6 +1641,8 @@ message LocalAppTextTurnReasoningSummary {
 
 message LocalAppTextTurnCompleted {
   FinishReason finish_reason = 1;
+  // Reported aggregate token counts. Absence means unknown, including zero.
+  UsageStats usage = 2;
 }
 
 message LocalAppTextTurnFailed {

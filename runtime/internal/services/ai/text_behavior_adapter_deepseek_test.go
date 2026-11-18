@@ -22,7 +22,7 @@ func TestPositionedSystemRequiresAnExactModeAndCombination(t *testing.T) {
 			adapter, err := resolveTextBehaviorAdapter(registrations, identity, target.provider, target.model, mode, spec)
 			admitted := target.model == "deepseek-flash" && mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
 			if admitted {
-				if err != nil || adapter == nil || adapter.registration.Version != "5" {
+				if err != nil || adapter == nil || adapter.registration.Version != "6" {
 					t.Fatalf("admitted %v/%v: %v %v", target, mode, adapter, err)
 				}
 			} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
@@ -61,7 +61,7 @@ func TestDeepseekToolsResolveExactTargetsModesAndCombinations(t *testing.T) {
 					s.ToolChoiceName = s.Tools[0].Name
 				}
 				adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "deepseek", model, mode, s)
-				if err != nil || adapter == nil || adapter.registration.Version != "5" {
+				if err != nil || adapter == nil || adapter.registration.Version != "6" {
 					t.Fatalf("%s/%v/%v adapter=%+v err=%v", model, mode, choice, adapter, err)
 				}
 			}

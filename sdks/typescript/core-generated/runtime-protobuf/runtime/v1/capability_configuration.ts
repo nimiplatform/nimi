@@ -1466,6 +1466,18 @@ export interface AIConfigEffectiveSelection {
      * @generated from protobuf field: nimi.runtime.v1.ReasoningInputCapabilities reasoning_input = 7
      */
     reasoningInput?: ReasoningInputCapabilities;
+    /**
+     * Exact combined token window of the selected Local Driver and Loadout.
+     *
+     * @generated from protobuf field: optional uint64 context_window_tokens = 8
+     */
+    contextWindowTokens?: string;
+    /**
+     * Reviewed conservative request-capacity floor for an exact Cloud catalog row.
+     *
+     * @generated from protobuf field: optional uint64 request_capacity_floor_tokens = 9
+     */
+    requestCapacityFloorTokens?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ReasoningInputCapabilities
@@ -6137,7 +6149,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
             { no: 5, name: "cloud", kind: "message", oneof: "resource", T: () => AIConfigCloudResourceProjection },
             { no: 4, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "text_replay", kind: "message", T: () => TextReplayCompatibility },
-            { no: 7, name: "reasoning_input", kind: "message", T: () => ReasoningInputCapabilities }
+            { no: 7, name: "reasoning_input", kind: "message", T: () => ReasoningInputCapabilities },
+            { no: 8, name: "context_window_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 9, name: "request_capacity_floor_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<AIConfigEffectiveSelection>): AIConfigEffectiveSelection {
@@ -6182,6 +6196,12 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                 case /* nimi.runtime.v1.ReasoningInputCapabilities reasoning_input */ 7:
                     message.reasoningInput = ReasoningInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.reasoningInput);
                     break;
+                case /* optional uint64 context_window_tokens */ 8:
+                    message.contextWindowTokens = reader.uint64().toString();
+                    break;
+                case /* optional uint64 request_capacity_floor_tokens */ 9:
+                    message.requestCapacityFloorTokens = reader.uint64().toString();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6215,6 +6235,12 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* nimi.runtime.v1.ReasoningInputCapabilities reasoning_input = 7; */
         if (message.reasoningInput)
             ReasoningInputCapabilities.internalBinaryWrite(message.reasoningInput, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* optional uint64 context_window_tokens = 8; */
+        if (message.contextWindowTokens !== undefined)
+            writer.tag(8, WireType.Varint).uint64(message.contextWindowTokens);
+        /* optional uint64 request_capacity_floor_tokens = 9; */
+        if (message.requestCapacityFloorTokens !== undefined)
+            writer.tag(9, WireType.Varint).uint64(message.requestCapacityFloorTokens);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

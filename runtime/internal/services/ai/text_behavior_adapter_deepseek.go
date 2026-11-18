@@ -13,7 +13,7 @@ func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAda
 	}
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
 	registration := textBehaviorAdapterRegistration{
-		AdapterID: adapterID, Version: "5",
+		AdapterID: adapterID, Version: "6",
 		ImplementationID: "deepseek", DriverID: "nimillm", DriverDialect: "deepseek",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "deepseek", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
@@ -27,8 +27,8 @@ func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAda
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
 		RequestSerializerID: "deepseek/chat/request/v5", RequestSerializer: profile.Serialize, MaterializationPlanner: profile.PlanMaterialization,
-		NonStreamParserID: "deepseek/chat/response/v5", NonStreamParser: profile.Parse,
-		StreamAssemblerID: "deepseek/chat/stream/v5", StreamAssembler: profile.Stream,
+		NonStreamParserID: "deepseek/chat/response/v6", NonStreamParser: profile.Parse,
+		StreamAssemblerID: "deepseek/chat/stream/v6", StreamAssembler: profile.Stream,
 	}
 	for _, reasoning := range []bool{false, true} {
 		for _, ordered := range []bool{false, true} {

@@ -470,9 +470,54 @@ func TestExecutionHostStreamsSSEDeltasAndUsage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("StreamText: %v", err)
 	}
-	if strings.Join(deltas, "") != "hello" || result.Text != "hello" || result.InputTokens != 4 || result.OutputTokens != 2 ||
+	if strings.Join(deltas, "") != "hello" || result.Text != "hello" || result.TokenUsage.GetInputTokens() != 4 || result.TokenUsage.GetOutputTokens() != 2 ||
 		result.ComputeMS != 15 || result.FinishReason != runtimev1.FinishReason_FINISH_REASON_LENGTH {
 		t.Fatalf("stream deltas=%v result=%+v", deltas, result)
+	}
+}
+
+func TestLlamaTextResponsesPreserveAggregateTokenPresence(t *testing.T) {
+	for _, tc := range []struct {
+		name, fields string
+		reported     bool
+		computeMS    int64
+	}{
+		{name: "timing-only", fields: `"timings":{"prompt_ms":6.5,"predicted_ms":2}`, computeMS: 8},
+		{name: "missing-output", fields: `"usage":{"prompt_tokens":7}`},
+		{name: "explicit-zero", fields: `"usage":{"prompt_tokens":0,"completion_tokens":0}`, reported: true},
+		{name: "zero-derived-from-total", fields: `"usage":{"prompt_tokens":0,"total_tokens":0}`, reported: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := func(result localexecution.TextResult, err error) {
+				t.Helper()
+				if err != nil || result.Text != "hello" || (result.TokenUsage != nil) != tc.reported ||
+					result.TokenUsage.GetInputTokens() != 0 || result.TokenUsage.GetOutputTokens() != 0 || result.ComputeMS != tc.computeMS {
+					t.Fatalf("result = %+v, err = %v", result, err)
+				}
+			}
+			host := &ExecutionHost{}
+			ctx := context.Background()
+			unary := `{"choices":[{"message":{"content":"hello"},"finish_reason":"stop"}],` + tc.fields + `}`
+			terminal := `{"choices":[{"delta":{"content":"hello"},"finish_reason":"stop"}]}`
+			tail := `{"choices":[],` + tc.fields + `}`
+			assert(host.consumeResponse(ctx, strings.NewReader(unary)))
+			assert(host.consumeStream(ctx, strings.NewReader("data: "+terminal+"\n\ndata: "+tail+"\n\ndata: [DONE]\n"), func(localexecution.TextDelta) error { return nil }))
+
+			spec := &runtimev1.TextGenerateScenarioSpec{}
+			result, err := capabilitydriver.Gemma4TextBehaviorNonStreamParser([]byte(unary), spec)
+			assert(textBehaviorExecutionResult(result), err)
+			stream, err := capabilitydriver.Gemma4TextBehaviorStreamAssembler(spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, chunk := range []string{terminal, tail} {
+				if _, err := stream.Append([]byte(chunk)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			result, err = stream.Finish()
+			assert(textBehaviorExecutionResult(result), err)
+		})
 	}
 }
 
@@ -517,7 +562,7 @@ func (assembler *syntheticTextBehaviorStreamAssembler) Finish() (textbehavior.No
 	}
 	return textbehavior.NormalizedResult{
 		Items: items, FinishReason: runtimev1.FinishReason_FINISH_REASON_TOOL_CALL,
-		Usage: &runtimev1.UsageStats{InputTokens: 7, OutputTokens: 5, ComputeMs: 11},
+		Usage: &runtimev1.UsageStats{InputTokens: 7, OutputTokens: 5}, ComputeMS: 11,
 	}, nil
 }
 
@@ -574,7 +619,7 @@ func TestExecutionHostRunsResolvedTextBehaviorHooksAndOrderedOutput(t *testing.T
 	}
 	if len(deltas) != 5 || deltas[0].Kind != textbehavior.OrderedItemReasoningSummary || deltas[1].ItemCompleted != true ||
 		deltas[2].ToolCall.GetId() != "call-1" || deltas[3].ToolCall.GetId() != "call-2" || deltas[4].Text != "done" ||
-		len(streamResult.Items) != 4 || streamResult.Text != "done" || streamResult.InputTokens != 7 || streamResult.OutputTokens != 5 {
+		len(streamResult.Items) != 4 || streamResult.Text != "done" || streamResult.TokenUsage.GetInputTokens() != 7 || streamResult.TokenUsage.GetOutputTokens() != 5 {
 		t.Fatalf("stream deltas=%+v result=%+v", deltas, streamResult)
 	}
 }
@@ -1017,7 +1062,8 @@ func syntheticExecutionTextBehaviorAdapter(t *testing.T) *textbehavior.Adapter {
 				{Kind: textbehavior.OrderedItemText, Text: "done"},
 			},
 			FinishReason: runtimev1.FinishReason_FINISH_REASON_TOOL_CALL,
-			Usage:        &runtimev1.UsageStats{InputTokens: 3, OutputTokens: 2, ComputeMs: 5},
+			Usage:        &runtimev1.UsageStats{InputTokens: 3, OutputTokens: 2},
+			ComputeMS:    5,
 		}, nil
 	}, func(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
 		return &syntheticTextBehaviorStreamAssembler{ordered: textbehavior.NewOrderedStreamAssembler(spec.GetTools(), nil)}, nil

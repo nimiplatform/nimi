@@ -198,7 +198,7 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 			return localAppTextOutputToolInvalid()
 		}
 		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Completed{
-			Completed: &runtimev1.LocalAppTextTurnCompleted{FinishReason: payload.Completed.GetFinishReason()},
+			Completed: &runtimev1.LocalAppTextTurnCompleted{FinishReason: payload.Completed.GetFinishReason(), Usage: localAppTextUsage(payload.Completed.GetUsage())},
 		}
 		b.terminal = true
 	case *runtimev1.StreamScenarioEvent_Failed:
@@ -224,6 +224,15 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 	b.sequence++
 	out.Sequence = b.sequence
 	return b.ServerStreamingServer.Send(out)
+}
+
+// Aggregate counts are available only when the Driver returned usage. Runtime
+// timing and unreported cache/reasoning breakdowns stay outside this projection.
+func localAppTextUsage(usage *runtimev1.UsageStats) *runtimev1.UsageStats {
+	if usage == nil {
+		return nil
+	}
+	return &runtimev1.UsageStats{InputTokens: usage.GetInputTokens(), OutputTokens: usage.GetOutputTokens()}
 }
 
 func invalidLocalAppTextTurnScalar(value *float32, minValue float32, maxValue float32) bool {

@@ -256,3 +256,28 @@ test('text replay format crosses real protobuf serialization and remains fail-cl
   version = 1; mode = 3;
   await assert.rejects(() => client.get(), /format is invalid/u);
 });
+
+
+test('effective text context capacity preserves unknown and rejects invalid wire values', async () => {
+  let window: string | undefined;
+  let state = AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY;
+  const client = createNimiAppAIConfigClient({ appId: 'app.capacity', runtime: {
+    async getAppAIConfig() {
+      const reply = GetAppAIConfigResponse.create({ revision: '1', effectiveSelections: [{
+        capabilityContract: 'text.generate', state, ...(window === undefined ? {} : { contextWindowTokens: window }),
+        resource: { oneofKind: 'local', local: { loadoutRef: 'test-loadout', label: 'Test', capabilityContract: 'text.generate', state,
+          implementation: { implementationId: 'test', driverId: 'test', driverDialect: 'test' } } },
+      }] });
+      return GetAppAIConfigResponse.fromBinary(GetAppAIConfigResponse.toBinary(reply));
+    },
+    async overwriteAppAIConfig() { throw new Error('unused'); },
+    async listAppAIConfigOptions() { throw new Error('unused'); },
+  } });
+  assert.equal((await client.get()).effectiveSelections[0].contextWindowTokens, undefined);
+  window = '32768';
+  assert.equal((await client.get()).effectiveSelections[0].contextWindowTokens, 32768);
+  state = AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_BLOCKED;
+  await assert.rejects(() => client.get(), /capacity is invalid/u);
+  state = AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY;
+  for (window of ['0', '9007199254740992']) await assert.rejects(() => client.get(), /capacity is invalid/u);
+});

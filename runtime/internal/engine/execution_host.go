@@ -302,7 +302,7 @@ func (h *ExecutionHost) execute(
 		request.Header.Set("Accept", "text/event-stream")
 	}
 	attempt := aitelemetry.Begin(ctx)
-	defer func() { attempt.Finish(observedLocalTextUsage(result)) }()
+	defer func() { attempt.Finish(result.MeasuredUsage()) }()
 	response, err := h.client.Do(request)
 	if err != nil {
 		return localexecution.TextResult{}, h.inferenceFailure(ctx, err)
@@ -481,6 +481,7 @@ func hashInvocationContentFileContext(ctx context.Context, path string) (string,
 func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (localexecution.TextResult, error) {
 	var payload map[string]any
 	decoder := json.NewDecoder(io.LimitReader(body, 16<<20))
+	decoder.UseNumber()
 	if err := decoder.Decode(&payload); err != nil {
 		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("decode llama inference response: %w", err))
 	}
@@ -495,12 +496,10 @@ func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (lo
 	if strings.TrimSpace(text) == "" {
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureTextOutputIncomplete, fmt.Errorf("llama inference response has no public text"))
 	}
-	inputTokens, outputTokens := invocationUsage(payload["usage"])
 	return localexecution.TextResult{
 		Text:         text,
-		InputTokens:  inputTokens,
-		OutputTokens: outputTokens,
-		ComputeMS:    invocationComputeMS(payload),
+		TokenUsage:   capabilitydriver.LlamaTextTokenUsage(payload["usage"]),
+		ComputeMS:    capabilitydriver.LlamaTextComputeMS(payload),
 		FinishReason: finishReason,
 	}, nil
 }
@@ -572,12 +571,9 @@ func (h *ExecutionHost) consumeTextBehaviorStream(
 func textBehaviorExecutionResult(normalized textbehavior.NormalizedResult) localexecution.TextResult {
 	result := localexecution.TextResult{
 		Items:        textbehavior.CloneOrderedItems(normalized.Items),
+		TokenUsage:   normalized.Usage,
+		ComputeMS:    normalized.ComputeMS,
 		FinishReason: normalized.FinishReason,
-	}
-	if normalized.Usage != nil {
-		result.InputTokens = normalized.Usage.GetInputTokens()
-		result.OutputTokens = normalized.Usage.GetOutputTokens()
-		result.ComputeMS = normalized.Usage.GetComputeMs()
 	}
 	var text strings.Builder
 	for _, item := range normalized.Items {
@@ -611,14 +607,18 @@ func (h *ExecutionHost) consumeStream(
 			break
 		}
 		var chunk map[string]any
-		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+		decoder := json.NewDecoder(strings.NewReader(data))
+		decoder.UseNumber()
+		if err := decoder.Decode(&chunk); err != nil {
 			return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("decode llama stream event: %w", err))
 		}
-		if in, out := invocationUsage(chunk["usage"]); in != 0 || out != 0 {
-			result.InputTokens = in
-			result.OutputTokens = out
+		if decoder.InputOffset() != int64(len(data)) {
+			return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("llama stream event has trailing JSON"))
 		}
-		if computeMS := invocationComputeMS(chunk); computeMS > 0 {
+		if usage := capabilitydriver.LlamaTextTokenUsage(chunk["usage"]); usage != nil {
+			result.TokenUsage = usage
+		}
+		if computeMS := capabilitydriver.LlamaTextComputeMS(chunk); computeMS > 0 {
 			result.ComputeMS = computeMS
 		}
 		choices, _ := chunk["choices"].([]any)
@@ -1101,45 +1101,6 @@ func exactInvocationDependencySource(sources []capabilitydriver.InvocationExactD
 
 func sameCleanPath(left, right string) bool {
 	return strings.EqualFold(filepath.Clean(strings.TrimSpace(left)), filepath.Clean(strings.TrimSpace(right)))
-}
-
-func invocationUsage(value any) (int64, int64) {
-	usage, _ := value.(map[string]any)
-	input := int64Value(usage["prompt_tokens"])
-	output := int64Value(usage["completion_tokens"])
-	if output == 0 {
-		total := int64Value(usage["total_tokens"])
-		if total > input {
-			output = total - input
-		}
-	}
-	return input, output
-}
-
-func invocationComputeMS(payload map[string]any) int64 {
-	usage, _ := payload["usage"].(map[string]any)
-	if computeMS := int64Value(usage["compute_ms"]); computeMS > 0 {
-		return computeMS
-	}
-	timings, _ := payload["timings"].(map[string]any)
-	promptMS := int64Value(timings["prompt_ms"])
-	predictedMS := int64Value(timings["predicted_ms"])
-	if promptMS > 0 || predictedMS > 0 {
-		return promptMS + predictedMS
-	}
-	return 0
-}
-
-func int64Value(value any) int64 {
-	switch typed := value.(type) {
-	case float64:
-		return int64(typed)
-	case json.Number:
-		result, _ := typed.Int64()
-		return result
-	default:
-		return 0
-	}
 }
 
 func stringValue(value any) string {

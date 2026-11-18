@@ -348,7 +348,9 @@ func Gemma4TextBehaviorNonStreamParser(payload []byte, spec *runtimev1.TextGener
 	if err := gemma4ValidateStructuredItems(spec, items); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	return textbehavior.NormalizedResult{Items: items, FinishReason: finish, Usage: gemma4Usage(root)}, nil
+	return textbehavior.NormalizedResult{
+		Items: items, FinishReason: finish, Usage: LlamaTextTokenUsage(root["usage"]), ComputeMS: LlamaTextComputeMS(root),
+	}, nil
 }
 
 func gemma4ParseToolCalls(value any, spec *runtimev1.TextGenerateScenarioSpec) ([]*runtimev1.ToolCall, error) {
@@ -410,6 +412,7 @@ type gemma4StreamAssembler struct {
 	openItems map[uint32]textbehavior.OrderedItemKind
 	nextItem  uint32
 	usage     *runtimev1.UsageStats
+	computeMS int64
 	finish    runtimev1.FinishReason
 	sealed    bool
 	usageTail bool
@@ -423,18 +426,24 @@ func (assembler *gemma4StreamAssembler) Append(payload []byte) ([]textbehavior.O
 	if err != nil {
 		return nil, gemma4OutputInvalid()
 	}
-	usage := gemma4Usage(root)
+	usage := LlamaTextTokenUsage(root["usage"])
+	computeMS := LlamaTextComputeMS(root)
 	choices, ok := root["choices"].([]any)
 	if assembler.sealed {
-		if !ok || len(choices) != 0 || usage == nil || assembler.usageTail {
+		_, hasUsage := root["usage"].(map[string]any)
+		if !ok || len(choices) != 0 || (!hasUsage && computeMS == 0) || assembler.usageTail {
 			return nil, gemma4OutputInvalid()
 		}
-		assembler.usage = usage
-		assembler.usageTail = true
-		return nil, nil
 	}
 	if usage != nil {
 		assembler.usage = usage
+	}
+	if computeMS > 0 {
+		assembler.computeMS = computeMS
+	}
+	if assembler.sealed {
+		assembler.usageTail = true
+		return nil, nil
 	}
 	if !ok {
 		return nil, gemma4OutputInvalid()
@@ -588,7 +597,7 @@ func (assembler *gemma4StreamAssembler) Finish() (textbehavior.NormalizedResult,
 	if err := gemma4ValidateStructuredItems(assembler.spec, items); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	return textbehavior.NormalizedResult{Items: items, Usage: assembler.usage, FinishReason: assembler.finish}, nil
+	return textbehavior.NormalizedResult{Items: items, Usage: assembler.usage, ComputeMS: assembler.computeMS, FinishReason: assembler.finish}, nil
 }
 
 func gemma4ValidateStructuredItems(spec *runtimev1.TextGenerateScenarioSpec, items []textbehavior.OrderedItem) error {
@@ -641,39 +650,6 @@ func gemma4DeclaredTool(spec *runtimev1.TextGenerateScenarioSpec, name string) *
 		}
 	}
 	return nil
-}
-
-func gemma4Usage(root map[string]any) *runtimev1.UsageStats {
-	usage, _ := root["usage"].(map[string]any)
-	input := gemma4Int64(usage["prompt_tokens"])
-	output := gemma4Int64(usage["completion_tokens"])
-	if output == 0 {
-		total := gemma4Int64(usage["total_tokens"])
-		if total > input {
-			output = total - input
-		}
-	}
-	compute := gemma4Int64(usage["compute_ms"])
-	if compute == 0 {
-		timings, _ := root["timings"].(map[string]any)
-		compute = gemma4Int64(timings["prompt_ms"]) + gemma4Int64(timings["predicted_ms"])
-	}
-	if input == 0 && output == 0 && compute == 0 {
-		return nil
-	}
-	return &runtimev1.UsageStats{InputTokens: input, OutputTokens: output, ComputeMs: compute}
-}
-
-func gemma4Int64(value any) int64 {
-	switch typed := value.(type) {
-	case json.Number:
-		result, _ := typed.Int64()
-		return result
-	case float64:
-		return int64(typed)
-	default:
-		return 0
-	}
 }
 
 func gemma4TextContent(value any) string {

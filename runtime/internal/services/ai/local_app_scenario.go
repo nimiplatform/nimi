@@ -222,6 +222,7 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 		if err != nil {
 			return nil, err
 		}
+		text.Usage = localAppTextUsage(result.GetUsage())
 		return &runtimev1.ExecuteLocalAppScenarioResponse{
 			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextGenerate{TextGenerate: text},
 			TraceId: result.GetTraceId(),

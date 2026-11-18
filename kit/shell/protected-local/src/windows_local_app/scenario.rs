@@ -121,9 +121,7 @@ fn project_embedding_output(value: LocalAppTextEmbedOutput) -> Result<JsonValue,
     }).collect::<Result<Vec<_>, LocalAppOperationError>>()?;
     let mut output = json!({"type": "text-embed", "vectors": vectors, "spaceId": value.space_id});
     if let Some(usage) = value.usage {
-        let total = usage.input_tokens.checked_add(usage.output_tokens).filter(|value| *value <= 9_007_199_254_740_991).ok_or_else(untrusted)?;
-        if usage.input_tokens < 0 || usage.output_tokens < 0 { return Err(untrusted()); }
-        output["usage"] = json!({"promptTokens": usage.input_tokens, "completionTokens": usage.output_tokens, "totalTokens": total});
+        output["usage"] = text_behavior::project_token_usage(usage)?;
     }
     Ok(output)
 }
@@ -1754,9 +1752,11 @@ fn project_text_turn_event(
         }
         TextTurnPayload::Completed(value) => {
             let finish_reason = text_behavior::finish_reason(value.finish_reason)?;
-            Ok(
-                json!({"type": "completed", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "finishReason": finish_reason}),
-            )
+            let mut result = json!({"type": "completed", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "finishReason": finish_reason});
+            if let Some(usage) = value.usage {
+                result["usage"] = text_behavior::project_token_usage(usage)?;
+            }
+            Ok(result)
         }
         TextTurnPayload::Failed(LocalAppTextTurnFailed {
             reason_code,
@@ -2337,6 +2337,21 @@ mod tests {
         assert_eq!(reported["usage"]["totalTokens"], json!(9));
         for usage in [UsageStats { input_tokens: -1, ..Default::default() }, UsageStats { input_tokens: i64::MAX, output_tokens: 1, ..Default::default() }] {
             assert!(project_embedding_output(output(Some(usage))).is_err());
+        }
+    }
+
+    #[test]
+    fn text_completion_preserves_reported_usage_without_estimating_missing_counts() {
+        use crate::generated::{LocalAppTextTurnCompleted, StreamLocalAppTextTurnEvent, UsageStats};
+        for usage in [None, Some(UsageStats::default()), Some(UsageStats { input_tokens: 7, output_tokens: 2, ..Default::default() })] {
+            let projected = project_text_turn_event(StreamLocalAppTextTurnEvent {
+                sequence: 1, trace_id: "text-usage".into(),
+                payload: Some(TextTurnPayload::Completed(LocalAppTextTurnCompleted { finish_reason: 1, usage: usage.clone() })),
+            }, 1, &mut 0).unwrap();
+            match usage {
+                None => assert!(projected.get("usage").is_none()),
+                Some(usage) => assert_eq!(projected["usage"], json!({"promptTokens": usage.input_tokens, "completionTokens": usage.output_tokens, "totalTokens": usage.input_tokens + usage.output_tokens})),
+            }
         }
     }
 

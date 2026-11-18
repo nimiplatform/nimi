@@ -4550,8 +4550,12 @@ type AIConfigEffectiveSelection struct {
 	// Exact selected adapter's primitive controls, never a combination or route
 	// promise. Absent means unconfirmed. Omission follows its model default.
 	ReasoningInput *ReasoningInputCapabilities `protobuf:"bytes,7,opt,name=reasoning_input,json=reasoningInput,proto3" json:"reasoning_input,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Exact combined token window of the selected Local Driver and Loadout.
+	ContextWindowTokens *uint64 `protobuf:"varint,8,opt,name=context_window_tokens,json=contextWindowTokens,proto3,oneof" json:"context_window_tokens,omitempty"`
+	// Reviewed conservative request-capacity floor for an exact Cloud catalog row.
+	RequestCapacityFloorTokens *uint64 `protobuf:"varint,9,opt,name=request_capacity_floor_tokens,json=requestCapacityFloorTokens,proto3,oneof" json:"request_capacity_floor_tokens,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *AIConfigEffectiveSelection) Reset() {
@@ -4642,6 +4646,20 @@ func (x *AIConfigEffectiveSelection) GetReasoningInput() *ReasoningInputCapabili
 		return x.ReasoningInput
 	}
 	return nil
+}
+
+func (x *AIConfigEffectiveSelection) GetContextWindowTokens() uint64 {
+	if x != nil && x.ContextWindowTokens != nil {
+		return *x.ContextWindowTokens
+	}
+	return 0
+}
+
+func (x *AIConfigEffectiveSelection) GetRequestCapacityFloorTokens() uint64 {
+	if x != nil && x.RequestCapacityFloorTokens != nil {
+		return *x.RequestCapacityFloorTokens
+	}
+	return 0
 }
 
 type isAIConfigEffectiveSelection_Resource interface {
@@ -6392,7 +6410,7 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\fspeech_input\x18\v \x01(\v2(.nimi.runtime.v1.SpeechInputCapabilitiesR\vspeechInput\"\xba\x01\n" +
 	"\x1fAIConfigCloudResourceProjection\x12O\n" +
 	"\tconnector\x18\x01 \x01(\v21.nimi.runtime.v1.AIConfigCloudConnectorProjectionR\tconnector\x12F\n" +
-	"\x06target\x18\x02 \x01(\v2..nimi.runtime.v1.AIConfigCloudTargetProjectionR\x06target\"\xe7\x03\n" +
+	"\x06target\x18\x02 \x01(\v2..nimi.runtime.v1.AIConfigCloudTargetProjectionR\x06target\"\xa4\x05\n" +
 	"\x1aAIConfigEffectiveSelection\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12=\n" +
 	"\x05state\x18\x02 \x01(\x0e2'.nimi.runtime.v1.AIConfigEffectiveStateR\x05state\x12H\n" +
@@ -6401,9 +6419,13 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\areasons\x18\x04 \x03(\tR\areasons\x12I\n" +
 	"\vtext_replay\x18\x06 \x01(\v2(.nimi.runtime.v1.TextReplayCompatibilityR\n" +
 	"textReplay\x12T\n" +
-	"\x0freasoning_input\x18\a \x01(\v2+.nimi.runtime.v1.ReasoningInputCapabilitiesR\x0ereasoningInputB\n" +
+	"\x0freasoning_input\x18\a \x01(\v2+.nimi.runtime.v1.ReasoningInputCapabilitiesR\x0ereasoningInput\x127\n" +
+	"\x15context_window_tokens\x18\b \x01(\x04H\x01R\x13contextWindowTokens\x88\x01\x01\x12F\n" +
+	"\x1drequest_capacity_floor_tokens\x18\t \x01(\x04H\x02R\x1arequestCapacityFloorTokens\x88\x01\x01B\n" +
 	"\n" +
-	"\bresource\"\xc0\x02\n" +
+	"\bresourceB\x18\n" +
+	"\x16_context_window_tokensB \n" +
+	"\x1e_request_capacity_floor_tokens\"\xc0\x02\n" +
 	"\x1aReasoningInputCapabilities\x122\n" +
 	"\x15follows_model_default\x18\x01 \x01(\bR\x13followsModelDefault\x12+\n" +
 	"\x11supports_disabled\x18\x02 \x01(\bR\x10supportsDisabled\x12+\n" +

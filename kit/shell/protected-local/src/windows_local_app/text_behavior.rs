@@ -603,7 +603,18 @@ pub(super) fn project_output(
     {
         return Err(untrusted());
     }
-    Ok(json!({"type": "text-generate", "items": items, "finishReason": finish}))
+    let mut result = json!({"type": "text-generate", "items": items, "finishReason": finish});
+    if let Some(usage) = output.usage {
+        result["usage"] = project_token_usage(usage)?;
+    }
+    Ok(result)
+}
+
+pub(super) fn project_token_usage(usage: crate::generated::UsageStats) -> Result<Value, LocalAppOperationError> {
+    let total = usage.input_tokens.checked_add(usage.output_tokens)
+        .filter(|value| *value <= 9_007_199_254_740_991).ok_or_else(untrusted)?;
+    if usage.input_tokens < 0 || usage.output_tokens < 0 { return Err(untrusted()); }
+    Ok(json!({"promptTokens": usage.input_tokens, "completionTokens": usage.output_tokens, "totalTokens": total}))
 }
 
 #[cfg(test)]
@@ -783,6 +794,7 @@ mod tests {
                     },
                 ],
                 finish_reason: 3,
+                usage: None,
             };
             let projected = project_output(output);
             assert_eq!(projected.is_ok(), text_bytes <= remaining);
@@ -806,7 +818,8 @@ mod tests {
         };
         assert!(project_output(LocalAppTextGenerateOutput {
             items: vec![item.clone()],
-            finish_reason: 1
+            finish_reason: 1,
+            usage: None,
         })
         .is_err());
         let output = project_output(LocalAppTextGenerateOutput {
@@ -819,6 +832,7 @@ mod tests {
                 },
             ],
             finish_reason: 1,
+            usage: None,
         })
         .unwrap();
         assert_eq!(output["items"][0]["carrier"], carrier);

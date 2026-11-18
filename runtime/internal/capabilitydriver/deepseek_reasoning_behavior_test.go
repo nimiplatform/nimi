@@ -5,9 +5,88 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestDeepseekExactAdapterPreservesToolProposalsAcrossModes(t *testing.T) {
+	profile := mustDeepseekBehavior(t, "deepseek-flash")
+	for _, mode := range []string{"default", "thinking"} {
+		t.Run(mode, func(t *testing.T) {
+			spec := deepseekToolSpec(t)
+			message := map[string]any{}
+			delta := map[string]any{}
+			callIndex := 0
+			if mode == "thinking" {
+				spec.Temperature = nil
+				spec.Reasoning = &runtimev1.ReasoningConfig{
+					Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+					Intensity:  &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH},
+				}
+				message["reasoning_content"] = "native reasoning"
+				delta["reasoning_content"] = "native reasoning"
+				callIndex = 1
+			}
+			for _, args := range []string{`{"city":7}`, `{"city":`} {
+				call := deepseekCallChunk(0, "a", "lookup", args)
+				delete(call, "index")
+				message["tool_calls"] = []any{call}
+				wire, err := json.Marshal(map[string]any{"choices": []any{map[string]any{"index": 0, "message": message, "finish_reason": "tool_calls"}}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				result, syncErr := profile.Parse(wire, spec)
+
+				stream, err := profile.Stream(spec)
+				if err != nil {
+					t.Fatal(err)
+				}
+				delta["tool_calls"] = []any{deepseekCallChunk(0, "a", "lookup", args)}
+				early, err := stream.Append(deepseekToolChunk(t, delta, nil))
+				var published []textbehavior.OrderedDelta
+				for _, item := range early {
+					if item.HasPublicPayload() {
+						published = append(published, item)
+					}
+				}
+				if err != nil || len(published) != callIndex || (callIndex == 1 && published[0].ReasoningContinuity == nil) {
+					t.Fatalf("stream published a partial tool call or lost reasoning: %v, %v", early, err)
+				}
+				deltas, streamErr := stream.Append(deepseekToolChunk(t, map[string]any{}, "tool_calls"))
+				if !json.Valid([]byte(args)) {
+					for _, err := range []error{syncErr, streamErr} {
+						if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TOOL_CALL_INVALID {
+							t.Fatalf("malformed JSON error = %v", err)
+						}
+					}
+					if len(deltas) != 0 {
+						t.Fatalf("malformed tool call emitted: %v", deltas)
+					}
+					continue
+				}
+				if syncErr != nil || len(result.Items) != callIndex+1 || (callIndex == 1 && result.Items[0].ReasoningContinuity == nil) {
+					t.Fatalf("sync result = %v, %v", result, syncErr)
+				}
+				if streamErr != nil || len(deltas) != 1 || deltas[0].ItemIndex != uint32(callIndex) {
+					t.Fatalf("stream result = %v, %v", deltas, streamErr)
+				}
+				if _, err := stream.Append([]byte("[DONE]")); err != nil {
+					t.Fatal(err)
+				}
+				final, err := stream.Finish()
+				if err != nil || len(final.Items) != callIndex+1 {
+					t.Fatalf("stream completion = %v, %v", final, err)
+				}
+				for _, toolCall := range []*runtimev1.ToolCall{result.Items[callIndex].ToolCall, deltas[0].ToolCall, final.Items[callIndex].ToolCall} {
+					if toolCall.GetId() != "a" || toolCall.GetName() != "lookup" || toolCall.GetArgumentsJson() != args {
+						t.Fatalf("tool proposal changed: %v", toolCall)
+					}
+				}
+			}
+		})
+	}
+}
 
 func TestDeepseekReasoningControlsPreserveDefaultAndRejectIgnoredValues(t *testing.T) {
 	for _, model := range []string{"deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro"} {

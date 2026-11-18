@@ -4622,6 +4622,12 @@ pub struct AiConfigEffectiveSelection {
     /// promise. Absent means unconfirmed. Omission follows its model default.
     #[prost(message, optional, tag = "7")]
     pub reasoning_input: ::core::option::Option<ReasoningInputCapabilities>,
+    /// Exact combined token window of the selected Local Driver and Loadout.
+    #[prost(uint64, optional, tag = "8")]
+    pub context_window_tokens: ::core::option::Option<u64>,
+    /// Reviewed conservative request-capacity floor for an exact Cloud catalog row.
+    #[prost(uint64, optional, tag = "9")]
+    pub request_capacity_floor_tokens: ::core::option::Option<u64>,
     #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3, 5")]
     pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
 }
@@ -7240,6 +7246,9 @@ pub struct LocalAppTextGenerateOutput {
     pub items: ::prost::alloc::vec::Vec<TextOutputItem>,
     #[prost(enumeration = "FinishReason", tag = "2")]
     pub finish_reason: i32,
+    /// Reported aggregate token counts. Absence means unknown, including zero.
+    #[prost(message, optional, tag = "3")]
+    pub usage: ::core::option::Option<UsageStats>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioResponse {
@@ -7673,6 +7682,9 @@ pub struct LocalAppTextTurnReasoningSummary {
 pub struct LocalAppTextTurnCompleted {
     #[prost(enumeration = "FinishReason", tag = "1")]
     pub finish_reason: i32,
+    /// Reported aggregate token counts. Absence means unknown, including zero.
+    #[prost(message, optional, tag = "2")]
+    pub usage: ::core::option::Option<UsageStats>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnFailed {

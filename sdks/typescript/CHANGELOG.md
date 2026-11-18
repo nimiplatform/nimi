@@ -2,6 +2,18 @@
 
 # SDK migration notes
 
+## 0.24.0-rc.7 — Text context capacity
+
+A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.
+
+## 0.24.0-rc.5 — Protected text usage
+
+Local App synchronous text output and stream completion preserve optional aggregate token usage through the common model binding. Missing usage remains absent and a reported zero remains zero. Update the matching Runtime and native carrier together. Cache and reasoning breakdowns and billing cost remain unreported by this projection.
+
+## 0.24.0-rc.4 — Interrupted model steps and tool feedback
+
+`extractNimiErrorFields` retains the Runtime interruption cause and caller resubmit disposition for typed IPC consumers. The Local App model accepts resolved call/result history after a tool is removed from the current declaration. The matching Runtime preserves schema-invalid DeepSeek tool proposals so the external Harness can return validation feedback.
+
 ## Unreleased — Observe live Activity changes (next 0.x minor)
 
 An optional `onLiveChange` observer on `createNimiAppActivityView` receives accepted subscription changes after the current list baseline. Initial and continuation pages still update the current view through `onUpdate`.

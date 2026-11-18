@@ -506,15 +506,18 @@ func TestTextBehaviorAdapterRejectsMismatchedToolTranscriptBeforeDispatch(t *tes
 	}{
 		{name: "unknown result id", call: &runtimev1.ToolCall{Id: "call-1", Name: "lookup", ArgumentsJson: "{}"}, toolResult: &runtimev1.ToolResult{ToolCallId: "call-2", ToolName: "lookup"}},
 		{name: "mismatched result name", call: &runtimev1.ToolCall{Id: "call-1", Name: "lookup", ArgumentsJson: "{}"}, toolResult: &runtimev1.ToolResult{ToolCallId: "call-1", ToolName: "weather"}},
-		{name: "undeclared call name", call: &runtimev1.ToolCall{Id: "call-1", Name: "weather", ArgumentsJson: "{}"}, toolResult: &runtimev1.ToolResult{ToolCallId: "call-1", ToolName: "weather"}},
+		{name: "unresolved undeclared call", call: &runtimev1.ToolCall{Id: "call-1", Name: "weather", ArgumentsJson: "{}"}},
 		{name: "malformed call arguments", call: &runtimev1.ToolCall{Id: "call-1", Name: "lookup", ArgumentsJson: "not-json"}, toolResult: &runtimev1.ToolResult{ToolCallId: "call-1", ToolName: "lookup"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			spec := testTextBehaviorToolSpec()
-			spec.Input = []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{
+			items := []*runtimev1.TextTurnItem{
 				{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: test.call}}}},
-				{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: test.toolResult}},
-			}}}
+			}
+			if test.toolResult != nil {
+				items = append(items, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: test.toolResult}})
+			}
+			spec.Input = []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: items}}
 			_, err := resolveTextBehaviorAdapter([]textBehaviorAdapterRegistration{registration}, identity, "openai", "model-a", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, spec)
 			if textBehaviorReason(err) != runtimev1.ReasonCode_AI_TOOL_CALL_INVALID {
 				t.Fatalf("mismatched transcript error = %v", err)

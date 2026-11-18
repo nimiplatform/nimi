@@ -726,12 +726,3 @@ func (s *Service) executeCapturedLocalText(
 	}
 	return result, nil
 }
-
-func localTextUsage(result localexecution.TextResult, _ *runtimev1.TextGenerateScenarioSpec) *runtimev1.UsageStats {
-	if result.InputTokens == 0 && result.OutputTokens == 0 && result.ComputeMS == 0 {
-		return nil
-	}
-	return &runtimev1.UsageStats{
-		InputTokens: result.InputTokens, OutputTokens: result.OutputTokens, ComputeMs: result.ComputeMS,
-	}
-}

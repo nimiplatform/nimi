@@ -77,6 +77,8 @@ export type NimiSharedLocalAgentAIConfigSnapshot = NimiAIConfigSnapshot & {
 export type NimiAIConfigEffectiveState = 'ready' | 'missing' | 'blocked' | 'unavailable';
 
 export type NimiAIConfigEffectiveSelection = {
+  readonly contextWindowTokens?: number;
+  readonly requestCapacityFloorTokens?: number;
   readonly reasoningInput?: import('./reasoning').NimiReasoningInputCapabilities;
   readonly textReplay?: NimiTextReplayCompatibility;
   readonly capabilityContract: string;
@@ -409,6 +411,14 @@ function createAppAIConfigOperations(
 
 function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelections'][number]): NimiAIConfigEffectiveSelection {
   const state = projectEffectiveState(value.state);
+  const tokenCount = (raw: string | undefined, route: 'local' | 'cloud') => {
+    if (raw === undefined) return undefined;
+    const count = Number(raw);
+    if (!Number.isSafeInteger(count) || count <= 0 || value.resource.oneofKind !== route || value.capabilityContract !== 'text.generate' || state !== 'ready') return invalidConfiguration('Text context capacity is invalid');
+    return count;
+  };
+  const capacity = tokenCount(value.contextWindowTokens, 'local');
+  const floor = tokenCount(value.requestCapacityFloorTokens, 'cloud');
   if (value.reasoningInput && (value.capabilityContract !== 'text.generate' || state !== 'ready')) return invalidConfiguration('Reasoning input selection is invalid');
   if (value.textReplay && (value.capabilityContract !== 'text.generate' || state !== 'ready' || value.textReplay.acceptedCarriers.length > 16)) return invalidConfiguration('Text replay selection is invalid');
   const replayIdentities = new Set<string>();
@@ -436,6 +446,8 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
     state,
     resource,
     reasons: Object.freeze([...value.reasons]),
+    ...(capacity === undefined ? {} : { contextWindowTokens: capacity }),
+    ...(floor === undefined ? {} : { requestCapacityFloorTokens: floor }),
     ...(value.reasoningInput ? { reasoningInput: projectReasoningInputCapabilities(value.reasoningInput, invalidConfiguration) } : {}),
     ...(value.textReplay ? { textReplay: {
       acceptedCarriers: value.textReplay.acceptedCarriers.map((format) => ({

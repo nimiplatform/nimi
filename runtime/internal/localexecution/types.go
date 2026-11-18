@@ -79,6 +79,7 @@ type SelectedLocalExecution struct {
 }
 
 type LoadoutOption struct {
+	ContextWindowTokens             uint64
 	LoadoutID                       string
 	DisplayName                     string
 	CapabilityContract              string
@@ -156,10 +157,19 @@ type TextDelta struct {
 type TextResult struct {
 	Text         string
 	Items        []textbehavior.OrderedItem
-	InputTokens  int64
-	OutputTokens int64
+	TokenUsage   *runtimev1.UsageStats
 	ComputeMS    int64
 	FinishReason runtimev1.FinishReason
+}
+
+// MeasuredUsage combines the observations used by Runtime jobs and telemetry.
+func (result TextResult) MeasuredUsage() *runtimev1.UsageStats {
+	if result.TokenUsage == nil && result.ComputeMS == 0 {
+		return nil
+	}
+	return &runtimev1.UsageStats{
+		InputTokens: result.TokenUsage.GetInputTokens(), OutputTokens: result.TokenUsage.GetOutputTokens(), ComputeMs: result.ComputeMS,
+	}
 }
 
 // TextExecutionHost executes only substrate instructions already formed by a

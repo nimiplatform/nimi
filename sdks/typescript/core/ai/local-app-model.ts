@@ -113,7 +113,7 @@ export function createNimiLocalAppTextModel(
       else localAppProjectionError('synchronous text output item');
     }
     request.signal?.throwIfAborted();
-    yield { type: 'done', finishReason: result.output.finishReason };
+    yield { type: 'done', finishReason: result.output.finishReason, ...(result.output.usage ? { usage: result.output.usage } : {}) };
   }
 
   async function* streamText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
@@ -139,7 +139,7 @@ export function createNimiLocalAppTextModel(
         else if (event.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: event.text, itemIndex: event.itemIndex, itemCompleted: event.itemCompleted };
         else if (event.type === 'tool-call') yield { type: 'tool-call', toolCall: event.toolCall, itemIndex: event.itemIndex };
         else if (event.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: { ...event.carrier, payload: new Uint8Array(event.carrier.payload) }, itemIndex: event.itemIndex, itemCompleted: true };
-        else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason };
+        else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason, ...(event.usage ? { usage: event.usage } : {}) };
         else throw createNimiError({
           message: `Nimi text generation failed: ${event.reasonCode}.`,
           code: event.reasonCode, reasonCode: event.reasonCode, actionHint: event.actionHint,

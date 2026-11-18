@@ -280,6 +280,10 @@ func deepseekMessageContent(m *deepseekJSONMessage) (string, error) {
 }
 
 func parseDeepseekToolResponse(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	return parseChatToolResponse(payload, spec, textbehavior.ValidateToolArguments)
+}
+
+func parseChatToolResponse(payload []byte, spec *runtimev1.TextGenerateScenarioSpec, validate textbehavior.ToolArgumentsValidator) (textbehavior.NormalizedResult, error) {
 	value, err := decodeDeepseekJSONEnvelope(payload)
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
@@ -300,7 +304,7 @@ func parseDeepseekToolResponse(payload []byte, spec *runtimev1.TextGenerateScena
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	ordered := textbehavior.NewOrderedStreamAssembler(spec.GetTools(), textbehavior.ValidateToolArguments)
+	ordered := textbehavior.NewOrderedStreamAssembler(spec.GetTools(), validate)
 	var index uint32
 	if text != "" {
 		if _, err = ordered.AppendFragment(textbehavior.PrivateFragment{ItemIndex: index, Kind: textbehavior.OrderedItemText, Text: text, Complete: true}); err != nil {
@@ -340,8 +344,12 @@ type deepseekToolStream struct {
 }
 
 func newDeepseekToolStream(spec *runtimev1.TextGenerateScenarioSpec) *deepseekToolStream {
+	return newChatToolStream(spec, textbehavior.ValidateToolArguments)
+}
+
+func newChatToolStream(spec *runtimev1.TextGenerateScenarioSpec, validate textbehavior.ToolArgumentsValidator) *deepseekToolStream {
 	cloned := proto.Clone(spec).(*runtimev1.TextGenerateScenarioSpec)
-	return &deepseekToolStream{spec: cloned, ordered: textbehavior.NewOrderedStreamAssembler(cloned.GetTools(), textbehavior.ValidateToolArguments)}
+	return &deepseekToolStream{spec: cloned, ordered: textbehavior.NewOrderedStreamAssembler(cloned.GetTools(), validate)}
 }
 func (s *deepseekToolStream) sealText() ([]textbehavior.OrderedDelta, error) {
 	if !s.textOpen {

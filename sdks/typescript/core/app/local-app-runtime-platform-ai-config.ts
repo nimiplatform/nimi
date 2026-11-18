@@ -260,7 +260,14 @@ function projectCapabilityIntent(value: unknown, index: number): void {
 
 function projectEffectiveSelection(value: unknown, index: number): void {
   const selection = asRecord(value);
-  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(selection && Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : [])], `App AIConfig effective selection ${index}`);
+  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(selection && Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(selection && Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(selection && Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], `App AIConfig effective selection ${index}`);
+  for (const [key, route] of [['contextWindowTokens', 'local'], ['requestCapacityFloorTokens', 'cloud']] as const) {
+    if (selection && Object.hasOwn(selection, key)) {
+      const count = selection[key];
+      if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready' || asRecord(selection.resource)?.oneofKind !== route
+        || typeof count !== 'number' || !Number.isSafeInteger(count) || count < 1) localAppProjectionError('text context capacity');
+    }
+  }
   if (selection && Object.hasOwn(selection, 'reasoningInput')) {
     if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') localAppProjectionError('reasoning input selection');
     projectReasoningInputCapabilities(selection.reasoningInput, localAppProjectionError);

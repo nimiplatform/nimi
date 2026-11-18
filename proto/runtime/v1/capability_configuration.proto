@@ -590,6 +590,10 @@ message AIConfigEffectiveSelection {
   // Exact selected adapter's primitive controls, never a combination or route
   // promise. Absent means unconfirmed. Omission follows its model default.
   ReasoningInputCapabilities reasoning_input = 7;
+  // Exact combined token window of the selected Local Driver and Loadout.
+  optional uint64 context_window_tokens = 8;
+  // Reviewed conservative request-capacity floor for an exact Cloud catalog row.
+  optional uint64 request_capacity_floor_tokens = 9;
 }
 
 message ReasoningInputCapabilities {

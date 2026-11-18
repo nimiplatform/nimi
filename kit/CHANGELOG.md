@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.24.0-rc.11 — Text context capacity
+
+A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.
+
 ## 0.24.0-rc.8 — Electron Host startup
 
 The Avatar preview result projection loads independently of its React view. A packaged Host can import `shell/electron/main` using its Host dependencies. The existing UI and headless exports retain their behavior.
@@ -9,6 +13,10 @@ The Avatar preview result projection loads independently of its React view. A pa
 ## 0.24.0-rc.7 — Session-bound App model configuration
 
 `AppModelConfigSurface` in `features/model-config/ui` accepts the active App session scope and its capability contracts. It reuses the model picker and the protected AIConfig client for reads and revision-checked edits. Existing controlled hosts can continue to use `ModelConfigAIConfigSurface`.
+
+## 0.24.0-rc.6 — Protected text usage
+
+The native text completion and synchronous output carrier retain optional reported aggregate token usage for the SDK model binding. Use the matching Runtime, SDK and rebuilt native package. Missing usage remains absent, including when a Provider did not return counters. Electron Host validation preserves the new field and accepts the existing uncertain resubmit disposition without hiding it behind a trust error. The macOS source-development carrier is built and checked locally. Windows execution requires its matching build and acceptance.
 
 ## Unreleased — Realm human avatar delivery (next 0.x minor)
 

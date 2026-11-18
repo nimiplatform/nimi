@@ -30,20 +30,35 @@ func CompileJSONSchema(document map[string]any) (*jsonschema.Schema, error) {
 	return compiler.Compile(schemaResource)
 }
 
-// @nimi-authority: rule.nimi.runtime.ai-provider.r119
-func ValidateToolArguments(tool *runtimev1.ToolSpec, arguments string) error {
+func decodeToolArguments(arguments string) (map[string]any, error) {
 	decoder := json.NewDecoder(strings.NewReader(arguments))
 	decoder.UseNumber()
 	var instance any
 	if err := decoder.Decode(&instance); err != nil {
-		return fmt.Errorf("decode tool arguments: %w", err)
+		return nil, fmt.Errorf("decode tool arguments: %w", err)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
-		return fmt.Errorf("tool arguments must contain one JSON object")
+		return nil, fmt.Errorf("tool arguments must contain one JSON object")
 	}
-	if _, ok := instance.(map[string]any); !ok {
-		return fmt.Errorf("tool arguments must be a JSON object")
+	object, ok := instance.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("tool arguments must be a JSON object")
+	}
+	return object, nil
+}
+
+// ValidateToolProposalArguments accepts a complete JSON object for host validation.
+// @nimi-authority: rule.nimi.runtime.ai-provider.r119
+func ValidateToolProposalArguments(_ *runtimev1.ToolSpec, arguments string) error {
+	_, err := decodeToolArguments(arguments)
+	return err
+}
+
+func ValidateToolArguments(tool *runtimev1.ToolSpec, arguments string) error {
+	instance, err := decodeToolArguments(arguments)
+	if err != nil {
+		return err
 	}
 	if tool == nil || tool.GetInputSchema() == nil {
 		return nil

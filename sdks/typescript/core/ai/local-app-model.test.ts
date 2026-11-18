@@ -28,6 +28,46 @@ const user = { role: 'user' as const, content: [{ type: 'text' as const, text: '
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
 
+test('Local App text usage stays absent or reported through stream and sync model bindings', async () => {
+  for (const usage of [undefined, { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, { promptTokens: 7, completionTokens: 2, totalTokens: 9 }]) {
+    const f = fixture(async function* () {
+      yield { type: 'delta', sequence: '1', traceId: 'usage', itemIndex: 0, text: 'Answer.' };
+      yield { type: 'completed', sequence: '2', traceId: 'usage', finishReason: 'stop', ...(usage ? { usage } : {}) };
+    }, undefined, { output: { type: 'text-generate', items: [{ type: 'text', text: 'Answer.' }], finishReason: 'stop', ...(usage ? { usage } : {}) }, traceId: 'usage' });
+    for (const executionMode of ['stream', 'sync'] as const) {
+      const result = await createNimiLocalAppTextModel(f.ai, { executionMode }).generateText({ messages: [user] });
+      assert.deepEqual(result.usage, usage);
+    }
+  }
+  for (const usage of [{ promptTokens: -1, completionTokens: 2, totalTokens: 1 }, { promptTokens: 7, completionTokens: 2, totalTokens: 0 }]) {
+    const f = fixture(async function* () {
+      yield { type: 'delta', sequence: '1', traceId: 'usage', itemIndex: 0, text: 'Answer.' };
+      yield { type: 'completed', sequence: '2', traceId: 'usage', finishReason: 'stop', usage };
+    });
+    await assert.rejects(f.model.generateText({ messages: [user] }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
+  }
+});
+
+test('Local App preserves resolved tool history after the tool is removed', async () => {
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'replay', itemIndex: 0, text: 'Understood.' };
+    yield { type: 'completed', sequence: '2', traceId: 'replay', finishReason: 'stop' };
+  });
+  const output = { type: 'output' as const, output: { type: 'tool-call' as const, toolCall: call } };
+  const result = { type: 'tool-result' as const, toolResult: {
+    toolCallId: call.id, toolName: call.name, isError: true, result: 'Invalid arguments.',
+  } };
+  const history = { role: 'assistant' as const, content: [] };
+  await f.model.generateText({ messages: [user, { ...history, turnItems: [output, result] }] });
+  assert.deepEqual(f.inputs[0]?.messages[1]?.turnItems, [output, result]);
+  for (const turnItems of [[output], [output, result, result]]) {
+    await assert.rejects(f.model.generateText({ messages: [user, { ...history, turnItems }] }), {
+      reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID',
+    });
+  }
+  assert.equal(f.inputs.length, 1);
+});
+
 test('Local App reasoning omission, explicit controls and ordered summaries use the formal model contract', async () => {
   const carrier = { kind: 'openai.responses.encrypted-reasoning', version: 1, payload: [1, 2, 3] };
   const f = fixture(async function* () {

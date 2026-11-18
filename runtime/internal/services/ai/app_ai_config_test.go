@@ -290,6 +290,14 @@ func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
 	if selected.GetConnectorRef() != fixture.connectorID || selected.GetProviderModelTarget() == nil || selected.GetImplementation() == nil {
 		t.Fatalf("Cloud target option = %+v", selected)
 	}
+	readySelection := fixture.service.projectCloudEffectiveSelection(ctx, "user-001", "text.generate", &runtimev1.AIConfigCloudIntent{
+		ConnectorRef: fixture.connectorID, Implementation: selected.GetImplementation(), ProviderModelTarget: selected.GetProviderModelTarget(),
+	}, nil)
+	model := selected.GetProviderModelTarget().GetFields()["providerModelId"].GetStringValue()
+	metadata, err := fixture.service.speechCatalog.ResolveTextContextMetadataForSubject("user-001", "openai", model)
+	if err != nil || readySelection.ContextWindowTokens != nil || readySelection.GetRequestCapacityFloorTokens() == 0 || readySelection.GetRequestCapacityFloorTokens() != metadata.ContextWindowTokens {
+		t.Fatalf("ready model %s capacity = %d; catalog = %v, %v", model, readySelection.GetRequestCapacityFloorTokens(), metadata, err)
+	}
 	badImplementation, _ := proto.Clone(selected.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
 	badImplementation.DriverId += ".forged"
 	badIntent := &runtimev1.AIConfigCapabilityIntent{
@@ -316,6 +324,7 @@ func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
 	)
 	read, err := fixture.service.GetAppAIConfig(readCtx, &runtimev1.GetAppAIConfigRequest{})
 	if err != nil || len(read.GetEffectiveSelections()) != 1 ||
+		read.GetEffectiveSelections()[0].RequestCapacityFloorTokens != nil || read.GetEffectiveSelections()[0].ContextWindowTokens != nil ||
 		read.GetEffectiveSelections()[0].GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED {
 		t.Fatalf("incompatible stored Cloud effective projection = (%+v, %v)", read, err)
 	}

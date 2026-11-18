@@ -3988,7 +3988,16 @@ function requiredVoiceOptionText(value: unknown, field: string, command: string,
 
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
-  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : [])], command, 'effective selection');
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], command, 'effective selection');
+  for (const [key, route] of [['contextWindowTokens', 'local'], ['requestCapacityFloorTokens', 'cloud']] as const) {
+    if (!Object.hasOwn(selection, key)) continue;
+    const capacity = selection[key];
+    if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready'
+      || assertRecord(selection.resource, `${command}: missing text resource`).oneofKind !== route
+      || typeof capacity !== 'number' || !Number.isSafeInteger(capacity) || capacity < 1) {
+      throw new Error(`${command}: text context capacity is invalid`);
+    }
+  }
   if (Object.hasOwn(selection, 'reasoningInput')) {
     if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') throw new Error(`${command}: reasoning input selection is invalid`);
     projectReasoningInputCapabilities(selection.reasoningInput, (detail) => { throw new Error(`${command}: ${detail}`); });

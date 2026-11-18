@@ -146,7 +146,7 @@ func TestDeepseekToolsRejectInvalidCallsWithoutPublishing(t *testing.T) {
 	}{
 		{name: "undeclared", id: "a", tool: "unknown", args: `{"city":"x"}`, finish: "tool_calls", want: runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
 		{name: "schema", id: "a", tool: "lookup", args: `{"city":7}`, finish: "tool_calls", want: runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
-		{name: "missing required", id: "a", tool: "lookup", args: `{}`, finish: "tool_calls", want: runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
+		{name: "non-object JSON", id: "a", tool: "lookup", args: `[]`, finish: "tool_calls", want: runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
 		{name: "truncated JSON", id: "a", tool: "lookup", args: `{"city":`, finish: "tool_calls", want: runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
 		{name: "length", id: "a", tool: "lookup", args: `{"city":`, finish: "length", want: runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE},
 		{name: "refusal", id: "a", tool: "lookup", args: `{}`, finish: "content_filter", want: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED},
@@ -177,12 +177,17 @@ func TestDeepseekToolsRejectInvalidCallsWithoutPublishing(t *testing.T) {
 		})
 	}
 }
+
 func TestDeepseekToolsSynchronousSchemaAndChoiceValidation(t *testing.T) {
 	s := deepseekToolSpec(t)
 	payload := []byte(`{"choices":[{"index":0,"message":{"content":null,"tool_calls":[{"id":"a","type":"function","function":{"name":"lookup","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":"tool_calls"}]}`)
 	r, err := DeepseekChatNonStreamParser(payload, s)
 	if err != nil || len(r.Items) != 1 || r.Items[0].ToolCall.GetId() != "a" {
 		t.Fatalf("result=%+v err=%v", r, err)
+	}
+	invalid := []byte(`{"choices":[{"index":0,"message":{"tool_calls":[{"id":"a","type":"function","function":{"name":"lookup","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}`)
+	if _, err := DeepseekChatNonStreamParser(invalid, s); err == nil {
+		t.Fatal("the shared strict parser accepted a schema-invalid tool call")
 	}
 	s.ToolChoice = runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE
 	if _, err = DeepseekChatNonStreamParser(payload, s); err == nil {
