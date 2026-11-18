@@ -316,11 +316,11 @@ export {
 } from './preview-surface-ref.js';
 export {
   resolveAgentCenterAvatarPreviewServiceResult,
-} from './agent-center-preview.js';
+} from './agent-center-preview-result.js';
 export type {
   AgentCenterAvatarPreviewServiceResult,
   ResolveAgentCenterAvatarPreviewServiceInput,
-} from './agent-center-preview.js';
+} from './agent-center-preview-result.js';
 export {
   buildAvatarLaunchHandoffPayload,
   buildAvatarLaunchInstanceId,

@@ -30,6 +30,8 @@ The AIConfig presentation provides the standard AI Model hub, capability detail,
 
 If a reloaded intent has a missing or inconsistent exact target identity, it remains unconfigured and is never repaired by provider-name inference. The retired `core/model-config` scoped configuration ontology is not restored.
 
+`AppModelConfigSurface` binds the editor to the connected Kit App session supplied by its host. It reads the current App AIConfig on entry and focus, lists options on that same scope, submits the revision-checked edit and refreshes the effective selection. The App owns navigation, account controls and the optional Home handoff.
+
 ### Current-Machine Local Action
 
 The Kit-owned current-machine Local action is constructed from the surface's explicit `CapabilityContracts`, observed whole-owner configuration, opaque revision, options reader, and whole-owner overwrite manager. It remains unmounted until the single active product cutover and enforces the following invariants:

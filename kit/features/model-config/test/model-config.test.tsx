@@ -8,6 +8,8 @@ import {
   type NimiAIConfigEffectiveSelection,
   type NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { AppModelConfigSurface } from '../src/components/app-model-config-surface.js';
+import type { NimiAppScope } from '@nimiplatform/kit/core/app-session';
 import { CAPABILITY_DEFAULT_FIELDS } from '../src/capability-defaults.js';
 import { ModelConfigAIConfigSurface } from '../src/components/model-config-ai-config-surface.js';
 import type {
@@ -46,6 +48,22 @@ async function flush(): Promise<void> {
     await Promise.resolve();
   });
 }
+
+it('keeps the newest App configuration when an earlier focus refresh settles late', async () => {
+  let rejectFirst!: (cause: Error) => void;
+  const first = new Promise((_resolve, reject) => { rejectFirst = reject; });
+  const get = vi.fn().mockReturnValueOnce(first).mockResolvedValue({ config: null, revision: 'latest', effectiveSelections: [] });
+  const scope = { viewKey: 'A', signal: new AbortController().signal, client: { aiConfig: { get } } } as unknown as NimiAppScope;
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root?.render(<AppModelConfigSurface appId="test.app" scope={scope} capabilityContracts={['text.generate']} />));
+  await act(async () => { window.dispatchEvent(new Event('focus')); });
+  await act(async () => rejectFirst(new Error('stale configuration')));
+  expect(get).toHaveBeenCalledTimes(2);
+  expect(container.textContent).toContain('Text Generate');
+  expect(container.textContent).not.toContain('stale configuration');
+});
 
 async function renderSurface(
   onOverwrite: ModelConfigOverwrite,

@@ -3,9 +3,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AgentCenterAvatarPreview,
-  resolveAgentCenterAvatarPreviewServiceResult,
 } from '../src/agent-center-preview.js';
 import {
+  resolveAgentCenterAvatarPreviewServiceResult,
   isAvatarControlledPreviewSurfaceRef,
   normalizeAvatarControlledPreviewSurfaceRef,
 } from '../src/headless.js';

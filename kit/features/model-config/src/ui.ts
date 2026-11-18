@@ -5,3 +5,4 @@ export { ModelConfigPanel } from './components/model-config-panel.js';
 export type { ModelConfigPanelProps, ModelConfigSection } from './components/model-config-panel.js';
 export { ModelConfigAIConfigSurface } from './components/model-config-ai-config-surface.js';
 export type { ModelConfigAIConfigSurfaceProps, ModelConfigCapabilitySection } from './components/model-config-ai-config-surface.js';
+export { AppModelConfigSurface } from './components/app-model-config-surface.js';

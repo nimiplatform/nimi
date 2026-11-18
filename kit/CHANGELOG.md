@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.24.0-rc.8 — Electron Host startup
+
+The Avatar preview result projection loads independently of its React view. A packaged Host can import `shell/electron/main` using its Host dependencies. The existing UI and headless exports retain their behavior.
+
+## 0.24.0-rc.7 — Session-bound App model configuration
+
+`AppModelConfigSurface` in `features/model-config/ui` accepts the active App session scope and its capability contracts. It reuses the model picker and the protected AIConfig client for reads and revision-checked edits. Existing controlled hosts can continue to use `ModelConfigAIConfigSurface`.
+
 ## Unreleased — Realm human avatar delivery (next 0.x minor)
 
 `ConversationTargetSummary` adds optional `avatarResourceId` and `avatarMedia` fields. Realm human chat projections retain these fields so consumers can display uploaded avatars without treating a delivery URL as resource identity. This is an additive public type change; existing callers remain valid. This source change is not published.
