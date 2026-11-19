@@ -7,7 +7,6 @@ description: Audit Nimi App adaptation feasibility, capability fit and cost, or 
 
 Native App Tools supports Electron on Windows x64 and macOS arm64. Use Node, pnpm and the prebuilt Kit native package for standard builds. Apps own their additional toolchains. An existing Tauri primary profile needs its original tools or an explicit migration to Electron.
 
-
 Start with the repository's package manifest, actual product entry and nearest instructions. Preserve the user's current product scope and stage. Reuse sufficient existing evidence; inspect further only to resolve uncertainty affecting the task. Read only the scenario needed now:
 
 | Task | Guide |
