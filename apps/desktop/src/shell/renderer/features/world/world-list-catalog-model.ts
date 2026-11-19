@@ -13,26 +13,15 @@ export const WORLD_ATLAS_LEAD_WORLD_IDS = [
 // These worlds were reviewed in their real detail pages for both populated
 // people catalogs and setting illustrations. This is editorial placement, not
 // a local copy of counts.
-export const WORLD_DISCOVERY_LEAD_WORLD_IDS = [
-  'cbdb-qing-scholar-gentry-world', // 清代士绅世界
-  'thinink-plains', // 薄墨平原
-  'summerwell-village', // 夏井乡
-  'cbdb-tang-literati-world', // 唐代文人世界
-  'prism-city-network', // 折光城网
-  'oneiric-littoral', // 寐烛山海
-  'cbdb-northern-song-scholar-official-world', // 北宋士大夫世界
-  'living-echo-continent', // 昼忆大陆
-  'cbdb-southern-song-memory-world', // 南宋士人记忆世界
-  'cbdb-yuan-literati-academy-world', // 元代文人书院世界
+export const WORLD_DISCOVERY_OPENING_IDS = [
+  'thinink-plains', 'summerwell-village', 'prism-city-network', 'oneiric-littoral', 'living-echo-continent',
 ] as const;
 
-const WORLD_DISCOVERY_DEFERRED_WORLD_IDS = new Set([
-  'cbdb-qing-scholar-gentry-world',
-  'cbdb-tang-literati-world',
-  'cbdb-northern-song-scholar-official-world',
-  'cbdb-southern-song-memory-world',
-  'cbdb-yuan-literati-academy-world',
-]);
+export const WORLD_DISCOVERY_DEFERRED_IDS = [
+  'cbdb-qing-scholar-gentry-world', 'cbdb-tang-literati-world', 'cbdb-northern-song-scholar-official-world',
+  'cbdb-southern-song-memory-world', 'cbdb-yuan-literati-academy-world',
+] as const;
+
 const WORLD_DISCOVERY_GRID_COLUMNS = 3;
 const WORLD_DISCOVERY_DEFERRED_FIRST_ROW = 21;
 const WORLD_DISCOVERY_DEFERRED_ROW_GAP = 5;
@@ -84,40 +73,51 @@ export function selectWorldCatalogWorlds(
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r003
-export function selectWorldSpotlight(worlds: readonly WorldListItem[], leadWorlds: readonly WorldListItem[]) {
+export function selectWorldSpotlight(worlds: readonly WorldListItem[], leadWorlds: readonly WorldListItem[], pendingIds: ReadonlySet<string> = new Set()) {
   const byId = new Map([...worlds, ...leadWorlds].map((world) => [world.id, world]));
-  const leads = WORLD_ATLAS_LEAD_WORLD_IDS.flatMap((id) => {
+  const leads: WorldListItem[] = [];
+  for (const id of WORLD_ATLAS_LEAD_WORLD_IDS) {
     const world = byId.get(id);
-    return world ? [world] : [];
-  });
-  const leadIds = new Set(leads.map((world) => world.id));
-  return [...leads, ...worlds.filter((world) => !leadIds.has(world.id))]
-    .filter((world) => !isMainWorld(world) && (world.heroMedia || world.bannerMedia || world.bannerUrl))
-    .slice(0, 5);
+    if (!world && pendingIds.has(id)) return leads;
+    if (world && !isMainWorld(world) && (world.heroMedia || world.bannerMedia || world.bannerUrl)) leads.push(world);
+  }
+  // Opening cards have reserved positions even before the catalog arrives.
+  const reserved = new Set<string>([...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_OPENING_IDS]);
+  const fallback = worlds.filter(world => !reserved.has(world.id)
+    && !isMainWorld(world) && (world.heroMedia || world.bannerMedia || world.bannerUrl));
+  return [...leads, ...fallback].slice(0, 5);
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r003
-export function selectWorldDiscoveryWorlds(worlds: readonly WorldListItem[], leadWorlds: readonly WorldListItem[]) {
+export function selectWorldDiscoverySlots(
+  worlds: readonly WorldListItem[], leadWorlds: readonly WorldListItem[], pendingIds: ReadonlySet<string>,
+  spotlightIds: ReadonlySet<string>,
+) {
   const byId = new Map([...worlds, ...leadWorlds].map(world => [world.id, world]));
-  const leads = WORLD_DISCOVERY_LEAD_WORLD_IDS.flatMap(id => {
-    if (WORLD_DISCOVERY_DEFERRED_WORLD_IDS.has(id)) return [];
+  const slots: { id: string; world: WorldListItem | null }[] = [];
+  for (const id of WORLD_DISCOVERY_OPENING_IDS) {
     const world = byId.get(id);
-    return world ? [world] : [];
-  });
-  const deferredLeads = WORLD_DISCOVERY_LEAD_WORLD_IDS.flatMap(id => {
-    if (!WORLD_DISCOVERY_DEFERRED_WORLD_IDS.has(id)) return [];
+    if (world || pendingIds.has(id)) slots.push({ id, world: world ?? null });
+  }
+  if (WORLD_ATLAS_LEAD_WORLD_IDS.some(id => pendingIds.has(id) && !byId.has(id))) {
+    return { slots, waitingForSpotlight: true };
+  }
+
+  const reserved = new Set<string>([...WORLD_DISCOVERY_OPENING_IDS, ...WORLD_DISCOVERY_DEFERRED_IDS, ...spotlightIds]);
+  for (const world of worlds) {
+    if (!reserved.has(world.id)) slots.push({ id: world.id, world });
+  }
+  const deferred = WORLD_DISCOVERY_DEFERRED_IDS.flatMap(id => {
     const world = byId.get(id);
-    return world ? [world] : [];
+    return world && !spotlightIds.has(id) ? [world] : [];
   });
-  const leadIds = new Set([...leads, ...deferredLeads].map(world => world.id));
-  const ordered = [...leads, ...worlds.filter(world => !leadIds.has(world.id))];
-  for (const [index, world] of deferredLeads.entries()) {
+  for (const [index, world] of deferred.entries()) {
     const row = WORLD_DISCOVERY_DEFERRED_FIRST_ROW + index * WORLD_DISCOVERY_DEFERRED_ROW_GAP;
     const targetIndex = (row - 1) * WORLD_DISCOVERY_GRID_COLUMNS;
-    if (ordered.length < targetIndex) break;
-    ordered.splice(targetIndex, 0, world);
+    if (slots.length < targetIndex) break;
+    slots.splice(targetIndex, 0, { id: world.id, world });
   }
-  return ordered;
+  return { slots, waitingForSpotlight: false };
 }
 
 export function worldHeroBackground(imageUrl: string | null): string {

@@ -104,13 +104,26 @@ async function listWorldCatalogPage(
   request: RealmCatalogPageRequest,
 ): Promise<RealmCatalogPage<WorldDetailDto>> {
   const page = requireCatalogPage(
-    await realm.worldPublic.worldPublicControllerListWorldCatalog({ path: {}, query: catalogQuery(request) }),
+    await realm.worldPublic.worldPublicControllerListWorldCatalog({
+      path: {}, query: { ...catalogQuery({ ...request, limit: request.limit ?? 36 }), media: 'cover' },
+    }),
     'World catalog',
   );
   return {
     ...page,
     items: page.items.map((world) => projectWorldPublicItem(requireWorldPublicItemDto(world))),
   };
+}
+
+export function projectWorldSummaryBatch(rows: readonly unknown[], worldIds: readonly string[]) {
+  let previous = -1;
+  return rows.map(row => {
+    const item = requireWorldPublicItemDto(row);
+    const position = worldIds.indexOf(item.id);
+    if (position <= previous) throw new Error('World summary response contains an unexpected or unordered ID');
+    previous = position;
+    return projectWorldPublicItem(item);
+  });
 }
 
 async function getWorldCore(realm: Realm, worldId: string): Promise<WorldDetailDto | null> {
@@ -377,6 +390,10 @@ export function createRealmWorldData(sdk: DesktopRendererSdkPort) {
         throw error;
       }
     },
+    loadWorldSummaries: (worldIds: readonly string[]) => callRealmApi(async realm => {
+      const rows = await realm.worldPublic.worldPublicControllerGetWorldCatalogByIds({ path: {}, body: { worldIds: [...worldIds], media: 'cover' } });
+      return projectWorldSummaryBatch(rows, worldIds);
+    }, 'Failed to load world summaries'),
     loadWorldCatalogPage: (request: RealmCatalogPageRequest) =>
       loadWorldCatalogPage(callRealmApi, emitRealmDataError, request),
     loadPersonaCharacterCatalogPage: (request: RealmCatalogPageRequest & { worldId?: string }) =>

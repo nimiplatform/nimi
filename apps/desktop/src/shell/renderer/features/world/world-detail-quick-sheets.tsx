@@ -146,7 +146,7 @@ export function WorldCharacterQuickSheet({
                       data-testid="world-character-voice-sample-audio"
                       className="mt-3 w-full"
                       controls
-                      preload="metadata"
+                      preload="none"
                       src={voiceSampleUrl}
                     />
                   </div>

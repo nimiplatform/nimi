@@ -56,8 +56,10 @@
 .world-discovery-section { margin-top: 36px; }
 .world-discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 24px; }
 .world-discovery-card { min-width: 0; }
+.world-atlas-image.world-atlas-empty-art { display: grid; place-items: center; color: var(--atlas-muted); background: var(--nimi-surface-panel); }
 .world-discovery-link { position: relative; display: flex; flex-direction: column; align-items: stretch; width: 100%; height: 100%; text-align: start; border-radius: 10px; }
-.world-discovery-link > .world-atlas-image { height: auto; aspect-ratio: 3 / 2; border-radius: 10px; }
+.world-discovery-placeholder { padding-bottom: 48px; }
+.world-discovery-placeholder > .world-atlas-image, .world-discovery-link > .world-atlas-image { height: auto; aspect-ratio: 3 / 2; border-radius: 10px; }
 .world-discovery-link > .world-atlas-image img { position: absolute; inset: 0; transition: transform 180ms ease; }
 .world-discovery-link:hover > .world-atlas-image img { transform: scale(1.035); }
 .world-discovery-caption { display: flex; align-items: flex-start; gap: 14px; padding: 14px 2px 0; }

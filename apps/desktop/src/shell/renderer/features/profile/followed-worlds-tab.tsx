@@ -1,14 +1,10 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueries } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { CompactWorldCard } from '../world/world-list-compact-card';
 import { useFollowedWorlds } from '../world/world-follow-store-context.js';
-import {
-  fetchWorldListItem,
-  worldListItemQueryKey,
-} from '../world/world-detail-queries';
+import { useWorldSummaryBatches, worldSummaryBatches } from '../world/use-world-summary-batches.js';
 import { ProfileDetailTabFallback } from '../relationship/profile-detail-view-content-shell.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
@@ -31,25 +27,8 @@ export function FollowedWorldsTab() {
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const realmWorldData = useMemo(() => createRealmWorldData(sdk), [sdk]);
   // Followed worlds are read by id; they never depend on a full catalog list being loaded.
-  const followedWorldQueries = useQueries({
-    queries: followed.ids.map((worldId) => ({
-      queryKey: worldListItemQueryKey(realmBaseUrl, worldId),
-      queryFn: () => fetchWorldListItem(realmWorldData, worldId),
-      enabled: authStatus === 'authenticated',
-      staleTime: 30_000,
-    })),
-  });
-  const worldsQuery = {
-    isPending: followedWorldQueries.some((query) => query.isPending),
-    isError: followedWorldQueries.length > 0 && followedWorldQueries.every((query) => query.isError),
-  };
-
-  const followedWorlds = useMemo(
-    () => followedWorldQueries
-      .map((query) => query.data)
-      .filter((world): world is NonNullable<typeof world> => Boolean(world)),
-    [followedWorldQueries],
-  );
+  const summaries = useWorldSummaryBatches({ data: realmWorldData, realmBaseUrl,
+    enabled: authStatus === 'authenticated' && followed.available && !followed.error, offline: false }, worldSummaryBatches(followed.ids));
 
   if (followed.ids.length === 0) {
     return (
@@ -69,11 +48,11 @@ export function FollowedWorldsTab() {
     );
   }
 
-  if (worldsQuery.isPending) {
+  if (summaries.loading) {
     return <ProfileDetailTabFallback />;
   }
 
-  if (worldsQuery.isError) {
+  if (summaries.error && !summaries.worlds.length) {
     return (
       <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_50%,transparent)] px-6 py-10 text-center text-sm font-medium text-[var(--nimi-status-danger)]">
         {t('Profile.followedWorldsLoadError')}
@@ -90,7 +69,7 @@ export function FollowedWorldsTab() {
         gap: 12,
       }}
     >
-      {followedWorlds.map((world) => (
+      {summaries.worlds.map((world) => (
         <CompactWorldCard
           key={world.id}
           world={world}

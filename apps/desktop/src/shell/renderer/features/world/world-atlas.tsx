@@ -1,17 +1,31 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Globe2 } from 'lucide-react';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import type { WorldListItem } from './world-list-model.js';
+import { observeDiscoveryCover } from './world-cover-viewport.js';
 
 export type WorldAtlasTopic = { id: string; title: string; titleEn: string; description?: string };
 
-export function WorldAtlasImage({ world, eager = false, purpose = eager ? 'hero' : 'card' }: { world: WorldListItem; eager?: boolean; purpose?: 'card' | 'hero' }) {
+export function WorldAtlasImage({ world, eager = false, prioritizeVisible = false, purpose = eager ? 'hero' : 'card' }: {
+  world: WorldListItem; eager?: boolean; prioritizeVisible?: boolean; purpose?: 'card' | 'hero';
+}) {
+  const cover = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState<boolean | null>(null);
   const delivery = purpose === 'hero' ? world.heroMedia ?? world.bannerMedia : world.bannerMedia ?? world.heroMedia;
-  return <span className="world-atlas-image" role="img" aria-label={world.name}>
-    <MediaImage delivery={delivery} externalUrl={world.bannerUrl} purpose={purpose} sizes={eager ? 'auto' : 'auto, 320px'} alt=""
-      className="h-full w-full object-cover" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} />
+  const hasArtwork = Boolean(delivery || world.bannerUrl);
+  useLayoutEffect(() => {
+    if (!prioritizeVisible || !cover.current) return;
+    return observeDiscoveryCover(cover.current, next => {
+      setVisible(previous => next === null ? (previous === null ? null : false) : next);
+    });
+  }, [prioritizeVisible, hasArtwork]);
+  const priority = eager || visible ? 'high' : prioritizeVisible ? 'low' : 'auto';
+  if (!hasArtwork) return <span className="world-atlas-image world-atlas-empty-art" aria-hidden="true"><Globe2 size={32} strokeWidth={1.25} /></span>;
+  return <span ref={cover} className="world-atlas-image" role="img" aria-label={world.name}>
+    {(!prioritizeVisible || visible !== null) && <MediaImage delivery={delivery} externalUrl={world.bannerUrl} purpose={purpose} sizes={eager ? 'auto' : 'auto, 320px'} alt=""
+      className="h-full w-full object-cover" loading={eager || prioritizeVisible ? 'eager' : 'lazy'} fetchPriority={priority} />}
   </span>;
 }
 
@@ -36,7 +50,7 @@ export function WorldDiscoveryCard({ world }: { world: WorldListItem }) {
   const navigation = useHomeNavigation();
   return <article className="world-discovery-card" data-testid="world-discovery-card">
     <button className="world-discovery-link" data-view-key={`all:${world.id}`} aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
-      <WorldAtlasImage world={world} purpose="hero" />
+      <WorldAtlasImage world={world} purpose="hero" prioritizeVisible />
       <div className="world-discovery-caption">
         <div className="world-discovery-copy"><h3 title={world.name}>{world.name}</h3></div>
         <span className="world-discovery-arrow" aria-hidden="true"><ArrowRight size={18} /></span>

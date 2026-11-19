@@ -11,7 +11,7 @@ import { WorldCatalogContent, type WorldCatalogPaging } from '../src/shell/rende
 import { ExploreSectionNav } from '../src/shell/renderer/features/explore/explore-section-nav.js';
 import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard } from '../src/shell/renderer/features/world/world-atlas.js';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
-import { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_LEAD_WORLD_IDS } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
+import { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_OPENING_IDS, WORLD_DISCOVERY_DEFERRED_IDS } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
 
 (globalThis as { React?: typeof React }).React = React;
 const world: WorldListItem = {
@@ -88,12 +88,20 @@ test('world gallery shows typed summaries and keeps the server total separate fr
 
 test('world pagination observes its scroll viewport, loads once per page, and pauses on errors or offline', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  let viewportHeight = 640;
+  Object.defineProperty(dom.window.HTMLElement.prototype, 'clientHeight', {
+    get(this: HTMLElement) { return this.classList.contains('world-atlas-viewport') ? viewportHeight : 0; },
+  });
   const observers: Observer[] = [];
   class Observer {
     target: Element | null = null;
     disconnected = false;
-    constructor(readonly callback: IntersectionObserverCallback, readonly options: IntersectionObserverInit) { observers.push(this); }
-    observe(target: Element) { this.target = target; }
+    constructor(readonly callback: IntersectionObserverCallback, readonly options: IntersectionObserverInit) {}
+    observe(target: Element) {
+      this.target = target;
+      if (target.getAttribute('data-testid') === 'world-catalog-load-more') observers.push(this);
+    }
+    unobserve(target: Element) { if (this.target === target) this.target = null; }
     disconnect() { this.disconnected = true; }
     notify(isIntersecting: boolean) {
       this.callback([{ isIntersecting, target: this.target } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
@@ -115,7 +123,7 @@ test('world pagination observes its scroll viewport, loads once per page, and pa
     const first = observers.at(-1)!;
     assert.ok(first.options.root instanceof dom.window.HTMLElement);
     assert.ok((first.options.root as Element).contains(first.target));
-    assert.equal(first.options.rootMargin, '0px 0px 320px 0px');
+    assert.equal(first.options.rootMargin, '0px 0px 640px 0px');
     assert.equal(first.target, dom.window.document.querySelector('[data-testid="world-catalog-load-more"]'));
     await act(async () => { first.notify(false); });
     assert.equal(calls, 0, 'a distant list end does not fetch');
@@ -133,8 +141,10 @@ test('world pagination observes its scroll viewport, loads once per page, and pa
     await act(async () => { retry.click(); });
     assert.equal(calls, 2);
     await draw({ loadingMore: true });
+    viewportHeight = 480;
     await draw();
     const second = observers.at(-1)!;
+    assert.equal(second.options.rootMargin, '0px 0px 480px 0px');
     assert.notEqual(second, first, 'the next accepted page rearms observation, including an underfilled viewport');
     await act(async () => { second.notify(true); });
     assert.equal(calls, 3);
@@ -259,24 +269,6 @@ test('discovery removes only spotlight worlds from exploration', () => {
   assert.ok(document.querySelector('section[aria-label="探索更多世界"]'));
 });
 
-test('exploration cards use the taller hero rendition instead of the cropped card rendition', () => {
-  const media: NonNullable<WorldListItem['bannerMedia']> = {
-    resourceId: 'resource-cover', contentVersion: 'a'.repeat(64), publicationGeneration: 1, policyVersion: 'policy-v1',
-    expiresAt: null, previewUrl: null, originalUrl: null, video: null,
-    images: ['card', 'hero'].map((purpose) => ({
-      purpose: purpose as 'card' | 'hero',
-      families: [{ mimeType: 'image/png', sources: [{ url: `https://example.com/${purpose}-640.png`, width: 640, height: purpose === 'card' ? 264 : 427, mimeType: 'image/png' }] }],
-    })),
-  };
-  const document = new JSDOM(renderToStaticMarkup(
-    <AppStoreProvider store={store}><WorldDiscoveryCard world={{ ...world, bannerMedia: media }} /></AppStoreProvider>,
-  )).window.document;
-  const image = document.querySelector('.world-discovery-card img');
-  assert.equal(image?.getAttribute('src'), 'https://example.com/hero-640.png');
-  assert.equal(image?.getAttribute('width'), '640');
-  assert.equal(image?.getAttribute('height'), '427');
-});
-
 test('spotlight leads resolve outside the first page and stay out of exploration after pagination', () => {
   const leads = WORLD_ATLAS_LEAD_WORLD_IDS.map(id => ({ ...world, id, name: id, bannerUrl: `https://example.com/${id}.png` }));
   const catalog = Array.from({ length: 8 }, (_, index) => ({ ...world, id: `catalog-${index}`, name: `Catalog ${index}`, bannerUrl: `https://example.com/${index}.png` }));
@@ -292,7 +284,7 @@ test('spotlight leads resolve outside the first page and stay out of exploration
 });
 
 test('reviewed populated illustrated worlds lead the grid before paging and appear only once after paging', () => {
-  const leads = [...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_LEAD_WORLD_IDS]
+  const leads = [...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_OPENING_IDS, ...WORLD_DISCOVERY_DEFERRED_IDS]
     .map(id => ({ ...world, id, name: id, bannerUrl: `https://example.com/${id}.png` }));
   const catalog = [{ ...world, id: 'catalog', name: 'Catalog' }];
   for (const worlds of [catalog, [...catalog, ...leads]]) {

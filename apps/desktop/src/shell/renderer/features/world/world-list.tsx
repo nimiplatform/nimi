@@ -5,7 +5,7 @@ import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House } fr
 import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
 import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard, type WorldAtlasTopic } from './world-atlas.js';
 import { type WorldListItem } from './world-list-model';
-import { selectWorldDiscoveryWorlds, selectWorldSpotlight } from './world-list-catalog-model.js';
+import { selectWorldDiscoverySlots, selectWorldSpotlight } from './world-list-catalog-model.js';
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
@@ -33,25 +33,31 @@ export type WorldCatalogPaging = {
 
 const topicIcons = { history: Landmark, everyday: House, fantasy: Sparkles, future: Orbit, ecology: Leaf, journey: Compass };
 
-export function WorldCatalogContent({ worlds, paging, embedded = false, searchQuery, onSearchQueryChange, railFlap, headerLeading, headerTrailing, topics = [], topicId = '', onTopicChange, topicsFailed = false, onRetryTopics, loading = false, error = false, offline = false, onRetry, favorites = false, onFavoritesSelect, favoritesUnavailable, favoritesPartialError = false, leadWorlds = [], spotlightLoading = false, spotlightError = false, onRetrySpotlight }: {
+export function WorldCatalogContent({ worlds, paging, embedded = false, searchQuery, onSearchQueryChange, railFlap, headerLeading, headerTrailing, topics = [], topicId = '', onTopicChange, topicsFailed = false, onRetryTopics, loading = false, error = false, offline = false, onRetry, favorites = false, onFavoritesSelect, favoritesUnavailable, favoritesPartialError = false, leadWorlds = [], pendingLeadIds = new Set(), spotlightLoading = false, spotlightError = false, onRetrySpotlight }: {
   worlds: WorldListItem[]; paging: WorldCatalogPaging; embedded?: boolean;
   topics?: readonly WorldAtlasTopic[]; topicId?: string; onTopicChange?: (value: string) => void; topicsFailed?: boolean; onRetryTopics?: () => void;
   searchQuery?: string; onSearchQueryChange?: (value: string) => void; railFlap?: ReactNode;
   headerLeading?: ReactNode; headerTrailing?: ReactNode;
   loading?: boolean; error?: boolean; offline?: boolean; onRetry?: () => void;
   favorites?: boolean; onFavoritesSelect?: () => void; favoritesUnavailable?: string; favoritesPartialError?: boolean;
-  leadWorlds?: WorldListItem[]; spotlightLoading?: boolean; spotlightError?: boolean; onRetrySpotlight?: () => void;
+  leadWorlds?: WorldListItem[]; pendingLeadIds?: ReadonlySet<string>; spotlightLoading?: boolean; spotlightError?: boolean; onRetrySpotlight?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const query = searchQuery ?? '';
-  const viewport = useHomeListPosition(JSON.stringify(['worlds', topicId, query, favorites]), !loading && !error);
+  const browse = !query.trim() && !topicId && !favorites;
+  const spotlightWorlds = browse ? selectWorldSpotlight(worlds, leadWorlds, pendingLeadIds) : [];
+  const { slots: discoverySlots, waitingForSpotlight } = browse
+    ? selectWorldDiscoverySlots(worlds, leadWorlds, pendingLeadIds, new Set(spotlightWorlds.map(world => world.id)))
+    : { slots: [], waitingForSpotlight: false };
+  const hasCards = browse ? discoverySlots.length > 0 : worlds.length > 0;
+  const viewport = useHomeListPosition(JSON.stringify(['worlds', topicId, query, favorites]), !error && (!loading || hasCards));
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
   const loadMore = useEffectEvent(() => paging.onLoadMore());
   // @nimi-authority: rule.nimi.desktop.product-surfaces.r002
   useEffect(() => {
     const root = viewport.current;
     const sentinel = loadMoreSentinel.current;
-    if (!root || !sentinel || loading || error || offline || paging.offlineIncomplete
+    if (!root || !sentinel || loading || waitingForSpotlight || error || offline || paging.offlineIncomplete
       || !paging.hasMore || paging.loadingMore || paging.loadMoreFailed) return;
     let requested = false;
     const observer = new IntersectionObserver((entries) => {
@@ -59,20 +65,11 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
       requested = true;
       observer.disconnect();
       loadMore();
-    }, { root, rootMargin: '0px 0px 320px 0px' });
+    }, { root, rootMargin: `0px 0px ${root.clientHeight}px 0px` });
     observer.observe(sentinel);
     return () => { requested = true; observer.disconnect(); };
-  }, [viewport, loading, error, offline, paging.offlineIncomplete, paging.hasMore,
+  }, [viewport, loading, waitingForSpotlight, error, offline, paging.offlineIncomplete, paging.hasMore,
     paging.loadingMore, paging.loadMoreFailed, worlds.length, query, topicId, favorites, favoritesUnavailable]);
-  const browse = !query.trim() && !topicId && !favorites;
-  // Render accepted entries as they arrive; another lead or the catalog itself
-  // may still be loading or unavailable without blocking a usable spotlight.
-  const spotlightWorlds = browse ? selectWorldSpotlight(worlds, leadWorlds) : [];
-  const displayedWorldIds = new Set(spotlightWorlds.map((world) => world.id));
-  const remainingWorlds = browse ? selectWorldDiscoveryWorlds(
-    worlds.filter((world) => !displayedWorldIds.has(world.id)),
-    leadWorlds.filter((world) => !displayedWorldIds.has(world.id)),
-  ) : worlds;
   const selectedTopic = topics.find((topic) => topic.id === topicId);
   const topicTitle = (topic: WorldAtlasTopic) => i18n.language.startsWith('zh') ? topic.title : topic.titleEn;
   return (
@@ -88,10 +85,10 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
           {headerTrailing}
         </div>
       </div>
-      <ScrollArea className="min-h-0 flex-1" viewportRef={viewport} viewportClassName="bg-transparent" contentClassName="world-atlas-body">
-        {browse ? spotlightWorlds.length > 0 ? <WorldAtlasHero worlds={spotlightWorlds} /> : spotlightLoading ? <LoadingSkeleton lines={5} label={t('World.loading')} /> : spotlightError ? <WorldsLoadError embedded offline={offline} onRetry={onRetrySpotlight} /> : null : null}
+      <ScrollArea className="min-h-0 flex-1" viewportRef={viewport} viewportClassName="world-atlas-viewport bg-transparent" contentClassName="world-atlas-body">
+        {browse ? spotlightWorlds.length > 0 ? <WorldAtlasHero worlds={spotlightWorlds} /> : spotlightLoading ? <div className="world-atlas-hero" aria-busy="true"><div className="world-atlas-hero-art"><LoadingSkeleton lines={5} label={t('World.loading')} /></div></div> : spotlightError ? <WorldsLoadError embedded offline={offline} onRetry={onRetrySpotlight} /> : null : null}
         {onTopicChange ? <nav className="world-atlas-filters" aria-label={t('World.topics')}><button aria-pressed={!topicId && !favorites} onClick={() => onTopicChange('')}><Grid2X2 size={17} />{t('World.allTopics')}</button>{onFavoritesSelect ? <button aria-pressed={favorites} onClick={onFavoritesSelect}><Bookmark size={17} />{t('World.favorites.title')}</button> : null}{topics.map((topic) => { const Icon = topicIcons[topic.id as keyof typeof topicIcons] ?? Compass; return <button key={topic.id} aria-pressed={!favorites && topicId === topic.id} onClick={() => onTopicChange(topic.id)}><Icon size={17} />{topicTitle(topic)}</button>; })}</nav> : null}
-        {favoritesUnavailable ? <EmptyState title={t(favoritesUnavailable)} /> : loading ? (
+        {favoritesUnavailable ? <EmptyState title={t(favoritesUnavailable)} /> : (loading || waitingForSpotlight) && !discoverySlots.length && !error ? (
           <WorldsLoadingSkeleton embedded />
         ) : error ? (
           <WorldsLoadError embedded offline={offline} onRetry={onRetry} />
@@ -99,9 +96,13 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
         <section className={`world-atlas-section${browse ? ' world-discovery-section' : ''}`} aria-label={t(favorites ? 'World.favorites.title' : browse ? 'World.album.exploreMore' : 'World.album.allWorlds')}>
           <div className="world-atlas-section-heading"><div><h2>{favorites ? t('World.favorites.title') : query.trim() ? t('World.searchResults') : selectedTopic ? topicTitle(selectedTopic) : t('World.album.exploreMore')}</h2>{browse ? <p>{t('World.album.exploreDescription')}</p> : null}{favorites ? <NimiText role="caption">{t('World.favorites.localOnly')}</NimiText> : null}</div></div>
           {favoritesPartialError ? <div className="mb-4 flex items-center gap-3" role="status"><NimiText role="helper">{t('World.favorites.partialError')}</NimiText>{!offline ? <Button tone="secondary" size="sm" onClick={onRetry}>{t('NotificationPanel.refresh')}</Button> : null}</div> : null}
-          {!remainingWorlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className={browse ? 'world-discovery-grid' : 'world-atlas-grid'}>{remainingWorlds.map((world) => browse ? <WorldDiscoveryCard key={world.id} world={world} /> : <WorldAlbumCard key={world.id} world={world} viewKey={`all:${world.id}`} />)}</div>}
+          {!hasCards ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : browse ? (
+            <div className="world-discovery-grid">{discoverySlots.map(({ id, world }) => world
+              ? <WorldDiscoveryCard key={id} world={world} />
+              : <div key={id} className="world-discovery-placeholder" aria-hidden="true"><span className="world-atlas-image" /></div>)}</div>
+          ) : <div className="world-atlas-grid">{worlds.map(world => <WorldAlbumCard key={world.id} world={world} viewKey={`all:${world.id}`} />)}</div>}
         </section>
-        {paging.offlineIncomplete ? <NimiText role="helper" className="mt-4 text-center" aria-live="polite">{t('World.atlas.offlineIncomplete')}</NimiText> : paging.hasMore ? (
+        {paging.offlineIncomplete ? <NimiText role="helper" className="mt-4 text-center" aria-live="polite">{t('World.atlas.offlineIncomplete')}</NimiText> : paging.hasMore && !waitingForSpotlight ? (
           <div ref={loadMoreSentinel} className="mt-6 flex min-h-10 flex-col items-center justify-center gap-2" data-testid="world-catalog-load-more" aria-busy={paging.loadingMore}>
             {paging.loadMoreFailed ? <>
               <NimiText role="helper" className="text-[var(--nimi-status-danger)]" aria-live="polite">{t('World.atlas.loadMoreError')}</NimiText>

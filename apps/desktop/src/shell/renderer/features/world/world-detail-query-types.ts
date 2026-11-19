@@ -28,4 +28,3 @@ export type WorldDisplayDetail = {
 };
 
 export type WorldPrimaryDisplayDetail = Pick<WorldDisplayDetail, 'primary' | 'world' | 'characters'>;
-export type WorldSupplementalDisplayDetail = Pick<WorldDisplayDetail, 'history' | 'semantic' | 'audits' | 'publicAssets' | 'sections'>;

@@ -12,6 +12,7 @@ const realmWorldData = createRealmWorldData({
 } as unknown as DesktopRendererSdkPort);
 import {
   fetchWorldPrimaryDisplayDetail,
+  fetchWorldDisplayDetail,
   fetchWorldRecommendedCharacterPreview,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
 
@@ -106,46 +107,23 @@ const primaryWorldFixture = {
   }],
 } satisfies NonNullable<Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithCharacters>>>;
 
-test('world primary display detail resolves without waiting for supplemental section loaders', async () => {
-  const originals = {
-    loadWorldDetailWithCharacters: realmWorldData.loadWorldDetailWithCharacters,
-    loadWorldHistory: realmWorldData.loadWorldHistory,
-    loadWorldSemanticBundle: realmWorldData.loadWorldSemanticBundle,
-    loadWorldAssets: realmWorldData.loadWorldAssets,
-    loadWorldScenes: realmWorldData.loadWorldScenes,
-  };
-  const supplementalCalls: string[] = [];
-  realmWorldData.loadWorldDetailWithCharacters = async () => primaryWorldFixture;
-  realmWorldData.loadWorldHistory = async () => {
-    supplementalCalls.push('history');
-    return { items: [] };
-  };
-  realmWorldData.loadWorldSemanticBundle = async () => {
-    supplementalCalls.push('semantic');
-    return {};
-  };
-  realmWorldData.loadWorldAssets = async () => {
-    supplementalCalls.push('assets');
-    return { resourceRefs: [], externalRefs: [], intents: [] };
-  };
-  realmWorldData.loadWorldScenes = async () => {
-    supplementalCalls.push('scenes');
-    return { items: [] };
-  };
-
-  try {
-    const detail = await fetchWorldPrimaryDisplayDetail('world-primary', realmWorldData);
-
-    assert.equal(detail.world.id, 'world-primary');
-    assert.equal(detail.characters.length, 1);
-    assert.deepEqual(supplementalCalls, []);
-  } finally {
-    realmWorldData.loadWorldDetailWithCharacters = originals.loadWorldDetailWithCharacters;
-    realmWorldData.loadWorldHistory = originals.loadWorldHistory;
-    realmWorldData.loadWorldSemanticBundle = originals.loadWorldSemanticBundle;
-    realmWorldData.loadWorldAssets = originals.loadWorldAssets;
-    realmWorldData.loadWorldScenes = originals.loadWorldScenes;
-  }
+test('world detail derives its sections from one combined response and degrades an invalid timeline independently', async () => {
+  let calls = 0;
+  const data = { ...realmWorldData, loadWorldDetailWithCharacters: async () => {
+    calls++;
+    return { ...primaryWorldFixture, timeline: [{ eventId: 'spring', title: 'Spring' }] };
+  } };
+  const display = await fetchWorldDisplayDetail('world-primary', data);
+  assert.equal(calls, 1);
+  assert.equal(display.world.id, 'world-primary');
+  assert.equal(display.characters.length, 1);
+  assert.equal(display.history.items[0]?.title, 'Spring');
+  assert.equal(display.sections.publicAssets, 'success');
+  const partial = await fetchWorldDisplayDetail('world-primary', { ...data, loadWorldDetailWithCharacters: async () =>
+    ({ ...primaryWorldFixture, timeline: [{ title: 'Missing an event identity' }] }) });
+  assert.equal(partial.sections.history, 'error');
+  assert.equal(partial.sections.semantic, 'success');
+  assert.equal(partial.world.id, 'world-primary');
 });
 
 test('world primary display detail preserves connected local-agent relation state', async () => {

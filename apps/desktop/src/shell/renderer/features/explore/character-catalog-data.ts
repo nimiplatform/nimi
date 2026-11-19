@@ -1,12 +1,13 @@
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-import { projectWorldPublicSourceCard, requireWorldPublicSourceCardDto } from '../world/data/world-public-projection.js';
-import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
+import type { RealmMediaDeliveryDto } from '../world/data/world-public-projection.js';
+import { readCharacterSourceRefV3, type CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 export type CharacterCatalogItem = Readonly<{
   sourceRef: CharacterSourceRefV3;
   name: string;
   summary: string;
   avatarUrl: string | null;
+  avatarMedia: RealmMediaDeliveryDto | null;
   worldName: string;
 }>;
 
@@ -17,9 +18,9 @@ export async function readCharacterCatalog(sdk: DesktopRendererSdkPort, query: s
   });
   if (!Array.isArray(page.items) || typeof page.totalCount !== 'number' || page.hasMore !== (page.nextCursor !== null)) throw new Error('Character catalog page is invalid.');
   return { ...page, items: page.items.map(raw => {
-    const card = requireWorldPublicSourceCardDto(raw, raw.worldId);
-    const projection = projectWorldPublicSourceCard(card);
-    return { sourceRef: projection.sourceRef, name: card.displayName, summary: card.summary,
-      avatarUrl: projection.avatarUrl ?? null, worldName: card.worldName } satisfies CharacterCatalogItem;
+    const sourceRef = readCharacterSourceRefV3(raw.sourceRef);
+    if (!sourceRef || sourceRef.id !== raw.id) throw new Error('Character catalog source identity mismatch');
+    return { sourceRef, name: raw.displayName, summary: raw.summary, avatarMedia: raw.avatarMedia,
+      avatarUrl: raw.avatarUrl, worldName: raw.worldName } satisfies CharacterCatalogItem;
   }) };
 }

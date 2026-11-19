@@ -1,3 +1,4 @@
+import { projectWorldSummaryBatch } from '../../world/data/realm-world-data.js';
 import { type Realm } from '@nimiplatform/sdk/realm';
 import { type JsonObject } from '@nimiplatform/sdk/types';
 import {
@@ -10,9 +11,7 @@ import {
   type CharacterProfileCoreDto,
 } from '../../realm-source/character-source-profile-projection.js';
 import {
-  projectWorldPublicItem,
   projectWorldPublicSourceCard,
-  requireWorldPublicDetailDto,
   requireWorldPublicSourceCardDto,
   type WorldPublicSourceCardDto,
 } from '../../world/data/world-public-projection.js';
@@ -146,52 +145,26 @@ async function loadRelationshipTargets(
     add(toNonEmptyString(relation.targetEntityId), worldId);
   }
   const targets: JsonObject = {};
-  // Bound concurrent reads for characters with many incident relationships.
-  const entries = [...refs];
-  for (let offset = 0; offset < entries.length; offset += 8) {
-    await Promise.all(entries.slice(offset, offset + 8).map(async ([entityId, expectedWorldId]) => {
-      const response = await realm.worldCore.worldCoreControllerGetWorldEntity({ path: { entityId } })
-        .then(value => ({ value })).catch(() => null);
-      // Unavailable endpoints remain unclassified background, never a person.
-      if (!response) return;
-      const entity = response.value;
-      if (entity.id !== entityId || entity.worldId !== expectedWorldId) {
-        throw new Error('Relationship endpoint identity or world mismatch');
-      }
-      const projected = projectWorldEntityCore(entity);
-      targets[entityId] = { kind: projected.kind, name: projected.name };
-    }));
+  const byWorld = new Map<string, string[]>();
+  for (const [id, targetWorldId] of refs) {
+    const ids = byWorld.get(targetWorldId) ?? [];
+    ids.push(id);
+    byWorld.set(targetWorldId, ids);
   }
-  // A character can have an authored species/entity kind rather than person.
-  // Its public WorldCharacter binding is positive evidence; never guess from
-  // a species name, entity-id prefix, relationship label or narrative prose.
-  for (const targetWorldId of new Set(refs.values())) {
-    const unresolved = new Set(entries.filter(([id, refWorld]) => (
-      refWorld === targetWorldId && targets[id]
-      && !['person', 'human'].includes(String(asRecord(targets[id]).kind))
-    )).map(([id]) => id));
-    if (unresolved.size === 0) continue;
-    let cursor: string | undefined;
-    const seenCursors = new Set<string>();
-    while (unresolved.size > 0) {
-      const response = await realm.worldPublic.worldPublicControllerListWorldCharacterCatalog({
-        path: { worldId: targetWorldId }, query: { limit: 100, ...(cursor ? { cursor } : {}) },
-      }).then(value => ({ value })).catch(() => null);
-      if (!response) break;
-      for (const item of response.value.items) {
-        const card = requireWorldPublicSourceCardDto(item, targetWorldId);
-        const ref = readCharacterSourceRefV3(card.sourceRef);
-        if (!ref || ref.kind !== 'worldCharacter' || ref.worldId !== targetWorldId) {
-          throw new Error('Relationship character catalog source mismatch');
+  for (const [targetWorldId, ids] of byWorld) {
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const entityIds = ids.slice(offset, offset + 100);
+      const rows = await realm.worldCore.worldCoreControllerGetRelationshipTargets({
+        path: { worldId: targetWorldId }, body: { entityIds },
+      }).catch(() => null);
+      if (!rows) continue;
+      const expected = new Set(entityIds);
+      for (const row of rows) {
+        if (row.worldId !== targetWorldId || !expected.delete(row.entityId)) {
+          throw new Error('Relationship endpoint identity or world mismatch');
         }
-        const id = ref.worldEntityRef.entityId;
-        if (unresolved.delete(id)) targets[id] = { ...asRecord(targets[id]), isCharacter: true };
+        targets[row.entityId] = { kind: row.kind, name: row.name, ...(row.isCharacter ? { isCharacter: true } : {}) };
       }
-      if (!response.value.hasMore) break;
-      const next = response.value.nextCursor;
-      if (!next || seenCursors.has(next)) throw new Error('Relationship character catalog cursor did not advance');
-      seenCursors.add(next);
-      cursor = next;
     }
   }
   return targets;
@@ -229,13 +202,13 @@ async function loadProfileProjection(
   // An unavailable optional image must not hide a successfully loaded
   // character. Validate successful replies outside the transport catch so
   // malformed or mismatched public projections still fail closed.
-  const world = await realm.worldPublic.worldPublicControllerGetWorld({
-    path: { worldId: source.worldId },
-  }).then(value => ({ value })).catch(() => null);
-  if (world !== null) {
-    const projected = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId));
-    worldBannerUrl = typeof projected.bannerUrl === 'string' ? projected.bannerUrl : null;
-    worldBannerMedia = projected.bannerMedia;
+  const worlds = await realm.worldPublic.worldPublicControllerGetWorldCatalogByIds({
+    path: {}, body: { worldIds: [source.worldId] },
+  }).catch(() => null);
+  if (worlds) {
+    const [projected] = projectWorldSummaryBatch(worlds, [source.worldId]);
+    worldBannerUrl = typeof projected?.bannerUrl === 'string' ? projected.bannerUrl : null;
+    worldBannerMedia = projected?.bannerMedia ?? null;
   }
   return {
     ...projection,
@@ -265,10 +238,14 @@ async function loadRealmSourceDetailsBySourceRef(
       throw new Error('PersonaCharacter sourceRef is stale or mismatched');
     }
     const publicSource = await loadPublicSourceCard(realm, sourceRef);
+    const [projection, relationshipTargets] = await Promise.all([
+      loadProfileProjection(realm, persona.profile, publicSource, runtimeSourceRef),
+      loadRelationshipTargets(realm, persona.profile, [], worldId),
+    ]);
     return {
       id: persona.id,
-      ...await loadProfileProjection(realm, persona.profile, publicSource, runtimeSourceRef),
-      relationshipTargets: await loadRelationshipTargets(realm, persona.profile, [], worldId),
+      ...projection,
+      relationshipTargets,
       createdAt: persona.createdAt,
       updatedAt: persona.updatedAt,
       visibility: persona.visibility,
@@ -301,14 +278,18 @@ async function loadRealmSourceDetailsBySourceRef(
     loadWorldCharacterRelationshipProjections(realm, entityId, worldId),
     loadPublicSourceCard(realm, sourceRef),
   ]);
+  const [projection, relationshipTargets] = await Promise.all([
+    loadProfileProjection(realm, character.profile, publicSource, runtimeSourceRef),
+    loadRelationshipTargets(realm, character.profile, relationships, worldId, entityId),
+  ]);
   return {
     id: character.id,
-    ...await loadProfileProjection(realm, character.profile, publicSource, runtimeSourceRef),
+    ...projection,
     entityId,
     entityContentHash: toNonEmptyString(entity.contentHash),
     entity,
     relationships,
-    relationshipTargets: await loadRelationshipTargets(realm, character.profile, relationships, worldId, entityId),
+    relationshipTargets,
     createdAt: character.createdAt,
     updatedAt: character.updatedAt,
     visibility: character.visibility,

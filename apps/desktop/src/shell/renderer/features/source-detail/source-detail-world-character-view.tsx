@@ -245,7 +245,7 @@ function WorldCharacterVoicePill({
         ref={audioRef}
         data-testid="world-character-voice-sample-audio"
         className="hidden"
-        preload="metadata"
+        preload="none"
         src={src}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}

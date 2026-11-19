@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { selectWorldCatalogWorlds, selectWorldDiscoveryWorlds, selectWorldSpotlight, WORLD_ATLAS_LEAD_WORLD_IDS } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
+import { selectWorldCatalogWorlds, selectWorldDiscoverySlots, selectWorldSpotlight, WORLD_ATLAS_LEAD_WORLD_IDS } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
 import { toWorldListItem, type WorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 function world(id: string, topicIds: string[] = [], genre: string | null = null): WorldListItem {
@@ -8,7 +8,7 @@ function world(id: string, topicIds: string[] = [], genre: string | null = null)
     media: { bannerUrl: `https://example.com/${id}.png` }, stats: {}, time: { mode: 'static' } });
 }
 
-const ids = (worlds: readonly WorldListItem[]) => worlds.map(world => world.id);
+const ids = (worlds: readonly Pick<WorldListItem, 'id'>[]) => worlds.map(world => world.id);
 
 test('discovery separates the reviewed ensemble covers and opens with varied scenes', () => {
   // Current first server page: production batches previously placed all four
@@ -55,6 +55,20 @@ test('new pages append without moving previously displayed worlds or losing any 
   assert.deepEqual(new Set(expanded), new Set([...first.items, ...second.items]));
 });
 
+test('catalog covers enter the opening grid only after their spotlight placement is known', () => {
+  const catalog = [world('candidate'), world('next')];
+  const leads = [world('summerwell-village'), ...WORLD_ATLAS_LEAD_WORLD_IDS.slice(1).map(id => world(id))];
+  const pending = new Set(['thinink-plains', WORLD_ATLAS_LEAD_WORLD_IDS[0]]);
+  const waiting = selectWorldDiscoverySlots(catalog, leads, pending, new Set());
+  assert.equal(waiting.waitingForSpotlight, true);
+  assert.deepEqual(waiting.slots.map(slot => slot.world?.id ?? null), [null, 'summerwell-village']);
+  // The first spotlight and grid reads finish unavailable. The catalog supplies one carousel cover.
+  const spotlight = selectWorldSpotlight(catalog, leads);
+  const ready = selectWorldDiscoverySlots(catalog, leads, new Set(), new Set(ids(spotlight)));
+  assert.equal(ready.waitingForSpotlight, false);
+  assert.deepEqual(ids(ready.slots), ['summerwell-village', 'next']);
+});
+
 test('search and topic filters retain server ranking, including reviewed worlds', () => {
   const pages = [{ items: [world('y04'), world('x05'), world('a', ['history'])] }, { items: [world('y01')] }];
   const serverOrder = pages.flatMap(page => page.items);
@@ -74,7 +88,7 @@ test('dynasty worlds stay out of the opening grid and are dispersed after row 20
   ];
   const leads = [...openingIds, ...dynastyIds].map(id => world(id));
   const catalog = Array.from({ length: 130 }, (_, index) => world(`catalog-${index}`));
-  const ordered = selectWorldDiscoveryWorlds(catalog, leads);
+  const ordered = selectWorldDiscoverySlots(catalog, leads, new Set(), new Set()).slots;
   assert.deepEqual(ids(ordered).slice(0, openingIds.length), openingIds);
   dynastyIds.forEach((id, index) => {
     const row = 21 + index * 5;
@@ -82,6 +96,6 @@ test('dynasty worlds stay out of the opening grid and are dispersed after row 20
   });
   assert.equal(ordered.length, catalog.length + leads.length);
   assert.equal(new Set(ids(ordered)).size, ordered.length);
-  const partial = selectWorldDiscoveryWorlds(catalog.slice(0, 50), leads);
+  const partial = selectWorldDiscoverySlots(catalog.slice(0, 50), leads, new Set(), new Set()).slots;
   assert.ok(partial.every(item => !dynastyIds.includes(item.id)), 'partial catalogs do not surface deferred worlds early');
 });

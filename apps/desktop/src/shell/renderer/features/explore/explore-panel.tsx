@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { MediaAvatar } from '@nimiplatform/kit/features/media';
+import { Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 import { UsersRound } from 'lucide-react';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
@@ -66,14 +67,14 @@ function WorldDiscovery({ headerLeading, headerTrailing }: { headerLeading: Reac
     loadingMore: catalog.query.isFetchingNextPage, loadMoreFailed: catalog.query.isFetchNextPageError,
     offlineIncomplete: catalog.offline && Boolean(catalog.query.data), onLoadMore: () => { void catalog.query.fetchNextPage(); } };
   const source = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
-  const spotlight = useWorldAtlasLeadWorlds({ ...source, enabled: bootstrapReady && !favoritesSelected && !topicId && !worldSearchText.trim() });
+  const spotlight = useWorldAtlasLeadWorlds({ ...source, enabled: bootstrapReady && !favoritesSelected && !topicId && !worldSearchText.trim() }, (catalog.query.data?.pages.length ?? 0) > 1);
   return <WorldCatalogContent embedded favorites={favoritesSelected} headerLeading={headerLeading} headerTrailing={headerTrailing}
     onFavoritesSelect={() => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); }}
     favoritesUnavailable={favoritesSelected ? favorites.unavailable : undefined} favoritesPartialError={favoritesSelected && favorites.partialError}
     loading={favoritesSelected ? favorites.loading : catalog.initialLoading} error={favoritesSelected ? favorites.error : catalog.initialUnavailable}
     offline={favoritesSelected ? favorites.offline : catalog.offline} onRetry={() => { if (favoritesSelected) favorites.retry(); else void catalog.query.refetch(); }}
     worlds={favoritesSelected ? favorites.worlds : worlds}
-    leadWorlds={spotlight.worlds} spotlightLoading={spotlight.loading} spotlightError={spotlight.error} onRetrySpotlight={spotlight.retry}
+    pendingLeadIds={spotlight.pendingIds} leadWorlds={spotlight.worlds} spotlightLoading={spotlight.loading} spotlightError={spotlight.error} onRetrySpotlight={spotlight.retry}
     paging={favoritesSelected ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : paging}
     topics={topics.data ?? []} topicId={topicId} onTopicChange={setTopic} topicsFailed={topics.isError} onRetryTopics={() => { void topics.refetch(); }}
     searchQuery={worldSearchText} onSearchQueryChange={worldSearch => { void navigation.replace({ ...destination, worldSearch }); }} />;
@@ -108,7 +109,7 @@ function CharacterDiscovery() {
             {items.length ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="explore-character-results">
               {items.map(item => <button key={characterSourceRefKey(item.sourceRef)} data-view-key={characterSourceRefKey(item.sourceRef)} className="flex items-start gap-4 rounded-2xl bg-[var(--nimi-surface-card)] p-5 text-left hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                 onClick={() => { void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}>
-                <Avatar alt={item.name} size="lg" src={item.avatarUrl || undefined} fallback={item.name.slice(0, 1)} />
+                <MediaAvatar alt={item.name} size="lg" delivery={item.avatarMedia} externalUrl={item.avatarUrl} fallback={item.name.slice(0, 1)} />
                 <span className="min-w-0"><span className="block break-words font-semibold">{item.name}</span><span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{item.worldName}</span>
                   {item.summary ? <span className="mt-3 line-clamp-3 text-sm text-[var(--nimi-text-secondary)]">{item.summary}</span> : null}</span>
               </button>)}

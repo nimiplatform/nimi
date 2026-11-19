@@ -2,14 +2,28 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
+import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 import type { RealmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
 
 // Deferred reads exercise real Query/React behavior; this is regression coverage,
 // not a substitute for acceptance against the running Home and Realm.
-test('one resolved spotlight is usable before other featured reads, without jumping as they arrive', async () => {
+test('opening cards fill their final positions and the spotlight reveals its settled prefix', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const coverVisibility = new Map<Element, (visible: boolean) => void>();
+  class Observer {
+    constructor(readonly callback: IntersectionObserverCallback) {}
+    observe(target: Element) {
+      coverVisibility.set(target, isIntersecting => this.callback(
+        [{ target, isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver,
+      ));
+    }
+    disconnect() {}
+    unobserve(target: Element) { coverVisibility.delete(target); }
+  }
+  Object.defineProperty(dom.window.HTMLImageElement.prototype, 'clientWidth', { get: () => 320 });
   const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
-    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, React, IS_REACT_ACT_ENVIRONMENT: true };
+    ResizeObserver: class { observe() {} disconnect() {} },
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, IntersectionObserver: Observer, React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
@@ -19,61 +33,89 @@ test('one resolved spotlight is usable before other featured reads, without jump
   const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
   const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
   const { useWorldAtlasLeadWorlds } = await import('../src/shell/renderer/features/world/world-atlas-data.js');
+  const { useWorldSummaryBatches, worldSummaryBatches } = await import('../src/shell/renderer/features/world/use-world-summary-batches.js');
   const { WorldCatalogContent } = await import('../src/shell/renderer/features/world/world-list.js');
-  const { worldListItemQueryKey } = await import('../src/shell/renderer/features/world/world-detail-queries.js');
-  const { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_LEAD_WORLD_IDS } = await import('../src/shell/renderer/features/world/world-list-catalog-model.js');
+  const { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_OPENING_IDS } = await import('../src/shell/renderer/features/world/world-list-catalog-model.js');
   await initI18n(); await changeLocale('en');
-  const reads = new Map<string, { resolve: (value: Record<string, unknown>) => void; reject: (error: Error) => void }>();
-  const data = { loadWorldDetailById: (id: string) => new Promise((resolve, reject) => { reads.set(id, { resolve, reject }); }) } as RealmWorldData;
+  const reads: string[][] = [];
+  let resolve!: (rows: unknown[]) => void;
+  const data = { loadWorldSummaries: (ids: string[]) => {
+    reads.push(ids);
+    return new Promise(done => { resolve = done; });
+  } } as unknown as RealmWorldData;
   const client = createDesktopQueryClient();
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   const root = createRoot(dom.window.document.getElementById('root')!);
   const realmBaseUrl = 'https://realm.test';
   function Harness() {
-    const spotlight = useWorldAtlasLeadWorlds({ data, realmBaseUrl, enabled: true, offline: false });
-    return <WorldCatalogContent worlds={[]} loading leadWorlds={spotlight.worlds}
+    const spotlight = useWorldAtlasLeadWorlds({ data, realmBaseUrl, enabled: true, offline: false }, false);
+    return <WorldCatalogContent worlds={[]} loading leadWorlds={spotlight.worlds} pendingLeadIds={spotlight.pendingIds}
       spotlightLoading={spotlight.loading} spotlightError={spotlight.error} onRetrySpotlight={spotlight.retry}
       paging={{ totalCount: 0, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: false, onLoadMore() {} }} />;
+  }
+  function OfflineSelection() {
+    const selected = useWorldSummaryBatches({ data, realmBaseUrl, enabled: true, offline: true },
+      worldSummaryBatches(['newly-saved', 'summerwell-village']));
+    return <span data-testid="offline-selection">{selected.worlds.map(world => world.name).join(',')}</span>;
   }
   const settle = async () => {
     for (let i = 0; i < 4; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
   };
-  const resolve = async (id: string) => {
-    await act(async () => { reads.get(id)!.resolve({ id, name: id, summary: `World ${id}`, type: 'CREATOR',
-      media: {}, stats: {}, time: { mode: 'static' }, bannerUrl: `https://example.com/${id}.png` }); });
-    await settle();
+  const media: NonNullable<WorldListItem['bannerMedia']> = {
+    resourceId: 'resource-cover', contentVersion: 'a'.repeat(64), publicationGeneration: 1, policyVersion: 'policy-v1',
+    expiresAt: null, previewUrl: null, originalUrl: null, video: null,
+    images: ['card', 'hero'].map((purpose) => ({
+      purpose: purpose as 'card' | 'hero',
+      families: [{ mimeType: 'image/png', sources: [{ url: `https://example.com/${purpose}-640.png`, width: 640, height: purpose === 'card' ? 264 : 427, mimeType: 'image/png' }] }],
+    })),
   };
-  const activeId = () => dom.window.document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id');
+  const row = (id: string) => ({ id, name: id, summary: id, type: 'CREATOR', media: {}, stats: {}, time: { mode: 'static' },
+    bannerUrl: `https://example.com/${id}.png`, ...(id === 'summerwell-village' ? { bannerMedia: media } : {}) });
+  const activeId = () => dom.window.document.querySelector('.world-atlas-hero[data-world-id]')?.getAttribute('data-world-id');
   const click = async (selector: string) => {
     await act(async () => { dom.window.document.querySelector<HTMLButtonElement>(selector)!.click(); });
   };
   try {
     await act(async () => { root.render(<QueryClientProvider client={client}><AppStoreProvider store={store}><Harness /></AppStoreProvider></QueryClientProvider>); });
-    assert.equal(reads.size, WORLD_ATLAS_LEAD_WORLD_IDS.length + WORLD_DISCOVERY_LEAD_WORLD_IDS.length);
+    assert.deepEqual(reads, [[...WORLD_DISCOVERY_OPENING_IDS, ...WORLD_ATLAS_LEAD_WORLD_IDS]]);
     assert.equal(activeId(), undefined);
-    await resolve('meridian-archipelago');
-    assert.equal(activeId(), 'meridian-archipelago', 'the first response renders while other featured reads and the catalog are pending');
-    assert.equal(dom.window.document.querySelector('.world-atlas-hero img')?.getAttribute('src'), 'https://example.com/meridian-archipelago.png');
-    await resolve('cbdb-ming-lettered-networks-world');
-    assert.equal(activeId(), 'meridian-archipelago', 'an earlier-sorted response must not replace the visible World');
+    const slots = () => [...dom.window.document.querySelectorAll('.world-discovery-grid > *')].map(
+      card => card.querySelector('h3')?.textContent ?? null,
+    );
+    assert.deepEqual(slots(), Array(5).fill(null));
+    await act(async () => resolve(['summerwell-village', ...WORLD_ATLAS_LEAD_WORLD_IDS.filter(id => id !== 'deepblue-observatories')].map(row)));
+    await settle();
+    assert.deepEqual(slots(), ['summerwell-village']);
+    const cover = dom.window.document.querySelector('.world-discovery-card .world-atlas-image')!;
+    await act(async () => coverVisibility.get(cover)!(false));
+    assert.equal(cover.querySelector('img'), null, 'offscreen discovery covers wait for admission');
+    Object.defineProperty(cover, 'getBoundingClientRect', {value: () => ({ top: 10, bottom: 200 })});
+    Object.defineProperty(cover.closest('.world-atlas-viewport')!, 'getBoundingClientRect', {value: () => ({top:0,bottom:600})});
+    await act(async () => coverVisibility.get(cover)!(true));
+    const image = cover.querySelector('img')!;
+    assert.equal(image.getAttribute('src'), 'https://example.com/hero-640.png', 'the grid keeps the taller hero rendition');
+    assert.equal(image.getAttribute('width'), '640');
+    assert.equal(image.getAttribute('height'), '427');
+    await act(async () => coverVisibility.get(cover)!(false));
+    assert.equal(image.getAttribute('fetchpriority'), 'low');
+    await act(async () => coverVisibility.get(cover)!(true));
+    assert.equal(cover.querySelector('img'), image);
+    assert.equal(image.getAttribute('fetchpriority'), 'high');
+    assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
+    await click('button[aria-label="Next world"]');
+    assert.equal(activeId(), 'meridian-archipelago');
     await click('button[aria-label="Previous world"]');
     assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
-    await act(async () => { reads.get('deepblue-observatories')!.reject(new Error('Unavailable')); });
-    await resolve('d10'); await resolve('emberware-court');
-    assert.equal(activeId(), 'cbdb-ming-lettered-networks-world', 'a failed lead must not hide usable entries');
     assert.equal(dom.window.document.querySelectorAll('.world-atlas-hero-dots button').length, 4);
     await click('button[aria-label="Previous world"]');
     assert.equal(activeId(), 'emberware-court', 'previous wraps across available entries');
     await click('button[aria-label="Next world"]');
     assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
-    await act(async () => { client.setQueryData(worldListItemQueryKey(realmBaseUrl, 'cbdb-ming-lettered-networks-world'), null); }); await settle();
-    assert.equal(activeId(), 'meridian-archipelago', 'a removed active World is replaced by an available entry');
-    await act(async () => { for (const id of [...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_LEAD_WORLD_IDS]) client.setQueryData(worldListItemQueryKey(realmBaseUrl, id), null); }); await settle();
-    assert.equal(activeId(), undefined);
-    assert.ok(Array.from(dom.window.document.querySelectorAll('button')).some(button => button.textContent === 'Refresh'));
+    await act(async () => root.render(<QueryClientProvider client={client}><OfflineSelection /></QueryClientProvider>));
+    assert.equal(dom.window.document.querySelector('[data-testid="offline-selection"]')?.textContent, 'summerwell-village');
+    assert.equal(reads.length, 1, 'offline edits to the selection reuse accepted summaries without another read');
+    assert.deepEqual(worldSummaryBatches(Array.from({ length: 201 }, (_, i) => String(i))).map(b => b.length), [40, 40, 40, 40, 40, 1]);
   } finally {
-    await act(async () => { for (const read of reads.values()) read.reject(new Error('Test cleanup')); });
-    await settle();
     await act(async () => { root.unmount(); }); client.clear(); dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);

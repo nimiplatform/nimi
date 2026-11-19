@@ -1,3 +1,4 @@
+import { asRecord, buildWorldPublicAssets, buildWorldPublicHistoryItems, buildWorldPublicScenes, buildWorldPublicSemanticBundle } from './data/world-public-projection.js';
 import type { RealmWorldData } from './data/realm-world-data.js';
 import type {
   WorldAssetExternalRef,
@@ -20,12 +21,10 @@ import type {
   WorldDisplayDetail,
   WorldPrimaryDetailRecord,
   WorldPrimaryDisplayDetail,
-  WorldSupplementalDisplayDetail,
 } from './world-detail-query-types.js';
 export type {
   WorldDisplayDetail,
   WorldPrimaryDisplayDetail,
-  WorldSupplementalDisplayDetail,
 } from './world-detail-query-types.js';
 
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT = 4;
@@ -79,7 +78,7 @@ export function toWorldDisplayFallback(world: WorldListItem) {
 
 // Memory-only catalog pages are keyed by contract version, Realm target and server query; they
 // never share a key with another query or Realm and are not persisted as offline results.
-export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v3-media';
+export const WORLD_CATALOG_CONTRACT_VERSION = 'realm-world-catalog/v4-cover';
 
 export function worldCatalogQueryKey(realmBaseUrl: string, query: string, filters: { topicId?: string; genre?: string; theme?: string } = {}) {
   return ['world-catalog', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, query.trim(), filters.topicId ?? null, filters.genre ?? null, filters.theme ?? null] as const;
@@ -102,31 +101,9 @@ export async function fetchWorldCatalogPage(
   return { ...page, items: page.items.map((world) => toWorldListItem(world)) };
 }
 
-export function worldListItemQueryKey(realmBaseUrl: string, worldId: string) {
-  return ['world-list-item', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, normalizeWorldId(worldId)] as const;
-}
-
-export async function fetchWorldListItem(
-  realmWorldData: RealmWorldData,
-  worldId: string,
-): Promise<WorldListItem | null> {
-  const world = await realmWorldData.loadWorldDetailById(normalizeWorldId(worldId));
-  return world ? toWorldListItem(world) : null;
-}
-
 export function worldDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
   return [
     'world-display-detail',
-    WORLD_CATALOG_CONTRACT_VERSION,
-    realmBaseUrl,
-    normalizeWorldId(worldId),
-    DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
-  ] as const;
-}
-
-export function worldPrimaryDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
-  return [
-    'world-primary-display-detail',
     WORLD_CATALOG_CONTRACT_VERSION,
     realmBaseUrl,
     normalizeWorldId(worldId),
@@ -140,22 +117,6 @@ export function worldRecommendedCharacterPreviewQueryKey(worldId: string) {
     normalizeWorldId(worldId),
     WORLD_RECOMMENDED_CHARACTER_PREVIEW_LIMIT,
   ] as const;
-}
-
-export function worldSupplementalDisplayDetailQueryKey(realmBaseUrl: string, worldId: string) {
-  return ['world-supplemental-display-detail', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, normalizeWorldId(worldId)] as const;
-}
-
-export function worldHistoryQueryKey(worldId: string) {
-  return ['world-history', normalizeWorldId(worldId)] as const;
-}
-
-export function worldSemanticBundleQueryKey(worldId: string) {
-  return ['world-semantic-bundle', normalizeWorldId(worldId)] as const;
-}
-
-export function worldPublicAssetsQueryKey(worldId: string) {
-  return ['world-public-assets', normalizeWorldId(worldId)] as const;
 }
 
 export async function fetchWorldDetailWithCharacters(
@@ -183,16 +144,6 @@ export async function fetchWorldRecommendedCharacterPreview(
   return page.items.map((character) => toWorldDisplayCharacter(character, worldCreatedAt));
 }
 
-export async function fetchWorldHistory(worldId: string, realmWorldData: RealmWorldData): Promise<WorldHistoryBundle> {
-  const payload = await realmWorldData.loadWorldHistory(normalizeWorldId(worldId));
-  return toWorldDisplayHistoryBundle(payload);
-}
-
-export async function fetchWorldSemanticBundle(worldId: string, realmWorldData: RealmWorldData): Promise<WorldSemanticData> {
-  const payload = await realmWorldData.loadWorldSemanticBundle(normalizeWorldId(worldId));
-  return toWorldDisplaySemanticBundle(payload);
-}
-
 export async function fetchWorldPublicAssets(worldId: string, realmWorldData: RealmWorldData): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [assetsPayload, scenesPayload] = await Promise.all([
@@ -202,65 +153,26 @@ export async function fetchWorldPublicAssets(worldId: string, realmWorldData: Re
   return toWorldPublicAssetsData(assetsPayload, scenesPayload);
 }
 
-export function toWorldPrimaryDisplayDetail(display: WorldDisplayDetail): WorldPrimaryDisplayDetail {
-  return {
-    primary: display.primary,
-    world: display.world,
-    characters: display.characters,
-  };
-}
-
-export function toWorldSupplementalDisplayDetail(display: WorldDisplayDetail): WorldSupplementalDisplayDetail {
-  return {
-    history: display.history,
-    semantic: display.semantic,
-    audits: display.audits,
-    publicAssets: display.publicAssets,
-    sections: display.sections,
-  };
-}
-
-export function mergeWorldDisplayDetail(
-  primary: WorldPrimaryDisplayDetail,
-  supplemental: WorldSupplementalDisplayDetail,
-): WorldDisplayDetail {
-  return {
-    ...primary,
-    history: supplemental.history,
-    semantic: supplemental.semantic,
-    audits: supplemental.audits,
-    publicAssets: supplemental.publicAssets,
-    sections: supplemental.sections,
-  };
-}
-
 export async function fetchWorldPrimaryDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldPrimaryDisplayDetail> {
   const primary = await fetchWorldDetailWithCharacters(worldId, realmWorldData);
   return projectWorldPrimaryDisplayDetail(primary);
 }
 
-export async function fetchWorldSupplementalDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldSupplementalDisplayDetail> {
-  const [historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
-    fetchWorldHistory(worldId, realmWorldData),
-    fetchWorldSemanticBundle(worldId, realmWorldData),
-    fetchWorldPublicAssets(worldId, realmWorldData),
-  ]);
-  return {
-    history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
-    semantic: semanticResult.status === 'fulfilled' ? semanticResult.value : EMPTY_WORLD_SEMANTIC,
-    audits: [],
-    publicAssets: publicAssetsResult.status === 'fulfilled' ? publicAssetsResult.value : EMPTY_WORLD_PUBLIC_ASSETS,
-    sections: {
-      history: historyResult.status === 'fulfilled' ? 'success' : 'error',
-      semantic: semanticResult.status === 'fulfilled' ? 'success' : 'error',
-      audits: 'success',
-      publicAssets: publicAssetsResult.status === 'fulfilled' ? 'success' : 'error',
-    },
-  };
+// A malformed optional section can be retried without hiding the rest of the world.
+function projectSection<T>(read: () => T, empty: T) {
+  try {
+    return { value: read(), status: 'success' as const };
+  } catch {
+    return { value: empty, status: 'error' as const };
+  }
 }
 
-export async function fetchWorldDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldDisplayDetail> {
-  const primary = await fetchWorldPrimaryDisplayDetail(worldId, realmWorldData);
-  const supplemental = await fetchWorldSupplementalDisplayDetail(worldId, realmWorldData);
-  return mergeWorldDisplayDetail(primary, supplemental);
+export async function fetchWorldDisplayDetail(worldId: string, data: RealmWorldData): Promise<WorldDisplayDetail> {
+  const display = await fetchWorldPrimaryDisplayDetail(worldId, data);
+  const record = asRecord(display.primary);
+  const history = projectSection(() => toWorldDisplayHistoryBundle(buildWorldPublicHistoryItems(record)), EMPTY_WORLD_HISTORY);
+  const semantic = projectSection(() => toWorldDisplaySemanticBundle(buildWorldPublicSemanticBundle(record)), EMPTY_WORLD_SEMANTIC);
+  const assets = projectSection(() => toWorldPublicAssetsData(buildWorldPublicAssets(record), buildWorldPublicScenes(record)), EMPTY_WORLD_PUBLIC_ASSETS);
+  return { ...display, history: history.value, semantic: semantic.value, publicAssets: assets.value, audits: [],
+    sections: { history: history.status, semantic: semantic.status, publicAssets: assets.status, audits: 'success' } };
 }

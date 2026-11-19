@@ -107,11 +107,10 @@ test('world detail caches isolate the same World id across Realm targets', async
   const keys = await import('../src/shell/renderer/features/world/world-detail-queries.js');
   const client = new QueryClient();
   try {
-    for (const key of [keys.worldDisplayDetailQueryKey, keys.worldPrimaryDisplayDetailQueryKey, keys.worldSupplementalDisplayDetailQueryKey]) {
-      client.setQueryData(key('https://realm-a.test', 'same-world'), { title: 'World from A' });
-      assert.equal(client.getQueryData(key('https://realm-b.test', 'same-world')), undefined);
-      assert.equal(client.getQueryData(key('https://realm-a.test', 'another-world')), undefined);
-      assert.deepEqual(client.getQueryData(key('https://realm-a.test', 'same-world')), { title: 'World from A' });
-    }
+    const key = keys.worldDisplayDetailQueryKey;
+    client.setQueryData(key('https://realm-a.test', 'same-world'), { title: 'World from A' });
+    assert.equal(client.getQueryData(key('https://realm-b.test', 'same-world')), undefined);
+    assert.equal(client.getQueryData(key('https://realm-a.test', 'another-world')), undefined);
+    assert.deepEqual(client.getQueryData(key('https://realm-a.test', 'same-world')), { title: 'World from A' });
   } finally { client.clear(); }
 });
