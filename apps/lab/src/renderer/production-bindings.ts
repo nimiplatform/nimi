@@ -26,13 +26,13 @@ import { listLabVoiceAssets } from '../ai-studio-core/voice-assets.js';
 import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
 import { runLabConversationJourney } from '../lab/local-app-conversation-journey.js';
 import { saveLabExport } from '../lab/lab-export.js';
-import { appendLabRunHistory, clearLabRunHistory, loadLabRunHistory, removeLabRunHistoryRecord } from '../lab/lab-history-storage.js';
+import { appendLabRunHistory, clearLabRunHistory, loadLabRunHistory, deleteLabRunHistoryRow } from '../lab/lab-history-storage.js';
 import { appendLabIntegrationHistory, loadLabIntegrationHistory, removeLabIntegrationHistory } from '../lab/integrations/integration-history.js';
 import {
   appendLabImageHistoryRecord,
   clearLabImageHistory,
   loadLabImageHistory,
-  removeLabImageHistoryRecord,
+  deleteLabImageHistoryRows,
 } from '../lab/lab-image-history.js';
 import {
   loadLabPreferences,
@@ -162,12 +162,12 @@ export function createLabProductionBindings(
         appendRunHistory: (input: Parameters<LabRendererCommandPort['appendRunHistory']>[0]) => appendLabRunHistory(input, labLocalAppClient.storage.assets),
         appendIntegrationHistory: (input: Parameters<LabRendererCommandPort['appendIntegrationHistory']>[0]) => appendLabIntegrationHistory(input, labLocalAppClient.storage.assets),
         removeIntegrationHistory: (input: Parameters<LabRendererCommandPort['removeIntegrationHistory']>[0]) => removeLabIntegrationHistory(input, labLocalAppClient.storage.assets),
-        removeRunHistory: (input: Parameters<LabRendererCommandPort['removeRunHistory']>[0]) => removeLabRunHistoryRecord(input, labLocalAppClient.storage.assets),
+        removeRunHistory: (input: Parameters<LabRendererCommandPort['removeRunHistory']>[0]) => deleteLabRunHistoryRow(input, labLocalAppClient.storage.assets),
         async clearRunHistory(input: { readonly capabilityId?: string }) {
           return clearLabRunHistory(input.capabilityId, labLocalAppClient.storage.assets);
         },
         appendImageHistory: (input: Parameters<LabRendererCommandPort['appendImageHistory']>[0]) => appendLabImageHistoryRecord(input, labLocalAppClient.storage.assets),
-        removeImageHistory: (input: Parameters<LabRendererCommandPort['removeImageHistory']>[0]) => removeLabImageHistoryRecord(input, labLocalAppClient.storage.assets),
+        removeImageHistory: (_runId: string, ids: readonly string[]) => deleteLabImageHistoryRows(ids, labLocalAppClient.storage.assets),
         async clearImageHistory(input: { readonly capabilityId?: string }) {
           return clearLabImageHistory(input.capabilityId, labLocalAppClient.storage.assets);
         },

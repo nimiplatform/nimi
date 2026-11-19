@@ -723,3 +723,25 @@ for (const inputMode of ['ordinary', 'equirectangular-360']) {
     });
   }
 }
+
+test('captured clears perform a bounded number of listings as the target set grows', async t => {
+  for (const count of [100, 500, 1000, 2000, 4000]) {
+    const records = Array.from({ length: count }, (_, i) => ({ id: 't-' + i, capabilityId: 'text.generate' }));
+    const alive = new Map(records.map(record => [record.id, record]));
+    let listings = 0, deletes = 0;
+    const port = {
+      loadRunHistory: async () => { listings++; return { 'text.generate': [...alive.values()] }; },
+      loadImageHistory: async () => [], loadRecoveryReferences: async () => [],
+      removeRunHistory: async id => { assert.ok(alive.delete(id)); deletes++; },
+      removeImageHistory: async (_id, ids) => { assert.equal(ids.length, 0); },
+      removeAsset: async () => { throw Error('text-only clear reached asset deletion'); },
+      projectHistory: async (runHistory, imageHistory) => ({ runHistory, imageHistory }),
+    };
+    const start = performance.now();
+    const out = await clearLabManagedHistoryScope(port, 'text.generate', true);
+    t.diagnostic(`items=${count} elapsed_ms=${(performance.now() - start).toFixed(2)} listings=${listings}`);
+    assert.equal(out.completed, count);
+    assert.equal(deletes, count);
+    assert.equal(listings, 2);
+  }
+});

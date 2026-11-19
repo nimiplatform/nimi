@@ -122,6 +122,7 @@
     "recentRuns": "Recent runs",
     "emptyNone": "No runs yet",
     "emptyFiltered": "No runs match these filters",
+    "savedRefreshFailedTitle": "Saved. History could not refresh.",
     "loadFailedTitle": "History failed to load",
     "saveFailedTitle": "History failed to save",
     "deleteRecordAndDocument": "Delete record and its saved result",

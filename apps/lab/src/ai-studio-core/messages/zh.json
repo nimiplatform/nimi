@@ -122,6 +122,7 @@
     "recentRuns": "最近运行",
     "emptyNone": "还没有运行记录",
     "emptyFiltered": "没有符合这些筛选条件的运行",
+    "savedRefreshFailedTitle": "已保存，历史记录刷新失败",
     "loadFailedTitle": "历史加载失败",
     "saveFailedTitle": "历史保存失败",
     "deleteRecordAndDocument": "删除记录及其保存的结果",

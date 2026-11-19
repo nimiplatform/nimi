@@ -316,7 +316,7 @@ function cliScaffold(profile, extraArgs = [], tempRootParent = os.tmpdir()) {
       return readFileSync(path.join(target, relativePath), 'utf8');
     },
     cleanup() {
-      rmSync(tempRoot, { recursive: true, force: true });
+      rmSync(tempRoot, { recursive: true, force: true, maxRetries: 4, retryDelay: 50 });
     },
   };
 }

@@ -1,3 +1,4 @@
+import { withLabManagedHistoryOperation } from '../lab-managed-history.js';
 import { studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
 import { verifyStudioManagedAsset, studioResultAssetReferences } from '../../ai-studio-core/managed-result-references.js';
 import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
@@ -183,7 +184,7 @@ async function finishAndRecord(pending: PendingWorld, signal?: AbortSignal, onPa
   if (finished.result.ok) resultSignal.throwIfAborted();
   const record = createStudioRunHistoryRecord({ result: finished.result, runId: id, prompt: pending.request.prompt,
     createdAt: pending.request.createdAt, runConfig: pending.request.runConfig });
-  await appendLabRunHistory(record);
+  await withLabManagedHistoryOperation(() => appendLabRunHistory(record), studioResultAssetReferences(record.result).map(ref => String(ref.relativePath)));
   if (finished.settled) await clearWorldPending(getLabLocalAppClient().storage, pending);
   return { ...finished.result, recordedHistory: record };
 }

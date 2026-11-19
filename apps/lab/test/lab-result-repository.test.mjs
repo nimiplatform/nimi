@@ -100,7 +100,10 @@ test('main save failure recovers, and media-index failure retries the same commi
   f.host.app.commands.appendRunHistory = append;
   const appendMedia = f.host.app.commands.appendImageHistory;
   f.host.app.commands.appendImageHistory = async () => { throw Error('media index fault'); };
-  await assert.rejects(f.repository.persist({ result, record: f.record('recovered', result) }), /media index fault/);
+  const savedWithStaleList = await f.repository.persist({ result, record: f.record('recovered', result) });
+  assert.equal(savedWithStaleList.ok, true);
+  assert.equal(savedWithStaleList.record.id, 'recovered');
+  assert.match(savedWithStaleList.refreshError, /media index fault/);
   assert.equal(f.runs()['audio.separate'].length, 1); assert.equal(f.media().length, 0);
   f.host.app.commands.appendImageHistory = appendMedia;
   const saved = await f.repository.persist({ result, record: f.record('duplicate-retry', result) });
@@ -264,4 +267,45 @@ test('actual saved-result restore closes a pending reader on operation abort wit
   await entered.promise; controller.abort();
   await assert.rejects(work, error => error.name === 'AbortError');
   assert.equal(reads, 1); assert.equal(nextCalls, 1); assert.equal(returns, 1);
+});
+
+test('plain save and empty retry ignore unrelated recovery and refresh failure never republishes the primary', async () => {
+  const f = fixture();
+  let writes = 0;
+  const write = f.host.app.commands.appendRunHistory;
+  f.host.app.commands.appendRunHistory = async record => { writes++; return write(record); };
+  f.storage.readJson = async () => { throw Error('unrelated corrupt recovery'); };
+  const value = { ok: true, capabilityId: 'text.generate', output: { kind: 'text', text: 'one' } };
+  for (let n = 0; n < 99; n++) await write(f.record('prior-' + n, value));
+  const read = f.host.app.projection.imageHistory;
+  f.host.app.projection.imageHistory = async () => { throw Error('secondary unavailable'); };
+  const record = f.record('one', value);
+  const saved = await f.repository.persist({ result: value, record });
+  assert.equal(saved.ok, true);
+  assert.match(saved.refreshError, /secondary unavailable/);
+  assert.equal(saved.record.id, 'one');
+  assert.deepEqual(await f.repository.cleanupArtifacts([]), { failures: [], remainingCleanupPaths: [] });
+  f.host.app.projection.imageHistory = read;
+  await f.repository.load();
+  await f.repository.appendRecord(record);
+  assert.equal(writes, 1);
+  assert.equal(f.runs()['text.generate'].length, 100);
+});
+
+test('a queued save protects a shared asset while a captured clear is processing another target', async () => {
+  const f = fixture(), first = f.result('first'), second = f.result('second'), survivor = f.result('survivor');
+  survivor.output.audioSeparation.sourceAudio = first.output.audioSeparation.sourceAudio;
+  await f.repository.persist({ result: first, record: f.record('first', first) });
+  await f.repository.persist({ result: second, record: f.record('second', second) });
+  const entered = Promise.withResolvers(), release = Promise.withResolvers();
+  const remove = f.host.app.commands.removeImageHistory;
+  f.host.app.commands.removeImageHistory = async (...args) => { entered.resolve(); await release.promise; return remove(...args); };
+  const clear = f.repository.clear('audio.separate', true);
+  await entered.promise;
+  const save = f.repository.persist({ result: survivor, record: f.record('survivor', survivor) });
+  release.resolve();
+  assert.equal((await clear).completed, 2);
+  assert.equal((await save).ok, true);
+  assert.ok(f.assets.has(first.output.audioSeparation.sourceAudio.relativePath));
+  assert.deepEqual(f.runs()['audio.separate'].map(r => r.id), ['survivor']);
 });

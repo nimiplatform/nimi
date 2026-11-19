@@ -64,13 +64,13 @@ export interface LabRendererProjectionPort {
 
 export interface LabRendererCommandPort {
   nextRunIdentity(): Promise<{ readonly runId: string; readonly createdAt: string }>;
-  appendRunHistory(record: StudioRunHistoryRecord): Promise<StudioRunHistory>;
-  removeRunHistory(recordId: string): Promise<StudioRunHistory>;
+  appendRunHistory(record: StudioRunHistoryRecord): Promise<void>;
+  removeRunHistory(recordId: string): Promise<void>;
   appendIntegrationHistory(record: LabIntegrationHistoryRecord): Promise<readonly LabIntegrationHistoryRecord[]>;
   removeIntegrationHistory(recordId: string): Promise<readonly LabIntegrationHistoryRecord[]>;
   clearRunHistory(input: { readonly capabilityId?: string }): Promise<StudioRunHistory>;
   appendImageHistory(record: LabImageHistoryRecord): Promise<readonly LabImageHistoryRecord[]>;
-  removeImageHistory(runId: string): Promise<readonly LabImageHistoryRecord[]>;
+  removeImageHistory(runId: string, ids: readonly string[]): Promise<void>;
   clearImageHistory(input: { readonly capabilityId?: string }): Promise<readonly LabImageHistoryRecord[]>;
   savePreferences(preferences: LabPreferences): Promise<void>;
   savePromptDraft(key: LabPromptDraftKey, prompt: string, enabled: boolean): Promise<LabPromptDraftSaveResult>;

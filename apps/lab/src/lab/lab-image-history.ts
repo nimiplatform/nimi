@@ -101,6 +101,10 @@ export async function appendLabImageHistoryRecord(record: LabImageHistoryRecord,
   await store.write(normalizeRecord(record));
   return readRecords(store);
 }
+export async function deleteLabImageHistoryRows(ids: readonly string[], assets: HistoryAssets): Promise<void> {
+  const store = repository(assets);
+  for (const id of ids) await store.remove(id);
+}
 export async function removeLabImageHistoryRecord(runId: string, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<LabImageHistoryRecord[]> {
   const store = repository(assets);
   for (const record of await store.list()) if ((record.runId || record.id) === runId) await store.remove(record.id);

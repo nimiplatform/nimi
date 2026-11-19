@@ -13,16 +13,18 @@ async function readRecords(store: ReturnType<typeof repository>): Promise<Studio
 export async function loadLabRunHistory(assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<StudioRunHistory> {
   return readRecords(repository(assets));
 }
-export async function appendLabRunHistory(record: StudioRunHistoryRecord, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<StudioRunHistory> {
+export async function appendLabRunHistory(record: StudioRunHistoryRecord, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<void> {
   const store = repository(assets);
   try {
     await store.write(record);
-    return await readRecords(store);
   } catch (cause) {
     // Preserve generated assets when publication may have committed before
     // transport/readback failed. The user can explicitly retry saving the record.
     throw Object.assign(new Error(cause instanceof Error ? cause.message : String(cause)), { historyPublicationUncertain: true, cause });
   }
+}
+export async function deleteLabRunHistoryRow(recordId: string, assets: HistoryAssets): Promise<void> {
+  await repository(assets).remove(recordId);
 }
 export async function removeLabRunHistoryRecord(recordId: string, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<StudioRunHistory> {
   const store = repository(assets);

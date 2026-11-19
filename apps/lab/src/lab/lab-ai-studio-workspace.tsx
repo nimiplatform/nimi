@@ -18,6 +18,7 @@ import { studioResultAssetPaths, studioResultAssetReferences } from '../ai-studi
 import { studioJobRecoveryCapabilities, readStudioJobRecovery, forgetStudioJobRecovery, type StudioJobRecoveryCapability } from '../ai-studio-core/job-recovery.js';
 import {
   cleanupLabManagedArtifactPaths,
+  labRunOwnedAssetPaths,
   persistLabRunHistoryWithArtifactCompensation,
   shouldPersistLabArtifactRecord,
 } from './lab-artifact-persistence.js';
@@ -52,7 +53,7 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
       loadImageHistory: () => rendererHost.app.projection.imageHistory(),
       removeAsset: (relativePath: string) => rendererHost.sdk.storage.assets.remove(relativePath),
       removeRunHistory: (runId: string) => rendererHost.app.commands.removeRunHistory(runId),
-      removeImageHistory: (runId: string) => rendererHost.app.commands.removeImageHistory(runId),
+      removeImageHistory: (runId: string, ids: readonly string[]) => rendererHost.app.commands.removeImageHistory(runId, ids),
       loadRecoveryReferences,
       forgetRecoveryReference: (reference: { id: string; capabilityId: string }) => forgetStudioJobRecovery(
         rendererHost.sdk.localAppClient.storage, reference.id, reference.capabilityId as StudioJobRecoveryCapability),
@@ -99,6 +100,10 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
       return { runHistory: projection.runHistory, mediaHistory: projection.imageHistory };
     };
 
+    const afterSave = async (record: StudioRunHistoryRecord, refresh: () => Promise<AIStudioHistoryProjection>) => {
+      try { return { ok: true as const, record, projection: await refresh() }; }
+      catch (error) { return { ok: true as const, record, refreshError: errorMessage(error, 'History refresh failed.') }; }
+    };
     const retainedAssetPaths = async () => {
       const [runs, images, recovery] = await Promise.all([
         rendererHost.app.projection.runHistory(), loadImageHistory(), loadRecoveryReferences(),
@@ -170,10 +175,10 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
         const existing = matchingRecord(priorRuns, record);
         if (existing) {
           await verifyRecordAssets(existing);
-          return { ok: true as const, record: existing, projection: await loadProjection(priorRuns, undefined, existing.id) };
+          return afterSave(existing, () => loadProjection(priorRuns, undefined, existing.id));
         }
         await verifyRecordAssets(record);
-        const protectedPaths = await retainedAssetPaths();
+        const protectedPaths = labRunOwnedAssetPaths(result).length ? await retainedAssetPaths() : new Set<string>();
         const persisted = await persistLabRunHistoryWithArtifactCompensation(
           result,
           () => rendererHost.app.commands.appendRunHistory(record),
@@ -203,6 +208,7 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
           };
         }
 
+        return afterSave(record, async () => {
         let imageHistory = await loadImageHistory();
         let artifactPersisted = false;
         if (shouldPersistLabArtifactRecord(result)) {
@@ -247,19 +253,25 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
             throw error;
           }
         }
-        const projection = await loadProjection(persisted.value, imageHistory, record.id);
+        const projection = await loadProjection(undefined, imageHistory, record.id);
         logRecordedResult(result, record, artifactPersisted);
-        return { ok: true as const, projection, record };
+        return projection;
         });
+        }, studioResultAssetPaths(record.result));
       },
       async appendRecord(record) {
         return withLabManagedHistoryOperation(async () => {
-          const existing = matchingRecord(await rendererHost.app.projection.runHistory(), record);
-          await verifyRecordAssets(existing ?? record);
-          return loadProjection(existing ? undefined : await rendererHost.app.commands.appendRunHistory(record), undefined, existing?.id ?? record.id);
-        });
+          const runs = await rendererHost.app.projection.runHistory();
+          const existing = matchingRecord(runs, record);
+          const saved = existing ?? record;
+          await verifyRecordAssets(saved);
+          if (!existing) await rendererHost.app.commands.appendRunHistory(record);
+          const result = await afterSave(saved, () => loadProjection(existing ? runs : undefined, undefined, saved.id));
+          return result.projection ?? { record: saved, refreshError: result.refreshError! };
+        }, studioResultAssetPaths(record.result));
       },
       cleanupArtifacts: (relativePaths) => withLabManagedHistoryOperation(async () => {
+        if (!relativePaths.length) return { failures: [], remainingCleanupPaths: [] };
         const protectedPaths = await retainedAssetPaths();
         return cleanupLabManagedArtifactPaths(relativePaths.filter(path => !protectedPaths.has(path)),
           (relativePath) => rendererHost.sdk.storage.assets.remove(relativePath));

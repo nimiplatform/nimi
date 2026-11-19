@@ -612,13 +612,12 @@ export function flattenStudioHistoryRecords(history: StudioRunHistory): StudioRu
 export function studioHistoryFromRecords(records: readonly StudioRunHistoryRecord[]): StudioRunHistory {
   const history: StudioRunHistory = {};
   for (const record of records) {
-    const existing = Object.hasOwn(history, record.capabilityId) ? history[record.capabilityId] ?? [] : [];
-    Object.defineProperty(history, record.capabilityId, {
-      value: [...existing, record],
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
+    if (!Object.hasOwn(history, record.capabilityId)) {
+      Object.defineProperty(history, record.capabilityId, {
+        value: [], enumerable: true, configurable: true, writable: true,
+      });
+    }
+    history[record.capabilityId]!.push(record);
   }
   return history;
 }

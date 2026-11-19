@@ -35,7 +35,9 @@ export type AIStudioHistoryProjection = {
   readonly mediaHistory: readonly StudioMediaHistoryRecord[];
 };
 
+type SavedHistoryRefreshFailure = { readonly record: StudioRunHistoryRecord; readonly refreshError: string };
 export type AIStudioHistoryPersistOutcome =
+  | ({ readonly ok: true } & SavedHistoryRefreshFailure)
   | { readonly ok: true; readonly projection: AIStudioHistoryProjection; readonly record?: StudioRunHistoryRecord }
   | {
       readonly ok: false;
@@ -76,7 +78,7 @@ export type AIStudioHistoryRepository = {
     readonly result: StudioCapabilityRunResult;
     readonly record: StudioRunHistoryRecord;
   }) => Promise<AIStudioHistoryPersistOutcome>;
-  readonly appendRecord: (record: StudioRunHistoryRecord) => Promise<AIStudioHistoryProjection>;
+  readonly appendRecord: (record: StudioRunHistoryRecord) => Promise<AIStudioHistoryProjection | SavedHistoryRefreshFailure>;
   readonly cleanupArtifacts: (relativePaths: readonly string[]) => Promise<AIStudioArtifactCleanupOutcome>;
   readonly remove: (recordId: string, deleteAssets: boolean) => Promise<AIStudioHistoryMutationOutcome>;
   readonly clear: (capabilityId: string | null, deleteAssets: boolean) => Promise<AIStudioHistoryMutationOutcome>;
@@ -126,7 +128,7 @@ export type AIStudioWorkspaceController = {
 };
 
 type AIStudioHistoryIssue =
-  | { readonly kind: 'load'; readonly message: string }
+  | { readonly kind: 'load'; readonly message: string; readonly saved?: boolean }
   | {
       readonly kind: 'save';
       readonly message: string;
@@ -167,10 +169,12 @@ export function useAIStudioWorkspaceController({
       const next = await historyRepository.load();
       if (!active.current || currentRepository.current !== historyRepository) return;
       setProjection(next);
-      setHistoryIssue(null);
+      setHistoryIssue(current => current?.kind === 'save' ? current : null);
     } catch (error) {
       if (!active.current || currentRepository.current !== historyRepository) return;
-      setHistoryIssue({ kind: 'load', message: errorMessage(error, 'History load failed.') });
+      setHistoryIssue(current => current?.kind === 'save' ? current : {
+        kind: 'load', saved: current?.saved, message: errorMessage(error, 'History load failed.'),
+      });
     }
   }, [historyRepository]);
 
@@ -183,6 +187,10 @@ export function useAIStudioWorkspaceController({
     try {
       const next = await historyRepository.appendRecord(record);
       if (!active.current || currentRepository.current !== historyRepository) return;
+      if ('refreshError' in next) {
+        setHistoryIssue(current => current?.kind === 'save' ? current : { kind: 'load', saved: true, message: next.refreshError });
+        return;
+      }
       setProjection(next);
       setHistoryIssue((current) => {
         if (!current || current.kind === 'load') return null;
@@ -280,18 +288,21 @@ export function useAIStudioWorkspaceController({
       outcome = await historyRepository.persist({ result, record });
     } catch (error) {
       const message = errorMessage(error, 'History persistence failed.');
-      setHistoryIssue({ kind: 'save', message, records: [record], cleanupPaths: [] });
+      setHistoryIssue(current => ({ kind: 'save', message,
+        records: [...(current?.kind === 'save' ? current.records.filter(item => item.id !== record.id) : []), record],
+        cleanupPaths: current?.kind === 'save' ? current.cleanupPaths : [] }));
       throw new Error(message);
     }
     if (outcome.ok) {
-      setProjection(outcome.projection);
+      const refreshIssue = 'refreshError' in outcome ? { kind: 'load' as const, saved: true, message: outcome.refreshError } : null;
+      if ('projection' in outcome) setProjection(outcome.projection);
       setHistoryIssue((current) => {
-        if (!current || current.kind === 'load') return null;
+        if (!current || current.kind === 'load') return refreshIssue;
         const records = current.records.filter((pending) => pending.id !== record.id
           && !(pending.capabilityId === record.capabilityId && pending.result?.ok && record.result?.ok
             && 'jobId' in pending.result && 'jobId' in record.result && pending.result.jobId === record.result.jobId));
         return records.length === 0 && current.cleanupPaths.length === 0
-          ? null
+          ? refreshIssue
           : { ...current, records };
       });
       return outcome.record ?? record;
@@ -327,30 +338,42 @@ export function useAIStudioWorkspaceController({
       await refreshHistory();
       return;
     }
-    setHistoryIssue(null);
-    const cleanup = await historyRepository.cleanupArtifacts(issue.cleanupPaths);
+    let cleanup: AIStudioArtifactCleanupOutcome;
+    try {
+      cleanup = await historyRepository.cleanupArtifacts(issue.cleanupPaths);
+    } catch (error) {
+      setHistoryIssue(current => current?.kind === 'save'
+        ? { ...current, message: errorMessage(error, 'History cleanup failed.') } : current);
+      return;
+    }
+    let refreshError: string | undefined;
     const retryErrors = [...cleanup.failures];
     let completed = 0;
     let nextProjection: AIStudioHistoryProjection | null = null;
     for (const record of issue.records) {
       try {
-        nextProjection = await historyRepository.appendRecord(record);
+        const saved = await historyRepository.appendRecord(record);
+        if ('refreshError' in saved) refreshError = saved.refreshError;
+        else nextProjection = saved;
         completed += 1;
       } catch (error) {
         retryErrors.push(errorMessage(error, 'History persistence failed.'));
         break;
       }
     }
+    if (!active.current || currentRepository.current !== historyRepository) return;
     if (nextProjection) setProjection(nextProjection);
-    const records = issue.records.slice(completed);
-    if (retryErrors.length || records.length || cleanup.remainingCleanupPaths.length) {
-      setHistoryIssue({
-        kind: 'save',
-        message: retryErrors.join(' ') || 'History persistence retry is incomplete.',
-        records,
-        cleanupPaths: cleanup.remainingCleanupPaths,
-      });
-    }
+    const attemptedIds = new Set(issue.records.slice(0, completed).map(record => record.id));
+    const clearedPaths = new Set(issue.cleanupPaths.filter(path => !cleanup.remainingCleanupPaths.includes(path)));
+    setHistoryIssue(current => {
+      if (current?.kind !== 'save') return current;
+      const records = current.records.filter(record => !attemptedIds.has(record.id));
+      const cleanupPaths = current.cleanupPaths.filter(path => !clearedPaths.has(path));
+      if (retryErrors.length || records.length || cleanupPaths.length) {
+        return { ...current, records, cleanupPaths, message: retryErrors.join(' ') || current.message };
+      }
+      return refreshError ? { kind: 'load', saved: true, message: refreshError } : null;
+    });
   }, [historyIssue, historyRepository, refreshHistory]);
 
   const selectionEntry = useRef<string | null>(null);
@@ -379,7 +402,7 @@ export function useAIStudioWorkspaceController({
   return {
     parameterStore,
     historyLoadState: {
-      title: translate(historyIssue?.kind === 'save' ? 'History.saveFailedTitle' : 'History.loadFailedTitle'),
+      title: translate(historyIssue?.kind === 'save' ? 'History.saveFailedTitle' : historyIssue?.saved ? 'History.savedRefreshFailedTitle' : 'History.loadFailedTitle'),
       error: historyIssue?.message ?? null,
       retry: () => { void retryHistory(); },
     },

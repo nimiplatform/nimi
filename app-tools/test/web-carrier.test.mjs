@@ -195,7 +195,7 @@ test('two generated Web clients retain independently saved runs in the same owne
   const records = new Map();
   const client = { identity: { realmEnvironmentId: 'unit', accountId: 'A', appId: 'unit.web', clientId: 'unit.client' }, primary: { bindingId: 'primary-A' }, storage: { assets: {
     async write({ relativePath, body }) { await Promise.resolve(); records.set(relativePath, body); },
-    async read({ relativePath }) { const bytes = records.get(relativePath); return { asset: { sha256: 'sha256:' + '0'.repeat(64) }, body: (async function* () { yield bytes; })() }; },
+    async read({ relativePath }) { const bytes = records.get(relativePath); if (!bytes) throw { code: 'not-found' }; return { asset: { sha256: 'sha256:' + '0'.repeat(64) }, body: (async function* () { yield bytes; })() }; },
     async list() { return { assets: [...records.keys()].sort().map(relativePath => ({ relativePath })), nextCursor: '' }; },
   } } };
   const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {
