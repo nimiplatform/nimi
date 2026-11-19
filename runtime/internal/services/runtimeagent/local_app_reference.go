@@ -83,21 +83,25 @@ func (s *Service) ResolveDesktopAgentReference(ctx context.Context, req *runtime
 		req == nil || req.GetLocalAgentRef() == "" || strings.TrimSpace(req.GetLocalAgentRef()) != req.GetLocalAgentRef() {
 		return nil, localAppAgentAccessDenied()
 	}
-	inventory, err := s.ListOwnedActiveLocalAgents(ctx, decision.AccountID)
+	s.mu.RLock()
+	if s.accountTerminationFencedLocked(decision.AccountID) {
+		s.mu.RUnlock()
+		return nil, localAppAgentAccessDenied()
+	}
+	item, sourceHash, err := ownedLocalAgentProjection(s.agents[req.GetLocalAgentRef()], decision.AccountID)
+	s.mu.RUnlock()
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
-	for _, item := range inventory {
-		if item.LocalAgentID != req.GetLocalAgentRef() {
-			continue
-		}
-		references, valid := projectLocalAppAgentReferences(decision, []accountservice.LocalAgentOwnerProjection{item})
-		if !valid {
-			return nil, localAppAgentAccessDenied()
-		}
-		return &runtimev1.ResolveDesktopAgentReferenceResponse{Reference: references[0]}, nil
+	if item.LocalAgentID != req.GetLocalAgentRef() {
+		return nil, localAppAgentAccessDenied()
 	}
-	return nil, localAppAgentAccessDenied()
+	item.AvatarURL, _ = s.localAppAgentDisplayAvatarURL(ctx, decision.AccountID, item.LocalAgentID, sourceHash)
+	references, valid := projectLocalAppAgentReferences(decision, []accountservice.LocalAgentOwnerProjection{item})
+	if !valid {
+		return nil, localAppAgentAccessDenied()
+	}
+	return &runtimev1.ResolveDesktopAgentReferenceResponse{Reference: references[0]}, nil
 }
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.app-consume-plane

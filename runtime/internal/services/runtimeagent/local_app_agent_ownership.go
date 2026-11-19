@@ -89,25 +89,15 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 	agents := make([]accountservice.LocalAgentOwnerProjection, 0, len(s.agents))
 	sourceHashes := make(map[string]string, len(s.agents))
 	for _, entry := range s.agents {
-		if entry == nil || entry.Agent == nil {
-			continue
-		}
-		localAgentID := entry.Agent.GetLocalAgentRef()
-		if strings.TrimSpace(entry.Agent.GetOwnerUserId()) != accountID ||
-			entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
-			continue
-		}
-		displayName := entry.Agent.GetDisplayName()
-		if localAgentID == "" || localAgentID != strings.TrimSpace(localAgentID) ||
-			displayName == "" || displayName != strings.TrimSpace(displayName) {
+		item, sourceHash, err := ownedLocalAgentProjection(entry, accountID)
+		if err != nil {
 			s.mu.RUnlock()
-			return nil, fmt.Errorf("active Agent account projection is incomplete")
+			return nil, err
 		}
-		agents = append(agents, accountservice.LocalAgentOwnerProjection{
-			LocalAgentID: localAgentID,
-			DisplayName:  displayName,
-		})
-		sourceHashes[localAgentID] = localAppAgentCurrentSourceHash(entry.Agent)
+		if item.LocalAgentID != "" {
+			agents = append(agents, item)
+			sourceHashes[item.LocalAgentID] = sourceHash
+		}
 	}
 	s.mu.RUnlock()
 	s.pruneLocalAppAgentDisplayAvatarCache()
@@ -131,6 +121,20 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 		return agents[i].DisplayName < agents[j].DisplayName
 	})
 	return agents, nil
+}
+
+func ownedLocalAgentProjection(entry *agentEntry, accountID string) (accountservice.LocalAgentOwnerProjection, string, error) {
+	var item accountservice.LocalAgentOwnerProjection
+	if entry == nil || entry.Agent == nil || strings.TrimSpace(entry.Agent.GetOwnerUserId()) != accountID ||
+		entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+		return item, "", nil
+	}
+	item.LocalAgentID = entry.Agent.GetLocalAgentRef()
+	item.DisplayName = entry.Agent.GetDisplayName()
+	if item.LocalAgentID == "" || item.LocalAgentID != strings.TrimSpace(item.LocalAgentID) || item.DisplayName == "" || item.DisplayName != strings.TrimSpace(item.DisplayName) {
+		return item, "", fmt.Errorf("active Agent account projection is incomplete")
+	}
+	return item, localAppAgentCurrentSourceHash(entry.Agent), nil
 }
 
 func localAppAgentCurrentSourceHash(agent *runtimev1.LocalAgentRecord) string {

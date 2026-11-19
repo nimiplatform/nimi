@@ -482,6 +482,10 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 	if err != nil {
 		return nil, localAppIngressError(err)
 	}
+	return s.authorizedLocalAppContext(ctx, admission, session)
+}
+
+func (s *Service) authorizedLocalAppContext(ctx context.Context, admission localappop.Admission, session localAppRuntimeSession) (context.Context, error) {
 	capability, ownerSupported := appOperationCapability(admission)
 	if !ownerSupported {
 		return nil, localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)

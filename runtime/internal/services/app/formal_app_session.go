@@ -41,11 +41,15 @@ func (s *Service) AuthorizeFormalAppIngress(
 			return nil, err
 		}
 	} else {
-		_, _, admissionErr := s.admitLocalAppIngress(localCtx, ingress)
-		if renewableFormalAppSessionError(admissionErr) {
-			if _, err := s.RenewLocalAppSessionProjection(localCtx); err != nil {
-				return nil, err
-			}
+		admission, session, err := s.admitLocalAppIngress(localCtx, ingress)
+		if err == nil {
+			return s.authorizedLocalAppContext(localCtx, admission, session)
+		}
+		if !renewableFormalAppSessionError(err) {
+			return nil, localAppIngressError(err)
+		}
+		if _, err := s.RenewLocalAppSessionProjection(localCtx); err != nil {
+			return nil, err
 		}
 	}
 	return s.AuthorizeLocalAppIngress(localCtx, ingress)

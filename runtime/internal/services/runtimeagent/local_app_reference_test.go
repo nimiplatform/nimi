@@ -2,8 +2,10 @@ package runtimeagent
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -158,5 +160,35 @@ func TestDesktopAgentReferenceResolutionIsReadOnlyAndOwnerScoped(t *testing.T) {
 		if _, err := svc.ResolveDesktopAgentReference(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), invalid), &runtimev1.ResolveDesktopAgentReferenceRequest{LocalAgentRef: "selected"}); err == nil {
 			t.Fatal("non-Desktop caller used owner lookup")
 		}
+	}
+}
+
+func TestDesktopReferencesResolveOnlyTheSelectedAvatar(t *testing.T) {
+	for _, count := range []int{1, 24} {
+		s := &Service{agents: map[string]*agentEntry{}}
+		var calls []string
+		s.publicChatSourceSnapshotResolve = func(_ context.Context, id string) (localAgentSourceSnapshotV2, bool, error) {
+			calls = append(calls, id)
+			return localAgentSourceSnapshotV2{}, false, nil
+		}
+		for i := 0; i < count; i++ {
+			id := fmt.Sprintf("selected-%02d", i)
+			s.agents[id] = &agentEntry{Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: id, DisplayName: id, OwnerUserId: "account", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE}}
+		}
+		decision := localAppReferenceDecision(1, "account")
+		decision.AppID = "nimi.desktop"
+		decision.TrustClass = accountservice.LocalAppTrustClassBuiltIn
+		ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
+		start := time.Now()
+		for id := range s.agents {
+			got, err := s.ResolveDesktopAgentReference(ctx, &runtimev1.ResolveDesktopAgentReferenceRequest{LocalAgentRef: id})
+			if err != nil || got.GetReference().GetDisplayName() != id || calls[len(calls)-1] != id {
+				t.Fatalf("resolution failed: %v %v", got, err)
+			}
+		}
+		if len(calls) != count {
+			t.Fatalf("%d refs caused %d source reads", count, len(calls))
+		}
+		t.Logf("requests=%d resolver=%d elapsed=%s", count, len(calls), time.Since(start))
 	}
 }

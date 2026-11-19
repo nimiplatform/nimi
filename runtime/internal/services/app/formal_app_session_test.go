@@ -99,11 +99,15 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		strings.HasPrefix(decision.RegisteredAppSubject, "protected-product:") {
 		t.Fatalf("built-in Desktop decision = %+v ok=%v", decision, ok)
 	}
+	beforeCommon := account.bindCalls.Load()
 	secondAuthorized, err := service.AuthorizeFormalAppIngress(
 		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentAIConfigGet,
 	)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if got := account.bindCalls.Load() - beforeCommon; got != 1 {
+		t.Fatalf("one healthy operation bound its account generation %d times", got)
 	}
 	secondDecision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(secondAuthorized)
 	if !ok || secondDecision.Operation == decision.Operation || secondDecision.OperationCapability != "agent.configure" ||

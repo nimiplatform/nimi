@@ -7,6 +7,7 @@ import (
 	"io"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -713,6 +714,7 @@ func newLocalAppSessionFixtureWithRandom(t testing.TB, domains []string, project
 }
 
 type localAppSessionTestAccount struct {
+	bindCalls      atomic.Uint64
 	mu             sync.Mutex
 	projection     *runtimev1.AccountProjection
 	generation     uint64
@@ -748,6 +750,7 @@ func (account *localAppSessionTestAccount) AuthenticatedRuntimeSecurityContext(c
 }
 
 func (account *localAppSessionTestAccount) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
+	account.bindCalls.Add(1)
 	account.mu.Lock()
 	defer account.mu.Unlock()
 	if account.projection == nil {
