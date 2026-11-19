@@ -139,6 +139,13 @@ func (s *Service) schedulePublicChatFollowUp(
 		cancel()
 		return publicChatFollowUpOutcome{Status: "rejected", SourceTurnID: turn.TurnID, SourceActionID: action.ActionID, ReasonCode: reasonCodeFromError(err), Message: "The follow-up could not be saved."}
 	}
+	// An older timer source can fall outside the next execution's context slice.
+	for i := len(current.CommittedTranscript) - 1; i >= 0; i-- {
+		if entry := current.CommittedTranscript[i]; entry.TurnID == turn.TurnID {
+			current.coldFollowUpTurn, current.coldFollowUpSequence = entry.TurnID, entry.Sequence
+			break
+		}
+	}
 	s.chatSurfaceMu.Unlock()
 	if old != nil && old.Cancel != nil {
 		old.Cancel()

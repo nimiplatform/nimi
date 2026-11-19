@@ -320,6 +320,9 @@ func (s *Service) publicChatAnchorSnapshot(anchorID string) (publicChatAnchorSta
 	if session == nil {
 		return publicChatAnchorState{}, false
 	}
+	if err := s.loadConversationFactsLocked(context.Background(), session); err != nil {
+		return publicChatAnchorState{}, false
+	}
 	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
 		return publicChatAnchorState{}, false
 	}

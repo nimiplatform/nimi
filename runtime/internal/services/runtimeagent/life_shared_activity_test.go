@@ -514,7 +514,7 @@ func verifySharedRecordExpiry(t *testing.T, svc *Service, settled lifeSharedReco
 		t.Fatalf("expired record was not reclaimed: %+v, %v", records, err)
 	}
 	ref := testRuntimeAgentLocalRef("agent-alpha")
-	turns, _, _, err := svc.lifeConversationInput(ref)
+	turns, _, _, err := svc.lifeConversationInput(context.Background(), ref)
 	if err != nil || len(turns) != 1 || turns[0].UserText != message.Content || turns[0].AssistantText != "Unsweetened tea it is." {
 		t.Fatalf("shared record expiry changed ordinary Conversation input: %v", err)
 	}

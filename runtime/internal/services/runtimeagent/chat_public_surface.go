@@ -154,11 +154,23 @@ type publicChatVoiceSidecarState struct {
 // continuity token; OwnerUserID plus LocalAgentRef resolves the singleton.
 // SubjectUserID is captured at first open and must equal OwnerUserID.
 type publicChatAnchorState struct {
+	executionHistory         *admittedConversationHistory
+	windowInputs             map[string]*publicChatRecoveryInput // originals referenced from outside a bounded read
 	LatestAcceptedTurnID     string
 	Recoveries               map[string]*publicChatTurnRecovery
 	messageLookup            *conversationMessageLookup
 	ConversationContext      publicChatConversationContextSelection
+	coldFollowUpTurn         string
+	coldFollowUpSequence     uint64
+	workingFacts             bool // execution has only active children; full readers restore historical rows explicitly
+	transcriptBase           int  // absolute sequence of the first resident turn
+	coldFacts                bool
 	persistedTranscriptCount int
+	dirtyTurnRevision        uint64
+	dirtyTurns               map[string]uint64
+	dirtyVoiceRequests       map[string]string
+	persistedActive          *publicChatTurnProjectionState
+	persistedLast            *publicChatTurnProjectionState
 	ConversationAnchorID     string
 	AgentID                  string
 	LocalAgentRef            string

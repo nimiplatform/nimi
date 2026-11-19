@@ -437,8 +437,14 @@ func TestPublicChatSurfaceStateRejectsInvalidCommittedTranscript(t *testing.T) {
 			}
 			// Write a structurally valid row set, then corrupt the durable turn to
 			// verify the actual startup reader, independent of writer validation.
-			original := state.Anchors[0].CommittedTranscript[0]
-			state.Anchors[0].CommittedTranscript[0].Sequence = 0
+			badIndex := 0
+			if name == "duplicate" {
+				badIndex = 1
+			}
+			original := state.Anchors[0].CommittedTranscript[badIndex]
+			state.Anchors[0].CommittedTranscript[badIndex].Sequence = uint64(badIndex)
+			state.Anchors[0].CommittedTranscript[badIndex].TurnID = "valid-seed"
+			state.Anchors[0].CommittedTranscript[badIndex].Origin = publicChatTurnOriginUser
 			if err := svc.chatStateRepo.persistPublicChatSurfaceState(state); err != nil {
 				t.Fatalf("seed transcript: %v", err)
 			}
@@ -446,11 +452,14 @@ func TestPublicChatSurfaceStateRejectsInvalidCommittedTranscript(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := svc.backend.DB().Exec(`UPDATE runtime_conversation_turn SET turn_json=? WHERE anchor_id=? AND sequence=0`, string(forged), state.Anchors[0].ConversationAnchorID); err != nil {
+			if _, err := svc.backend.DB().Exec(`UPDATE runtime_conversation_turn SET turn_json=? WHERE anchor_id=? AND sequence=?`, string(forged), state.Anchors[0].ConversationAnchorID, badIndex); err != nil {
 				t.Fatal(err)
 			}
-			if err := svc.loadPublicChatSurfaceStateFromDB(); err == nil {
-				t.Fatal("invalid persisted committed transcript must fail closed")
+			if err := svc.loadPublicChatSurfaceStateFromDB(); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, _, _, err := svc.snapshotPublicChatAnchorForCaller("desktop.app", state.Anchors[0].ConversationAnchorID); err == nil {
+				t.Fatal("invalid committed transcript was returned to a reader")
 			}
 		})
 	}

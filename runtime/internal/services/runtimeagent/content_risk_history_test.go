@@ -115,11 +115,11 @@ func TestContentRiskHistoryRefusesThroughScenarioAndRemainsReadable(t *testing.T
 // The caller supplies the existing AI-backed executor fixture. This verifies
 // owner composition and actual Scenario refusal, not a real model journey.
 func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) error, runRecovered func([]*runtimev1.ChatMessage) error) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	secret := "ghp_" + strings.Repeat("aB3", 12)
 	for _, summary := range []bool{false, true} {
 		t.Run(map[bool]string{false: "history", true: "summary"}[summary], func(t *testing.T) {
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 			turns := testPublicChatCommittedTranscript([2]string{"historical " + secret, "recorded response"})
 			anchor := svc.chatAnchors[anchorID]
 			anchor.CommittedTranscript = turns
@@ -177,7 +177,7 @@ func checkContentRiskHistory(t *testing.T, run func([]*runtimev1.ChatMessage) er
 					}
 				}
 			}
-			anchor.LastTurnSnapshot = &publicChatTurnProjectionState{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED, ActionHint: "adjust_conversation_history"}
+			anchor.LastTurnSnapshot = &publicChatTurnProjectionState{TurnID: anchor.CommittedTranscript[len(anchor.CommittedTranscript)-1].TurnID, ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED, ActionHint: "adjust_conversation_history"}
 			decision, managerCtx := localAppConfigureContext(accountservice.LocalAppOperationUpdateConversationContext, 0x53, "user-1")
 			request := &runtimev1.UpdateLocalAppAgentConversationContextRequest{AgentHandle: mintLocalAppAgentHandle(decision, anchor.LocalAgentRef), ConversationAnchorId: anchorID, ExpectedContextRevision: 1, FirstTurnSequence: 1, OmitSupplementalContext: true}
 			if suggestion := svc.projectConversationContextLocked(anchor).GetSuggestedFirstTurnSequence(); suggestion != 1 {

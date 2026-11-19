@@ -156,11 +156,14 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			status.Error(codes.DataLoss, err.Error()))
 	}
 	relationships := []agentTurnRelationshipInput{}
-	transcript, err := publicChatAgentTurnTranscriptInput(session)
+	history := session.executionHistory
+	if history == nil {
+		history = captureConversationHistory(session)
+	}
+	transcript, conversationSummary, err := history.pairs, history.summary, history.err
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &source,
-			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
-			status.Error(codes.DataLoss, err.Error()))
+			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID, status.Error(codes.DataLoss, err.Error()))
 	}
 	currentTurn, err := publicChatAgentTurnCurrentInput(req.Messages, req.resolvedAttachments)
 	if err != nil {
@@ -168,12 +171,7 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			err)
 	}
-	conversationSummary, err := publicChatAgentTurnConversationSummaryInput(session, transcript)
-	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &source,
-			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
-			status.Error(codes.DataLoss, err.Error()))
-	}
+
 	cognition := agentTurnCognitionInput{AdapterStatus: "not_requested", SelectionStatus: "not_requested"}
 	if !session.ConversationContext.OmitSupplementalContext {
 		cognition = r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
@@ -329,59 +327,80 @@ func newPublicChatContextCompositionError(
 	return &publicChatContextCompositionError{cause: cause, summary: summary}
 }
 
-func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {
-	out, err := selectedCommittedTranscript(&session)
-	if err != nil {
-		return nil, err
-	}
-	start := 0
-	if len(out) > publicChatRecentVerbatimTurnLimit {
-		start = len(out) - publicChatRecentVerbatimTurnLimit
-	}
-	summary := activeConversationSummary(&session)
-	valid := publicChatLastValidConversationSummary(summary)
-	expandAfterLastValid := summary != nil && summary.LastAttempt.Status != "ready" && valid != nil
-	targetEnd, due, err := publicChatConversationSummaryTarget(&session)
-	if err != nil {
-		return nil, err
-	}
-	if due {
-		attemptCoversTarget := summary != nil && !summary.LastAttempt.AttemptedAt.IsZero() && summary.LastAttempt.TargetSequenceEnd >= targetEnd
-		if !attemptCoversTarget {
-			if valid == nil {
-				start = 0
-			} else {
-				expandAfterLastValid = true
-			}
-		}
-	}
-	if expandAfterLastValid {
-		for index, turn := range out {
-			if turn.Sequence > valid.CoveredSequenceEnd {
-				if index < start {
-					start = index
-				}
-				break
-			}
-		}
-	}
-	if start > 0 {
-		out = append([]agentTurnTranscriptPairInput(nil), out[start:]...)
-	}
-	return out, nil
+type admittedConversationHistory struct {
+	pairs   []agentTurnTranscriptPairInput
+	summary *agentTurnConversationSummaryInput
+	err     error
 }
 
-func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTranscriptTurn) ([]agentTurnTranscriptPairInput, error) {
-	if err := validatePublicChatCommittedTranscript(committed); err != nil {
+func captureConversationHistory(session publicChatAnchorState) *admittedConversationHistory {
+	pairs, err := publicChatAgentTurnTranscriptInput(session)
+	if err != nil {
+		return &admittedConversationHistory{err: err}
+	}
+	summary, err := publicChatAgentTurnConversationSummaryInput(session, pairs)
+	return &admittedConversationHistory{pairs: pairs, summary: summary, err: err}
+}
+
+// Locate the start of the most recent complete pairs without materializing
+// older inputs. A stale or failed summary may still require the whole gap.
+func recentConversationBoundary(session *publicChatAnchorState) (int, bool, error) {
+	count := len(session.CommittedTranscript)
+	if err := validateConversationContextSelection(session.ConversationContext, session.transcriptCount()); err != nil {
+		return 0, false, err
+	}
+	first := max(0, int(session.ConversationContext.FirstTurnSequence)-session.transcriptBase)
+	start, n := count, 0
+	for i := count - 1; i >= first; i-- {
+		if session.CommittedTranscript[i].AssistantText == "" {
+			continue
+		}
+		if n == publicChatRecentVerbatimTurnLimit {
+			return start, true, nil
+		}
+		start = i
+		n++
+	}
+	return first, false, nil
+}
+
+func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {
+	start, due, err := recentConversationBoundary(&session)
+	if err != nil {
 		return nil, err
 	}
-	out := make([]agentTurnTranscriptPairInput, 0, len(committed))
-	for _, turn := range committed {
-		if pair, eligible := publicChatCommittedTranscriptPair(turn); eligible {
-			out = append(out, pair)
+	first := max(0, int(session.ConversationContext.FirstTurnSequence)-session.transcriptBase)
+	summary := activeConversationSummary(&session)
+	valid := publicChatLastValidConversationSummary(summary)
+	expand := summary != nil && summary.LastAttempt.Status != "ready" && valid != nil
+	if due {
+		targetEnd := session.CommittedTranscript[start].Sequence - 1
+		covered := summary != nil && !summary.LastAttempt.AttemptedAt.IsZero() && summary.LastAttempt.TargetSequenceEnd >= targetEnd
+		if !covered {
+			if valid == nil {
+				start = first
+			} else {
+				expand = true
+			}
 		}
 	}
-	return out, nil
+	if expand && valid.CoveredSequenceEnd < uint64(session.transcriptBase+start) {
+		start = max(first, int(valid.CoveredSequenceEnd)+1-session.transcriptBase)
+	}
+	return conversationTranscriptPairs(session.CommittedTranscript, start, session.transcriptBase)
+}
+
+func conversationTranscriptPairs(turns []publicChatCommittedTranscriptTurn, start, base int) ([]agentTurnTranscriptPairInput, error) {
+	pairs := make([]agentTurnTranscriptPairInput, 0, len(turns)-start)
+	for i := start; i < len(turns); i++ {
+		if err := validateCommittedConversationTurn(turns[i], uint64(base+i)); err != nil {
+			return nil, err
+		}
+		if pair, ok := publicChatCommittedTranscriptPair(turns[i]); ok {
+			pairs = append(pairs, pair)
+		}
+	}
+	return pairs, nil
 }
 
 func publicChatCommittedTranscriptPair(turn publicChatCommittedTranscriptTurn) (agentTurnTranscriptPairInput, bool) {
@@ -421,7 +440,7 @@ func publicChatAgentTurnConversationSummaryInput(session publicChatAnchorState, 
 	if summary == nil {
 		return nil, nil
 	}
-	if err := validatePublicChatConversationSummary(summary, session.CommittedTranscript); err != nil {
+	if err := validateConversationSummaryCount(summary, session.transcriptCount()); err != nil {
 		return nil, err
 	}
 	input := &agentTurnConversationSummaryInput{Status: summary.LastAttempt.Status}
@@ -448,8 +467,11 @@ func publicChatAgentTurnConversationSummaryInput(session publicChatAnchorState, 
 }
 
 func publicChatFirstEligibleSequenceAfter(transcript []publicChatCommittedTranscriptTurn, sequence uint64) (uint64, bool) {
-	for _, turn := range transcript {
-		if turn.Sequence > sequence && strings.TrimSpace(turn.AssistantText) != "" {
+	if len(transcript) == 0 || sequence >= transcript[len(transcript)-1].Sequence {
+		return 0, false
+	}
+	for _, turn := range transcript[max(0, int(sequence)+1-int(transcript[0].Sequence)):] {
+		if strings.TrimSpace(turn.AssistantText) != "" {
 			return turn.Sequence, true
 		}
 	}

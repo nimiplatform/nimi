@@ -2,6 +2,8 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -19,7 +21,7 @@ func (r publicChatRuntime) synthesizeCompletedTurnVoice(
 	requestID string,
 	req publicChatTurnVoiceRenderPayload,
 ) (publicChatAnchorState, publicChatTurnState, voiceLipsyncSynthesisOutput, string, error) {
-	session, turn, text, err := r.resolveCompletedTurnVoiceRender(callerAppID, subjectUserID, req)
+	session, turn, text, err := r.resolveCompletedTurnVoiceRender(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, voiceLipsyncSynthesisOutput{}, "", err
 	}
@@ -95,7 +97,7 @@ func (r publicChatRuntime) synthesizeCompletedTurnVoice(
 	return session, turn, out, "", nil
 }
 
-func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, subjectUserID string, req publicChatTurnVoiceRenderPayload) (publicChatAnchorState, publicChatTurnState, string, error) {
+func (r publicChatRuntime) resolveCompletedTurnVoiceRender(ctx context.Context, callerAppID string, subjectUserID string, req publicChatTurnVoiceRenderPayload) (publicChatAnchorState, publicChatTurnState, string, error) {
 	anchorID := strings.TrimSpace(req.ConversationAnchorID)
 	turnID := strings.TrimSpace(req.TurnID)
 	messageID := strings.TrimSpace(req.MessageID)
@@ -109,11 +111,11 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, s
 	if session == nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
-	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.DataLoss, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
 	if strings.TrimSpace(session.SubjectUserID) != trimmedSubjectUserID {
 		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if err := r.svc.loadVoiceRenderTurnLocked(ctx, session, turnID); err != nil {
+		return publicChatAnchorState{}, publicChatTurnState{}, "", err
 	}
 	projection := publicChatCompletedTurnProjectionForLocalAppMessageLocked(session, turnID, messageID)
 	if projection == nil {
@@ -134,10 +136,11 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, s
 	// CallerAppID is informational only and never targets the conversation
 	// broadcast or partitions authorization.
 	sessionSnapshot.CallerAppID = strings.TrimSpace(callerAppID)
-	sessionSnapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
-	sessionSnapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
-	sessionSnapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
-	sessionSnapshot.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
+	sessionSnapshot.CommittedTranscript = nil
+	sessionSnapshot.CompletedTurnSnapshots = nil
+	sessionSnapshot.Recoveries = nil
+	sessionSnapshot.VoiceSidecars = nil
+	sessionSnapshot.VoiceRenderRequests = nil
 	projectionSnapshot := clonePublicChatTurnProjectionState(projection)
 	return sessionSnapshot, publicChatTurnState{
 		ConversationAnchorID: sessionSnapshot.ConversationAnchorID,
@@ -190,11 +193,6 @@ func publicChatVoiceEligibleTurnProjectionLocked(session *publicChatAnchorState,
 	if projection := session.CompletedTurnSnapshots[trimmedTurnID]; publicChatProjectionIsVoiceEligible(projection, trimmedTurnID) {
 		return projection
 	}
-	for _, projection := range session.CompletedTurnSnapshots {
-		if publicChatProjectionIsVoiceEligible(projection, trimmedTurnID) {
-			return projection
-		}
-	}
 	if publicChatProjectionIsVoiceEligible(session.LastTurnSnapshot, trimmedTurnID) {
 		return session.LastTurnSnapshot
 	}
@@ -206,4 +204,54 @@ func publicChatProjectionIsVoiceEligible(projection *publicChatTurnProjectionSta
 		(projection.Status == publicChatTurnStatusCompleted || projection.Status == publicChatTurnStatusFailed || projection.Status == publicChatTurnStatusInterrupted) &&
 		strings.TrimSpace(projection.AssistantText) != "" &&
 		strings.TrimSpace(projection.TurnID) == strings.TrimSpace(turnID)
+}
+
+// A manual render binds to a single durable assistant message, including the
+// same turn's optional sidecar. No other transcript or voice is needed.
+func (s *Service) loadVoiceRenderTurnLocked(ctx context.Context, a *publicChatAnchorState, id string) error {
+	var body, origin string
+	var projection, sidecar sql.NullString
+	var completed bool
+	err := s.backend.DB().QueryRowContext(ctx, `SELECT json_extract(t.turn_json,'$.assistantText'), json_extract(t.turn_json,'$.origin'),p.projection_json,p.completed,v.voice_json
+ FROM runtime_conversation_turn t JOIN runtime_conversation_projection p ON p.anchor_id=t.anchor_id AND p.turn_id=t.turn_id
+ LEFT JOIN runtime_conversation_voice v ON v.anchor_id=t.anchor_id AND v.turn_id=t.turn_id WHERE t.anchor_id=? AND t.turn_id=?`, a.ConversationAnchorID, id).Scan(&body, &origin, &projection, &completed, &sidecar)
+	if err == sql.ErrNoRows || err == nil && (body == "" || origin != publicChatTurnOriginUser && origin != publicChatTurnOriginApp && !isProactiveOrigin(origin)) {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+	}
+	if err != nil {
+		return err
+	}
+	if publicChatVoiceEligibleTurnProjectionLocked(a, id) == nil && completed && projection.Valid {
+		var p persistedPublicChatTurnSnapshot
+		if err := decodeConversationRow(projection.String, &p); err != nil {
+			return err
+		}
+		if p.TurnID != id {
+			return fmt.Errorf("stored voice target identity mismatch")
+		}
+		if err := restoreConversationProjectionText(&p, body); err != nil {
+			return err
+		}
+		if a.CompletedTurnSnapshots == nil {
+			a.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+		}
+		a.CompletedTurnSnapshots[id] = fromPersistedPublicChatTurnSnapshot(&p)
+	}
+	if publicChatVoiceEligibleTurnProjectionLocked(a, id) == nil {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if a.VoiceSidecars[id] == nil && sidecar.Valid {
+		var voice publicChatVoiceSidecarState
+		if err := decodeConversationRow(sidecar.String, &voice); err != nil {
+			return err
+		}
+		if voice.TurnID != id {
+			return fmt.Errorf("stored voice sidecar identity mismatch")
+		}
+		if a.VoiceSidecars == nil {
+			a.VoiceSidecars = make(map[string]*publicChatVoiceSidecarState)
+		}
+		a.VoiceSidecars[id] = &voice
+	}
+	return nil
 }

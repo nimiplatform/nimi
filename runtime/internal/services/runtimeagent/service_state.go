@@ -359,8 +359,12 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 }
 
 func (r *runtimeAgentStateRepository) runtimeAgentMetaValue(key string) (string, error) {
+	return readRuntimeAgentMetaValue(r.backend.DB(), key)
+}
+
+func readRuntimeAgentMetaValue(db conversationRowReader, key string) (string, error) {
 	var value string
-	err := r.backend.DB().QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, key).Scan(&value)
+	err := db.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, key).Scan(&value)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil

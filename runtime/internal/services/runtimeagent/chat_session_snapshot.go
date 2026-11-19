@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -233,8 +234,10 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	if session == nil {
 		return status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
-		return status.Error(codes.DataLoss, err.Error())
+	if session.coldFacts {
+		if err := s.loadConversationRowsLocked(commitContext, session, true); err != nil {
+			return err
+		}
 	}
 
 	var turn *publicChatTurnState
@@ -255,7 +258,6 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	}
 
 	transcriptBefore := session.CommittedTranscript
-	recoveriesBefore := clonePublicChatRecoveries(session.Recoveries)
 	inputTurnID := ""
 	var inputQuote *publicChatMessageQuote
 	if recovery := session.Recoveries[trimmedTurnID]; recovery != nil {
@@ -270,7 +272,6 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	}
 	activeBefore := clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	lastBefore := clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
-	completedBefore := clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
 	lastTurnIDBefore := session.LastTurnID
 	lastMessageIDBefore := session.LastMessageID
 	updatedAtBefore := session.UpdatedAt
@@ -279,12 +280,20 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	if turn != nil {
 		projectionBefore = clonePublicChatTurnProjectionState(turn.Projection)
 	}
+	var recoveryBefore *publicChatTurnRecovery
+	var publicTextBefore string
+	var originalBefore *publicChatTurnRecovery
+	var inputBefore *publicChatRecoveryInput
 	rollback := func() {
 		session.CommittedTranscript = transcriptBefore
-		session.Recoveries = recoveriesBefore
+		if recoveryBefore != nil {
+			recoveryBefore.PublicText = publicTextBefore
+		}
+		if originalBefore != nil {
+			originalBefore.Input = inputBefore
+		}
 		session.ActiveTurnSnapshot = activeBefore
 		session.LastTurnSnapshot = lastBefore
-		session.CompletedTurnSnapshots = completedBefore
 		session.LastTurnID = lastTurnIDBefore
 		session.LastMessageID = lastMessageIDBefore
 		session.UpdatedAt = updatedAtBefore
@@ -305,12 +314,18 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		}
 	}
 	if !replayed {
-		sequence := uint64(len(session.CommittedTranscript))
+		sequence := uint64(session.transcriptCount())
 		committedTurnID = publicChatCommittedTranscriptTurnID(committedTurnID, sequence, origin, trimmedInput, inputAttachment, trimmedAssistant)
-		var err error
-		replayed, err = validatePublicChatCommittedTurnIDReplay(session.CommittedTranscript, committedTurnID, origin, trimmedInput, inputAttachment, trimmedAssistant)
+		stored, err := s.committedTurn(session, committedTurnID)
 		if err != nil {
-			return status.Error(codes.DataLoss, err.Error())
+			return err
+		}
+		if stored != nil {
+			if stored.Origin != origin || stored.InputText != trimmedInput || stored.AssistantText != trimmedAssistant ||
+				!publicChatCommittedTranscriptAttachmentsEqual(stored.InputAttachment, inputAttachment) {
+				return status.Error(codes.DataLoss, "Runtime committed transcript turn id conflicts with existing content")
+			}
+			replayed = true
 		}
 		if !replayed {
 			session.CommittedTranscript = append(session.CommittedTranscript, publicChatCommittedTranscriptTurn{
@@ -327,10 +342,17 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		}
 	}
 
+	if replayed && finalizeProjection == nil {
+		return nil
+	}
 	if trimmedAssistant != "" {
 		if item := session.Recoveries[trimmedTurnID]; item != nil {
+			recoveryBefore, publicTextBefore = item, item.PublicText
+			session.markTurnChanged(item.TurnID)
 			item.PublicText = ""
 			if original := session.Recoveries[item.InputTurnID]; original != nil {
+				originalBefore, inputBefore = original, original.Input
+				session.markTurnChanged(original.TurnID)
 				original.Input = nil
 			}
 		}
@@ -350,9 +372,6 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 		session.LastTurnID = trimmedTurnID
 		session.LastMessageID = strings.TrimSpace(turn.Projection.MessageID)
-	}
-	if replayed && finalizeProjection == nil {
-		return nil
 	}
 	session.UpdatedAt = time.Now().UTC()
 	memoryHook, memoryQueued, err := s.cognitionMemoryTranscriptTxHook(session, committedTurnID, origin, trimmedInput, inputAttachment, trimmedAssistant)
@@ -409,35 +428,42 @@ func (s *Service) commitPublicChatTranscriptTurn(
 func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTranscriptTurn) error {
 	seen := make(map[string]struct{}, len(transcript))
 	for index, turn := range transcript {
-		if err := validateStoredConversationQuote(turn.InputQuote); err != nil {
+		if err := validateCommittedConversationTurn(turn, uint64(index)); err != nil {
 			return err
-		}
-		attachment := normalizePublicChatCommittedTranscriptAttachment(turn.InputAttachment)
-		userOnlyAttachmentFailure := turn.Origin == publicChatTurnOriginUser && attachment != nil && strings.TrimSpace(turn.AssistantText) == ""
-		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
-			(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || (strings.TrimSpace(turn.AssistantText) == "" && !userOnlyAttachmentFailure) ||
-			turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
-			(turn.Origin != publicChatTurnOriginUser && !isProactiveOrigin(turn.Origin) && turn.Origin != publicChatTurnOriginApp) ||
-			(isProactiveOrigin(turn.Origin) && attachment != nil) ||
-			!publicChatCommittedTranscriptAttachmentsEqual(turn.InputAttachment, attachment) {
-			return fmt.Errorf("Runtime committed transcript turn is invalid")
 		}
 		if _, duplicate := seen[turn.TurnID]; duplicate {
 			return fmt.Errorf("Runtime committed transcript contains duplicate turn id")
 		}
-		seenOutputs := make(map[string]struct{}, len(turn.OutputArtifacts))
-		for outputIndex := range turn.OutputArtifacts {
-			output := turn.OutputArtifacts[outputIndex]
-			normalized := normalizePublicChatCommittedTranscriptAttachment(&output)
-			if normalized == nil || !publicChatCommittedTranscriptAttachmentsEqual(&output, normalized) {
-				return fmt.Errorf("Runtime committed transcript output artifact is invalid")
-			}
-			if _, duplicate := seenOutputs[normalized.ArtifactID]; duplicate {
-				return fmt.Errorf("Runtime committed transcript contains duplicate output artifact id")
-			}
-			seenOutputs[normalized.ArtifactID] = struct{}{}
-		}
 		seen[turn.TurnID] = struct{}{}
+	}
+	return nil
+}
+
+func validateCommittedConversationTurn(turn publicChatCommittedTranscriptTurn, sequence uint64) error {
+	if err := validateStoredConversationQuote(turn.InputQuote); err != nil {
+		return err
+	}
+	attachment := normalizePublicChatCommittedTranscriptAttachment(turn.InputAttachment)
+	userOnlyAttachmentFailure := turn.Origin == publicChatTurnOriginUser && attachment != nil && strings.TrimSpace(turn.AssistantText) == ""
+	if turn.Sequence != sequence || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
+		(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || (strings.TrimSpace(turn.AssistantText) == "" && !userOnlyAttachmentFailure) ||
+		turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
+		(turn.Origin != publicChatTurnOriginUser && !isProactiveOrigin(turn.Origin) && turn.Origin != publicChatTurnOriginApp) ||
+		(isProactiveOrigin(turn.Origin) && attachment != nil) ||
+		!publicChatCommittedTranscriptAttachmentsEqual(turn.InputAttachment, attachment) {
+		return fmt.Errorf("Runtime committed transcript turn is invalid")
+	}
+	seenOutputs := make(map[string]struct{}, len(turn.OutputArtifacts))
+	for outputIndex := range turn.OutputArtifacts {
+		output := turn.OutputArtifacts[outputIndex]
+		normalized := normalizePublicChatCommittedTranscriptAttachment(&output)
+		if normalized == nil || !publicChatCommittedTranscriptAttachmentsEqual(&output, normalized) {
+			return fmt.Errorf("Runtime committed transcript output artifact is invalid")
+		}
+		if _, duplicate := seenOutputs[normalized.ArtifactID]; duplicate {
+			return fmt.Errorf("Runtime committed transcript contains duplicate output artifact id")
+		}
+		seenOutputs[normalized.ArtifactID] = struct{}{}
 	}
 	return nil
 }
@@ -468,20 +494,14 @@ func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID str
 	if live == nil || live.ConversationAnchorID != trimmedAnchorID || live.Interrupted || s.agentTerminationFencedLocked(session.LocalAgentRef) {
 		return status.Error(codes.Canceled, "media adoption no longer belongs to a live turn")
 	}
-	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
-		return status.Error(codes.DataLoss, err.Error())
+	turn, err := s.committedTurn(session, trimmedTurnID)
+	if err != nil {
+		return err
 	}
-	turnIndex := -1
-	for index := range session.CommittedTranscript {
-		if session.CommittedTranscript[index].TurnID == trimmedTurnID {
-			turnIndex = index
-			break
-		}
-	}
-	if turnIndex < 0 {
+	if turn == nil {
 		return status.Error(codes.FailedPrecondition, "committed transcript turn is unavailable for output artifact")
 	}
-	for _, existing := range session.CommittedTranscript[turnIndex].OutputArtifacts {
+	for _, existing := range turn.OutputArtifacts {
 		if existing.ArtifactID != normalized.ArtifactID {
 			continue
 		}
@@ -491,19 +511,18 @@ func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID str
 		return status.Error(codes.DataLoss, "committed transcript output artifact mime conflicts with existing reference")
 	}
 
-	transcriptBefore := clonePublicChatCommittedTranscript(session.CommittedTranscript)
-	updatedAtBefore := session.UpdatedAt
-	versionBefore := s.chatSurfaceVersion
-	persistedBefore := session.persistedTranscriptCount
-	session.persistedTranscriptCount = turnIndex
-	session.CommittedTranscript[turnIndex].OutputArtifacts = append(
-		session.CommittedTranscript[turnIndex].OutputArtifacts,
-		*normalized,
-	)
+	before := turn.OutputArtifacts
+	updatedAtBefore, versionBefore := session.UpdatedAt, s.chatSurfaceVersion
+	turn.OutputArtifacts = append(append([]publicChatCommittedTranscriptAttachment(nil), before...), *normalized)
 	session.UpdatedAt = time.Now().UTC()
-	if err := s.persistPublicChatSurfaceStateLocked(trimmedAnchorID); err != nil {
-		session.persistedTranscriptCount = persistedBefore
-		session.CommittedTranscript = transcriptBefore
+	var amend runtimeAgentStateTxHook
+	if int(turn.Sequence) < session.persistedTranscriptCount {
+		amend = func(tx *sql.Tx) error {
+			return writeCommittedConversationTurn(tx, trimmedAnchorID, *turn, turn.Sequence, true)
+		}
+	}
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(amend, trimmedAnchorID); err != nil {
+		turn.OutputArtifacts = before
 		session.UpdatedAt = updatedAtBefore
 		s.chatSurfaceVersion = versionBefore
 		return grpcerr.WrapWithReasonCode(
@@ -513,7 +532,8 @@ func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID str
 			grpcerr.ReasonOptions{Message: "committed Runtime output artifact could not be persisted"},
 		)
 	}
-	if session.messageLookup != nil {
+	if session.messageLookup != nil && int(turn.Sequence) >= session.transcriptBase {
+		turnIndex := int(turn.Sequence) - session.transcriptBase
 		messageID := localAppConversationMessageID(turnID, "image", artifact.ArtifactID)
 		session.messageLookup.byMessage[messageID] = conversationMessageLocation{turnID, turnIndex}
 	}
@@ -554,18 +574,40 @@ func publicChatCommittedTranscriptAttachmentsEqual(left, right *publicChatCommit
 	return left.ArtifactID == right.ArtifactID && left.MimeType == right.MimeType && left.DisplayName == right.DisplayName
 }
 
-func validatePublicChatCommittedTurnIDReplay(transcript []publicChatCommittedTranscriptTurn, turnID string, origin string, inputText string, inputAttachment *publicChatCommittedTranscriptAttachment, assistantText string) (bool, error) {
-	for _, turn := range transcript {
-		if turn.TurnID != turnID {
-			continue
+// Durable rows already passed validation at the storage boundary. Only the
+// unacknowledged suffix can be missing from the stable turn-id index.
+func (s *Service) committedTurn(session *publicChatAnchorState, turnID string) (*publicChatCommittedTranscriptTurn, error) {
+	for i := session.persistedTranscriptCount - session.transcriptBase; i < len(session.CommittedTranscript); i++ {
+		if session.CommittedTranscript[i].TurnID == turnID {
+			return &session.CommittedTranscript[i], nil
 		}
-		if turn.Origin == origin && turn.InputText == inputText && turn.AssistantText == assistantText &&
-			publicChatCommittedTranscriptAttachmentsEqual(turn.InputAttachment, inputAttachment) {
-			return true, nil
-		}
-		return false, fmt.Errorf("Runtime committed transcript turn id conflicts with existing content")
 	}
-	return false, nil
+	var sequence int
+	var raw string
+	err := s.backend.DB().QueryRow(`SELECT sequence,turn_json FROM runtime_conversation_turn WHERE anchor_id=? AND turn_id=?`, session.ConversationAnchorID, turnID).Scan(&sequence, &raw)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if i := sequence - session.transcriptBase; i >= 0 && i < len(session.CommittedTranscript) {
+		if session.CommittedTranscript[i].TurnID != turnID {
+			return nil, status.Error(codes.DataLoss, "conversation turn index conflicts with resident transcript")
+		}
+		return &session.CommittedTranscript[i], nil
+	}
+	var stored publicChatCommittedTranscriptTurn
+	if err := decodeConversationRow(raw, &stored); err != nil {
+		return nil, err
+	}
+	if stored.TurnID != turnID || sequence < 0 {
+		return nil, status.Error(codes.DataLoss, "stored conversation turn identity changed")
+	}
+	if err := validateCommittedConversationTurn(stored, uint64(sequence)); err != nil {
+		return nil, err
+	}
+	return &stored, nil
 }
 
 func publicChatCommittedTranscriptTurnID(turnID string, sequence uint64, origin string, inputText string, inputAttachment *publicChatCommittedTranscriptAttachment, assistantText string) string {
@@ -874,6 +916,7 @@ func (s *Service) mutatePublicChatTurnProjection(turnID string, persist bool, mu
 				session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 			}
 			session.CompletedTurnSnapshots[turn.TurnID] = clonePublicChatTurnProjectionState(projection)
+			session.markTurnChanged(turn.TurnID)
 		}
 	}
 	out := clonePublicChatTurnProjectionState(projection)
@@ -926,6 +969,7 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 				terminalSession.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 			}
 			terminalSession.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(projection)
+			terminalSession.markTurnChanged(trimmedTurnID)
 		}
 		terminalSession.UpdatedAt = time.Now().UTC()
 		out := clonePublicChatTurnProjectionState(projection)
@@ -956,7 +1000,11 @@ func publicChatTurnProjectionIsTerminal(projection *publicChatTurnProjectionStat
 	if projection == nil || strings.TrimSpace(projection.TurnID) == "" {
 		return false
 	}
-	switch projection.Status {
+	return terminalProjectionStatus(projection.Status)
+}
+
+func terminalProjectionStatus(status string) bool {
+	switch status {
 	case publicChatTurnStatusCompleted, publicChatTurnStatusFailed, publicChatTurnStatusInterrupted:
 		return true
 	default:
@@ -983,6 +1031,9 @@ func (s *Service) snapshotPublicChatAnchor(anchorID string, callerAppID string, 
 	session := s.chatAnchors[anchorID]
 	if session == nil {
 		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	if err := s.loadConversationFactsLocked(context.Background(), session); err != nil {
+		return publicChatAnchorState{}, nil, nil, nil, err
 	}
 	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
 		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.DataLoss, err.Error())

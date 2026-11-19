@@ -134,7 +134,7 @@ func (b *Backend) WithSerializedWriter(ctx context.Context, fn func(context.Cont
 	}, true)
 }
 
-func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
+func Open(logger *slog.Logger, localStatePath string, inspectOwner ...func(*sql.DB, bool) error) (*Backend, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -146,21 +146,19 @@ func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
 		return nil, fmt.Errorf("create sqlite directory: %w", err)
 	}
 
+	backupDir := filepath.Join(filepath.Dir(path), backupDirName)
+	// Opening the writable connection can replay, truncate or remove SQLite
+	// side files. Decide whether recovery is admissible before that open.
+	if err := checkPrimaryOrRestore(localStatePath, path, backupDir, inspectOwner); err != nil {
+		return nil, err
+	}
 	writeDB, err := openSQLite(path, true, false)
 	if err != nil {
 		return nil, err
 	}
 	backend := &Backend{
-		logger:    logger,
-		path:      path,
-		backupDir: filepath.Join(filepath.Dir(path), backupDirName),
-		writeDB:   writeDB,
-		writeCh:   make(chan writeRequest, writeQueueBuffer),
-		writeDone: make(chan struct{}),
-	}
-	if err := backend.ensureHealthyOrRestore(); err != nil {
-		_ = writeDB.Close()
-		return nil, err
+		logger: logger, path: path, backupDir: backupDir, writeDB: writeDB,
+		writeCh: make(chan writeRequest, writeQueueBuffer), writeDone: make(chan struct{}),
 	}
 	if err := backend.requireRealmSourceMaterializationCompatibility(); err != nil {
 		_ = writeDB.Close()
@@ -331,26 +329,44 @@ func (b *Backend) executeWrite(ctx context.Context, fn func(*sql.Tx) error) erro
 	return nil
 }
 
-func (b *Backend) ensureHealthyOrRestore() error {
-	ok, err := quickCheck(b.writeDB)
-	if err == nil && ok {
+func checkPrimaryOrRestore(localStatePath, target, backupDir string, validate []func(*sql.DB, bool) error) error {
+	var corrupt bool
+	err := InspectStoredDatabase(localStatePath, func(db *sql.DB) error {
+		// Inspect the catalog and the startup metadata B-tree. A whole-database
+		// quick_check would walk every historical body even on a clean start.
+		// Recovery candidates still receive the full physical and owner checks.
+		var hasMeta bool
+		if err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='runtime_local_agent_meta')`).Scan(&hasMeta); err != nil {
+			return err
+		}
+		if !hasMeta {
+			return nil
+		}
+		var result string
+		if err := db.QueryRow("PRAGMA quick_check('runtime_local_agent_meta')").Scan(&result); err != nil {
+			return err
+		}
+		corrupt = result != "ok"
+		if !corrupt {
+			for _, check := range validate {
+				if err := check(db, false); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if !corrupt && err == nil {
 		return nil
 	}
-	if b.logger != nil {
-		b.logger.Warn("sqlite quick_check failed, attempting restore", "path", b.path, "error", err)
+	if err != nil {
+		var coded interface{ Code() int }
+		if !errors.As(err, &coded) || (coded.Code()&255 != 11 && coded.Code()&255 != 26) {
+			return fmt.Errorf("check Runtime sqlite database: %w", err)
+		}
 	}
-	_ = b.writeDB.Close()
-	if restoreErr := restoreLatestHealthyBackup(b.path, b.backupDir); restoreErr != nil {
-		return fmt.Errorf("sqlite quick_check failed and restore failed: %w", errors.Join(err, restoreErr))
-	}
-	db, openErr := openSQLite(b.path, true, false)
-	if openErr != nil {
-		return fmt.Errorf("reopen restored sqlite db: %w", openErr)
-	}
-	b.writeDB = db
-	ok, err = quickCheck(b.writeDB)
-	if err != nil || !ok {
-		return fmt.Errorf("restored sqlite db failed quick_check: %w", err)
+	if restoreErr := restoreLatestHealthyBackup(target, backupDir, validate); restoreErr != nil {
+		return fmt.Errorf("Runtime SQLite primary check and backup recovery failed: %w", errors.Join(err, restoreErr))
 	}
 	return nil
 }

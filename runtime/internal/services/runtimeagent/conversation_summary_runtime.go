@@ -28,15 +28,18 @@ const publicChatConversationSummaryMaxOutputTokens = 2048
 var errPublicChatConversationSummaryUnavailable = errors.New("conversation summary persistence unavailable")
 
 func validatePublicChatConversationSummary(summary *publicChatConversationSummaryState, transcript []publicChatCommittedTranscriptTurn) error {
+	return validateConversationSummaryCount(summary, len(transcript))
+}
+func validateConversationSummaryCount(summary *publicChatConversationSummaryState, count int) error {
 	if summary == nil {
 		return nil
 	}
 	attempt := summary.LastAttempt
-	if !admittedPublicChatConversationSummaryAttemptStatus(attempt.Status) || attempt.TargetSequenceEnd >= uint64(len(transcript)) || attempt.AttemptedAt.IsZero() {
+	if !admittedPublicChatConversationSummaryAttemptStatus(attempt.Status) || attempt.TargetSequenceEnd >= uint64(count) || attempt.AttemptedAt.IsZero() {
 		return fmt.Errorf("Runtime conversation summary is invalid")
 	}
 	valid := summary.LastValid
-	if valid != nil && (valid.Revision == 0 || valid.CoveredSequenceStart > valid.CoveredSequenceEnd || valid.CoveredSequenceEnd >= uint64(len(transcript)) || strings.TrimSpace(valid.Text) == "" || valid.Text != strings.TrimSpace(valid.Text) || len(valid.Text) > publicChatConversationSummaryMaxBytes || valid.GeneratedAt.IsZero() || !validSHA256Hex(valid.RouteCorrelation)) {
+	if valid != nil && (valid.Revision == 0 || valid.CoveredSequenceStart > valid.CoveredSequenceEnd || valid.CoveredSequenceEnd >= uint64(count) || strings.TrimSpace(valid.Text) == "" || valid.Text != strings.TrimSpace(valid.Text) || len(valid.Text) > publicChatConversationSummaryMaxBytes || valid.GeneratedAt.IsZero() || !validSHA256Hex(valid.RouteCorrelation)) {
 		return fmt.Errorf("Runtime conversation summary is invalid")
 	}
 	if attempt.Status == "ready" {
@@ -122,7 +125,7 @@ func (s *Service) schedulePublicChatConversationSummary(anchorID string) bool {
 		s.mu.RUnlock()
 		return false
 	}
-	anchor := clonePublicChatAnchorState(s.chatAnchors[anchorID])
+	anchor := s.chatAnchors[anchorID]
 	targetEnd, due, err := pendingPublicChatConversationSummaryTargetForAnchor(anchor)
 	if err != nil {
 		s.chatSurfaceMu.Unlock()
@@ -338,26 +341,33 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	attemptCtx, attemptCancel := context.WithTimeout(ctx, 45*time.Second)
 	defer attemptCancel()
 	s.chatSurfaceMu.Lock()
-	anchor := clonePublicChatAnchorState(s.chatAnchors[strings.TrimSpace(anchorID)])
-	s.chatSurfaceMu.Unlock()
+	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if anchor == nil {
+		s.chatSurfaceMu.Unlock()
 		return nil
 	}
 	if job != nil && job.ContextRevision != conversationContextRevision(anchor.ConversationContext) {
+		s.chatSurfaceMu.Unlock()
 		return context.Canceled
 	}
-	if targetEnd >= uint64(len(anchor.CommittedTranscript)) {
+	if targetEnd >= uint64(anchor.transcriptCount()) {
+		s.chatSurfaceMu.Unlock()
 		return fmt.Errorf("conversation summary target is no longer valid")
 	}
 	if valid := publicChatLastValidConversationSummary(activeConversationSummary(anchor)); valid != nil && valid.CoveredSequenceEnd >= targetEnd {
+		s.chatSurfaceMu.Unlock()
 		return nil
 	}
 	if state := activeConversationSummary(anchor); state != nil && !state.LastAttempt.AttemptedAt.IsZero() && state.LastAttempt.TargetSequenceEnd >= targetEnd {
+		s.chatSurfaceMu.Unlock()
 		return nil
 	}
+	revision := conversationContextRevision(anchor.ConversationContext)
+	anchorID = anchor.ConversationAnchorID
 	input, err := publicChatConversationSummaryInput(anchor, targetEnd)
+	s.chatSurfaceMu.Unlock()
 	if err != nil {
-		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, "failed"); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchorID, targetEnd, "failed"); attemptErr != nil {
 			return fmt.Errorf("conversation summary input failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
@@ -366,25 +376,25 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	resolvedExecution, err := s.resolvePublicChatConversationSummaryExecution(attemptCtx, identity, execution)
 	if err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary binding failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
 	}
 	execution = resolvedExecution
 	attemptCtx = withLocalAgentAIObservation(attemptCtx, identity.AgentID, "agent-conversation-summary",
-		fmt.Sprintf("%s:%d:%d", anchor.ConversationAnchorID, targetEnd, conversationContextRevision(anchor.ConversationContext)), true)
+		fmt.Sprintf("%s:%d:%d", anchorID, targetEnd, revision), true)
 	summaryText, err := s.executePublicChatConversationSummaryWithExecution(attemptCtx, identity, execution)
 	if err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary attempt failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
 	}
-	if err := s.commitPublicChatConversationSummaryForJob(job, anchor.ConversationAnchorID, targetEnd, summaryText, execution.Binding.RouteDigest); err != nil {
+	if err := s.commitPublicChatConversationSummaryForJob(job, anchorID, targetEnd, summaryText, execution.Binding.RouteDigest); err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary commit failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
@@ -396,22 +406,15 @@ func publicChatConversationSummaryTarget(anchor *publicChatAnchorState) (uint64,
 	if anchor == nil {
 		return 0, false, nil
 	}
-	eligible, err := selectedCommittedTranscript(anchor)
-	if err != nil {
+	start, due, err := recentConversationBoundary(anchor)
+	if !due || err != nil {
 		return 0, false, err
 	}
-	if len(eligible) <= publicChatRecentVerbatimTurnLimit {
-		return 0, false, nil
-	}
-	recentStart := eligible[len(eligible)-publicChatRecentVerbatimTurnLimit].Sequence
-	if recentStart == 0 {
-		return 0, false, nil
-	}
-	return recentStart - 1, true, nil
+	return anchor.CommittedTranscript[start].Sequence - 1, true, nil
 }
 
 func publicChatConversationSummaryInput(anchor *publicChatAnchorState, targetEnd uint64) (string, error) {
-	if anchor == nil || targetEnd >= uint64(len(anchor.CommittedTranscript)) || targetEnd < anchor.ConversationContext.FirstTurnSequence {
+	if anchor == nil || targetEnd >= uint64(anchor.transcriptCount()) || targetEnd < anchor.ConversationContext.FirstTurnSequence {
 		return "", fmt.Errorf("conversation summary coverage is invalid")
 	}
 	var builder strings.Builder
@@ -426,7 +429,10 @@ func publicChatConversationSummaryInput(anchor *publicChatAnchorState, targetEnd
 		return "", fmt.Errorf("conversation summary coverage does not advance continuously")
 	}
 	for sequence := start; sequence <= targetEnd; sequence++ {
-		turn := anchor.CommittedTranscript[sequence]
+		if sequence < uint64(anchor.transcriptBase) {
+			return "", fmt.Errorf("requested summary starts before selected transcript")
+		}
+		turn := anchor.CommittedTranscript[sequence-uint64(anchor.transcriptBase)]
 		userText := publicChatCommittedTranscriptInputText(turn)
 		assistantText := turn.AssistantText
 		if assistantText == "" {
@@ -565,7 +571,7 @@ func (s *Service) commitPublicChatConversationSummaryForJob(job *publicChatConve
 		return context.Canceled
 	}
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if anchor == nil || coveredEnd >= uint64(len(anchor.CommittedTranscript)) {
+	if anchor == nil || coveredEnd >= uint64(anchor.transcriptCount()) {
 		return fmt.Errorf("conversation summary commit target changed")
 	}
 	previous := clonePublicChatConversationSummary(anchor.ConversationSummary)
@@ -591,7 +597,7 @@ func (s *Service) commitPublicChatConversationSummaryForJob(job *publicChatConve
 			Status: "ready", TargetSequenceEnd: coveredEnd, AttemptedAt: now,
 		},
 	}
-	if err := validatePublicChatConversationSummary(anchor.ConversationSummary, anchor.CommittedTranscript); err != nil {
+	if err := validateConversationSummaryCount(anchor.ConversationSummary, anchor.transcriptCount()); err != nil {
 		anchor.ConversationSummary = previous
 		return err
 	}
@@ -617,7 +623,7 @@ func (s *Service) commitPublicChatConversationSummaryAttemptForJob(job *publicCh
 		return context.Canceled
 	}
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if anchor == nil || coveredEnd >= uint64(len(anchor.CommittedTranscript)) {
+	if anchor == nil || coveredEnd >= uint64(anchor.transcriptCount()) {
 		return fmt.Errorf("conversation summary attempt target changed")
 	}
 	previous := clonePublicChatConversationSummary(anchor.ConversationSummary)
@@ -637,7 +643,7 @@ func (s *Service) commitPublicChatConversationSummaryAttemptForJob(job *publicCh
 		Status: attemptStatus, TargetSequenceEnd: coveredEnd, AttemptedAt: time.Now().UTC(),
 	}
 	anchor.ConversationSummary = next
-	if err := validatePublicChatConversationSummary(anchor.ConversationSummary, anchor.CommittedTranscript); err != nil {
+	if err := validateConversationSummaryCount(anchor.ConversationSummary, anchor.transcriptCount()); err != nil {
 		anchor.ConversationSummary = previous
 		return err
 	}

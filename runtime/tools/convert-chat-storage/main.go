@@ -64,7 +64,7 @@ func run() error {
 		return nil
 	}
 	if !*apply {
-		fmt.Println("Inline conversation storage found. Apply preserves all conversations and writes a backup first.")
+		fmt.Println("Retired conversation storage found. Apply preserves all conversations and writes a backup first.")
 		return nil
 	}
 	if *backup == "" {

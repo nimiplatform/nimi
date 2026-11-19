@@ -127,14 +127,11 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 			strings.TrimSpace(activeTurn.ConversationAnchorID) != strings.TrimSpace(anchor.ConversationAnchorID))) {
 		return grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
-	foundTurn := false
-	for _, transcriptTurn := range anchor.CommittedTranscript {
-		if (transcriptTurn.Origin == publicChatTurnOriginUser || transcriptTurn.Origin == publicChatTurnOriginApp || isProactiveOrigin(transcriptTurn.Origin)) && transcriptTurn.TurnID == voice.TurnID &&
-			strings.TrimSpace(transcriptTurn.AssistantText) != "" {
-			foundTurn = true
-			break
-		}
+	stored, err := s.committedTurn(anchor, voice.TurnID)
+	if err != nil {
+		return err
 	}
+	foundTurn := stored != nil && (stored.Origin == publicChatTurnOriginUser || stored.Origin == publicChatTurnOriginApp || isProactiveOrigin(stored.Origin)) && stored.AssistantText != ""
 	if !foundTurn || voice.MessageID != localAppConversationMessageID(voice.TurnID, "assistant", "") {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
@@ -154,6 +151,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	}
 	copy := *voice
 	anchor.VoiceSidecars[voice.TurnID] = &copy
+	anchor.markTurnChanged(voice.TurnID)
 	anchor.UpdatedAt = time.Now().UTC()
 	if err := s.persistLocalAppVoiceRenderCommitLocked(attempt, anchor.ConversationAnchorID); err != nil {
 		anchor.VoiceSidecars = before
@@ -231,14 +229,16 @@ func (s *Service) localAppConversationVoiceArtifactMembership(
 		strings.TrimSpace(record.GeneratedVoice.ConversationAnchorID) != strings.TrimSpace(anchorID) {
 		return false
 	}
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if anchor == nil {
+	turnID := strings.TrimSpace(record.GeneratedVoice.TurnID)
+	var raw string
+	if err := s.backend.DB().QueryRow(`SELECT voice_json FROM runtime_conversation_voice WHERE anchor_id=? AND turn_id=?`, strings.TrimSpace(anchorID), turnID).Scan(&raw); err != nil {
 		return false
 	}
-	voice := anchor.VoiceSidecars[strings.TrimSpace(record.GeneratedVoice.TurnID)]
-	return voice != nil && voice.State == "ready" &&
+	var voice publicChatVoiceSidecarState
+	if decodeConversationRow(raw, &voice) != nil {
+		return false
+	}
+	return voice.State == "ready" &&
 		voice.TurnID == strings.TrimSpace(record.GeneratedVoice.TurnID) &&
 		voice.ArtifactID == strings.TrimSpace(artifactID) &&
 		voice.MessageID == localAppConversationMessageID(voice.TurnID, "assistant", "")

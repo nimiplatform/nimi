@@ -110,12 +110,12 @@ func TestLifeConversationKnowledgeDoesNotMoveWithLateUsage(t *testing.T) {
 	if err := svc.completeAgentRealtimeTurn(context.Background(), session, nil); err != nil {
 		t.Fatal(err)
 	}
-	before, _, _, err := svc.lifeConversationInput(session.agentID)
+	before, _, _, err := svc.lifeConversationInput(context.Background(), session.agentID)
 	if err != nil || len(before) == 0 || before[len(before)-1].KnownAt.IsZero() {
 		t.Fatalf("missing committed knowledge: %+v %v", before, err)
 	}
 	svc.recordAgentRealtimeUsage(session, turnID, &runtimev1.UsageStats{InputTokens: 23, OutputTokens: 8})
-	after, _, _, err := svc.lifeConversationInput(session.agentID)
+	after, _, _, err := svc.lifeConversationInput(context.Background(), session.agentID)
 	if err != nil || !after[len(after)-1].KnownAt.Equal(before[len(before)-1].KnownAt) {
 		t.Fatalf("usage rewrote content known time: %+v %v", after, err)
 	}
@@ -128,7 +128,13 @@ func TestLifeConversationKnowledgeDoesNotMoveWithLateUsage(t *testing.T) {
 }
 
 func TestLifeConversationReadsLastEligiblePairsWithinUserSelection(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	statePath := t.TempDir() + "/local-state.json"
+	svc, closeService := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	t.Cleanup(func() {
+		if closeService != nil {
+			closeService()
+		}
+	})
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	now := time.Now().UTC()
 	committed := testPublicChatCommittedTranscript(
@@ -151,8 +157,18 @@ func TestLifeConversationReadsLastEligiblePairsWithinUserSelection(t *testing.T)
 	svc.chatSurfaceMu.Lock()
 	anchor := svc.chatAnchors[anchorID]
 	anchor.CommittedTranscript, anchor.ConversationContext = committed, publicChatConversationContextSelection{FirstTurnSequence: 1, Revision: 3, OmitSupplementalContext: true}
+	if err := svc.persistPublicChatSurfaceStateLocked(anchorID); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
-	turns, read, omit, err := svc.lifeConversationInput(testRuntimeAgentLocalRef("agent-alpha"))
+	closeService()
+	closeService = nil
+	svc, closeService = newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	turns, read, omit, err := svc.lifeConversationInput(context.Background(), testRuntimeAgentLocalRef("agent-alpha"))
+	if !svc.chatAnchors[anchorID].coldFacts {
+		t.Fatal("Life hydrated a closed conversation")
+	}
 	if err != nil || read == nil || read.Revision != 3 || read.FirstSequence != 1 || !omit || len(turns) != 6 {
 		t.Fatalf("life transcript selection = %v, %v, %t, %v", turns, read, omit, err)
 	}

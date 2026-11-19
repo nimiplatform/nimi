@@ -1,6 +1,12 @@
 package runtimeagent
 
-import "fmt"
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"slices"
+)
 
 func combineConversationReads(a, b *lifeConversationRead) (*lifeConversationRead, error) {
 	if a == nil {
@@ -28,32 +34,60 @@ func (s *Service) lifeConversationSelection(ref string) *lifeConversationRead {
 	return nil
 }
 
-func (s *Service) lifeConversationInput(ref string) ([]agentTurnTranscriptPairInput, *lifeConversationRead, bool, error) {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	for _, anchor := range s.chatAnchors {
-		if anchor.LocalAgentRef != ref || !conversationAnchorIsResumable(anchor.Status) {
-			continue
-		}
-		if err := validateConversationContextSelection(anchor.ConversationContext, len(anchor.CommittedTranscript)); err != nil {
+func (s *Service) lifeConversationInput(ctx context.Context, ref string) ([]agentTurnTranscriptPairInput, *lifeConversationRead, bool, error) {
+	tx, err := s.backend.DB().BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, nil, false, err
+	}
+	defer tx.Rollback()
+	var raw string
+	err = tx.QueryRowContext(ctx, `SELECT anchor_json FROM runtime_conversation_anchor WHERE local_agent_ref=? AND anchor_json IS NOT NULL`, ref).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil, false, nil
+	}
+	if err != nil {
+		return nil, nil, false, err
+	}
+	var anchor persistedPublicChatAnchor
+	if err := decodeConversationRow(raw, &anchor); err != nil {
+		return nil, nil, false, err
+	}
+	if anchor.LocalAgentRef != ref {
+		return nil, nil, false, fmt.Errorf("Life conversation scope mismatch")
+	}
+	read := &lifeConversationRead{AnchorID: anchor.ConversationAnchorID, Revision: conversationContextRevision(anchor.ConversationContext), FirstSequence: anchor.ConversationContext.FirstTurnSequence}
+	rows, err := tx.QueryContext(ctx, `SELECT turn_id,sequence,turn_json FROM runtime_conversation_turn WHERE anchor_id=? AND sequence>=?
+		AND json_extract(turn_json,'$.assistantText')<>'' ORDER BY sequence DESC LIMIT ?`, read.AnchorID, read.FirstSequence, publicChatRecentVerbatimTurnLimit)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	defer rows.Close()
+	var pairs []agentTurnTranscriptPairInput
+	for rows.Next() {
+		var id, raw string
+		var sequence uint64
+		if err := rows.Scan(&id, &sequence, &raw); err != nil {
 			return nil, nil, false, err
 		}
-		read := &lifeConversationRead{AnchorID: anchor.ConversationAnchorID, Revision: conversationContextRevision(anchor.ConversationContext), FirstSequence: anchor.ConversationContext.FirstTurnSequence}
-		var recent [publicChatRecentVerbatimTurnLimit]agentTurnTranscriptPairInput
-		start := len(recent)
-		// The Conversation owner already validated the immutable transcript at
-		// admission/persistence. Read only enough complete pairs for Life.
-		for i := len(anchor.CommittedTranscript) - 1; i >= int(read.FirstSequence) && start > 0; i-- {
-			turn := anchor.CommittedTranscript[i]
-			if pair, eligible := publicChatCommittedTranscriptPair(turn); eligible {
-				pair.KnownAt = turn.CommittedAt
-				start--
-				recent[start] = pair
-			}
+		var turn publicChatCommittedTranscriptTurn
+		if err := decodeConversationRow(raw, &turn); err != nil {
+			return nil, nil, false, err
 		}
-		return recent[start:], read, anchor.ConversationContext.OmitSupplementalContext, nil
+		if err := validateCommittedConversationTurn(turn, sequence); err != nil {
+			return nil, nil, false, err
+		}
+		pair, ok := publicChatCommittedTranscriptPair(turn)
+		if !ok || turn.TurnID != id {
+			return nil, nil, false, fmt.Errorf("stored Life conversation pair invalid")
+		}
+		pair.KnownAt = turn.CommittedAt
+		pairs = append(pairs, pair)
 	}
-	return nil, nil, false, nil
+	if err := rows.Err(); err != nil {
+		return nil, nil, false, err
+	}
+	slices.Reverse(pairs)
+	return pairs, read, anchor.ConversationContext.OmitSupplementalContext, nil
 }
 
 func sourceConversationAllowed(source, selection *lifeConversationRead) bool {

@@ -138,6 +138,10 @@ func TestContactGenerationReadsSelectedRecentConversationAndLifeWithoutPlanningW
 	anchor.ConversationContext.Revision = 2
 	anchor.ConversationContext.FirstTurnSequence = 3
 	anchor.ConversationContext.OmitSupplementalContext = true
+	if err := svc.persistPublicChatSurfaceStateLocked(anchorID); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
 	ai := &fakeLifeTurnAI{response: &runtimev1.ExecuteScenarioResponse{
 		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,

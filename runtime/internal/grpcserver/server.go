@@ -43,6 +43,7 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	runtimecontrolservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimecontrol"
+	"github.com/nimiplatform/nimi/runtime/internal/storedformat"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -306,7 +307,15 @@ func NewProtectedService(cfg *config.Config, state *health.State, logger *slog.L
 		}
 		return nil, &MaintenanceRequiredError{Maintenance: maintenance}
 	}
-	return newServer(*cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
+	server, err := newServer(*cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
+	if refusal, ok := storedformat.As(err); ok {
+		maintenance, maintenanceErr := newProtectedMaintenanceServer(logger, *cfg, bindings, productControlRoot, productControlSecurity, serviceConfigPath, refusal)
+		if maintenanceErr != nil {
+			return nil, fmt.Errorf("serve maintenance for refused recovery snapshot: %w", maintenanceErr)
+		}
+		return nil, &MaintenanceRequiredError{Maintenance: maintenance}
+	}
+	return server, err
 }
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
@@ -530,7 +539,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	// The audit plane persists in the Runtime backend, so the backend opens
 	// before any owner that records audit is constructed.
-	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath)
+	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath, runtimeagentservice.ValidateConversationStorage)
 	if err != nil {
 		return nil, fmt.Errorf("init Runtime persistence: %w", err)
 	}

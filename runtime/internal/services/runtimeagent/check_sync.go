@@ -67,25 +67,23 @@ func (s *Service) CheckSyncStateDirectory(ctx context.Context, stateDirectory st
 		resources = append(resources, s.checkSyncAgentSourceBinding(ctx, accountID, ref))
 	}
 
-	s.chatSurfaceMu.Lock()
-	anchorIDs := make([]string, 0)
-	accountAnchors := make(map[string]*publicChatAnchorState)
-	for anchorID, anchor := range s.chatAnchors {
-		if anchor == nil || strings.TrimSpace(anchor.OwnerUserID) != accountID {
-			continue
-		}
-		anchorIDs = append(anchorIDs, anchorID)
-		accountAnchors[anchorID] = clonePublicChatAnchorState(anchor)
+	rows, err := s.backend.DB().QueryContext(ctx, `SELECT anchor_id,anchor_json FROM runtime_conversation_anchor WHERE anchor_json IS NOT NULL AND json_extract(anchor_json,'$.ownerUserId')=? ORDER BY anchor_id`, accountID)
+	if err != nil {
+		return nil, err
 	}
-	s.chatSurfaceMu.Unlock()
-	sort.Strings(anchorIDs)
-	for _, anchorID := range anchorIDs {
-		anchor := accountAnchors[anchorID]
-		var entry *agentEntry
-		if anchor != nil {
-			entry = accountAgents[anchor.LocalAgentRef]
+	defer rows.Close()
+	for rows.Next() {
+		var anchorID, raw string
+		if err := rows.Scan(&anchorID, &raw); err != nil {
+			return nil, err
 		}
-		if anchor == nil || strings.TrimSpace(anchorID) == "" || anchor.ConversationAnchorID != anchorID ||
+		var anchor persistedPublicChatAnchor
+		if err := decodeConversationRow(raw, &anchor); err != nil {
+			return nil, err
+		}
+		var entry *agentEntry
+		entry = accountAgents[anchor.LocalAgentRef]
+		if strings.TrimSpace(anchorID) == "" || anchor.ConversationAnchorID != anchorID ||
 			anchor.OwnerUserID != accountID || anchor.SubjectUserID != accountID || anchor.AgentID != anchor.LocalAgentRef || strings.TrimSpace(anchor.LocalAgentRef) == "" ||
 			strings.TrimSpace(anchor.RuntimeSourceRef) == "" || entry == nil || entry.Agent == nil ||
 			entry.Agent.GetOwnerUserId() != accountID || entry.Agent.GetRuntimeSourceRef() != anchor.RuntimeSourceRef {
@@ -93,6 +91,9 @@ func (s *Service) CheckSyncStateDirectory(ctx context.Context, stateDirectory st
 			continue
 		}
 		resources = append(resources, DataRootCheckResource{Kind: "conversation", Status: "available", Reason: "CONVERSATION_OWNER_RECORD_REOPENED"})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if len(resources) == 0 {
 		resources = append(resources, DataRootCheckResource{Kind: "runtime_owner_store", Status: "available", Reason: "RUNTIME_OWNER_STORE_EMPTY"})

@@ -5,6 +5,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -145,7 +146,6 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 	}
 	cancels := make([]func(), 0)
 	anchorIDs := make([]string, 0)
-	changed := false
 	for turnID, turn := range s.chatTurns {
 		if turn == nil || strings.TrimSpace(turn.AgentID) != ref {
 			continue
@@ -158,7 +158,6 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 			turn.BindingRelease = nil
 		}
 		delete(s.chatTurns, turnID)
-		changed = true
 	}
 	for id, work := range s.localAppWorkExecutions {
 		if work.owner.identity.LocalAgentRef == ref {
@@ -175,7 +174,6 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 			cancels = append(cancels, followUp.Cancel)
 		}
 		delete(s.chatFollowUps, followUpID)
-		changed = true
 	}
 	for anchorID, anchor := range s.chatAnchors {
 		if anchor == nil {
@@ -186,24 +184,16 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 		}
 		delete(s.chatAnchors, anchorID)
 		anchorIDs = append(anchorIDs, anchorID)
-		changed = true
 	}
 	if _, exists := s.chatActiveByAgent[ref]; exists {
 		delete(s.chatActiveByAgent, ref)
-		changed = true
 	}
-	if changed {
-		if s.chatSurfaceVersion == math.MaxUint64 {
-			s.restoreAgentChatSurfaceDeletionLocked(rollback)
-			return persistedPublicChatSurfaceState{}, nil, nil, rollback, fmt.Errorf("public chat surface version exhausted")
-		}
-		s.chatSurfaceVersion++
-	}
-	snapshot, err := s.capturePublicChatSurfaceSnapshotLocked()
-	if err != nil {
+	if s.chatSurfaceVersion == math.MaxUint64 {
 		s.restoreAgentChatSurfaceDeletionLocked(rollback)
-		return persistedPublicChatSurfaceState{}, nil, nil, rollback, err
+		return persistedPublicChatSurfaceState{}, nil, nil, rollback, fmt.Errorf("public chat surface version exhausted")
 	}
+	s.chatSurfaceVersion++
+	snapshot := persistedPublicChatSurfaceState{Version: s.chatSurfaceVersion, SavedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	sort.Strings(anchorIDs)
 	return snapshot, anchorIDs, cancels, rollback, nil
 }

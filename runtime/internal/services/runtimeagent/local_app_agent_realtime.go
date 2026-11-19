@@ -557,7 +557,7 @@ func (s *Service) ensureAgentRealtimeTurn(ctx context.Context, session *localApp
 		Messages: []publicChatMessagePayload{{Role: "user", Content: text}},
 	}
 	s.chatSurfaceMu.Lock()
-	_, reused, replayErr := reusedPublicChatAdmission(s.chatAnchors[session.conversationAnchorID], req)
+	_, reused, replayErr := s.reusedPublicChatAdmission(ctx, s.chatAnchors[session.conversationAnchorID], req)
 	s.chatSurfaceMu.Unlock()
 	if reused || replayErr != nil {
 		return false, replayErr
@@ -641,6 +641,7 @@ func (s *Service) composeAgentRealtimeTurnContext(ctx context.Context, session *
 	before := anchor.Recoveries
 	anchor.Recoveries = clonePublicChatRecoveries(before)
 	anchor.Recoveries[turn.TurnID] = newPublicChatTurnRecovery(turn, req, anchor)
+	anchor.markTurnChanged(turn.TurnID)
 	if err := s.persistPublicChatSurfaceStateLocked(anchor.ConversationAnchorID); err != nil {
 		anchor.Recoveries = before
 		s.chatSurfaceMu.Unlock()

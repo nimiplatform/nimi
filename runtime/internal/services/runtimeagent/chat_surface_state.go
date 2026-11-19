@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 const (
 	runtimeAgentMetaPublicChatSurfaceVersionKey = "public_chat_surface_version"
 	runtimeAgentMetaPublicChatSurfaceStateKey   = "public_chat_surface_state"
-	runtimeAgentMetaLocalAppSequencesKey        = "local_app_conversation_sequences"
 	runtimeAgentMetaConversationAnchorMetadata  = "public_chat_anchor_metadata:"
 )
 
@@ -35,41 +33,52 @@ type persistedPublicChatSurfaceState struct {
 }
 
 type persistedPublicChatAnchor struct {
-	LatestAcceptedTurnID   string                                      `json:"latestAcceptedTurnId,omitempty"`
-	Recoveries             map[string]*publicChatTurnRecovery          `json:"-"`
-	ConversationContext    publicChatConversationContextSelection      `json:"conversationContext,omitempty"`
-	TranscriptFrom         int                                         `json:"-"`
-	ConversationAnchorID   string                                      `json:"conversationAnchorId"`
-	AgentID                string                                      `json:"agentId"`
-	LocalAgentRef          string                                      `json:"localAgentRef"`
-	OwnerUserID            string                                      `json:"ownerUserId"`
-	RuntimeSourceRef       string                                      `json:"runtimeSourceRef"`
-	CallerAppID            string                                      `json:"callerAppId"`
-	RegisteredAppSubject   string                                      `json:"registeredAppSubject,omitempty"`
-	SubjectUserID          string                                      `json:"subjectUserId"`
-	ThreadID               string                                      `json:"threadId"`
-	Binding                publicChatExecutionBinding                  `json:"binding"`
-	Bindings               publicChatExecutionBindings                 `json:"bindings,omitempty"`
-	ConfigRevision         uint64                                      `json:"configRevision,omitempty"`
-	MaxTokens              int32                                       `json:"maxTokens"`
-	Reasoning              *publicChatReasoningConfig                  `json:"reasoning,omitempty"`
-	CommittedTranscript    []publicChatCommittedTranscriptTurn         `json:"committedTranscript"`
-	ConversationSummary    *publicChatConversationSummaryState         `json:"conversationSummary,omitempty"`
-	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
-	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
-	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
-	VoiceRenderRequests    map[string]string                           `json:"voiceRenderRequests,omitempty"`
-	VoiceSidecars          map[string]*publicChatVoiceSidecarState     `json:"voiceSidecars,omitempty"`
-	PendingFollowUpID      string                                      `json:"pendingFollowUpId,omitempty"`
-	Status                 int32                                       `json:"status,omitempty"`
-	LastTurnID             string                                      `json:"lastTurnId,omitempty"`
-	LastMessageID          string                                      `json:"lastMessageId,omitempty"`
-	LocalAppSequence       uint64                                      `json:"localAppSequence,omitempty"`
-	CreatedAt              string                                      `json:"createdAt,omitempty"`
-	UpdatedAt              string                                      `json:"updatedAt,omitempty"`
+	coldFollowUpTurn             string
+	coldFollowUpSequence         uint64
+	storedTurnCount              int
+	capturedTurns                map[string]uint64
+	capturedActive, capturedLast *publicChatTurnProjectionState
+
+	ActiveTurnID                string                                      `json:"activeTurnId,omitempty"`
+	EffectiveFreeContactEnabled bool                                        `json:"freeContactEnabled,omitempty"`
+	ActiveSnapshotID            string                                      `json:"activeSnapshotId,omitempty"`
+	LastSnapshotID              string                                      `json:"lastSnapshotId,omitempty"`
+	LatestAcceptedTurnID        string                                      `json:"latestAcceptedTurnId,omitempty"`
+	Recoveries                  map[string]*publicChatTurnRecovery          `json:"-"`
+	ConversationContext         publicChatConversationContextSelection      `json:"conversationContext,omitempty"`
+	TranscriptFrom              int                                         `json:"-"`
+	ConversationAnchorID        string                                      `json:"conversationAnchorId"`
+	AgentID                     string                                      `json:"agentId"`
+	LocalAgentRef               string                                      `json:"localAgentRef"`
+	OwnerUserID                 string                                      `json:"ownerUserId"`
+	RuntimeSourceRef            string                                      `json:"runtimeSourceRef"`
+	CallerAppID                 string                                      `json:"callerAppId"`
+	RegisteredAppSubject        string                                      `json:"registeredAppSubject,omitempty"`
+	SubjectUserID               string                                      `json:"subjectUserId"`
+	ThreadID                    string                                      `json:"threadId"`
+	Binding                     publicChatExecutionBinding                  `json:"binding"`
+	Bindings                    publicChatExecutionBindings                 `json:"bindings,omitempty"`
+	ConfigRevision              uint64                                      `json:"configRevision,omitempty"`
+	MaxTokens                   int32                                       `json:"maxTokens"`
+	Reasoning                   *publicChatReasoningConfig                  `json:"reasoning,omitempty"`
+	CommittedTranscript         []publicChatCommittedTranscriptTurn         `json:"committedTranscript"`
+	ConversationSummary         *publicChatConversationSummaryState         `json:"conversationSummary,omitempty"`
+	ActiveTurnSnapshot          *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
+	LastTurnSnapshot            *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
+	CompletedTurnSnapshots      map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
+	VoiceRenderRequests         map[string]string                           `json:"voiceRenderRequests,omitempty"`
+	VoiceSidecars               map[string]*publicChatVoiceSidecarState     `json:"voiceSidecars,omitempty"`
+	PendingFollowUpID           string                                      `json:"pendingFollowUpId,omitempty"`
+	Status                      int32                                       `json:"status,omitempty"`
+	LastTurnID                  string                                      `json:"lastTurnId,omitempty"`
+	LastMessageID               string                                      `json:"lastMessageId,omitempty"`
+	LocalAppSequence            uint64                                      `json:"localAppSequence,omitempty"`
+	CreatedAt                   string                                      `json:"createdAt,omitempty"`
+	UpdatedAt                   string                                      `json:"updatedAt,omitempty"`
 }
 
 type persistedPublicChatTurnSnapshot struct {
+	TranscriptFields  uint8                             `json:"transcriptFields,omitempty"`
 	TurnID            string                            `json:"turnId"`
 	StreamID          string                            `json:"streamId,omitempty"`
 	Status            string                            `json:"status"`
@@ -175,7 +184,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 	}
 	s.chatSurfaceVersion++
 	snapshot := persistedPublicChatSurfaceState{
-		StorageVersion: 2,
+		StorageVersion: conversationStorageVersion,
 		AnchorScope:    anchorIDs,
 		Version:        s.chatSurfaceVersion,
 		SavedAt:        time.Now().UTC().Format(time.RFC3339Nano),
@@ -196,54 +205,49 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked(anchorIDs ...string) (p
 		if session == nil {
 			continue
 		}
-		if err := validateConversationContextSelection(session.ConversationContext, len(session.CommittedTranscript)); err != nil {
+		if err := validateConversationContextSelection(session.ConversationContext, session.transcriptCount()); err != nil {
 			return persistedPublicChatSurfaceState{}, err
 		}
-		if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
-			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s continuity: %w", session.ConversationAnchorID, err)
-		}
-		if err := validatePublicChatConversationSummary(session.ConversationSummary, session.CommittedTranscript); err != nil {
+		if err := validateConversationSummaryCount(session.ConversationSummary, session.transcriptCount()); err != nil {
 			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s summary: %w", session.ConversationAnchorID, err)
 		}
 		from := 0
-		if len(anchorIDs) > 0 {
+		if len(anchorIDs) > 0 || session.coldFacts || session.transcriptBase > 0 {
 			from = session.persistedTranscriptCount
 		}
-		if from > len(session.CommittedTranscript) {
+		if from > session.transcriptCount() {
 			return persistedPublicChatSurfaceState{}, fmt.Errorf("committed transcript was truncated")
 		}
 		item := persistedPublicChatAnchor{
-			LatestAcceptedTurnID:   session.LatestAcceptedTurnID,
-			Recoveries:             clonePublicChatRecoveries(session.Recoveries),
-			TranscriptFrom:         from,
-			ConversationAnchorID:   session.ConversationAnchorID,
-			AgentID:                session.AgentID,
-			LocalAgentRef:          session.LocalAgentRef,
-			OwnerUserID:            session.OwnerUserID,
-			RuntimeSourceRef:       session.RuntimeSourceRef,
-			CallerAppID:            session.CallerAppID,
-			RegisteredAppSubject:   session.RegisteredAppSubject,
-			SubjectUserID:          session.SubjectUserID,
-			ThreadID:               session.ThreadID,
-			Binding:                session.Binding,
-			Bindings:               clonePublicChatExecutionBindings(session.Bindings),
-			ConfigRevision:         session.ConfigRevision,
-			MaxTokens:              session.MaxTokens,
-			Reasoning:              clonePublicChatReasoningConfig(session.Reasoning),
-			ActiveTurnSnapshot:     toPersistedPublicChatTurnSnapshot(session.ActiveTurnSnapshot),
-			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
-			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
-			VoiceSidecars:          clonePublicChatVoiceSidecars(session.VoiceSidecars),
-			VoiceRenderRequests:    cloneVoiceRenderRequests(session.VoiceRenderRequests),
-			PendingFollowUpID:      session.PendingFollowUpID,
-			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript[from:]),
-			ConversationSummary:    clonePublicChatConversationSummary(session.ConversationSummary),
-			ConversationContext:    session.ConversationContext,
-			Status:                 int32(session.Status),
-			LastTurnID:             session.LastTurnID,
-			LastMessageID:          session.LastMessageID,
-			LocalAppSequence:       session.LocalAppSequence,
+			LatestAcceptedTurnID: session.LatestAcceptedTurnID,
+			ActiveTurnID:         session.ActiveTurnID, EffectiveFreeContactEnabled: session.EffectiveFreeContactEnabled,
+
+			TranscriptFrom:       from,
+			ConversationAnchorID: session.ConversationAnchorID,
+			AgentID:              session.AgentID,
+			LocalAgentRef:        session.LocalAgentRef,
+			OwnerUserID:          session.OwnerUserID,
+			RuntimeSourceRef:     session.RuntimeSourceRef,
+			CallerAppID:          session.CallerAppID,
+			RegisteredAppSubject: session.RegisteredAppSubject,
+			SubjectUserID:        session.SubjectUserID,
+			ThreadID:             session.ThreadID,
+			Binding:              session.Binding,
+			Bindings:             clonePublicChatExecutionBindings(session.Bindings),
+			ConfigRevision:       session.ConfigRevision,
+			MaxTokens:            session.MaxTokens,
+			Reasoning:            clonePublicChatReasoningConfig(session.Reasoning),
+
+			PendingFollowUpID:   session.PendingFollowUpID,
+			CommittedTranscript: clonePublicChatCommittedTranscript(session.CommittedTranscript[min(from-session.transcriptBase, len(session.CommittedTranscript)):]),
+			ConversationSummary: clonePublicChatConversationSummary(session.ConversationSummary),
+			ConversationContext: session.ConversationContext,
+			Status:              int32(session.Status),
+			LastTurnID:          session.LastTurnID,
+			LastMessageID:       session.LastMessageID,
+			LocalAppSequence:    session.LocalAppSequence,
 		}
+		item.captureTurnChanges(session, len(anchorIDs) == 0)
 		if !session.CreatedAt.IsZero() {
 			item.CreatedAt = session.CreatedAt.UTC().Format(time.RFC3339Nano)
 		}
@@ -436,40 +440,32 @@ func (s *Service) loadPublicChatSurfaceStateFromDB() error {
 }
 
 func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *Service) error {
-	raw, err := r.stateRepo.runtimeAgentMetaValue(runtimeAgentMetaPublicChatSurfaceStateKey)
+	tx, err := r.backend.DB().BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return err
 	}
-	versionRaw, err := r.stateRepo.runtimeAgentMetaValue(runtimeAgentMetaPublicChatSurfaceVersionKey)
+	defer tx.Rollback()
+	raw, err := readRuntimeAgentMetaValue(tx, runtimeAgentMetaPublicChatSurfaceStateKey)
+	if err != nil || strings.TrimSpace(raw) == "" {
+		return err
+	}
+	persisted, err := readConversationStartup(tx, raw)
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	sequenceRaw, err := r.stateRepo.runtimeAgentMetaValue(runtimeAgentMetaLocalAppSequencesKey)
+	versionRaw, err := readRuntimeAgentMetaValue(tx, runtimeAgentMetaPublicChatSurfaceVersionKey)
 	if err != nil {
 		return err
 	}
-	sequences := make(map[string]uint64)
-	if strings.TrimSpace(sequenceRaw) != "" {
-		decoder := json.NewDecoder(strings.NewReader(sequenceRaw))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&sequences); err != nil {
-			return fmt.Errorf("parse Local App Conversation sequences: %w", err)
+	if versionRaw != "" {
+		version, err := decodeSequenceValue(versionRaw)
+		if err != nil {
+			return err
 		}
-		if err := decoder.Decode(&struct{}{}); err != io.EOF {
-			return fmt.Errorf("parse Local App Conversation sequences: trailing JSON content")
-		}
+		persisted.Version = max(version, persisted.Version)
 	}
-	persisted, err := readConversationRows(r.backend.DB(), raw)
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return err
-	}
-	if strings.TrimSpace(versionRaw) != "" {
-		if version, err := decodeSequenceValue(versionRaw); err == nil && version > persisted.Version {
-			persisted.Version = version
-		}
 	}
 	if err := validatePersistedPublicChatConversationSingletons(persisted.Anchors); err != nil {
 		return conversationStateRepairRefusal(err)
@@ -489,6 +485,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	for key := range s.chatActiveByAgent {
 		delete(s.chatActiveByAgent, key)
 	}
+	repaired := map[string]bool{}
 	for _, item := range persisted.Anchors {
 		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s local identity invalid: %w", item.ConversationAnchorID, err)
@@ -496,7 +493,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if err := validatePublicChatCommittedTranscript(item.CommittedTranscript); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s continuity invalid: %w", item.ConversationAnchorID, err)
 		}
-		if err := validatePublicChatConversationSummary(item.ConversationSummary, item.CommittedTranscript); err != nil {
+		if err := validateConversationSummaryCount(item.ConversationSummary, item.storedTurnCount); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s summary invalid: %w", item.ConversationAnchorID, err)
 		}
 		createdAt := time.Time{}
@@ -528,33 +525,29 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if strings.TrimSpace(binding.ModelID) == "" {
 			binding = bindings["text.generate"]
 		}
-		localAppSequence := item.LocalAppSequence
-		if persistedSequence := sequences[item.ConversationAnchorID]; persistedSequence > localAppSequence {
-			localAppSequence = persistedSequence
-		}
-		if err := validateConversationContextSelection(item.ConversationContext, len(item.CommittedTranscript)); err != nil {
+		if err := validateConversationContextSelection(item.ConversationContext, item.storedTurnCount); err != nil {
 			return err
 		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
-			LatestAcceptedTurnID:        item.LatestAcceptedTurnID,
-			Recoveries:                  clonePublicChatRecoveries(item.Recoveries),
-			ConversationAnchorID:        item.ConversationAnchorID,
-			AgentID:                     item.AgentID,
-			LocalAgentRef:               item.LocalAgentRef,
-			OwnerUserID:                 item.OwnerUserID,
-			RuntimeSourceRef:            item.RuntimeSourceRef,
-			CallerAppID:                 item.CallerAppID,
-			RegisteredAppSubject:        item.RegisteredAppSubject,
-			SubjectUserID:               item.SubjectUserID,
-			ThreadID:                    item.ThreadID,
-			Binding:                     binding,
-			Bindings:                    bindings,
-			ConfigRevision:              item.ConfigRevision,
-			ActiveTurnID:                "",
-			MaxTokens:                   item.MaxTokens,
-			Reasoning:                   clonePublicChatReasoningConfig(item.Reasoning),
-			CommittedTranscript:         clonePublicChatCommittedTranscript(item.CommittedTranscript),
-			persistedTranscriptCount:    len(item.CommittedTranscript),
+			LatestAcceptedTurnID:     item.LatestAcceptedTurnID,
+			Recoveries:               clonePublicChatRecoveries(item.Recoveries),
+			ConversationAnchorID:     item.ConversationAnchorID,
+			AgentID:                  item.AgentID,
+			LocalAgentRef:            item.LocalAgentRef,
+			OwnerUserID:              item.OwnerUserID,
+			RuntimeSourceRef:         item.RuntimeSourceRef,
+			CallerAppID:              item.CallerAppID,
+			RegisteredAppSubject:     item.RegisteredAppSubject,
+			SubjectUserID:            item.SubjectUserID,
+			ThreadID:                 item.ThreadID,
+			Binding:                  binding,
+			Bindings:                 bindings,
+			ConfigRevision:           item.ConfigRevision,
+			ActiveTurnID:             "",
+			MaxTokens:                item.MaxTokens,
+			Reasoning:                clonePublicChatReasoningConfig(item.Reasoning),
+			CommittedTranscript:      clonePublicChatCommittedTranscript(item.CommittedTranscript),
+			persistedTranscriptCount: item.storedTurnCount, coldFacts: true, coldFollowUpTurn: item.coldFollowUpTurn, coldFollowUpSequence: item.coldFollowUpSequence,
 			ConversationSummary:         clonePublicChatConversationSummary(item.ConversationSummary),
 			ConversationContext:         item.ConversationContext,
 			ActiveTurnSnapshot:          fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
@@ -567,11 +560,15 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			Status:                      status,
 			LastTurnID:                  item.LastTurnID,
 			LastMessageID:               item.LastMessageID,
-			LocalAppSequence:            localAppSequence,
+			LocalAppSequence:            item.LocalAppSequence,
 			CreatedAt:                   createdAt,
 			UpdatedAt:                   updatedAt,
 		}
+		if item.ActiveTurnID != "" {
+			repaired[item.ConversationAnchorID] = true
+		}
 		if restored := s.chatAnchors[item.ConversationAnchorID]; restored != nil && restored.ActiveTurnSnapshot != nil {
+			repaired[item.ConversationAnchorID] = true
 			recovered := clonePublicChatTurnProjectionState(restored.ActiveTurnSnapshot)
 			recovered.Status = publicChatTurnStatusInterrupted
 			recovered.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
@@ -587,6 +584,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 				restored.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
 			}
 			restored.CompletedTurnSnapshots[recovered.TurnID] = clonePublicChatTurnProjectionState(recovered)
+			restored.markTurnChanged(recovered.TurnID)
 			restored.ActiveTurnSnapshot = nil
 			restored.ActiveTurnID = ""
 		}
@@ -605,7 +603,12 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 				recovered.ActionReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
 				recovered.ActionMessage = "Media execution interrupted by Runtime restart."
 			}
+			repaired[anchor.ConversationAnchorID] = true
 			anchor.CompletedTurnSnapshots[id] = recovered
+			anchor.markTurnChanged(id)
+			if anchor.LastTurnSnapshot != nil && anchor.LastTurnSnapshot.TurnID == id {
+				anchor.LastTurnSnapshot = recovered
+			}
 		}
 	}
 
@@ -637,6 +640,13 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			SourceActionID:       item.SourceActionID,
 			HookIntent:           hookIntent,
 		}
+	}
+	if len(repaired) > 0 {
+		ids := make([]string, 0, len(repaired))
+		for id := range repaired {
+			ids = append(ids, id)
+		}
+		return s.persistPublicChatSurfaceStateLocked(ids...)
 	}
 	return nil
 }

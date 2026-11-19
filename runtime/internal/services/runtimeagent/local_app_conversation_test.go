@@ -483,6 +483,10 @@ func TestLocalAppConversationSnapshotIsBoundedOwnerProjection(t *testing.T) {
 		[2]string{"hello", "hi"},
 		[2]string{"status", "ready"},
 	)
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
 
 	snapshotDecision := openDecision
@@ -546,6 +550,10 @@ func TestLocalAppConversationSnapshotKeepsActiveActionBeyondTerminalHistoryBound
 	anchor.CompletedTurnSnapshots = terminal
 	anchor.ActiveTurnSnapshot = active
 	anchor.ActiveTurnID = activeTurnID
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
 
 	snapshotDecision := openDecision
@@ -592,6 +600,10 @@ func TestLocalAppConversationFeatureMismatchProjectsUserOnlyLiveAndSnapshot(t *t
 	}}
 	anchor.CompletedTurnSnapshots = map[string]*publicChatTurnProjectionState{
 		turnID: {TurnID: turnID, Status: publicChatTurnStatusFailed, ReasonCode: runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, Message: publicChatTurnAttachmentVisionUnsupportedMessage},
+	}
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
 	}
 	svc.chatSurfaceMu.Unlock()
 
@@ -643,6 +655,10 @@ func TestLocalAppConversationSnapshotIncludesTerminalTurnWithoutMessages(t *test
 			ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 			Message:    "provider unavailable before commit", UpdatedAt: time.Now().UTC(),
 		},
+	}
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
 	}
 	svc.chatSurfaceMu.Unlock()
 	snapshotDecision := openDecision
@@ -696,6 +712,10 @@ func TestLocalAppConversationSnapshotOrdersTerminalOnlyTurnBeforeLaterCommittedT
 			TurnID: completedTurnID, Status: publicChatTurnStatusCompleted,
 			TimelineStartedAt: startedAt.Add(time.Second),
 		},
+	}
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
 	}
 	svc.chatSurfaceMu.Unlock()
 

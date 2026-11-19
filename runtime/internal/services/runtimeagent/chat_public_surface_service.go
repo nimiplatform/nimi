@@ -34,27 +34,6 @@ func (s *Service) SetPublicChatAppEmitter(emitter publicChatAppMessageEmitter) {
 func (s *Service) ConsumePublicChatAppMessage(ctx context.Context, event *runtimev1.AppMessageEvent) error {
 	return s.publicChatRuntime().consumeAppMessage(ctx, event)
 }
-func (s *Service) handlePublicChatTurnRequest(
-	ctx context.Context,
-	event *runtimev1.AppMessageEvent,
-	req publicChatTurnRequestPayload,
-) error {
-	return s.publicChatRuntime().handleTurnRequest(ctx, event, req)
-}
-func (s *Service) handlePublicChatTurnInterrupt(
-	event *runtimev1.AppMessageEvent,
-	req publicChatTurnInterruptPayload,
-) error {
-	return s.publicChatRuntime().handleTurnInterrupt(event, req)
-}
-func (s *Service) runPublicChatTurn(
-	ctx context.Context,
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	req publicChatTurnRequestPayload,
-) {
-	s.publicChatRuntime().runTurn(ctx, session, turn, req)
-}
 func (s *Service) reservePublicChatTurn(
 	parent context.Context,
 	callerAppID string,
@@ -137,14 +116,6 @@ func (s *Service) recordPublicChatTraceID(turnID string, traceID string) {
 		}
 	}
 }
-func (s *Service) setPublicChatExecutionState(
-	agentID string,
-	subjectUserID string,
-	worldID string,
-	state runtimev1.AgentExecutionState,
-) error {
-	return s.publicChatRuntime().setExecutionState(agentID, subjectUserID, worldID, state)
-}
 func (s *Service) setPublicChatExecutionStateWithOrigin(
 	agentID string,
 	subjectUserID string,
@@ -154,28 +125,6 @@ func (s *Service) setPublicChatExecutionStateWithOrigin(
 ) error {
 	return s.publicChatRuntime().setExecutionStateWithOrigin(agentID, subjectUserID, worldID, state, origin)
 }
-func (s *Service) emitPublicChatTurnInterrupted(
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	traceID string,
-	modelResolved string,
-	routeDecision runtimev1.RoutePolicy,
-	reason string,
-) {
-	s.publicChatRuntime().emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, reason)
-}
-func (s *Service) emitPublicChatTurnFailed(
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	traceID string,
-	modelResolved string,
-	routeDecision runtimev1.RoutePolicy,
-	reasonCode runtimev1.ReasonCode,
-	message string,
-	actionHint string,
-) {
-	s.publicChatRuntime().emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, reasonCode, message, actionHint)
-}
 func (s *Service) emitPublicChatTurnEvent(
 	session publicChatAnchorState,
 	turnID string,
@@ -183,13 +132,6 @@ func (s *Service) emitPublicChatTurnEvent(
 	payload map[string]any,
 ) error {
 	return s.publicChatRuntime().emitTurnEvent(session, turnID, messageType, payload)
-}
-func (s *Service) emitPublicChatEvent(
-	subjectUserID string,
-	messageType string,
-	payload map[string]any,
-) error {
-	return s.publicChatRuntime().emitEvent(subjectUserID, messageType, payload)
 }
 func (s *Service) shutdownPublicChatSurface() {
 	s.publicChatRuntime().shutdownSurface()
@@ -223,13 +165,4 @@ func (s *Service) publicChatAsyncLifetime() context.Context {
 		return context.Background()
 	}
 	return lifetime
-}
-func (s *Service) applyPublicChatPostTurn(
-	ctx context.Context,
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	req publicChatTurnRequestPayload,
-	structured *publicChatStructuredEnvelope,
-) publicChatPostTurnOutcome {
-	return s.publicChatRuntime().applyPostTurn(ctx, session, turn, req, structured)
 }

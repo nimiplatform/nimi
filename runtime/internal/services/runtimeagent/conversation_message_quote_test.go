@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -201,13 +202,15 @@ func TestConversationQuoteRecoveryAndRollback(t *testing.T) {
 	closeSvc()
 	svc, closeSvc = newRuntimeAgentServiceForPublicChatStatePathWithClose(t, path)
 	defer closeSvc()
-	svc.chatSurfaceMu.Lock()
-	restored := publicChatRecoveryInputForTurn(svc.chatAnchors[anchorID], svc.chatAnchors[anchorID].Recoveries[turn.TurnID])
-	svc.chatSurfaceMu.Unlock()
+	history, _, _, _, err := svc.snapshotPublicChatAnchorForCaller("desktop.app", anchorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored := publicChatRecoveryInputForTurn(&history, history.Recoveries[turn.TurnID])
 	if restored == nil || restored.Quote == nil || *restored.Quote != *quote {
 		t.Fatalf("restored quote=%+v", restored)
 	}
-	reused, found, err := reusedPublicChatAdmission(svc.chatAnchors[anchorID], req)
+	reused, found, err := svc.reusedPublicChatAdmission(context.Background(), svc.chatAnchors[anchorID], req)
 	if err != nil || !found || reused.TurnID != turn.TurnID {
 		t.Fatalf("reused=%+v found=%v err=%v", reused, found, err)
 	}
@@ -221,7 +224,7 @@ func TestConversationQuoteRecoveryAndRollback(t *testing.T) {
 	}
 	svc.chatSurfaceMu.Lock()
 	defer svc.chatSurfaceMu.Unlock()
-	if findPublicChatRequest(svc.chatAnchors[anchorID], req.RegisteredAppSubject, req.RequestID) != nil || svc.chatAnchors[anchorID].ActiveTurnID != "" {
+	if replay, err := svc.findPublicChatRequest(context.Background(), svc.chatAnchors[anchorID], req.RegisteredAppSubject, req.RequestID); err != nil || replay != nil || svc.chatAnchors[anchorID].ActiveTurnID != "" {
 		t.Fatal("rollback left input/fingerprint/reservation")
 	}
 }
@@ -234,6 +237,10 @@ func TestConversationQuotedSnapshotAndReadWindowUseContentBudget(t *testing.T) {
 	anchor := svc.chatAnchors[anchorID]
 	for i := 0; i < 12; i++ {
 		anchor.CommittedTranscript = append(anchor.CommittedTranscript, publicChatCommittedTranscriptTurn{TurnID: fmt.Sprintf("budget-%d", i), Sequence: uint64(i), Origin: publicChatTurnOriginUser, InputText: strings.Repeat("u", 64*1024), AssistantText: strings.Repeat("a", 64*1024), InputQuote: clonePublicChatQuote(quote), CommittedAt: time.Unix(int64(i+1), 0)})
+	}
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
 	}
 	svc.chatSurfaceMu.Unlock()
 	decision.Operation = accountservice.LocalAppOperationConversationSnapshot
@@ -291,7 +298,7 @@ func TestConversationQuoteBoundaryRejectsMalformedSelectorsAndScalarOverflow(t *
 	}
 	svc.chatSurfaceMu.Lock()
 	defer svc.chatSurfaceMu.Unlock()
-	if svc.chatAnchors[anchorID].ActiveTurnID != "" || findPublicChatRequest(svc.chatAnchors[anchorID], decision.RegisteredAppSubject, "oversized-quote") != nil {
+	if item, err := svc.findPublicChatRequest(context.Background(), svc.chatAnchors[anchorID], decision.RegisteredAppSubject, "oversized-quote"); err != nil || item != nil || svc.chatAnchors[anchorID].ActiveTurnID != "" {
 		t.Fatal("invalid quote created work")
 	}
 }
@@ -334,8 +341,13 @@ func TestConversationCommittedQuoteSurvivesRestartWithoutRecoveryInputCopy(t *te
 	if result.Message.Quote == nil || result.Message.Quote.Text != "quoted text" || result.Message.Quote.SourceMessageId != selector.SourceMessageID || result.GetQuoteText() != "response" {
 		t.Fatalf("committed quotation lost or recursively quoted: %+v", result)
 	}
-	input := publicChatRecoveryInputForTurn(svc.chatAnchors[anchorID], svc.chatAnchors[anchorID].Recoveries[turn.TurnID])
-	if input == nil || input.Quote == nil || input.Quote.Text != "quoted text" {
+	tx, err := svc.backend.DB().BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	input, err := readOriginalConversationInput(context.Background(), tx, anchorID, turn.TurnID)
+	if err != nil || input == nil || input.Quote == nil || input.Quote.Text != "quoted text" {
 		t.Fatalf("original input quote lost after compaction: %+v", input)
 	}
 }

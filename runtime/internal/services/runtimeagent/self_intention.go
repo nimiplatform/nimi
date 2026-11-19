@@ -137,22 +137,22 @@ func acceptSelfIntention(l *agentLifeState, p *selfIntentionProposal, now time.T
 }
 
 func (s *Service) savedSelfIntention(anchorID, turnID string) *selfIntentionResult {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	a := s.chatAnchors[anchorID]
-	if a == nil {
+	if anchorID == "" || turnID == "" || s.backend == nil {
 		return nil
 	}
-	r := a.Recoveries[turnID]
-	if r == nil {
+	var raw string
+	err := s.backend.DB().QueryRow(`SELECT original.recovery_json FROM runtime_conversation_recovery current
+		JOIN runtime_conversation_recovery original ON original.anchor_id=current.anchor_id AND original.turn_id=json_extract(current.recovery_json,'$.inputTurnId')
+		WHERE current.anchor_id=? AND current.turn_id=?`, anchorID, turnID).Scan(&raw)
+	if err != nil {
 		return nil
 	}
-	original := a.Recoveries[r.InputTurnID]
-	if original == nil || original.SelfIntention == nil {
+	var original publicChatTurnRecovery
+	if err := decodeConversationRow(raw, &original); err != nil {
 		return nil
 	}
-	copy := *original.SelfIntention
-	return &copy
+	return original.SelfIntention
+
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-life.self-intention
@@ -225,6 +225,7 @@ func (s *Service) applySelfIntention(ctx context.Context, session publicChatAnch
 	before := a.Recoveries
 	a.Recoveries = clonePublicChatRecoveries(before)
 	a.Recoveries[turn.TurnID].SelfIntention = result
+	a.markTurnChanged(turn.TurnID)
 	hook := func(tx *sql.Tx) error {
 		if ctx.Err() != nil {
 			return ctx.Err()

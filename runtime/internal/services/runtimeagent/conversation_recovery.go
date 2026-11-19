@@ -55,15 +55,19 @@ func clonePublicChatRecoveries(input map[string]*publicChatTurnRecovery) map[str
 		if item == nil {
 			continue
 		}
-		copied := *item
-		if item.SelfIntention != nil {
-			result := *item.SelfIntention
-			copied.SelfIntention = &result
-		}
-		copied.Input = clonePublicChatRecoveryInput(item.Input)
-		out[id] = &copied
+		out[id] = cloneConversationRecovery(item)
 	}
 	return out
+}
+
+func cloneConversationRecovery(item *publicChatTurnRecovery) *publicChatTurnRecovery {
+	copied := *item
+	if item.SelfIntention != nil {
+		result := *item.SelfIntention
+		copied.SelfIntention = &result
+	}
+	copied.Input = clonePublicChatRecoveryInput(item.Input)
+	return &copied
 }
 
 func publicChatRequestFingerprint(messages []publicChatMessagePayload, retryOf string) string {
@@ -91,16 +95,20 @@ func publicChatRequestFingerprint(messages []publicChatMessagePayload, retryOf s
 	return hex.EncodeToString(digest[:])
 }
 
-func findPublicChatRequest(anchor *publicChatAnchorState, subject, requestID string) *publicChatTurnRecovery {
+func (s *Service) findPublicChatRequest(ctx context.Context, anchor *publicChatAnchorState, subject, requestID string) (*publicChatTurnRecovery, error) {
 	if anchor == nil || subject == "" || requestID == "" {
-		return nil
+		return nil, nil
 	}
-	for _, item := range anchor.Recoveries {
-		if item != nil && item.RegisteredAppSubject == subject && item.RequestID == requestID {
-			return item
-		}
+	var id, raw string
+	err := s.backend.DB().QueryRowContext(ctx, `SELECT turn_id,recovery_json FROM runtime_conversation_recovery WHERE anchor_id=?
+   AND json_extract(recovery_json,'$.registeredAppSubject')=? AND json_extract(recovery_json,'$.requestId')=?`, anchor.ConversationAnchorID, subject, requestID).Scan(&id, &raw)
+	if err == sql.ErrNoRows {
+		return nil, nil
 	}
-	return nil
+	if err != nil {
+		return nil, err
+	}
+	return decodeConversationRecovery(raw, id)
 }
 
 // The original input is held here until a complete answer commits. Thereafter
@@ -108,6 +116,9 @@ func findPublicChatRequest(anchor *publicChatAnchorState, subject, requestID str
 func publicChatRecoveryInputForTurn(anchor *publicChatAnchorState, item *publicChatTurnRecovery) *publicChatRecoveryInput {
 	if anchor == nil || item == nil {
 		return nil
+	}
+	if input := anchor.windowInputs[item.InputTurnID]; input != nil {
+		return clonePublicChatRecoveryInput(input)
 	}
 	original := anchor.Recoveries[item.InputTurnID]
 	if original != nil && original.Input != nil {
@@ -117,17 +128,24 @@ func publicChatRecoveryInputForTurn(anchor *publicChatAnchorState, item *publicC
 		if firstNonEmpty(turn.InputTurnID, turn.TurnID) != item.InputTurnID {
 			continue
 		}
-		role := "user"
-		if isProactiveOrigin(turn.Origin) {
-			role = publicChatInternalFollowUpInstructionRole
-		}
-		return clonePublicChatRecoveryInput(&publicChatRecoveryInput{Role: role, Text: turn.InputText, Attachment: turn.InputAttachment, Quote: turn.InputQuote})
+		return recoveryInputFromTranscript(turn)
 	}
 	return nil
 }
 
-func reusedPublicChatAdmission(anchor *publicChatAnchorState, req publicChatTurnRequestPayload) (publicChatTurnState, bool, error) {
-	item := findPublicChatRequest(anchor, req.RegisteredAppSubject, strings.TrimSpace(req.RequestID))
+func recoveryInputFromTranscript(turn publicChatCommittedTranscriptTurn) *publicChatRecoveryInput {
+	role := "user"
+	if isProactiveOrigin(turn.Origin) {
+		role = publicChatInternalFollowUpInstructionRole
+	}
+	return clonePublicChatRecoveryInput(&publicChatRecoveryInput{Role: role, Text: turn.InputText, Attachment: turn.InputAttachment, Quote: turn.InputQuote})
+}
+
+func (s *Service) reusedPublicChatAdmission(ctx context.Context, anchor *publicChatAnchorState, req publicChatTurnRequestPayload) (publicChatTurnState, bool, error) {
+	item, err := s.findPublicChatRequest(ctx, anchor, req.RegisteredAppSubject, strings.TrimSpace(req.RequestID))
+	if err != nil {
+		return publicChatTurnState{}, false, err
+	}
 	if item == nil {
 		return publicChatTurnState{}, false, nil
 	}
@@ -160,23 +178,68 @@ func newPublicChatTurnRecovery(turn publicChatTurnState, req publicChatTurnReque
 	return item
 }
 
-func publicChatAttachmentIsMember(anchor *publicChatAnchorState, artifactID string) bool {
-	for _, turn := range anchor.CommittedTranscript {
-		if turn.InputAttachment != nil && turn.InputAttachment.ArtifactID == artifactID {
-			return true
-		}
-		for _, item := range turn.OutputArtifacts {
-			if item.ArtifactID == artifactID {
-				return true
+// Regeneration is restricted to the latest unanswered admission. Its exact
+// original input may precede the selected execution history.
+func (s *Service) retryInputLocked(ctx context.Context, a *publicChatAnchorState, id string) (*publicChatRecoveryInput, error) {
+	refused := func() error {
+		return localAppConversationInvalid("This turn cannot be regenerated. Continue with a new message.")
+	}
+	if a == nil || a.ActiveTurnID != "" || a.LatestAcceptedTurnID != id {
+		return nil, refused()
+	}
+	tx, err := s.backend.DB().BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var raw string
+	var answered bool
+	err = tx.QueryRowContext(ctx, `SELECT r.recovery_json,coalesce(t.answered,0) FROM runtime_conversation_recovery r
+ LEFT JOIN runtime_conversation_turn t ON t.anchor_id=r.anchor_id AND t.turn_id=r.turn_id WHERE r.anchor_id=? AND r.turn_id=?`, a.ConversationAnchorID, id).Scan(&raw, &answered)
+	if err == sql.ErrNoRows || err == nil && answered {
+		return nil, refused()
+	}
+	if err != nil {
+		return nil, err
+	}
+	recovery, err := decodeConversationRecovery(raw, id)
+	if err != nil {
+		return nil, err
+	}
+	original := recovery
+	if recovery.InputTurnID != id {
+		if err := tx.QueryRowContext(ctx, `SELECT recovery_json FROM runtime_conversation_recovery WHERE anchor_id=? AND turn_id=?`, a.ConversationAnchorID, recovery.InputTurnID).Scan(&raw); err == nil {
+			original, err = decodeConversationRecovery(raw, recovery.InputTurnID)
+			if err != nil {
+				return nil, err
 			}
+		} else if err != sql.ErrNoRows {
+			return nil, err
 		}
 	}
-	for _, item := range anchor.Recoveries {
-		if item != nil && item.Input != nil && item.Input.Attachment != nil && item.Input.Attachment.ArtifactID == artifactID {
-			return true
+	input := original.Input
+	if input == nil {
+		input, err = readOriginalConversationInput(ctx, tx, a.ConversationAnchorID, recovery.InputTurnID)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return false
+	if input == nil || input.Role != "user" {
+		return nil, refused()
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	if a.Recoveries == nil {
+		a.Recoveries = make(map[string]*publicChatTurnRecovery)
+	}
+	a.Recoveries[id] = recovery
+	a.Recoveries[original.TurnID] = original
+	if a.windowInputs == nil {
+		a.windowInputs = make(map[string]*publicChatRecoveryInput)
+	}
+	a.windowInputs[recovery.InputTurnID] = input
+	return clonePublicChatRecoveryInput(input), nil
 }
 
 func publicChatHasCompleteAnswer(anchor *publicChatAnchorState, turnID string) bool {
@@ -230,20 +293,61 @@ func (s *Service) localAppAdmittedInputMessage(anchorID, turnID string) *runtime
 	return localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment, InputQuote: input.Quote})
 }
 
-func persistPublicChatRecoveryTx(tx *sql.Tx, anchorID string, version uint64, item *publicChatTurnRecovery) error {
+func persistPublicChatRecoveryTx(tx *sql.Tx, anchorID string, version uint64, item *publicChatTurnRecovery, register bool) error {
 	if item == nil || item.TurnID == "" {
 		return fmt.Errorf("conversation recovery identity missing")
+	}
+	if register {
+		var input *publicChatCommittedTranscriptAttachment
+		if item.Input != nil {
+			input = item.Input.Attachment
+		}
+		if err := indexConversationMessageRefs(tx, anchorID, item.TurnID, item.InputTurnID, input, nil); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_conversation_projection(anchor_id,turn_id,accepted_order) VALUES(?,?,?)
+		ON CONFLICT(anchor_id,turn_id) DO UPDATE SET accepted_order=excluded.accepted_order WHERE accepted_order IS NULL`, anchorID, item.TurnID, conversationOrderTime(item.AcceptedAt)); err != nil {
+			return err
+		}
 	}
 	raw, err := json.Marshal(item)
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(`INSERT INTO runtime_conversation_recovery(anchor_id,turn_id,version,recovery_json) VALUES(?,?,?,?) ON CONFLICT(anchor_id,turn_id) DO UPDATE SET version=excluded.version,recovery_json=excluded.recovery_json WHERE version<=excluded.version AND recovery_json<>excluded.recovery_json`, anchorID, item.TurnID, version, string(raw))
+	var inputBytes any
+	if input := item.Input; input != nil && input.Role == "user" {
+		inputBytes = conversationMessageContentBytes(localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment, InputQuote: input.Quote}))
+	}
+	_, err = tx.Exec(`INSERT INTO runtime_conversation_recovery(anchor_id,turn_id,version,input_turn_id,input_bytes,public_bytes,recovery_json) VALUES(?,?,?,?,?,?,?)
+		ON CONFLICT(anchor_id,turn_id) DO UPDATE SET version=excluded.version,input_bytes=excluded.input_bytes,public_bytes=excluded.public_bytes,recovery_json=excluded.recovery_json
+		WHERE version<=excluded.version AND recovery_json<>excluded.recovery_json`, anchorID, item.TurnID, version, item.InputTurnID, inputBytes, len(item.PublicText), string(raw))
 	return err
 }
 
-func readPublicChatRecoveries(db *sql.DB, snapshot *persistedPublicChatSurfaceState, indices map[string]int) error {
-	rows, err := db.Query(`SELECT anchor_id,turn_id,recovery_json FROM runtime_conversation_recovery ORDER BY anchor_id,turn_id`)
+func decodeConversationRecovery(raw, turnID string) (*publicChatTurnRecovery, error) {
+	var item publicChatTurnRecovery
+	if err := decodeConversationRow(raw, &item); err != nil {
+		return nil, err
+	}
+	if item.TurnID != turnID || !validLocalAppConversationSelector(turnID) ||
+		!validLocalAppConversationSelector(item.InputTurnID) || len(item.Fingerprint) != 64 ||
+		item.AcceptedAt.IsZero() || (item.PublicText != "" && !validLocalAppConversationTextDelta(item.PublicText, localAppConversationMaxTextBytes)) {
+		return nil, fmt.Errorf("conversation recovery identity or bounds invalid")
+	}
+	if _, err := hex.DecodeString(item.Fingerprint); err != nil {
+		return nil, fmt.Errorf("conversation recovery fingerprint invalid")
+	}
+	if item.Input != nil {
+		if err := validateStoredConversationQuote(item.Input.Quote); err != nil {
+			return nil, err
+		}
+	}
+	return &item, nil
+}
+
+func readPublicChatRecoveries(db conversationRowReader, snapshot *persistedPublicChatSurfaceState, indices map[string]int, scope string) error {
+	where, args := conversationAnchorPredicate(scope)
+	rows, err := db.Query(`SELECT anchor_id,turn_id,recovery_json FROM runtime_conversation_recovery WHERE 1=1`+where+" ORDER BY anchor_id,turn_id", args...)
 	if err != nil {
 		return err
 	}
@@ -257,28 +361,15 @@ func readPublicChatRecoveries(db *sql.DB, snapshot *persistedPublicChatSurfaceSt
 		if !ok {
 			return fmt.Errorf("orphaned conversation recovery")
 		}
-		var item publicChatTurnRecovery
-		if err := decodeConversationRow(raw, &item); err != nil {
+		item, err := decodeConversationRecovery(raw, turnID)
+		if err != nil {
 			return err
-		}
-		if item.TurnID != turnID || !validLocalAppConversationSelector(turnID) ||
-			!validLocalAppConversationSelector(item.InputTurnID) || len(item.Fingerprint) != 64 ||
-			item.AcceptedAt.IsZero() || (item.PublicText != "" && !validLocalAppConversationTextDelta(item.PublicText, localAppConversationMaxTextBytes)) {
-			return fmt.Errorf("conversation recovery identity or bounds invalid")
-		}
-		if _, err := hex.DecodeString(item.Fingerprint); err != nil {
-			return fmt.Errorf("conversation recovery fingerprint invalid")
-		}
-		if item.Input != nil {
-			if err := validateStoredConversationQuote(item.Input.Quote); err != nil {
-				return err
-			}
 		}
 		anchor := &snapshot.Anchors[index]
 		if anchor.Recoveries == nil {
 			anchor.Recoveries = make(map[string]*publicChatTurnRecovery)
 		}
-		anchor.Recoveries[turnID] = &item
+		anchor.Recoveries[turnID] = item
 	}
 	return rows.Err()
 }
@@ -325,23 +416,12 @@ func (s *Service) commitLocalAppConversationPublication(anchorID string, sequenc
 			}
 		}
 	}
-	sequences := make(map[string]uint64, len(s.chatAnchors))
-	for id, current := range s.chatAnchors {
-		if current != nil && current.LocalAppSequence > 0 {
-			sequences[id] = current.LocalAppSequence
-		}
-	}
-	sequences[anchorID] = last
-	raw, err := json.Marshal(sequences)
-	if err != nil {
-		return err
-	}
 	version := s.chatSurfaceVersion + 1
 	if version == 0 {
 		return localAppConversationOwnerUnavailable()
 	}
-	err = s.chatStateRepo.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		updated, err := tx.Exec(`UPDATE runtime_conversation_anchor SET version=? WHERE anchor_id=? AND anchor_json IS NOT NULL AND version<=?`, version, anchorID, version)
+	err := s.chatStateRepo.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		updated, err := tx.Exec(`UPDATE runtime_conversation_anchor SET through_sequence=? WHERE anchor_id=? AND anchor_json IS NOT NULL AND through_sequence<?`, last, anchorID, last)
 		if err != nil {
 			return err
 		}
@@ -349,12 +429,9 @@ func (s *Service) commitLocalAppConversationPublication(anchorID string, sequenc
 			return fmt.Errorf("conversation publication lost its owner fence")
 		}
 		for _, item := range changes {
-			if err := persistPublicChatRecoveryTx(tx, anchorID, version, item); err != nil {
+			if err := persistPublicChatRecoveryTx(tx, anchorID, version, item, false); err != nil {
 				return err
 			}
-		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, runtimeAgentMetaLocalAppSequencesKey, string(raw)); err != nil {
-			return err
 		}
 		_, err = tx.Exec(`INSERT INTO runtime_local_agent_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE CAST(value AS INTEGER)<=?`, runtimeAgentMetaPublicChatSurfaceVersionKey, encodeSequenceValue(version), version)
 		return err

@@ -58,6 +58,10 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 		},
 	}
 	svc.chatAnchors[anchorID].UpdatedAt = newUpdatedAt.Add(time.Hour)
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
 
 	ctx := testLocalAgentContext("user-1", "agent-alpha")

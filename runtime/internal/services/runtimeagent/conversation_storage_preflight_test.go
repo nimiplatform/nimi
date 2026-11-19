@@ -125,3 +125,41 @@ func TestPreflightLeavesAbsentCurrentAndUnclassifiedStorageToTheOrdinaryOwner(t 
 		t.Fatalf("damaged marker misattributed as refused format: %v", refusal)
 	}
 }
+
+func TestRejectedConversationBackupPreservesBrokenPrimaryAndSideFiles(t *testing.T) {
+	dir := t.TempDir()
+	state := filepath.Join(dir, "local-state.json")
+	retireConversationStorage(t, state)
+	backupDir := filepath.Join(dir, "backups")
+	if err := os.MkdirAll(backupDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	main := filepath.Join(dir, "memory.db")
+	raw, err := os.ReadFile(main)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(backupDir, "refused.db"), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	originals := map[string]string{main: "broken primary", main + "-wal": "original WAL", main + "-shm": "original SHM"}
+	for p, content := range originals {
+		if err := os.WriteFile(p, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b, err := runtimepersistence.Open(nil, state, ValidateConversationStorage)
+	if b != nil {
+		b.Close()
+		t.Fatal("accepted retired backup")
+	}
+	if refusal, ok := storedformat.As(err); !ok || refusal.Owner() != conversationStorageOwner {
+		t.Fatalf("wrong recovery classification: %v", err)
+	}
+	for p, want := range originals {
+		actual, err := os.ReadFile(p)
+		if err != nil || string(actual) != want {
+			t.Fatalf("%s changed: size=%d err=%v", filepath.Base(p), len(actual), err)
+		}
+	}
+}

@@ -50,11 +50,14 @@ func (s *Service) ReadConversationArtifact(
 	if err := s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, runtimeAgentReadScope); err != nil {
 		return nil, err
 	}
-	session, _, _, _, err := s.snapshotPublicChatAnchorForCaller(callerAppID, anchorID)
-	if err != nil {
-		return nil, err
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[anchorID]
+	matches := anchor != nil && anchor.AgentID == agentID
+	s.chatSurfaceMu.Unlock()
+	if anchor == nil {
+		return nil, status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if strings.TrimSpace(session.AgentID) != agentID {
+	if !matches {
 		return nil, status.Error(codes.FailedPrecondition, "conversation anchor agent_id mismatch")
 	}
 	result, err := s.readConversationArtifact(identity.LocalAgentRef, anchorID, artifactID)

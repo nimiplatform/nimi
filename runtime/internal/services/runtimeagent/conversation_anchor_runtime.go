@@ -102,7 +102,7 @@ func (s *Service) ensureAgentConversation(identity localAgentIdentity, callerApp
 		s.chatSurfaceMu.Unlock()
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
-	resolvedAnchor := resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef)
+	resolvedAnchor := openConversationHeader(resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef))
 	s.chatSurfaceMu.Unlock()
 	if resolvedAnchor != nil {
 		return s.openConversationAnchorResponse(resolvedAnchor)
@@ -134,7 +134,7 @@ func (s *Service) ensureAgentConversation(identity localAgentIdentity, callerApp
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
 	// Recheck under the creation lock so concurrent first opens converge.
-	if resolved := resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef); resolved != nil {
+	if resolved := openConversationHeader(resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef)); resolved != nil {
 		s.chatSurfaceMu.Unlock()
 		return s.openConversationAnchorResponse(resolved)
 	}
@@ -169,7 +169,7 @@ func (s *Service) ensureAgentConversation(identity localAgentIdentity, callerApp
 			grpcerr.ReasonOptions{Message: "conversation anchor could not be persisted"},
 		)
 	}
-	committedAnchor := clonePublicChatAnchorState(anchor)
+	committedAnchor := openConversationHeader(anchor)
 	s.chatSurfaceMu.Unlock()
 
 	snapshot := s.buildConversationAnchorSnapshotLocked(committedAnchor, committedMetadata)
@@ -198,21 +198,20 @@ func resolveLocalAgentConversationAnchorLocked(anchors map[string]*publicChatAnc
 			selectedResumable = resumable
 		}
 	}
-	return clonePublicChatAnchorState(selected)
+	return selected
 }
 
-func clonePublicChatAnchorState(anchor *publicChatAnchorState) *publicChatAnchorState {
-	if anchor == nil {
+func openConversationHeader(a *publicChatAnchorState) *publicChatAnchorState {
+	if a == nil {
 		return nil
 	}
-	cloned := *anchor
-	cloned.CommittedTranscript = clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
-	cloned.ConversationSummary = clonePublicChatConversationSummary(anchor.ConversationSummary)
-	cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
-	cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
-	cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
-	cloned.VoiceSidecars = clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
-	return &cloned
+	header := &publicChatAnchorState{ConversationAnchorID: a.ConversationAnchorID, AgentID: a.AgentID, LocalAgentRef: a.LocalAgentRef,
+		OwnerUserID: a.OwnerUserID, RuntimeSourceRef: a.RuntimeSourceRef, SubjectUserID: a.SubjectUserID, Status: a.Status,
+		ActiveTurnID: a.ActiveTurnID, LastTurnID: a.LastTurnID, LastMessageID: a.LastMessageID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt}
+	if a.LastTurnSnapshot != nil {
+		header.LastTurnSnapshot = &publicChatTurnProjectionState{ContextSummary: cloneAgentTurnContextSummary(a.LastTurnSnapshot.ContextSummary)}
+	}
+	return header
 }
 
 func clonePublicChatConversationSummary(input *publicChatConversationSummaryState) *publicChatConversationSummaryState {
@@ -225,12 +224,6 @@ func clonePublicChatConversationSummary(input *publicChatConversationSummaryStat
 		cloned.LastValid = &lastValid
 	}
 	return &cloned
-}
-
-func (s *Service) resolveLocalAgentConversationAnchor(ownerUserID string, localAgentRef string) *publicChatAnchorState {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	return resolveLocalAgentConversationAnchorLocked(s.chatAnchors, strings.TrimSpace(ownerUserID), strings.TrimSpace(localAgentRef))
 }
 
 func (s *Service) openConversationAnchorResponse(anchor *publicChatAnchorState) (*runtimev1.OpenConversationAnchorResponse, error) {
@@ -368,7 +361,7 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 	}
 
 	s.chatSurfaceMu.Lock()
-	anchors := make([]*publicChatAnchorState, 0, len(s.chatAnchors))
+	anchors := make([]conversationListing, 0, 1)
 	for _, anchor := range s.chatAnchors {
 		if anchor == nil {
 			continue
@@ -386,26 +379,22 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 			anchor.RuntimeSourceRef != identity.RuntimeSourceRef {
 			continue
 		}
-		if err := validatePublicChatCommittedTranscript(anchor.CommittedTranscript); err != nil {
+		listing := captureConversationListing(anchor)
+		if err := s.backend.DB().QueryRowContext(ctx, `SELECT message_count,title_preview,last_role,last_preview FROM runtime_conversation_anchor WHERE anchor_id=? AND anchor_json IS NOT NULL`, anchor.ConversationAnchorID).Scan(&listing.count, &listing.firstUser, &listing.lastRole, &listing.lastText); err != nil {
 			s.chatSurfaceMu.Unlock()
-			return nil, status.Error(codes.DataLoss, err.Error())
+			return nil, err
 		}
-		cloned := *anchor
-		cloned.CommittedTranscript = clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
-		cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
-		cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
-		cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
-		anchors = append(anchors, &cloned)
+		anchors = append(anchors, listing)
 	}
 	s.chatSurfaceMu.Unlock()
 
 	sort.SliceStable(anchors, func(i, j int) bool {
-		left := conversationSummaryUpdatedAt(anchors[i])
-		right := conversationSummaryUpdatedAt(anchors[j])
+		left := conversationSummaryUpdatedAt(&anchors[i].anchor)
+		right := conversationSummaryUpdatedAt(&anchors[j].anchor)
 		if !left.Equal(right) {
 			return left.After(right)
 		}
-		return strings.TrimSpace(anchors[i].ConversationAnchorID) < strings.TrimSpace(anchors[j].ConversationAnchorID)
+		return strings.TrimSpace(anchors[i].anchor.ConversationAnchorID) < strings.TrimSpace(anchors[j].anchor.ConversationAnchorID)
 	})
 	if offset > len(anchors) {
 		offset = len(anchors)
@@ -419,8 +408,8 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 		nextPageToken = strconv.Itoa(end)
 	}
 	summaries := make([]*runtimev1.AgentConversationSummary, 0, end-offset)
-	for _, anchor := range anchors[offset:end] {
-		metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchor.ConversationAnchorID)
+	for _, listing := range anchors[offset:end] {
+		metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(listing.anchor.ConversationAnchorID)
 		if err != nil {
 			return nil, grpcerr.WrapWithReasonCode(
 				codes.Unavailable,
@@ -429,7 +418,7 @@ func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runti
 				grpcerr.ReasonOptions{Message: "conversation anchor metadata could not be loaded"},
 			)
 		}
-		summaries = append(summaries, s.agentConversationSummary(anchor, metadata))
+		summaries = append(summaries, s.agentConversationSummary(listing, metadata))
 	}
 	return &runtimev1.ListAgentConversationSummariesResponse{
 		Summaries:     summaries,
@@ -488,30 +477,42 @@ func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchor
 	return snapshot
 }
 
-func (s *Service) agentConversationSummary(anchor *publicChatAnchorState, metadata *structpb.Struct) *runtimev1.AgentConversationSummary {
-	if anchor == nil {
-		return nil
+type conversationListing struct {
+	anchor                        publicChatAnchorState
+	firstUser, lastText, lastRole string
+	count                         int32
+}
+
+func captureConversationListing(anchor *publicChatAnchorState) conversationListing {
+	result := conversationListing{anchor: *anchor}
+	result.anchor.CommittedTranscript = nil
+	result.anchor.CompletedTurnSnapshots = nil
+	result.anchor.Recoveries = nil
+	result.anchor.VoiceSidecars = nil
+	result.anchor.VoiceRenderRequests = nil
+	result.anchor.LastTurnSnapshot = nil
+	if anchor.LastTurnSnapshot != nil {
+		result.anchor.LastTurnSnapshot = &publicChatTurnProjectionState{ContextSummary: cloneAgentTurnContextSummary(anchor.LastTurnSnapshot.ContextSummary)}
 	}
-	transcript, err := publicChatTranscriptProjection(anchor.CommittedTranscript)
-	if err != nil {
-		return nil
-	}
+	return result
+}
+
+func (s *Service) agentConversationSummary(listing conversationListing, metadata *structpb.Struct) *runtimev1.AgentConversationSummary {
+	anchor := &listing.anchor
 	snapshot := s.buildConversationAnchorSnapshotLocked(anchor, metadata)
 	summary := &runtimev1.AgentConversationSummary{
 		Anchor:                 snapshot.GetAnchor(),
-		Title:                  deriveAgentConversationSummaryTitle(metadata, transcript),
+		Title:                  deriveAgentConversationSummaryTitle(metadata, listing.firstUser, listing.lastText),
 		LastMessageId:          strings.TrimSpace(anchor.LastMessageID),
-		TranscriptMessageCount: int32(len(transcript)),
+		TranscriptMessageCount: listing.count,
 		SourceContextStatus:    snapshot.GetSourceContextStatus(),
 		LastTurnContextSummary: snapshot.GetTurnContextSummary(),
 	}
 	if updatedAt := conversationSummaryUpdatedAt(anchor); !updatedAt.IsZero() {
 		summary.UpdatedAt = timestamppb.New(updatedAt)
 	}
-	if last := lastAgentConversationMessage(transcript); last != nil {
-		summary.LastMessageRole = strings.TrimSpace(last.GetRole())
-		summary.LastMessageText = compactAgentConversationSummaryText(last.GetContent(), 280)
-	}
+	summary.LastMessageRole = listing.lastRole
+	summary.LastMessageText = compactAgentConversationSummaryText(listing.lastText, 280)
 	return summary
 }
 
@@ -528,36 +529,13 @@ func conversationSummaryUpdatedAt(anchor *publicChatAnchorState) time.Time {
 	return time.Time{}
 }
 
-func deriveAgentConversationSummaryTitle(metadata *structpb.Struct, transcript []*runtimev1.ChatMessage) string {
-	if metadata != nil {
-		if value := metadata.GetFields()["title"]; value != nil {
-			if title := compactAgentConversationSummaryText(value.GetStringValue(), 80); title != "" {
-				return title
-			}
-		}
-	}
-	for _, message := range transcript {
-		if message != nil && strings.TrimSpace(message.GetRole()) == "user" {
-			if title := compactAgentConversationSummaryText(message.GetContent(), 80); title != "" {
-				return title
-			}
-		}
-	}
-	if last := lastAgentConversationMessage(transcript); last != nil {
-		if title := compactAgentConversationSummaryText(last.GetContent(), 80); title != "" {
+func deriveAgentConversationSummaryTitle(metadata *structpb.Struct, firstUser, last string) string {
+	for _, text := range []string{metadata.GetFields()["title"].GetStringValue(), firstUser, last} {
+		if title := compactAgentConversationSummaryText(text, 80); title != "" {
 			return title
 		}
 	}
 	return "Agent conversation"
-}
-
-func lastAgentConversationMessage(transcript []*runtimev1.ChatMessage) *runtimev1.ChatMessage {
-	for i := len(transcript) - 1; i >= 0; i-- {
-		if transcript[i] != nil && strings.TrimSpace(transcript[i].GetContent()) != "" {
-			return transcript[i]
-		}
-	}
-	return nil
 }
 
 func compactAgentConversationSummaryText(value string, maxRunes int) string {

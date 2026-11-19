@@ -285,7 +285,13 @@ func (b *fenceObservingSourceCognitionBridge) DeleteAgentSource(ctx context.Cont
 // while leaving a different Agent and bank intact.
 func TestTerminateAgentHardDeletesProjectionAndCognitionBank(t *testing.T) {
 	t.Parallel()
-	svc, owner := newRuntimeAgentHardDeleteTestService(t)
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	svc, owner, closeService := openRuntimeAgentTestCompositionWithOwner(t, statePath)
+	t.Cleanup(func() {
+		if closeService != nil {
+			closeService()
+		}
+	})
 	ctx := context.Background()
 	const runtimeSourceRef = "agent-hard-delete"
 	const survivorRuntimeSourceRef = "agent-hard-delete-survivor"
@@ -298,6 +304,22 @@ func TestTerminateAgentHardDeletesProjectionAndCognitionBank(t *testing.T) {
 	}
 	targetBankRef := seedCognitionMemoryForTerminationTest(t, svc, localRef, "I prefer target memory for hard delete")
 	survivorBankRef := seedCognitionMemoryForTerminationTest(t, svc, survivorRef, "I prefer survivor memory remains")
+	var anchorIDs []string
+	for _, source := range []string{runtimeSourceRef, survivorRuntimeSourceRef} {
+		anchorID := openPublicChatTestAnchor(t, svc, source, "desktop.app", "user-1")
+		if err := svc.commitPublicChatTurnTranscript(anchorID, &runtimev1.ChatMessage{Role: "user", Content: "input " + source}, "answer "+source); err != nil {
+			t.Fatal(err)
+		}
+		anchorIDs = append(anchorIDs, anchorID)
+	}
+	closeService()
+	closeService = nil
+	svc, owner, closeService = openRuntimeAgentTestCompositionWithOwner(t, statePath)
+	for _, id := range anchorIDs {
+		if a := svc.chatAnchors[id]; a == nil || !a.coldFacts {
+			t.Fatal("restart hydrated idle conversation")
+		}
+	}
 	if memories, err := owner.ListMemories(ctx, targetBankRef, true); err != nil || len(memories) != 1 {
 		t.Fatalf("target Cognition bank precondition: memories=%+v err=%v", memories, err)
 	}
@@ -306,6 +328,18 @@ func TestTerminateAgentHardDeletesProjectionAndCognitionBank(t *testing.T) {
 		Reason:  "agent friend removed",
 	}); err != nil {
 		t.Fatalf("TerminateAgent: %v", err)
+	}
+	for i, id := range anchorIDs {
+		var anchors, turns int
+		if err := svc.backend.DB().QueryRow(`SELECT count(*) FROM runtime_conversation_anchor WHERE anchor_id=? AND anchor_json IS NOT NULL`, id).Scan(&anchors); err != nil {
+			t.Fatal(err)
+		}
+		if err := svc.backend.DB().QueryRow(`SELECT count(*) FROM runtime_conversation_turn WHERE anchor_id=?`, id).Scan(&turns); err != nil {
+			t.Fatal(err)
+		}
+		if anchors != i || turns != i {
+			t.Fatalf("target/survivor %d: anchors=%d turns=%d", i, anchors, turns)
+		}
 	}
 	for _, table := range []struct{ name, column string }{
 		{"runtime_local_agent", "local_agent_ref"},

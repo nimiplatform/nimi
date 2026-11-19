@@ -80,7 +80,7 @@ func TestConversationSummaryInputUsesCompleteCoveredTurns(t *testing.T) {
 	if strings.Count(text, "Runtime-admitted follow-up instruction: ") != 1 || anchor.CommittedTranscript[1].InputText != "Return to the unanswered question." || anchor.CommittedTranscript[0].Origin != publicChatTurnOriginUser {
 		t.Fatalf("summary input changed committed text/origin or repeated its follow-up marker: %q", text)
 	}
-	eligible, err := publicChatEligibleCommittedTranscript(anchor.CommittedTranscript)
+	eligible, err := conversationTranscriptPairs(anchor.CommittedTranscript, 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,9 +369,11 @@ func TestConversationSummaryFailedAttemptPreservesLastValidAndProjectsTypedStatu
 
 	second, closeSecond := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
 	defer closeSecond()
-	second.chatSurfaceMu.Lock()
-	restored := clonePublicChatAnchorState(second.chatAnchors[anchorID])
-	second.chatSurfaceMu.Unlock()
+	reopened, _, _, _, err := second.snapshotPublicChatAnchorForCaller("desktop.app", anchorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored := &reopened
 	if restored == nil || restored.ConversationSummary == nil {
 		t.Fatal("conversation summary did not survive restart")
 	}

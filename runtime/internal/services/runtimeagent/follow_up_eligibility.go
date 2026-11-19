@@ -8,6 +8,9 @@ func followUpSourceSelected(anchor *publicChatAnchorState, sourceTurnID string) 
 	if anchor == nil {
 		return false
 	}
+	if anchor.coldFacts || anchor.transcriptBase > 0 && sourceTurnID == anchor.coldFollowUpTurn {
+		return sourceTurnID != "" && anchor.coldFollowUpTurn == sourceTurnID && anchor.coldFollowUpSequence >= anchor.ConversationContext.FirstTurnSequence
+	}
 	for _, turn := range anchor.CommittedTranscript {
 		if turn.TurnID == sourceTurnID {
 			return turn.Sequence >= anchor.ConversationContext.FirstTurnSequence

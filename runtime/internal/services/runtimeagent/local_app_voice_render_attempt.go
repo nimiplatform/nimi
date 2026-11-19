@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -41,7 +42,12 @@ func (s *Service) admitLocalAppVoiceRender(anchorID, turnID, requestKey string) 
 	}
 	flightKey := anchorID + "\x00" + turnID
 	flight := s.chatVoiceRenders[flightKey]
-	if claimedTurn, ok := anchor.VoiceRenderRequests[requestKey]; ok {
+	var claimedTurn string
+	err := s.backend.DB().QueryRow(`SELECT turn_id FROM runtime_conversation_voice_request WHERE anchor_id=? AND request_key=?`, anchorID, requestKey).Scan(&claimedTurn)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, false, err
+	}
+	if err == nil {
 		if claimedTurn != turnID {
 			return nil, false, localAppConversationInvalid("voice request id reused for another message")
 		}
@@ -53,7 +59,12 @@ func (s *Service) admitLocalAppVoiceRender(anchorID, turnID, requestKey string) 
 		anchor.VoiceRenderRequests = make(map[string]string)
 	}
 	anchor.VoiceRenderRequests[requestKey] = turnID
+	if anchor.dirtyVoiceRequests == nil {
+		anchor.dirtyVoiceRequests = map[string]string{}
+	}
+	anchor.dirtyVoiceRequests[requestKey] = turnID
 	if err := s.persistPublicChatSurfaceStateLocked(anchorID); err != nil {
+		delete(anchor.dirtyVoiceRequests, requestKey)
 		anchor.VoiceRenderRequests = before
 		s.chatSurfaceVersion = versionBefore
 		return nil, false, localAppConversationOwnerUnavailable()

@@ -33,7 +33,7 @@ func TestConversationContextSelectionPreservesRecordsAndSummaryFallback(t *testi
 		LastAttempt: publicChatConversationSummaryAttemptState{Status: "failed", TargetSequenceEnd: 3, AttemptedAt: time.Now()},
 		LastValid:   &publicChatConversationSummaryValidState{Revision: 1, CoveredSequenceEnd: 0, Text: anchor.CommittedTranscript[0].InputText, GeneratedAt: time.Now(), RouteCorrelation: strings.Repeat("a", 64)},
 	}
-	anchor.LastTurnSnapshot = &publicChatTurnProjectionState{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED}
+	anchor.LastTurnSnapshot = &publicChatTurnProjectionState{TurnID: anchor.CommittedTranscript[len(anchor.CommittedTranscript)-1].TurnID, ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED}
 	before := clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
 	decision, ctx := localAppConfigureContext(accountservice.LocalAppOperationUpdateConversationContext, 0x35, "user-1")
 	handle := mintLocalAppAgentHandle(decision, anchor.LocalAgentRef)
@@ -130,7 +130,7 @@ func BenchmarkConversationContextSelectedTranscript(b *testing.B) {
 			anchor.ConversationContext = publicChatConversationContextSelection{Revision: 2, FirstTurnSequence: first}
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := selectedCommittedTranscript(anchor); err != nil {
+				if _, err := publicChatAgentTurnTranscriptInput(*anchor); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -227,7 +227,10 @@ func TestConversationContextSelectionRollsBackFailedWriteAndRestoresOnRestart(t 
 	if opened != id {
 		t.Fatal("reopen created a different Conversation")
 	}
-	state := restored.chatAnchors[id]
+	state, _, _, _, err := restored.snapshotPublicChatAnchorForCaller("other-app", id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if state.ConversationContext.FirstTurnSequence != 1 || state.ConversationContext.Revision != 2 || !state.ConversationContext.OmitSupplementalContext || !reflect.DeepEqual(before, state.CommittedTranscript) {
 		t.Fatal("restart lost the context choice or changed old records")
 	}

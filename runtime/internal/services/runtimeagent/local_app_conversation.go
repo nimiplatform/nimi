@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"sort"
 	"strings"
 	"time"
@@ -158,7 +159,7 @@ func (s *Service) SendLocalAppConversationTurn(
 		s.chatSurfaceMu.Unlock()
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	if reused, found, reuseErr := reusedPublicChatAdmission(anchor, admission); found || reuseErr != nil {
+	if reused, found, reuseErr := s.reusedPublicChatAdmission(ctx, anchor, admission); found || reuseErr != nil {
 		s.chatSurfaceMu.Unlock()
 		if reuseErr != nil {
 			return nil, reuseErr
@@ -166,19 +167,19 @@ func (s *Service) SendLocalAppConversationTurn(
 		return &runtimev1.SendLocalAppConversationTurnResponse{TurnId: reused.TurnID}, nil
 	}
 	var original *publicChatRecoveryInput
-	if retryOf == "" && message.quoteSelector != nil {
-		message.quote, err = resolveConversationQuoteLocked(anchor, message.quoteSelector)
-		if err != nil {
-			s.chatSurfaceMu.Unlock()
-			return nil, err
+	if message.quoteSelector != nil {
+		var window *conversationWindow
+		window, err = s.readConversationWindow(ctx, resolved, anchorID, message.quoteSelector.SourceMessageID)
+		if err == nil {
+			message.quote, err = resolveConversationQuoteLocked(&window.anchor, message.quoteSelector)
 		}
 	}
 	if retryOf != "" {
-		if !publicChatCanRegenerate(anchor, retryOf) {
-			s.chatSurfaceMu.Unlock()
-			return nil, localAppConversationInvalid("This turn cannot be regenerated. Continue with a new message.")
-		}
-		original = publicChatRecoveryInputForTurn(anchor, anchor.Recoveries[retryOf])
+		original, err = s.retryInputLocked(ctx, anchor, retryOf)
+	}
+	if err != nil {
+		s.chatSurfaceMu.Unlock()
+		return nil, err
 	}
 	s.chatSurfaceMu.Unlock()
 	attachments := make([]publicChatResolvedAttachment, 0, 1)
@@ -457,7 +458,7 @@ func (s *Service) RenderLocalAppConversationVoice(
 	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
 		return nil, err
 	}
-	turnID, existing, err := s.resolveLocalAppConversationVoiceRenderTarget(anchorID, messageID)
+	turnID, existing, err := s.resolveLocalAppConversationVoiceRenderTarget(ctx, anchorID, messageID)
 	if err != nil {
 		return nil, err
 	}
@@ -519,6 +520,7 @@ func (s *Service) RenderLocalAppConversationVoice(
 }
 
 func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
+	ctx context.Context,
 	anchorID string,
 	messageID string,
 ) (string, *publicChatVoiceSidecarState, error) {
@@ -528,25 +530,22 @@ func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
 	if anchor == nil {
 		return "", nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
-	if err := validatePublicChatCommittedTranscript(anchor.CommittedTranscript); err != nil {
-		return "", nil, localAppConversationOwnerUnavailable()
+	var turnID string
+	err := s.backend.DB().QueryRowContext(ctx, `SELECT turn_id FROM runtime_conversation_message_ref WHERE anchor_id=? AND message_id=?`, anchorID, messageID).Scan(&turnID)
+	if err == sql.ErrNoRows || err == nil && localAppConversationMessageID(turnID, "assistant", "") != messageID {
+		return "", nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
-	for _, transcriptTurn := range anchor.CommittedTranscript {
-		turnID := strings.TrimSpace(transcriptTurn.TurnID)
-		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp && !isProactiveOrigin(transcriptTurn.Origin)) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
-			localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
-			continue
-		}
-		if publicChatVoiceEligibleTurnProjectionLocked(anchor, turnID) == nil {
-			return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if existing := anchor.VoiceSidecars[turnID]; existing != nil {
-			copy := *existing
-			return turnID, &copy, nil
-		}
-		return turnID, nil, nil
+	if err != nil {
+		return "", nil, err
 	}
-	return "", nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+	if err := s.loadVoiceRenderTurnLocked(ctx, anchor, turnID); err != nil {
+		return "", nil, err
+	}
+	if v := anchor.VoiceSidecars[turnID]; v != nil {
+		copy := *v
+		return turnID, &copy, nil
+	}
+	return turnID, nil, nil
 }
 
 func (s *Service) localAppConversationVoiceRenderResponse(
@@ -646,29 +645,10 @@ func (s *Service) localAppConversationTranscriptArtifactMembership(
 	anchorID string,
 	artifactID string,
 ) (string, bool) {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if anchor == nil {
-		return "", false
-	}
-	artifactID = strings.TrimSpace(artifactID)
-	for _, turn := range anchor.CommittedTranscript {
-		if turn.InputAttachment != nil && strings.TrimSpace(turn.InputAttachment.ArtifactID) == artifactID {
-			return strings.ToLower(strings.TrimSpace(turn.InputAttachment.MimeType)), true
-		}
-		for _, artifact := range turn.OutputArtifacts {
-			if strings.TrimSpace(artifact.ArtifactID) == artifactID {
-				return strings.ToLower(strings.TrimSpace(artifact.MimeType)), true
-			}
-		}
-	}
-	for _, item := range anchor.Recoveries {
-		if item != nil && item.Input != nil && item.Input.Attachment != nil && item.Input.Attachment.ArtifactID == artifactID {
-			return item.Input.Attachment.MimeType, true
-		}
-	}
-	return "", false
+	var mime string
+	err := s.backend.DB().QueryRow(`SELECT mime_type FROM runtime_conversation_message_ref WHERE anchor_id=? AND artifact_id=? LIMIT 1`, strings.TrimSpace(anchorID), strings.TrimSpace(artifactID)).Scan(&mime)
+	return strings.ToLower(strings.TrimSpace(mime)), err == nil
+
 }
 
 func (s *Service) InterruptLocalAppConversationTurn(
@@ -732,7 +712,7 @@ func (s *Service) GetLocalAppConversationSnapshot(
 	if err != nil {
 		return nil, err
 	}
-	snapshot, err := s.buildLocalAppConversationSnapshot(resolved, anchorID)
+	snapshot, err := s.buildLocalAppConversationSnapshot(ctx, resolved, anchorID)
 	if err != nil {
 		return nil, err
 	}
@@ -884,41 +864,22 @@ func (s *Service) validateLocalAppConversationResource(
 }
 
 func (s *Service) buildLocalAppConversationSnapshot(
+	ctx context.Context,
 	resolved localAppAgentIdentity,
 	anchorID string,
 ) (*runtimev1.LocalAppConversationSnapshot, error) {
-	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
+	window, err := s.readConversationWindow(ctx, resolved, anchorID, "")
+	if err != nil {
 		return nil, err
 	}
-	s.chatSurfaceMu.Lock()
-	anchor := s.chatAnchors[anchorID]
-	transcript := clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
-	throughSequence := anchor.LocalAppSequence
-	controlState := s.localAppConversationStateLocked(anchor)
-	activeSnapshot := clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
-	terminalSnapshots := clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
-	if terminalSnapshots == nil {
-		terminalSnapshots = make(map[string]*publicChatTurnProjectionState)
-	}
-	liveSnapshots := make(map[string]*publicChatTurnProjectionState)
-	if activeSnapshot != nil {
-		liveSnapshots[activeSnapshot.TurnID] = activeSnapshot
-	}
-	for id, turn := range s.chatTurns {
-		if turn != nil && turn.ConversationAnchorID == anchorID {
-			liveSnapshots[id] = clonePublicChatTurnProjectionState(turn.Projection)
-		}
-	}
-	voiceSidecars := clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
-	owned := *anchor
-	owned.CommittedTranscript = transcript
-	owned.Recoveries = clonePublicChatRecoveries(anchor.Recoveries)
-	owned.ActiveTurnSnapshot = activeSnapshot
-	owned.CompletedTurnSnapshots = terminalSnapshots
-	s.chatSurfaceMu.Unlock()
-	if err := validatePublicChatCommittedTranscript(transcript); err != nil {
-		return nil, localAppConversationOwnerUnavailable()
-	}
+	owned := window.anchor
+	transcript := owned.CommittedTranscript
+	throughSequence := owned.LocalAppSequence
+	controlState := window.control
+	activeSnapshot := owned.ActiveTurnSnapshot
+	terminalSnapshots := owned.CompletedTurnSnapshots
+	voiceSidecars := owned.VoiceSidecars
+	liveSnapshots := window.live
 
 	type messageGroup struct {
 		messages []*runtimev1.LocalAppConversationMessage
@@ -1149,14 +1110,12 @@ func (s *Service) buildLocalAppConversationSnapshot(
 				turn.InputTurnId = &value
 			}
 			turn.CanRegenerate = publicChatCanRegenerate(&owned, turn.TurnId)
-			if original := owned.Recoveries[item.InputTurnID]; original != nil {
-			}
 		}
 	}
 	snapshot := &runtimev1.LocalAppConversationSnapshot{
 		ConversationAnchorId: anchorID,
 		Messages:             messages,
-		TruncatedBefore:      start > 0,
+		TruncatedBefore:      window.truncated || start > 0,
 		ThroughSequence:      throughSequence,
 		State:                controlState,
 		Turns:                turns,
@@ -1421,10 +1380,12 @@ func (s *Service) localAppCommittedTextMessages(anchorID string, turnID string) 
 	if anchor == nil {
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	for _, turn := range anchor.CommittedTranscript {
-		if strings.TrimSpace(turn.TurnID) != strings.TrimSpace(turnID) {
-			continue
-		}
+	record, err := s.committedTurn(anchor, strings.TrimSpace(turnID))
+	if err != nil {
+		return nil, err
+	}
+	if record != nil {
+		turn := *record
 		messages := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
 		// Input was published at durable admission. Only a standalone user-only
 		// commit has no assistant completion to project here.
@@ -1457,10 +1418,12 @@ func (s *Service) localAppCommittedOutputArtifact(anchorID string, turnID string
 	if anchor == nil {
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	for _, turn := range anchor.CommittedTranscript {
-		if strings.TrimSpace(turn.TurnID) != strings.TrimSpace(turnID) {
-			continue
-		}
+	record, err := s.committedTurn(anchor, strings.TrimSpace(turnID))
+	if err != nil {
+		return nil, err
+	}
+	if record != nil {
+		turn := *record
 		for index := range turn.OutputArtifacts {
 			artifact := turn.OutputArtifacts[index]
 			if artifact.ArtifactID == strings.TrimSpace(artifactID) {

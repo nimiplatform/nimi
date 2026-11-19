@@ -55,22 +55,6 @@ func activeConversationSummary(anchor *publicChatAnchorState) *publicChatConvers
 	return summary
 }
 
-func selectedCommittedTranscript(anchor *publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {
-	if err := validateConversationContextSelection(anchor.ConversationContext, len(anchor.CommittedTranscript)); err != nil {
-		return nil, err
-	}
-	all, err := publicChatEligibleCommittedTranscript(anchor.CommittedTranscript)
-	if err != nil {
-		return nil, err
-	}
-	for i, turn := range all {
-		if turn.Sequence >= anchor.ConversationContext.FirstTurnSequence {
-			return all[i:], nil
-		}
-	}
-	return nil, nil
-}
-
 // Caller holds chatSurfaceMu, matching the Realtime registration lock order.
 func (s *Service) conversationContextBusyLocked(anchor *publicChatAnchorState) bool {
 	if anchor.ActiveTurnID != "" {
@@ -96,7 +80,7 @@ func (s *Service) projectConversationContextLocked(anchor *publicChatAnchorState
 		ContextRevision:         conversationContextRevision(anchor.ConversationContext),
 		FirstTurnSequence:       anchor.ConversationContext.FirstTurnSequence,
 		OmitSupplementalContext: anchor.ConversationContext.OmitSupplementalContext,
-		CommittedTurnCount:      uint64(len(anchor.CommittedTranscript)),
+		CommittedTurnCount:      uint64(anchor.transcriptCount()),
 		Busy:                    busy,
 		CanUpdate:               !busy && s.chatStateRepo != nil && !s.isClosed(),
 	}
@@ -185,6 +169,11 @@ func (s *Service) managerConversationContext(resolved localAppAgentIdentity, req
 	if !conversationContextAnchorMatches(anchor, resolved) {
 		return nil, status.Error(codes.NotFound, "local-app conversation resource not found")
 	}
+	if anchor.coldFacts && anchor.LastTurnSnapshot != nil && anchor.LastTurnSnapshot.ActionHint == "adjust_conversation_history" {
+		if err := s.loadConversationFactsLocked(context.Background(), anchor); err != nil {
+			return nil, err
+		}
+	}
 	return s.projectConversationContextLocked(anchor), nil
 }
 
@@ -221,7 +210,7 @@ func (s *Service) UpdateLocalAppAgentConversationContext(ctx context.Context, re
 	if current != req.GetExpectedContextRevision() {
 		return nil, grpcerr.WithReasonCode(codes.Aborted, runtimev1.ReasonCode_AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT)
 	}
-	if req.GetFirstTurnSequence() > uint64(len(anchor.CommittedTranscript)) || current == math.MaxUint64 {
+	if req.GetFirstTurnSequence() > uint64(anchor.transcriptCount()) || current == math.MaxUint64 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if err := ctx.Err(); err != nil {

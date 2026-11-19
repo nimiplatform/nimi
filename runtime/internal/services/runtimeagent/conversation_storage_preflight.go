@@ -31,28 +31,45 @@ func conversationStateRepairRefusal(cause error) *storedformat.Refusal {
 // unreadable rows, or data the ordinary load rejects for another reason return
 // nil so that load reports them unchanged and they are never misattributed.
 func PreflightStoredConversation(localStatePath string) *storedformat.Refusal {
-	db, exists, err := runtimepersistence.OpenReadOnlyForClassification(localStatePath)
-	if err != nil || !exists || db == nil {
-		return nil
-	}
-	defer func() { _ = db.Close() }()
-	return classifyStoredConversation(db)
+	err := runtimepersistence.InspectStoredDatabase(localStatePath, func(db *sql.DB) error { return ValidateConversationStorage(db, false) })
+	refusal, _ := storedformat.As(err)
+	return refusal
 }
 
-func classifyStoredConversation(db *sql.DB) *storedformat.Refusal {
+// ValidateConversationStorage reads the primary header on startup and validates
+// the complete isolated candidate before recovery takes ownership.
+func ValidateConversationStorage(db *sql.DB, recovery bool) error {
+	var tables int
+	if err := db.QueryRow(`SELECT count(*) FROM sqlite_schema WHERE type='table' AND name='runtime_local_agent_meta'`).Scan(&tables); err != nil || tables == 0 {
+		return err
+	}
+	var retired int
+	if err := db.QueryRow(`SELECT count(*) FROM pragma_table_info('runtime_conversation_anchor') WHERE name='anchor_json'
+		AND NOT EXISTS (SELECT 1 FROM pragma_table_info('runtime_conversation_anchor') WHERE name='through_sequence')`).Scan(&retired); err != nil {
+		return err
+	}
+	if retired != 0 {
+		return conversationStorageConversionRefusal()
+	}
 	var raw string
 	if err := db.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceStateKey).Scan(&raw); err != nil {
-		return nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
 	}
 	if strings.TrimSpace(raw) == "" {
 		return nil
 	}
-	persisted, err := readConversationRows(db, raw)
-	if refusal, ok := storedformat.As(err); ok {
-		return refusal
+	var persisted persistedPublicChatSurfaceState
+	var err error
+	if recovery {
+		persisted, err = readConversationRows(db, raw)
+	} else {
+		persisted, _, err = readConversationHeaders(db, raw)
 	}
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := validatePersistedPublicChatConversationSingletons(persisted.Anchors); err != nil {
 		return conversationStateRepairRefusal(err)

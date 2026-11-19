@@ -219,8 +219,8 @@ func agentVoiceTranscriptionWait(routePolicy runtimev1.RoutePolicy) time.Duratio
 
 func (s *Service) validateAgentVoiceInputAnchor(identity localAgentIdentity, anchorID string) error {
 	s.chatSurfaceMu.Lock()
-	anchor := clonePublicChatAnchorState(s.chatAnchors[strings.TrimSpace(anchorID)])
-	s.chatSurfaceMu.Unlock()
+	defer s.chatSurfaceMu.Unlock()
+	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if anchor == nil {
 		return status.Error(codes.NotFound, "conversation anchor not found")
 	}

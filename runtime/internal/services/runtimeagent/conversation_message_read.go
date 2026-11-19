@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +11,33 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
+
+// Stable locators carry no message bodies. Input identity may be shared by a
+// retry, so the original locator is retained across later successful turns.
+func indexConversationMessageRefs(tx *sql.Tx, anchorID, turnID, inputID string, input *publicChatCommittedTranscriptAttachment, outputs []publicChatCommittedTranscriptAttachment) error {
+	put := func(messageID, owner string, attachment *publicChatCommittedTranscriptAttachment) error {
+		var artifact, mime any
+		if attachment != nil {
+			artifact, mime = attachment.ArtifactID, attachment.MimeType
+		}
+		_, err := tx.Exec(`INSERT INTO runtime_conversation_message_ref(anchor_id,message_id,turn_id,artifact_id,mime_type) VALUES(?,?,?,?,?)
+			ON CONFLICT(anchor_id,message_id) DO UPDATE SET artifact_id=excluded.artifact_id,mime_type=excluded.mime_type
+			WHERE artifact_id IS NULL AND excluded.artifact_id IS NOT NULL`, anchorID, messageID, owner, artifact, mime)
+		return err
+	}
+	if err := put(localAppConversationMessageID(inputID, "user", ""), inputID, input); err != nil {
+		return err
+	}
+	if err := put(localAppConversationMessageID(turnID, "assistant", ""), turnID, nil); err != nil {
+		return err
+	}
+	for i := range outputs {
+		if err := put(localAppConversationMessageID(turnID, "image", outputs[i].ArtifactID), turnID, &outputs[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 type conversationMessageLocation struct {
 	turnID string
@@ -150,20 +178,16 @@ func (s *Service) ReadLocalAppConversationMessage(ctx context.Context, req *runt
 	if err := s.validateLocalAppConversationResource(resolved, req.ConversationAnchorId); err != nil {
 		return nil, err
 	}
-	s.chatSurfaceMu.Lock()
-	anchor := s.chatAnchors[req.ConversationAnchorId]
-	if anchor == nil || s.agentTerminationFencedLocked(resolved.identity.LocalAgentRef) {
-		s.chatSurfaceMu.Unlock()
-		return nil, localAppConversationOwnerUnavailable()
+	view, err := s.readConversationWindow(ctx, resolved, req.ConversationAnchorId, req.MessageId)
+	if err != nil {
+		return nil, err
 	}
-	message, quotable := conversationMessageLocked(anchor, req.MessageId)
+	message, quotable := conversationMessageLocked(&view.anchor, req.MessageId)
 	if message == nil {
-		s.chatSurfaceMu.Unlock()
 		return nil, localAppConversationInvalid("conversation message is unavailable")
 	}
-	window, err := s.conversationMessageWindowLocked(anchor, req.MessageId, resolved.decision.RegisteredAppSubject)
-	watermark := anchor.LocalAppSequence
-	s.chatSurfaceMu.Unlock()
+	window, err := s.conversationMessageWindowLocked(&view.anchor, req.MessageId, resolved.decision.RegisteredAppSubject)
+	watermark := view.anchor.LocalAppSequence
 	if err != nil {
 		return nil, err
 	}
@@ -203,9 +227,6 @@ func (s *Service) conversationReadTurnLocked(anchor *publicChatAnchorState, turn
 	window := &runtimev1.LocalAppConversationMessageWindow{}
 	lookup := conversationLookupLocked(anchor)
 	projection := conversationTurnProjectionLocked(anchor, turnID)
-	if live := s.chatTurns[turnID]; live != nil && live.ConversationAnchorID == anchor.ConversationAnchorID {
-		projection = live.Projection
-	}
 	if i, ok := lookup.byTurn[turnID]; ok {
 		turn := anchor.CommittedTranscript[i]
 		if projection == nil {

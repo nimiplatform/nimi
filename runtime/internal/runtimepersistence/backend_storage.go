@@ -76,39 +76,101 @@ func quickCheck(db *sql.DB) (bool, error) {
 	return strings.EqualFold(strings.TrimSpace(result), "ok"), nil
 }
 
-func restoreLatestHealthyBackup(targetPath string, backupDir string) error {
+func restoreLatestHealthyBackup(targetPath string, backupDir string, validate []func(*sql.DB, bool) error) error {
 	candidates, err := listBackupCandidates(backupDir)
 	if err != nil {
 		return err
 	}
-	if len(candidates) == 0 {
-		return fmt.Errorf("no sqlite backups available")
+	stage, err := os.MkdirTemp(filepath.Dir(targetPath), ".sqlite-recovery-")
+	if err != nil {
+		return err
 	}
+	defer os.RemoveAll(stage)
 	var lastErr error
-	for _, candidate := range candidates {
-		if err := resetSQLiteTarget(targetPath); err != nil {
+	for i, candidate := range candidates {
+		prepared := filepath.Join(stage, fmt.Sprintf("candidate-%d.db", i))
+		if err := prepareRecoverySnapshot(candidate.path, prepared, validate); err != nil {
+			lastErr = err
+			continue
+		}
+		return installRecoverySnapshot(prepared, targetPath)
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return fmt.Errorf("no healthy sqlite backups available")
+}
+
+func prepareRecoverySnapshot(source, prepared string, validate []func(*sql.DB, bool) error) error {
+	if err := copyFile(source, prepared); err != nil {
+		return err
+	}
+	if _, err := os.Stat(source + "-wal"); err == nil {
+		if err := copyFile(source+"-wal", prepared+"-wal"); err != nil {
 			return err
 		}
-		if err := copyFile(candidate.path, targetPath); err != nil {
-			lastErr = err
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	// SQLite rebuilds its own shm on the isolated copy. Fold any committed WAL
+	// into these exact bytes before physical and read-only format checks.
+	db, err := openSQLite(prepared, true, true)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var busy, pages, done int
+	if err := db.QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &pages, &done); err != nil {
+		return err
+	}
+	if busy != 0 || pages != done {
+		return fmt.Errorf("checkpoint of recovery snapshot incomplete")
+	}
+	if _, err := db.Exec("PRAGMA query_only=ON"); err != nil {
+		return err
+	}
+	if ok, err := quickCheck(db); err != nil || !ok {
+		return errors.Join(err, fmt.Errorf("backup %s failed quick_check", filepath.Base(source)))
+	}
+	if err := (&Backend{writeDB: db}).requireRealmSourceMaterializationCompatibility(); err != nil {
+		return err
+	}
+	if err := validateMemoryExecutionStorage(db); err != nil {
+		return err
+	}
+	for _, check := range validate {
+		if err := check(db, true); err != nil {
+			return err
+		}
+	}
+	return db.Close()
+}
+
+func installRecoverySnapshot(prepared, target string) error {
+	// Keep the original main file in place until the one replacement rename.
+	// If the handoff fails, put its side files back before reporting failure.
+	var moved []string
+	restore := func(cause error) error {
+		for i := len(moved) - 1; i >= 0; i-- {
+			suffix := moved[i]
+			cause = errors.Join(cause, os.Rename(prepared+".old"+suffix, target+suffix))
+		}
+		return cause
+	}
+	for _, suffix := range []string{"-wal", "-shm"} {
+		err := os.Rename(target+suffix, prepared+".old"+suffix)
+		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
-		db, err := openSQLite(targetPath, false, true)
 		if err != nil {
-			lastErr = err
-			continue
+			return restore(err)
 		}
-		ok, qcErr := quickCheck(db)
-		_ = db.Close()
-		if qcErr == nil && ok {
-			return nil
-		}
-		lastErr = errors.Join(qcErr, fmt.Errorf("backup %s failed quick_check", candidate.path))
+		moved = append(moved, suffix)
 	}
-	if lastErr == nil {
-		lastErr = fmt.Errorf("no healthy sqlite backups available")
+	if err := os.Rename(prepared, target); err != nil {
+		return restore(err)
 	}
-	return lastErr
+	return nil
 }
 
 func pruneBackups(backupDir string) error {
@@ -155,15 +217,6 @@ func listBackupCandidates(backupDir string) ([]backupCandidate, error) {
 		return items[i].mod.After(items[j].mod)
 	})
 	return items, nil
-}
-
-func resetSQLiteTarget(targetPath string) error {
-	if err := os.RemoveAll(targetPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	_ = os.Remove(targetPath + "-wal")
-	_ = os.Remove(targetPath + "-shm")
-	return nil
 }
 
 func copyFile(src string, dst string) error {

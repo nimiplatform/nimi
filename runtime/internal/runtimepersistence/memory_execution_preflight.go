@@ -1,6 +1,7 @@
 package runtimepersistence
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/nimiplatform/nimi/runtime/internal/storedformat"
@@ -12,15 +13,16 @@ import (
 // write to the selected root. An absent table is a fresh schema, while an
 // unreadable database remains an unclassified startup failure.
 func PreflightStoredMemoryExecution(localStatePath string) *storedformat.Refusal {
-	db, exists, err := OpenReadOnlyForClassification(localStatePath)
-	if err != nil || !exists || db == nil {
-		return nil
-	}
-	defer func() { _ = db.Close() }()
+	err := InspectStoredDatabase(localStatePath, validateMemoryExecutionStorage)
+	refusal, _ := storedformat.As(err)
+	return refusal
+}
+
+func validateMemoryExecutionStorage(db *sql.DB) error {
 	var columns, dispositionColumns int
 	if err := db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(lower(name) = 'payload_disposition'), 0)
 		FROM pragma_table_info('runtime_cognition_memory_ai_job')`).Scan(&columns, &dispositionColumns); err != nil {
-		return nil
+		return err
 	}
 	if columns == 0 || dispositionColumns != 0 {
 		return nil

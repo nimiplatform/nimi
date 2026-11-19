@@ -28,6 +28,10 @@ func TestCheckSyncDataRootProjectsOnlyAuthenticatedAccountWithoutPrivateReferenc
 		ConversationAnchorID: "private-other-anchor", AgentID: "private-other-agent", LocalAgentRef: "private-other-agent",
 		OwnerUserID: "account-other", SubjectUserID: "account-other", RuntimeSourceRef: "private-other-source",
 	}
+	if err := svc.persistPublicChatSurfaceStateLocked(); err != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal(err)
+	}
 	svc.chatSurfaceMu.Unlock()
 
 	resources, err := svc.CheckSyncStateDirectory(context.Background(), filepath.Join(dataRoot, "accounts", "runtime"))

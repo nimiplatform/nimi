@@ -260,7 +260,7 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	}
 	input := lifeFrameExecutionInput{Entry: entry, Source: source, Binding: binding, Now: now, RequestID: "life_" + ulid.Make().String(), Work: work, Account: scope, ContactOnly: work.source == "contact_judgment"}
 	var omitSupplemental bool
-	input.Transcript, input.TranscriptRead, omitSupplemental, err = s.lifeConversationInput(ref)
+	input.Transcript, input.TranscriptRead, omitSupplemental, err = s.lifeConversationInput(ctx, ref)
 	if err != nil {
 		s.recordLifePlanningFailure(work, entry, err, 0)
 		return
