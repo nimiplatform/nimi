@@ -81,9 +81,10 @@ type Store struct {
 
 	refusals refusalLimiter
 
-	usageMu  sync.RWMutex
-	maxUsage int
-	usage    []UsageInput
+	usageMu   sync.RWMutex
+	maxUsage  int
+	usageNext int
+	usage     []UsageInput
 }
 
 // Open binds the audit plane to the Runtime persistence backend and applies
@@ -479,8 +480,8 @@ func (s *Store) RecordUsage(input UsageInput) {
 
 	s.usageMu.Lock()
 	if len(s.usage) == s.maxUsage {
-		copy(s.usage, s.usage[1:])
-		s.usage[len(s.usage)-1] = item
+		s.usage[s.usageNext] = item
+		s.usageNext = (s.usageNext + 1) % s.maxUsage
 	} else {
 		s.usage = append(s.usage, item)
 	}

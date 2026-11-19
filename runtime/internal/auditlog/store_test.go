@@ -2,6 +2,7 @@ package auditlog
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -307,5 +308,37 @@ func TestAppendEventRingBufferWrapPreservesNewestEvents(t *testing.T) {
 		if event.GetOperation() != want[i] {
 			t.Fatalf("event[%d] = %q, want %q", i, event.GetOperation(), want[i])
 		}
+	}
+}
+
+func TestUsageWindowRetainsTheNewestSamplesAcrossWraps(t *testing.T) {
+	for _, capacity := range []int{1, 4} {
+		for _, count := range []int{1, 3, 13} {
+			store := New(16, capacity)
+			now := time.Now().UTC().Truncate(time.Minute)
+			for i := 1; i <= count; i++ {
+				store.RecordUsage(UsageInput{Timestamp: now, AppID: "ring", Capability: "text", QueueWaitMs: int64(i)})
+			}
+			out, err := store.ListUsage(&runtimev1.ListUsageStatsRequest{AppId: "ring", Window: runtimev1.UsageWindow_USAGE_WINDOW_MINUTE})
+			n := min(count, capacity)
+			want := int64((2*count - n + 1) * n / 2)
+			if err != nil || len(out.Records) != 1 || out.Records[0].GetQueueWaitMs() != want || out.Records[0].GetRequestCount() != int64(n) {
+				t.Fatalf("capacity=%d samples=%d: %v %v", capacity, count, out, err)
+			}
+		}
+	}
+	store := New(1, 4)
+	var group sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			store.RecordUsage(UsageInput{Timestamp: time.Now().UTC().Truncate(time.Hour), AppID: "ring", Capability: "text", Success: true})
+		}()
+	}
+	group.Wait()
+	out, err := store.ListUsage(&runtimev1.ListUsageStatsRequest{AppId: "ring", Window: runtimev1.UsageWindow_USAGE_WINDOW_HOUR})
+	if err != nil || len(out.Records) != 1 || out.Records[0].GetSuccessCount() != 4 {
+		t.Fatalf("concurrent wrap: %v %v", out, err)
 	}
 }
