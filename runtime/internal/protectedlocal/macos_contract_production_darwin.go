@@ -3,9 +3,10 @@
 package protectedlocal
 
 const (
-	MacOSRequiredArchitecture = "arm64"
-	MacOSRuntimeServiceLabel  = "ai.nimi.runtime"
-	MacOSRuntimeAccountName   = "_nimiruntime"
+	MacOSProductControlNamespace = ""
+	MacOSRequiredArchitecture    = "arm64"
+	MacOSRuntimeServiceLabel     = "ai.nimi.runtime"
+	MacOSRuntimeAccountName      = "_nimiruntime"
 
 	MacOSRuntimeExecutablePath  = "/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime"
 	MacOSDesktopExecutablePath  = "/Applications/Nimi.app/Contents/MacOS/Nimi"

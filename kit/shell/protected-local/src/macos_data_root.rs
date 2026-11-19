@@ -222,7 +222,8 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
     {
         let root = normalized_absolute_non_root(path, "validate-selected-root")?;
         let profile = current_process_profile_root()?;
-        if root == profile || root.starts_with(profile.join(".nimi")) {
+        let control = fixed_product_control_root(&profile);
+        if control.starts_with(&root) || root.starts_with(&control) || root.starts_with(profile.join(".nimi")) {
             return Err(FixedRuntimeDataRootError::new(
                 "validate-selected-root",
                 "the selected data root must not overlap the user profile or fixed Product Control boundary",
@@ -406,6 +407,13 @@ fn prepare_existing_product_control_record(
 }
 
 #[cfg(not(feature = "macos-source-local-development"))]
+fn fixed_product_control_root(profile: &Path) -> PathBuf {
+    #[cfg(feature = "macos-local-development")]
+    let profile = profile.join(crate::macos_profile::PRODUCT_CONTROL_NAMESPACE);
+    profile.join(".nimi")
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_fixed_runtime_product_control_root_at(
     profile_root: &Path,
 ) -> Result<(), FixedRuntimeDataRootError> {
@@ -416,8 +424,16 @@ fn prepare_fixed_runtime_product_control_root_at(
         ACL_SEARCH_DIRECTORY,
         "prepare-product-control-profile-acl",
     )?;
+    let control = fixed_product_control_root(&profile);
+    #[cfg(feature = "macos-local-development")]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        validate_directory_chain(&control, true, "validate-product-control-root")?;
+        fs::DirBuilder::new().mode(0o700).recursive(true).create(&control)
+            .map_err(|error| FixedRuntimeDataRootError::new("create-product-control-root", error.to_string()))?;
+    }
     let product_control_root = prepare_directory(
-        &profile.join(".nimi"),
+        &control,
         ACL_PRODUCT_CONTROL_DIRECTORY,
         "validate-product-control-root",
         "create-product-control-root",
@@ -426,7 +442,7 @@ fn prepare_fixed_runtime_product_control_root_at(
     prepare_existing_product_control_record(&product_control_root.join("nimi.json"))
 }
 
-/// Prepares the fixed current-user `~/.nimi` Product Control directory before
+/// Prepares the selected fixed build’s per-user Product Control directory before
 /// the isolated Runtime is contacted. The host does not parse or interpret the
 /// canonical record; data-root preparation remains bound to the real selection
 /// request.
@@ -614,8 +630,11 @@ mod tests {
     #[test]
     fn product_control_bootstrap_prepares_existing_record_without_interpreting_it() {
         let profile = fixture("product-control");
-        let product_control = profile.join(".nimi");
-        fs::create_dir(&product_control).expect("create product control root");
+        let product_control = fixed_product_control_root(&profile);
+        let production = profile.join(".nimi");
+        fs::create_dir(&production).unwrap();
+        std::os::unix::fs::symlink("not-a-development-record", production.join("nimi.json")).unwrap();
+        fs::create_dir_all(&product_control).expect("create product control root");
         fs::write(product_control.join("nimi.json"), b"{")
             .expect("write intentionally uninterpreted product control record");
 

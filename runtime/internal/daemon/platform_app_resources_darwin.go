@@ -11,16 +11,15 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
-
-const macOSNimiBundleRoot = "/Applications/Nimi.app"
 
 func protectedProductControlRoot(_ string, identity localappkernel.VerifiedLocalOSUserIdentity) (string, error) {
 	return grpcserver.ResolveProtectedProductControlRoot(identity)
 }
 
 func protectedPlatformAppResourceBindings() (string, error) {
-	resourcesRoot := filepath.Join(macOSNimiBundleRoot, "Contents", "Resources")
+	resourcesRoot := filepath.Join(protectedlocal.MacOSDesktopApplicationPath, "Contents", "Resources")
 	bundledAppsRoot := filepath.Join(resourcesRoot, "nimi-apps")
 	bundledExists, err := validateMacOSProtectedResourcePath(bundledAppsRoot, true)
 	if err != nil {
@@ -34,11 +33,11 @@ func protectedPlatformAppResourceBindings() (string, error) {
 
 func validateMacOSProtectedResourcePath(target string, directory bool) (bool, error) {
 	cleaned := filepath.Clean(strings.TrimSpace(target))
-	relative, err := filepath.Rel(macOSNimiBundleRoot, cleaned)
+	relative, err := filepath.Rel(protectedlocal.MacOSDesktopApplicationPath, cleaned)
 	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return false, fmt.Errorf("resource escapes the fixed Nimi bundle")
 	}
-	current := macOSNimiBundleRoot
+	current := protectedlocal.MacOSDesktopApplicationPath
 	components := strings.Split(relative, string(filepath.Separator))
 	for index, component := range components {
 		current = filepath.Join(current, component)

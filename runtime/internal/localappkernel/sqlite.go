@@ -153,6 +153,9 @@ func openSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	if err != nil {
 		return nil, err
 	}
+	if err := prepareNewAppDirectory(filepath.Dir(absolutePath), identity); err != nil {
+		return nil, err
+	}
 	dsn := "file:" + filepath.ToSlash(absolutePath) + "?_pragma=foreign_keys(ON)&_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(FULL)&_txlock=immediate"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {

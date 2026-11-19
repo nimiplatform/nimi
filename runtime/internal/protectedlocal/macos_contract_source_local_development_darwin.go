@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	MacOSProductControlNamespace                  = ""
 	MacOSRequiredArchitecture                     = "arm64"
 	MacOSRuntimeServiceLabel                      = "ai.nimi.runtime.source-local-development"
 	MacOSRuntimeAccountName                       = ""

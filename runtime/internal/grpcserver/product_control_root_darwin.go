@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 // ResolveProtectedProductControlRoot derives the fixed Product Control
@@ -31,5 +32,5 @@ func ResolveProtectedProductControlRoot(identity localappkernel.VerifiedLocalOSU
 	if profileRoot == "." || !filepath.IsAbs(profileRoot) || profileRoot == string(filepath.Separator) {
 		return "", fmt.Errorf("verified macOS interactive-user profile mapping is not an absolute non-root path")
 	}
-	return filepath.Join(profileRoot, ".nimi"), nil
+	return filepath.Join(profileRoot, protectedlocal.MacOSProductControlNamespace, ".nimi"), nil
 }

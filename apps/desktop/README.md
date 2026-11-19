@@ -77,5 +77,6 @@ pnpm accept:runtime:fixed-service
 pnpm dev:macos:desktop:installed
 ```
 
+- On macOS the fixed development Home and Runtime share the per-user control record `~/.nimi-dev/.nimi/nimi.json`. The production record stays at `~/.nimi/nimi.json`. On first use, select a separate development data folder.
 - Use `--install` only for first-time installation. Subsequent updates use `pnpm accept:runtime:fixed-service` to replace the development service binary under platform privilege while preserving service credentials.
 - Use `pnpm accept:runtime:fixed-service -- --uninstall` to cleanly remove local development service artifacts.

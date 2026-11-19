@@ -160,6 +160,11 @@ func writeProductControlBindingRecordForTest(t *testing.T, productControlRoot st
 }
 
 func TestProductControlDataRootBoundaryRejectsHomeAndProductControlOverlap(t *testing.T) {
+	// A nested deployment namespace still keeps its enclosing OS home out of the data plane.
+	profile := t.TempDir()
+	if err := validateProductControlDataRootBoundary(profile, filepath.Join(profile, ".nimi-dev", ".nimi")); err == nil {
+		t.Fatal("accepted the parent of an isolated Product Control namespace")
+	}
 	home := t.TempDir()
 	productControlRoot := filepath.Join(home, ".nimi")
 	for _, candidate := range []string{

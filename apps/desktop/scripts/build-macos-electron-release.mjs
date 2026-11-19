@@ -441,11 +441,6 @@ async function stageNativeCarrier(appPath, sourceRoot) {
 
 async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
   await stageNativeCarrier(desktopApp, sourceRoot);
-  if (localDevelopmentBuild) return;
-  const updaterDirectory = path.join(desktopApp, 'Contents', 'Helpers');
-  await mkdir(updaterDirectory, { recursive: true, mode: 0o755 });
-  await cp(path.join(sourceRoot, 'product-updater', 'Nimi Product Updater'), path.join(updaterDirectory, 'Nimi Product Updater'));
-  await chmod(path.join(updaterDirectory, 'Nimi Product Updater'), 0o755);
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
   // Runtime reads each formal App declaration from this fixed signed resource
   // root before admitting Home or Avatar product operations.
@@ -463,6 +458,11 @@ async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment
     await cp(path.join(desktopApp, 'Contents', 'Info.plist'), bundleInfo, { force: false });
     await chmod(bundleInfo, 0o644);
   }
+  if (localDevelopmentBuild) return;
+  const updaterDirectory = path.join(desktopApp, 'Contents', 'Helpers');
+  await mkdir(updaterDirectory, { recursive: true, mode: 0o755 });
+  await cp(path.join(sourceRoot, 'product-updater', 'Nimi Product Updater'), path.join(updaterDirectory, 'Nimi Product Updater'));
+  await chmod(path.join(updaterDirectory, 'Nimi Product Updater'), 0o755);
   const uninstaller = path.join(desktopApp, 'Contents', 'Resources', 'Uninstall Nimi.command');
   await cp(path.join(desktopRoot, 'macos', 'Uninstall Nimi.command'), uninstaller, { force: false });
   await chmod(uninstaller, 0o755);

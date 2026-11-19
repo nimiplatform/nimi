@@ -17,5 +17,6 @@ export const MACOS_LOCAL_DEVELOPMENT_PROFILE = Object.freeze({
   "localAppSocketActivationName": "LocalAppHostDev",
   "desktopSocketPath": "/private/var/run/nimi-dev/runtime-desktop.sock",
   "localAppSocketPath": "/private/var/run/nimi-dev/runtime-local-app.sock",
-  "helperPath": "/usr/local/libexec/nimi-macos-dev-security"
+  "helperPath": "/usr/local/libexec/nimi-macos-dev-security",
+  "productControlNamespace": ".nimi-dev"
 });

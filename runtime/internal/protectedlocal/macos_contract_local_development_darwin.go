@@ -3,6 +3,7 @@
 // Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
 package protectedlocal
 const (
+ MacOSProductControlNamespace=".nimi-dev"
  MacOSRequiredArchitecture="arm64"
  MacOSRuntimeServiceLabel="ai.nimi.runtime.dev"
  MacOSRuntimeAccountName="_nimiruntimedev"

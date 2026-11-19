@@ -1,4 +1,5 @@
 // Code generated from config/runtime-macos-protected-local-development-profile.yaml; canonical constraints live under .nimi/spec; DO NOT EDIT.
+pub(crate) const PRODUCT_CONTROL_NAMESPACE: &str = ".nimi-dev";
 pub(crate) const RUNTIME_SIGNING_IDENTIFIER: &str = "ai.nimi.runtime.dev";
 pub(crate) const RUNTIME_SERVICE_LABEL: &str = "ai.nimi.runtime.dev";
 pub(crate) const RUNTIME_SOCKET_PATH: &str = "/private/var/run/nimi-dev/runtime-desktop.sock";

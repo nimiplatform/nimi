@@ -99,7 +99,7 @@ func validateProductControlDataRootBoundary(dataRoot string, productControlRoot 
 	selected := filepath.Clean(strings.TrimSpace(dataRoot))
 	control := filepath.Clean(strings.TrimSpace(productControlRoot))
 	home := filepath.Dir(control)
-	if productControlPathsEqual(selected, home) ||
+	if productControlPathIsWithin(home, selected) || productControlPathsEqual(selected, home) ||
 		productControlPathsEqual(selected, control) ||
 		productControlPathIsWithin(selected, control) {
 		return fmt.Errorf("Product Control data root must not overlap the interactive-user home or fixed .nimi boundary")
