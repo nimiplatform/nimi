@@ -25,6 +25,10 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 - `desktop`
 - `web`
 
+## AI capability icons
+
+`capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for a capability such as `image.upscale`. Use it when a row represents the capability itself. A workflow that uses the same capability can keep its own action icon, as Lab does for chat streaming and tool calls. Keep an accessible label on the control and mark its decorative icon `aria-hidden`.
+
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`
 - `pnpm --filter @nimiplatform/kit test`

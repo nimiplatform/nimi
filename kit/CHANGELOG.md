@@ -6,6 +6,10 @@
 
 `MediaImage` supports the optional Realm `boundedFamily` offer. It measures the slot before choosing a URL and lets the browser reselect when display density changes. The headless image selection exposes the optional bounded source and its largest supplied pixel width for consumers that measure their own slots.
 
+## Unreleased — AI capability icons (next minor)
+
+`capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
+
 ## 0.24.0-rc.11 — Text context capacity
 
 A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.

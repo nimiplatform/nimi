@@ -1,4 +1,5 @@
 import {
+  capabilityIcon,
   Button,
   InlineAlert,
   LoadingSkeleton,
@@ -38,7 +39,6 @@ import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import { RuntimeCapabilitySettingsDialog } from './runtime-capability-settings-dialog.js';
 import {
-  capabilityIcon,
   capabilityModelIdentity,
   modelDisplayTitle,
   modelFamilySeed,

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type DragEven
 import { useTranslation } from 'react-i18next';
 import { parseNimiPortableAIProfile, type NimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import type { NimiDesktopPortableAIProfileCatalogRecord } from '@nimiplatform/sdk/runtime';
-import { Button, IconButton, InlineAlert, OverlayShell, TextareaField, TextField, cn } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, IconButton, InlineAlert, OverlayShell, TextareaField, TextField, cn } from '@nimiplatform/kit/ui';
 import { CheckCircle2, ClipboardPaste, FileText, FileUp, ShieldCheck, X } from 'lucide-react';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { capabilityIcon, groupCapabilities } from './runtime-capability-presentation.js';
+import { groupCapabilities } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 
 export type ProfileImportWizardProps = {

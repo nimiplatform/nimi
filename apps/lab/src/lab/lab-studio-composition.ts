@@ -1,3 +1,4 @@
+import { capabilityIcon } from '@nimiplatform/kit/ui';
 import { labAppFilesCapability } from './lab-only/app-files-registration.js';
 import { composeAIStudioModules, type StudioCapabilityRegistration } from '../ai-studio-core/module-registration.js';
 import type { StudioParameterState } from '../ai-studio-core/parameters.js';
@@ -16,7 +17,11 @@ export const labAIStudioComposition = composeAIStudioModules([
 // Lab-only entries follow the public scaffold modules. Adding one here never
 // changes App Tools scaffold admission.
 const allCapabilities = Object.freeze([
-  ...labAIStudioComposition.capabilities,
+  ...labAIStudioComposition.capabilities.map(registration => (
+    registration.descriptor.id === registration.descriptor.capabilityContract
+      ? { ...registration, icon: capabilityIcon(registration.descriptor.id) }
+      : registration
+  )),
   labWorldTourCapability,
   ...labCapabilityTestRegistrations,
   labAppFilesCapability,

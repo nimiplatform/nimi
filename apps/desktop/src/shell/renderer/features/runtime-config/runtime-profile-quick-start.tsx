@@ -1,4 +1,4 @@
-import { Button, InlineAlert, LoadingSkeleton, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, InlineAlert, LoadingSkeleton, PillTabs, SelectField, Surface } from '@nimiplatform/kit/ui';
 import { parseNimiPortableAIProfile, type NimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import type { NimiLoadoutRecipe, NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { useQuery } from '@tanstack/react-query';
@@ -20,12 +20,13 @@ import { IdentityTile } from '../../components/identity-tile.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import {
-  capabilityIcon,
   contextFitReduced,
   formatContextTokens,
+  groupCapabilities,
   modelDisplayTitle,
   recipeRecommendedContextFit,
   recipeResourceSummary,
+  type CapabilityGroup,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
@@ -140,66 +141,11 @@ export function RuntimeProfileQuickStart(props: {
   const ready = props.capabilities.filter((entry) => entry.state.state === 'ready');
   if (ready.length > 0) {
     return (
-      <QuickStartShell state="ready">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <QuickStartTitle>
-            <span className="flex items-center gap-2.5">
-              <span
-                className="size-2.5 shrink-0 rounded-full bg-[var(--nimi-status-success)] shadow-[0_0_0_4px_var(--nimi-status-success-soft-bg),0_0_12px_color-mix(in_srgb,var(--nimi-status-success)_45%,transparent)]"
-                aria-hidden="true"
-              />
-              {t('runtimeConfig.quickStart.readyTitle', { count: ready.length })}
-            </span>
-          </QuickStartTitle>
-          {props.readyAction}
-        </div>
-        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
-          {ready.map((entry) => {
-            const Icon = capabilityIcon(entry.id);
-            const label = displayRuntimeConfigCapabilityLabel(entry.id, t);
-            const candidateTask = entry.state.replacement ? entry.state.task : undefined;
-            const candidateActive = candidateTask?.status === 'preparing' || candidateTask?.status === 'committing';
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                className="group flex flex-col rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
-                data-ready-capability={entry.id}
-                aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
-                onClick={() => props.onOpenCapability(entry.id)}
-              >
-                <span className="flex w-full items-center gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
-                    <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span data-current-model={entry.model ? '' : undefined} className="block whitespace-normal break-words text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">{entry.model || label}</span>
-                    {entry.model ? <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{label}</span> : null}
-                  </span>
-                  <ChevronRight
-                    size={18}
-                    aria-hidden="true"
-                    className="shrink-0 text-[var(--nimi-text-muted)] transition-[color,transform] duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:translate-x-0.5 group-focus-visible:text-[var(--nimi-action-primary-bg)]"
-                  />
-                </span>
-                {candidateTask && candidateActive ? (
-                  <span data-candidate-configuration={candidateTask.status} className="mt-3 block w-full space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs text-[var(--nimi-text-secondary)]">
-                    <span className="block whitespace-normal break-words">
-                      {entry.taskModel
-                        ? t('runtimeConfig.quickStart.otherConfigurationModel', { model: entry.taskModel })
-                        : t('runtimeConfig.quickStart.otherConfiguration')}
-                    </span>
-                    <span className="flex items-start gap-1.5">
-                      <LoaderCircle size={12} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-[var(--nimi-status-info)]" />
-                      <span>{t(`runtimeConfig.setupTask.status.${candidateTask.status}`)}</span>
-                    </span>
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </QuickStartShell>
+      <ReadyCapabilitiesOverview
+        ready={ready}
+        readyAction={props.readyAction}
+        onOpenCapability={props.onOpenCapability}
+      />
     );
   }
   if (state === 'preparing') {
@@ -258,6 +204,164 @@ export function RuntimeProfileQuickStart(props: {
 }
 
 
+function ReadyCapabilitiesOverview(props: {
+  readonly ready: readonly RuntimeOverviewCapability[];
+  readonly readyAction?: ReactNode;
+  readonly onOpenCapability: (capability: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [selectedGroup, setSelectedGroup] = useState<'all' | CapabilityGroup>('all');
+  const readyById = new Map(props.ready.map((entry) => [entry.id, entry]));
+  const groups = groupCapabilities(props.ready.map((entry) => entry.id)).map(({ group, items }) => ({
+    group,
+    entries: items.map((id) => readyById.get(id)!),
+  }));
+  const activeGroup = selectedGroup !== 'all' && groups.some((entry) => entry.group === selectedGroup)
+    ? selectedGroup
+    : 'all';
+  const visibleGroups = activeGroup === 'all'
+    ? groups
+    : groups.filter((entry) => entry.group === activeGroup);
+  const showGroupFilter = groups.length > 1;
+  const showGroupHeaders = activeGroup === 'all' && groups.length > 1;
+
+  return (
+    <QuickStartShell state="ready">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <QuickStartTitle>
+          <span className="flex items-center gap-2.5">
+            <span
+              className="size-2.5 shrink-0 rounded-full bg-[var(--nimi-status-success)] shadow-[0_0_0_4px_var(--nimi-status-success-soft-bg),0_0_12px_color-mix(in_srgb,var(--nimi-status-success)_45%,transparent)]"
+              aria-hidden="true"
+            />
+            {t('runtimeConfig.quickStart.readyTitle', { count: props.ready.length })}
+          </span>
+        </QuickStartTitle>
+        {props.readyAction}
+      </div>
+      {showGroupFilter ? (
+        <div className="min-w-0 overflow-x-auto py-0.5" data-testid="ai-ready-capability-groups">
+          <PillTabs
+            className="w-max"
+            size="sm"
+            ariaLabel={t('runtimeConfig.quickStart.filterCategory')}
+            value={activeGroup}
+            onValueChange={(value) => setSelectedGroup(value as 'all' | CapabilityGroup)}
+            items={[
+              {
+                value: 'all',
+                label: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{t('runtimeConfig.quickStart.allGroups')}</span>
+                    <span className="text-[11px] tabular-nums opacity-75">{props.ready.length}</span>
+                  </span>
+                ),
+              },
+              ...groups.map(({ group, entries }) => ({
+                value: group,
+                label: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{t(`runtimeConfig.capabilities.group.${group}`)}</span>
+                    <span className="text-[11px] tabular-nums opacity-75">{entries.length}</span>
+                  </span>
+                ),
+              })),
+            ]}
+          />
+        </div>
+      ) : null}
+      <div className="space-y-4">
+        {visibleGroups.map(({ group, entries }, groupIndex) => (
+          <div
+            key={group}
+            data-ready-capability-group={group}
+            className={showGroupHeaders && groupIndex > 0 ? 'space-y-2 border-t border-[var(--nimi-border-subtle)] pt-3.5' : 'space-y-2'}
+          >
+            {showGroupHeaders ? (
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-xs font-medium text-[var(--nimi-text-muted)]">
+                  {t(`runtimeConfig.capabilities.group.${group}`)}
+                </h3>
+                <span className="text-[11px] tabular-nums text-[var(--nimi-text-muted)] opacity-75">
+                  {entries.length}
+                </span>
+              </div>
+            ) : null}
+            <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr))]">
+              {entries.map((entry) => (
+                <ReadyCapabilityItem
+                  key={entry.id}
+                  entry={entry}
+                  onOpenCapability={props.onOpenCapability}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </QuickStartShell>
+  );
+}
+
+function ReadyCapabilityItem(props: {
+  readonly entry: RuntimeOverviewCapability;
+  readonly onOpenCapability: (capability: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { entry } = props;
+  const Icon = capabilityIcon(entry.id);
+  const label = displayRuntimeConfigCapabilityLabel(entry.id, t);
+  const candidateTask = entry.state.replacement ? entry.state.task : undefined;
+  const candidateActive = candidateTask?.status === 'preparing' || candidateTask?.status === 'committing';
+  return (
+    <button
+      type="button"
+      className="group flex min-w-0 flex-col justify-center rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2.5 text-left transition-colors hover:border-[var(--nimi-border-strong)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_35%,var(--nimi-surface-panel))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
+      data-ready-capability={entry.id}
+      aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
+      onClick={() => props.onOpenCapability(entry.id)}
+    >
+      <span className="flex w-full min-w-0 items-center gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-5 text-[var(--nimi-text-primary)]">
+            {label}
+          </span>
+          {entry.model ? (
+            <span
+              data-current-model=""
+              title={entry.model}
+              className="mt-0.5 block truncate text-xs leading-4 text-[var(--nimi-text-secondary)]"
+            >
+              {entry.model}
+            </span>
+          ) : null}
+        </span>
+        <ChevronRight
+          size={16}
+          aria-hidden="true"
+          className="shrink-0 text-[var(--nimi-text-muted)] transition-[color,transform] duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:translate-x-0.5 group-focus-visible:text-[var(--nimi-action-primary-bg)]"
+        />
+      </span>
+      {candidateTask && candidateActive ? (
+        <span data-candidate-configuration={candidateTask.status} className="mt-2 block w-full space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2 text-xs text-[var(--nimi-text-secondary)]">
+          <span className="block truncate" title={entry.taskModel || undefined}>
+            {entry.taskModel
+              ? t('runtimeConfig.quickStart.otherConfigurationModel', { model: entry.taskModel })
+              : t('runtimeConfig.quickStart.otherConfiguration')}
+          </span>
+          <span className="flex items-start gap-1.5">
+            <LoaderCircle size={12} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-[var(--nimi-status-info)]" />
+            <span>{t(`runtimeConfig.setupTask.status.${candidateTask.status}`)}</span>
+          </span>
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 function QuickStartShell(props: {
   readonly icon?: LucideIcon;
   readonly state: 'pending' | 'ready' | 'preparing' | 'attention' | 'unknown' | 'unset';
@@ -274,7 +378,7 @@ function QuickStartShell(props: {
   return (
     <Surface
       as="section"
-      tone="hero"
+      tone={props.state === 'ready' ? 'card' : 'hero'}
       padding="none"
       className="desktop-module-card"
       data-testid="ai-profile-quick-start"

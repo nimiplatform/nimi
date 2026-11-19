@@ -1,10 +1,10 @@
-import { Button, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useCapabilityInventory } from './runtime-capability-inventory.js';
-import { capabilityIcon, modelDisplayTitle, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
+import { modelDisplayTitle, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { RuntimeSetupTaskCloudPanel } from './runtime-config-setup-task-cloud.js';
 import { RuntimeConfigSetupTaskView, SetupTaskPlanReview } from './runtime-config-setup-task-view.js';

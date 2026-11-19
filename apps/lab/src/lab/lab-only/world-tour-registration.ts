@@ -1,4 +1,4 @@
-import { Compass } from 'lucide-react';
+import { capabilityIcon } from '@nimiplatform/kit/ui';
 import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-registration.js';
 import { worldTourParameters } from '../world-tour/world-tour-input.js';
 import { labWorldTourDescriptor, type LabWorldTourCapabilityId } from './world-tour-descriptor.js';
@@ -7,7 +7,7 @@ import { WorldTourHistoryActions } from '../world-tour/world-tour-history-action
 
 export const labWorldTourCapability = Object.freeze({
   descriptor: labWorldTourDescriptor,
-  icon: Compass,
+  icon: capabilityIcon(labWorldTourDescriptor.id),
   profile: {
     primaryParameters: 'all',
     studioTag: 'World', inputTitleKey: 'Studio.profiles.worldGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.worldGenerate.inputPlaceholder', inputKind: 'prompt', inputNoteKey: 'Studio.profiles.worldGenerate.inputNote', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.worldGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.worldGenerate.primaryRunningLabel', resultTitle: 'Viewer', emptyTitleKey: 'Studio.profiles.worldGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.worldGenerate.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.worldGenerate.footnote',

@@ -5,31 +5,6 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import {
-  AudioWaveform,
-  ChartColumnIncreasing,
-  Clapperboard,
-  Earth,
-  FileMusic,
-  FileSearch,
-  Image,
-  ImageUpscale,
-  Languages,
-  ListChecks,
-  Maximize,
-  MessageSquare,
-  Mic,
-  Music2,
-  Radio,
-  Repeat2,
-  ScanFace,
-  ScanSearch,
-  Speech,
-  Split,
-  Video,
-  WandSparkles,
-  type LucideIcon,
-} from 'lucide-react';
 import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
 import {
   loadoutCompositionKey,
@@ -42,34 +17,6 @@ export function setupPlanNeedsPreparation(plan: RuntimeSetupPreparationPlan, cho
   return plan.components.some(item => item.required)
     || plan.acquire.some(item => !item.offer.installedModelAssetId)
     || plan.awaitingChoice.some(item => !item.options.find(option => option.offerRef === choices[item.slotId])?.installedModelAssetId);
-}
-
-const CAPABILITY_ICONS: Readonly<Record<string, LucideIcon>> = {
-  'text.generate': MessageSquare,
-  'image.generate': Image,
-  'audio.synthesize': Speech,
-  'audio.transcribe': Mic,
-  'video.generate': Video,
-  'music.generate': Music2,
-  'music.transcribe': FileMusic,
-  'audio.voice.convert': Repeat2,
-  'voice.create': AudioWaveform,
-  'audio.separate': Split,
-  'audio.speaker.embed': ChartColumnIncreasing,
-  'text.annotate': Languages,
-  'text.decide': ListChecks,
-  'image.face_swap': ScanFace,
-  'video.face_swap': Clapperboard,
-  'image.upscale': ImageUpscale,
-  'video.upscale': Maximize,
-  'vision.locate': ScanSearch,
-  'text.embed': FileSearch,
-  'world.generate': Earth,
-  'realtime.interact': Radio,
-};
-
-export function capabilityIcon(capability: string): LucideIcon {
-  return CAPABILITY_ICONS[capability] ?? WandSparkles;
 }
 
 /**

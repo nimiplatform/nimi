@@ -1,3 +1,4 @@
+export { capabilityIcon } from './capability-icon.js';
 export * from './design-tokens.js';
 export * from './theme.js';
 export * from './components/surface.js';

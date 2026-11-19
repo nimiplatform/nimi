@@ -2661,6 +2661,8 @@
     "title": "On-device chat",
     "setupTitle": "Set up your first on-device chat",
     "readyTitle": "Ready capabilities · {{count}}",
+    "allGroups": "All",
+    "filterCategory": "Filter by category",
     "defaultModel": "Default · {{model}}",
     "defaultTag": "Default",
     "otherConfiguration": "Another configuration",

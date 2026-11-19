@@ -12,7 +12,7 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
-import { Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Bot, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Laptop, LoaderCircle, X } from 'lucide-react';
 import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
@@ -25,7 +25,6 @@ import {
   loadoutSlotOfferForAsset,
 } from './runtime-config-loadout-model-display.js';
 import {
-  capabilityIcon,
   contextFitReduced,
   formatContextTokens,
   modelDisplayTitle,

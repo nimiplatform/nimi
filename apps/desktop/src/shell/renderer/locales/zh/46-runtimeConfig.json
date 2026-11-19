@@ -2661,6 +2661,8 @@
     "title": "本机对话",
     "setupTitle": "设置你的第一个本机对话",
     "readyTitle": "可用能力 · {{count}}",
+    "allGroups": "全部",
+    "filterCategory": "按分类筛选",
     "defaultModel": "默认 · {{model}}",
     "defaultTag": "默认",
     "otherConfiguration": "另一份配置",

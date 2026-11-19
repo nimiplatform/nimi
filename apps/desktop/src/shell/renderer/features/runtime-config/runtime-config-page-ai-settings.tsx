@@ -1,5 +1,5 @@
 import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
-import { Button, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, FolderOpen, LoaderCircle, SlidersHorizontal } from 'lucide-react';
@@ -12,7 +12,7 @@ import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capabi
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import { resetRuntimePageViewport } from './runtime-config-page-shell.js';
 import { type CapabilityPreparationState, capabilityPreparationState, useCapabilityInventory } from './runtime-capability-inventory.js';
-import { capabilityIcon, capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
+import { capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeEnvironmentObservation } from './runtime-environment-observation.js';

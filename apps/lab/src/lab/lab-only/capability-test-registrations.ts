@@ -1,4 +1,5 @@
-import { AudioWaveform, Braces, Clapperboard, ListChecks, MessageSquareText, MessagesSquare, ScanFace, Wrench } from 'lucide-react';
+import { capabilityIcon } from '@nimiplatform/kit/ui';
+import { MessagesSquare, Workflow, Wrench } from 'lucide-react';
 import type { StudioCapabilityRegistration } from '../../ai-studio-core/module-registration.js';
 import { EMPTY_STUDIO_PARAMETERS } from '../../ai-studio-core/parameters.js';
 import {
@@ -36,7 +37,7 @@ import { labSpeakerEmbeddingParameters } from './speaker-embedding.js';
 const k = (entry: string, field: string) => `CapabilityTests.${entry}.${field}`;
 
 export const labSpeakerEmbeddingCapability = Object.freeze({
-  descriptor: labSpeakerEmbeddingDescriptor, icon: AudioWaveform,
+  descriptor: labSpeakerEmbeddingDescriptor, icon: capabilityIcon(labSpeakerEmbeddingDescriptor.id),
   profile: {
     studioTag: 'Speaker representation', inputTitleKey: k('speakerEmbedding', 'inputTitle'), inputPlaceholderKey: k('speakerEmbedding', 'inputTitle'), inputKind: 'none', inputNoteKey: k('speakerEmbedding', 'inputNote'),
     supportsAttachments: false, controls: [], primaryLabelKey: k('speakerEmbedding', 'primaryLabel'), primaryRunningLabelKey: k('speakerEmbedding', 'primaryRunningLabel'), resultTitle: 'Speaker representation',
@@ -49,7 +50,7 @@ export const labSpeakerEmbeddingCapability = Object.freeze({
 
 export const labTextAnnotateCapability = Object.freeze({
   descriptor: labTextAnnotateDescriptor,
-  icon: Braces,
+  icon: capabilityIcon(labTextAnnotateDescriptor.id),
   profile: {
     studioTag: 'Annotation', inputTitleKey: k('textAnnotate', 'inputTitle'), inputPlaceholderKey: k('textAnnotate', 'inputPlaceholder'), inputKind: 'prompt', supportsAttachments: false, controls: [], primaryLabelKey: k('textAnnotate', 'primaryLabel'), primaryRunningLabelKey: k('textAnnotate', 'primaryRunningLabel'), resultTitle: 'Annotation', emptyTitleKey: k('textAnnotate', 'emptyTitle'), emptyHintKey: k('textAnnotate', 'emptyHint'), resultKind: 'text-annotation', footnoteKey: k('textAnnotate', 'footnote'), pendingLabelKey: k('textAnnotate', 'pending'), rawPrompt: true,
   },
@@ -77,7 +78,7 @@ export const labTextToolsCapability = Object.freeze({
 // The whole request lives in Parameters; history records the exact spec sent.
 export const labTextDecideCapability = Object.freeze({
   descriptor: labTextDecideDescriptor,
-  icon: ListChecks,
+  icon: capabilityIcon(labTextDecideDescriptor.id),
   profile: {
     studioTag: 'Decisions', inputTitleKey: k('textDecide', 'inputTitle'), inputPlaceholderKey: k('textDecide', 'inputTitle'), inputKind: 'none', inputNoteKey: k('textDecide', 'inputNote'), supportsAttachments: false, controls: [], primaryLabelKey: k('textDecide', 'primaryLabel'), primaryRunningLabelKey: k('textDecide', 'primaryRunningLabel'), resultTitle: 'Decisions', emptyTitleKey: k('textDecide', 'emptyTitle'), emptyHintKey: k('textDecide', 'emptyHint'), resultKind: 'text-decision', footnoteKey: k('textDecide', 'footnote'), pendingLabelKey: k('textDecide', 'pending'), requiresParameterInput: true,
   },
@@ -104,7 +105,7 @@ export const labTextConversationCapability = Object.freeze({
 // AIConfig.
 export const labChatSessionCapability = Object.freeze({
   descriptor: labChatSessionDescriptor,
-  icon: MessageSquareText,
+  icon: Workflow,
   profile: {
     studioTag: 'Session hook', inputTitleKey: k('chatSession', 'title'), inputPlaceholderKey: k('textConversation', 'placeholder'), inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: k('textConversation', 'send'), primaryRunningLabelKey: k('textConversation', 'generating'), resultTitle: 'Session hook', emptyTitleKey: k('chatSession', 'title'), emptyHintKey: k('chatSession', 'intro'), resultKind: 'text', footnoteKey: k('chatSession', 'intro'),
   },
@@ -115,7 +116,7 @@ export const labChatSessionCapability = Object.freeze({
 
 export const labImageFaceSwapCapability = Object.freeze({
   descriptor: labImageFaceSwapDescriptor,
-  icon: ScanFace,
+  icon: capabilityIcon(labImageFaceSwapDescriptor.id),
   profile: {
     studioTag: 'Face swap', inputTitleKey: k('imageFaceSwap', 'inputTitle'), inputPlaceholderKey: k('imageFaceSwap', 'inputTitle'), inputKind: 'none', inputNoteKey: k('imageFaceSwap', 'inputNote'), supportsAttachments: false, controls: [], primaryLabelKey: k('imageFaceSwap', 'primaryLabel'), primaryRunningLabelKey: k('imageFaceSwap', 'primaryRunningLabel'), resultTitle: 'Face swap', emptyTitleKey: k('imageFaceSwap', 'emptyTitle'), emptyHintKey: k('imageFaceSwap', 'emptyHint'), resultKind: 'artifacts', footnoteKey: k('imageFaceSwap', 'footnote'), pendingLabelKey: k('imageFaceSwap', 'pending'), requiresParameterInput: true,
   },
@@ -127,7 +128,7 @@ export const labImageFaceSwapCapability = Object.freeze({
 
 export const labVideoFaceSwapCapability = Object.freeze({
   descriptor: labVideoFaceSwapDescriptor,
-  icon: Clapperboard,
+  icon: capabilityIcon(labVideoFaceSwapDescriptor.id),
   profile: {
     studioTag: 'Face swap', inputTitleKey: k('videoFaceSwap', 'inputTitle'), inputPlaceholderKey: k('videoFaceSwap', 'inputTitle'), inputKind: 'none', inputNoteKey: k('videoFaceSwap', 'inputNote'), supportsAttachments: false, controls: [], primaryLabelKey: k('videoFaceSwap', 'primaryLabel'), primaryRunningLabelKey: k('videoFaceSwap', 'primaryRunningLabel'), resultTitle: 'Face swap', emptyTitleKey: k('videoFaceSwap', 'emptyTitle'), emptyHintKey: k('videoFaceSwap', 'emptyHint'), resultKind: 'artifacts', footnoteKey: k('videoFaceSwap', 'footnote'), pendingLabelKey: k('videoFaceSwap', 'pending'), requiresParameterInput: true,
   },
@@ -141,7 +142,7 @@ export const labVideoFaceSwapCapability = Object.freeze({
 // navigation, AIConfig inventory and history identity.
 export const labAiRealtimeCapability = Object.freeze({
   descriptor: labAiRealtimeDescriptor,
-  icon: AudioWaveform,
+  icon: capabilityIcon(labAiRealtimeDescriptor.id),
   profile: {
     studioTag: 'Realtime', inputTitleKey: k('aiRealtime', 'title'), inputPlaceholderKey: k('aiRealtime', 'title'), inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: k('aiRealtime', 'open'), primaryRunningLabelKey: k('aiRealtime', 'opening'), resultTitle: 'Session', emptyTitleKey: k('aiRealtime', 'title'), emptyHintKey: k('aiRealtime', 'intro'), resultKind: 'session', footnoteKey: k('aiRealtime', 'intro'),
   },
@@ -159,14 +160,14 @@ const upscaleProfile = {
 } as const;
 
 export const labImageUpscaleCapability = Object.freeze({
-  descriptor: labImageUpscaleDescriptor, icon: ScanFace, profile: upscaleProfile,
+  descriptor: labImageUpscaleDescriptor, icon: capabilityIcon(labImageUpscaleDescriptor.id), profile: upscaleProfile,
   preset: { id: 'source-image', label: 'Source image', prompt: '' },
   runtimeMethod: 'sdk.localApp.ai.scenarioJobs.submit:image-upscale',
   parameters: labUpscaleParameters, parameterPanel: LabImageUpscaleParameterPanel,
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
 export const labVideoUpscaleCapability = Object.freeze({
-  descriptor: labVideoUpscaleDescriptor, icon: Clapperboard, profile: upscaleProfile,
+  descriptor: labVideoUpscaleDescriptor, icon: capabilityIcon(labVideoUpscaleDescriptor.id), profile: upscaleProfile,
   preset: { id: 'source-video', label: 'Source video', prompt: '' },
   runtimeMethod: 'sdk.localApp.ai.scenarioJobs.submit:video-upscale',
   parameters: labUpscaleParameters, parameterPanel: LabVideoUpscaleParameterPanel,

@@ -3,7 +3,7 @@ import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useLabNavigationOwner, type LabDestination } from '../shell/routes/app-navigation.js';
 import { Button, InlineAlert, LoadingSkeleton, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 import { requireLabNativeClient } from '../shell/local-app-runtime-platform.js';
-import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare, ShieldCheck } from 'lucide-react';
+import { AudioLines, Bot, BotMessageSquare, Boxes, Cable, Inbox, PanelsTopLeft, ShieldCheck } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
 import { STUDIO_AI_CONFIG_CHANGED_EVENT } from '../ai-studio-core/ai-config.js';
@@ -167,7 +167,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       label: t('Workbench.groups.agents'),
       items: [
         { id: 'agent-center', label: t('Workbench.agentCenter'), icon: Bot },
-        { id: 'agent-conversation', label: t('Workbench.agentConversation'), icon: MessagesSquare },
+        { id: 'agent-conversation', label: t('Workbench.agentConversation'), icon: BotMessageSquare },
         { id: 'agent-realtime', label: t('Workbench.agentRealtime'), icon: AudioLines },
         { id: 'agent-utopia', label: t('Workbench.utopia.title'), icon: Boxes },
       ],
@@ -177,7 +177,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     { id: 'integrations', label: t('Integrations.title'), icon: Cable },
     { id: 'activity', label: t('Activity.title'), icon: Inbox },
     { id: 'app-access', label: t('AppAccess.page.title'), icon: ShieldCheck },
-    { id: 'ui-recipes', label: t('Workbench.uiRecipes'), icon: Boxes },
+    { id: 'ui-recipes', label: t('Workbench.uiRecipes'), icon: PanelsTopLeft },
   ], [t]);
 
   const capabilityRegistration = useMemo(

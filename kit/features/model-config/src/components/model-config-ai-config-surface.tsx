@@ -18,6 +18,7 @@ import {
   LoadingSkeleton,
   SelectField,
   StatusBadge,
+  capabilityIcon,
   cn,
 } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
@@ -347,22 +348,8 @@ function statusDotClass(tone: PostureBadge['tone']): string {
   return 'bg-[var(--nimi-text-muted)]';
 }
 
-function capabilityIconPath(section: CanonicalCapabilityDescriptor['section'] | undefined): string {
-  switch (section) {
-    case 'chat':
-      return 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z';
-    case 'stt':
-      return 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8';
-    case 'tts':
-      return 'M11 5 6 9H2v6h4l5 4V5zM19 5a10 10 0 0 1 0 14M16 8a5 5 0 0 1 0 8';
-    case 'image':
-      return 'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8.5 8.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM21 15l-5-5L5 21';
-    default:
-      return 'M12 2v20M2 12h20';
-  }
-}
-
-function CapabilityIcon(props: { readonly descriptor?: CanonicalCapabilityDescriptor; readonly tone: PostureBadge['tone'] }) {
+function CapabilityIcon(props: { readonly contract: string; readonly tone: PostureBadge['tone'] }) {
+  const Icon = capabilityIcon(props.contract);
   const toneClass = props.tone === 'success'
     ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)] text-[var(--nimi-status-success)]'
     : props.tone === 'warning'
@@ -370,9 +357,7 @@ function CapabilityIcon(props: { readonly descriptor?: CanonicalCapabilityDescri
       : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]';
   return (
     <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-[10px]', toneClass)}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d={capabilityIconPath(props.descriptor?.section)} />
-      </svg>
+      <Icon size={16} aria-hidden="true" />
     </span>
   );
 }
@@ -411,7 +396,7 @@ function CapabilityRowButton(props: {
       )}
       data-nimi-model-config-capability={entry.contract}
     >
-      <CapabilityIcon descriptor={entry.descriptor} tone={entry.badge.tone} />
+      <CapabilityIcon contract={entry.contract} tone={entry.badge.tone} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
           {descriptorLabel(entry.contract, entry.descriptor, copy)}

@@ -5,7 +5,7 @@ import {
 } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
-import { ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { capabilityIcon, ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -19,7 +19,6 @@ import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { groupAppsEntries } from '../apps/apps-entry-groups.js';
-import { capabilityIcon } from './runtime-capability-presentation.js';
 import { prepareRuntimeConfigAIProfilePreview } from './runtime-config-ai-profile-preview.js';
 import type { RuntimeConfigAIProfileTransferPlan } from './runtime-config-ai-profile-transfer.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
