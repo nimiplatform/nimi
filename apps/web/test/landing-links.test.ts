@@ -52,8 +52,8 @@ test('withLocaleQuery keeps other parameters and hash on internal links', () => 
 });
 
 test('buildAppDetailUrl keeps the locale query ahead of the app id', () => {
-  assert.equal(buildAppDetailUrl('/apps?lang=zh', 'nimi.parentos'), '/apps/nimi.parentos?lang=zh');
-  assert.equal(buildAppDetailUrl('/apps', 'nimi.parentos'), '/apps/nimi.parentos');
+  assert.equal(buildAppDetailUrl('/apps?lang=zh', 'parentos'), '/apps/parentos?lang=zh');
+  assert.equal(buildAppDetailUrl('/apps', 'parentos'), '/apps/parentos');
 });
 
 test('resolveLocalizedLinks carries the active locale into site entries', () => {

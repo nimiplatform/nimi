@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { PublicProduct } from '../src/pages/hosted-directory.js';
 import { StaticPage } from '../src/pages/static-page.js';
 import { PlatformPage } from '../src/pages/platform-page.js';
 import { PlatformCapabilityPreview } from '../src/pages/platform-capability-preview.js';
@@ -33,24 +34,27 @@ test('apps page lists admitted apps as informational entries without install act
   assert.match(html, /OpenMontage/);
   assert.match(html, /macOS arm64/);
   assert.match(html, /Windows x86_64/);
-  assert.match(html, /href="\/apps\/nimi\.parentos\?lang=(en|zh)"/);
+  assert.match(html, /href="\/apps\/parentos\?lang=(en|zh)"/);
   assert.doesNotMatch(html, /Install now|立即安装/i);
 });
 
-test('unknown app slug renders a not-found state instead of the catalog intro', () => {
+test('a valid unfamiliar slug waits for the live directory before showing not found', () => {
   const html = renderRoute('/apps/definitely-not-an-app', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
-  assert.match(html, /App not found|未找到这个应用/);
+  assert.match(html, /Loading the app|正在读取应用介绍/);
+  assert.doesNotMatch(html, /App not found|未找到这个应用/);
+  const retired = renderRoute('/apps/nimi.parentos', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
+  assert.match(retired, /App not found|未找到这个应用/);
   assert.doesNotMatch(html, /Explore apps|探索应用/);
 });
 
 test('app detail renders the catalog or bundled platform, license, and source', () => {
-  const catalogHtml = renderRoute('/apps/nimi.parentos', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
+  const catalogHtml = renderRoute('/apps/parentos', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
   assert.match(catalogHtml, /ParentOS/);
   assert.match(catalogHtml, /Transcription|语音转写/);
   assert.match(catalogHtml, /MIT/);
   assert.match(catalogHtml, /github\.com\/nimiplatform\/nimiapp-parentos/);
 
-  const bundledHtml = renderRoute('/apps/nimi.zhiyu?lang=zh', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
+  const bundledHtml = renderRoute('/apps/zhiyu?lang=zh', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
   assert.match(bundledHtml, /织羽/);
   assert.match(bundledHtml, /随桌面端内置/);
   assert.match(bundledHtml, /MIT（随 Nimi 发行）/);
@@ -58,14 +62,24 @@ test('app detail renders the catalog or bundled platform, license, and source', 
   assert.match(bundledHtml, /github\.com\/nimiplatform\/nimi/);
   assert.doesNotMatch(bundledHtml, /未找到这个应用/);
 
-  const sillyTavern = renderRoute('/apps/org.nimiplatform.sillytavern?lang=en', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
+  const sillyTavern = renderRoute('/apps/sillytavern?lang=en', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
   assert.match(sillyTavern, /In Desktop Catalog/);
   assert.match(sillyTavern, /github\.com\/nimiplatform\/SillyTavern/);
   assert.match(sillyTavern, /<dd>macOS arm64 · Windows x86_64<\/dd>/);
 
-  const openWhispr = renderRoute('/apps/ai.nimi.openwhispr?lang=en', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
+  const openWhispr = renderRoute('/apps/openwhispr?lang=en', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
   assert.match(openWhispr, /In Desktop Catalog/);
   assert.match(openWhispr, /<dd>Windows x86_64<\/dd>/);
+});
+
+test('an external product without a demo shows the verified publisher and an eligible Web launch', () => {
+  const item = {app_id:'example.notes',slug:'notes',display_name:'Paper Notes',publisher:'paper-team',repository:'https://github.com/paper-team/notes',license:'MIT',summary:{en:'Take notes',zh:'笔记'},pc_targets:[],capabilities:[],blocked:false,web:{url:'https://notes.nimi.xyz/',version:'1.0.0'}};
+  const render = (product: typeof item | Omit<typeof item,'web'> & {web:null}) => renderRoute('/apps/notes','/apps/:slug',createElement(PublicProduct,{item:product,locale:'en',detail:true}));
+  const html = render(item);
+  assert.match(html,/paper-team/);
+  assert.match(html,/href="https:\/\/notes\.nimi\.xyz\/"/);
+  assert.doesNotMatch(html,/Nimi Adapted|interactive preview/i);
+  assert.doesNotMatch(render({...item,web:null}),/Open in browser/);
 });
 
 test('home page exposes the worlds anchor and honest availability', () => {

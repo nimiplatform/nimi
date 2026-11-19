@@ -45,4 +45,27 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
+  <url><loc>https://nimi.ai/apps/zhiyu</loc></url>
+  <url><loc>https://nimi.ai/apps/parentos</loc></url>
+  <url><loc>https://nimi.ai/apps/overtone</loc></url>
+  <url><loc>https://nimi.ai/apps/storybook</loc></url>
+  <url><loc>https://nimi.ai/apps/realm-persona-studio</loc></url>
+  <url><loc>https://nimi.ai/apps/realm-world-studio</loc></url>
+  <url><loc>https://nimi.ai/apps/shijing</loc></url>
+  <url><loc>https://nimi.ai/apps/inscape</loc></url>
+  <url><loc>https://nimi.ai/apps/odd-bureau</loc></url>
+  <url><loc>https://nimi.ai/apps/polyagent</loc></url>
+  <url><loc>https://nimi.ai/apps/vane</loc></url>
+  <url><loc>https://nimi.ai/apps/openmontage</loc></url>
+  <url><loc>https://nimi.ai/apps/next-ai-draw-io</loc></url>
+  <url><loc>https://nimi.ai/apps/sillytavern</loc></url>
+  <url><loc>https://nimi.ai/apps/videolingo</loc></url>
+  <url><loc>https://nimi.ai/apps/deeptutor</loc></url>
+  <url><loc>https://nimi.ai/apps/open-notebook</loc></url>
+  <url><loc>https://nimi.ai/apps/presenton</loc></url>
+  <url><loc>https://nimi.ai/apps/openwhispr</loc></url>
+  <url><loc>https://nimi.ai/apps/moneyprinterturbo</loc></url>
+  <url><loc>https://nimi.ai/apps/voicestudio</loc></url>
+  <url><loc>https://nimi.ai/apps/jev-search</loc></url>
+  <url><loc>https://nimi.ai/apps/jev-ultrafast</loc></url>
 </urlset>

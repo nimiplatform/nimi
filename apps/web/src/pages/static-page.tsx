@@ -1,3 +1,5 @@
+import { editorialSlugs } from './catalog-slugs.js';
+import { pcTargetLabels, PublicProduct, useHostedDirectory, WebLaunch } from './hosted-directory.js';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Blocks, Cpu, ExternalLink, Layers3, Play, ShieldCheck } from 'lucide-react';
 import { useParams } from 'react-router-dom';
@@ -266,21 +268,24 @@ function AppsPageInner({
   const ecosystemApps = useMemo(() => getEcosystemApps(locale), [locale]);
   const [activeFilter, setActiveFilter] = useState<EcosystemFilterId>('all');
 
-  const selectedEcosystemEntry = slug ? ecosystemApps.find((entry) => entry.id === slug) : undefined;
+  const directory = useHostedDirectory(slug);
+  const liveProduct = slug ? directory.state.products.find(entry => entry.slug === slug) : undefined;
+  const selectedEcosystemEntry = slug ? ecosystemApps.find(entry => editorialSlugs[entry.id] === slug) : undefined;
   const selectedApp = selectedEcosystemEntry?.catalog;
+  const suspended = locale === 'zh' ? '已暂停发行' : 'Distribution suspended';
 
   usePublicDocumentMetadata(
     slug
       ? selectedEcosystemEntry
         ? `${selectedEcosystemEntry.name} | Nimi`
-        : `${copy.apps.notFoundTitle} | Nimi`
+        : `${liveProduct?.display_name ?? copy.apps.metaTitle} | Nimi`
       : `${copy.apps.metaTitle} | Nimi`,
     slug
       ? selectedEcosystemEntry
         ? selectedEcosystemEntry.description
-        : copy.apps.notFoundBody
+        : liveProduct?.summary[locale] ?? copy.apps.notFoundBody
       : copy.apps.intro,
-    slug && selectedEcosystemEntry ? `/apps/${selectedEcosystemEntry.id}` : '/apps',
+    slug && (selectedEcosystemEntry || liveProduct) ? `/apps/${slug}` : '/apps',
     locale,
   );
 
@@ -295,7 +300,7 @@ function AppsPageInner({
   if (slug && !selectedEcosystemEntry) {
     return (
       <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
-        <AppNotFound locale={locale} />
+        {liveProduct ? <PublicProduct item={liveProduct} locale={locale} detail /> : directory.state.status === 'missing' || !/^[a-z0-9-]{1,63}$/.test(slug) ? <AppNotFound locale={locale} /> : <p className="story-container" role="status">{directory.state.status === 'unavailable' ? (locale === 'zh' ? '暂时无法读取应用目录。' : 'The app directory is unavailable.') : (locale === 'zh' ? '正在读取应用介绍…' : 'Loading the app…')}</p>}
       </PublicSiteShell>
     );
   }
@@ -318,9 +323,12 @@ function AppsPageInner({
       ?? (posture === 'first-party-companion'
         ? ecosystemCopy.licenseBundledNote
         : ecosystemCopy.licensePreviewNote);
-    const platformsValue = posture === 'interactive-preview'
-      ? ecosystemCopy.previewPlatformsValue
-      : (selectedApp?.platforms ?? copy.apps.platforms).join(' · ');
+    const pcPlatforms = liveProduct && selectedApp
+      ? pcTargetLabels(liveProduct.pc_targets)
+      : selectedApp?.platforms ?? copy.apps.platforms;
+    const platforms = posture === 'interactive-preview' ? [ecosystemCopy.previewPlatformsValue] : [...pcPlatforms];
+    if (liveProduct?.web) platforms.push('Web');
+    const platformsValue = liveProduct?.blocked ? suspended : platforms.join(' · ') || '—';
 
     return (
       <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
@@ -348,7 +356,7 @@ function AppsPageInner({
                       {ecosystemCopy.originBadge[origin]}
                     </span>
                     <span className="public-app-badge is-posture" data-posture={posture}>
-                      {selectedApp
+                      {liveProduct?.blocked ? suspended : selectedApp
                         ? `${ecosystemCopy.postureBadge[posture]} · ${selectedApp.license}`
                         : ecosystemCopy.postureBadge[posture]}
                     </span>
@@ -366,12 +374,13 @@ function AppsPageInner({
               </button>
             </div>
 
-            <p className="public-app-detail-summary">{description}</p>
+            <p className="public-app-detail-summary">{liveProduct?.summary[locale] ?? description}</p>
+            {liveProduct && !liveProduct.blocked && <WebLaunch item={liveProduct} locale={locale} />}
             <p className="public-app-origin-note">{ecosystemCopy.originDetail[origin]}</p>
 
             <div className="public-app-posture-callout" data-posture={posture}>
               <strong>{ecosystemCopy.availabilityLabel}</strong>
-              <p>{ecosystemCopy.postureDetail[posture]}</p>
+              <p>{liveProduct?.blocked ? (locale === 'zh' ? '当前发行已停用。' : 'Distribution is suspended.') : ecosystemCopy.postureDetail[posture]}</p>
             </div>
 
             <div className="public-app-detail-preview">
@@ -433,7 +442,9 @@ function AppsPageInner({
               </div>
             </dl>
 
-            <p className="public-availability-note">{copy.apps.statusNote}</p>
+            {!liveProduct?.blocked && selectedApp && pcPlatforms.length > 0 && (
+              <p className="public-availability-note">{copy.apps.statusNote}</p>
+            )}
           </article>
         </section>
 
@@ -448,11 +459,14 @@ function AppsPageInner({
     );
   }
 
+  const listedProducts = new Map(directory.state.products.map(item => [item.app_id, item]));
+  const inDesktopCatalog = (app: typeof ecosystemApps[number]) => app.posture === 'catalog-admitted' && !listedProducts.get(app.id)?.blocked;
+  const additionalProducts = directory.state.products.filter(item => !ecosystemApps.some(app => app.id === item.app_id));
   const counts: Record<EcosystemFilterId, number> = {
-    all: ecosystemApps.length,
+    all: ecosystemApps.length + additionalProducts.length,
     'nimi-official': ecosystemApps.filter((app) => app.origin === 'nimi-official').length,
     'open-source-adapted': ecosystemApps.filter((app) => app.origin === 'open-source-adapted').length,
-    'catalog-admitted': ecosystemApps.filter((app) => app.posture === 'catalog-admitted').length,
+    'catalog-admitted': ecosystemApps.filter(inDesktopCatalog).length,
   };
   const postureCounts = {
     'first-party-companion': ecosystemApps.filter((app) => app.posture === 'first-party-companion').length,
@@ -462,7 +476,7 @@ function AppsPageInner({
 
   const filteredApps = ecosystemApps.filter((app) => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'catalog-admitted') return app.posture === 'catalog-admitted';
+    if (activeFilter === 'catalog-admitted') return inDesktopCatalog(app);
     return app.origin === activeFilter;
   });
 
@@ -588,7 +602,7 @@ function AppsPageInner({
 
                   <div className="public-app-badges">
                     <span className="public-app-badge is-posture" data-posture={app.posture}>
-                      {app.catalog
+                      {listedProducts.get(app.id)?.blocked ? suspended : app.catalog
                         ? `${ecosystemCopy.postureBadge[app.posture]} · ${app.catalog.license}`
                         : ecosystemCopy.postureBadge[app.posture]}
                     </span>
@@ -614,7 +628,7 @@ function AppsPageInner({
                       <span>{ecosystemCopy.previewAction}</span>
                     </button>
                     <PublicSiteLink
-                      to={withLocaleQuery(`/apps/${app.id}`, locale)}
+                      to={withLocaleQuery(`/apps/${editorialSlugs[app.id]}`, locale)}
                       className="public-app-detail-link"
                     >
                       <span>{copy.apps.itemCta}</span>
@@ -624,7 +638,9 @@ function AppsPageInner({
                 </div>
               </li>
             ))}
+            {activeFilter === 'all' && additionalProducts.map(item => <li className="public-app-card" key={item.app_id}><PublicProduct item={item} locale={locale} /></li>)}
           </ul>
+          {directory.state.next && activeFilter === 'all' && <button type="button" className="story-button" onClick={directory.more}>{locale === 'zh' ? '更多应用' : 'More apps'}</button>}
         </div>
       </section>
 

@@ -362,7 +362,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       intro:
         'Nimi 应用是可以在 Nimi 中使用的应用。每个上架应用都有公开的源码仓库和明确的开源许可。',
       statusNote:
-        '应用的浏览、安装、更新与卸载可在 Nimi 桌面客户端（支持 macOS arm64 与 Windows x86_64）中进行。网页仅作介绍展示，不直接提供安装。',
+        '打开 Nimi 桌面客户端的应用目录，可安装、更新或卸载对应的 PC 版本。',
       listTitle: '探索应用',
       platformsLabel: '平台',
       platforms: ['macOS arm64', 'Windows x86_64'],
@@ -425,7 +425,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
       intro:
         'Nimi Apps are the apps you can use inside Nimi. Every admitted app has a public source repository and an explicit open-source license.',
       statusNote:
-        'App discovery, installation, updates, and uninstallation are available in the Nimi desktop client (macOS arm64 and Windows x86_64). This page provides informational overviews only.',
+        'Open the app catalog in Nimi on your PC to install, update, or remove the desktop version.',
       listTitle: 'Explore apps',
       platformsLabel: 'Platforms',
       platforms: ['macOS arm64', 'Windows x86_64'],

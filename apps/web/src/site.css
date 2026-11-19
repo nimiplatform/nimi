@@ -1814,7 +1814,6 @@
   top: .75rem;
   left: .75rem;
   box-shadow: 0 5px 16px -8px rgba(15, 45, 68, .38);
-  backdrop-filter: blur(10px);
 }
 
 .public-apps-page .public-app-card-origin[data-origin="nimi-official"] {

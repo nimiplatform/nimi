@@ -139,7 +139,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
 }>> = {
   zh: {
     eyebrow: '应用生态 · 官方原生与开源适配',
-    heroAvailability: '点击应用卡片即可预览。可安装的版本和设备要求请在 Nimi Home 的应用目录中查看。',
+    heroAvailability: '打开应用介绍，查看可用的 Web 或 PC 版本。PC 版可在 Nimi Home 的应用目录安装。',
     provenanceCalloutTitle: '两类来源，同一套个人 AI 底座',
     provenanceCalloutOfficial: 'Nimi 官方原生：由 Nimi 团队面向个人陪伴、创作与生活记录原生设计并发布。',
     provenanceCalloutAdapted: '开源项目 · Nimi 适配：本为优秀的第三方开源项目（如 Vane、SillyTavern、OpenMontage 等），由 Nimi 完成 Fork 与底座适配，使其无需各自捆绑模型环境或重复填写 API Key 即可直接调用 Nimi 算力。',
@@ -194,11 +194,11 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
     previewAction: '交互预览',
     detailAction: '了解应用',
     platformsSummary: '桌面端支持：macOS arm64 · Windows x86_64',
-    previewFootnote: '点击任意卡片的“交互预览”即可在浏览器中体验界面流程；实际桌面应用管理在 Nimi 客户端中完成。',
+    previewFootnote: '带有“交互预览”的应用可以先体验界面。已发布 Web 版的应用在介绍页提供运行入口。',
   },
   en: {
     eyebrow: 'App Ecosystem · First-Party & Open-Source Adaptations',
-    heroAvailability: 'Select an app card to preview it. Check the Nimi Home catalog for installable versions and device requirements.',
+    heroAvailability: 'Open an app’s introduction to see its available Web and PC versions. Install PC versions from the catalog in Nimi Home.',
     provenanceCalloutTitle: 'Two origins, one personal AI foundation',
     provenanceCalloutOfficial: 'Nimi Official: Built and published natively by Nimi for companion continuity, creative studios, and personal records.',
     provenanceCalloutAdapted: 'Open-Source · Nimi Adapted: Established third-party open-source projects (such as Vane, SillyTavern, and OpenMontage) forked and adapted by Nimi so they consume your unified Nimi Runtime without bundling duplicate model stacks or per-app API keys.',
@@ -253,6 +253,6 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
     previewAction: 'Interactive preview',
     detailAction: 'View app',
     platformsSummary: 'Desktop support: macOS arm64 · Windows x86_64',
-    previewFootnote: 'Select “Interactive preview” on any card to explore its workflow in your browser; actual desktop app management happens inside Nimi.',
+    previewFootnote: 'Apps with an interactive preview let you explore their interface. Open an app’s introduction to launch its published Web version.',
   },
 };

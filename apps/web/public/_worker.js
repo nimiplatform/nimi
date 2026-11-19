@@ -28,6 +28,12 @@ export default {
         status: 405, headers: { Allow: 'GET, HEAD', 'Cache-Control': 'no-store' },
       });
     }
+    if (url.pathname === '/.well-known/nimi-apps' || url.pathname.startsWith('/.well-known/nimi-apps/')) {
+      if (url.origin !== PORTAL_ORIGIN || !env.APP_HOST) return new Response(null, { status: 503, headers:{'Cache-Control':'no-store'} });
+      const target = new URL(url.pathname + url.search, 'https://catalog.internal');
+      const result = await env.APP_HOST.fetch(new Request(target, {method:'GET',redirect:'error'}));
+      return new Response(request.method === 'HEAD' ? null : result.body, {status:result.status,headers:result.headers});
+    }
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
     }

@@ -98,14 +98,14 @@ export function withLocaleQuery(href: string, locale: 'en' | 'zh'): string {
  * Build an app detail URL from the localized apps base (`/apps?lang=zh`),
  * keeping the query ahead of the path segment.
  */
-export function buildAppDetailUrl(appsBase: string, appId: string): string {
+export function buildAppDetailUrl(appsBase: string, slug: string): string {
   const hashIndex = appsBase.indexOf('#');
   const beforeHash = hashIndex >= 0 ? appsBase.slice(0, hashIndex) : appsBase;
   const hash = hashIndex >= 0 ? appsBase.slice(hashIndex + 1) : null;
   const queryIndex = beforeHash.indexOf('?');
   const path = queryIndex >= 0 ? beforeHash.slice(0, queryIndex) : beforeHash;
   const query = queryIndex >= 0 ? beforeHash.slice(queryIndex + 1) : '';
-  return `${path}/${appId}${query ? `?${query}` : ''}${hash !== null ? `#${hash}` : ''}`;
+  return `${path}/${slug}${query ? `?${query}` : ''}${hash !== null ? `#${hash}` : ''}`;
 }
 
 /**
