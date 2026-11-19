@@ -10,6 +10,7 @@ import { promisify } from 'node:util';
 import {
   createSourceRuntimeOwner,
   launchDevService,
+  prepareDesktopDevDependencies,
   prepareSourceRuntimeDependency,
   probeDevHttp,
   probeSourceRuntime,
@@ -19,20 +20,26 @@ import {
   waitForDevDependency,
 } from './desktop-dev-dependencies.mjs';
 
+const localRealm = {
+  name: 'local', apiOrigin: 'http://127.0.0.1:3002', realtimeOrigin: 'http://127.0.0.1:3003',
+  webOrigin: 'http://localhost:3000', environmentId: 'dev',
+};
+const localFlags = '--realm local --realm-url http://127.0.0.1:3002 --realtime-url http://127.0.0.1:3003 --web-url http://localhost:3000 --realm-environment-id dev';
+
 function sourceObservation({ endpoint = true, extra = [], runtime = {}, supervisor = {}, omitRuntime = false, omitSupervisor = false } = {}) {
   const root = 'C:\\work space\\nimi';
   const executable = path.win32.join(root, '.nimi', 'local', 'imp6', 'runtime-local-development', 'nimi.exe');
   const supervisorPath = 'C:\\temp\\source-owner\\nimi-source-runtime-supervisor.exe';
   const rows = [
     ...(!omitSupervisor ? [{ ProcessId: 10, ParentProcessId: 9, Name: 'nimi-source-runtime-supervisor.exe', ExecutablePath: supervisorPath,
-      CommandLine: `"${supervisorPath}" --repo-root "${root}" --realm local --realm-url http://127.0.0.1:3002`, ...supervisor }] : []),
+      CommandLine: `"${supervisorPath}" --repo-root "${root}" ${localFlags}`, ...supervisor }] : []),
     ...(!omitRuntime ? [{ ProcessId: 20, ParentProcessId: 10, Name: 'nimi.exe', ExecutablePath: executable, CommandLine: `"${executable}" serve`, ...runtime }] : []),
     ...extra.map(row => ({ ExecutablePath: executable, Name: 'nimi.exe', ...row })),
   ];
   return { root, executable, rows, endpoint };
 }
-function probeObservation(observation) {
-  return probeSourceRuntime(observation.root, 'local', {
+function probeObservation(observation, realm = localRealm) {
+  return probeSourceRuntime(observation.root, realm, {
     platform: 'win32', executeCommand: async () => ({ stdout: JSON.stringify(observation) }),
   });
 }
@@ -61,26 +68,37 @@ test('source Runtime preflight never exempts another serve or a foreign executab
   ]) assert.equal((await probeObservation(sourceObservation({ extra: [extra] }))).state, 'conflict');
   assert.equal((await probeObservation(sourceObservation({ extra: [{ ProcessId: 30, ParentProcessId: 20, CommandLine: null }] }))).state, 'unavailable');
 });
+test('a concurrent installed CLI client does not occupy the source Runtime slot', async () => {
+  const executable = 'C:\\Program Files\\Nimi\\nimi.exe';
+  const processRow = { ProcessId: 30, ParentProcessId: 1, ExecutablePath: executable, Name: 'nimi.exe' };
+  for (const command of ['status --json', '-- app watch']) {
+    const extra = [{ ...processRow, CommandLine: `"${executable}" ${command}` }];
+    assert.equal((await probeObservation(sourceObservation({ extra }))).state, 'ready');
+    assert.equal((await probeObservation(sourceObservation({ extra, omitRuntime: true, omitSupervisor: true, endpoint: false }))).state, 'missing');
+  }
+  const unreadable = [{ ...processRow, CommandLine: null }];
+  assert.equal((await probeObservation(sourceObservation({ extra: unreadable }))).state, 'unavailable');
+});
 test('source Runtime preflight keeps empty/truncated CIM output unavailable without exposing process arguments', async () => {
   for (const stdout of ['', '  \r\n', '{"rows":', '{"rows":[{"CommandLine":"private-test-marker', '{"rows":null,"endpoint":true}', '{"rows":[]}']) {
-    const result = await probeSourceRuntime('C:\\work space\\nimi', 'local', { platform: 'win32', executeCommand: async () => ({ stdout }) });
+    const result = await probeSourceRuntime('C:\\work space\\nimi', localRealm, { platform: 'win32', executeCommand: async () => ({ stdout }) });
     assert.equal(result.state, 'unavailable');
     assert.ok(!JSON.stringify(result).includes('private-test-marker'));
   }
-  const result = await probeSourceRuntime('C:\\work space\\nimi', 'local', { platform: 'win32', executeCommand: async () => { throw new Error('CIM query failed'); } });
+  const result = await probeSourceRuntime('C:\\work space\\nimi', localRealm, { platform: 'win32', executeCommand: async () => { throw new Error('CIM query failed'); } });
   assert.equal(result.state, 'unavailable');
 });
 test('source Runtime preflight waits for normal asynchronous stdout and rejects incomplete output from an exiting producer', async () => {
   const execute = promisify(execFile);
   const complete = '{"rows":[],"endpoint":false}';
-  const normal = await probeSourceRuntime('C:\\work space\\nimi', 'local', {
+  const normal = await probeSourceRuntime('C:\\work space\\nimi', localRealm, {
     platform: 'win32', executeCommand: async (_command, _args, options) => execute(process.execPath, ['-e', `process.stdout.write('{"rows":');setTimeout(()=>process.stdout.write('[],"endpoint":false}'),30);`], options),
   });
   assert.equal(normal.state, 'missing');
   const child = `setTimeout(() => process.stdout.write('[],"endpoint":false}'), 80);`;
   const parent = `const {spawn}=require('node:child_process');process.stdout.write('{"rows":',()=>spawn(process.execPath,['-e',${JSON.stringify(child)}],{stdio:['ignore','inherit','inherit'],windowsHide:true}).unref());`;
   let observed;
-  const result = await probeSourceRuntime('C:\\work space\\nimi', 'local', {
+  const result = await probeSourceRuntime('C:\\work space\\nimi', localRealm, {
     platform: 'win32', executeCommand: async (_command, _args, options) => {
       const output = await execute(process.execPath, ['-e', parent], options);
       observed = output.stdout;
@@ -89,18 +107,70 @@ test('source Runtime preflight waits for normal asynchronous stdout and rejects 
   });
   assert.equal(result.state, observed === complete ? 'missing' : 'unavailable');
 });
-test('source Runtime preflight distinguishes incomplete Realm metadata from an explicit different Realm', async () => {
-  await assert.rejects(probeObservation(sourceObservation({ supervisor: { CommandLine: '"C:\\temp\\source-owner\\nimi-source-runtime-supervisor.exe" --realm official' } })), /another Realm/);
-  assert.equal((await probeObservation(sourceObservation({ supervisor: { CommandLine: '"C:\\temp\\source-owner\\nimi-source-runtime-supervisor.exe" --realm="local"' } }))).state, 'ready');
-  assert.equal((await probeObservation(sourceObservation({ supervisor: { CommandLine: '"C:\\temp\\source-owner\\nimi-source-runtime-supervisor.exe" --realm local --realm official' } }))).state, 'unavailable');
+test('source Runtime reuse compares the active selection for both default and custom local deployments', async () => {
+  const observation = sourceObservation();
+  const ready = await probeObservation(observation);
+  const { apiOrigin, ...fields } = localRealm;
+  assert.deepEqual(ready.observed, { host: 'source', realm: { ...fields, origin: apiOrigin }, runtimePid: 20 });
+  for (const changed of [
+    { name: 'official', apiOrigin: 'https://realm.nimi.ai' }, { apiOrigin: 'http://127.0.0.1:8080' },
+    { environmentId: 'other-dev' }, { webOrigin: 'http://localhost:4000' }, { realtimeOrigin: 'http://127.0.0.1:4003' },
+  ]) {
+    const result = await probeObservation(observation, { ...localRealm, ...changed });
+    assert.equal(result.state, 'conflict');
+    assert.deepEqual(result.observed, ready.observed);
+  }
+  const owner = observation.rows[0];
+  owner.CommandLine = owner.CommandLine.replace('--realm local', '--realm="local"').replace('--realm-environment-id dev', '--realm-environment-id other-dev');
+  assert.equal((await probeObservation(observation, { ...localRealm, environmentId: 'other-dev' })).state, 'ready');
+  assert.equal((await probeObservation(observation)).state, 'conflict');
+  owner.CommandLine = `"${owner.ExecutablePath}" --realm local --realm-url ${localRealm.apiOrigin}`;
+  const incomplete = await probeObservation(observation);
+  assert.equal(incomplete.state, 'unconfirmed');
+  assert.deepEqual(incomplete.observed.realm, { name: 'local', origin: localRealm.apiOrigin });
+});
+
+test('missing, duplicate or unsafe supervisor flags leave Realm unknown without revealing arguments', async () => {
+  for (const flags of [
+    '--realm local', '--realm-url http://127.0.0.1:3002',
+    '--realm local --realm invalid --realm-url http://127.0.0.1:3002',
+    '--realm local --realm-url http://127.0.0.1:3002 --realm-url',
+    '--realm official --realm-url https://other.example',
+    '--realm local --realm-url https://private-test-marker@realm.example',
+    '--realm local --realm-url https://realm.example/?key=private-test-marker',
+    `${localFlags} --web-url https://private-test-marker@example.com`,
+  ]) {
+    const observation = sourceObservation();
+    const owner = observation.rows[0];
+    owner.CommandLine = `"${owner.ExecutablePath}" ${flags}`;
+    const result = await probeObservation(observation);
+    assert.equal(result.state, 'unavailable');
+    assert.equal(result.observed.realm, null);
+    assert.ok(!JSON.stringify(result).includes('private-test-marker'));
+  }
   assert.equal((await probeObservation(sourceObservation({ omitSupervisor: true }))).state, 'unavailable');
+});
+
+test('a conflicting source Runtime stops local setup before it invokes the Realm workspace', async (t) => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-conflict-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(path.join(root, 'apps', 'web'), { recursive: true });
+  writeFileSync(path.join(root, '.env'), 'NIMI_DEV_REALM_DIR=unused-workspace\n');
+  const server = createServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  await new Promise(resolve => server.close(resolve));
+  await assert.rejects(prepareDesktopDevDependencies(root, {
+    realm: { ...localRealm, apiOrigin: origin, webOrigin: origin, realtimeOrigin: origin },
+    probeRuntime: async () => ({ state: 'conflict', detail: 'A different local deployment is active.' }),
+  }), /different local deployment/);
 });
 test('source Runtime preflight verifies the macOS worker ancestry and the exact Runtime-owned socket', async () => {
   const root = '/workspace/nimi', homeDirectory = '/Users/test';
   const executable = `${root}/.nimi/local/imp3/runtime-local-development/nimi-runtime`;
   const supervisor = '/tmp/source owner/nimi-source-runtime-supervisor';
-  const commands = { 10: `${supervisor} --repo-root ${root} --realm local`, 20: `${executable} serve`, 30: `${executable} managed-image-backend serve` };
-  const result = await probeSourceRuntime(root, 'local', { platform: 'darwin', homeDirectory, executeCommand: async (command, args) => {
+  const commands = { 10: `${supervisor} --repo-root ${root} ${localFlags}`, 20: `${executable} serve`, 30: `${executable} managed-image-backend serve` };
+  const result = await probeSourceRuntime(root, localRealm, { platform: 'darwin', homeDirectory, executeCommand: async (command, args) => {
     if (command === '/usr/sbin/lsof') return { stdout: `p20\nn${homeDirectory}/Library/Application Support/Nimi/RuntimeLocalDevelopment/run/runtime-desktop.sock\n` };
     if (args[0] === '-axo') return { stdout: `10 9 ${supervisor}\n20 10 ${executable}\n30 20 ${executable}\n` };
     return { stdout: commands[args[2]] };
@@ -114,7 +184,7 @@ test('macOS startup waits for the executable path and distinguishes installed Ru
   const supervisor = '/tmp/nimi-source-runtime-supervisor';
   const installed = '/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime';
   const installedHome = '/Applications/Nimi.app/Contents/MacOS/Nimi';
-  const probe = (runtimePath, extraExecutable) => probeSourceRuntime(root, 'local', {
+  const probe = (runtimePath, extraExecutable) => probeSourceRuntime(root, localRealm, {
     platform: 'darwin', homeDirectory,
     executeCommand: async (command, args) => {
       if (command === '/usr/sbin/lsof') return { stdout: `p20\nn${homeDirectory}/Library/Application Support/Nimi/RuntimeLocalDevelopment/run/runtime-desktop.sock\n` };
@@ -123,7 +193,7 @@ test('macOS startup waits for the executable path and distinguishes installed Ru
         const extraRow = extraExecutable ? `30 1 ${extraExecutable}\n` : '';
         return { stdout: `10 9 ${supervisor}\n20 10 ${runtimePath}\n${extraRow}` };
       }
-      if (args[2] === '10') return { stdout: `${supervisor} --realm local` };
+      if (args[2] === '10') return { stdout: `${supervisor} ${localFlags}` };
       if (args[2] === '20') return { stdout: `${runtimePath} serve` };
       assert.equal(args[2], '30');
       return { stdout: extraExecutable };

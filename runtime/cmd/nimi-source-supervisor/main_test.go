@@ -62,6 +62,19 @@ func TestCanonicalDirectoryRejectsRelativePath(t *testing.T) {
 	}
 }
 
+func TestSupervisorRejectsRealmSelectionDifferentFromChildEnvironment(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("NIMI_DEV_REALM_ENVIRONMENT_ID", "deployment-a")
+	args := []string{"--repo-root", t.TempDir(), "--desktop-executable", executable,
+		"--realm", "local", "--realm-url", "http://127.0.0.1:3002", "--realm-environment-id", "deployment-b"}
+	if _, err := parseSupervisorConfig(args); err == nil || !strings.Contains(err.Error(), "disagree with the selected environment") {
+		t.Fatalf("expected a mismatched Realm selection error, got %v", err)
+	}
+}
+
 func TestSourceRuntimeEnvironmentSeparatesOwnerAndDesktop(t *testing.T) {
 	config := supervisorConfig{
 		runtimePath:     filepath.Join(t.TempDir(), "nimi"),

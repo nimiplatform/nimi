@@ -309,7 +309,9 @@ async function postJson(fetchImpl, desktop, route, body) {
   } catch {
     throw new DevShellError(
       'local-development-desktop-not-running',
-      'The Nimi development supervisor is unavailable.',
+      route === '/v1/status'
+        ? 'Nimi Home did not return the final App status. To confirm a planned stop, press Ctrl+C in the App terminal before quitting Home.'
+        : 'The Nimi development supervisor is unavailable.',
     );
   }
   if (!response || response.status !== 200) {

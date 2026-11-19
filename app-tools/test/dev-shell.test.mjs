@@ -422,6 +422,23 @@ test('official dev launcher stays attached while Desktop recovers a Runtime rest
   }
 });
 
+test('losing Home before its final status leaves the development run unconfirmed', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async (t) => {
+  const input = fixture();
+  t.after(() => rmSync(input.root, { recursive: true, force: true }));
+  await assert.rejects(runDevShell(input.project, {
+    resume: 'dev-project-existing', descriptorPath: input.descriptorPath,
+    now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+    fetch: async (url) => {
+      if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus('running') });
+      assert.ok(url.endsWith('/v1/status'));
+      throw new Error('connection closed');
+    },
+    installSignalHandlers: false, output: { write() {} }, errorOutput: { write() {} },
+  }), { reasonCode: 'local-development-desktop-not-running', message: /final App status/ });
+});
+
 test('official dev launcher accepts a completed Desktop UI stop without sending another cancel', {
   skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {

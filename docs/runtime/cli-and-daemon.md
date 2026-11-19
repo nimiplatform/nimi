@@ -10,7 +10,7 @@ At the Nimi repository root, run this in a dedicated terminal:
 pnpm dev:runtime
 ```
 
-The script starts the current-user source Runtime supervisor and prints its logs directly to the terminal. Next, run `pnpm dev:desktop` and sign in through Home. Ensure dependencies, Realm/Web, and OS prerequisites are prepared according to [Development Environment Setup](/start/install) and the repository's LOCAL_DEVELOPMENT.md.
+This starts the current user's source Runtime supervisor and prints its logs in the terminal. It uses official Realm by default. Launch Home with the same Realm selection and sign in. For local Realm integration, pass `-- --realm local` to both `pnpm dev:runtime` and `pnpm dev:desktop`. See [Development Environment Setup](/start/install).
 
 You cannot substitute `pnpm dev:runtime` with `nimi serve` in a standard Windows development terminal. The `nimi serve` command enters the production daemon lifecycle and requires the fixed Windows service identity.
 

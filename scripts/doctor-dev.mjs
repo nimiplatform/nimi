@@ -4,13 +4,10 @@ import { lstat, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import { spawnCommand } from './lib/command-runner.mjs';
-import {
-  assessWorkspaceSurfaceFreshness,
-  captureWorkspaceSurfaceSnapshot,
-  readWorkspaceSurfaceStamp,
-} from './lib/dev-workspace-surfaces.mjs';
+import { inspectWorkspaceSurfaceFreshness } from './lib/dev-workspace-surfaces.mjs';
 import {
   findBlockingElectronCarriers,
   normalizedProcessRows,
@@ -94,6 +91,51 @@ export function findLegacyCarrierRows(rows, repo, activeDesktopPid = 0) {
     .filter((row) => !activeTree.has(row.processId));
 }
 
+async function inspectRuntimeTarget(host, realm, platform, input) {
+  const probeSource = input.probeSource ?? probeSourceRuntime;
+  const source = await probeSource(repoRoot, realm, { platform }).catch(() => ({
+    state: 'unavailable', detail: 'Source Runtime observation is unavailable on this host.',
+  }));
+  const queryFixed = input.queryFixedService ?? ((name) => queryFixedRuntimeService(platform, name));
+  const fixed = host === 'installed' || !source.observed ? await queryFixed(realm.name) : null;
+  const fixedRunning = fixed?.reason === 'fixed-runtime-service-running' || fixed?.reason === 'fixed-runtime-service-healthy';
+  let fixedProfile = platform === 'darwin' && fixedRunning ? realm.name : null;
+  if (platform === 'darwin' && !fixedRunning && !source.observed) {
+    const other = realm.name === 'official' ? 'local' : 'official';
+    if ((await queryFixed(other)).reason === 'fixed-runtime-service-running') fixedProfile = other;
+  }
+  const observed = source.observed ?? {
+    host: fixedRunning || fixedProfile ? 'installed' : null, realm: null, runtimePid: null,
+    ...(fixedProfile ? { fixedServiceProfile: fixedProfile } : {}),
+  };
+  const service = host === 'source' ? {
+    state: source.state === 'ready' ? 'ok' : ['unavailable', 'unconfirmed'].includes(source.state) ? 'not-observed' : 'error',
+    reason: `source-runtime-${source.state}`,
+  } : fixed;
+
+  // Reuse compares the running topology and configured API origin. HTTP
+  // reachability, a Desktop heartbeat and on-demand registration cannot
+  // identify a running Runtime's Realm or its current account.
+  let reuse;
+  if (observed.host && observed.host !== host) {
+    reuse = { state: 'conflict', reason: `Detected a host of type ${observed.host}. Coordinate with its owner before switching to ${host}.` };
+  } else if (fixedProfile && fixedProfile !== realm.name) {
+    reuse = { state: 'conflict', reason: `The running macOS fixed service profile is ${fixedProfile}. The requested profile is ${realm.name}.` };
+  } else if (host === 'source' && source.state === 'conflict') {
+    reuse = { state: 'conflict', reason: source.detail };
+  } else if (host === 'source' && source.state === 'ready') {
+    reuse = { state: 'reusable', reason: 'The source Runtime in this checkout matches the requested Realm configuration.' };
+  } else if (fixedRunning) {
+    reuse = { state: 'unknown', reason: 'The fixed service is running. Its status does not identify its active Realm.' };
+  } else if (host === 'installed') {
+    reuse = { state: 'unknown', reason: `No running installed Runtime was confirmed (${fixed.reason}).` };
+  } else {
+    reuse = { state: 'unknown', reason: source.detail ?? (source.state === 'missing'
+      ? 'No active source Runtime was observed.' : 'Waiting for the source Runtime and its endpoint.') };
+  }
+  return { service, observed, reuse };
+}
+
 export async function runDevDoctor(input = {}) {
   const selectedRealm = readDevelopmentRealm(repoRoot, input.realm, input.env);
   const host = input.host ?? 'source';
@@ -103,42 +145,19 @@ export async function runDevDoctor(input = {}) {
   const probeHttp = input.probeHttp ?? probeHttpEndpoint;
   const queryProcesses = input.queryProcesses ?? (() => queryProcessRows(platform));
   const readPresence = input.readPresence ?? readPresenceDescriptor;
-  const processRowsPromise = queryProcesses();
-  const serviceResultPromise = input.queryService
-    ? input.queryService()
-    : host === 'source'
-      ? probeSourceRuntime(repoRoot, selectedRealm.name).then((value) => ({ state: value.state === 'ready' ? 'ok' : 'error', reason: `source-runtime-${value.state}` })).catch((error) => ({ state: 'error', reason: error.message }))
-      : platform === 'darwin'
-        ? queryMacFixedRuntimeService(selectedRealm.name)
-        : queryWindowsFixedRuntimeService(platform);
-  const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
-    serviceResultPromise,
-    processRowsPromise,
+  const [runtime, processRows, realm, web, presenceResult] = await Promise.all([
+    inspectRuntimeTarget(host, selectedRealm, platform, input),
+    queryProcesses(),
     probeHttp(selectedRealm.apiOrigin),
     probeHttp(selectedRealm.webOrigin),
     readPresence(nowUnixMs),
   ]);
-  const service = host === 'installed' && platform !== 'darwin'
-    ? validateFixedRuntimeService(serviceResult)
-    : serviceResult;
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
   const legacyCarriers = findLegacyCarrierRows(processRows, repoRoot, activeDesktopPid);
-  const stamp = await readWorkspaceSurfaceStamp(repoRoot);
-  const surfaceStates = {};
-  for (const surface of ['sdk', 'kit']) {
-    surfaceStates[surface] = assessWorkspaceSurfaceFreshness(
-      stamp,
-      surface,
-      await captureWorkspaceSurfaceSnapshot(repoRoot, surface),
-    );
-  }
-  const workspaceSurfaces = Object.values(surfaceStates).every((row) => row.state === 'fresh')
-    ? { state: 'ok', reason: 'sdk-kit-dist-fresh', surfaces: surfaceStates }
-    : { state: 'error', reason: 'sdk-kit-dist-stale', surfaces: surfaceStates };
   const tier1 = [
-    { id: 'realm', ...realm },
-    { id: 'web', ...web },
-    { id: host === 'source' ? 'source-runtime' : 'fixed-runtime-service', ...service },
+    { id: 'realm', origin: selectedRealm.apiOrigin, ...realm },
+    { id: 'web', origin: selectedRealm.webOrigin, ...web },
+    { id: host === 'source' ? 'source-runtime' : 'fixed-runtime-service', ...runtime.service },
     { id: 'desktop-presence', ...presenceResult },
     {
       id: 'legacy-carriers',
@@ -146,14 +165,28 @@ export async function runDevDoctor(input = {}) {
       reason: !Array.isArray(processRows) ? 'process-inventory-unavailable' : legacyCarriers.length === 0 ? 'no-legacy-carriers' : 'legacy-carriers-running',
       processIds: legacyCarriers.map((row) => row.processId),
     },
-    { id: 'sdk-kit-dist', ...workspaceSurfaces },
   ];
+  if (host === 'source') {
+    const { fresh, states } = await inspectWorkspaceSurfaceFreshness(repoRoot);
+    const surfaces = {};
+    for (const [name, { state, reason, diagnostic }] of Object.entries(states)) {
+      surfaces[name] = diagnostic && state === 'fresh' ? { state: 'stale', reason: diagnostic } : { state, reason };
+    }
+    tier1.push({ id: 'sdk-kit-dist', state: fresh ? 'ok' : 'error', reason: fresh ? 'sdk-kit-dist-fresh' : 'sdk-kit-dist-stale', surfaces });
+  }
+  const targetRealm = { name: selectedRealm.name, origin: selectedRealm.apiOrigin };
   return {
     schemaVersion: 'nimi.dev-doctor/v1',
     host,
-    realm: { name: selectedRealm.name, origin: selectedRealm.apiOrigin },
+    realm: targetRealm,
+    requested: {
+      host,
+      realm: { ...targetRealm, environmentId: selectedRealm.environmentId, realtimeOrigin: selectedRealm.realtimeOrigin, webOrigin: selectedRealm.webOrigin },
+    },
+    observed: runtime.observed,
+    reuse: runtime.reuse,
     checkedAt: new Date(nowUnixMs).toISOString(),
-    ok: tier1.every((row) => row.state === 'ok'),
+    ok: runtime.reuse.state !== 'conflict' && tier1.every((row) => row.state === 'ok'),
     tier1,
     tier2: [
       ...unobservedLocalDevelopmentFacts(),
@@ -227,6 +260,17 @@ async function readPresenceDescriptor(nowUnixMs) {
   } catch {
     return { state: 'error', reason: 'desktop-presence-missing' };
   }
+}
+
+async function queryFixedRuntimeService(platform, realm) {
+  try {
+    if (platform === 'darwin') return await queryMacFixedRuntimeService(realm);
+    const status = await queryWindowsFixedRuntimeService(platform);
+    if (status.status === 'present' || status.status === 'absent') return validateFixedRuntimeService(status);
+  } catch {
+    // A missing status tool or unreadable service profile leaves this probe unknown.
+  }
+  return { state: 'not-observed', reason: 'fixed-runtime-service-query-unavailable' };
 }
 
 async function queryWindowsFixedRuntimeService(platform) {
@@ -309,39 +353,6 @@ export function parseMacProcessRows(output) {
   return rows.length > 0 ? rows : null;
 }
 
-// This is an observation of the source development topology. Native admission
-// and Runtime readiness remain with their owners, not this diagnostic command.
-export async function inspectMacSourceRuntime(rows, root, querySockets = queryMacProcessSockets) {
-  if (!Array.isArray(rows)) return { state: 'not-observed', reason: 'process-inventory-unavailable' };
-  const processes = normalizedProcessRows(rows);
-  const candidates = processes.filter((row) => row.name === 'nimi-runtime'
-    && row.executablePath.startsWith(`${path.posix.resolve(root)}/`)
-    && processes.some((parent) => parent.processId === row.parentProcessId
-      && parent.name === 'nimi-source-runtime-supervisor'));
-  if (candidates.length !== 1) return {
-    state: 'error',
-    reason: candidates.length === 0 ? 'source-runtime-not-observed' : 'source-runtime-process-ambiguous',
-  };
-  const processId = candidates[0].processId;
-  const sockets = await querySockets(processId);
-  if (!Array.isArray(sockets)) return { state: 'not-observed', reason: 'runtime-sockets-unavailable', processId };
-  const present = ['runtime-desktop.sock', 'runtime-local-app.sock']
-    .every((name) => sockets.some((socket) => path.posix.basename(socket) === name));
-  return {
-    state: present ? 'ok' : 'error',
-    reason: present ? 'source-runtime-process-and-sockets-observed' : 'source-runtime-sockets-missing',
-    processId,
-  };
-}
-
-async function queryMacProcessSockets(processId) {
-  const result = await collectCommandResult('/usr/sbin/lsof', ['-nP', '-a', '-p', String(processId), '-U', '-Fn'], {
-    cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  if (result.error || result.status !== 0) return null;
-  return result.stdout.split('\n').filter((line) => line.startsWith('n')).map((line) => line.slice(1));
-}
-
 async function queryProcessRows(platform = process.platform) {
   if (platform === 'darwin') {
     const result = await collectCommandResult('/bin/ps', ['-axo', 'pid=,ppid=,comm='], {
@@ -407,8 +418,14 @@ function parseEmbeddedJson(output) {
 }
 
 function printHumanReport(report) {
+  const { requested, observed, reuse } = report;
+  const describe = ({ host, realm }) => `host=${host ?? 'unknown'}  realm=${realm?.name ?? 'unknown'}  API=${realm?.origin ?? 'unknown'}  configured Realm ID=${realm?.environmentId ?? 'unknown'}`;
+  process.stdout.write(`Requested Runtime  ${describe(requested)}\n`);
+  const processInfo = observed.runtimePid ? `  PID=${observed.runtimePid}` : observed.host === 'source' ? '  supervisor only' : '';
+  process.stdout.write(`Observed Runtime   ${describe(observed)}${processInfo}${observed.fixedServiceProfile ? `  fixed profile=${observed.fixedServiceProfile}` : ''}\n`);
+  process.stdout.write(`Runtime reuse [${reuse.state}] ${reuse.reason}\n`);
   for (const row of report.tier1) {
-    process.stdout.write(`[${row.state}] ${row.id}: ${row.reason}\n`);
+    process.stdout.write(`[${row.state}] ${row.id}${row.origin ? ` (requested ${row.origin})` : ''}: ${row.reason}\n`);
   }
   for (const row of report.tier2) {
     process.stdout.write(`[${row.state}] ${row.id}: ${row.reason}\n`);
@@ -422,11 +439,14 @@ function isMainModule() {
 
 if (isMainModule()) {
   const { realm, rest } = parseRealmArguments(process.argv.slice(2));
-  const hostIndex = rest.indexOf('--host');
-  const host = hostIndex === -1 ? 'source' : rest[hostIndex + 1];
-  if (!['source', 'installed'].includes(host)) throw new Error('--host requires installed or source.');
+  const { values } = parseArgs({
+    args: rest.filter(arg => arg !== '--'),
+    options: { host: { type: 'string', multiple: true }, json: { type: 'boolean' } },
+  });
+  const host = values.host?.[0] ?? 'source';
+  if (values.host?.length > 1 || !['source', 'installed'].includes(host)) throw new Error('Choose one --host installed or --host source.');
   const report = await runDevDoctor({ realm, host });
-  if (process.argv.includes('--json')) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (values.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else printHumanReport(report);
   if (!report.ok) process.exitCode = 1;
 }

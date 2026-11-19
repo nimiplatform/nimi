@@ -157,7 +157,7 @@
     "proto:drift-check": "node scripts/check-proto-drift.mjs",
     "check:actionlint": "node scripts/check-actionlint.mjs",
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
-    "dev:prepare": "pnpm build:sdk && pnpm build:kit",
+    "dev:prepare": "node scripts/dev-prepare-watch.mjs --once",
     "dev:prepare:watch": "node scripts/dev-prepare-watch.mjs",
     "doctor:dev": "node scripts/doctor-dev.mjs",
     "dev:desktop": "node scripts/dev-app.mjs desktop",

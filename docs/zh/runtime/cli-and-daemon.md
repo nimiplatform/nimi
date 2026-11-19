@@ -10,7 +10,7 @@
 pnpm dev:runtime
 ```
 
-该脚本启动当前用户的源码 Runtime supervisor，日志直接输出在终端中。随后运行 `pnpm dev:desktop` 并在 Home 登录。依赖、Realm/Web 与系统准备步骤见[开发环境准备](/zh/start/install)及仓库的 LOCAL_DEVELOPMENT.md。
+该命令启动当前用户的源码 Runtime supervisor，默认连接官方 Realm，日志输出在当前终端。随后用相同的 Realm 选项启动 Home 并登录。本地 Realm 联调时，给 `pnpm dev:runtime` 和 `pnpm dev:desktop` 两条命令都加上 `-- --realm local`。详见[开发环境准备](/zh/start/install)。
 
 在 Windows 普通开发终端中，不能用 `nimi serve` 代替该命令：`nimi serve` 会进入生产 daemon 的专有流程，需要特定的 Windows 服务特权身份。
 

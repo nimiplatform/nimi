@@ -168,6 +168,7 @@ func waitForOwnedRuntimeExit(command *exec.Cmd, exited <-chan runtimeExit, shutd
 	}
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.development-topology
 func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 	flags := flag.NewFlagSet("nimi-source-supervisor", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -175,8 +176,11 @@ func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 	desktopPath := flags.String("desktop-executable", "", "canonical Desktop carrier executable")
 	realmURL := flags.String("realm-url", sourceRuntimeRealmURL, "source Realm URL")
 	realmName := flags.String("realm", "official", "official or local Realm")
+	realtime := flags.String("realtime-url", "", "expected Realm Realtime origin")
+	web := flags.String("web-url", "", "expected login Web origin")
+	environmentID := flags.String("realm-environment-id", "", "expected configured Realm environment ID")
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
-		return supervisorConfig{}, errors.New("source Runtime supervisor accepts only --repo-root, --desktop-executable, --realm, and --realm-url")
+		return supervisorConfig{}, errors.New("invalid source Runtime supervisor arguments")
 	}
 	root, err := canonicalDirectory(*repoRoot)
 	if err != nil {
@@ -198,8 +202,11 @@ func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 	if realmErr != nil {
 		return supervisorConfig{}, realmErr
 	}
-	if selected.APIOrigin != *realmURL {
-		return supervisorConfig{}, fmt.Errorf("source Runtime Realm URL does not match selected environment")
+	// The dev launcher exposes its public selection in argv so another session
+	// can compare it without reading this process's environment or credentials.
+	if selected.APIOrigin != *realmURL || (*realtime != "" && *realtime != selected.RealtimeOrigin) ||
+		(*web != "" && *web != selected.WebOrigin) || (*environmentID != "" && *environmentID != selected.EnvironmentID) {
+		return supervisorConfig{}, errors.New("source Runtime Realm arguments disagree with the selected environment")
 	}
 	supervisor, err := os.Executable()
 	if err != nil {

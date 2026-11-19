@@ -1,6 +1,8 @@
 # Nimi 本地开发指南 (Local Development)
 
-本文档面向在 Windows 与 macOS 环境下进行 Nimi Desktop、本地 Runtime 及生态应用开发的开发者，介绍核心工作流、调试手段与安全规范。
+普通原生 App 开发默认用已安装 Nimi 和官方 Realm。修改 Home、Runtime、SDK 或 Kit 时，可以用公开仓库的源码 Runtime 连接官方 Realm。只有联调 Realm 服务或需要受控测试数据时才显式选 `local`。官方账号读写真实云端数据。这三条路径都先看机器上是否已有满足任务要求的 Home 和 Runtime。
+
+[按任务选择入口](#开发路径与命令矩阵) · [判断能否复用](#先判断能否复用) · [切换对身份和数据的影响](#切换会影响什么)
 
 ---
 
@@ -19,7 +21,7 @@
 
 | 开发路径 | 适用场景 | 依赖条件 |
 |---|---|---|
-| `pnpm dev:desktop` | Windows / macOS Home 与 Runtime 源码迭代 | 默认官方 Realm；无需 Realm 私有仓库或本地数据库 |
+| `pnpm dev:desktop` | Windows / macOS Home、Runtime、SDK 或 Kit 源码联调 | 默认官方 Realm，只需公开仓库和本机工具链 |
 | `pnpm dev:desktop -- --realm local` | Realm 与 Nimi 联调 | 显式本地 Realm；复用或按配置启动 API、Realtime、登录页 |
 | `pnpm dev:runtime` | Windows x64 / macOS arm64 本地 Runtime 源码调试 | 独立终端持续前台运行 |
 | `pnpm dev:lab` | 启动 Nimi Lab 能力测试台应用 | 需先启动并登录 Desktop |
@@ -27,7 +29,7 @@
 | `pnpm dev:nimigo` | 启动 NimiGo 应用 | 需先启动并登录 Desktop |
 | `pnpm dev:nimiday` | 启动 NimiDay 应用 | 需先启动并登录 Desktop |
 | `pnpm dev:avatar` | 启动独立的桌面 Avatar 悬浮载体 | 与普通 `pnpm dev:desktop` 互斥 |
-| `nimi-app dev --shell electron` | 启动第三方生态应用工程 | 默认由已安装 Nimi 监督启动 |
+| `pnpm dev` / `nimi-app dev --shell electron`（App 工程内） | 启动第三方原生 App | 使用当前已登录并开启 Developer Mode 的匹配 Home |
 
 ---
 
@@ -56,19 +58,47 @@
 
 ## 推荐的开发流程
 
-### 平台通用步骤
-1. **选择开发对象**：普通生态开发使用已安装 Nimi；修改 Nimi 本体时准备公开仓库依赖即可。两者默认连接官方真实 Realm。
-2. **启动 Nimi**：本体开发运行 `pnpm dev:desktop`，启动器准备源码 Runtime 和 Electron，不启动本地 Realm 或官网登录页。需要全链联调才加 `--realm local`；此时可用 `NIMI_DEV_REALM_DIR` 指定有 `dev:infra`、`dev:api`、`dev:realtime` 的 Realm 工作区，或复用已运行服务。
-3. **完成登录与授权**：首次启动 Desktop 时，选择数据根目录，并通过浏览器完成 Nimi 账号登录。
-4. **启动目标生态应用**：`pnpm dev` / `nimi-app dev` 使用当前运行的 Home。普通开发先打开已安装 Nimi；源码联调先退出安装版 Runtime，再启动源码 Nimi。App 命令不启动或替换 Runtime。
+### 先判断能否复用
 
-Realm 启动位置是本机配置。使用自动启动时，Realm 的 `dev:infra` 负责准备其开发配置所需的数据服务。Docker、开发镜像或数据库未就绪时，按对应 Realm 工作区的开发说明处理。
+在公开 Nimi 仓库根目录按本次任务选择一条只读诊断。独立 App 开发者可以直接在已运行的 Home 确认环境和登录账号。
 
-本地模式的 API/Realtime 默认 `127.0.0.1:3002/3003`，登录 Web 默认 `localhost:3000`。可用 `NIMI_DEV_REALM_URL`、`NIMI_DEV_REALTIME_URL`、`NIMI_DEV_WEB_URL`、`NIMI_DEV_REALM_ENVIRONMENT_ID` 配置该本地部署。官方模式不使用这些本地覆盖值。端口或工作区冲突明确报错；日志位于 `.nimi/local/dev-services/`。源码 Runtime 仍由 supervisor 启动并通过原生准入。
+```sh
+pnpm doctor:dev -- --host installed --realm official
+pnpm doctor:dev -- --host source --realm official
+pnpm doctor:dev -- --host source --realm local
+```
 
-同一机器只运行一个 Runtime；启动第二个时，无论 installed 还是 source，都会明确报错。切换版本或 Realm 前先正常退出当前 Runtime。兼容版本可以顺序复用同一个数据目录（包括模型和引擎），开发不要求复制这些大文件。Realm 凭据和持久身份仍按环境保管，不自动迁移或替换主绑定。同一官方账户共享真实云端数据。`pnpm doctor:dev -- --realm local` 诊断选定环境，`--host installed` 可检查安装版目标。
+对照 `Requested Runtime` 和 `Observed Runtime`。源码启动器和诊断比较同一组公开配置，包括 Realm 名称、API、Realtime、登录页地址和配置的环境 ID。运行中的 supervisor 会报告自己的选择。旧 local 进程缺少这些信息时，先问所属终端。服务端实际签发的环境 ID 与账号要在登录后核对。脚本可在 `--json` 输出中读取 `requested`、`observed` 和 `reuse.state`。HTTP 检查只表示请求地址可达，SDK/Kit 工作区产物只影响源码目标的检查。
 
-关闭 Desktop 或终端中断启动时，只停止本次自动创建的开发进程；先前已运行的服务和数据容器保留。需要独立调试 Runtime 时仍可先运行 `pnpm dev:runtime`，Desktop 会复用它。`pnpm dev:electron:desktop` 和 Desktop 包内的 `dev` / `dev:electron` 使用同一依赖检查。
+| Runtime reuse | 下一步 |
+|---|---|
+| `reusable` | 当前工作区的源码 Runtime 与请求的 Realm 配置匹配。已有 Home 就在该窗口继续；只有 Runtime 在运行时，用相同 Realm 参数启动 Home。要验证刚改过的 Runtime 代码，仍须协调重启以加载新二进制。 |
+| `conflict` | 已探测到不兼容的目标。需要当前环境的其他任务可以照常继续。确实需要新目标时，与启动者约定切换时间。 |
+| `unknown` | 看原因。没有活动源码 Runtime 时可按任务启动；正在启动、无法读取进程或固定服务未给出 Realm 时，先查看所属终端和 Home。 |
+
+更新依赖后，在仓库根目录运行 `pnpm install --frozen-lockfile`。需要在启动 Home 前准备 SDK 与 Kit 时，运行 `pnpm dev:prepare`；它使用与源码启动器相同的构建和产物检查。
+
+源码启动示例是 `pnpm dev:desktop`（默认官方）和 `pnpm dev:desktop -- --realm local`。独立调试 Go 时可先运行 `pnpm dev:runtime`，两条命令选同一 Realm。只有 local 模式会检查 API、Realtime 和本地登录页，默认分别为 `127.0.0.1:3002`、`127.0.0.1:3003` 和 `localhost:3000`。可复用已有服务，或用 `NIMI_DEV_REALM_DIR` 指定提供 `dev:infra`、`dev:api` 和 `dev:realtime` 的工作区。各地址与环境 ID 的覆盖项见 [.env.example](.env.example)。
+
+Home 首次设置时选择数据目录并通过浏览器登录。原生 App 在自己的工程运行 `pnpm dev`，由活动 Home 监督启动。继续既有开发数据时，先运行 `pnpm dev -- --list-registrations`，再用本次列出的 `--resume <selector>`。同机已有匹配的源码 Home 时，普通 App 开发也可以直接复用它；安装包验证留给安装态任务。
+
+### 切换会影响什么
+
+一台机器同时只运行一个 Runtime。切换前先与使用它的开发者协调，完成或停下进行中的生成、下载和验收。如果 App 终端需要收到停止回执，先在该终端按 `Ctrl+C`，等候 `stopped`。先退出 Home 时，App 终端可能失去连接并报告最终状态未知。
+
+macOS 上，在 `pnpm dev:desktop` 的终端按一次 `Ctrl+C`，启动器会让 Home 关闭受其监督的开发 App，再停止本次启动的 Runtime 和服务。单独用 `pnpm dev:runtime` 启动的 Runtime 由原终端退出。等旧实例退出后再启动新目标。开发服务日志在 `.nimi/local/dev-services/`。
+
+| 状态 | 归属与切回后的行为 |
+|---|---|
+| Realm 和账号 | Realm 管理云端账号和业务库。Runtime 按操作系统用户在其受保护的状态目录保管当前登录材料，其中记录登录时的 API origin 和 Realm 返回的环境 ID。恢复时 origin 不匹配会尝试清除旧凭据并要求重新登录。 |
+| 源码安装身份 | 当前用户的 `RuntimeLocalDevelopment/official`、`RuntimeLocalDevelopment/local` 分别保留 `runtime/installation.json` 的 Runtime ID、Product Control 的 `.nimi/nimi.json`（安装 ID 和 dataRoot 选择）以及开发模式的 `runtime/local-development.db`。**两个不同的 local 部署会选中同一目录**，即使更改 API 地址或 `NIMI_DEV_REALM_ENVIRONMENT_ID`。同一地址背后的部署发生变化时，进程探测也无法识别它。 |
+| 主 Runtime 绑定 | Realm 保管账号的主绑定。本机证明密钥按 Product Control 安装 ID、操作系统用户、Realm 环境 ID 和账号 ID 区分。切回原环境需要原绑定和对应密钥仍有效。新环境提示其他主机已绑定时，先核对测试账号。重新初始化会改变 Web、Android 等远程客户端连接的主机。 |
+| App 登记、数据与会话 | 当前宿主按安装 ID 与操作系统用户查找登记。Runtime 托管的 App 存储按操作系统用户、账号和登记主体分区。Electron 浏览器配置按安装 ID、操作系统用户和登记主体定位。Runtime 重启后须建立新会话，使用原账号和登记可以继续访问对应的持久数据。App 自管的项目文件按该 App 的保存及打开方式核对。 |
+| 模型、引擎与数据库 | 兼容版本可以顺序指向同一个 dataRoot，复用模型与引擎包。源码 Runtime 按持久 Runtime ID 打开 `accounts/source-<runtimeId>/memory.db` 和 `apps/source-<runtimeId>/local-app-kernel.db`，引擎登记也按该 ID 保存。安装态使用 `accounts/runtime/memory.db` 与 `apps/local-app-kernel.db`。文件已在磁盘上，具体环境仍需有可用的模型配置。 |
+
+若启动报告 `unsupported canonical_registration … constraint`，先核对报错的 App 登记库和当前代码要求的表约束。对工具支持的旧格式，`pnpm runtime:repair-app-source-schema --db <数据库绝对路径>` 只读预览。若报 `unsupported LocalAgent source snapshot schema`，受影响的是 Runtime 的 `memory.db`。这些属于数据库版本漂移；重新登录或重设主绑定无法修复表结构。实际修复应针对已确认的库，在停机后执行对应的离线工具。
+
+升级后若提示 `conversation storage requires explicit offline conversion`，停止使用该库的 Runtime，再运行 `pnpm runtime:convert-chat-storage --db <该环境的 memory.db 绝对路径> --confirm-runtime-stopped` 查看是否需要转换。每个环境有自己的库和检查结果。[会话库转换说明](runtime/tools/convert-chat-storage/README.md)
 
 ---
 
@@ -115,18 +145,18 @@ Realm 启动位置是本机配置。使用自动启动时，Realm 的 `dev:infra
 
 ## 验证与发布前检查
 
-完成日常功能迭代后，建议依次执行以下检查：
+日常迭代先做与改动相关的工程检查，再在当前 Home 监督的 App 中完成实际任务。根据本次验证的目标选择下列入口。
 
-1. **类型检查与测试**：
+1. **工程检查**在 App 工程中运行。
    ```bash
    pnpm run typecheck
    pnpm run test
    ```
-2. **打包与生产环境一致性校验**：
+2. **开发态联调**使用 `pnpm dev`。在 Home 监督的 App 中检查访问就绪、实际调用和状态保存。验证重启恢复时，重新列出登记再恢复原来的 App 数据。
+3. **安装态专项**使用匹配的本地制品和目标平台验证包内容与安装。以下为 Apple Silicon Mac 示例。
    ```bash
-   pnpm exec nimi-app check --production
-   pnpm exec nimi-app build --target macos-aarch64 --production
+   pnpm exec nimi-app check
+   pnpm exec nimi-app build --target macos-aarch64
    pnpm exec nimi-app pack --target macos-aarch64 --production
    ```
-   以上命令以 Apple Silicon Mac（`macos-aarch64`）为例；在 Windows 主机上请将 `--target` 改为 `windows-x86_64`。日常验证本地归档依赖时使用普通 `check` / `build` 即可，正式公开发布前再使用 `check --production` 进行预检。
-3. **全流程联调测试**：在真实 Desktop 中完成从「应用启动 → 访问就绪 → AI 响应 → 状态保存 → 重启恢复」的闭环验证。
+   Windows x86_64 使用 `--target windows-x86_64`。正式公开发布前，选用从公共 registry 解析的依赖，再执行 `check --production` 与对应目标的 `build --production`。

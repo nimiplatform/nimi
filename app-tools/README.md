@@ -48,6 +48,7 @@ pnpm install
 pnpm run init
 pnpm run sync
 pnpm run check
+# Open a matching Nimi Home, sign in and enable Developer Mode.
 pnpm dev
 ```
 
@@ -72,12 +73,19 @@ Standalone third-party Apps must declare public npm and Cargo dependency version
 
 ## 3. Desktop-Supervised Development
 
-Ordinary development uses the **installed Nimi Home/Runtime and official Realm**. Open a matching Nimi build, sign in and enable Developer Mode; no Realm checkout, database or platform secret is needed. `nimi-app dev` uses the active Home. For source integration, quit the installed Runtime before starting source Nimi, then use the same App command. One Runtime runs on a machine at a time; starting another reports an error. Compatible versions can reuse the same data directory, models and engines in sequence. The Host owns its Realm configuration; a native App cannot override it or start a Runtime. Use matching App Tools and Home packages.
+For ordinary native App work, use a matching **installed Nimi and official Realm**. Sign in, enable Developer Mode, and run `pnpm dev` in your App repository. This works with public packages and an official account. If a compatible source Home is already running against a Realm suitable for your task, use that Home and the same App command.
+
+When changing Runtime, SDK or Kit, source Nimi defaults to official Realm. Choose `--realm local` on the source Home launcher for Realm integration or controlled data. Native `nimi-app dev` discovers the active Home and inherits its target. From a Nimi checkout, `pnpm doctor:dev -- --host source --realm official` compares the requested and observed Runtime. Coordinate with other developers before switching a shared host. The switch ends live App sessions. Compatible versions can use the same model and engine files in sequence. See the [local development guide](https://github.com/nimiplatform/nimi/blob/main/LOCAL_DEVELOPMENT.md).
 
 Nimi Apps run inside a Desktop-supervised Electron shell. The host provides a protected session for SDK calls without exposing Nimi credentials to the App renderer (note that this session bridge does not create an OS-level sandbox for the entire application).
 
-### Continuing an Existing Session
-To keep your app data and registrations intact across restarts:
+<a id="continuing-an-existing-session"></a>
+
+### Reopening a Development Registration
+
+After a restart, list registrations on the current host and resume the one that owns your App data. Use the selector from the current list. The new launch establishes a fresh protected session.
+
+If you need the App terminal to confirm a planned stop, press `Ctrl+C` there and wait for `stopped` before quitting Home. Closing Home first can disconnect the terminal before it receives the final status.
 
 ```bash
 # List active registrations

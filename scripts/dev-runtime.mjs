@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readDevelopmentRealm, developmentRealmEnvironment, parseRealmArguments } from './lib/development-realm.mjs';
+import { readDevelopmentRealm, developmentRealmEnvironment, parseRealmArguments, supervisorRealmArguments } from './lib/development-realm.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = realpathSync(path.resolve(scriptDir, '..'));
@@ -69,8 +69,7 @@ export function resolveSourceRuntimeLaunch(input = {}) {
       args: [
         '--repo-root', root,
         '--desktop-executable', electronExecutable,
-        '--realm', realm.name,
-        '--realm-url', realm.apiOrigin,
+        ...supervisorRealmArguments(realm),
       ],
     },
   };

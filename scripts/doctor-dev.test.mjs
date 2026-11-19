@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { developmentRealmEnvironment, resolveDevelopmentRealm } from './lib/development-realm.mjs';
 
 import {
   findLegacyCarrierRows,
   inspectMacFixedRuntimeService,
-  inspectMacSourceRuntime,
   parseMacProcessRows,
   runDevDoctor,
   validateFixedRuntimeService,
@@ -23,6 +25,20 @@ const validPresence = {
   startedAt: '2026-07-16T07:59:00.000Z',
   lastHeartbeatAt: '2026-07-16T07:59:55.000Z',
 };
+const localRealm = resolveDevelopmentRealm('local', {});
+const localEnv = developmentRealmEnvironment(localRealm);
+const localRuntime = { host: 'source', realm: { name: 'local', origin: localRealm.apiOrigin }, runtimePid: 20 };
+const noFixedService = async () => ({ state: 'error', reason: 'fixed-runtime-service-not-registered' });
+
+test('doctor rejects ambiguous or unrecognized target options before probing the default environment', () => {
+  const cli = fileURLToPath(new URL('./doctor-dev.mjs', import.meta.url));
+  for (const options of [['--host', 'source', '--host', 'installed'], ['--relam', 'local']]) {
+    const result = spawnSync(process.execPath, [cli, '--', ...options], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Choose one --host|Unknown option/u);
+    assert.equal(result.stdout, '');
+  }
+});
 
 test('presence validation accepts only the exact fresh loopback descriptor', () => {
   assert.equal(validateLocalDevelopmentPresence(validPresence, nowUnixMs).state, 'ok');
@@ -110,11 +126,15 @@ test('doctor does not infer registration or App Access from Desktop presence', a
     platform: 'win32',
     nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
-    queryService: async () => ({ state: 'error', reason: 'source-runtime-missing' }),
+    probeSource: async () => ({ state: 'missing' }),
+    queryFixedService: noFixedService,
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
     queryProcesses: async () => [],
   });
   assert.equal(report.ok, false);
+  assert.equal(report.observed.host, null);
+  assert.equal(report.observed.realm, null);
+  assert.equal(report.reuse.state, 'unknown');
   assert.equal(report.tier1.find((row) => row.id === 'source-runtime')?.state, 'error');
   assert.deepEqual(report.tier2, [
     {
@@ -149,24 +169,12 @@ test('doctor http probes survive a blocking service query', async (context) => {
   const report = await runDevDoctor({
     platform: 'win32',
     nowUnixMs,
-    probeHttp: async () => {
-      try {
-        const response = await fetch(probeUrl, {
-          method: 'GET',
-          redirect: 'manual',
-          signal: AbortSignal.timeout(2_500),
-        });
-        return response.status < 500
-          ? { state: 'ok', reason: 'http-reachable', statusCode: response.status }
-          : { state: 'error', reason: 'http-unhealthy', statusCode: response.status };
-      } catch {
-        return { state: 'error', reason: 'http-unreachable' };
-      }
-    },
-    queryService: () => {
+    realm: 'local', env: { ...localEnv, NIMI_DEV_REALM_URL: probeUrl, NIMI_DEV_WEB_URL: probeUrl },
+    probeSource: async () => {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3_100);
-      return { state: 'error', reason: 'source-runtime-missing' };
+      return { state: 'missing' };
     },
+    queryFixedService: noFixedService,
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
     queryProcesses: async () => [],
   });
@@ -195,40 +203,26 @@ test('Mac process inventory preserves executable paths and excludes the live Hom
 test('Mac doctor recognizes authenticated Home presence without exposing its caller token', async () => {
   const executable = `${path.resolve('.')}/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron`;
   const report = await runDevDoctor({
-    platform: 'darwin', nowUnixMs,
+    platform: 'darwin', nowUnixMs, realm: 'local', env: localEnv,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
-    queryService: async () => ({ state: 'ok', reason: 'source-runtime-process-and-sockets-observed' }),
+    probeSource: async () => ({ state: 'ready', observed: localRuntime }),
     queryProcesses: async () => parseMacProcessRows(`100 1 ${executable}\n101 100 ${executable}\n200 1 ${executable}\n`),
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
   });
   assert.equal(report.tier1.find((row) => row.id === 'desktop-presence').state, 'ok');
+  assert.deepEqual(report.observed, localRuntime);
+  assert.equal(report.reuse.state, 'reusable');
   assert.deepEqual(report.tier1.find((row) => row.id === 'legacy-carriers').processIds, [200]);
   assert.equal(JSON.stringify(report).includes(validPresence.callerToken), false);
   assert.equal(JSON.stringify(report).includes('callerToken'), false);
-});
-
-test('Mac source Runtime observation requires its supervisor and both process-owned sockets', async () => {
-  const rows = [
-    { processId: 10, parentProcessId: 1, name: 'nimi-source-runtime-supervisor', executablePath: '/tmp/nimi-source-runtime-supervisor' },
-    { processId: 11, parentProcessId: 10, name: 'nimi-runtime', executablePath: '/workspace/nimi/.nimi/local/runtime/nimi-runtime' },
-  ];
-  const sockets = ['/source/run/runtime-desktop.sock', '/source/run/runtime-local-app.sock'];
-  const observe = (processes, observedSockets) => inspectMacSourceRuntime(processes, '/workspace/nimi', async (pid) => {
-    assert.equal(pid, 11);
-    return observedSockets;
-  });
-  assert.equal((await observe(rows, sockets)).state, 'ok');
-  assert.equal((await observe(rows, sockets.slice(0, 1))).reason, 'source-runtime-sockets-missing');
-  assert.equal((await observe(rows, null)).state, 'not-observed');
-  assert.equal((await observe(rows.slice(1), sockets)).reason, 'source-runtime-not-observed');
-  assert.equal((await observe(null, sockets)).state, 'not-observed');
 });
 
 test('Mac doctor reports an unavailable process inventory without claiming no legacy carriers', async () => {
   const report = await runDevDoctor({
     platform: 'darwin', nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
-    queryService: async () => ({ state: 'not-observed', reason: 'process-inventory-unavailable' }),
+    probeSource: async () => ({ state: 'unavailable', detail: 'process-inventory-unavailable' }),
+    queryFixedService: noFixedService,
     queryProcesses: async () => null,
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
   });
@@ -236,4 +230,62 @@ test('Mac doctor reports an unavailable process inventory without claiming no le
   assert.equal(report.tier1.find((row) => row.id === 'source-runtime').state, 'not-observed');
   assert.equal(report.tier1.find((row) => row.id === 'legacy-carriers').state, 'not-observed');
   assert.equal(report.tier2.find((row) => row.id === 'protected-runtime-health').state, 'not-observed');
+});
+
+test('an installed request still reports the observed source Realm when the installed service is on demand', async () => {
+  const report = await runDevDoctor({
+    host: 'installed', realm: 'official', platform: 'darwin',
+    probeSource: async () => ({ state: 'conflict', observed: localRuntime, detail: 'Different Realm.' }),
+    queryFixedService: async () => ({ state: 'ok', reason: 'fixed-runtime-service-on-demand' }),
+    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable' }),
+    queryProcesses: async () => [],
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+  });
+  assert.ok(!report.tier1.some(row => row.id === 'sdk-kit-dist'));
+  assert.equal(report.requested.host, 'installed');
+  assert.equal(report.requested.realm.name, 'official');
+  assert.equal(report.requested.realm.origin, 'https://realm.nimi.ai');
+  assert.deepEqual(report.observed, localRuntime);
+  assert.equal(report.reuse.state, 'conflict');
+  assert.equal(report.ok, false);
+});
+
+test('fixed-service status can identify a running host but cannot establish its Realm', async () => {
+  const inputs = {
+    realm: 'local', env: localEnv, platform: 'darwin', probeSource: async () => ({ state: 'conflict', detail: 'Another Runtime executable.' }),
+    queryFixedService: async () => ({ state: 'ok', reason: 'fixed-runtime-service-running' }),
+    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable' }),
+    queryProcesses: async () => [],
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+  };
+  for (const [host, expected] of [['source', 'conflict'], ['installed', 'unknown']]) {
+    const report = await runDevDoctor({ ...inputs, host });
+    assert.equal(report.observed.host, 'installed');
+    assert.equal(report.observed.realm, null);
+    assert.equal(report.reuse.state, expected);
+  }
+  const idle = await runDevDoctor({ ...inputs, host: 'installed', probeSource: async () => ({ state: 'missing' }),
+    queryFixedService: async () => ({ state: 'ok', reason: 'fixed-runtime-service-on-demand' }) });
+  assert.equal(idle.observed.host, null);
+  assert.equal(idle.reuse.state, 'unknown');
+
+  const otherProfile = await runDevDoctor({ ...inputs, host: 'installed', queryFixedService: async name => ({
+    state: 'ok', reason: name === 'official' ? 'fixed-runtime-service-running' : 'fixed-runtime-service-on-demand',
+  }) });
+  assert.equal(otherProfile.observed.fixedServiceProfile, 'official');
+  assert.equal(otherProfile.observed.realm, null);
+  assert.equal(otherProfile.reuse.state, 'conflict');
+});
+
+test('an incomplete source selection remains unknown even when the requested HTTP endpoints respond', async () => {
+  const report = await runDevDoctor({
+    realm: 'local', platform: 'darwin', env: localEnv,
+    probeSource: async () => ({ state: 'unconfirmed', observed: localRuntime, detail: 'Incomplete source selection.' }),
+    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable' }),
+    queryProcesses: async () => [],
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+  });
+  assert.deepEqual(report.observed, localRuntime);
+  assert.equal(report.reuse.state, 'unknown');
+  assert.equal(report.ok, false);
 });

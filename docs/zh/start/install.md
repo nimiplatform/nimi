@@ -20,46 +20,40 @@
 
 使用 Node `>=24.22.3 <25`、pnpm `10.34.7`。原生源码构建还需目标系统的构建工具；Android 另需 JDK、Android SDK、原生工程与设备条件。
 
-当前源码脚手架声明的组合如下：
-
-| 包 | 源码版本 |
-| --- | --- |
-| `@nimiplatform/sdk` | `^0.23.0` |
-| `@nimiplatform/kit` | `^0.23.0` |
-| `@nimiplatform/app-tools` | `^0.15.0` |
-| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.7.0` |
-| `nimi-shell-tauri` | `0.12.0` |
-| 项目级 Nimi Coding | `0.7.0` |
+源码联调以所选 App Tools 包的 `nimiScaffoldVersions` 和 App 锁文件为准，其中声明配套的 SDK、Kit 和工具版本。[App Tools 清单](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 
 ## 源码包归档 {#source-package-archives}
 
-按 [App Tools 本地包流程](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages)构建完整包。在独立 App 的 `pnpm-workspace.yaml` 中选择实际归档路径；以下示例使用相邻的 `nimi-packages` 目录：
+按 [App Tools 本地包流程](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages)构建完整包。在独立 App 的 `pnpm-workspace.yaml` 中选择实际归档路径。下例使用相邻的 `nimi-packages` 目录，请将版本占位符替换为各自归档文件的实际版本。
 
 ```yaml
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.15.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.23.0.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.23.0.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.23.0.tgz
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-<app-tools-version>.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-<sdk-version>.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-<kit-version>.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-<kit-version>.tgz
 ```
 
 Windows x86_64 请将 Darwin 包换为匹配版本的 `kit-protected-local-win32-x64` 归档。原生可选包必须与 Kit 配套；Web App 不会因安装这些包而获得原生 Host 身份。
 
-执行 `pnpm install`，再依次运行 App 的 init/check、类型检查、测试与构建。请保留所选源码交付的 revision 和 lockfile integrity；即使版本号相同，更换归档文件后也必须重新安装。切勿直接修补已安装的依赖文件或改为源码目录依赖。注意，生成本地归档并不代表已发布至 npm，也不等同于真实 Runtime 调用已走通。
+执行 `pnpm install`，再依次运行 App 的 init/check、类型检查、测试与构建。请保留所选源码交付的 revision 和 lockfile integrity。归档内容变化时使用新候选版本，并重新安装依赖。切勿直接修补已安装的依赖文件或改为源码目录依赖。注意，生成本地归档并不代表已发布至 npm，也不等同于真实 Runtime 调用已走通。
 
 ## 启动源码主机
 
-先完成[仓库环境准备](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md)，包括 Go 和原生工具。源码联调使用 `http://127.0.0.1:3002` 的本地 Realm。可通过 `NIMI_DEV_REALM_DIR` 指定已有的 Realm 开发工程，或自行运行所需服务；公开 Nimi 仓库不包含该服务端实现。
+普通原生 App 开发默认用已安装 Nimi 和官方 Realm。修改 Home、Runtime、SDK 或 Kit 时，按[仓库入门指南](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md)准备 Go 和原生工具。公开仓库的源码 Runtime 默认连接官方 Realm。
 
-在 Nimi 根目录运行：
+在 Nimi 根目录用第一条命令查看能否复用已有源码 Runtime。匹配且 Home 已打开，就在当前窗口继续。需要启动 Home 时再运行第二条。
 
 ```bash
-pnpm dev:desktop
+pnpm doctor:dev -- --host source --realm official
+pnpm dev:desktop -- --realm official
 ```
 
-启动器会检查并启动已配置但缺失的开发服务和 Runtime，然后打开 Home。完成数据目录设置与浏览器登录。开发原生 App 时，开启 Developer Mode，再通过 App 声明的 `pnpm dev` 入口启动；宿主启动与该 App 的 Nimi Access 就绪需要分别确认。
+联动 Realm 服务或需要受控测试数据时，运行 `pnpm dev:desktop -- --realm local`。只有这种模式会检查本地 API、Realtime 和登录页。可以复用已有服务，也可以用 `NIMI_DEV_REALM_DIR` 指定工作区来启动缺失的 Realm 服务。切换 Runtime 前先与同机开发者协调。
+
+首次打开 Home 后，选择数据目录并完成浏览器登录。开发原生 App 时，开启 Developer Mode，通过 App 工程的 `pnpm dev` 启动，并在 App 中确认 Nimi Access。
 
 独立调试 Runtime 时，可在专用终端运行 `pnpm dev:runtime` 并查看前台日志，Home 会复用该进程。Windows 固定服务的 `status`/`health` 命令不用于诊断源码 supervisor，也不能证明 AI 已就绪，详见 [CLI 与启动路径](/zh/runtime/cli-and-daemon)。
 

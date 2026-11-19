@@ -1,25 +1,8 @@
 # Nimi 开发者首日入门指南 (Onboarding)
 
-欢迎加入 Nimi 仓库！这篇文档的目标是帮助你在第一天顺畅走通本地开发环境，并快速达成以下里程碑：
+第一次开发原生生态 App，通常先打开与 App Tools 匹配的已安装 Nimi，登录官方 Realm，开启开发者模式，再在 App 工程运行 `pnpm dev`。如果机器上已有满足任务要求的 Home，可以直接使用。[App Tools 开发指南](app-tools/README.md#3-desktop-supervised-development)
 
-1. **环境就绪**：安装好所需的基础工具链。
-2. **本地 Runtime 运行中**：本地 AI 服务守护进程启动成功并通过健康检查。
-3. **前端工作台跑通**：至少成功启动 `desktop` 或 `web` 的本地开发界面。
-4. **掌握基本准则**：了解 monorepo 边界划分、核心命令与协作流程。
-
----
-
-## 媒体0.22开发检查点升级
-
-`media-cdn-preview-2026-10-26` 是配套 Realm 媒体合同的开发检查点，并非生产发布。SDK / Kit 0.22.0、Runtime、原生承载与 Home 必须使用匹配源码重新构建；仅拉取前端代码或修改依赖版本字符串，无法让旧 Runtime 的 broker/protobuf 支持新媒体操作。
-
-两仓独立更新，配套 Realm 代码的 SHA 见该 checkpoint 对应 Nimi 媒体提交中的 `Companion-Realm`。Realm 仓库根目录的 `MEDIA-CHECKPOINT.md` 是跨机数据适配入口，说明了现有数据库保护要求和工具适用边界。仅运行客户端的机器只需配置实际可访问的 Realm 并正常登录，不运行 Realm 数据迁移，也不需要 R2 写凭据。`localhost:3002` 指向本机；没有可访问的共享 Realm 时，不要将它当作远端服务。
-
-自行运行 Realm 的机器需先确认数据库与媒体发布 owner：不同数据库不得直接向同一预览发布空间写入。不要复制用户 token、Runtime 数据目录或整份 `.env`，也不要重置旧数据库；当前一次性媒体工具不是任意机器通用的迁移器。同时采用新介绍合同的独立 App 还需在根目录提供 `NIMI_APP.md`，不支持 README 回退。
-
-2026-10-28 首发准备已将媒体交付切至 policy v2：大幅静态主图提前生成，Runtime 同步修复了写死 v1 的描述与原始语音链接校验。升级时必须重新构建并正常重启匹配的 Runtime，不能只更新 Realm/Worker。最新配套代码、内容 revision 11 与生产变更预览见 Realm 的 `docker/production/MEDIA-LAUNCH.md`。
-
-2026-10-28 经明确批准，Cloudflare 账号已启用 Workers Paid，预览 Worker 单请求 CPU 限额为 1000ms；冷 MISS 主图 p95 为 1.773秒，新的真实页面验收未再观察到非取消的媒体请求失败。该结果仅解除本机/预览的 CPU 配额阻断；Windows、管理员界面、多 POP 和生产目标仍有未验证范围。代码、协议、数据准备与真实产品验收须分别核对，不能将构建通过或本机样本视为生产就绪。
+修改 Home、Runtime、SDK 或 Kit 时，使用公开仓库的源码 Runtime 和官方 Realm。只有联调 Realm 或需要受控数据才选 `local`。准备好工具链后，先用 `pnpm doctor:dev` 查看本次目标与活动环境，再决定是否启动 Home。[如何判断能否复用](LOCAL_DEVELOPMENT.md#先判断能否复用)
 
 ## 1. 核心架构与代码目录
 
@@ -73,9 +56,9 @@ pnpm -v
 
 以下配置用于源码联调，不是使用测试安装包的前置条件。体验现有测试版本请从[下载页](https://nimi.ai/download)选择对应平台。
 
-源码 Nimi 默认连接官方真实 Realm；贡献者不需要 Realm 私有源码、API server 或数据库。运行 `pnpm dev:desktop` 后通过正式浏览器登录。需要联动本地 Realm 时选择 `pnpm dev:desktop -- --realm local`；该模式可复用本地服务，或通过 `NIMI_DEV_REALM_DIR` 调用 Realm 工作区自己的 guarded scripts。生态 App 通常先打开已安装 Nimi；源码联调先退出当前 Runtime，再启动源码 Nimi，App 命令使用当前 Home。同一机器只允许一个 Runtime，兼容版本可顺序复用数据目录、模型和引擎。
+默认的官方 Realm 提供 API 与浏览器登录页，账号使用真实云端数据。公开仓库和本机工具链就足以开发 Nimi。
 
-### 步骤 1：创建 `.env`
+### 步骤 1（可选）· 指定开发环境
 在仓库根目录按需新建 `.env`（参考 `.env.example`）。普通 Nimi 开发无需配置 Realm 地址；以下选择使用官方默认值：
 
 ```bash
@@ -88,8 +71,7 @@ NIMI_DEV_REALM=official
 > - `NIMI_RUNTIME_BRIDGE_MODE`：本地源码联调请固定使用 `RUNTIME`（发布测试使用 `RELEASE`）。
 > - `NIMI_DEV_REALM`：`official`（默认）或 `local`；命令行 `--realm` 优先。local 地址使用 `.env.example` 的 `NIMI_DEV_*` 输入。
 > - `NIMI_DEV_REALM_DIR`：可选的 Realm 开发工程目录，供 Desktop 启动器调用工程自己的数据服务检查、API 和实时服务脚本。
-> - `NIMI_CONTROL_PLANE_URL`：本地 Runtime 控制面 HTTP 监听地址（默认端口 `46372`）。
-> - `NIMI_WEB_URL`：面向 Web 功能的基础地址（注：Desktop 登录 URL 与一次性回环回调由 Runtime 签发，不从此变量拼接）。
+> - Home 的浏览器登录地址及一次性回环回调由 Runtime 签发。
 > - *提示：请勿将包含私有配置或密钥的 `.env` 提交到 Git。*
 
 ### 步骤 2：安装依赖与初始编译
@@ -107,9 +89,9 @@ pnpm build
 
 ## 4. 启动源码环境与判断状态
 
-首日联调从仓库根目录运行 `pnpm dev:desktop`，由启动器检查并准备已配置的 Realm/Web、源码 Runtime 与 Home。登录所需的 Realm 服务必须已配置；公开 Nimi 仓库不包含服务端实现。具体步骤见下一节和 [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)。
+在仓库根目录运行 `pnpm doctor:dev -- --host source --realm official`。本地 Realm 联调将 `official` 换为 `local`。诊断会列出请求的目标、探测到的宿主与 Realm API，以及 Runtime 能否复用。目标匹配且 Home 已打开，就在当前窗口继续。有冲突时先与使用这台机器的开发者协调。各项结果的含义见[本地开发指南](LOCAL_DEVELOPMENT.md#先判断能否复用)。
 
-独立调试 Runtime 时，在专用终端运行 `pnpm dev:runtime`，从前台日志判断 supervisor 的启动或失败；Home 会复用这个源码进程。
+需要单独观察 Runtime 前台日志时，可以用 `pnpm dev:runtime` 启动 supervisor，随后用同一 Realm 的 Home 复用它。
 
 按实际层次检查：
 
@@ -126,16 +108,16 @@ pnpm build
 
 ## 5. 启动桌面客户端 (Nimi Desktop)
 
-运行以下命令启动主桌面客户端；无需先手动启动 Runtime 或 Web：
+需要启动对接官方 Realm 的源码 Home 时，在仓库根目录执行以下命令。没有设置 `NIMI_DEV_REALM` 的新工作区可简写为 `pnpm dev:desktop`。
 
 ```bash
-pnpm dev:desktop
+pnpm dev:desktop -- --realm official
 ```
 
-启动器复用已运行的服务，自动启动缺失的源码 Runtime、Web 登录页和已配置的 Realm 服务，并在依赖可用后打开 Electron。依赖启动失败会在终端给出原因和日志路径。关闭 Desktop 时仅停止本次自动启动的开发进程，保留外部已运行服务与数据库容器。完整配置与故障处理见 [本地开发指南](LOCAL_DEVELOPMENT.md)。
+启动器在默认官方模式下准备源码 Runtime 并打开 Electron。需要本地服务时，运行 `pnpm dev:desktop -- --realm local`，复用符合要求的 Realm API、Realtime 与登录页。缺失的 Realm 服务可用 `NIMI_DEV_REALM_DIR` 指定的工作区启动。关闭 Desktop 时，启动器会清理本次创建的开发进程。完整配置与切换影响见[本地开发指南](LOCAL_DEVELOPMENT.md#切换会影响什么)。
 
 启动后：
-1. 客户端首次运行会引导选择数据存储目录（存储于 `~/.nimi/nimi.json` 中的 `dataRoot.path`）。
+1. 首次运行会引导选择数据目录。源码环境在该 Realm 模式的 Product Control 记录中保存 `dataRoot.path`。
 2. 在浏览器弹出的页面中完成 Nimi 账号登录授权。
 3. 登录后即可在 Nimi Home 中体验角色对话、本地模型管理与内置应用。
 
@@ -245,3 +227,17 @@ pnpm runtime:cmd -- doctor --json
 ```
 
 祝你开发愉快！如果遇到未涵盖的问题，欢迎在 Discord 或 GitHub Issue 中与团队交流。
+
+---
+
+## 附录 · 维护媒体 0.22 历史开发检查点
+
+`media-cdn-preview-2026-10-26` 是配套 Realm 媒体合同的开发检查点，并非生产发布。SDK / Kit 0.22.0、Runtime、原生承载与 Home 必须使用匹配源码重新构建；仅拉取前端代码或修改依赖版本字符串，无法让旧 Runtime 的 broker/protobuf 支持新媒体操作。
+
+两仓独立更新，配套 Realm 代码的 SHA 见该 checkpoint 对应 Nimi 媒体提交中的 `Companion-Realm`。Realm 仓库根目录的 `MEDIA-CHECKPOINT.md` 是跨机数据适配入口，说明了现有数据库保护要求和工具适用边界。仅运行客户端的机器只需配置实际可访问的 Realm 并正常登录，不运行 Realm 数据迁移，也不需要 R2 写凭据。`localhost:3002` 指向本机；没有可访问的共享 Realm 时，不要将它当作远端服务。
+
+自行运行 Realm 的机器需先确认数据库与媒体发布 owner：不同数据库不得直接向同一预览发布空间写入。不要复制用户 token、Runtime 数据目录或整份 `.env`，也不要重置旧数据库；当前一次性媒体工具不是任意机器通用的迁移器。同时采用新介绍合同的独立 App 还需在根目录提供 `NIMI_APP.md`，不支持 README 回退。
+
+2026-10-28 首发准备已将媒体交付切至 policy v2：大幅静态主图提前生成，Runtime 同步修复了写死 v1 的描述与原始语音链接校验。升级时必须重新构建并正常重启匹配的 Runtime，不能只更新 Realm/Worker。最新配套代码、内容 revision 11 与生产变更预览见 Realm 的 `docker/production/MEDIA-LAUNCH.md`。
+
+2026-10-28 经明确批准，Cloudflare 账号已启用 Workers Paid，预览 Worker 单请求 CPU 限额为 1000ms；冷 MISS 主图 p95 为 1.773秒，新的真实页面验收未再观察到非取消的媒体请求失败。该结果仅解除本机/预览的 CPU 配额阻断；Windows、管理员界面、多 POP 和生产目标仍有未验证范围。代码、协议、数据准备与真实产品验收须分别核对，不能将构建通过或本机样本视为生产就绪。

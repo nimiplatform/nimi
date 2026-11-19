@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { spawnCommand } from './command-runner.mjs';
 import { composePnpmSpawn } from './pnpm-command.mjs';
 import { runSourceRuntimeDevelopment } from '../dev-runtime.mjs';
-import { readDevelopmentRealm, developmentRealmEnvironment } from './development-realm.mjs';
+import { readDevelopmentRealm, developmentRealmEnvironment, readSupervisorRealm } from './development-realm.mjs';
 
 const execute = promisify(execFile);
 const acceptsRealmKeys = (value) => Array.isArray(value?.keys) && value.keys.length > 0
@@ -95,6 +95,11 @@ export function validateRealmDevDirectory(directory, baseDirectory = process.cwd
   return root;
 }
 
+function assertCompatibleDependency(name, result) {
+  if (result.state === 'unconfirmed') throw new Error(`${name}: ${result.detail}`);
+  if (result.state === 'conflict') throw new Error(`${name}: ${result.detail || 'another service or workspace occupies the required endpoint.'} Coordinate a switch with its owner.`);
+}
+
 export async function waitForDevDependency(service, { signal, timeoutMs = 180_000, failure = () => undefined } = {}) {
   const deadline = Date.now() + timeoutMs;
   let result;
@@ -104,7 +109,7 @@ export async function waitForDevDependency(service, { signal, timeoutMs = 180_00
     if (error) throw error;
     result = await service.probe();
     if (result.state === 'ready') return;
-    if (result.state === 'conflict') throw new Error(`${service.name}: another service or workspace occupies the required endpoint${result.detail ? ` (${result.detail})` : ''}. Stop that process explicitly.`);
+    assertCompatibleDependency(service.name, result);
     await delay(500, undefined, { signal });
   } while (Date.now() < deadline);
   throw new Error(`${service.name} did not become ready within ${timeoutMs / 1000}s (${result?.detail || result?.state}).`);
@@ -112,7 +117,7 @@ export async function waitForDevDependency(service, { signal, timeoutMs = 180_00
 
 // Process/endpoint observations decide whether to start the source supervisor.
 // Desktop still performs the protected native admission and readiness handshake.
-export async function probeSourceRuntime(root, realmName, { platform = process.platform, executeCommand = execute, homeDirectory = os.homedir() } = {}) {
+export async function probeSourceRuntime(root, realm, { platform = process.platform, executeCommand = execute, homeDirectory = os.homedir() } = {}) {
   let rows;
   let endpoint;
   const runtimeName = /^(?:nimi(?:\.exe)?|nimi-runtime)$/iu;
@@ -180,9 +185,12 @@ export async function probeSourceRuntime(root, realmName, { platform = process.p
     const match = command.match(/^(?:"([^"]+)"|([^\s"]+))(?:\s+(.*))?$/su);
     return match && normalize(match[1] || match[2]) === normalize(row.ExecutablePath) ? (match[3] || '') : null;
   };
-  const runtimes = rows.filter(row => runtimeName.test(row.Name));
+  // The same CLI executable also has client commands such as status and app
+  // watch. Only exclude them when the executable and its command are readable.
+  const clientCommand = /^(?:--\s+)*(?:app|audit|config|doctor|health|logs|status|version)(?:\s|$)/u;
+  const runtimes = rows.filter(row => runtimeName.test(row.Name) && !clientCommand.test(commandTail(row) ?? ''));
   const supervisors = rows.filter(row => supervisorName.test(row.Name));
-  if (runtimes.some(row => normalize(row.ExecutablePath) && normalize(row.ExecutablePath) !== normalize(expected))) {
+  if (runtimes.some(row => commandTail(row) !== null && normalize(row.ExecutablePath) !== normalize(expected))) {
     return { state: 'conflict', detail: 'A Nimi process uses a different Runtime executable.' };
   }
   if (runtimes.some(row => commandTail(row) === null)) return unavailable('A Nimi process has incomplete executable or command information.');
@@ -200,13 +208,22 @@ export async function probeSourceRuntime(root, realmName, { platform = process.p
   }
   if (supervisors.length > 1) return unavailable('Multiple source supervisors are still being observed.');
   const owner = runtime ? supervisors.find(row => row.ProcessId === runtime.ParentProcessId) : supervisors[0];
+  let observed;
   if (owner) {
     const command = commandTail(owner);
-    if (command === null) return unavailable('Source supervisor command information is incomplete.');
-    const realms = [...command.matchAll(/(?:^|\s)--realm(?:\s+|=)(?:"(official|local)"|(official|local))(?=\s|$)/gu)];
-    if (realms.length !== 1) return unavailable('Source supervisor Realm information is incomplete or ambiguous.');
-    if (realmName && (realms[0][1] || realms[0][2]) !== realmName) {
-      throw new Error('The active source Runtime uses another Realm environment. Stop that source instance before switching.');
+    const active = command === null ? null : readSupervisorRealm(command);
+    observed = { host: 'source', realm: null, runtimePid: runtime?.ProcessId ?? null };
+    if (!active) {
+      return { ...unavailable('Source supervisor Realm information is unavailable or ambiguous.'), observed };
+    }
+    const { apiOrigin, ...fields } = active;
+    observed.realm = { ...fields, origin: apiOrigin };
+    const different = Object.keys(active).find(key => active[key] !== realm[key]);
+    if (different) {
+      return { state: 'conflict', observed, detail: `Source supervisor ${different} is ${active[different]}. Requested ${realm[different]}.` };
+    }
+    if (active.name === 'local' && ['realtimeOrigin', 'webOrigin', 'environmentId'].some(key => !Object.hasOwn(active, key))) {
+      return { state: 'unconfirmed', observed, detail: 'This supervisor does not report the full local Realm selection. Check its owner terminal before switching.' };
     }
   }
   if (platform === 'darwin' && runtime) {
@@ -215,12 +232,12 @@ export async function probeSourceRuntime(root, realmName, { platform = process.p
       const { stdout } = await executeCommand('/usr/sbin/lsof', ['-nP', '-a', '-p', String(runtime.ProcessId), '-U', '-Fn'], { timeout: 10_000 });
       endpoint = stdout.split('\n').includes(`n${socket}`);
     } catch (error) {
-      if (error.code !== 1) return unavailable('Source Runtime socket observation is unavailable.');
+      if (error.code !== 1) return { ...unavailable('Source Runtime socket observation is unavailable.'), observed };
       endpoint = false;
     }
   }
-  if (runtime) return { state: endpoint ? 'ready' : 'starting' };
-  if (owner) return { state: 'starting', detail: 'Source supervisor is present; waiting for its Runtime serve process.' };
+  if (runtime) return { state: endpoint ? 'ready' : 'starting', observed };
+  if (owner) return { state: 'starting', observed, detail: 'Source supervisor is present; waiting for its Runtime serve process.' };
   return endpoint ? unavailable('Source endpoint appeared before its process owner could be identified.') : { state: 'missing' };
 }
 
@@ -248,7 +265,7 @@ export async function prepareSourceRuntimeDependency(runtime, owner, { signal, l
     }
     if (result.state === 'starting' && !started) observedOtherOwner = true;
     if (result.state === 'ready' && !started) log('Reusing source Runtime.');
-    else if (result.state !== 'ready' && !waitingReported) {
+    else if (['starting', 'unavailable', 'missing'].includes(result.state) && !waitingReported) {
       log('Waiting for source Runtime observations to become complete.'); waitingReported = true;
     }
     return result;
@@ -297,7 +314,7 @@ export function launchDevService(root, service, env, logRoot) {
   };
 }
 
-export async function prepareDesktopDevDependencies(root, { signal, realm = readDevelopmentRealm(root), externalEnvironment = process.env } = {}) {
+export async function prepareDesktopDevDependencies(root, { signal, realm = readDevelopmentRealm(root), externalEnvironment = process.env, probeRuntime = probeSourceRuntime } = {}) {
   const env = readDesktopDevEnvironment(root);
   const logRoot = path.join(root, '.nimi', 'local', 'dev-services');
   mkdirSync(logRoot, { recursive: true });
@@ -318,16 +335,20 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
     return closeTask;
   };
   try {
+    const runtime = { name: 'Source Runtime', probe: () => probeRuntime(root, realm) };
     const services = desktopHttpDependencies(root, realm);
     const states = await Promise.all(services.map((service) => service.probe()));
     for (let index = 0; index < services.length; index += 1) {
-      if (states[index].state === 'conflict') {
-        throw new Error(`${services[index].name}: another service or workspace occupies the required endpoint. Stop that process explicitly.`);
-      }
+      assertCompatibleDependency(services[index].name, states[index]);
     }
     // Resolve configuration before starting anything, so incomplete setup cannot
     // leave an unexplained half-started Desktop session.
     const needsRealm = services.some((service, index) => service.external && states[index].state === 'missing');
+    if (realm.name === 'local' && (env.NIMI_DEV_REALM_DIR || states.some(state => state.state === 'missing'))) {
+      // dev:infra can start persistent containers. Check for a known conflict
+      // before starting services, and recheck at attachment after they start.
+      assertCompatibleDependency(runtime.name, await runtime.probe());
+    }
     const realmRoot = realm.name === 'local' && (env.NIMI_DEV_REALM_DIR || needsRealm) ? validateRealmDevDirectory(env.NIMI_DEV_REALM_DIR, root) : undefined;
     if (realmRoot) {
       phase = 'Realm data services';
@@ -356,7 +377,6 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
       log(`${service.name} log: ${child.logPath}`);
       await waitForDevDependency(service, { signal, failure: child.failure });
     }
-    const runtime = { name: 'Source Runtime', probe: () => probeSourceRuntime(root, realm.name) };
     phase = 'Source Runtime startup';
     await prepareSourceRuntimeDependency(runtime, runtimeOwner, { signal, log });
     log('Dependencies are available; starting Desktop for protected Runtime admission.');

@@ -20,46 +20,40 @@ Use a published App Tools release and its generated dependency set for the match
 
 Use Node `>=24.22.3 <25` and pnpm `10.34.7`. Native source builds additionally need the target OS build tools. Android has its own JDK, Android SDK, native project and device prerequisites.
 
-The current source scaffold declares:
-
-| Package | Source version |
-| --- | --- |
-| `@nimiplatform/sdk` | `^0.23.0` |
-| `@nimiplatform/kit` | `^0.23.0` |
-| `@nimiplatform/app-tools` | `^0.15.0` |
-| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.7.0` |
-| `nimi-shell-tauri` | `0.12.0` |
-| Project-local Nimi Coding | `0.7.0` |
+For a source checkout, use the SDK, Kit and tooling versions in the selected App Tools package's `nimiScaffoldVersions` and the App lockfile. [App Tools manifest](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 
 ## Source Package Archives
 
-Build and package the required local archives using the [App Tools local package workflow](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages). Point your standalone App's `pnpm-workspace.yaml` to the actual archive paths; the following example assumes a sibling `nimi-packages` directory:
+Point your standalone App's `pnpm-workspace.yaml` to the complete archives for your chosen build. This example uses a sibling `nimi-packages` directory. Replace each version placeholder with the one on its archive. [App Tools local package workflow](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages)
 
 ```yaml
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.15.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.23.0.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.23.0.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.23.0.tgz
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-<app-tools-version>.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-<sdk-version>.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-<kit-version>.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-<kit-version>.tgz
 ```
 
 On Windows x86_64, use the matching `kit-protected-local-win32-x64` archive instead of the Darwin package. Native optional packages must match Kit. A Web-only App does not acquire a native Host from these packages.
 
-Run `pnpm install`, then run the App's `init`/`check`, typecheck, tests, and build. Keep the source revision and lockfile integrity with the selected delivery, and reinstall whenever an archive changes—even if its numeric version stays the same. Do not patch installed files or replace public packages with source-directory links. Creating an archive locally does not publish it to npm or verify a live Runtime call.
+Run `pnpm install`, then run the App's `init`/`check`, typecheck, tests, and build. Keep the source revision and lockfile integrity with the selected delivery. When archive content changes, use the new candidate version and reinstall. Do not patch installed files or replace public packages with source-directory links. Creating an archive locally does not publish it to npm or verify a live Runtime call.
 
 ## Start the Source Host
 
-Prepare the [repository environment](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md), including Go and native tools. Source development uses local Realm at `http://127.0.0.1:3002`. Configure an existing Realm development checkout through `NIMI_DEV_REALM_DIR`, or run its required services separately; the public Nimi repository does not contain that server implementation.
+Ordinary native App development uses installed Nimi and official Realm. For changes to Home, Runtime, SDK or Kit, prepare Go and the native tools in the [repository onboarding guide](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md). The public checkout runs source Nimi against official Realm by default.
 
-From the Nimi root:
+From the Nimi root, check for an active source Runtime. If it matches and Home is open, continue in that window. To start Home, run the second command.
 
 ```bash
-pnpm dev:desktop
+pnpm doctor:dev -- --host source --realm official
+pnpm dev:desktop -- --realm official
 ```
 
-The launcher checks and starts missing configured development services and Runtime, then opens Home. Complete data-directory setup and browser sign-in. For native App development, enable Developer Mode and launch the App through its declared `pnpm dev` entry; inspect its Nimi Access separately from host startup.
+Choose `pnpm dev:desktop -- --realm local` for Realm integration or controlled test data. Only this mode checks the local API, Realtime and login site. It can reuse existing services or start missing Realm services through a workspace supplied in `NIMI_DEV_REALM_DIR`. Coordinate any Runtime switch with the other developers using the machine.
+
+Complete data-directory setup and browser sign-in. For native App development, enable Developer Mode and use the App's declared `pnpm dev` entry. Check Nimi Access in the running App.
 
 For independent Runtime debugging, `pnpm dev:runtime` runs its source supervisor in a dedicated terminal and prints logs there. Home can reuse that process. The Windows fixed-service `status`/`health` commands do not diagnose the source supervisor or establish AI readiness; see [CLI and startup paths](/runtime/cli-and-daemon).
 

@@ -10,9 +10,9 @@
 
 请根据当前的运行环境，选择对应的 Runtime 启动方式：
 
-### 源码开发环境（推荐）
+### 源码 Home 与 Runtime
 
-完成[环境准备](/zh/start/install)，在 Nimi 根目录运行 `pnpm dev:desktop`。启动器检查并启动已配置但缺失的服务与 Runtime，再打开 Home；从终端和 `.nimi/local/dev-services/` 查看启动失败的具体原因。独立调试 Runtime 才需要另开终端执行 `pnpm dev:runtime` 并查看其前台日志。
+普通原生 App 使用当前匹配的 Home，默认是已安装 Nimi 和官方 Realm。平台源码开发先在 Nimi 根目录运行 `pnpm doctor:dev -- --host source --realm official`。探测到匹配的宿主即可复用，需要启动 Home 时运行 `pnpm dev:desktop`。联调 Realm 或需要受控数据才选 `--realm local`。启动错误见所属终端和 `.nimi/local/dev-services/`。详见[环境准备](/zh/start/install)。
 
 分别确认 Home 接入与登录、目标 App 的 Nimi Access，以及保存配置后的真实模型调用。进程运行不代表 App 已获准，也不代表模型就绪。
 

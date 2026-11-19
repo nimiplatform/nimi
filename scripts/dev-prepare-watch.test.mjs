@@ -123,6 +123,7 @@ test('delayed access notifications do not rebuild files saved just before their 
 
 test('watch classification ignores canonical build outputs and dependencies', () => {
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'tsconfig.json')), 'sdk');
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'pnpm-lock.yaml')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/index.ts')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/core-generated/runtime-client.ts')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/client.test.ts')), null);

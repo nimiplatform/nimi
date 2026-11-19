@@ -42,6 +42,9 @@ test('source Runtime launch uses a temporary exact supervisor and workspace Desk
     '--desktop-executable', electron,
     '--realm', 'official',
     '--realm-url', 'https://realm.nimi.ai',
+    '--realtime-url', 'https://realm.nimi.ai',
+    '--web-url', 'https://nimi.ai',
+    '--realm-environment-id', 'production',
   ]);
 });
 

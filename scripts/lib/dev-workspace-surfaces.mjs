@@ -11,7 +11,7 @@ export const DEV_WORKSPACE_SURFACES = Object.freeze({
     root: path.join('sdks', 'typescript'),
     dist: path.join('sdks', 'typescript', 'dist'),
     packageManifest: path.join('sdks', 'typescript', 'package.json'),
-    additionalInputFiles: Object.freeze(['tsconfig.json']),
+    additionalInputFiles: Object.freeze(['tsconfig.json', 'pnpm-lock.yaml']),
   }),
   kit: Object.freeze({ root: 'kit', dist: path.join('kit', 'dist'), packageManifest: path.join('kit', 'package.json') }),
 });
@@ -61,7 +61,7 @@ const BUILD_OUTPUT_TEMPORARY_DIRECTORY = /^\.dist\.(?:previous|staging)-/u;
 const TYPESCRIPT_NON_BUILD_INPUT = /\.(?:example|test|test-helper|typecheck)\.[cm]?[jt]sx?$/u;
 
 function isSdkCanonicalBuildInput(segments) {
-  if (segments.length === 1 && segments[0] === 'tsconfig.json') return true;
+  if (segments.length === 1) return DEV_WORKSPACE_SURFACES.sdk.additionalInputFiles.includes(segments[0]);
   if (segments[0] !== 'sdks' || segments[1] !== 'typescript') return false;
   if (segments.length === 3) {
     return ['index.ts', 'package.json', 'root-client.ts', 'tsconfig.build.json', 'tsconfig.json'].includes(segments[2]);

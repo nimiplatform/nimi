@@ -10,9 +10,9 @@ Running into issues while developing a Nimi App, invoking SDK methods, running N
 
 Choose the Runtime startup method that matches your environment:
 
-### Source Code Development (Recommended)
+### Source Home and Runtime
 
-Complete [Environment Setup](/start/install), then run `pnpm dev:desktop` from the Nimi root. The launcher checks and starts missing configured services and Runtime before opening Home. Inspect startup errors in the terminal and `.nimi/local/dev-services/`. For independent Runtime debugging, run `pnpm dev:runtime` in a separate terminal and use its foreground logs.
+For ordinary native App work, use a matching active Home, typically installed Nimi with official Realm. For platform development, run `pnpm doctor:dev -- --host source --realm official` from the Nimi root. Reuse the observed source host when it matches. When Home needs starting, run `pnpm dev:desktop`. Choose `--realm local` for Realm integration or controlled test data. Inspect errors in the owner's terminal and `.nimi/local/dev-services/`. See [Environment Setup](/start/install).
 
 Check Home connection and sign-in, the target App's Nimi Access, and an actual model call after configuration separately. A running process does not establish App admission or model readiness.
 
