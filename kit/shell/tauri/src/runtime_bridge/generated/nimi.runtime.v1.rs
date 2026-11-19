@@ -1605,6 +1605,12 @@ pub struct RenewLocalAppSessionRequest {}
 /// lost connection or bypass a new launch required by changed launch facts.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RebindLocalAppSessionRequest {}
+/// Native App Host lifetime notification for its already-bound connection.
+/// There is no selector, account projection or renewal in this operation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WaitLocalAppSessionEndRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WaitLocalAppSessionEndResponse {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterExternalPrincipalRequest {
     #[prost(string, tag = "1")]
@@ -1957,6 +1963,35 @@ pub mod runtime_auth_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
                         "RebindLocalAppSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn wait_local_app_session_end(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WaitLocalAppSessionEndRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::WaitLocalAppSessionEndResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuthService",
+                        "WaitLocalAppSessionEnd",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -146,6 +146,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession

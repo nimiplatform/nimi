@@ -224,6 +224,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession",
+		"/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
 		"/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",

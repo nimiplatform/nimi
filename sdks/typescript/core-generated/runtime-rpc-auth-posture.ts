@@ -199,6 +199,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession": "anonymous_read",
+  "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector": "mixed",
   "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay": "authenticated_required",
   "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector": "mixed",

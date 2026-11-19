@@ -9,6 +9,36 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('retires an idle account view before another request and cancels the wait when the Host closes', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const waiters: Array<{ end(): void; close: ReturnType<typeof vi.fn> }> = [];
+    const changed = vi.fn();
+    const lifetime = new AbortController();
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding(calls),
+      localAppObserveSessionEnd: () => {
+        let end!: () => void;
+        const pending = new Promise<{ status: 'ok'; value: object }>(resolve => { end = () => resolve({ status: 'ok', value: {} }); });
+        const close = vi.fn(end);
+        waiters.push({ end, close });
+        return { wait: () => pending, close };
+      },
+    }, changed, undefined, lifetime.signal);
+    await host.sessionStatus();
+    await host.renewTechnicalSession();
+    expect(waiters).toHaveLength(1);
+    waiters[0]!.end();
+    await Promise.resolve();
+    expect(changed).toHaveBeenCalledTimes(1);
+    await expect(host.storageReadJson({ relativePath: 'note.json' })).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+    expect(calls.some(call => call.method === 'localAppStorageReadJson')).toBe(false);
+    await host.sessionStatus();
+    expect(waiters).toHaveLength(2);
+    lifetime.abort();
+    await Promise.resolve();
+    expect(waiters[1]!.close).toHaveBeenCalledOnce();
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
   it('omits the continuous turn detector at the native boundary and preserves typed mode rejection', async () => {
     let invalidations = 0;
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
@@ -1511,6 +1541,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppSessionRebind: record('localAppSessionRebind', statusProjection()),
+    localAppObserveSessionEnd: () => ({ wait: () => new Promise<never>(() => {}), close() {} }),
     localAppAIConfigGet: record('localAppAIConfigGet', {
       config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
       revision: '0', effectiveSelections: [],

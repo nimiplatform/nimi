@@ -41,6 +41,7 @@ use tonic::transport::Channel;
 
 use crate::generated::{
     OpenLocalAppSessionRequest, RebindLocalAppSessionRequest, RenewLocalAppSessionRequest,
+    WaitLocalAppSessionEndRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 #[cfg(target_os = "macos")]
@@ -282,6 +283,19 @@ impl PlatformLocalAppSession {
 }
 
 impl NimiLocalAppSession for PlatformLocalAppSession {
+    fn wait_for_session_end(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            // The passive wait must not hold the operation or renewal lock across a rebind.
+            crate::grpc_limits::runtime_auth_client(self.checked_channel()?)
+                .wait_local_app_session_end(WaitLocalAppSessionEndRequest {})
+                .await
+                .map(|_| ())
+                .map_err(local_app_error_from_status)
+        })
+    }
+
     fn can_retry_initial_bootstrap(&self) -> bool {
         !self.session_bound.load(Ordering::Acquire)
     }

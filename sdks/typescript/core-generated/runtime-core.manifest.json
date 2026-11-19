@@ -1840,6 +1840,15 @@
           "response_stream": false
         },
         {
+          "name": "WaitLocalAppSessionEnd",
+          "method_id": "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
+          "kind": "unary",
+          "request_type": "WaitLocalAppSessionEndRequest",
+          "response_type": "WaitLocalAppSessionEndResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "RegisterExternalPrincipal",
           "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
           "kind": "unary",
@@ -3103,6 +3112,7 @@
     "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
     "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
     "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
+    "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
     "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
@@ -4774,6 +4784,14 @@
       "kind": "unary",
       "request_type": "RevokeExternalPrincipalSessionRequest",
       "response_type": "Ack"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
+      "service": "RuntimeAuthService",
+      "method": "WaitLocalAppSessionEnd",
+      "kind": "unary",
+      "request_type": "WaitLocalAppSessionEndRequest",
+      "response_type": "WaitLocalAppSessionEndResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -7218,6 +7236,14 @@
       "response_type": "Ack"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
+      "service": "RuntimeAuthService",
+      "method": "WaitLocalAppSessionEnd",
+      "kind": "unary",
+      "request_type": "WaitLocalAppSessionEndRequest",
+      "response_type": "WaitLocalAppSessionEndResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
       "service": "RuntimeConnectorService",
       "method": "CreateConnector",
@@ -9266,6 +9292,8 @@
       "VoiceRenderHints",
       "VoiceT2VInput",
       "VoiceV2VInput",
+      "WaitLocalAppSessionEndRequest",
+      "WaitLocalAppSessionEndResponse",
       "WatchLocalTransfersRequest",
       "WorkspaceMembershipProjection",
       "WorldCharacterSourceRefV3",
@@ -49863,6 +49891,16 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
+      },
+      {
+        "name": "WaitLocalAppSessionEndRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "WaitLocalAppSessionEndResponse",
+        "fields": [],
+        "source_file": "proto/runtime/v1/auth.proto"
       },
       {
         "name": "WatchLocalTransfersRequest",

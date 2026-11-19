@@ -1753,6 +1753,11 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     >;
 
+    /// Resolves when the existing protected scope ends. Dropping the future cancels the wait.
+    fn wait_for_session_end(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalAppOperationError>> + Send + '_>>;
+
     /// Explicit Host lifecycle rebind after old business resources are fenced.
     /// The Runtime revalidates the still-verified Host; callers provide no
     /// credential or selector and receive no authority material.

@@ -1575,6 +1575,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd",
+    "service": "RuntimeAuthService",
+    "method": "WaitLocalAppSessionEnd",
+    "kind": "unary",
+    "requestType": "WaitLocalAppSessionEndRequest",
+    "responseType": "WaitLocalAppSessionEndResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
     "service": "RuntimeConnectorService",
     "method": "CreateConnector",

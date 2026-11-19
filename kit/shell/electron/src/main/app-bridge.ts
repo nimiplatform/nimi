@@ -120,7 +120,8 @@ export function registerNimiElectronAppBridge(
     readyDelivered = true;
     if (business) input.onSessionReady?.(business.services);
   };
-  const localAppHost = createNimiElectronLocalAppHost(invalidate, ready);
+  const lifetime = new AbortController();
+  const localAppHost = createNimiElectronLocalAppHost(invalidate, ready, lifetime.signal);
   business = createAppBusinessServices(localAppHost);
   localAppAssetMediaHost = createNimiElectronLocalAppAssetMediaHost({
     localAppHost,
@@ -160,6 +161,7 @@ export function registerNimiElectronAppBridge(
   const closeBridge = () => {
     if (closed) return;
     closed = true;
+    lifetime.abort();
     maintenance?.close();
     business?.close();
     closeRendererResources();

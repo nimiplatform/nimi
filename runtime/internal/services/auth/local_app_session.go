@@ -125,6 +125,33 @@ func (s *Service) recordLocalAppSessionRefusal(ctx context.Context, operation st
 	s.recordSessionRefusal(ctx, operation, "", cause, payload)
 }
 
+// WaitLocalAppSessionEnd observes only the scope already owned by this verified Host.
+// Routine renewal preserves the fence. A later rebind cannot move an existing wait.
+// @nimi-authority: rule.nimi.runtime.protected-session.r016
+func (s *Service) WaitLocalAppSessionEnd(ctx context.Context, req *runtimev1.WaitLocalAppSessionEndRequest) (*runtimev1.WaitLocalAppSessionEndResponse, error) {
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
+	if !ok || !localAppSessionConnectionAllowed(connection) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	handle, bound := connection.Session()
+	if !bound {
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	ended, current := connection.SessionInvalidated(handle)
+	if !current {
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	select {
+	case <-ended:
+		return &runtimev1.WaitLocalAppSessionEndResponse{}, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 func localAppSessionConnectionAllowed(connection *protectedlocal.LocalAppConnection) bool {
 	if connection == nil {
 		return false

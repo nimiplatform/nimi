@@ -8,6 +8,7 @@ import { generatedBy, readText, repoRoot } from './context.mjs';
 export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
   '/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop',
   '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
+  '/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd',
   '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
   '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
   '/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess',
@@ -17,6 +18,8 @@ export const HOST_PRIVATE_RUNTIME_MESSAGE_NAMES = Object.freeze([
   'RequestRuntimeStopRequest',
   'RequestRuntimeStopResponse',
   'RebindLocalAppSessionRequest',
+  'WaitLocalAppSessionEndRequest',
+  'WaitLocalAppSessionEndResponse',
   'ResolveLocalAppAvatarHostTargetRequest',
   'ResolveLocalAppAvatarHostTargetResponse',
   'RevalidateLocalAppAvatarHostTargetRequest',

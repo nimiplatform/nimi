@@ -113,6 +113,19 @@ export interface RenewLocalAppSessionRequest {
 export interface RebindLocalAppSessionRequest {
 }
 /**
+ * Native App Host lifetime notification for its already-bound connection.
+ * There is no selector, account projection or renewal in this operation.
+ *
+ * @generated from protobuf message nimi.runtime.v1.WaitLocalAppSessionEndRequest
+ */
+export interface WaitLocalAppSessionEndRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WaitLocalAppSessionEndResponse
+ */
+export interface WaitLocalAppSessionEndResponse {
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RegisterExternalPrincipalRequest
  */
 export interface RegisterExternalPrincipalRequest {
@@ -611,6 +624,82 @@ class RebindLocalAppSessionRequest$Type extends MessageType<RebindLocalAppSessio
  * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalAppSessionRequest
  */
 export const RebindLocalAppSessionRequest = new RebindLocalAppSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WaitLocalAppSessionEndRequest$Type extends MessageType<WaitLocalAppSessionEndRequest> {
+    constructor() {
+        super("nimi.runtime.v1.WaitLocalAppSessionEndRequest", []);
+    }
+    create(value?: PartialMessage<WaitLocalAppSessionEndRequest>): WaitLocalAppSessionEndRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<WaitLocalAppSessionEndRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WaitLocalAppSessionEndRequest): WaitLocalAppSessionEndRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WaitLocalAppSessionEndRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WaitLocalAppSessionEndRequest
+ */
+export const WaitLocalAppSessionEndRequest = new WaitLocalAppSessionEndRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WaitLocalAppSessionEndResponse$Type extends MessageType<WaitLocalAppSessionEndResponse> {
+    constructor() {
+        super("nimi.runtime.v1.WaitLocalAppSessionEndResponse", []);
+    }
+    create(value?: PartialMessage<WaitLocalAppSessionEndResponse>): WaitLocalAppSessionEndResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<WaitLocalAppSessionEndResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WaitLocalAppSessionEndResponse): WaitLocalAppSessionEndResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WaitLocalAppSessionEndResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WaitLocalAppSessionEndResponse
+ */
+export const WaitLocalAppSessionEndResponse = new WaitLocalAppSessionEndResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RegisterExternalPrincipalRequest$Type extends MessageType<RegisterExternalPrincipalRequest> {
     constructor() {

@@ -436,6 +436,7 @@ export type NimiElectronLocalAppAssetReadNext =
 export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppObserveSessionEnd: () => { wait(): Promise<NativeLocalAppOutcome>; close(): void };
   /** Main-process lifecycle only; invalidation precedes installing any new scope. */
   readonly localAppSessionRebind: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigGet: (query?: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -810,10 +811,39 @@ function withBoundedSessionRebind(
   binding: NimiElectronProtectedLocalBinding,
   onSessionChange: (cause: { readonly reasonCode: string; readonly retryable: boolean }) => void,
   onSessionReady: () => void,
+  lifetime: AbortSignal | undefined,
 ): NimiElectronProtectedLocalBinding {
   let rebindInFlight: Promise<NativeLocalAppOutcome> | undefined;
   let generation = 0;
   let invalidated = false;
+  let observation: ReturnType<NimiElectronProtectedLocalBinding['localAppObserveSessionEnd']> | undefined;
+  const stopObserving = () => {
+    const old = observation;
+    observation = undefined;
+    old?.close();
+  };
+  lifetime?.addEventListener('abort', stopObserving, { once: true });
+  const retire = (cause: { reasonCode: string; retryable: boolean }) => {
+    if (invalidated) return;
+    invalidated = true;
+    generation++;
+    stopObserving();
+    onSessionChange(cause);
+  };
+  const observe = () => {
+    if (!lifetime || lifetime.aborted || observation || invalidated) return;
+    const current = binding.localAppObserveSessionEnd();
+    observation = current;
+    const ended = (cause: { reasonCode: string; retryable: boolean }) => {
+      if (observation === current) retire(cause);
+    };
+    // The passive wait is outside the native work that a rebind must drain.
+    // It never opens another scope or resubmits the old App's business work.
+    void current.wait().then(outcome => ended(outcome.status === 'error' && typeof outcome.reasonCode === 'string'
+      ? { reasonCode: outcome.reasonCode, retryable: outcome.retryable === true }
+      : { reasonCode: 'revoked', retryable: false }),
+    () => ended({ reasonCode: 'runtime-service-unavailable', retryable: true }));
+  };
   const nativeInFlight = new Set<Promise<NativeLocalAppOutcome>>();
   const invokeNative = async (operation: () => Promise<NativeLocalAppOutcome>) => {
     const pending = Promise.resolve(operation());
@@ -828,13 +858,13 @@ function withBoundedSessionRebind(
       let reject!: (error: unknown) => void;
       const pending = new Promise<NativeLocalAppOutcome>((accept, fail) => { resolve = accept; reject = fail; });
       rebindInFlight = pending.then((outcome) => {
-        if (isReadySessionOutcome(outcome)) invalidated = false;
+        if (isReadySessionOutcome(outcome)) { invalidated = false; observe(); }
         return outcome;
       }).finally(() => { rebindInFlight = undefined; });
       // Dispose old App state synchronously, before installing another scope.
       // Install the gate first: cleanup may itself close protected resources.
       try {
-        if (!invalidated) { generation++; invalidated = true; onSessionChange(cause); }
+        retire(cause);
         void boundedSessionRebind(binding, [...nativeInFlight]).then(resolve, reject);
       }
       catch (error) { reject(error); }
@@ -866,6 +896,7 @@ function withBoundedSessionRebind(
         // become a successful response in the newly loaded renderer.
         if (expected !== generation) return stale();
         if (!isSessionInvalidOutcome(first)) {
+          if ((property === 'localAppSessionStatus' || property === 'localAppSessionRenew') && isReadySessionOutcome(first)) observe();
           return first;
         }
         console.warn('[nimi-shell] local App session invalidated', {
@@ -979,6 +1010,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     onSessionChange: () => void = () => undefined,
     onSessionReady: () => void = () => undefined,
     private readonly activityLaunch: NimiElectronAppActivityLaunch = defaultAppActivityLaunch,
+    lifetime?: AbortSignal,
   ) {
     this.onSessionReady = () => { notifySessionReady(this); onSessionReady(); };
     this.binding = withBoundedSessionRebind(binding, (cause) => {
@@ -988,7 +1020,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
         cancel(new NimiElectronLocalAppHostError(cause.reasonCode, cause.retryable));
       }
       onSessionChange();
-    }, this.onSessionReady);
+    }, this.onSessionReady, lifetime);
   }
 
   async sessionStatus(): Promise<NimiElectronLocalAppRecord> {
@@ -1714,10 +1746,11 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   constructor(
     private readonly onSessionChange: () => void = () => undefined,
     private readonly onSessionReady: () => void = () => undefined,
+    private readonly lifetime?: AbortSignal,
   ) {}
 
   private resolve(): NimiElectronLocalAppHost {
-    this.host ??= new ElectronLocalAppHost(loadPlatformBinding(), this.onSessionChange, () => { notifySessionReady(this); this.onSessionReady(); });
+    this.host ??= new ElectronLocalAppHost(loadPlatformBinding(), this.onSessionChange, () => { notifySessionReady(this); this.onSessionReady(); }, undefined, this.lifetime);
     return this.host;
   }
 
@@ -2122,8 +2155,9 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 export function createNimiElectronLocalAppHost(
   onSessionChange: () => void = () => undefined,
   onSessionReady: () => void = () => undefined,
+  lifetime?: AbortSignal,
 ): NimiElectronLocalAppHost {
-  return new LazyElectronLocalAppHost(onSessionChange, onSessionReady);
+  return new LazyElectronLocalAppHost(onSessionChange, onSessionReady, lifetime);
 }
 
 /**
@@ -2220,8 +2254,9 @@ export function createNimiElectronLocalAppHostForBinding(
   binding: NimiElectronProtectedLocalBinding,
   onSessionChange: () => void = () => undefined,
   activityLaunch: NimiElectronAppActivityLaunch = defaultAppActivityLaunch,
+  lifetime?: AbortSignal,
 ): NimiElectronLocalAppHost {
-  return new ElectronLocalAppHost(validateBinding(binding), onSessionChange, () => undefined, activityLaunch);
+  return new ElectronLocalAppHost(validateBinding(binding), onSessionChange, () => undefined, activityLaunch, lifetime);
 }
 
 /** @internal Platform-package resolver used by release and fail-closed tests. */
@@ -2244,7 +2279,7 @@ function loadPlatformBinding(): NimiElectronProtectedLocalBinding {
 function validateBinding(value: unknown): NimiElectronProtectedLocalBinding {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrustedRuntimeError();
   const candidate = value as Record<string, unknown>;
-  if (LOCAL_APP_BINDING_METHODS.some((method) => typeof candidate[method] !== 'function')) {
+  if (typeof candidate.localAppObserveSessionEnd !== 'function' || LOCAL_APP_BINDING_METHODS.some((method) => typeof candidate[method] !== 'function')) {
     throw untrustedRuntimeError();
   }
   return candidate as NimiElectronProtectedLocalBinding;

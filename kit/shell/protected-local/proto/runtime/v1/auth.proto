@@ -82,6 +82,11 @@ message RenewLocalAppSessionRequest {
 message RebindLocalAppSessionRequest {
 }
 
+// Native App Host lifetime notification for its already-bound connection.
+// There is no selector, account projection or renewal in this operation.
+message WaitLocalAppSessionEndRequest {}
+message WaitLocalAppSessionEndResponse {}
+
 message RegisterExternalPrincipalRequest {
   string app_id = 1;
   string external_principal_id = 2;
@@ -120,6 +125,7 @@ service RuntimeAuthService {
   rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RenewLocalAppSession(RenewLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RebindLocalAppSession(RebindLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
+  rpc WaitLocalAppSessionEnd(WaitLocalAppSessionEndRequest) returns (WaitLocalAppSessionEndResponse);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);
   rpc OpenExternalPrincipalSession(OpenExternalPrincipalSessionRequest) returns (OpenExternalPrincipalSessionResponse);
   rpc RevokeExternalPrincipalSession(RevokeExternalPrincipalSessionRequest) returns (Ack);

@@ -107,6 +107,17 @@ func desktopCtx(harness *testHarness, account string) context.Context {
 func TestOpenReturnsOpenedOnlyAfterSourceConfirmation(t *testing.T) {
 	harness := newHarness(t)
 	record := harness.put("acct-1", "subject-a", todo("open-me", 1, runtimev1.AppActivityTodoState_APP_ACTIVITY_TODO_STATE_OPEN)).GetRecord()
+	// A saved activity reference must also be unavailable at the public Open entry after switching accounts.
+	foreign, cancelForeign, foreignDone := harness.openWith(
+		harness.ctx(localappop.OperationAppActivityOpen, "acct-2", "subject-b", 8), record.GetActivityId())
+	defer cancelForeign()
+	unavailable := receive(t, foreign.events)
+	if unavailable.GetOpenRequestId() != "" || unavailable.GetResult().GetReason() != runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE {
+		t.Fatalf("a foreign activity must not issue a launch: %v", unavailable)
+	}
+	if err := receive(t, foreignDone); err != nil {
+		t.Fatal(err)
+	}
 	consumer, cancelConsumer, done := harness.open(record.GetActivityId(), 2)
 	defer cancelConsumer()
 	pending := receive(t, consumer.events)

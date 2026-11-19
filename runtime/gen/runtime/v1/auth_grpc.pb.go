@@ -23,6 +23,7 @@ const (
 	RuntimeAuthService_OpenLocalAppSession_FullMethodName            = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
 	RuntimeAuthService_RenewLocalAppSession_FullMethodName           = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
 	RuntimeAuthService_RebindLocalAppSession_FullMethodName          = "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession"
+	RuntimeAuthService_WaitLocalAppSessionEnd_FullMethodName         = "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd"
 	RuntimeAuthService_RegisterExternalPrincipal_FullMethodName      = "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal"
 	RuntimeAuthService_OpenExternalPrincipalSession_FullMethodName   = "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession"
 	RuntimeAuthService_RevokeExternalPrincipalSession_FullMethodName = "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession"
@@ -36,6 +37,7 @@ type RuntimeAuthServiceClient interface {
 	OpenLocalAppSession(ctx context.Context, in *OpenLocalAppSessionRequest, opts ...grpc.CallOption) (*OpenLocalAppSessionResponse, error)
 	RenewLocalAppSession(ctx context.Context, in *RenewLocalAppSessionRequest, opts ...grpc.CallOption) (*OpenLocalAppSessionResponse, error)
 	RebindLocalAppSession(ctx context.Context, in *RebindLocalAppSessionRequest, opts ...grpc.CallOption) (*OpenLocalAppSessionResponse, error)
+	WaitLocalAppSessionEnd(ctx context.Context, in *WaitLocalAppSessionEndRequest, opts ...grpc.CallOption) (*WaitLocalAppSessionEndResponse, error)
 	RegisterExternalPrincipal(ctx context.Context, in *RegisterExternalPrincipalRequest, opts ...grpc.CallOption) (*RegisterExternalPrincipalResponse, error)
 	OpenExternalPrincipalSession(ctx context.Context, in *OpenExternalPrincipalSessionRequest, opts ...grpc.CallOption) (*OpenExternalPrincipalSessionResponse, error)
 	RevokeExternalPrincipalSession(ctx context.Context, in *RevokeExternalPrincipalSessionRequest, opts ...grpc.CallOption) (*Ack, error)
@@ -89,6 +91,16 @@ func (c *runtimeAuthServiceClient) RebindLocalAppSession(ctx context.Context, in
 	return out, nil
 }
 
+func (c *runtimeAuthServiceClient) WaitLocalAppSessionEnd(ctx context.Context, in *WaitLocalAppSessionEndRequest, opts ...grpc.CallOption) (*WaitLocalAppSessionEndResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WaitLocalAppSessionEndResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuthService_WaitLocalAppSessionEnd_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAuthServiceClient) RegisterExternalPrincipal(ctx context.Context, in *RegisterExternalPrincipalRequest, opts ...grpc.CallOption) (*RegisterExternalPrincipalResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RegisterExternalPrincipalResponse)
@@ -127,6 +139,7 @@ type RuntimeAuthServiceServer interface {
 	OpenLocalAppSession(context.Context, *OpenLocalAppSessionRequest) (*OpenLocalAppSessionResponse, error)
 	RenewLocalAppSession(context.Context, *RenewLocalAppSessionRequest) (*OpenLocalAppSessionResponse, error)
 	RebindLocalAppSession(context.Context, *RebindLocalAppSessionRequest) (*OpenLocalAppSessionResponse, error)
+	WaitLocalAppSessionEnd(context.Context, *WaitLocalAppSessionEndRequest) (*WaitLocalAppSessionEndResponse, error)
 	RegisterExternalPrincipal(context.Context, *RegisterExternalPrincipalRequest) (*RegisterExternalPrincipalResponse, error)
 	OpenExternalPrincipalSession(context.Context, *OpenExternalPrincipalSessionRequest) (*OpenExternalPrincipalSessionResponse, error)
 	RevokeExternalPrincipalSession(context.Context, *RevokeExternalPrincipalSessionRequest) (*Ack, error)
@@ -150,6 +163,9 @@ func (UnimplementedRuntimeAuthServiceServer) RenewLocalAppSession(context.Contex
 }
 func (UnimplementedRuntimeAuthServiceServer) RebindLocalAppSession(context.Context, *RebindLocalAppSessionRequest) (*OpenLocalAppSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RebindLocalAppSession not implemented")
+}
+func (UnimplementedRuntimeAuthServiceServer) WaitLocalAppSessionEnd(context.Context, *WaitLocalAppSessionEndRequest) (*WaitLocalAppSessionEndResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WaitLocalAppSessionEnd not implemented")
 }
 func (UnimplementedRuntimeAuthServiceServer) RegisterExternalPrincipal(context.Context, *RegisterExternalPrincipalRequest) (*RegisterExternalPrincipalResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RegisterExternalPrincipal not implemented")
@@ -252,6 +268,24 @@ func _RuntimeAuthService_RebindLocalAppSession_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAuthService_WaitLocalAppSessionEnd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WaitLocalAppSessionEndRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuthServiceServer).WaitLocalAppSessionEnd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuthService_WaitLocalAppSessionEnd_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuthServiceServer).WaitLocalAppSessionEnd(ctx, req.(*WaitLocalAppSessionEndRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAuthService_RegisterExternalPrincipal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RegisterExternalPrincipalRequest)
 	if err := dec(in); err != nil {
@@ -328,6 +362,10 @@ var RuntimeAuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RebindLocalAppSession",
 			Handler:    _RuntimeAuthService_RebindLocalAppSession_Handler,
+		},
+		{
+			MethodName: "WaitLocalAppSessionEnd",
+			Handler:    _RuntimeAuthService_WaitLocalAppSessionEnd_Handler,
 		},
 		{
 			MethodName: "RegisterExternalPrincipal",

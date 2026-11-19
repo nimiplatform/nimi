@@ -2,9 +2,12 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -43,6 +46,36 @@ func TestInstalledAppSourcesMayEnterCommonSessionOwner(t *testing.T) {
 			if !localAppSessionConnectionAllowed(connection) {
 				t.Fatalf("installed %s App connection was rejected before the common session owner", trustClass)
 			}
+			t.Run("idle scope lifetime", func(t *testing.T) {
+				service := &Service{}
+				ctx := protectedlocal.ContextWithLocalAppConnection(context.Background(), connection)
+				request := &runtimev1.WaitLocalAppSessionEndRequest{}
+				if _, err := service.WaitLocalAppSessionEnd(ctx, request); localAppSessionTestReason(err) != runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED {
+					t.Fatalf("waiting must not bootstrap an unbound Host: %v", err)
+				}
+				handle, err := protectedlocal.NewLocalAppSessionHandle(rand.Reader)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := connection.BindSession(handle); err != nil {
+					t.Fatal(err)
+				}
+				canceled, cancel := context.WithCancel(ctx)
+				cancel()
+				if _, err := service.WaitLocalAppSessionEnd(canceled, request); !errors.Is(err, context.Canceled) {
+					t.Fatalf("canceling a live wait: %v", err)
+				}
+				wait, stop := context.WithTimeout(ctx, time.Second)
+				defer stop()
+				ended := make(chan error, 1)
+				go func() { _, err := service.WaitLocalAppSessionEnd(wait, request); ended <- err }()
+				if !connection.InvalidateSession(handle) {
+					t.Fatal("could not retire the bound scope")
+				}
+				if err := <-ended; err != nil {
+					t.Fatalf("idle Host did not observe its retired scope: %v", err)
+				}
+			})
 			connection.Revoke()
 			if localAppSessionConnectionAllowed(connection) {
 				t.Fatal("revoked installed connection remained eligible")
@@ -52,6 +85,11 @@ func TestInstalledAppSourcesMayEnterCommonSessionOwner(t *testing.T) {
 }
 
 func TestLocalAppSessionRequestsRejectCallerAssertions(t *testing.T) {
+	wait := &runtimev1.WaitLocalAppSessionEndRequest{}
+	wait.ProtoReflect().SetUnknown([]byte{0x0a, 0x01, 'x'})
+	if _, err := (&Service{}).WaitLocalAppSessionEnd(context.Background(), wait); localAppSessionTestReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
+		t.Fatalf("wait caller assertion error = %v", err)
+	}
 	open := &runtimev1.OpenLocalAppSessionRequest{}
 	open.ProtoReflect().SetUnknown([]byte{0x0a, 0x01, 'x'})
 	if _, err := (&Service{}).OpenLocalAppSession(context.Background(), open); localAppSessionTestReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {

@@ -195,6 +195,56 @@ pub async fn local_app_session_status() -> NativeJsonOutcome {
     }
 }
 
+/// One process-local cancellation handle for an idle protected-session wait.
+#[napi]
+pub struct LocalAppSessionObservation {
+    canceled: watch::Sender<bool>,
+}
+
+#[napi]
+impl LocalAppSessionObservation {
+    #[napi]
+    pub fn close(&self) {
+        self.canceled.send_replace(true);
+    }
+
+    #[napi]
+    pub async fn wait(&self) -> NativeJsonOutcome {
+        let mut cancel = self.canceled.subscribe();
+        if *cancel.borrow() {
+            return NativeJsonOutcome::success(serde_json::json!({}));
+        }
+        let waiting = async {
+            let session = LOCAL_APP_SESSION
+                .lock()
+                .await
+                .session
+                .clone()
+                .ok_or_else(|| {
+                    LocalAppOperationError::new(
+                        nimi_shell_protected_local::LocalAppReasonCode::Revoked,
+                        false,
+                    )
+                })?;
+            session.wait_for_session_end().await
+        };
+        tokio::select! {
+            _ = cancel.changed() => NativeJsonOutcome::success(serde_json::json!({})),
+            result = waiting => match result {
+                Ok(()) => NativeJsonOutcome::success(serde_json::json!({})),
+                Err(error) => NativeJsonOutcome::error(error),
+            },
+        }
+    }
+}
+
+#[napi(js_name = "localAppObserveSessionEnd")]
+pub fn local_app_observe_session_end() -> LocalAppSessionObservation {
+    LocalAppSessionObservation {
+        canceled: watch::channel(false).0,
+    }
+}
+
 #[napi(js_name = "localAppSessionRenew")]
 pub async fn local_app_session_renew() -> NativeJsonOutcome {
     let session = match current_or_open_session().await {

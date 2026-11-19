@@ -365,6 +365,9 @@ services:
       - name: RebindLocalAppSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
+      - name: WaitLocalAppSessionEnd
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd
       - name: RegisterExternalPrincipal
         type: unary
       - name: OpenExternalPrincipalSession

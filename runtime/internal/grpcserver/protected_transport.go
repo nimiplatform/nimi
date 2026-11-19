@@ -444,7 +444,7 @@ func installedSupervisorMethod(method string) bool {
 }
 
 func formalAppSessionMethod(method string) bool {
-	return method == protectedOpenLocalAppSessionMethod || method == protectedRenewLocalAppSessionMethod || method == protectedRebindLocalAppSessionMethod
+	return method == protectedOpenLocalAppSessionMethod || method == protectedRenewLocalAppSessionMethod || method == protectedRebindLocalAppSessionMethod || method == protectedWaitLocalAppSessionEndMethod
 }
 
 func withAuthorizedAppOwnerDecision(ctx context.Context, method string, request any, admission protectedAppOwnerAdmission) (context.Context, error) {

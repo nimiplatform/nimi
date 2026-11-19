@@ -50,6 +50,7 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
@@ -154,6 +155,10 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 		}},
 		{name: "RebindLocalAppSession", call: func() error {
 			_, callErr := authClient.RebindLocalAppSession(bindingContext, &runtimev1.RebindLocalAppSessionRequest{})
+			return callErr
+		}},
+		{name: "WaitLocalAppSessionEnd", call: func() error {
+			_, callErr := authClient.WaitLocalAppSessionEnd(bindingContext, &runtimev1.WaitLocalAppSessionEndRequest{})
 			return callErr
 		}},
 	}

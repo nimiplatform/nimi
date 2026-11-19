@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Account changes in idle desktop Apps
+
+The protected Electron App Host now observes the end of its existing Runtime session while the App is idle. `onSessionInvalidated` lets the App retire old windows, file previews, and work before admitting the next account. Ship the matching native carrier and Runtime implementing the Host-private `WaitLocalAppSessionEnd` operation with this Kit. The renderer continues to use its existing App session API.
+
 ## Unreleased — Responsive media with bounded formats
 
 `MediaImage` supports the optional Realm `boundedFamily` offer. It measures the slot before choosing a URL and lets the browser reselect when display density changes. The headless image selection exposes the optional bounded source and its largest supplied pixel width for consumers that measure their own slots.

@@ -52,6 +52,7 @@ const (
 	protectedOpenLocalAppSessionMethod            = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
 	protectedRenewLocalAppSessionMethod           = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
 	protectedRebindLocalAppSessionMethod          = "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession"
+	protectedWaitLocalAppSessionEndMethod         = "/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd"
 	protectedReadLocalAppStorageJSONMethod        = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	protectedWriteLocalAppStorageJSONMethod       = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod      = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
@@ -192,6 +193,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	},
 	protectedRenewLocalAppSessionMethod:           localAppSessionMethodPolicy(),
 	protectedRebindLocalAppSessionMethod:          localAppSessionMethodPolicy(),
+	protectedWaitLocalAppSessionEndMethod:         localAppSessionMethodPolicy(),
 	protectedReadLocalAppStorageJSONMethod:        localAppSessionMethodPolicy(),
 	protectedWriteLocalAppStorageJSONMethod:       localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppStorageJSONMethod:      localAppSessionMethodPolicy(),
