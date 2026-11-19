@@ -650,37 +650,24 @@ func boolInt(value bool) int {
 // Copy disposal follows the handoff owner's actual terminal state. A target
 // forget must never convert an unrelated live pending event into a cutoff.
 func (s *Store) disposeSettledOutboxCopies(ctx context.Context, agent string) error {
-	rows, err := s.backend.DB().QueryContext(ctx, `SELECT o.operation_id, o.binding_ref, o.state, o.outcome FROM runtime_cognition_memory_outbox o JOIN runtime_cognition_memory_stream x ON x.binding_ref = o.binding_ref WHERE x.local_agent_ref = ? AND o.state <> 'pending'`, agent)
-	if err != nil {
-		return err
-	}
-	type settled struct {
-		operation, binding, state string
-		outcome                   sql.NullString
-	}
-	var items []settled
-	for rows.Next() {
-		var item settled
-		if err := rows.Scan(&item.operation, &item.binding, &item.state, &item.outcome); err != nil {
-			return errors.Join(err, rows.Close())
+	return s.backend.DisposeRecoveryPayloads(ctx, agent, func(tx *sql.Tx) (bool, bool, error) {
+		result, err := tx.ExecContext(ctx, `UPDATE main.runtime_cognition_memory_outbox AS copy
+   SET payload=NULL, state=settled.state, outcome=settled.outcome
+   FROM live.runtime_cognition_memory_outbox AS settled, main.runtime_cognition_memory_stream AS stream
+   WHERE copy.binding_ref=stream.binding_ref AND stream.local_agent_ref=?
+   AND (copy.payload IS NOT NULL OR copy.state='pending')
+   AND settled.operation_id=copy.operation_id AND settled.binding_ref=copy.binding_ref AND settled.state<>'pending'`, agent)
+		if err != nil {
+			return false, false, err
 		}
-		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return errors.Join(err, rows.Close())
-	}
-	if err := rows.Close(); err != nil {
-		return err
-	}
-	if len(items) == 0 {
-		return nil
-	}
-	return s.backend.RewriteRecoverySnapshots(ctx, func(tx *sql.Tx) error {
-		for _, item := range items {
-			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET payload = NULL, state = ?, outcome = ? WHERE operation_id = ? AND binding_ref = ?`, item.state, item.outcome, item.operation, item.binding); err != nil {
-				return err
-			}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return false, false, err
 		}
-		return nil
+		var pending bool
+		err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM main.runtime_cognition_memory_outbox o
+    JOIN main.runtime_cognition_memory_stream s ON s.binding_ref=o.binding_ref
+    WHERE s.local_agent_ref=? AND (o.payload IS NOT NULL OR o.state='pending'))`, agent).Scan(&pending)
+		return !pending, changed > 0, err
 	})
 }

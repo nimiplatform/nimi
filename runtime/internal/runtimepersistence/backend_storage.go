@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -24,8 +25,23 @@ func databasePath(localStatePath string) (string, error) {
 	return filepath.Join(home, ".nimi", "runtime", dbFileName), nil
 }
 
+func sqliteFileDSN(path, query string) (string, error) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	uriPath := filepath.ToSlash(absolute)
+	if filepath.VolumeName(absolute) != "" && !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	return (&url.URL{Scheme: "file", Path: uriPath, RawQuery: query}).String(), nil
+}
+
 func openSQLite(path string, writeConn bool, verify bool) (*sql.DB, error) {
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=busy_timeout(%d)&_pragma=synchronous(FULL)&_pragma=wal_autocheckpoint(%d)", path, defaultBusyTimeoutMS, defaultWALCheckpoint)
+	dsn, err := sqliteFileDSN(path, fmt.Sprintf("_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=busy_timeout(%d)&_pragma=synchronous(FULL)&_pragma=wal_autocheckpoint(%d)", defaultBusyTimeoutMS, defaultWALCheckpoint))
+	if err != nil {
+		return nil, err
+	}
 	if writeConn {
 		dsn += "&_txlock=immediate"
 	}

@@ -79,9 +79,10 @@ func currentRealmSourceMaterializationObjects() []sqliteSchemaObject {
 }
 
 type Backend struct {
-	logger    *slog.Logger
-	path      string
-	backupDir string
+	logger         *slog.Logger
+	path           string
+	backupDir      string
+	cleanSnapshots map[string]snapshotDisposition
 
 	readDB  *sql.DB
 	writeDB *sql.DB
