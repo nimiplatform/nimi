@@ -10,6 +10,58 @@ const delivery: MediaDeliveryDto = { resourceId:'video-1', contentVersion:'a'.re
   expiresAt:'2099-01-01T00:00:00Z', images:[], previewUrl:null, originalUrl:'https://media.example/original.bin',
   video:{hlsUrl:'https://video.example/token/manifest/video.m3u8',dashUrl:'https://video.example/token/manifest/video.mpd',posterUrl:'https://media.example/poster.webp',expiresAt:'2099-01-01T00:00:00Z'} };
 
+it('measures a bounded slot before setting URLs and updates the density cutoff on resize or replacement', async () => {
+  const family = (mimeType: string, width: number) => ({
+    mimeType, sources: [{ mimeType, width, height: 300, url: `https://media.example/${width}` }],
+  });
+  const media: MediaDeliveryDto = { ...delivery, video: null, images: [
+    { purpose: 'hero', families: [family('image/webp', 1536)], boundedFamily: family('image/avif', 960) },
+  ] };
+  let width = 0;
+  let resize!: () => void;
+  const box = vi.spyOn(Element.prototype, 'clientWidth', 'get').mockImplementation(() => width);
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(callback: () => void) { resize = callback; }
+    observe() {}
+    disconnect() {}
+  });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  const render = (value: MediaDeliveryDto) => act(async () => {
+    root.render(<MediaImage delivery={value} purpose="hero" sizes="auto, 320px" />);
+  });
+  try {
+    await render(media);
+    expect(host.querySelector('source, img[src], img[srcset]')).toBeNull();
+    width = 480;
+    await act(async () => resize());
+    expect(host.querySelector('source')?.media).toBe('(max-resolution: 2dppx)');
+    expect(host.querySelector('img')?.sizes).toBe('480px');
+    expect(host.querySelector('img')?.srcset).toBe('https://media.example/1536 1536w');
+    width = 1200;
+    await act(async () => resize());
+    expect(host.querySelector('source')?.media).toBe('(max-resolution: 0.8dppx)');
+    width = 0;
+    await render({ ...media, resourceId: 'replacement' });
+    expect(host.querySelector('source, img[src], img[srcset]')).toBeNull();
+    width = 320;
+    await act(async () => resize());
+    expect(host.querySelector('img')?.sizes).toBe('320px');
+    expect(host.querySelector('source')?.media).toBe('(max-resolution: 3dppx)');
+    const image = host.querySelector('img')!;
+    Object.defineProperty(image, 'currentSrc', {value: 'https://media.example/960'});
+    await act(async () => image.dispatchEvent(new Event('error')));
+    expect(host.querySelector('source[type="image/avif"]')).toBeNull();
+    expect(host.querySelector('img')?.srcset).toContain('https://media.example/1536');
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    box.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});
+
 describe('bounded image transport recovery', () => {
  const picture: MediaDeliveryDto = { ...delivery, resourceId: 'picture', expiresAt: null, video: null,
   images: [{ purpose: 'chat', families: [{ mimeType: 'image/webp', sources: [{ url: 'https://media.example/chat.webp', width: 320, height: 180, mimeType: 'image/webp' }] }] }] };
