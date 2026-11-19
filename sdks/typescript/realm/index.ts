@@ -128,6 +128,7 @@ export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerGetWorldCore',
   'worldCoreControllerGetWorldCreationEligibility',
   'worldCoreControllerGetWorldEntity',
+  'worldCoreControllerGetRelationshipTargets',
   'worldCoreControllerGetWorldRelationship',
   'worldCoreControllerListPersonaCharacters',
   'worldCoreControllerListWorldCharacters',
@@ -148,6 +149,7 @@ export const REALM_WORLD_PUBLIC_METHODS = [
   'worldPublicControllerListPersonaCharacterCatalog',
   'worldPublicControllerListCharacterCatalog',
   'worldPublicControllerListWorldCatalog',
+  'worldPublicControllerGetWorldCatalogByIds',
   'worldPublicControllerListWorldTopics',
   'worldPublicControllerListWorldCharacterCatalog',
 ] as const satisfies readonly RealmTypedMethodName[];

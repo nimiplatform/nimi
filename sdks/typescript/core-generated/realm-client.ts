@@ -1015,6 +1015,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
   },
   {
+    "operationId": "WorldCoreController_getRelationshipTargets",
+    "service": "Realm Core",
+    "method": "POST",
+    "path": "/api/realm/core/worlds/{worldId}/relationship-targets"
+  },
+  {
     "operationId": "WorldCoreController_getWorldCharacter",
     "service": "Realm Core",
     "method": "GET",
@@ -1115,6 +1121,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "World",
     "method": "GET",
     "path": "/api/world/by-id/{worldId}"
+  },
+  {
+    "operationId": "WorldPublicController_getWorldCatalogByIds",
+    "service": "World",
+    "method": "POST",
+    "path": "/api/world/catalog/by-ids"
   },
   {
     "operationId": "WorldPublicController_getWorldDetailWithCharacters",

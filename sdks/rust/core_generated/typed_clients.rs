@@ -19232,6 +19232,7 @@ pub struct MediaImageFamilyDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MediaImageSetDto {
+    pub bounded_family: Box<MediaImageFamilyDto>,
     pub families: Vec<MediaImageFamilyDto>,
     pub purpose: String,
 }
@@ -21136,9 +21137,35 @@ pub struct WorldPublicAssetProvenanceDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCatalogIdsDto {
+    pub media: String,
+    pub world_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicCharacterBiographyDto {
     pub life_events: Vec<WorldPublicCharacterLifeEventDto>,
     pub source_notes: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCharacterCatalogItemDto {
+    pub avatar_media: Option<Box<MediaDeliveryDto>>,
+    pub avatar_url: Option<String>,
+    pub display_name: String,
+    pub id: String,
+    pub relation: Box<WorldPublicViewerRelationDto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub summary: String,
+    pub world_name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCharacterCatalogPageDto {
+    pub has_more: bool,
+    pub items: Vec<WorldPublicCharacterCatalogItemDto>,
+    pub next_cursor: Option<String>,
+    pub total_count: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -21478,6 +21505,20 @@ pub struct WorldRelationshipCoreValueDtoEvidence {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldRelationshipCoreValueDtoPresentation {
     pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipTargetDto {
+    pub entity_id: String,
+    pub is_character: bool,
+    pub kind: String,
+    pub name: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipTargetsRequestDto {
+    pub entity_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

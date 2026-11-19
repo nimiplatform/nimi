@@ -3672,6 +3672,12 @@ components:
       type: object
     MediaImageSetDto:
       properties:
+        boundedFamily:
+          allOf:
+            - $ref: '#/components/schemas/MediaImageFamilyDto'
+          description: >-
+            Optional source family for a measured slot. Prefer it only when its
+            largest declared width covers the slot width in physical pixels.
         families:
           items:
             $ref: '#/components/schemas/MediaImageFamilyDto'
@@ -8680,6 +8686,23 @@ components:
           nullable: true
           type: string
       type: object
+    WorldPublicCatalogIdsDto:
+      properties:
+        media:
+          description: Return only the display cover in the media slots.
+          enum:
+            - cover
+          type: string
+        worldIds:
+          items:
+            type: string
+          maxItems: 100
+          minItems: 1
+          type: array
+          uniqueItems: true
+      required:
+        - worldIds
+      type: object
     WorldPublicCharacterBiographyDto:
       properties:
         lifeEvents:
@@ -8693,6 +8716,57 @@ components:
       required:
         - lifeEvents
         - sourceNotes
+      type: object
+    WorldPublicCharacterCatalogItemDto:
+      properties:
+        avatarMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        avatarUrl:
+          nullable: true
+          type: string
+        displayName:
+          type: string
+        id:
+          type: string
+        relation:
+          $ref: '#/components/schemas/WorldPublicViewerRelationDto'
+        sourceRef:
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
+        summary:
+          type: string
+        worldName:
+          type: string
+      required:
+        - id
+        - sourceRef
+        - displayName
+        - summary
+        - worldName
+        - relation
+        - avatarMedia
+        - avatarUrl
+      type: object
+    WorldPublicCharacterCatalogPageDto:
+      properties:
+        hasMore:
+          type: boolean
+        items:
+          items:
+            $ref: '#/components/schemas/WorldPublicCharacterCatalogItemDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        totalCount:
+          type: number
+      required:
+        - items
+        - nextCursor
+        - hasMore
+        - totalCount
       type: object
     WorldPublicCharacterLifeEventDto:
       properties:
@@ -9676,6 +9750,37 @@ components:
         - presentation
         - evidence
         - authoring
+      type: object
+    WorldRelationshipTargetDto:
+      properties:
+        entityId:
+          type: string
+        isCharacter:
+          type: boolean
+        kind:
+          type: string
+        name:
+          type: string
+        worldId:
+          type: string
+      required:
+        - entityId
+        - worldId
+        - kind
+        - name
+        - isCharacter
+      type: object
+    WorldRelationshipTargetsRequestDto:
+      properties:
+        entityIds:
+          items:
+            type: string
+          maxItems: 100
+          minItems: 1
+          type: array
+          uniqueItems: true
+      required:
+        - entityIds
       type: object
     WorldRolePlacementV1Dto:
       additionalProperties: false
@@ -14061,6 +14166,37 @@ paths:
       summary: Create a world-owned WorldEntityCore
       tags:
         - Realm Core
+  /api/realm/core/worlds/{worldId}/relationship-targets:
+    post:
+      operationId: WorldCoreController_getRelationshipTargets
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorldRelationshipTargetsRequestDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldRelationshipTargetDto'
+                type: array
+          description: ''
+      security:
+        - bearer: []
+      summary: >-
+        Resolve readable relationship targets and current public character
+        bindings
+      tags:
+        - Realm Core
   /api/realm/core/worlds/{worldId}/relationships:
     get:
       operationId: WorldCoreController_listWorldRelationships
@@ -14725,6 +14861,14 @@ paths:
           required: false
           schema:
             type: string
+        - description: Project the display cover for a discovery grid.
+          in: query
+          name: media
+          required: false
+          schema:
+            enum:
+              - cover
+            type: string
         - description: Exact canonical genre.
           in: query
           name: genre
@@ -14771,6 +14915,28 @@ paths:
       summary: Page through the public world catalog with server-side search
       tags:
         - World
+  /api/world/catalog/by-ids:
+    post:
+      operationId: WorldPublicController_getWorldCatalogByIds
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorldPublicCatalogIdsDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldPublicItemDto'
+                type: array
+          description: ''
+      summary: Read discoverable world catalog items in the requested order
+      tags:
+        - World
   /api/world/character-sources/catalog:
     get:
       operationId: WorldPublicController_listCharacterCatalog
@@ -14806,7 +14972,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorldPublicSourceCardPageDto'
+                $ref: '#/components/schemas/WorldPublicCharacterCatalogPageDto'
           description: ''
         '400':
           description: >-

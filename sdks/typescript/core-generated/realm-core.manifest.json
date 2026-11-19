@@ -11302,6 +11302,75 @@
       ]
     },
     {
+      "operation_id": "WorldCoreController_getRelationshipTargets",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/relationship-targets",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/WorldRelationshipTargetsRequestDto",
+        "ref_name": "WorldRelationshipTargetsRequestDto"
+      },
+      "request_schema_ref": "#/components/schemas/WorldRelationshipTargetsRequestDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldRelationshipTargetDto",
+              "ref_name": "WorldRelationshipTargetDto"
+            },
+            "min_items": null,
+            "max_items": null
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "WorldCoreController_getWorldCharacter",
       "method": "GET",
       "path": "/api/realm/core/world-characters/by-id/{characterId}",
@@ -12898,6 +12967,43 @@
       ]
     },
     {
+      "operation_id": "WorldPublicController_getWorldCatalogByIds",
+      "method": "POST",
+      "path": "/api/world/catalog/by-ids",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/WorldPublicCatalogIdsDto",
+        "ref_name": "WorldPublicCatalogIdsDto"
+      },
+      "request_schema_ref": "#/components/schemas/WorldPublicCatalogIdsDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicItemDto",
+              "ref_name": "WorldPublicItemDto"
+            },
+            "min_items": null,
+            "max_items": null
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "WorldPublicController_getWorldDetailWithCharacters",
       "method": "GET",
       "path": "/api/world/by-id/{worldId}/detail-with-characters",
@@ -13108,16 +13214,16 @@
           "status": "200",
           "schema": {
             "kind": "ref",
-            "ref": "#/components/schemas/WorldPublicSourceCardPageDto",
-            "ref_name": "WorldPublicSourceCardPageDto"
+            "ref": "#/components/schemas/WorldPublicCharacterCatalogPageDto",
+            "ref_name": "WorldPublicCharacterCatalogPageDto"
           },
-          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+          "schema_ref": "#/components/schemas/WorldPublicCharacterCatalogPageDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "200",
-          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+          "schema_ref": "#/components/schemas/WorldPublicCharacterCatalogPageDto"
         }
       ]
     },
@@ -13303,6 +13409,18 @@
           }
         },
         {
+          "name": "media",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "cover"
+            ],
+            "type": "string"
+          }
+        },
+        {
           "name": "genre",
           "in": "query",
           "required": false,
@@ -13393,6 +13511,18 @@
             "min_length": null,
             "max_length": null,
             "pattern": null
+          }
+        },
+        {
+          "name": "media",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "cover"
+            ],
+            "type": "string"
           }
         },
         {
@@ -14693,6 +14823,12 @@
       "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
     },
     {
+      "operation_id": "WorldCoreController_getRelationshipTargets",
+      "service": "Realm Core",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/relationship-targets"
+    },
+    {
       "operation_id": "WorldCoreController_getWorldCharacter",
       "service": "Realm Core",
       "method": "GET",
@@ -14793,6 +14929,12 @@
       "service": "World",
       "method": "GET",
       "path": "/api/world/by-id/{worldId}"
+    },
+    {
+      "operation_id": "WorldPublicController_getWorldCatalogByIds",
+      "service": "World",
+      "method": "POST",
+      "path": "/api/world/catalog/by-ids"
     },
     {
       "operation_id": "WorldPublicController_getWorldDetailWithCharacters",
@@ -15004,6 +15146,7 @@
         "WorldCoreController_discoverWorldCharacters",
         "WorldCoreController_getOasisWorld",
         "WorldCoreController_getPersonaCharacter",
+        "WorldCoreController_getRelationshipTargets",
         "WorldCoreController_getWorldCharacter",
         "WorldCoreController_getWorldCore",
         "WorldCoreController_getWorldCreationEligibility",
@@ -15114,6 +15257,7 @@
       "operation_ids": [
         "WorldPublicController_getCharacterSource",
         "WorldPublicController_getWorld",
+        "WorldPublicController_getWorldCatalogByIds",
         "WorldPublicController_getWorldDetailWithCharacters",
         "WorldPublicController_listCharacterCatalog",
         "WorldPublicController_listPersonaCharacterCatalog",
@@ -16226,7 +16370,16 @@
       "name": "WorldPublicAssetProvenanceDto"
     },
     {
+      "name": "WorldPublicCatalogIdsDto"
+    },
+    {
       "name": "WorldPublicCharacterBiographyDto"
+    },
+    {
+      "name": "WorldPublicCharacterCatalogItemDto"
+    },
+    {
+      "name": "WorldPublicCharacterCatalogPageDto"
     },
     {
       "name": "WorldPublicCharacterLifeEventDto"
@@ -16326,6 +16479,12 @@
     },
     {
       "name": "WorldRelationshipCoreValueDtoPresentation"
+    },
+    {
+      "name": "WorldRelationshipTargetDto"
+    },
+    {
+      "name": "WorldRelationshipTargetsRequestDto"
     },
     {
       "name": "WorldRolePlacementV1Dto"
@@ -29753,6 +29912,15 @@
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "boundedFamily",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaImageFamilyDto",
+              "ref_name": "MediaImageFamilyDto"
+            }
+          },
           {
             "name": "families",
             "required": true,
@@ -47640,6 +47808,49 @@
       }
     },
     {
+      "name": "WorldPublicCatalogIdsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "media",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "cover"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "worldIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": 100
+            }
+          }
+        ],
+        "required_properties": [
+          "worldIds"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicCharacterBiographyDto",
       "schema": {
         "kind": "object",
@@ -47681,6 +47892,198 @@
         "required_properties": [
           "lifeEvents",
           "sourceNotes"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicCharacterCatalogItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarMedia",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "avatarUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "relation",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicViewerRelationDto",
+              "ref_name": "WorldPublicViewerRelationDto"
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterSourceRefV3Dto",
+              "ref_name": "CharacterSourceRefV3Dto"
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "worldName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "id",
+          "sourceRef",
+          "displayName",
+          "summary",
+          "worldName",
+          "relation",
+          "avatarMedia",
+          "avatarUrl"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicCharacterCatalogPageDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "hasMore",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicCharacterCatalogItemDto",
+                "ref_name": "WorldPublicCharacterCatalogItemDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "nextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "totalCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "items",
+          "nextCursor",
+          "hasMore",
+          "totalCount"
         ],
         "closed": false,
         "additional_properties": null
@@ -51165,6 +51568,125 @@
         ],
         "required_properties": [],
         "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldRelationshipTargetDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "entityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "isCharacter",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "entityId",
+          "worldId",
+          "kind",
+          "name",
+          "isCharacter"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldRelationshipTargetsRequestDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "entityIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": 100
+            }
+          }
+        ],
+        "required_properties": [
+          "entityIds"
+        ],
+        "closed": false,
         "additional_properties": null
       }
     },

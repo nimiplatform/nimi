@@ -2,6 +2,16 @@
 
 # SDK migration notes
 
+## Unreleased — Optional bounded media formats
+
+Realm image-set descriptors can include `boundedFamily` alongside their complete `families`. A responsive renderer can offer it for slots covered at the current pixel density. Consumers using only the complete families keep their previous selection.
+
+## Unreleased — Realm discovery summaries
+
+`worldPublicControllerListCharacterCatalog` now returns summary items with `sourceRef`, `displayName`, `summary`, `worldName`, `relation`, `avatarMedia`, and `avatarUrl` alongside `id`. Use the managed avatar descriptor or the external URL for the list. Fetch a full profile by source reference when the user opens it.
+
+Home can resolve up to 100 world summaries with `worldPublicControllerGetWorldCatalogByIds` and up to 100 relationship targets in one readable world with `worldCoreControllerGetRelationshipTargets`. Missing or unreadable items are omitted. Use the matching Runtime broker policy when updating the SDK and Home.
+
 ## 0.24.0-rc.7 — Text context capacity
 
 A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.

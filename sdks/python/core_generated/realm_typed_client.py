@@ -1267,6 +1267,7 @@ class MediaImageFamilyDto:
 class MediaImageSetDto:
     families: tuple[MediaImageFamilyDto, ...]
     purpose: Literal["avatar", "card", "hero", "detail", "chat", "poster"]
+    boundedFamily: MediaImageFamilyDto | None = None
 
 @dataclass(frozen=True)
 class MediaImageSourceDto:
@@ -2932,9 +2933,32 @@ class WorldPublicAssetProvenanceDto:
     publicationRecordId: str | None = None
 
 @dataclass(frozen=True)
+class WorldPublicCatalogIdsDto:
+    worldIds: tuple[str, ...]
+    media: Literal["cover"] | None | _Unset = _UNSET
+
+@dataclass(frozen=True)
 class WorldPublicCharacterBiographyDto:
     lifeEvents: tuple[WorldPublicCharacterLifeEventDto, ...]
     sourceNotes: tuple[str, ...]
+
+@dataclass(frozen=True)
+class WorldPublicCharacterCatalogItemDto:
+    avatarMedia: MediaDeliveryDto | None
+    avatarUrl: str | None
+    displayName: str
+    id: str
+    relation: WorldPublicViewerRelationDto
+    sourceRef: CharacterSourceRefV3Dto
+    summary: str
+    worldName: str
+
+@dataclass(frozen=True)
+class WorldPublicCharacterCatalogPageDto:
+    hasMore: bool
+    items: tuple[WorldPublicCharacterCatalogItemDto, ...]
+    nextCursor: str | None
+    totalCount: float
 
 @dataclass(frozen=True)
 class WorldPublicCharacterLifeEventDto:
@@ -3241,6 +3265,18 @@ class WorldRelationshipCoreValueDtoEvidence:
 @dataclass(frozen=True)
 class WorldRelationshipCoreValueDtoPresentation:
     summary: str | None = None
+
+@dataclass(frozen=True)
+class WorldRelationshipTargetDto:
+    entityId: str
+    isCharacter: bool
+    kind: str
+    name: str
+    worldId: str
+
+@dataclass(frozen=True)
+class WorldRelationshipTargetsRequestDto:
+    entityIds: tuple[str, ...]
 
 @dataclass(frozen=True)
 class WorldRolePlacementV1Dto:
@@ -6987,6 +7023,28 @@ class RealmWorldCoreControllerGetPersonaCharacterOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldCoreControllerGetRelationshipTargetsOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRelationshipTargetsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRelationshipTargetsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRelationshipTargetsOperationRequest:
+    path: RealmWorldCoreControllerGetRelationshipTargetsOperationPath
+    query: RealmWorldCoreControllerGetRelationshipTargetsOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetRelationshipTargetsOperationHeaders | None = None
+    body: WorldRelationshipTargetsRequestDto | None = None
+
+@dataclass(frozen=True)
 class RealmWorldCoreControllerGetWorldCharacterOperationPath:
     characterId: str
 
@@ -7375,6 +7433,28 @@ class RealmWorldPublicControllerGetWorldOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldCatalogByIdsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldCatalogByIdsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldCatalogByIdsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldCatalogByIdsOperationRequest:
+    path: RealmWorldPublicControllerGetWorldCatalogByIdsOperationPath
+    query: RealmWorldPublicControllerGetWorldCatalogByIdsOperationQuery | None = None
+    headers: RealmWorldPublicControllerGetWorldCatalogByIdsOperationHeaders | None = None
+    body: WorldPublicCatalogIdsDto | None = None
+
+@dataclass(frozen=True)
 class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath:
     worldId: str
 
@@ -7454,6 +7534,7 @@ class RealmWorldPublicControllerListWorldCatalogOperationPath:
 @dataclass(frozen=True)
 class RealmWorldPublicControllerListWorldCatalogOperationQuery:
     theme: str | None = None
+    media: Literal["cover"] | None = None
     genre: str | None = None
     topicId: str | None = None
     limit: float | None = None
@@ -9194,6 +9275,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PersonaCharacterCoreDto, raw)
 
+    async def world_core_controller_get_relationship_targets(self, request: RealmWorldCoreControllerGetRelationshipTargetsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetRelationshipTargetsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getRelationshipTargets", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldRelationshipTargetDto, ...], raw)
+
     async def world_core_controller_get_world_character(self, request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -9364,6 +9455,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicDetailDto, raw)
 
+    async def world_public_controller_get_world_catalog_by_ids(self, request: RealmWorldPublicControllerGetWorldCatalogByIdsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldCatalogByIdsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldCatalogByIds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldPublicItemDto, ...], raw)
+
     async def world_public_controller_get_world_detail_with_characters(self, request: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -9382,7 +9483,7 @@ class RealmTypedClient:
             "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldPublicSourceCardPageDto, raw)
+        return _decode_model(WorldPublicCharacterCatalogPageDto, raw)
 
     async def world_public_controller_list_persona_character_catalog(self, request: RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListPersonaCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {

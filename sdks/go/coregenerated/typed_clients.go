@@ -18171,8 +18171,9 @@ func (value *MediaImageFamilyDto) UnmarshalJSON(data []byte) error {
 }
 
 type MediaImageSetDto struct {
-	Families []MediaImageFamilyDto `json:"families"`
-	Purpose  string                `json:"purpose"`
+	BoundedFamily *MediaImageFamilyDto  `json:"boundedFamily,omitempty"`
+	Families      []MediaImageFamilyDto `json:"families"`
+	Purpose       string                `json:"purpose"`
 }
 
 func (value *MediaImageSetDto) UnmarshalJSON(data []byte) error {
@@ -25211,6 +25212,35 @@ func (value *WorldPublicAssetProvenanceDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WorldPublicCatalogIdsDto struct {
+	Media    string   `json:"media,omitempty"`
+	WorldIds []string `json:"worldIds"`
+}
+
+func (value *WorldPublicCatalogIdsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCatalogIdsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldIds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCatalogIdsDto: %w", err)
+	}
+	type modelAlias WorldPublicCatalogIdsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCatalogIdsDto: %w", err)
+	}
+	if _, present := raw["media"]; present {
+		switch decoded.Media {
+		case "cover":
+		default:
+			return fmt.Errorf("decode WorldPublicCatalogIdsDto: field media has unknown literal %v", decoded.Media)
+		}
+	}
+	*value = WorldPublicCatalogIdsDto(decoded)
+	return nil
+}
+
 type WorldPublicCharacterBiographyDto struct {
 	LifeEvents  []WorldPublicCharacterLifeEventDto `json:"lifeEvents"`
 	SourceNotes []string                           `json:"sourceNotes"`
@@ -25233,6 +25263,88 @@ func (value *WorldPublicCharacterBiographyDto) UnmarshalJSON(data []byte) error 
 		return fmt.Errorf("decode WorldPublicCharacterBiographyDto: %w", err)
 	}
 	*value = WorldPublicCharacterBiographyDto(decoded)
+	return nil
+}
+
+type WorldPublicCharacterCatalogItemDto struct {
+	AvatarMedia *MediaDeliveryDto             `json:"avatarMedia"`
+	AvatarUrl   *string                       `json:"avatarUrl"`
+	DisplayName string                        `json:"displayName"`
+	Id          string                        `json:"id"`
+	Relation    *WorldPublicViewerRelationDto `json:"relation"`
+	SourceRef   *CharacterSourceRefV3Dto      `json:"sourceRef"`
+	Summary     string                        `json:"summary"`
+	WorldName   string                        `json:"worldName"`
+}
+
+func (value *WorldPublicCharacterCatalogItemDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "avatarMedia", true); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "avatarUrl", true); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relation", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldName", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	type modelAlias WorldPublicCharacterCatalogItemDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogItemDto: %w", err)
+	}
+	*value = WorldPublicCharacterCatalogItemDto(decoded)
+	return nil
+}
+
+type WorldPublicCharacterCatalogPageDto struct {
+	HasMore    bool                                 `json:"hasMore"`
+	Items      []WorldPublicCharacterCatalogItemDto `json:"items"`
+	NextCursor *string                              `json:"nextCursor"`
+	TotalCount float64                              `json:"totalCount"`
+}
+
+func (value *WorldPublicCharacterCatalogPageDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hasMore", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	type modelAlias WorldPublicCharacterCatalogPageDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterCatalogPageDto: %w", err)
+	}
+	*value = WorldPublicCharacterCatalogPageDto(decoded)
 	return nil
 }
 
@@ -26516,6 +26628,64 @@ func (value *WorldRelationshipCoreValueDtoPresentation) UnmarshalJSON(data []byt
 		return fmt.Errorf("decode WorldRelationshipCoreValueDtoPresentation: %w", err)
 	}
 	*value = WorldRelationshipCoreValueDtoPresentation(decoded)
+	return nil
+}
+
+type WorldRelationshipTargetDto struct {
+	EntityId    string `json:"entityId"`
+	IsCharacter bool   `json:"isCharacter"`
+	Kind        string `json:"kind"`
+	Name        string `json:"name"`
+	WorldId     string `json:"worldId"`
+}
+
+func (value *WorldRelationshipTargetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isCharacter", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	type modelAlias WorldRelationshipTargetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetDto: %w", err)
+	}
+	*value = WorldRelationshipTargetDto(decoded)
+	return nil
+}
+
+type WorldRelationshipTargetsRequestDto struct {
+	EntityIds []string `json:"entityIds"`
+}
+
+func (value *WorldRelationshipTargetsRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetsRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityIds", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetsRequestDto: %w", err)
+	}
+	type modelAlias WorldRelationshipTargetsRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipTargetsRequestDto: %w", err)
+	}
+	*value = WorldRelationshipTargetsRequestDto(decoded)
 	return nil
 }
 
@@ -29369,6 +29539,23 @@ type RealmWorldCoreControllerGetPersonaCharacterOperationRequest struct {
 	Body    struct{}                                                    `json:"body,omitempty"`
 }
 
+type RealmWorldCoreControllerGetRelationshipTargetsOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldCoreControllerGetRelationshipTargetsOperationQuery struct {
+}
+
+type RealmWorldCoreControllerGetRelationshipTargetsOperationHeaders struct {
+}
+
+type RealmWorldCoreControllerGetRelationshipTargetsOperationRequest struct {
+	Path    RealmWorldCoreControllerGetRelationshipTargetsOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetRelationshipTargetsOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetRelationshipTargetsOperationHeaders `json:"headers,omitempty"`
+	Body    WorldRelationshipTargetsRequestDto                             `json:"body,omitempty"`
+}
+
 type RealmWorldCoreControllerGetWorldCharacterOperationPath struct {
 	CharacterId string `json:"characterId,omitempty"`
 }
@@ -29673,6 +29860,22 @@ type RealmWorldPublicControllerGetWorldOperationRequest struct {
 	Body    struct{}                                           `json:"body,omitempty"`
 }
 
+type RealmWorldPublicControllerGetWorldCatalogByIdsOperationPath struct {
+}
+
+type RealmWorldPublicControllerGetWorldCatalogByIdsOperationQuery struct {
+}
+
+type RealmWorldPublicControllerGetWorldCatalogByIdsOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerGetWorldCatalogByIdsOperationRequest struct {
+	Path    RealmWorldPublicControllerGetWorldCatalogByIdsOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerGetWorldCatalogByIdsOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerGetWorldCatalogByIdsOperationHeaders `json:"headers,omitempty"`
+	Body    WorldPublicCatalogIdsDto                                       `json:"body,omitempty"`
+}
+
 type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
@@ -29735,6 +29938,7 @@ type RealmWorldPublicControllerListWorldCatalogOperationPath struct {
 
 type RealmWorldPublicControllerListWorldCatalogOperationQuery struct {
 	Theme   string  `json:"theme,omitempty"`
+	Media   string  `json:"media,omitempty"`
 	Genre   string  `json:"genre,omitempty"`
 	TopicId string  `json:"topicId,omitempty"`
 	Limit   float64 `json:"limit,omitempty"`
@@ -31140,6 +31344,14 @@ func (c RealmTypedClient) WorldCoreControllerGetPersonaCharacter(ctx context.Con
 	return decodeTypedResponse[PersonaCharacterCoreDto](raw)
 }
 
+func (c RealmTypedClient) WorldCoreControllerGetRelationshipTargets(ctx context.Context, request RealmWorldCoreControllerGetRelationshipTargetsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldRelationshipTargetDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getRelationshipTargets", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldRelationshipTargetDto{}, err
+	}
+	return decodeTypedResponse[[]WorldRelationshipTargetDto](raw)
+}
+
 func (c RealmTypedClient) WorldCoreControllerGetWorldCharacter(ctx context.Context, request RealmWorldCoreControllerGetWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_getWorldCharacter", request, metadata, timeoutMS)
 	if err != nil {
@@ -31276,6 +31488,14 @@ func (c RealmTypedClient) WorldPublicControllerGetWorld(ctx context.Context, req
 	return decodeTypedResponse[WorldPublicDetailDto](raw)
 }
 
+func (c RealmTypedClient) WorldPublicControllerGetWorldCatalogByIds(ctx context.Context, request RealmWorldPublicControllerGetWorldCatalogByIdsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicItemDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_getWorldCatalogByIds", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldPublicItemDto{}, err
+	}
+	return decodeTypedResponse[[]WorldPublicItemDto](raw)
+}
+
 func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx context.Context, request RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicDetailWithCharactersDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldPublicController_getWorldDetailWithCharacters", request, metadata, timeoutMS)
 	if err != nil {
@@ -31284,12 +31504,12 @@ func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx 
 	return decodeTypedResponse[WorldPublicDetailWithCharactersDto](raw)
 }
 
-func (c RealmTypedClient) WorldPublicControllerListCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {
+func (c RealmTypedClient) WorldPublicControllerListCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicCharacterCatalogPageDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldPublicController_listCharacterCatalog", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldPublicSourceCardPageDto{}, err
+		return WorldPublicCharacterCatalogPageDto{}, err
 	}
-	return decodeTypedResponse[WorldPublicSourceCardPageDto](raw)
+	return decodeTypedResponse[WorldPublicCharacterCatalogPageDto](raw)
 }
 
 func (c RealmTypedClient) WorldPublicControllerListPersonaCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {

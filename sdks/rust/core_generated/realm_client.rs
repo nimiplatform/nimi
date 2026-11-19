@@ -1016,6 +1016,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/persona-characters/by-id/{personaCharacterId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldCoreController_getRelationshipTargets",
+        service: "Realm Core",
+        method: "POST",
+        path: Some("/api/realm/core/worlds/{worldId}/relationship-targets"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldCoreController_getWorldCharacter",
         service: "Realm Core",
         method: "GET",
@@ -1116,6 +1122,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "World",
         method: "GET",
         path: Some("/api/world/by-id/{worldId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_getWorldCatalogByIds",
+        service: "World",
+        method: "POST",
+        path: Some("/api/world/catalog/by-ids"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldPublicController_getWorldDetailWithCharacters",

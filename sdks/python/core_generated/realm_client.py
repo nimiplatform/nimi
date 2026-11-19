@@ -1010,6 +1010,12 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
   },
   {
+    "operation_id": "WorldCoreController_getRelationshipTargets",
+    "service": "Realm Core",
+    "method": "POST",
+    "path": "/api/realm/core/worlds/{worldId}/relationship-targets"
+  },
+  {
     "operation_id": "WorldCoreController_getWorldCharacter",
     "service": "Realm Core",
     "method": "GET",
@@ -1110,6 +1116,12 @@ REALM_OPERATIONS = [
     "service": "World",
     "method": "GET",
     "path": "/api/world/by-id/{worldId}"
+  },
+  {
+    "operation_id": "WorldPublicController_getWorldCatalogByIds",
+    "service": "World",
+    "method": "POST",
+    "path": "/api/world/catalog/by-ids"
   },
   {
     "operation_id": "WorldPublicController_getWorldDetailWithCharacters",

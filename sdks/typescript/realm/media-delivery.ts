@@ -1,4 +1,4 @@
-import type { MediaDeliveryDto, MediaImageSetDto } from '../core-generated/realm-typed-client.js';
+import type { MediaDeliveryDto, MediaImageFamilyDto, MediaImageSetDto } from '../core-generated/realm-typed-client.js';
 
 const purposes = new Set(['avatar', 'card', 'hero', 'detail', 'chat', 'poster']);
 function object(value: unknown): Record<string, unknown> {
@@ -25,6 +25,17 @@ function url(value: unknown): string {
 function nullable(value: unknown, read: (value: unknown) => string): string | null { return value === null ? null : read(value); }
 function date(value: unknown): string { const result = text(value); if (!Number.isFinite(Date.parse(result))) throw new Error('REALM_MEDIA_DELIVERY_INVALID'); return result; }
 
+function readImageFamily(value: unknown): MediaImageFamilyDto {
+  const family = object(value);
+  return {
+    mimeType: text(family.mimeType),
+    sources: list(family.sources).map(value => {
+      const source = object(value);
+      return { url: url(source.url), width: integer(source.width), height: integer(source.height), mimeType: text(source.mimeType) };
+    }),
+  };
+}
+
 /** Validate owner-issued delivery data at a typed transport boundary. Never constructs a URL. */
 export function parseRealmMediaDelivery(value: unknown): MediaDeliveryDto | null {
   if (value === null) return null;
@@ -37,13 +48,11 @@ export function parseRealmMediaDelivery(value: unknown): MediaDeliveryDto | null
     images: list(row.images).map((value) => {
       const set = object(value); const purpose = text(set.purpose);
       if (!purposes.has(purpose)) throw new Error('REALM_MEDIA_DELIVERY_INVALID');
-      return { purpose: purpose as MediaImageSetDto['purpose'], families: list(set.families).map((value) => {
-        const family = object(value);
-        return { mimeType: text(family.mimeType), sources: list(family.sources).map((value) => {
-          const source = object(value);
-          return { url: url(source.url), width: integer(source.width), height: integer(source.height), mimeType: text(source.mimeType) };
-        }) };
-      }) };
+      return {
+        purpose: purpose as MediaImageSetDto['purpose'],
+        families: list(set.families).map(readImageFamily),
+        ...(set.boundedFamily === undefined ? {} : { boundedFamily: readImageFamily(set.boundedFamily) }),
+      };
     }),
     video: row.video === null ? null : (() => { const video = object(row.video); return {
       hlsUrl: url(video.hlsUrl), dashUrl: url(video.dashUrl), posterUrl: url(video.posterUrl), expiresAt: date(video.expiresAt),
