@@ -144,6 +144,12 @@ prepares both targets, validates the complete set, and retains a ready artifact.
 Setting `publish=true` additionally runs the actual publication entry.
 The source commit, admission, and keys are verified before signing work begins.
 
+PR and main CI compile the macOS updater on Apple Silicon when its Swift source,
+compiler entry or shared build inputs change. To obtain a signed installer for
+local acceptance, dispatch `build-macos-production.yml` on `dev` or `main` with
+the desired source SHA and `realm_target=local-acceptance`. The installer
+artifact name records the source SHA and effective Realm target.
+
 If Windows preparation succeeded but macOS failed (for example, due to a transient
 Apple ticket-stapling network error), set `prepared_windows_run_id` and
 `prepared_windows_run_attempt` to that successful Windows producer run. Keep the

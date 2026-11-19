@@ -5,14 +5,15 @@ import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.m
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-009b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
 
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, globSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { satisfies } from 'semver';
+import { satisfies, validRange } from 'semver';
+import { lockedRegistryVersion, planToolchainUpdates } from './app-toolchain-updates.mjs';
 import { parse as parseYaml, parseDocument as parseYamlDocument, stringify as stringifyYaml } from 'yaml';
 
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
-import { defaultDependencyCombination, resolveDependencyCombination } from './app-dependency-combinations.mjs';
+import { appToolsDeclaration, defaultDependencyCombination, isLocalDependencySpec, resolveDependencyCombination } from './app-dependency-combinations.mjs';
 import { SAFETY_PROFILE_FIELD, normalizeSafetyProfile } from './app-safety-profile.mjs';
 import { planManagedAppSync, validateAppProject, validateAppProjectInputs, validateManagedAppFiles } from './app-doctor-update.mjs';
 import { LIFECYCLE_SKILL_PATH, hasLifecycleGuidanceOwner, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
@@ -169,11 +170,11 @@ function assertNoRetiredScaffoldState(targetDir) {
 // The SDK/Kit pair comes from the App's resolved combination; the tool
 // dependencies come from the selected tool version. Both are one judgment
 // shared by manifest, lock, Cargo and workflow checks.
-function expectedNimiDependencies(versions, combination) {
+function expectedNimiDependencies(versions, combination, packageJson) {
   return Object.freeze([
     Object.freeze({ name: '@nimiplatform/sdk', section: 'dependencies', version: combination.sdkVersion }),
     Object.freeze({ name: '@nimiplatform/kit', section: 'dependencies', version: combination.kitVersion }),
-    Object.freeze({ name: '@nimiplatform/app-tools', section: 'devDependencies', version: versions.appToolsVersion }),
+    Object.freeze({ name: '@nimiplatform/app-tools', section: 'devDependencies', version: appToolsDeclaration(packageJson.devDependencies?.['@nimiplatform/app-tools'], versions.appToolsVersion) }),
     Object.freeze({ name: '@nimiplatform/nimi-coding', section: 'devDependencies', version: versions.nimicodingVersion }),
   ]);
 }
@@ -192,13 +193,16 @@ function selectDependencyCombination(packageJson, versions, managed) {
 function managedProjectVersions(targetDir, versions) {
   const packagePath = path.join(targetDir, 'package.json');
   if (!existsSync(packagePath)) return versions;
-  const combination = resolveDependencyCombination(readJsonFile(packagePath, 'package.json'), versions);
-  return Object.freeze({ ...versions, sdkVersion: combination.sdkVersion, kitVersion: combination.kitVersion, nimiShellTauriVersion: combination.nimiShellTauriVersion });
+  const pkg = readJsonFile(packagePath, 'package.json');
+  const combination = resolveDependencyCombination(pkg, versions);
+  const appToolsVersion = appToolsDeclaration(pkg.devDependencies?.['@nimiplatform/app-tools'], versions.appToolsVersion);
+  return Object.freeze({ ...versions, ...combination, appToolsVersion });
 }
 
 function describeCombination(combination, toolVersions) {
-  const isDefault = combination.sdkVersion === toolVersions.sdkVersion && combination.kitVersion === toolVersions.kitVersion;
-  return { sdk: combination.sdkVersion, kit: combination.kitVersion, source: isDefault ? 'default' : 'existing' };
+  const dependencies = { '@nimiplatform/sdk': combination.sdkVersion, '@nimiplatform/kit': combination.kitVersion };
+  const { source } = resolveDependencyCombination({ dependencies }, toolVersions);
+  return { sdk: combination.sdkVersion, kit: combination.kitVersion, source };
 }
 
 function dependencySection(packageJson, sectionName) {
@@ -208,13 +212,6 @@ function dependencySection(packageJson, sectionName) {
     throw new Error(`package.json ${sectionName} must be an object`);
   }
   return section;
-}
-
-function isLocalDependencySpec(value) {
-  const normalized = typeof value === 'string' ? value.trim() : '';
-  return /^(?:file|link|patch|path|portal|workspace):/iu.test(normalized)
-    || /^(?:\.{1,2}[\\/]|~[\\/]|[A-Za-z]:[\\/]|\\\\)/u.test(normalized)
-    || /\.(?:tar\.gz|tgz)(?:[?#].*)?$/iu.test(normalized);
 }
 
 function localPackageArchive(value) {
@@ -264,7 +261,7 @@ function assertPackageManifestCurrent(packageJson, versions, combination, platfo
     throw new Error(`package.json packageManager must be ${versions.packageManager}`);
   }
   assertPublicNimiDependencySpecs(packageJson);
-  for (const expected of expectedNimiDependencies(versions, combination)) {
+  for (const expected of expectedNimiDependencies(versions, combination, packageJson)) {
     const section = dependencySection(packageJson, expected.section);
     if (section?.[expected.name] !== expected.version) {
       throw new Error(`package.json ${expected.section}.${expected.name} must be ${expected.version}`);
@@ -306,15 +303,16 @@ function assertPackageManifestCurrent(packageJson, versions, combination, platfo
   return combination;
 }
 
-function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef, packageSource, combination) {
+function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef, packageSource, combination, toolchainUpdates) {
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new Error('package.json must contain an object');
   }
   const normalized = JSON.parse(JSON.stringify(packageJson));
   normalized.private = true;
   delete normalized.publishConfig;
+  for (const { section, name, to } of toolchainUpdates) normalized[section][name] = to;
   for (const sectionName of NPM_DEPENDENCY_SECTIONS) dependencySection(normalized, sectionName);
-  for (const expected of expectedNimiDependencies(versions, combination)) {
+  for (const expected of expectedNimiDependencies(versions, combination, packageJson)) {
     for (const sectionName of NPM_DEPENDENCY_SECTIONS) {
       const section = dependencySection(normalized, sectionName);
       if (section) delete section[expected.name];
@@ -591,6 +589,10 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, 
   if (!importer || typeof importer !== 'object' || Array.isArray(importer)) {
     throw installRequiredError('pnpm-lock.yaml root importer is missing');
   }
+  for (const update of planToolchainUpdates(packageJson, importer, versions)) {
+    if (update.lockedAffected) throw installRequiredError(`pnpm-lock.yaml resolves ${update.name}@${update.locked}. Select a patched release (fixed in ${update.fixedVersion})`);
+  }
+  const requiredPackages = expectedNimiDependencies(versions, combination, packageJson);
   const installedLock = localPackages.size > 0 ? readInstalledPnpmLock(targetDir) : null;
   for (const [name, selected] of localPackages) {
     if (lock.overrides?.[name] !== selected) throw installRequiredError(`pnpm-lock.yaml local package override does not match pnpm-workspace.yaml: ${name}`);
@@ -606,7 +608,7 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, 
     if (!existsSync(manifestPath)) throw installRequiredError(`Local Nimi package is not installed: ${name}`);
     const installed = readJsonFile(manifestPath, name);
     const declared = NPM_DEPENDENCY_SECTIONS.map((section) => dependencySection(packageJson, section)?.[name]).filter((value) => value !== undefined);
-    const expected = expectedNimiDependencies(versions, combination).find((entry) => entry.name === name)?.version
+    const expected = requiredPackages.find((entry) => entry.name === name)?.version
       || (KIT_OWNED_NATIVE_CARRIERS.includes(name) ? combination.kitVersion : declared[0]);
     if (!expected || declared.some((specifier) => specifier !== expected)) {
       throw installRequiredError(`Local Nimi package has no consistent declared version: ${name}`);
@@ -628,9 +630,20 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, 
     const packageSection = dependencySection(packageJson, sectionName) || {};
     const lockSection = importer[sectionName] || {};
     for (const [name, specifier] of Object.entries(packageSection)) {
+      if ((name === 'vite' || name === 'electron') && sectionName !== 'peerDependencies' && validRange(specifier)) {
+        const entry = lockSection[name];
+        if (typeof entry?.specifier !== 'string' || (entry.specifier !== specifier && entry.specifier !== lock.overrides?.[name])
+          || !satisfies(lockedRegistryVersion(entry), specifier)) {
+          throw installRequiredError(`pnpm-lock.yaml ${sectionName}.${name} does not resolve the declared range ${specifier}`);
+        }
+      }
       if (!name.startsWith('@nimiplatform/')) continue;
       if (lockSection?.[name]?.specifier !== (localPackages.get(name) || specifier)) {
         throw installRequiredError(`pnpm-lock.yaml ${sectionName}.${name} specifier does not match package.json`);
+      }
+      if (!localPackages.has(name) && requiredPackages.some(dep => dep.name === name)
+        && !satisfies(lockedRegistryVersion(lockSection[name]), specifier)) {
+        throw installRequiredError(`pnpm-lock.yaml ${sectionName}.${name} does not resolve the declared range ${specifier}`);
       }
       if (localPackages.has(name)
         && installedLock?.importers?.['.']?.[sectionName]?.[name]?.version !== lockSection[name]?.version) {
@@ -1196,6 +1209,9 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
   }
   const requiresTauri = buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF;
   const combination = selectDependencyCombination(files.packageJson, versions, managed);
+  const lockPath = path.join(targetDir, 'pnpm-lock.yaml');
+  const importer = existsSync(lockPath) ? parseYamlFile(readFileSync(lockPath, 'utf8'), lockPath)?.importers?.['.'] : null;
+  const toolchainUpdates = planToolchainUpdates(files.packageJson, importer, versions);
   const identity = {
     appId: descriptor.appId,
     appTitle: descriptor.displayName,
@@ -1212,7 +1228,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
-    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource, combination), previous: files.packageSource },
+    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource, combination, toolchainUpdates), previous: files.packageSource },
   ];
   if (requiresTauri) {
     planned.push(
@@ -1302,7 +1318,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
   }
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
-  return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination };
+  return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination, toolchainUpdates, packageJson: files.packageJson };
 }
 
 function lifecycleNextSteps(buildProfileRef, combination) {
@@ -1368,19 +1384,37 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
   if (scaffold) validateManagedAppFiles(targetDir, scaffold.snapshot.lock, planSources(targetDir, plan.planned));
   validateProjectPlan(targetDir, versions, plan.planned, Boolean(scaffold));
   const handovers = scaffold?.handovers ?? [];
+  const dependencyChanges = expectedNimiDependencies(versions, plan.combination, plan.packageJson).flatMap(({ name, section, version }) => {
+    const declared = plan.packageJson[section]?.[name] ?? null;
+    const from = declared === version ? scaffold?.previousDependencies?.[name] ?? declared : declared;
+    return from === version ? [] : [{ name, from, to: version, kind: section === 'devDependencies' ? 'tool' : 'sdk-kit' }];
+  });
+  const manual = plan.toolchainUpdates.filter(update => update.manual);
   const preview = {
+    dependencyChanges, toolchainUpdates: plan.toolchainUpdates, readyToApply: manual.length === 0,
     ok: true, command: options.adopt ? 'init' : 'sync', dir: targetDir,
     managed: Boolean(scaffold), appId: plan.descriptor.appId,
     dryRun: options.dryRun === true, skillPath: LIFECYCLE_SKILL_PATH,
     changes: describeChanges(targetDir, plan.planned), ownerSteps: lifecycleOwnerSteps(versions),
-    nextSteps: lifecycleNextSteps(plan.buildProfileRef, plan.combination),
+    nextSteps: [...plan.toolchainUpdates.filter(dep => dep.lockedAffected && dep.from === dep.to && !dep.manual)
+      .map(dep => `pnpm update ${dep.name}`), ...lifecycleNextSteps(plan.buildProfileRef, plan.combination)],
     dependencyCombination: describeCombination(plan.combination, toolVersions),
+    ...(scaffold ? { retainedHostFiles: scaffold.snapshot.retainedHostFiles ?? [] } : {}),
     ...(scaffold ? { ownershipHandover: handovers } : {}),
   };
+  if (!options.json) {
+    if (preview.retainedHostFiles?.length) process.stdout.write(`[nimi-app] Retained ${preview.retainedHostFiles.length} locked Host files for the selected SDK/Kit combination.\n`);
+    for (const dep of dependencyChanges) process.stdout.write(`[nimi-app] ${dep.kind}: ${dep.name} ${dep.from ?? '(unset)'} -> ${dep.to}\n`);
+    for (const dep of plan.toolchainUpdates) {
+      const action = dep.manual ? 'select a patched range manually' : `sync target ${dep.to}`;
+      process.stdout.write(`[nimi-app] ${dep.name}: declared ${dep.from}, locked ${dep.locked ?? '(unresolved)'}, ${action} (fix ${dep.fixedVersion})\n`);
+    }
+  }
   if (options.dryRun) {
     emitOwnershipHandovers(handovers, options);
     return emitResult(preview, options, `${preview.command} preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ') || 'no app-tools changes'}`);
   }
+  if (manual.length) throw new Error('Select a patched dependency in package.json before sync: ' + manual.map(dep => `${dep.name}@${dep.from} (fixed in ${dep.fixedVersion})`).join(', '));
   const nimicoding = runNimicodingSync(targetDir, 'apply', runners);
   const lockPath = path.join(targetDir, SCAFFOLD_LOCK_PATH);
   const lockFile = plan.planned.find((file) => file.path === lockPath);
@@ -1395,6 +1429,7 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
   }
   validateAppProject(targetDir, { silent: true }, versions, runners);
   emitOwnershipHandovers(handovers, options);
+  if (!options.json && (dependencyChanges.length || plan.toolchainUpdates.length)) process.stdout.write(`[nimi-app] Next: ${preview.nextSteps.join(' -> ')}\n`);
   return emitResult({ ...preview, synchronizedFiles, nimicodingSync: nimicoding?.summary || null }, options, `${preview.command} completed for ${targetDir}`);
 }
 
@@ -1507,6 +1542,11 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
 export function testAppProject(cwd, options = {}, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const profile = readBuildProfile(targetDir);
+  if (profile.testCommand === 'pnpm run test:app'
+    && readJsonFile(path.join(targetDir, 'package.json'), 'package.json').scripts?.['test:app'] === 'node --test test/*.test.mjs'
+    && globSync('test/*.test.mjs', { cwd: targetDir }).length === 0) {
+    throw new Error('No App tests found. Add a business test under test/*.test.mjs or configure the App-owned test:app script.');
+  }
   const result = runOwnerCommand(targetDir, 'test', profile.testCommand, options, runners);
   return emitResult({
     ok: true,

@@ -29,7 +29,6 @@ test('partner management navigation isolates the shared editor draft by partner'
     const refresh = sessions[handle].refresh.bind(sessions[handle]);
     Object.defineProperty(sessions[handle], 'refresh', { value: () => { refreshCalls[handle]++; return refresh(); } });
   }
-  let messageCount = 0;
   const i18n = createInstance(); await i18n.init({ lng: 'en', resources: {}, initImmediate: false });
   const bindings = { sdk: {}, app: { commands: { runtimeConfigNavigation: {} } } } as DesktopCanonicalRendererBindings;
   function Sidebar() {

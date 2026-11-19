@@ -53,7 +53,7 @@ Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 
 - **Node.js**：`>= 24.22.3 < 25`（Node 24 LTS 分支）
 - **pnpm**：`10.34.7`（与根目录 `packageManager` 保持一致）
-- **Go**：`>= 1.26.10`（编译和调试 Runtime 必备，具体版本以 `runtime/go.mod` 为准）
+- **Go**：`>= 1.26.11`（编译和调试 Runtime 必备，具体版本以 `runtime/go.mod` 为准）
 - **Git**
 
 *可选工具（按需安装）：*

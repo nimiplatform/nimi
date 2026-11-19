@@ -12,7 +12,7 @@ for (const [filename, token] of [
   test(`${filename}: build has no production secret and deploy consumes its immutable artifact on another runner`, () => {
     assert.doesNotMatch(JSON.stringify(workflow.env ?? {}), /secrets\./u);
     assert.doesNotMatch(JSON.stringify(workflow.jobs.build), /secrets\./u);
-    assert.equal(workflow.jobs.deploy.needs, 'build');
+    assert.ok([workflow.jobs.deploy.needs].flat().includes('build'));
     const uploaded = workflow.jobs.build.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
     assert.ok(uploaded);
     const downloaded = workflow.jobs.deploy.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
@@ -29,6 +29,11 @@ for (const [filename, token] of [
     assert.doesNotMatch(text, /secrets\.CLOUDFLARE_API_TOKEN\b/u);
     for (const [name, job] of Object.entries(workflow.jobs)) {
       assert.doesNotMatch(JSON.stringify(job.env ?? {}), /secrets\./u);
+      if (job.uses) {
+        assert.equal(job.uses, './.github/workflows/security.yml');
+        assert.equal(job.secrets, undefined);
+        continue;
+      }
       if (name === 'build') continue;
       const preparation = job.steps.findIndex(step => /npm install --prefix.*wrangler@4\.127\.1/u.test(step.run || ''));
       for (const [index, step] of job.steps.entries()) {
@@ -48,7 +53,22 @@ for (const [filename, token] of [
 
 test('Web retains automatic main publication and rollback avoids all build and dependency steps', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/deploy-web.yml', import.meta.url), 'utf8'));
-  assert.deepEqual(workflow.on.push.branches, ['main']);
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const security = parse(readFileSync(new URL('../.github/workflows/security.yml', import.meta.url), 'utf8'));
+  const web = ci.jobs['deploy-web'];
+  assert.deepEqual(ci.on.push.branches, ['main']);
+  assert.equal(workflow.on.push, undefined);
+  assert.equal(security.on.push, undefined);
+  assert.deepEqual(web.needs, ['changes', 'main-security']);
+  assert.equal(web.with.security_sha, '${{ needs.main-security.outputs.verified_sha }}');
+  assert.equal(ci.jobs['main-security'].with.source_sha, '${{ github.sha }}');
+  assert.ok(workflow.on.workflow_call.inputs.security_sha.required);
+  assert.equal(workflow.jobs['manual-security'].with.source_sha, '${{ needs.build.outputs.source_sha }}');
+  const admission = workflow.jobs.deploy.steps.find(step => step.id === 'admission');
+  assert.equal(admission.env.SOURCE_SHA, '${{ needs.build.outputs.source_sha }}');
+  assert.equal(admission.env.SECURITY_SHA, '${{ inputs.security_sha || needs.manual-security.outputs.verified_sha }}');
+  const promote = workflow.jobs.deploy.steps.find(step => step.name === 'Deploy the same build to production');
+  assert.equal(promote.if, "steps.admission.outputs.current == 'true'");
   assert.match(workflow.jobs.build.if, /rollback_deployment_id == ''/u);
   assert.match(workflow.jobs.rollback.if, /rollback_deployment_id != ''/u);
   assert.doesNotMatch(JSON.stringify(workflow.jobs.rollback), /pnpm|npm install|setup-go|download-artifact|upload-artifact/u);

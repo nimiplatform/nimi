@@ -600,7 +600,16 @@ export function toV4Usage(usage: NimiUsage | undefined): LanguageModelV4Usage {
   };
 }
 
-export type NimiMastraStreamPart = Exclude<LanguageModelV4StreamPart, { type: 'finish' }>
+// Declare the chunks emitted below. Mastra can embed an older Provider V4
+// whose stream union lacks newer provider-only events such as ping.
+export type NimiMastraStreamPart = Extract<LanguageModelV4StreamPart, {
+  type: 'stream-start' | 'response-metadata'
+    | 'text-start' | 'text-delta' | 'text-end'
+    | 'reasoning-start' | 'reasoning-delta' | 'reasoning-end'
+    | 'tool-input-start' | 'tool-input-delta' | 'tool-input-end'
+    | 'tool-call' | 'tool-result' | 'tool-approval-request'
+    | 'file' | 'source' | 'raw' | 'error';
+}>
   | (Omit<Extract<LanguageModelV4StreamPart, { type: 'finish' }>, 'finishReason'> & {
     finishReason: NimiMastraFinishReason;
   });

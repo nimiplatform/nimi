@@ -13,6 +13,12 @@ on:
       - .secrets.baseline
       - .github/workflows/release-kit.yml
       - kit/**
+      - proto/runtime/v1/**
+      - config/product-update-policy.mjs
+      - rust-toolchain.toml
+      - .node-version
+      - .pnpmfile.cjs
+      - pnpm-workspace.yaml
       - package.json
       - pnpm-lock.yaml
       - scripts/check-sdk-kit-pack-audit.mjs
@@ -52,13 +58,15 @@ jobs:
     outputs:
       artifact_name: ${{ steps.release.outputs.artifact_name }}
       version: ${{ steps.release.outputs.version }}
+      macos_package_changed: ${{ steps.scope.outputs.kit_macos_package_changed }}
+      windows_package_changed: ${{ steps.scope.outputs.kit_windows_package_changed }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
       - name: Setup Node.js
@@ -67,6 +75,14 @@ jobs:
           node-version: 24.22.3
           package-manager-cache: false
           registry-url: https://registry.npmjs.org
+      - name: Select native package checks for the PR merge
+        id: scope
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: pull_request
+        run: node scripts/detect-ci-scope.mjs
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
       - name: Check package licensing
@@ -140,6 +156,8 @@ jobs:
 
   validate-windows:
     name: Kit Windows native validate and dry-run
+    needs: validate
+    if: github.event_name != 'pull_request' || needs.validate.outputs.windows_package_changed == 'true'
     runs-on: windows-latest
     permissions:
       contents: read
@@ -153,7 +171,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
       - name: Setup Node.js
@@ -217,6 +235,8 @@ jobs:
 
   validate-macos:
     name: Kit macOS native validate and dry-run
+    needs: validate
+    if: github.event_name != 'pull_request' || needs.validate.outputs.macos_package_changed == 'true'
     runs-on: macos-15
     permissions:
       contents: read
@@ -233,7 +253,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
       - name: Setup Node.js
@@ -269,6 +289,7 @@ jobs:
           JS
           echo "artifact_name=kit-macos-native-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
       - name: Test native crates for publication
+        if: github.event_name != 'pull_request'
         run: |
           cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml
           cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml

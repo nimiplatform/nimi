@@ -4,21 +4,38 @@ export const CI_LANES = {
   'workspace-regression': 'workspace_changed',
   'kit-native-tests': 'kit_native_changed',
   'windows-runtime-tests': ['windows_runtime_changed', 'windows_app_tools_changed'],
-  'macos-platform-tests': 'macos_platform_changed',
+  'macos-platform-tests': ['native_runtime_changed', 'macos_carrier_changed', 'macos_host_changed'],
+  'macos-updater-build': 'macos_updater_changed',
   'sdk-quality': 'sdk_changed',
   'runtime-quality': 'runtime_changed',
   'proto-quality': 'proto_changed',
   'desktop-web-quality': 'desktop_changed',
 };
 
+const sdkUnitTest = /^sdks\/typescript\/(?:core|runtime)\/.+\.test\.ts$/u;
+const webBuildFiles = new Set([
+  'package.json', 'tsconfig.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.pnpmfile.cjs',
+  'scripts/with-workspace-surfaces.mjs', 'scripts/lib/workspace-surfaces.mjs',
+  'scripts/lib/sdk-dist-lock.mjs', 'scripts/lib/command-runner.mjs',
+  'scripts/with-sdk-dist-lock.mjs', 'scripts/build-typescript-package.mjs', 'scripts/lib/build-output-publisher.mjs',
+  'scripts/release/web-promotion.mjs', '.github/workflows/deploy-web.yml',
+]);
+
+export function webBuildInputsChanged(paths) {
+  return paths.some(file => {
+    if (webBuildFiles.has(file)) return true;
+    if (sdkUnitTest.test(file) || /^(?:apps\/web|kit|sdks\/typescript)\/(?:README|AGENTS|CHANGELOG)\.md$/u.test(file)) return false;
+    return /^(?:apps\/web|kit|sdks\/typescript|config|runtime\/catalog\/providers)\//u.test(file);
+  });
+}
+
 export function selectCiScope(files, { full = false, docsReviewTargets = [] } = {}) {
   const paths = files.map((file) => file.replaceAll('\\', '/'));
-  const sdkUnitTest = /^sdks\/typescript\/(?:core|runtime)\/.+\.test\.ts$/u;
   const sdkTestsChanged = paths.some(file => sdkUnitTest.test(file));
   const codePaths = paths.filter(file => !sdkUnitTest.test(file)
     && (!/\.(?:md|mdx)$/u.test(file) || file.endsWith('.authority.md')));
   const touches = (pattern) => full || codePaths.some((file) => pattern.test(file));
-  const shared = touches(/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.github\/workflows\/ci\.yml)$/u);
+  const shared = touches(/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.pnpmfile\.cjs|\.node-version|\.github\/workflows\/ci\.yml)$/u);
   const scripts = touches(/^scripts\//u);
   const checkerOnly = /^(?:scripts\/(?:ci-scope\.test|check-eol-noise|check-text-encoding-gate)\.mjs|scripts\/lib\/text-encoding-gate\.mjs)$/u;
   const productScripts = full || codePaths.some((file) => file.startsWith('scripts/') && !checkerOnly.test(file));
@@ -29,15 +46,29 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   const config = touches(/^config\//u);
   const authority = touches(/^\.nimi\/(?:spec\/|config\/|methodology\/)/u);
   const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|proto-baseline|check-proto-drift|run-buf)[^/]*\.mjs$|scripts\/lib\/proto-wire-baseline\.mjs$)/u);
-  const sdk = shared || config || proto || touches(/^(?:sdks\/|\.nimi\/spec\/sdks\/)/u);
+  const sdk = shared || config || proto || touches(/^(?:sdks\/|\.nimi\/spec\/sdks\/|tsconfig\.json$)/u);
   const kit = shared || config || sdk || touches(/^(?:kit\/|\.nimi\/spec\/platform\/ui-design-system\.authority\.)/u);
   const cognition = shared || touches(/^(?:nimi-cognition\/|go\.work(?:\.sum)?$)/u);
   const runtime = cognition || config || proto || touches(/^(?:runtime\/|npm-packages\/|\.goreleaser\.yml$|\.nimi\/spec\/runtime\/|scripts\/(?:build-runtime|dev-runtime)\.mjs$)/u);
-  const kitNative = shared || proto || touches(/^kit\/shell\/(?:capabilities|protected-local|protected-local-node|tauri)\//u);
+  const macPackageFiles = /^kit\/shell\/protected-local-node\/(?:npm\/darwin-arm64\/|scripts\/build-darwin-arm64-package\.mjs$)/u;
+  const windowsPackageFiles = /^kit\/shell\/protected-local-node\/(?:npm\/win32-x64\/|scripts\/build-windows-x64-package\.mjs$)/u;
+  const carrierSource = codePaths.some(file => /^kit\/shell\/protected-local(?:-node)?\//u.test(file)
+    && !macPackageFiles.test(file) && !windowsPackageFiles.test(file));
+  const macosCarrier = proto || carrierSource || touches(/^rust-toolchain\.toml$/u);
+  const kitNative = macosCarrier || touches(/^kit\/shell\/(?:capabilities|tauri)\//u);
+  const kitNativePackage = macosCarrier || touches(/^(?:kit\/package\.json|config\/product-update-policy\.mjs|\.github\/workflows\/release-kit\.yml|scripts\/release\/(?:component-version|build-component-package)\.mjs)$/u);
   const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
   const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
-  const macosPlatform = runtime || kitNative || desktopNative || touches(/^(?:kit\/shell\/electron\/|apps\/(?:desktop|avatar|lab|zhiyu|nimigo|nimiday)\/(?:src-electron\/|scripts\/|package\.json$|tsconfig\.electron\.json$|nimi\.app\.yaml$)|scripts\/(?:dev-app|dev-runtime|doctor-dev|macos-dev-runtime-service|build-supervised-app-electron)[^/]*\.mjs$|scripts\/lib\/(?:dev-app-launch|electron-carrier-processes|supervised-app-electron-production|ci-scope)\.mjs$)/u);
-  const windowsRuntime = runtime || touches(/^(?:scripts\/(?:install-windows-runtime-service\.ps1|accept-runtime-fixed-service(?:\.test)?\.mjs|windows-runtime-service-installer-contract\.test\.mjs|build-windows-runtime-service-installer\.mjs)|scripts\/lib\/windows-powershell\.mjs)$/u);
+  const macosUpdater = shared || touches(/^(?:apps\/desktop\/macos\/product-updater\/|apps\/desktop\/scripts\/(?:build-macos-(?:product-updater|electron-release)|lib\/(?:macos-release-process|release-source-maps))\.mjs$|config\/product-update-policy\.mjs$)/u);
+  // Keep shared Go inputs conservative. Provider catalog data is exercised by
+  // runtime-quality and by the Web landing-data generator on Ubuntu.
+  const nativeRuntime = cognition || proto || touches(/^(?:runtime\/(?!catalog\/providers\/[^/]+\.ya?ml$)|config\/runtime-(?!provider-)|npm-packages\/|scripts\/(?:build-runtime|dev-runtime)\.mjs$)/u);
+  const macosHost = desktopNative || macosCarrier
+    || touches(/^(?:kit\/shell\/electron\/|apps\/desktop\/(?:src-electron\/|macos\/local-app-host\/))/u)
+    || touches(/^apps\/desktop\/test\/(?:electron-(?:desktop-open-intent|support-logs|system-resources)-host|macos-(?:local-app-host-contract|release-policy))\.test\./u)
+    || touches(/^scripts\/(?:dev-app|dev-runtime|doctor-dev|macos-dev-runtime-service|build-supervised-app-electron)[^/]*\.mjs$/u)
+    || touches(/^scripts\/lib\/(?:dev-app-launch(?:\.test)?|electron-carrier-processes|supervised-app-electron-production|ci-scope)\.mjs$/u);
+  const windowsRuntime = nativeRuntime || touches(/^config\/windows-/u) || touches(/^(?:scripts\/(?:install-windows-runtime-service\.ps1|accept-runtime-fixed-service(?:\.test)?\.mjs|windows-runtime-service-installer-contract\.test\.mjs|build-windows-runtime-service-installer\.mjs)|scripts\/lib\/windows-powershell\.mjs)$/u);
   const windowsAppTools = shared || touches(/^app-tools\//u);
   const filters = new Set();
 
@@ -47,6 +78,7 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   if (sdk) filters.add('...@nimiplatform/sdk');
   else if (kit) filters.add('...@nimiplatform/kit');
   if (sdk || kit) filters.add('@nimiplatform/app-tools');
+  if (!shared && touches(/^runtime\/catalog\/providers\//u)) filters.add('./apps/web');
   for (const file of paths) {
     if (/\.(?:md|mdx)$/u.test(file)) continue;
     const app = file.match(/^(apps\/[^/]+)\//u);
@@ -88,7 +120,13 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
     desktop_changed: desktop,
     desktop_native_changed: desktopNative,
     kit_native_changed: kitNative,
-    macos_platform_changed: macosPlatform,
+    native_runtime_changed: nativeRuntime,
+    macos_carrier_changed: macosCarrier,
+    macos_host_changed: macosHost,
+    kit_macos_package_changed: kitNativePackage || touches(macPackageFiles),
+    kit_windows_package_changed: kitNativePackage || touches(windowsPackageFiles),
+    web_changed: full || webBuildInputsChanged(paths),
+    macos_updater_changed: macosUpdater,
     windows_runtime_changed: windowsRuntime,
     windows_app_tools_changed: windowsAppTools,
   };

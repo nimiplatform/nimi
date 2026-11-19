@@ -1,20 +1,17 @@
 name: Deploy official Web
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'kit/**'
-      - 'sdks/typescript/**'
-      - 'config/**'
-      - 'runtime/catalog/providers/**'
-      - 'scripts/lib/workspace-surfaces.mjs'
-      - 'scripts/with-workspace-surfaces.mjs'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.github/workflows/deploy-web.yml'
+  workflow_call:
+    inputs:
+      security_sha:
+        description: Source verified by the calling main push security job
+        required: true
+        type: string
+    secrets:
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
+      CLOUDFLARE_PAGES_API_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -33,10 +30,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-official-web
-  cancel-in-progress: false
-
 jobs:
   build:
     if: inputs.rollback_deployment_id == ''
@@ -44,6 +37,7 @@ jobs:
     outputs:
       artifact_id: ${{ steps.artifact.outputs.artifact-id }}
       source_sha: ${{ steps.source.outputs.sha }}
+      current: ${{ steps.current.outputs.current }}
     env:
       NIMI_REALM_URL: https://realm.nimi.ai
       VITE_NIMI_REALM_ENVIRONMENT_ID: production
@@ -63,12 +57,13 @@ jobs:
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.3
           package-manager-cache: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: runtime/go.mod
@@ -87,9 +82,32 @@ jobs:
             !apps/web/dist/**/*.map
           if-no-files-found: error
           retention-days: 7
+      - name: Discard superseded automatic builds before queuing a deployment
+        id: current
+        if: github.event_name == 'push'
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          SECURITY_SHA: ${{ inputs.security_sha }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          node scripts/release/web-promotion.mjs
+
+  manual-security:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && inputs.rollback_deployment_id == ''
+    needs: build
+    uses: ./.github/workflows/security.yml
+    with:
+      source_sha: ${{ needs.build.outputs.source_sha }}
 
   deploy:
-    needs: build
+    needs: [build, manual-security]
+    if: >-
+      !cancelled() && needs.build.result == 'success' &&
+      (github.event_name != 'push' || needs.build.outputs.current == 'true') &&
+      (needs.manual-security.result == 'success' || needs.manual-security.result == 'skipped')
+    concurrency:
+      group: deploy-official-web
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release tooling only
@@ -97,7 +115,11 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-          sparse-checkout: apps/web/scripts/cloudflare-release.mjs
+          fetch-depth: 0
+          sparse-checkout: |
+            apps/web/scripts/cloudflare-release.mjs
+            scripts/release/web-promotion.mjs
+            scripts/lib/ci-scope.mjs
           sparse-checkout-cone-mode: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -120,8 +142,15 @@ jobs:
         run: |
           "$RUNNER_TEMP/cloudflare-cli/node_modules/.bin/wrangler" pages deploy "$RUNNER_TEMP/web-dist" --project-name nimi --branch "release-${SOURCE_SHA:0:12}" --commit-hash "$SOURCE_SHA" --commit-dirty=false --no-bundle
           node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH" "$RUNNER_TEMP/web-dist"
-      - name: Deploy the same build to production
+      - name: Admit the verified source for production
+        id: admission
         if: github.event_name == 'push' || inputs.publish
+        env:
+          SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
+          SECURITY_SHA: ${{ inputs.security_sha || needs.manual-security.outputs.verified_sha }}
+        run: node scripts/release/web-promotion.mjs
+      - name: Deploy the same build to production
+        if: steps.admission.outputs.current == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
@@ -148,6 +177,9 @@ jobs:
 
   rollback:
     if: inputs.rollback_deployment_id != ''
+    concurrency:
+      group: deploy-official-web
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release tooling only

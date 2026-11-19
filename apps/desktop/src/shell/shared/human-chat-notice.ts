@@ -6,12 +6,14 @@ export const OPEN_HUMAN_CHAT_NOTICE = 'human-chat-notice:open';
 
 const generation = z.string().min(1).max(128);
 const chatId = z.string().trim().min(1).max(512);
+// eslint-disable-next-line no-control-regex -- Native notification labels reject NUL and line breaks.
+const senderLabel = /^[^\r\n\u0000]+$/u;
 const notice = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('summary') }),
   z.strictObject({
     kind: z.enum(['arrival', 'unread']),
     chatId,
-    sender: z.string().trim().min(1).max(120).regex(/^[^\r\n\u0000]+$/u),
+    sender: z.string().trim().min(1).max(120).regex(senderLabel),
   }),
 ]);
 
@@ -33,6 +35,6 @@ export const partnerChatNoticeTarget = z.strictObject({
   messageId: z.string().min(1).max(256).optional(),
 });
 export const partnerChatNoticeRequest = partnerChatNoticeTarget.extend({
-  sender: z.string().trim().min(1).max(256).regex(/^[^\r\n\u0000]+$/u),
+  sender: z.string().trim().min(1).max(256).regex(senderLabel),
 });
 export const partnerChatNoticeClose = z.strictObject({ generation, activityId });

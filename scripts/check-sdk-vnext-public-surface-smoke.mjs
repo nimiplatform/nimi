@@ -263,6 +263,8 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   agents: {
     async listReferences() { return []; },
     getIntroduction: unavailableCarrier,
+    listCharacters: unavailableCarrier,
+    connectCharacter: unavailableCarrier,
   },
   agentWork: {
     listReferences: unavailableCarrier,

@@ -19,6 +19,7 @@ function unreadSender(row: RealmChatViewDto): string | null {
   const message = row.lastMessage;
   if (!message || row.unreadCount === 0 || message.isRead || message.senderId !== row.otherUser.id
     || message.type === 'RECALL' || message.type === 'SYSTEM' || message.type === 'FRIEND_REQUEST') return null;
+  // eslint-disable-next-line no-control-regex -- Replace NUL and line breaks before displaying the sender.
   return (row.otherUser.displayName || row.otherUser.handle || '').replace(/[\r\n\u0000]+/gu, ' ').trim().slice(0, 120) || null;
 }
 

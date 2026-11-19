@@ -47,3 +47,14 @@ test('0.22 defaults retain the published 0.21 pair and reject a partial upgrade'
   assert.throws(() => resolveDependencyCombination(app('^0.22.0', '^0.21.0'), current), /Unsupported SDK\/Kit combination/);
   assert.throws(() => resolveDependencyCombination(app('^0.21.0', '^0.22.0'), current), /Unsupported SDK\/Kit combination/);
 });
+
+test('equivalent or narrower selections keep the App declarations and the matching native contract', () => {
+  for (const [sdk, kit] of [['~0.22.2', '~0.22.1'], ['0.22.2', '0.22.1'], ['>=0.22.2 <0.23', '^0.22.1']]) {
+    assert.deepEqual(resolveDependencyCombination(app(sdk, kit), versions), {
+      sdkVersion: sdk, kitVersion: kit, nimiShellTauriVersion: '0.11.1', source: 'existing',
+    });
+  }
+  for (const [sdk, kit] of [['>=0.22.2', '~0.22.1'], ['latest', '^0.22.1'], ['^0.22.2', 'workspace:*'], ['^0.22.2', undefined], ['^0.22.2', '^0.22.0']]) {
+    assert.throws(() => resolveDependencyCombination(app(sdk, kit), versions), /Unsupported SDK\/Kit combination/);
+  }
+});

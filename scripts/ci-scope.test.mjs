@@ -73,22 +73,59 @@ test('native and proto changes retain their supported platform checks', () => {
   ]) assert.equal(selectCiScope([file]).proto_changed, true, file);
 });
 
-test('Mac checks follow native, Runtime and App Host changes without selecting ordinary renderer edits', () => {
+test('native jobs follow their owners; portable Electron host checks follow the selected workspace', () => {
+  const macJobs = paths => {
+    const scope = selectCiScope(paths);
+    return CI_LANES['macos-platform-tests'].some(flag => scope[flag]);
+  };
   for (const file of [
     'runtime/internal/protectedlocal/local_app_revalidation_darwin.go',
     'runtime/internal/services/localservice/model_object_store.go',
     'kit/shell/protected-local-node/src/local_app.rs',
     'kit/shell/electron/src/main/app-host-profile.ts',
-    'apps/nimigo/src-electron/main.ts',
-    'apps/nimiday/scripts/bundle-electron-preload.mjs',
-    'apps/lab/tsconfig.electron.json',
+    'apps/desktop/src-electron/support-logs-host.ts',
     'scripts/doctor-dev.mjs',
-  ]) assert.equal(selectCiScope([file]).macos_platform_changed, true, file);
+  ]) assert.equal(macJobs([file]), true, file);
   for (const file of ['apps/web/src/view.tsx', 'apps/nimiday/src/nimiday/ui/shell.tsx', 'apps/desktop/AGENTS.md']) {
-    assert.equal(selectCiScope([file]).macos_platform_changed, false, file);
+    assert.equal(macJobs([file]), false, file);
   }
-  const needs = successfulResults(['apps/nimigo/src-electron/main.ts']);
+  for (const app of ['utopia', 'nimigo', 'nimiday', 'lab']) {
+    const files = [`apps/${app}/src-electron/main.ts`];
+    assert.ok(selectCiScope(files).workspace_filters.includes(`./apps/${app}`));
+    assert.equal(macJobs(files), false);
+  }
+  const needs = successfulResults(['kit/shell/electron/src/main/app-host-profile.ts']);
   assert.throws(() => assertCiResults({ ...needs, 'macos-platform-tests': { result: 'skipped' } }), /macos-platform-tests/u);
+});
+
+test('the shipping updater and compiler inputs select the credential-free Apple Silicon build', () => {
+  for (const file of [
+    'apps/desktop/macos/product-updater/main.swift', 'apps/desktop/scripts/build-macos-product-updater.mjs',
+    'apps/desktop/scripts/lib/macos-release-process.mjs', 'apps/desktop/scripts/lib/release-source-maps.mjs',
+    'config/product-update-policy.mjs',
+  ]) assert.equal(selectCiScope([file]).macos_updater_changed, true, file);
+  const swift = ['apps/desktop/macos/product-updater/main.swift'];
+  const scope = selectCiScope(swift);
+  assert.equal(CI_LANES['macos-platform-tests'].some(flag => scope[flag]), false);
+  assert.equal(selectCiScope(['apps/web/src/site.css']).macos_updater_changed, false);
+  assert.throws(() => assertCiResults({ ...successfulResults(swift), 'macos-updater-build': { result: 'skipped' } }), /macos-updater-build/u);
+  const workflow = parse(readFileSync(new URL('../.github/workflows/build-macos-production.yml', import.meta.url), 'utf8'));
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['workflow_call', 'workflow_dispatch']);
+});
+
+test('Web generator inputs, shared TypeScript config and lockfile reach their consumers', () => {
+  const componentDocs = selectCiScope(['kit/CHANGELOG.md', 'sdks/typescript/CHANGELOG.md']);
+  assert.equal(componentDocs.docs_changed, true);
+  assert.equal(componentDocs.web_changed, false);
+  const catalog = selectCiScope(['runtime/catalog/providers/xai.yaml']);
+  assert.equal(catalog.web_changed, true);
+  assert.ok(catalog.workspace_filters.includes('./apps/web'));
+  assert.equal(catalog.runtime_changed, true);
+  assert.equal(catalog.native_runtime_changed || catalog.windows_runtime_changed, false);
+  assert.equal(selectCiScope(['tsconfig.json']).sdk_changed, true);
+  const lock = selectCiScope(['pnpm-lock.yaml']);
+  for (const flags of Object.values(CI_LANES)) assert.ok([flags].flat().some(flag => lock[flag]));
+  assert.equal(lock.kit_windows_package_changed && lock.kit_macos_package_changed, true);
 });
 
 test('authority and shared command changes retain complete checks, workflow-only changes retain lint', () => {
@@ -208,24 +245,36 @@ test('private SDK unit tests run the SDK suite and public testing changes retain
 test('component validation across the full PR follows both sides of a rename', () => {
   const releases = ['release', 'release-kit', 'release-app-tools', 'release-sdk-adapter-vercel-ai'].map(name =>
     parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8')));
-  function selectedJobs(paths) {
-    return releases.flatMap(workflow => {
-      const matched = paths.some(file => workflow.on.pull_request.paths.reduce((include, glob) => {
+  function selectedWorkflows(paths) {
+    return releases.filter(workflow =>
+      paths.some(file => workflow.on.pull_request.paths.reduce((include, glob) => {
         const negative = glob.startsWith('!');
         return path.posix.matchesGlob(file, negative ? glob.slice(1) : glob) ? !negative : include;
-      }, false));
-      return matched ? Object.keys(workflow.jobs).filter(name => name.startsWith('validate')).map(name => workflow.name + '/' + name) : [];
-    });
+      }, false))).map(workflow => workflow.name);
   }
   const unit = 'sdks/typescript/core/app/local-app-conversation-quote.test.ts';
-  assert.deepEqual(selectedJobs([unit]), []);
-  assert.deepEqual(selectedJobs(['scripts/ci-scope.test.mjs']), []);
+  assert.deepEqual(selectedWorkflows([unit]), []);
+  assert.deepEqual(selectedWorkflows(['scripts/ci-scope.test.mjs']), []);
   for (const paths of [
     ['sdks/typescript/core/app/old.ts', unit],
     [unit, 'sdks/typescript/core/app/new.ts'],
     ['sdks/typescript/testing/index.ts'],
-  ]) assert.equal(selectedJobs(paths).length, 5);
-  assert.equal(selectedJobs(['kit/shell/protected-local/src/lib.rs']).length, 3);
+  ]) {
+    assert.deepEqual(selectedWorkflows(paths), ['release', 'release-kit', 'release-sdk-adapter-vercel-ai']);
+    const scope = selectCiScope(paths);
+    assert.equal(scope.kit_macos_package_changed || scope.kit_windows_package_changed, false);
+  }
+  for (const [file, mac, win] of [
+    ['kit/shell/protected-local/src/lib.rs', true, true],
+    ['kit/shell/protected-local-node/npm/darwin-arm64/package.json', true, false],
+    ['kit/shell/protected-local-node/scripts/build-windows-x64-package.mjs', false, true],
+    ['kit/features/chat/src/types.ts', false, false],
+  ]) {
+    assert.ok(selectedWorkflows([file]).includes('release-kit'));
+    const scope = selectCiScope([file]);
+    assert.equal(scope.kit_macos_package_changed, mac, file);
+    assert.equal(scope.kit_windows_package_changed, win, file);
+  }
   for (const w of releases) assert.deepEqual(w.on.push.tags.length, 1);
 });
 

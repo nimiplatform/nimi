@@ -24,9 +24,19 @@ export function detectCiScope({ repoRoot = process.cwd(), eventName, baseSha, he
   if (!isCommitOid(comparisonBase) || comparisonBase === headSha) {
     throw new Error('CI comparison base is unavailable or equals the head');
   }
-  const files = full ? [] : git(['diff', '--no-renames', '--name-only', '-z', comparisonBase, headSha]).split('\0').filter(Boolean);
+  // GitHub can refresh the test merge while the PR payload still names an
+  // earlier base. Route the merged tree's delta; retain the event base for
+  // authority history review.
+  let changedFilesBase = comparisonBase;
+  if (eventName === 'pull_request') {
+    const parents = git(['show', '-s', '--format=%P', headSha]).trim().split(' ');
+    if (parents.length !== 2) throw new Error('PR path selection requires the tested merge commit');
+    git(['rev-parse', '--verify', `${comparisonBase}^{commit}`]);
+    changedFilesBase = parents[0];
+  }
+  const files = full ? [] : git(['diff', '--no-renames', '--name-only', '-z', changedFilesBase, headSha]).split('\0').filter(Boolean);
   const docsReview = selectDocsReview(repoRoot, files);
-  return { comparison_base_sha: comparisonBase, docs_review_targets: docsReview, ...selectCiScope(files, { full, docsReviewTargets: docsReview }) };
+  return { comparison_base_sha: comparisonBase, changed_files_base_sha: changedFilesBase, docs_review_targets: docsReview, ...selectCiScope(files, { full, docsReviewTargets: docsReview }) };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

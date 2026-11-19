@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { spawnSyncCommand } from './lib/command-runner.mjs';
 import { withWorkspaceSurfaces } from './lib/workspace-surfaces.mjs';
@@ -38,6 +39,13 @@ if (names.length === 1 && names[0] === '@nimiplatform/sdk' && process.env.SCRIPT
     '--filter=!@nimi-prototype/os-field', '--filter=!@nimiplatform/runtime-ux',
     '--if-present', 'build',
   ]);
+  for (const pkg of packages) {
+    // Desktop and Avatar already compile their Electron host in build.
+    if (['@nimiplatform/desktop', '@nimiplatform/avatar'].includes(pkg.name)) continue;
+    if (existsSync(path.join(pkg.path, 'tsconfig.electron.json'))) {
+      run('pnpm', ['--filter', pkg.name, 'exec', 'tsc', '--noEmit', '-p', 'tsconfig.electron.json']);
+    }
+  }
   if (process.env.SCRIPTS_CHANGED === 'true') run(process.execPath, ['scripts/run-script-tests.mjs']);
   const bundles = ['desktop', 'web', 'lab'].filter((name) => names.includes(`@nimiplatform/${name}`));
   if (bundles.length > 0) run(process.execPath, ['scripts/check-bundle-size.mjs', ...bundles]);

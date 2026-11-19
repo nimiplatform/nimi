@@ -5,7 +5,6 @@ import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runti
 import { useAppStore, useAppStoreApi, type AuthStatus } from '../providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../../features/auth/logout';
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
 import { SupportDegradedEntry } from '../../features/support/support-degraded-entry.js';

@@ -4,7 +4,7 @@ Agent Chat 用于打开所选 Agent 在 Runtime 中托管的权威对话（Conve
 
 ## 发送文字或图片
 
-输入文字并发送即可开启一轮对话。当前输入框每轮最多支持附加一张图片（实际能否处理取决于该 Agent 配置的能力），文件选择器与剪贴板粘贴仅接受图片 MIME 类型。
+输入文字并发送即可开启一轮对话。当前输入框每轮最多支持附加一张图片（实际能否处理取决于该 Agent 配置的能力），请通过文件选择器添加图片。
 
 如需讨论文档或代码，请将相关文本直接粘贴到消息框中。当前输入框不支持将 PDF、Markdown 或源代码文件作为附件上传。
 
@@ -16,10 +16,10 @@ Agent 生成回复期间，界面会实时流式更新文本。点击「停止�
 
 ## 区分对话模式
 
-用户之间的消息通信基于 Realm 线程管理；普通 AI / Nimi Chat 则使用独立的请求与存储链路，其交互控件不包含 Agent 对话的流式生成与「停止（Stop）」中断控制。详见[对话模式](/zh/desktop/chat)。
+用户之间的消息通信基于 Realm 线程管理；普通 AI / Nimi Chat 则使用独立的请求与存储链路，可在生成回复时点击「停止」。详见[对话模式](/zh/desktop/chat)。
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx)
+- [`apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx)
 - [`sdks/typescript/core/app/local-app-runtime-platform-conversation.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-conversation.ts)

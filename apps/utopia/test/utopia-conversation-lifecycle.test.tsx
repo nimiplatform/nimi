@@ -260,7 +260,7 @@ test('Non-throwing Kit session failed/stale state settles sendOperation, hides f
   assert.ok(sessions.every((owner) => owner.disposed));
 });
 
-test('HorizonTopBar inline quick-dial confirmation and RelocationAndPackDrawer verified-usage guard & timezone disclosure', async () => {
+test('HorizonTopBar inline quick-dial confirmation and RelocationAndPackDrawer verified-usage guard & timezone disclosure', async (t) => {
   const { default: fs } = await import('node:fs/promises');
   const { default: path } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
@@ -481,7 +481,7 @@ test('HorizonTopBar inline quick-dial confirmation and RelocationAndPackDrawer v
       assert.ok(confirmRelocateBtn);
       await act(async () => {
         confirmRelocateBtn.click();
-        await new Promise((r) => setTimeout(r, 20));
+        await t.waitFor(() => relocateIntents.length === 1);
       });
       assert.equal((relocateIntents[0] as { timezone?: string }).timezone, 'Asia/Shanghai');
 
@@ -489,7 +489,7 @@ test('HorizonTopBar inline quick-dial confirmation and RelocationAndPackDrawer v
       assert.equal(tzCheckbox.checked, false);
       await act(async () => {
         confirmRelocateBtn.click();
-        await new Promise((r) => setTimeout(r, 20));
+        await t.waitFor(() => relocateIntents.length === 2);
       });
       assert.equal('timezone' in (relocateIntents[1] as Record<string, unknown>), false);
     } finally {

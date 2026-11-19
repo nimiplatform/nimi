@@ -335,7 +335,7 @@ function writeInstalledLock(target) {
   for (const sectionName of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
     const entries = Object.entries(packageJson[sectionName] || {});
     if (entries.length === 0) continue;
-    importer[sectionName] = Object.fromEntries(entries.map(([name, specifier]) => [name, { specifier, version: specifier }]));
+    importer[sectionName] = Object.fromEntries(entries.map(([name, specifier]) => [name, { specifier, version: specifier.replace(/^[~^]/u, '') }]));
   }
   writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({
     lockfileVersion: '9.0',

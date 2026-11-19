@@ -1,6 +1,5 @@
 import { unreadCompanionReplies } from './home-app-activity-model.js';
 import { homePartnerDraftKey } from './home-partner-draft.js';
-import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
@@ -129,7 +128,7 @@ function MiniChatBar({ partner, showAvatar, formatTime, text, onDraftChange, onO
         type="button"
         onClick={() => onOpenPartner(partner.localAgentRef)}
         aria-label={t('runtimeConfig.overview.recentChats.openConversation', { name: partner.displayName })}
-        aria-description={partner.hasUnread ? t('runtimeConfig.overview.messages.unread') : undefined}
+        aria-description={partner.hasUnread ? t('NotificationPanel.unread') : undefined}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left"
         data-testid="home-recent-chat-preview"
       >

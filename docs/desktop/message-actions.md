@@ -4,7 +4,7 @@ Agent Chat opens the Runtime-managed Conversation for your selected Agent. Commi
 
 ## Send Text or an Image
 
-Type a message and send it to start a turn. If the Agent's configured capabilities support image input, you can attach up to one image per turn. Both the file picker and clipboard paste accept image MIME types only.
+Type a message and send it to start a turn. If the Agent's configured capabilities support image input, you can attach up to one image per turn. Use the file picker to attach the image.
 
 The composer does not upload PDF, Markdown, or source-code files as document attachments. To discuss a document or code snippet, paste the relevant text directly into your message.
 
@@ -16,10 +16,10 @@ If you reconnect after a drop, reload the committed snapshot from Runtime. An un
 
 ## Separate Conversation Modes
 
-Human-to-human messages run on Realm threads. Ordinary AI/Nimi Chat uses an independent request and storage path and does not share Agent Conversation's streaming updates or **Stop** control. See [Chat Modes](/desktop/chat) for details.
+Human-to-human messages run on Realm threads. Ordinary AI/Nimi Chat uses an independent request and storage path and offers its own **Stop** control during generation. See [Chat Modes](/desktop/chat) for details.
 
 ## Source Basis
 
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx)
+- [`apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx)
 - [`sdks/typescript/core/app/local-app-runtime-platform-conversation.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-conversation.ts)

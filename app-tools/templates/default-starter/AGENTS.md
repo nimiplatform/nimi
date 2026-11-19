@@ -3,7 +3,7 @@
 ## Scope
 - Treat `.nimi/app-scaffold/{intent,lock}.json` as app-scaffold intent and lock state.
 - App Tools maintains its identity/contract projections and the declared engineering fields in `.nimi/config` and `.nimi/admission`; the build profile and product declarations retain their App-owned inputs. Nimi-coding maintains its own methodology and AGENTS block through its declared sync command.
-- Keep auth, Runtime, App Access declaration, manifest, and Tauri shell glue in scaffold-managed files.
+- Keep auth, Runtime and native shell wiring in the managed files. The App author maintains its App Access, capability requirements, storage policy and metadata in nimi.app.yaml.
 - App-owned product code is `src/workbench-core/**`, selected `src/capabilities/**`, `src/shell/routes/product-area.tsx`, `src/shell/routes/app-navigation.tsx`, and App-authored product screens, state, tests, styles, and bounded native helpers.
 - Scaffold-managed code is the carrier/auth wiring, identity, manifests, project tooling, bounded native integration, and `src/scaffold/generated/**` composition glue.
 - Treat this template as the identity-neutral, Lab-derived base. The generator composes it positively with only the dependency closure of explicitly selected admitted features under `src/capabilities/**`.
@@ -11,7 +11,7 @@
 
 ## Hard Boundaries
 - Follow `Runtime / Realm truth -> @nimiplatform/sdk interface -> app consumer`.
-- Runtime owns AI execution and its exact configuration/admission; Cognition owns canonical long-term Memory and Knowledge. Realm owns ecosystem identity, relationships and shared entities; App business state follows its declared storage boundary.
+- Runtime owns AI execution and its exact configuration/admission; Cognition V1 owns canonical long-term Memory and bounded Agent Source custody. The App owns its document workflows and retrieval data. Realm owns ecosystem identity, relationships and shared entities; App business state follows its declared storage boundary.
 - Use SDK typed projections for Runtime and Realm; do not call private endpoints or mirror their canonical truth locally.
 - Use `@nimiplatform/kit` for reusable controls, layout, accessibility, tokens, and interaction patterns; keep app CSS and composition product-specific.
 - Keep the base free of Lab-only product behavior. Feature implementations enter generated output only through the app-tools module registry and public admitted `--features` selection. Internal modules such as `ai-studio-core` enter only through dependency closure and are never selected directly.

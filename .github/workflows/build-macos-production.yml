@@ -1,5 +1,5 @@
 name: macOS production candidate
-run-name: macOS candidate ${{ github.ref_name }} at ${{ github.sha }}
+run-name: macOS candidate at ${{ inputs.source_ref || github.sha }}
 
 on:
   workflow_call:
@@ -13,26 +13,10 @@ on:
       release_admission:
         default: ''
         type: string
-  push:
-    branches: [dev, main]
-    paths:
-      - .github/workflows/build-macos-production.yml
-      - .github/workflows/release-security.yml
-      - .secrets.baseline
-      - apps/desktop/**
-      - apps/avatar/**
-      - kit/**
-      - runtime/**
-      - sdks/**
-      - proto/**
-      - scripts/**
-      - config/**
-      - package.json
-      - pnpm-lock.yaml
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Exact main source SHA for product preparation; empty uses this workflow revision
+        description: Exact source SHA (production requires a main commit); empty uses this workflow revision
         default: ''
         type: string
       prepare_product:
@@ -65,10 +49,11 @@ jobs:
 
   candidate:
     needs: security
-    if: inputs.prepare_product || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
     runs-on: macos-15
     timeout-minutes: 180
     env:
+      SOURCE_SHA: ${{ inputs.source_ref || github.sha }}
+      REALM_TARGET: ${{ inputs.prepare_product && 'production' || inputs.realm_target || 'local-acceptance' }}
       CARGO_BUILD_JOBS: '2'
       NIMI_MACOS_TEAM_ID: RMZJPQQR3X
       NIMI_MACOS_APPLICATION_SIGNING_IDENTITY: 'Developer ID Application: HAO WANG (RMZJPQQR3X)'
@@ -80,14 +65,27 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ inputs.source_ref || github.sha }}
+          ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 0
+      - name: Verify the candidate revision before using signing inputs
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          if [[ "$REALM_TARGET" == 'production' ]]; then
+            git merge-base --is-ancestor "$SOURCE_SHA" refs/remotes/origin/main
+            git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main
+          else
+            case "$GITHUB_REF" in
+              refs/heads/main|refs/heads/dev) ;;
+              *) echo 'Select the main or dev workflow branch for local acceptance' >&2; exit 1 ;;
+            esac
+            git merge-base --is-ancestor "$SOURCE_SHA" "refs/remotes/origin/$GITHUB_REF_NAME"
+          fi
       - name: Require sealed product trust before signing work
         if: inputs.prepare_product || inputs.realm_target == 'production'
         run: node -e "import('./scripts/lib/product-release-assets.mjs').then(m => m.requireProductReleaseTrust())"
       - name: Require Apple Silicon and select the sealed Realm target
-        env:
-          REALM_TARGET: ${{ inputs.prepare_product && 'production' || inputs.realm_target || 'local-acceptance' }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64
@@ -101,7 +99,7 @@ jobs:
             echo "NIMI_NOTARYTOOL_KEYCHAIN=${RUNNER_TEMP}/nimi-signing.keychain-db"
           } >> "${GITHUB_ENV}"
       - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
       - name: Set up Node.js
@@ -112,15 +110,10 @@ jobs:
       - name: Validate frozen product preparation inputs
         if: inputs.prepare_product
         env:
-          SOURCE_SHA: ${{ inputs.source_ref || github.sha }}
           RELEASE_ADMISSION: ${{ inputs.release_admission }}
           PRODUCT_SIGNING_KEY: ${{ secrets.NIMI_PRODUCT_UPDATE_SIGNING_KEY_PEM }}
         run: |
           set -euo pipefail
-          [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "${SOURCE_SHA}"
-          git fetch --no-tags origin main:refs/remotes/origin/main
-          git merge-base --is-ancestor "${SOURCE_SHA}" origin/main
           node --input-type=module -e "import {requireProductSigningKey,validateProductReleaseAdmission} from './scripts/lib/product-release-assets.mjs'; import fs from 'node:fs'; requireProductSigningKey(process.env.PRODUCT_SIGNING_KEY); validateProductReleaseAdmission(JSON.parse(process.env.RELEASE_ADMISSION),{version:JSON.parse(fs.readFileSync('apps/desktop/package.json')).version,sourceRevision:process.env.SOURCE_SHA});"
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -189,7 +182,7 @@ jobs:
           printf '%s' "${RELEASE_ADMISSION}" > "${admission_file}"
           candidate=".nimi/local/macos-electron-release/${NIMI_MACOS_RELEASE_ID}"
           asset="$(node -e "const p=require('./${candidate}/release-build-identity.json'); process.stdout.write(p.asset.name)")"
-          pnpm release:product:prepare-target -- --identity "${candidate}/release-build-identity.json" --asset "${candidate}/${asset}" --admission "${admission_file}" --signing-key "${key_file}" --source "$(git rev-parse HEAD)" --output .nimi/local/product-release/macos-arm64
+          pnpm release:product:prepare-target -- --identity "${candidate}/release-build-identity.json" --asset "${candidate}/${asset}" --admission "${admission_file}" --signing-key "${key_file}" --source "$SOURCE_SHA" --output .nimi/local/product-release/macos-arm64
           rm -f "${key_file}" "${admission_file}"
       - name: Upload complete Mac product release inputs
         if: inputs.prepare_product
@@ -202,7 +195,7 @@ jobs:
       - name: Upload only the signed installer
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: nimi-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.realm_target || 'local-acceptance' }}
+          name: nimi-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}-${{ env.REALM_TARGET }}-${{ env.SOURCE_SHA }}
           path: |
             .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/*.pkg
             .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/release-build-identity.json
@@ -213,7 +206,7 @@ jobs:
         run: |
           {
             echo '### Signed macOS candidate'
-            echo "Source: ${GITHUB_SHA}"
+            echo "Source: ${SOURCE_SHA}"
             echo "Realm: ${NIMI_MACOS_RELEASE_REALM_URL}"
             echo 'Built on macos-15 arm64 using the same production entry as local builds.'
             echo 'Signing, notarization, staple and native artifact checks passed.'

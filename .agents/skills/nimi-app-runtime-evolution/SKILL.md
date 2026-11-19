@@ -17,7 +17,7 @@ For an unspecified Nimi ecosystem adaptation, assess preservation of the App's c
 
 ## Establish the actual gap
 
-Start from the App's affected workflow, public SDK/Kit call and selected package combination. Identify the required user result and the conditions that activate the need before choosing a platform extension. Distinguish a core or explicitly selected feature from an optional backend and the old foundation's configuration controls; neither default-off nor code reachability alone decides scope. Preserve the requested task and its required settings. Text alone may not supply alignment, a Job ID may not preserve a project result, and a preview format may differ from an inference input.
+Identify the affected user task, carrier (native Desktop, Web or mobile), lifecycle stage and the packages actually installed or available to the developer. Compare the public SDK/Kit call when the task reaches Runtime. Identify the required user result and the conditions that activate the need before choosing a platform extension. Distinguish a core or explicitly selected feature from an optional backend and the old foundation's configuration controls; neither default-off nor code reachability alone decides scope. Preserve the requested task and its required settings. Text alone may not supply alignment, a Job ID may not preserve a project result, and a preview format may differ from an inference input.
 
 Separate missing configuration, unclear instructions, an existing-contract defect, a missing public carrier, unsupported exact implementation behavior, a new task contract, and model-content quality. A catalog row or method name is not proof of a supported request/result combination. Code-level absence can establish a gap without a running Desktop; a failed launch alone cannot establish absence of an AI capability.
 
@@ -29,6 +29,7 @@ Use the relevant row, not a mandatory sweep of every layer:
 
 | Need | Change boundary |
 | --- | --- |
+| Creation, package resolution, managed files or an upgrade preview fails before a Runtime operation | Trace the selected App Tools CLI, App declarations, resolved lock and scaffold contract. Repair the generator or lifecycle check at that owner. |
 | Existing request/result is implemented incorrectly | Repair the owner that changes or loses the value, including SDK/Kit when the defect is in transport or projection. |
 | Runtime supports a behavior that the protected App cannot consume | Extend the existing typed public carrier and preserve its authorization and lifetime. |
 | Exact model/protocol needs supported tools, reasoning or structured output | Extend the Runtime Driver's versioned behavior adapter and explicit combination support. |
@@ -56,7 +57,7 @@ Use an existing focused regression for the actual failure mechanism, or add one 
 
 Read the direct package manifest before choosing commands. Proto/generator changes need the affected drift checks and applicable cross-language conformance; a provider adapter change does not automatically require every language or platform suite.
 
-Deliver complete packages through the existing [local tarball workflow](../../../app-tools/README.md#local-development-packages). Record the necessary source/build identity, selected versions, lock integrity, target and native trust profile in existing delivery notes. Matching version numbers alone do not establish matching Runtime/native behavior. Build changed package owners rather than patching installed files or linking App production dependencies to source.
+Use the project’s installed or published compatible packages for ordinary App work. When an App must consume an unpublished change, deliver complete packages through the existing [local tarball workflow](../../../app-tools/README.md#local-development-packages). Record the necessary source/build identity, selected versions, lock integrity, target and native trust profile in existing delivery notes. Matching version numbers alone do not establish matching Runtime/native behavior. Build changed package owners rather than patching installed files or linking App production dependencies to source.
 
 Return to the original App input and downstream result using [real App acceptance](../nimi-app-acceptance/SKILL.md). Reuse the same-package reference baseline for first integration or affected foundation wiring. A passing reference narrows the investigation but does not certify a new capability or rule out a platform defect. Environment prerequisites block only their dependent checks.
 

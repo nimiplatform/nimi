@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       comparison_base_sha: ${{ steps.detect.outputs.comparison_base_sha }}
+      changed_files_base_sha: ${{ steps.detect.outputs.changed_files_base_sha }}
       docs_changed: ${{ steps.detect.outputs.docs_changed }}
       remote_clients_changed: ${{ steps.detect.outputs.remote_clients_changed }}
       core_changed: ${{ steps.detect.outputs.core_changed }}
@@ -33,7 +34,11 @@ jobs:
       desktop_changed: ${{ steps.detect.outputs.desktop_changed }}
       desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
-      macos_platform_changed: ${{ steps.detect.outputs.macos_platform_changed }}
+      native_runtime_changed: ${{ steps.detect.outputs.native_runtime_changed }}
+      macos_carrier_changed: ${{ steps.detect.outputs.macos_carrier_changed }}
+      macos_host_changed: ${{ steps.detect.outputs.macos_host_changed }}
+      web_changed: ${{ steps.detect.outputs.web_changed }}
+      macos_updater_changed: ${{ steps.detect.outputs.macos_updater_changed }}
       windows_runtime_changed: ${{ steps.detect.outputs.windows_runtime_changed }}
       windows_app_tools_changed: ${{ steps.detect.outputs.windows_app_tools_changed }}
     steps:
@@ -50,8 +55,28 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: node scripts/detect-ci-scope.mjs
+
+  main-security:
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/security.yml
+    with:
+      source_sha: ${{ github.sha }}
+
+  deploy-web:
+    needs: [changes, main-security]
+    if: github.event_name == 'push' && needs.changes.outputs.web_changed == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      security_sha: ${{ needs.main-security.outputs.verified_sha }}
+    secrets:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
 
   docs-contract:
     needs: changes
@@ -64,7 +89,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -80,7 +105,7 @@ jobs:
 
       - name: Validate documentation sources and review candidates
         env:
-          DOCS_BASE_SHA: ${{ needs.changes.outputs.comparison_base_sha }}
+          DOCS_BASE_SHA: ${{ needs.changes.outputs.changed_files_base_sha }}
         run: pnpm check:docs-source --changed-from "$DOCS_BASE_SHA"
 
       - name: Test documentation source checks
@@ -139,7 +164,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -205,7 +230,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -234,7 +259,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -262,7 +287,7 @@ jobs:
 
       - name: Setup pnpm
         if: needs.changes.outputs.windows_app_tools_changed == 'true'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -310,9 +335,29 @@ jobs:
         if: needs.changes.outputs.windows_app_tools_changed == 'true'
         run: pnpm --filter @nimiplatform/app-tools test
 
+  macos-updater-build:
+    needs: changes
+    if: needs.changes.outputs.macos_updater_changed == 'true'
+    runs-on: macos-15
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.3
+          package-manager-cache: false
+      - name: Compile the product updater for Apple Silicon
+        run: |
+          node apps/desktop/scripts/build-macos-product-updater.mjs
+          /usr/bin/lipo '.nimi/local/macos-product-updater/Nimi Product Updater' -verify_arch arm64
+
   macos-platform-tests:
     needs: changes
-    if: needs.changes.outputs.macos_platform_changed == 'true'
+    if: needs.changes.outputs.native_runtime_changed == 'true' || needs.changes.outputs.macos_carrier_changed == 'true' || needs.changes.outputs.macos_host_changed == 'true'
     runs-on: macos-15
     timeout-minutes: 45
     env:
@@ -322,7 +367,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -332,53 +377,59 @@ jobs:
           node-version: 24.22.3
 
       - name: Setup Go
+        if: needs.changes.outputs.native_runtime_changed == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: runtime/go.mod
+          cache-dependency-path: runtime/go.sum
 
       - name: Setup Rust
+        if: needs.changes.outputs.macos_carrier_changed == 'true'
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: 1.99.1
 
-      - name: Require Apple Silicon and install dependencies
-        run: |
-          test "$(uname -m)" = arm64
-          pnpm install --frozen-lockfile
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
+      - name: Install Electron host test dependencies
+        if: needs.changes.outputs.macos_host_changed == 'true'
+        run: pnpm install --frozen-lockfile
 
       - name: Check Darwin Runtime and model storage
+        if: needs.changes.outputs.native_runtime_changed == 'true'
         run: |
           go -C runtime test -count=1 -timeout=5m ./cmd/nimi-source-supervisor ./internal/protectedlocal ./internal/services/localservice
           go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_source_local_development ./internal/protectedlocal
 
       - name: Check default and source native carriers
+        if: needs.changes.outputs.macos_carrier_changed == 'true'
         run: |
           cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml
+          cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml
           cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml --features macos-source-local-development
           cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml --features macos-source-local-development
           cargo build --locked --manifest-path kit/shell/protected-local-node/Cargo.toml --features macos-source-local-development
           node kit/shell/protected-local-node/test/native-input-contract.cjs
 
       - name: Check source launch and diagnostics
+        if: needs.changes.outputs.macos_host_changed == 'true'
         run: node --test scripts/dev-runtime.test.mjs scripts/lib/dev-app-launch.test.mjs scripts/doctor-dev.test.mjs
 
       - name: Check local audio capture and streaming
+        if: needs.changes.outputs.native_runtime_changed == 'true'
         run: go -C runtime test -count=1 -timeout=5m ./internal/capabilitydriver ./internal/nimillm ./internal/engine ./internal/services/ai -run 'Test(DemucsOwned|AudioSeparation|NativeSeparation|SeparationArtifacts|HTDemucs)'
 
       - name: Check supervised Python audio Host
+        if: needs.changes.outputs.native_runtime_changed == 'true'
         working-directory: runtime/internal/engine/assets
         run: python3 -m unittest speech_server_test
 
-      - name: Check affected workspace consumers on macOS
-        if: needs.changes.outputs.workspace_changed == 'true'
-        env:
-          WORKSPACE_FILTERS: ${{ needs.changes.outputs.workspace_filters }}
-          SCRIPTS_CHANGED: 'false'
+      - name: Test macOS Electron host behavior
+        if: needs.changes.outputs.macos_host_changed == 'true'
         run: |
-          node scripts/run-workspace-checks.mjs
-          for consumer in lab zhiyu nimigo nimiday; do
-            pnpm --filter "@nimiplatform/$consumer" exec tsc --noEmit -p tsconfig.electron.json
-          done
+          node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/desktop test:unit:rest -- electron-desktop-open-intent-host.test.ts electron-support-logs-host.test.ts electron-system-resources-host.test.ts macos-local-app-host-contract.test.ts macos-release-policy.test.mjs
+          pnpm --filter @nimiplatform/kit exec vitest run --config ui/vitest.config.ts shell/electron/test/protected-local-binding-loader.test.ts
 
   sdk-quality:
     needs: changes
@@ -389,7 +440,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -437,7 +488,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -500,7 +551,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -554,7 +605,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 10.34.7
 
@@ -592,6 +643,7 @@ jobs:
       - kit-native-tests
       - windows-runtime-tests
       - macos-platform-tests
+      - macos-updater-build
       - sdk-quality
       - runtime-quality
       - proto-quality

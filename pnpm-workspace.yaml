@@ -13,7 +13,10 @@ packages:
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'
 overrides:
-  fast-uri: 3.1.8
+  fast-uri: 3.1.9
+  # Storybook's docgen plugin and ESLint still request vulnerable majors.
+  glob@13: 14.0.6
+  minimatch@10: 11.0.8
   gh-pages: ^6.3.0
   lodash: 4.18.1
   protobufjs: 7.6.5
@@ -22,7 +25,7 @@ overrides:
   ws: 8.22.0
   brace-expansion@>=5.0.0 <5.0.12: 5.0.12
   source-map-js: 1.2.2
-  vitepress>vite: 6.4.4
+  vitepress>vite: 6.4.6
 allowBuilds:
   electron: true
   esbuild: true

@@ -4,6 +4,7 @@ import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app
 import { readAppIntroduction } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { intersects, minVersion } from 'semver';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
@@ -18,8 +19,8 @@ import {
 } from './app-scaffold.mjs';
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
 import { assertLifecycleGuidanceCurrent, LIFECYCLE_SKILL_PATH, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
-import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
-import { resolveDependencyCombination } from './app-dependency-combinations.mjs';
+import { applyProjectFiles, assertProjectOutputPath, describeChanges, plannedFile } from './app-project-files.mjs';
+import { appToolsDeclaration, resolveDependencyCombination } from './app-dependency-combinations.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -209,7 +210,39 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
   if (stableStringify(intent.directFeatures) !== stableStringify(lock.directFeatures)) {
     throw new Error('Scaffold feature selection is immutable; create a fresh scaffold for a different feature closure');
   }
+  if (versions.source === 'existing') retainMatchingHostFiles(targetDir, lock, snapshot, versions);
   return snapshot;
+}
+
+// A maintained SDK/Kit pair can predate APIs imported by today's generated
+// renderer and Host. Its checked-in wiring also binds the App-owned feature
+// modules. Carry it forward only with the original paths, class and digest.
+function retainMatchingHostFiles(targetDir, lock, snapshot, versions) {
+  const matrix = lock.dependencyMatrix;
+  const migration = 'Migrate the App-owned feature modules and matching Host with the selected SDK/Kit before sync.';
+  if (!intersects(matrix.npm['@nimiplatform/sdk'], versions.sdkVersion)
+    || !intersects(matrix.npm['@nimiplatform/kit'], versions.kitVersion)
+    || matrix.cargo['nimi-shell-tauri'] !== snapshot.lock.dependencyMatrix.cargo['nimi-shell-tauri']) {
+    throw new Error(migration);
+  }
+  assertSameJson(lock.hostAdapterContracts, snapshot.lock.hostAdapterContracts, 'Scaffold host adapter contracts');
+  snapshot.retainedHostFiles = [];
+  snapshot.filesWithoutLock = snapshot.filesWithoutLock.map(file => {
+    const expected = snapshot.lock.managedFileHashes[file.path];
+    if (!expected || !/^(?:src\/|src-electron\/|vite\.config\.ts$)/u.test(file.path)) return file;
+    const recorded = lock.managedFileHashes?.[file.path];
+    if (!recorded || recorded.class !== expected.class) throw new Error(`${file.path}: ${migration}`);
+    if (recorded.sha256 === expected.sha256) return file;
+    const absolute = path.join(targetDir, file.path);
+    assertProjectOutputPath(targetDir, absolute);
+    const content = readFileSync(absolute);
+    if (hashScaffoldManagedContent(file.path, content) !== recorded.sha256) {
+      throw new Error(`Managed scaffold drift detected: ${file.path}. Restore its locked source before sync.`);
+    }
+    snapshot.lock.managedFileHashes[file.path] = { ...expected, sha256: recorded.sha256 };
+    snapshot.retainedHostFiles.push(file.path);
+    return { ...file, content };
+  });
 }
 
 function readContentForHash(filePath) {
@@ -713,13 +746,33 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   // Create still uses the tool default. An explicit listed selection before
   // first init refreshes derived glue through this owner, just as sync does.
   // Check the original generated files before projecting the selected pair.
-  const original = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
-  const combination = resolveDependencyCombination(readJsonFile(path.join(targetDir, 'package.json')), versions);
-  const effective = { ...versions, ...combination };
+  const pkg = readJsonFile(path.join(targetDir, 'package.json'));
+  const creatorSpec = intent?.dependencyMatrix?.npm?.['@nimiplatform/app-tools'];
+  const compatiblePatch = typeof creatorSpec === 'string' && creatorSpec !== versions.appToolsVersion
+    && appToolsDeclaration(creatorSpec, versions.appToolsVersion) === creatorSpec;
+  const creatorVersions = compatiblePatch
+    ? { ...versions, ...resolveDependencyCombination({ dependencies: intent.dependencyMatrix.npm }, versions) }
+    : versions;
+  const original = buildAppScaffoldSnapshotFromIntent({ intent, versions: creatorVersions, targetDir, refreshInitialDependencies: compatiblePatch });
+  const combination = resolveDependencyCombination(pkg, versions);
+  const appToolsVersion = appToolsDeclaration(pkg.devDependencies?.['@nimiplatform/app-tools'], versions.appToolsVersion);
+  const effective = { ...versions, ...combination, appToolsVersion };
   const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions: effective, targetDir, refreshDerived: true });
+  if (combination.source === 'existing'
+    && (!intersects(combination.sdkVersion, intent.dependencyMatrix.npm['@nimiplatform/sdk'])
+      || !intersects(combination.kitVersion, intent.dependencyMatrix.npm['@nimiplatform/kit']))) {
+    throw new Error('The selected SDK/Kit requires a different Host. Initialize with the creator combination or migrate the Host and App-owned feature modules together.');
+  }
   validateAppProjectInputs(targetDir, currentManifest, readJsonFile(path.join(targetDir, 'package.json')), true);
   const initializedPaths = new Set(snapshot.initFiles.map((file) => file.path));
-  assertManagedFilesCurrent(targetDir, { managedFileHashes: Object.fromEntries(Object.entries(original.lock.managedFileHashes).filter(([relativePath]) => !initializedPaths.has(relativePath))) });
+  const initialFiles = Object.entries(original.lock.managedFileHashes).filter(([relativePath]) =>
+    !initializedPaths.has(relativePath) && !(compatiblePatch && relativePath === SCAFFOLD_INTENT_PATH));
+  try {
+    assertManagedFilesCurrent(targetDir, { managedFileHashes: Object.fromEntries(initialFiles) });
+  } catch (cause) {
+    if (!compatiblePatch) throw cause;
+    throw new Error(`${cause.message}. Review the listed files. For an untouched scaffold from a different generator, run nimi-app init with its exact creator ${minVersion(creatorSpec).version} (published package or original tarball), then sync with the selected tool.`, { cause });
+  }
   const managedFiles = snapshot.filesWithoutLock.filter((file) => snapshot.lock.managedFileHashes[file.path]);
   const planned = [...managedFiles.map((file) => {
     let content = file.content;
@@ -907,5 +960,5 @@ export function planManagedAppSync(cwd, options = {}, versions) {
     return plannedFile(targetDir, file.path, content);
   });
   planned.push(...planLifecycleGuidance(targetDir), plannedFile(targetDir, SCAFFOLD_LOCK_PATH, `${JSON.stringify(snapshot.lock, null, 2)}\n`));
-  return { targetDir, snapshot, planned, handovers };
+  return { targetDir, snapshot, planned, handovers, previousDependencies: lock.dependencyMatrix.npm };
 }

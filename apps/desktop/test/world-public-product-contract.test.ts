@@ -200,7 +200,7 @@ test('World Atlas catalog pages consume public product DTOs without raw WorldCor
     };
   } | undefined;
 
-  assert.deepEqual(calls, ['worldPublicControllerListWorldCatalog:{"q":"北宋","cursor":"cursor-2","limit":20}']);
+  assert.deepEqual(calls, ['worldPublicControllerListWorldCatalog:{"q":"北宋","cursor":"cursor-2","limit":36,"media":"cover"}']);
   assert.deepEqual({ nextCursor: page.nextCursor, hasMore: page.hasMore, totalCount: page.totalCount }, {
     nextCursor: null,
     hasMore: false,

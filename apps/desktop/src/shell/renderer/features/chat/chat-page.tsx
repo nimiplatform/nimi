@@ -1,6 +1,5 @@
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
 import { Component, Suspense, lazy, useState, type ErrorInfo, type ReactNode } from 'react';
-import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';

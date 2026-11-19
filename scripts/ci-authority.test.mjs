@@ -84,12 +84,26 @@ test('CI selects immutable event baselines and exports the same SHA for authorit
   writeFileSync(path.join(root, 'README.md'), 'Later branch tip.\n');
   commit(root, 'advance main');
 
-  for (const eventName of ['push', 'pull_request', 'workflow_dispatch']) {
+  for (const eventName of ['push', 'workflow_dispatch']) {
     const selected = detectCiScope({ repoRoot: root, eventName, baseSha: base, headSha: head });
     assert.equal(selected.comparison_base_sha, base);
     assert.equal(selected.sdk_conformance_changed, true);
     assert.equal(selected.authority_changed, eventName === 'workflow_dispatch');
   }
+  // Recreate a stale PR: the current base added a Go dependency while the
+  // PR branch only changed SDK code. Only the SDK delta is under test.
+  git(root, ['switch', '-c', 'advanced-main', base]);
+  writeFileSync(path.join(root, 'go.work'), 'go 1.26\n');
+  const mergeBase = commit(root, 'main Go dependency');
+  git(root, ['-c', 'user.name=CI Test', '-c', 'user.email=ci@example.invalid',
+    '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=.git/hooks', 'merge', '--no-ff', '-qm', 'test PR merge', head]);
+  const merge = git(root, ['rev-parse', 'HEAD']);
+  const pr = detectCiScope({ repoRoot: root, eventName: 'pull_request', baseSha: base, headSha: merge });
+  assert.equal(pr.comparison_base_sha, base);
+  assert.equal(pr.changed_files_base_sha, mergeBase);
+  assert.equal(pr.sdk_conformance_changed, true);
+  assert.equal(pr.native_runtime_changed, false);
+  assert.throws(() => detectCiScope({ repoRoot: root, eventName: 'pull_request', baseSha: base, headSha: head }), /merge commit/u);
   for (const baseSha of [undefined, '0'.repeat(40), 'main', head]) {
     assert.throws(() => detectCiScope({ repoRoot: root, eventName: 'push', baseSha, headSha: head }), /comparison base/u);
   }
@@ -115,7 +129,7 @@ test('authority review is wired into the selected CI job with available Git hist
   const detect = changes.steps.find((step) => step.id === 'detect');
   assert.equal(detect.run, 'node scripts/detect-ci-scope.mjs');
   assert.equal(detect.env.BASE_SHA, '${{ github.event.pull_request.base.sha || github.event.before }}');
-  assert.equal(detect.env.HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
+  assert.equal(detect.env.HEAD_SHA, '${{ github.sha }}');
   assert.equal(changes.outputs.comparison_base_sha, '${{ steps.detect.outputs.comparison_base_sha }}');
   const core = workflow.jobs['core-static'];
   assert.equal(core.steps.find((step) => step.uses?.startsWith('actions/checkout@')).with['fetch-depth'], 0);

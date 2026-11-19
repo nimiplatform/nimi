@@ -1551,7 +1551,7 @@ export function buildAppScaffoldCandidateSnapshot(input) {
   return buildAppScaffoldSnapshotWithResolver(input, resolveAppScaffoldCandidateFeatures);
 }
 
-export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir = '', allowDerivedAppAccessDrift = false, refreshDerived = false }) {
+export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir = '', allowDerivedAppAccessDrift = false, refreshDerived = false, refreshInitialDependencies = false }) {
   if (intent?.intentVersion !== SCAFFOLD_INTENT_VERSION) {
     throw new Error(`Unsupported scaffold intent version: ${String(intent?.intentVersion || 'missing')}`);
   }
@@ -1581,11 +1581,22 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
   if (canonicalJson(Object.keys(intent).sort()) !== canonicalJson(Object.keys(expectedIntent).sort())) {
     throw new Error('Scaffold intent fields do not match the current canonical resolved intent');
   }
-  const comparableIntent = refreshDerived
-    ? Object.fromEntries(Object.entries(expectedIntent).map(([key, value]) => [key, immutableInputs.has(key) ? intent[key] : value]))
-    : allowDerivedAppAccessDrift
-    ? { ...intent, appAccessItems: expectedIntent.appAccessItems }
-    : intent;
+  // A compatible creator patch may have different dependency defaults. Its
+  // historical matrix never supplies executable glue or new dependency values.
+  let comparableIntent = intent;
+  if (refreshDerived) {
+    comparableIntent = Object.fromEntries(Object.entries(expectedIntent).map(([key, value]) => [key, immutableInputs.has(key) ? intent[key] : value]));
+  } else if (refreshInitialDependencies) {
+    const historical = intent.dependencyMatrix?.npm;
+    const current = expectedIntent.dependencyMatrix.npm;
+    if (canonicalJson(Object.keys(historical ?? {}).sort()) !== canonicalJson(Object.keys(current).sort())) {
+      throw new Error('Scaffold creator dependencies differ from the current contract. Initialize with the original creator, then sync.');
+    }
+    for (const [name, spec] of Object.entries(historical)) validateAppScaffoldNpmRegistryVersion(spec, name);
+    comparableIntent = { ...intent, dependencyMatrix: { ...intent.dependencyMatrix, npm: current } };
+  } else if (allowDerivedAppAccessDrift) {
+    comparableIntent = { ...intent, appAccessItems: expectedIntent.appAccessItems };
+  }
   if (canonicalJson(comparableIntent) !== canonicalJson(expectedIntent)) {
     throw new Error('Scaffold intent does not match the current canonical resolved intent');
   }

@@ -3,13 +3,9 @@ import test from 'node:test';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { createHomeNavigation, validateHomeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import { createChatTargetNavigation } from '../src/shell/renderer/features/chat/chat-target-navigation.js';
-import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 
 const target = (id: string) => ({ id, source: 'agent' }) as ConversationTargetSummary;
 const human = (id: string) => ({ id, title: id, source: 'human', canonicalSessionId: '' }) as ConversationTargetSummary;
-const snapshot = (id: string) => ({ agentHandle: id, conversationAnchorId: `anchor-${id}`, displayName: id }) as AgentLocalTargetSnapshot;
-const chat = (id: string, open = true) => ({ id: 'chat' as const, chat: { mode: 'agent' as const,
-  targetId: id, agentHandle: id, conversationAnchorId: `anchor-${id}`, ...(open ? { agentCenterSection: 'ai-config' as const } : {}) } });
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (error: Error) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 

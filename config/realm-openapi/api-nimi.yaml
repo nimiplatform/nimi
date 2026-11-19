@@ -1059,6 +1059,7 @@ components:
                 - resourceRefs
                 - intents
               type: object
+          type: object
         authoring:
           allOf:
             - additionalProperties: false
@@ -1095,6 +1096,7 @@ components:
               required:
                 - source
               type: object
+          type: object
         capabilities:
           additionalProperties: false
           properties:
@@ -1146,6 +1148,7 @@ components:
                 - name
                 - summary
               type: object
+          type: object
         interactionProfile:
           allOf:
             - additionalProperties: false
@@ -1210,6 +1213,7 @@ components:
               required:
                 - interactionModes
               type: object
+          type: object
         knowledge:
           additionalProperties: false
           properties:
@@ -1255,6 +1259,7 @@ components:
               required:
                 - summary
               type: object
+          type: object
         presentation:
           allOf:
             - additionalProperties: false
@@ -1273,6 +1278,7 @@ components:
               required:
                 - displayName
               type: object
+          type: object
         profileCoverage:
           $ref: '#/components/schemas/ProfileCoverageManifestV1Dto'
         profileHash:
@@ -1731,6 +1737,7 @@ components:
             - $ref: '#/components/schemas/ChatMessageRealtimePayloadDto'
             - $ref: '#/components/schemas/ChatMessageRecalledRealtimePayloadDto'
             - $ref: '#/components/schemas/ChatReadRealtimePayloadDto'
+          type: object
         seq:
           type: number
         streamId:
@@ -1841,6 +1848,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
         senderId:
@@ -2650,6 +2658,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         text:
           type: string
       type: object
@@ -3207,6 +3216,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/WorldCharacterDependencyClosureV3Dto'
             - $ref: '#/components/schemas/PersonaCharacterDependencyClosureV3Dto'
+          type: object
         materializationContextHash:
           pattern: ^[a-f0-9]{64}$
           type: string
@@ -3747,6 +3757,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         senderId:
           type: string
         text:
@@ -3820,6 +3831,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
         senderId:
@@ -5928,6 +5940,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         replyToMessageId:
           type: string
         text:
@@ -6137,6 +6150,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/WorldCharacterMaterializationPayloadV3Dto'
             - $ref: '#/components/schemas/PersonaCharacterMaterializationPayloadV3Dto'
+          type: object
         sourceRef:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
       required:
@@ -6329,6 +6343,7 @@ components:
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
             - $ref: '#/components/schemas/ChatSystemPayloadDto'
+          type: object
         targetAccountId:
           type: string
         text:
@@ -8874,6 +8889,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/WorldPublicStaticTimeDto'
             - $ref: '#/components/schemas/WorldPublicWallClockTimeDto'
+          type: object
         timeline:
           items:
             $ref: '#/components/schemas/WorldPublicTimelineEventDto'
@@ -9020,6 +9036,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/WorldPublicStaticTimeDto'
             - $ref: '#/components/schemas/WorldPublicWallClockTimeDto'
+          type: object
         topicIds:
           description: >-
             Stable topic IDs in lexical order. [] means reviewed non-membership;

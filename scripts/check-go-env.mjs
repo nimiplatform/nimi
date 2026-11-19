@@ -1,8 +1,10 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
-const MIN_GO_MAJOR = 1;
-const MIN_GO_MINOR = 26;
-const MIN_GO_PATCH = 5;
+const runtimeManifest = readFileSync(new URL('../runtime/go.mod', import.meta.url), 'utf8');
+const required = /^go (\d+)\.(\d+)\.(\d+)\s*$/m.exec(runtimeManifest);
+if (!required) throw new Error('runtime/go.mod must declare a Go patch version');
+const [MIN_GO_MAJOR, MIN_GO_MINOR, MIN_GO_PATCH] = required.slice(1).map(Number);
 const GO_INSTALL_URL = 'https://go.dev/dl/';
 const REQUIRED_TOOLCHAIN = `go${MIN_GO_MAJOR}.${MIN_GO_MINOR}.${MIN_GO_PATCH}`;
 

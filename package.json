@@ -31,7 +31,7 @@
     "runtime:retire-local-agent-controls": "node scripts/retire-local-agent-controls.mjs",
     "runtime:initialize-local-agent-life": "node scripts/initialize-local-agent-life.mjs",
     "runtime:repair-app-source-schema": "node scripts/repair-app-source-schema.mjs",
-    "test:runtime:go": "cd runtime && go test -count=1 -timeout=5m ./...",
+    "test:runtime:go": "node scripts/run-runtime-go-tests.mjs",
     "test:runtime:live": "cd runtime && go test -tags=live -count=1 ./internal/services/ai -run ^TestLive",
     "test:runtime:python": "node scripts/run-runtime-python-tests.mjs",
     "test:sdks-adapters:upstream": "pnpm --filter @nimiplatform/sdk-adapter-mastra test:upstream && pnpm --filter @nimiplatform/sdk-adapter-vercel-ai test:upstream",

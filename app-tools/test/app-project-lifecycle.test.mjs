@@ -11,8 +11,8 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { observeWindowsExecutableFacts } from '../lib/windows-powershell.mjs';
 import { lifecycleSkillFiles } from '../lib/app-lifecycle-guidance.mjs';
-import { buildAppScaffoldSnapshot, renderAppIdentityInput, SCAFFOLD_INTENT_PATH, SCAFFOLD_LOCK_PATH } from '../lib/app-scaffold.mjs';
-import { initApp } from '../lib/app-doctor-update.mjs';
+import { buildAppScaffoldSnapshot, hashScaffoldManagedContent, renderAppIdentityInput, SCAFFOLD_INTENT_PATH, SCAFFOLD_LOCK_PATH } from '../lib/app-scaffold.mjs';
+import { initApp, planManagedAppSync } from '../lib/app-doctor-update.mjs';
 import { checkAppProject, syncAppProject } from '../lib/app-project-lifecycle.mjs';
 import { rebaseLocalPackagePaths } from '../lib/app-scaffold-profiles.mjs';
 import { validateAppInitialization } from '../lib/app-project-lifecycle.mjs';
@@ -290,33 +290,14 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
 }
 
 function writePublicRegistryLock(target) {
-  writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({
-    lockfileVersion: '9.0',
-    importers: {
-      '.': {
-        dependencies: {
-          '@nimiplatform/kit': {
-            specifier: versions.kitVersion,
-            version: versions.kitVersion,
-          },
-          '@nimiplatform/sdk': {
-            specifier: versions.sdkVersion,
-            version: versions.sdkVersion,
-          },
-        },
-        devDependencies: {
-          '@nimiplatform/app-tools': {
-            specifier: versions.appToolsVersion,
-            version: versions.appToolsVersion,
-          },
-          '@nimiplatform/nimi-coding': {
-            specifier: versions.nimicodingVersion,
-            version: versions.nimicodingVersion,
-          },
-        },
-      },
-    },
-  }));
+  const pkg = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
+  const importer = {};
+  for (const section of ['dependencies', 'devDependencies']) {
+    importer[section] = Object.fromEntries(Object.entries(pkg[section] || {}).map(([name, specifier]) => [
+      name, { specifier, version: specifier.replace(/^[~^]/u, '') },
+    ]));
+  }
+  writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({ lockfileVersion: '9.0', importers: { '.': importer } }));
 }
 
 test('workspace importers resolve tarball specifiers locally and reject stale child installations', () => {
@@ -1439,13 +1420,7 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
     assert.equal(synced.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
 
     // Lock check uses the same combination judgment.
-    writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({
-      lockfileVersion: '9.0',
-      importers: { '.': {
-        dependencies: { '@nimiplatform/kit': { specifier: versions.kitVersion, version: versions.kitVersion.slice(1) }, '@nimiplatform/sdk': { specifier: versions.sdkVersion, version: versions.sdkVersion.slice(1) } },
-        devDependencies: { '@nimiplatform/app-tools': { specifier: versions.appToolsVersion, version: versions.appToolsVersion }, '@nimiplatform/nimi-coding': { specifier: versions.nimicodingVersion, version: versions.nimicodingVersion } },
-      } },
-    }));
+    writePublicRegistryLock(target);
     result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
     assert.equal(result.status, 0, result.stderr);
     payload = JSON.parse(result.stdout);
@@ -1549,7 +1524,7 @@ test('an older Tauri combination is rejected before changing Host or Cargo input
     for (const command of [['sync', '--dry-run'], ['sync'], ['check']]) {
       const result = runCli([...command, '--dir', target, '--json'], tempRoot, env);
       assert.notEqual(result.status, 0, command.join(' '));
-      assert.match(jsonErrorMessage(result), /Required combination:/u);
+      assert.match(jsonErrorMessage(result), /Select a verified pair explicitly/u);
       assert.deepEqual(snapshotTree(target), before, 'unsupported pair must not rewrite files');
     }
   } finally {
@@ -1600,4 +1575,112 @@ test('an old managed scaffold refuses partial upgrades before writes and require
     assert.equal(readFileSync(productPath,'utf8'),'export const retainedProduct = true;\n');
     assert.deepEqual(syncAppProject(temp,{dryRun:true,json:true},versions,runners).changes,[]);
   } finally { rmSync(temp,{recursive:true,force:true}); }
+});
+
+test('security preview distinguishes a compatible floor, a vulnerable resolution and an author pin', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-security-update-'));
+  const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+  const env = fakeNimicodingEnv(temp);
+  try {
+    assert.equal(runCli(['sync', '--dir', target, '--json'], temp, env).status, 0);
+    const packagePath = path.join(target, 'package.json');
+    const pkg = JSON.parse(readFileSync(packagePath));
+    pkg.devDependencies.vite = '~8.3.5';
+    pkg.devDependencies.electron = '45.0.0';
+    writeFileSync(packagePath, JSON.stringify(pkg));
+    writePublicRegistryLock(target);
+    const before = snapshotTree(target);
+    const preview = runCli(['sync', '--dry-run', '--dir', target, '--json'], temp, env);
+    assert.equal(preview.status, 0, preview.stdout + preview.stderr);
+    const { toolchainUpdates } = JSON.parse(preview.stdout);
+    assert.equal(toolchainUpdates.find(row => row.name === 'vite').to, '~8.3.8');
+    assert.equal(toolchainUpdates.find(row => row.name === 'electron').manual, true);
+    assert.equal(toolchainUpdates.find(row => row.name === 'electron').locked, '45.0.0');
+    assert.equal(JSON.parse(preview.stdout).readyToApply, false);
+    const blocked = runCli(['sync', '--dir', target, '--json'], temp, env);
+    assert.match(jsonErrorMessage(blocked), /electron@45.0.0/);
+    assert.deepEqual(snapshotTree(target), before);
+    const check = runCli(['check', '--dir', target, '--json'], temp, env);
+    assert.match(jsonErrorMessage(check), /pnpm-lock.yaml resolves vite@8.3.5/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('a compatible creator patch initializes with retained specifiers and still detects managed-file edits', () => {
+  const target = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-patch-init-'));
+  try {
+    const old = { ...versions, appToolsVersion: '^0.13.0', viteVersion: '^8.3.5' };
+    const patched = { ...versions, appToolsVersion: '^0.13.1' };
+    const initial = buildAppScaffoldSnapshot({ profile: 'standalone', versions: old, appId: 'patch.example', appTitle: 'Patch',
+      packageName: 'patch-example', targetDir: target, features: [] });
+    for (const file of initial.createFiles) {
+      const dest = path.join(target, file.path);
+      mkdirSync(path.dirname(dest), { recursive: true });
+      writeFileSync(dest, file.content);
+    }
+    validateAppInitialization(target, patched);
+    const preview = initApp(target, { dryRun: true }, patched);
+    assert.equal(preview.ok, true);
+    const nextLock = JSON.parse(preview.changes.find(file => file.path === SCAFFOLD_LOCK_PATH).after);
+    assert.equal(nextLock.dependencyMatrix.npm['@nimiplatform/app-tools'], '^0.13.0');
+    const managed = path.join(target, 'src/shell/auth/local-app-client.ts');
+    writeFileSync(managed, readFileSync(managed, 'utf8') + '\n// unexpected edit\n');
+    assert.throws(() => initApp(target, { dryRun: true }, patched), /Managed scaffold drift/);
+    assert.equal(existsSync(path.join(target, SCAFFOLD_LOCK_PATH)), false);
+  } finally { rmSync(target, { recursive: true, force: true }); }
+});
+
+test('the default native test command reports missing tests and runs the first author test', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-empty-app-tests-'));
+  const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm', packageManager: versions.packageManager });
+  try {
+    const manifest = path.join(target, 'package.json');
+    const pkg = JSON.parse(readFileSync(manifest));
+    pkg.scripts['test:app'] = 'node --test test/*.test.mjs';
+    writeFileSync(manifest, JSON.stringify(pkg));
+    const owner = path.join(target, '.nimi/config/build-profile.yaml');
+    const profile = parseYaml(readFileSync(owner, 'utf8'));
+    profile.test_command = 'pnpm run test:app';
+    writeFileSync(owner, stringifyYaml(profile));
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    const run = () => runCli(['test', '--dir', target, '--json'], temp, env);
+    assert.match(jsonErrorMessage(run()), /No App tests found/);
+    mkdirSync(path.join(target, 'test'));
+    writeFileSync(path.join(target, 'test/product.test.mjs'), [
+      "import test from 'node:test';",
+      "import assert from 'node:assert/strict';",
+      "import { readFileSync } from 'node:fs';",
+      "test('App identity', () => assert.equal(JSON.parse(readFileSync('package.json')).name, 'focused-existing-app'));",
+    ].join('\n'));
+    const result = run();
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(JSON.parse(result.stdout).stdout, /App identity/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('a tool update preserves the locked Host of a maintained combination and rejects an unrecorded edit', () => {
+  const target = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-retained-host-'));
+  try {
+    const maintained = { ...versions, sdkVersion: '^0.22.2', kitVersion: '^0.22.1', nimiShellTauriVersion: '0.11.1' };
+    const prior = buildAppScaffoldSnapshot({ profile: 'standalone', versions: maintained, appId: 'retained.example',
+      appTitle: 'Retained', packageName: 'retained-example', targetDir: target, features: [] });
+    const clientPath = 'src/shell/auth/local-app-client.ts';
+    const priorClient = "export { createNimiClient } from '@nimiplatform/sdk';\n";
+    for (const file of prior.files) {
+      const dest = path.join(target, file.path);
+      mkdirSync(path.dirname(dest), { recursive: true });
+      writeFileSync(dest, file.path === clientPath ? priorClient : file.content);
+    }
+    const lockPath = path.join(target, SCAFFOLD_LOCK_PATH);
+    const lock = JSON.parse(readFileSync(lockPath));
+    lock.managedFileHashes[clientPath].sha256 = hashScaffoldManagedContent(clientPath, priorClient);
+    writeFileSync(lockPath, JSON.stringify(lock));
+    const selected = { ...maintained, source: 'existing' };
+    const planned = planManagedAppSync(target, {}, selected);
+    assert.ok(planned.snapshot.retainedHostFiles.includes(clientPath));
+    const client = planned.planned.find(file => file.path === path.join(target, clientPath));
+    assert.equal(Buffer.from(client.content).toString(), priorClient);
+    writeFileSync(path.join(target, clientPath), priorClient + '// changed');
+    assert.throws(() => planManagedAppSync(target, {}, selected), /Restore its locked source/);
+  } finally { rmSync(target, { recursive: true, force: true }); }
 });

@@ -1,18 +1,18 @@
 # Voice Input, Realtime, and Reply Playback
 
-Agent Chat offers three distinct audio paths: recorded voice input, Realtime media sessions, and on-demand reply playback. Before using any audio feature, check the interface for your active voice configuration and availability indicators.
+In Home, a partner conversation lets you dictate a draft and play individual replies. Before using any audio feature, check the interface for your active voice configuration and availability indicators.
 
 ## Recorded Voice Input
 
 1. Click the microphone button and grant microphone access if prompted.
 2. Speak while recording is active.
-3. Click the button again to stop. Runtime transcribes the completed recording, and the client submits the recognized text as a Conversation turn.
+3. Click the button again to stop. If the draft is still unchanged when transcription finishes, the transcript is appended to it. Review the draft and select **Send**.
 
 Recording requires manual stopping: pausing while you speak does not automatically submit the turn, and the composer does not display a live word-by-word transcript during recording.
 
 ## Realtime Media
 
-When supported by the current session and the Agent's configured capabilities, use the dedicated Realtime entry point to start and end a live media session. Realtime media is separate from recorded voice input and uses manual turn detection—pauses in speech will not automatically submit a turn.
+Apps that expose a Realtime entry can open a separate media session. Lab’s Agent Realtime uses server-side voice activity detection to identify turns.
 
 ## Playing Individual Replies
 
@@ -33,6 +33,6 @@ The Avatar uses the canonical Conversation's final voice artifact and bounded ti
 
 - [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx)
+- [`apps/lab/src/product-modules/agent-realtime/index.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/product-modules/agent-realtime/index.tsx)
 - [`kit/features/chat/src/components/canonical-message-actions.tsx`](https://github.com/nimiplatform/nimi/blob/main/kit/features/chat/src/components/canonical-message-actions.tsx)

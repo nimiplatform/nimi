@@ -1,18 +1,18 @@
 # 语音输入、Realtime 与回复播放
 
-Agent Chat 提供三条相互独立的音频路径：录音输入、Realtime 实时媒体和单条回复播放。使用前，请先确认当前的语音配置及界面提示的可用状态。
+在 Home 中与伙伴对话时，你可以通过录音填写草稿，也可以播放单条回复。使用前，请先确认当前的语音配置及界面提示的可用状态。
 
 ## 录音输入
 
 1. 点击麦克风控件，并在系统提示时授权麦克风权限。
 2. 录音开启后开始说话。
-3. 再次点击控件停止录音。Runtime 会将整段录音转写为文本，随后由客户端作为一轮对话（Conversation turn）正式提交。
+3. 再次点击控件停止录音。如果草稿在转写期间没有改动，转写结果会追加到草稿中。检查文字后点击「发送」。
 
 当前录音路径需手动停止：说话过程中的停顿不会自动提交对话，录音期间输入框也不会实时显示逐字转写预览。
 
 ## Realtime 实时媒体
 
-当当前会话与所配能力支持时，可通过独立的 Realtime 入口开启实时媒体会话，并使用该入口自带的开始与结束控件。Realtime 并非普通录音输入流程，但当前链路同样采用手动回合检测（manual turn detection），说话停顿不会自动触发回合提交。
+提供 Realtime 入口的 App 可以开启独立的实时媒体会话。Lab 的 Agent Realtime 使用服务端语音活动检测来识别发言轮次。
 
 ## 播放单条回复
 
@@ -35,6 +35,6 @@ Avatar 直接读取当前标准对话（Conversation）最终生成的语音产�
 
 - [`.nimi/spec/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-input.ts)
-- [`apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/chat-agent-realtime-voice.ts)
+- [`apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/desktop/src/shell/renderer/features/chat/home-partner-conversation.tsx)
+- [`apps/lab/src/product-modules/agent-realtime/index.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/product-modules/agent-realtime/index.tsx)
 - [`kit/features/chat/src/components/canonical-message-actions.tsx`](https://github.com/nimiplatform/nimi/blob/main/kit/features/chat/src/components/canonical-message-actions.tsx)

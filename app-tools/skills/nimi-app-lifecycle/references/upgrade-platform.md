@@ -4,8 +4,9 @@ Read the selected package's `nimiScaffoldVersions` for its SDK/Kit combination
 and native crate versions. Upgrade complete matching packages with the Runtime
 contract in their migration notes; a numbered RC is a local candidate, not a
 publication claim. Never replace an archive's content under the same version.
-Explicitly supported existing combinations remain selections; sync does not
-silently upgrade business dependencies. Every App owns `NIMI_APP.md`; the retired
+A compatible CLI patch may initialize the existing scaffold. Keep the bounded tool declaration and freeze its installed version in pnpm-lock.yaml. Exact pins and equivalent SDK/Kit ranges remain valid within a verified pair. Select a new pair explicitly for a contract migration.
+
+Before first init there is no managed-file lock. If the selected patch reports changed Host source, review the differences. For unchanged files from an older creator, run init with that exact published creator or original tarball, then use the selected CLI for sync. The initialized lock gives sync the hashes for that Host. Every App owns `NIMI_APP.md`; the retired
 `metadata.readme` field is unsupported. The 0.24 Integration provider context
 requires Runtime-derived `consumerRef` and matching SDK/Kit/native projections.
 
@@ -34,7 +35,9 @@ Read the current and selected target app-tools version matrix plus SDK/Kit migra
 
 Install the target app-tools and its exact nimi-coding first. The App-local nimi-coding executable performs its own projections, so running an old installed executable is not a target-version sync. Use the target tool for `nimi-app sync --dry-run --json`; this previews app-tools files and lists the separate owner step without pretending to preview nimi-coding's internals.
 
-Review App-owned instructions outside managed blocks when the upgrade changes an ownership boundary or command. Correct obsolete routing against the current owner; adding another conflicting paragraph is not a migration of those instructions.
+Inspect `dependencyChanges`, `toolchainUpdates` and `retainedHostFiles` in the sync preview. On a maintained SDK/Kit combination, differing renderer and Host wiring keeps its verified file hashes so it can still consume the App's feature modules. Restore drifted managed files or migrate the Host and modules together. For Vite or Electron, review the locked version, proposed range and any manual migration. After sync, run pnpm install, check and the App build. Use pnpm audit for the wider dependency graph.
+
+Review App-owned instructions outside managed blocks when the upgrade changes an ownership boundary or command. In older starter AGENTS files, correct the description of Cognition V1 to long-term Memory and bounded Agent Source custody, and identify App Access declarations as App-authored. Sync preserves the author's surrounding text.
 
 Upgrading app-tools does not by itself move an existing App's SDK/Kit combination: sync preserves a supported combination and check rejects an unlisted SDK x Kit pairing rather than normalizing it. Selecting a new SDK/Kit combination is a deliberate App decision. When it is made, migrate the affected App-owned API uses, run sync, then install the full normalized dependency set and regenerate the package-manager lockfile. Run check and the relevant tests/build and real journey. Fresh scaffold identity and direct features remain fixed; the tool updates derived version/matrix projections. Existing Apps continue without a fresh lock.
 

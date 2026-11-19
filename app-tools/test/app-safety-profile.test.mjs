@@ -121,19 +121,18 @@ test('the current Host rejects old SDK/Kit combinations before generating new gl
   ]) {
     assert.throws(() => resolveDependencyCombination({ dependencies: {
       '@nimiplatform/sdk': sdk, '@nimiplatform/kit': kit,
-    } }, versions), /Required combination:/u);
+    } }, versions), /Select a verified pair explicitly/u);
   }
   assert.equal(resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': fallback.sdkVersion, '@nimiplatform/kit': fallback.kitVersion } }, versions).source, 'default');
   for (const local of [
     { '@nimiplatform/sdk': 'link:../nimi/sdks/typescript', '@nimiplatform/kit': 'workspace:*' },
-    { '@nimiplatform/sdk': '^0.11.0' },
     {},
   ]) {
-    assert.equal(resolveDependencyCombination({ dependencies: local }, versions).source, 'default', 'local, workspace or partial specs normalize to the tool default');
+    assert.equal(resolveDependencyCombination({ dependencies: local }, versions).source, 'default', 'local or missing selections normalize to the tool default');
   }
   assert.throws(
     () => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.11.0', '@nimiplatform/kit': fallback.kitVersion } }, versions),
-    (error) => error.message.startsWith(`Unsupported SDK/Kit combination: @nimiplatform/sdk@^0.11.0 with @nimiplatform/kit@${fallback.kitVersion}. Required combination:`),
+    (error) => error.message.startsWith(`Unsupported SDK/Kit combination: @nimiplatform/sdk@^0.11.0 with @nimiplatform/kit@${fallback.kitVersion}. Select a verified pair explicitly`),
   );
   assert.throws(() => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.9.0', '@nimiplatform/kit': '^0.5.0' } }, versions), /Unsupported SDK\/Kit combination/u);
 });
