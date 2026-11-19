@@ -131,6 +131,8 @@ const TURN_LANE_PROTO_ID = {
   conversation_summary: AgentTurnContextLaneId.CONVERSATION_SUMMARY,
   conversation_history: AgentTurnContextLaneId.CONVERSATION_HISTORY,
   capability_context: AgentTurnContextLaneId.CAPABILITY_CONTEXT,
+  app_work: AgentTurnContextLaneId.APP_WORK,
+  life_context: AgentTurnContextLaneId.LIFE_CONTEXT,
   current_user_turn: AgentTurnContextLaneId.CURRENT_USER_TURN,
   private_recall: AgentTurnContextLaneId.PRIVATE_RECALL,
 } as const;

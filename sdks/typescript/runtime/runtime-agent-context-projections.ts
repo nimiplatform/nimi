@@ -35,7 +35,8 @@ import {
   version,
   type UnknownRecord,
 } from './runtime-agent-context-projection-validation';
-import {
+
+import {
   decodeNimiRuntimeAgentSourceRef,
   type NimiRuntimeAgentSourceContextStatus,
   type NimiRuntimeAgentSourceRef,
@@ -66,6 +67,8 @@ export const NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER = [
   'conversation_summary',
   'conversation_history',
   'capability_context',
+  'app_work',
+  'life_context',
   'current_user_turn',
   'private_recall',
 ] as const;
@@ -285,6 +288,8 @@ const LANE_ID = new Map<unknown, NimiRuntimeAgentTurnContextLaneId>([
   [AgentTurnContextLaneId.CONVERSATION_SUMMARY, 'conversation_summary'],
   [AgentTurnContextLaneId.CONVERSATION_HISTORY, 'conversation_history'],
   [AgentTurnContextLaneId.CAPABILITY_CONTEXT, 'capability_context'],
+  [AgentTurnContextLaneId.APP_WORK, 'app_work'],
+  [AgentTurnContextLaneId.LIFE_CONTEXT, 'life_context'],
   [AgentTurnContextLaneId.CURRENT_USER_TURN, 'current_user_turn'],
   [AgentTurnContextLaneId.PRIVATE_RECALL, 'private_recall'],
   ...NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.map((lane) => (
@@ -292,7 +297,7 @@ const LANE_ID = new Map<unknown, NimiRuntimeAgentTurnContextLaneId>([
   )),
 ]);
 const OPTIONAL_LANES = new Set<NimiRuntimeAgentTurnContextLaneId>([
-  'cognition_source', 'conversation_summary', 'private_recall',
+  'cognition_source', 'conversation_summary', 'app_work', 'life_context', 'private_recall',
 ]);
 const LANE_STATE = new Map<unknown, NimiRuntimeAgentTurnContextLaneSummary['state']>([
   [AgentTurnContextLaneState.INCLUDED, 'included'], ['AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED', 'included'],
