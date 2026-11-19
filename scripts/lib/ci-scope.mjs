@@ -78,6 +78,7 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   if (sdk) filters.add('...@nimiplatform/sdk');
   else if (kit) filters.add('...@nimiplatform/kit');
   if (sdk || kit) filters.add('@nimiplatform/app-tools');
+  if (touches(/^app-tools\/lib\/(?:web-coordination|app-pack)\.mjs$/u)) filters.add('./apps/hosted-web');
   if (!shared && touches(/^runtime\/catalog\/providers\//u)) filters.add('./apps/web');
   for (const file of paths) {
     if (/\.(?:md|mdx)$/u.test(file)) continue;

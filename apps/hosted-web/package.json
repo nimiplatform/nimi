@@ -1,0 +1,12 @@
+{
+  "name": "@nimiplatform/hosted-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "miniflare": "5.20260828.0-alpha"
+  }
+}

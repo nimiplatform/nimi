@@ -1,0 +1,14 @@
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.app-ecosystem
+units:
+  - id: rule.nimi.platform.app-ecosystem.hosted-web-publication
+    kind: rule
+    title: Product address and immutable hosted Web publication
+    modality: must
+    statement: A public product has one permanently reserved globally unique lowercase single DNS-label slug and verified publisher ownership. Its introduction uses /apps/<slug> on nimi.ai. A hosted Web source has an independently allocated stable public client ID, ordinary app role, exact https://<slug>.nimi.xyz origin and root callback. A Registry maintainer admits the first source and immutable release together. Every production version must bind the exact publisher repository, protected Web tag and workflow, commit, artifact size and digest. A maintainer may select an eligible retained approved version without rebuilding. Native versions and source confirmation revisions advance independently. Product suspension overrides release selection and source status. A personal Home pause affects only the user's source access.
+    condition: When a product reserves an address or publishes, updates, suspends or rolls back its Web carrier.
+    failure: Refuse reassignment, inadmissible bytes, obsolete publication writes and cross-product or cross-source delivery. Only actual currently eligible deployments may be opened from the directory.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.remote-clients.registration
