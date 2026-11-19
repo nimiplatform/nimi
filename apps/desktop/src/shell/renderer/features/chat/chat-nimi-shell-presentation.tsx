@@ -40,6 +40,7 @@ type UseAiConversationPresentationInput = {
   messages: readonly ConversationMessageViewModel[];
   onDismissHostFeedback: () => void;
   pendingFirstBeat: boolean;
+  onStopGenerating?: () => void;
   renderMessageContent: CanonicalMessageContentSlot;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupPending: boolean;
@@ -156,6 +157,7 @@ export function useAiConversationPresentation(
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.pendingFirstBeat,
+      onStopGenerating: input.onStopGenerating,
       disableRpContent: true,
       widthClassName: CHAT_CONTENT_WIDTH_CLASS,
       widthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
@@ -232,6 +234,7 @@ export function useAiConversationPresentation(
     input.messages,
     input.onDismissHostFeedback,
     input.pendingFirstBeat,
+    input.onStopGenerating,
     input.renderMessageContent,
     input.setChatThinkingPreference,
     input.setupPending,

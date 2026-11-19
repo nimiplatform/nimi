@@ -1,7 +1,7 @@
 import type { HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 import type { ChatAiThreadRecord } from '../../bridge/runtime-bridge/types.js';
 
-type NimiChatPendingTurn = { threadId: string; phase: 'generating' | 'saving' | 'unconfirmed'; retrySave?: () => void };
+type NimiChatPendingTurn = { threadId: string; phase: 'generating' | 'saving' | 'unconfirmed'; text?: string; stop?: () => void; retrySave?: () => void };
 export type ComposerMemory = ReturnType<typeof createComposerMemory>;
 
 function createComposerMemory(generation: number) {

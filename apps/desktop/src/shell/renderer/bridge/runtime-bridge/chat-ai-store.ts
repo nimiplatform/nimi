@@ -22,6 +22,10 @@ import {
   type ChatAiUpdateThreadMetadataInput,
 } from './types';
 
+async function getTurnContext(threadId: string): Promise<ChatAiThreadBundle | null> {
+  return invokeChecked('chat_ai_get_turn_context', { payload: { threadId } }, parseChatAiThreadBundle);
+}
+
 export async function listThreads(): Promise<ChatAiThreadSummary[]> {
   return invokeChecked('chat_ai_list_threads', {
     payload: {},
@@ -99,6 +103,7 @@ async function commitTurn(input: {
 
 export const chatAiStoreClient = {
   beginTurn,
+  getTurnContext,
   commitTurn,
   listThreads,
   getThreadBundle,

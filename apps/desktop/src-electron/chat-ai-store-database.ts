@@ -28,9 +28,9 @@ import type {
   ChatAiUpdateMessageInput,
   ChatAiUpdateThreadMetadataInput,
 } from '../src/shell/shared/chat-ai-store-types.js';
-import type { ChatAiCommand } from './chat-ai-store-worker-protocol.js';
+import { chatAiCommandUsesDraft, type ChatAiCommand } from './chat-ai-store-worker-protocol.js';
 
-const CHAT_AI_SCHEMA_VERSION = 2;
+const CHAT_AI_SCHEMA_VERSION = 3;
 const DESKTOP_APP_ID = 'nimi.desktop';
 const APPS_DIRECTORY = 'apps';
 const APP_DATA_DIRECTORY = 'data';
@@ -42,6 +42,7 @@ type ChatAiStoreOperationInput = {
   readonly command: ChatAiCommand;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly selectedDataRoot: string;
+  readonly accountKey?: string;
   readonly turnFence?: SharedArrayBuffer;
 };
 
@@ -58,8 +59,8 @@ export function createDesktopChatAiStoreSession() {
           throw new Error('chat-ai-turn-scope-ended');
         }
       };
-      if (input.command === 'chat_ai_commit_turn') assertCurrentTurn();
-      const operation = prepareChatAiOperation(input.command, input.payload, assertCurrentTurn);
+      if (chatAiCommandUsesDraft(input.command)) assertCurrentTurn();
+      const operation = prepareChatAiOperation(input.command, input.payload, input.accountKey, assertCurrentTurn);
       try {
         const databasePath = await resolveChatAiDatabasePath(input.selectedDataRoot);
         const stat = await lstat(databasePath, { bigint: true }).catch((error: unknown) => { if (isMissingPathError(error)) return null; throw error; });
@@ -80,6 +81,7 @@ export function createDesktopChatAiStoreSession() {
         } else {
           validateSchemaVersionMeta(current.database);
         }
+        if (chatAiCommandUsesDraft(input.command)) assertCurrentTurn();
         return operation(current.database);
       } catch (error) { close(); throw error; }
     },
@@ -89,6 +91,7 @@ export function createDesktopChatAiStoreSession() {
 function prepareChatAiOperation(
   command: ChatAiCommand,
   payload: Readonly<Record<string, unknown>>,
+  accountKey: string | undefined,
   assertCurrentTurn: () => void,
 ): ChatAiDatabaseOperation {
   switch (command) {
@@ -103,14 +106,15 @@ function prepareChatAiOperation(
         || user.status !== 'complete' || assistant.status !== 'complete'
         || user.parentMessageId !== null || assistant.parentMessageId !== user.id
         || (consumedDraft && consumedDraft.threadId !== thread.id)) throw new Error('chat-ai-turn-invalid');
-      return (database) => commitTurn(database, thread, user, assistant, consumedDraft, assertCurrentTurn);
+      return (database) => commitTurn(database, thread, user, assistant, consumedDraft, accountKey!, assertCurrentTurn);
     }
     case 'chat_ai_list_threads':
       requireNestedPayload(payload, []);
       return listThreads;
+    case 'chat_ai_get_turn_context':
     case 'chat_ai_get_thread_bundle': {
       const threadId = requiredThreadId(requireNestedPayload(payload, ['threadId']));
-      return (database) => getThreadBundle(database, threadId);
+      return (database) => getThreadBundle(database, threadId, accountKey!, command === 'chat_ai_get_turn_context');
     }
     case 'chat_ai_create_thread': {
       const input = checkedCreateThreadInput(requireNestedPayload(payload, [
@@ -161,7 +165,7 @@ function prepareChatAiOperation(
     }
     case 'chat_ai_get_draft': {
       const threadId = requiredThreadId(requireNestedPayload(payload, ['threadId']));
-      return (database) => getDraft(database, threadId);
+      return (database) => getDraft(database, threadId, accountKey!);
     }
     case 'chat_ai_put_draft': {
       const input = checkedPutDraftInput(requireNestedPayload(payload, [
@@ -170,11 +174,11 @@ function prepareChatAiOperation(
         'attachments',
         'updatedAtMs',
       ]));
-      return (database) => putDraft(database, input);
+      return (database) => putDraft(database, input, accountKey!);
     }
     case 'chat_ai_delete_draft': {
       const threadId = requiredThreadId(requireNestedPayload(payload, ['threadId']));
-      return (database) => deleteDraft(database, threadId);
+      return (database) => deleteDraft(database, threadId, accountKey!);
     }
   }
 }
@@ -348,10 +352,12 @@ function createSchema(database: DatabaseSync): void {
       ON ai_messages(thread_id, updated_at_ms ASC, id ASC);
 
     CREATE TABLE IF NOT EXISTS ai_thread_drafts (
-      thread_id TEXT PRIMARY KEY REFERENCES ai_threads(id) ON DELETE CASCADE,
+      account_key TEXT NOT NULL,
+      thread_id TEXT NOT NULL REFERENCES ai_threads(id) ON DELETE CASCADE,
       draft_text TEXT NOT NULL,
       draft_attachments_json TEXT,
-      updated_at_ms INTEGER NOT NULL
+      updated_at_ms INTEGER NOT NULL,
+      PRIMARY KEY(account_key, thread_id)
     );
 
     CREATE TABLE IF NOT EXISTS ai_store_meta (
@@ -393,6 +399,7 @@ function validateSchema(database: DatabaseSync): void {
     'updated_at_ms',
   ]);
   requireTableColumns(database, 'ai_thread_drafts', [
+    'account_key',
     'thread_id',
     'draft_text',
     'draft_attachments_json',
@@ -517,6 +524,8 @@ function listThreads(database: DatabaseSync): ChatAiThreadSummary[] {
 function getThreadBundle(
   database: DatabaseSync,
   threadId: string,
+  accountKey: string,
+  contextOnly = false,
 ): ChatAiThreadBundle | null {
   const threadRow = database.prepare(`
     SELECT id, title, created_at_ms, updated_at_ms, last_message_at_ms
@@ -525,7 +534,7 @@ function getThreadBundle(
   `).get(threadId);
   if (!threadRow) return null;
   const thread = threadRecordFromRow(threadRow);
-  const messages = database.prepare(`
+  const messages = contextOnly ? readTurnContext(database, threadId) : database.prepare(`
     SELECT
       id,
       thread_id,
@@ -543,14 +552,44 @@ function getThreadBundle(
     WHERE thread_id = ?
     ORDER BY created_at_ms ASC, id ASC
   `).all(threadId).map(messageRecordFromRow);
-  const draftRow = database.prepare(`
-    SELECT thread_id, draft_text, draft_attachments_json, updated_at_ms
-    FROM ai_thread_drafts
-    WHERE thread_id = ?
-  `).get(threadId);
-  // Each row has crossed the SQLite validation boundary above. The renderer
-  // validates the transferred bundle independently at its own IPC boundary.
-  return { thread, messages, draft: draftRow ? draftRecordFromRow(draftRow) : null };
+  return { thread, messages, draft: getDraft(database, threadId, accountKey) };
+}
+
+function getMessageRecord(database: DatabaseSync, id: string): ChatAiMessageRecord | null {
+  const row = database.prepare('SELECT * FROM ai_messages WHERE id = ?').get(id);
+  return row ? messageRecordFromRow(row) : null;
+}
+
+// Walk completed replies newest first. A failed or blank reply does not
+// displace its parent's latest usable one. Attachment bodies stay in SQLite
+// until a pair actually fits the context window.
+function readTurnContext(database: DatabaseSync, threadId: string): ChatAiMessageRecord[] {
+  const rows = database.prepare(`
+    SELECT a.id AS reply, u.id AS parent, a.content_text AS answer, u.content_text AS question
+    FROM ai_messages a JOIN ai_messages u ON u.id=a.parent_message_id AND u.thread_id=a.thread_id
+    WHERE a.thread_id=? AND a.role='assistant' AND a.status='complete'
+      AND u.role='user' AND u.status='complete'
+    ORDER BY a.created_at_ms DESC, a.id DESC
+  `).iterate(threadId);
+  const parents = new Set<string>();
+  const messages: ChatAiMessageRecord[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    const parent = requiredDatabaseString(row, 'parent');
+    if (parents.has(parent)) continue;
+    const question = requiredDatabaseString(row, 'question', true);
+    const answer = requiredDatabaseString(row, 'answer', true);
+    if (!question.trim() || !answer.trim()) continue;
+    bytes += Buffer.byteLength(question) + Buffer.byteLength(answer);
+    if (bytes > 512 * 1024) break;
+    const user = getMessageRecord(database, parent);
+    const reply = getMessageRecord(database, requiredDatabaseString(row, 'reply'));
+    if (!user || !reply) throw new Error('chat-ai-context-pair-unavailable');
+    parents.add(parent);
+    messages.push(reply, user);
+    if (parents.size === 16) break;
+  }
+  return messages.reverse();
 }
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
@@ -560,34 +599,34 @@ function commitTurn(
   user: ChatAiCreateMessageInput,
   assistant: ChatAiCreateMessageInput,
   consumedDraft: ChatAiDraftRecord | null,
+  accountKey: string,
   assertCurrent: () => void,
 ): ChatAiThreadBundle {
   assertCurrent();
   database.exec('BEGIN IMMEDIATE');
   try {
-    const existing = getThreadBundle(database, thread.id);
-    const existingUser = existing?.messages.find(message => message.id === user.id);
-    const existingReply = existing?.messages.find(message => message.id === assistant.id);
+    const existingUser = getMessageRecord(database, user.id);
+    const existingReply = getMessageRecord(database, assistant.id);
+    const currentDraft = getDraft(database, thread.id, accountKey);
     if (existingUser || existingReply) {
-      if (!existing || !isDeepStrictEqual(existingUser, user) || !isDeepStrictEqual(existingReply, assistant)) {
+      if (!existingUser || !existingReply || !isDeepStrictEqual(existingUser, user) || !isDeepStrictEqual(existingReply, assistant)) {
         throw new Error('chat-ai-turn-identity-conflict');
       }
       assertCurrent();
       database.exec('COMMIT');
-      return existing;
+      return { thread: getThreadRecord(database, thread.id)!, messages: [existingUser, existingReply], draft: currentDraft };
     }
 
     createThread(database, thread);
     createMessage(database, user);
     createMessage(database, assistant);
-    updateThreadMetadata(database, {
+    const savedThread = updateThreadMetadata(database, {
       id: thread.id, title: thread.title, updatedAtMs: assistant.updatedAtMs, lastMessageAtMs: assistant.updatedAtMs,
     });
-    if (consumedDraft && isDeepStrictEqual(existing?.draft, consumedDraft)) {
-      deleteDraft(database, thread.id);
+    if (consumedDraft && isDeepStrictEqual(currentDraft, consumedDraft)) {
+      deleteDraft(database, thread.id, accountKey);
     }
-    const committed = getThreadBundle(database, thread.id);
-    if (!committed) throw new Error('chat-ai-turn-commit-unconfirmed');
+    const committed = { thread: savedThread, messages: [user, assistant], draft: getDraft(database, thread.id, accountKey) };
     // Linearize the synchronous SQLite commit against main's owner invalidation.
     assertCurrent();
     database.exec('COMMIT');
@@ -756,18 +795,20 @@ function updateMessage(
 function getDraft(
   database: DatabaseSync,
   threadId: string,
+  accountKey: string,
 ): ChatAiDraftRecord | null {
   const row = database.prepare(`
     SELECT thread_id, draft_text, draft_attachments_json, updated_at_ms
     FROM ai_thread_drafts
-    WHERE thread_id = ?
-  `).get(threadId);
+    WHERE account_key = ? AND thread_id = ?
+  `).get(accountKey, threadId);
   return row ? draftRecordFromRow(row) : null;
 }
 
 function putDraft(
   database: DatabaseSync,
   input: ChatAiPutDraftInput,
+  accountKey: string,
 ): ChatAiDraftRecord {
   if (!getThreadRecord(database, input.threadId)) {
     throw new Error('chat_ai draft thread not found');
@@ -775,17 +816,17 @@ function putDraft(
   try {
     database.prepare(`
       INSERT INTO ai_thread_drafts (
-        thread_id,
+        account_key, thread_id,
         draft_text,
         draft_attachments_json,
         updated_at_ms
-      ) VALUES (?, ?, ?, ?)
-      ON CONFLICT(thread_id) DO UPDATE SET
+      ) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(account_key, thread_id) DO UPDATE SET
         draft_text = excluded.draft_text,
         draft_attachments_json = excluded.draft_attachments_json,
         updated_at_ms = excluded.updated_at_ms
     `).run(
-      input.threadId,
+      accountKey, input.threadId,
       input.text,
       input.attachments.length > 0 ? JSON.stringify(input.attachments) : null,
       input.updatedAtMs,
@@ -796,8 +837,8 @@ function putDraft(
   return parseChatAiDraftRecord(input);
 }
 
-function deleteDraft(database: DatabaseSync, threadId: string): void {
-  database.prepare('DELETE FROM ai_thread_drafts WHERE thread_id = ?').run(threadId);
+function deleteDraft(database: DatabaseSync, threadId: string, accountKey: string): void {
+  database.prepare('DELETE FROM ai_thread_drafts WHERE account_key = ? AND thread_id = ?').run(accountKey, threadId);
 }
 
 function threadSummaryFromRow(row: Readonly<Record<string, SQLOutputValue>>): ChatAiThreadSummary {

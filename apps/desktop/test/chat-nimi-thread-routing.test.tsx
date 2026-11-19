@@ -16,24 +16,31 @@ import { useAiConversationHostActions } from '../src/shell/renderer/features/cha
 import { createPlainTextMessageContent, resolveAiConversationActiveThreadId } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 
 for (const route of ['leave for friends', 'direct switch', 'direct switch with empty draft'] as const) {
-for (const outcome of ['success', 'failure'] as const) {
+for (const outcome of ['success', 'failure', 'lost commit response', ...(route === 'direct switch' ? ['stop and replace'] : [])]) {
   test(`after a ${route}, a historical thread owns the send and its ${outcome} cleanup`, async (t) => {
     const dataRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-chat-routing-'));
     const scope = new AbortController();
     const host = createDesktopElectronChatAiStoreHost({
       resolveSelectedDataRoot: () => dataRoot,
-      resolveTurnScope: async () => ({ signal: scope.signal, revision: 'current' }),
+      resolveTurnScope: async () => ({ signal: scope.signal, revision: 'current', accountKey: 'realm/account' }),
       workerUrl: new URL('../src-electron/chat-ai-store-worker.ts', import.meta.url),
     });
     const globals = globalThis as Record<string, unknown>;
     const previousBridge = globals.__NIMI_ELECTRON_RUNTIME__;
     const calls: string[] = [];
+    let loseResponse = outcome === 'lost commit response';
+    let modelCalls = 0;
     // Exercise the renderer parsers and actual SQLite host; only model execution
     // is controlled here. The real model journey is checked in Home separately.
     globals.__NIMI_ELECTRON_RUNTIME__ = {
-      invoke: (command: keyof typeof host.commandHandlers, payload: Record<string, unknown>) => {
+      invoke: async (command: keyof typeof host.commandHandlers, payload: Record<string, unknown>) => {
         calls.push(command);
-        return host.commandHandlers[command]({ command, payload });
+        const result = await host.commandHandlers[command]({ command, payload });
+        if (command === 'chat_ai_commit_turn' && loseResponse) {
+          loseResponse = false;
+          throw new Error('commit response lost');
+        }
+        return result;
       },
     };
     const navigation = createHomeNavigation();
@@ -60,6 +67,11 @@ for (const outcome of ['success', 'failure'] as const) {
     const execution = new Promise<{ text: string; traceId: null; finishReason: 'stop' }>((resolve, reject) => { complete = resolve; fail = reject; });
     let started!: () => void;
     const executionStarted = new Promise<void>(resolve => { started = resolve; });
+    let firstDelta: (text: string) => void;
+    let secondDelta: (text: string) => void;
+    let finishSecond!: (value: {text: string; traceId: null; finishReason: 'stop'}) => void;
+    let markSecondStarted!: () => void;
+    const secondStarted = new Promise<void>(resolve => { markSecondStarted = resolve; });
     const reported: unknown[] = [];
     function actions() {
       let result!: ReturnType<typeof useAiConversationHostActions>;
@@ -77,7 +89,17 @@ for (const outcome of ['success', 'failure'] as const) {
           threads: [history, ...(ephemeralThread ? [ephemeralThread] : [])],
           syncSelectionToThread: threadId => { void navigation.replace({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: threadId ?? undefined } }); },
           setBundleCache: (threadId, update) => { client.setQueryData<ChatAiThreadBundle | null>(bundleQueryKey(threadId), update); },
-          executeTextCapability: () => { started(); return execution; },
+          executeTextCapability: (_prompt, _history, _signal, onText) => {
+            modelCalls++;
+            if (modelCalls === 1) {
+              firstDelta = onText;
+              started();
+              return execution;
+            }
+            secondDelta = onText;
+            markSecondStarted();
+            return new Promise(resolve => { finishSecond = resolve; });
+          },
           clearHostError() {}, reportHostError: error => { reported.push(error); }, now: () => 100, queryClient: client,
         });
         return null;
@@ -129,18 +151,52 @@ for (const outcome of ['success', 'failure'] as const) {
     }
     assert.equal(client.getQueryData(bundleQueryKey(temporary.id)), temporaryBundle);
     assert.equal(client.getQueryData<ChatAiThreadBundle>(bundleQueryKey(history.id))?.messages.at(-1)?.contentText, 'Send only in history');
-    if (outcome === 'success') complete({ text: 'Unit test model reply', traceId: null, finishReason: 'stop' });
+    if (outcome === 'stop and replace') {
+      const memory = nimiComposerMemory(navigation);
+      firstDelta!('First visible text from A');
+      assert.equal(memory.getSnapshot().pending?.text, 'First visible text from A');
+      memory.getSnapshot().pending!.stop!();
+      assert.equal(memory.getSnapshot().pending, null);
+      historicalDraft.current = 'Replacement B';
+      const replacement = actions().handleSubmit('Replacement B');
+      await secondStarted;
+      secondDelta!('B in progress');
+      firstDelta!('Late A body');
+      fail(new Error('Late A failure'));
+      await settled;
+      assert.equal(memory.getSnapshot().pending?.text, 'B in progress');
+      assert.deepEqual(reported, []);
+      finishSecond({ text: 'Saved B', traceId: null, finishReason: 'stop' });
+      await replacement;
+      const persisted = await chatAiStoreClient.getThreadBundle(history.id);
+      assert.deepEqual(persisted?.messages.map(message => message.contentText), ['Earlier message', 'Replacement B', 'Saved B']);
+      assert.equal(modelCalls, 2);
+      assert.equal(calls.filter(command => command === 'chat_ai_commit_turn').length, 1);
+      return;
+    }
+    if (outcome !== 'failure') complete({ text: 'Unit test model reply', traceId: null, finishReason: 'stop' });
     else fail(new Error('Model execution failed'));
     const error = await settled;
+    if (outcome === 'lost commit response') {
+      const pending = nimiComposerMemory(navigation).getSnapshot().pending;
+      assert.equal(pending?.phase, 'unconfirmed');
+      pending!.retrySave!();
+      await new Promise<void>(resolve => {
+        const memory = nimiComposerMemory(navigation);
+        const off = memory.subscribe(() => { if (!memory.getSnapshot().pending) { off(); resolve(); } });
+      });
+      assert.equal(calls.filter(command => command === 'chat_ai_commit_turn').length, 2);
+      assert.equal(modelCalls, 1);
+    }
     assert.equal(nimiComposerMemory(navigation).getSnapshot().pending, null);
     assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, history.id);
     assert.equal(nimiComposerMemory(navigation).getSnapshot().ephemeralThread?.id, temporary.id);
     assert.equal(retainedDraft.current, temporaryText);
     assert.equal(client.getQueryData(bundleQueryKey(temporary.id)), temporaryBundle);
-    if (outcome === 'success') {
+    if (outcome !== 'failure') {
       assert.equal(error, null);
       assert.deepEqual(reported, []);
-      assert.ok(calls.includes('chat_ai_get_thread_bundle'), 'verify the existing selected thread before persisting');
+      assert.ok(calls.includes('chat_ai_get_turn_context'), 'verify the existing selected thread before persisting');
       assert.ok(!calls.includes('chat_ai_create_thread'), 'never recreate an existing history thread');
       const persisted = await chatAiStoreClient.getThreadBundle(history.id);
       assert.deepEqual(persisted?.messages.map(message => message.contentText), ['Earlier message', 'Send only in history', 'Unit test model reply']);

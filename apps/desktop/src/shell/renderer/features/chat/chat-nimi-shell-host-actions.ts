@@ -29,7 +29,7 @@ type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
-  executeTextCapability: (text: string, history: ChatAiThreadBundle['messages'], signal: AbortSignal) => Promise<DesktopNimiTextCapabilityResult>;
+  executeTextCapability: (text: string, history: ChatAiThreadBundle['messages'], signal: AbortSignal, onText: (text: string) => void) => Promise<DesktopNimiTextCapabilityResult>;
   navigation: HomeNavigation;
   composerMemory: ComposerMemory;
   reportTruncation: () => void;
@@ -142,9 +142,10 @@ export function useAiConversationHostActions(
       && !(input.selectedThreadRecord && input.activeThreadId);
     const { composerMemory, navigation, queryClient } = input;
     const scope = new AbortController();
-    const isCurrent = () => navigation.getSnapshot().generation === composerMemory.generation;
+    const isCurrent = () => !finished && navigation.getSnapshot().generation === composerMemory.generation;
     let finished = false;
     const clearPending = () => {
+      if (finished) return;
       finished = true;
       unsubscribe();
       composerMemory.setPending(null);
@@ -163,7 +164,19 @@ export function useAiConversationHostActions(
       contentText: text, content: createPlainTextMessageContent(text), error: null, traceId: null,
       parentMessageId: null, createdAtMs, updatedAtMs: createdAtMs,
     };
-    composerMemory.setPending({ threadId: baseThread.id, phase: 'generating' });
+    const discardOptimisticMessage = () => input.setBundleCache(baseThread.id, current => current && {
+      ...current, messages: current.messages.filter(message => message.id !== user.id),
+    });
+    const stop = () => {
+      if (!isCurrent()) return;
+      scope.abort();
+      discardOptimisticMessage();
+      clearPending();
+    };
+    const publishText = (text: string) => {
+      if (isCurrent()) composerMemory.setPending({ threadId: baseThread.id, phase: 'generating', text, stop });
+    };
+    publishText('');
     void queryClient.cancelQueries({ queryKey: bundleQueryKey(baseThread.id), exact: true });
     if (isFreshThread) input.setEphemeralThread(baseThread);
     input.setBundleCache(baseThread.id, current => appendOptimisticUserMessage(current, baseThread, { ...user, status: 'pending' }));
@@ -178,11 +191,12 @@ export function useAiConversationHostActions(
       scopeId = await chatAiStoreClient.beginTurn();
       scope.signal.throwIfAborted();
       if (!isFreshThread && !activeEphemeralThread) {
-        confirmed = await chatAiStoreClient.getThreadBundle(baseThread.id);
+        confirmed = await chatAiStoreClient.getTurnContext(baseThread.id);
         if (confirmed?.thread.id !== baseThread.id) throw new Error('chat-ai-thread-unavailable');
       }
       scope.signal.throwIfAborted();
-      result = await input.executeTextCapability(text, confirmed?.messages ?? [], scope.signal);
+      result = await input.executeTextCapability(text, confirmed?.messages ?? [], scope.signal, publishText);
+      if (!isCurrent()) return;
     } catch (error) {
       if (isCurrent()) {
         if (!draft.current) draft.current = text;
@@ -209,7 +223,7 @@ export function useAiConversationHostActions(
     const save = async () => {
       if (finished || composerMemory.getSnapshot().pending?.phase === 'saving') return;
       if (!isCurrent()) { clearPending(); return; }
-      composerMemory.setPending({ threadId: baseThread.id, phase: 'saving' });
+      composerMemory.setPending({ threadId: baseThread.id, phase: 'saving', text: result.text });
       let saved: ChatAiThreadBundle;
       try {
         saved = await chatAiStoreClient.commitTurn(commit);
@@ -226,11 +240,13 @@ export function useAiConversationHostActions(
         }
         // The same commit checks both message IDs before making any changes.
         // A retry can confirm a lost reply, and never executes the model again.
-        composerMemory.setPending({ threadId: baseThread.id, phase: 'unconfirmed', retrySave: () => { void save(); } });
+        composerMemory.setPending({ threadId: baseThread.id, phase: 'unconfirmed', text: result.text, retrySave: () => { void save(); } });
         return;
       }
       if (isCurrent()) {
-        queryClient.setQueryData(bundleQueryKey(baseThread.id), saved);
+        input.setBundleCache(baseThread.id, current => ({
+          ...saved, messages: [...(current?.messages ?? []).filter(message => message.id !== user.id && message.id !== replyId), ...saved.messages],
+        }));
         queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, current => upsertThreadSummary(current ?? [], saved.thread));
         if (composerMemory.getSnapshot().ephemeralThread?.id === baseThread.id) input.setEphemeralThread(null);
         if (result.finishReason === 'length') input.reportTruncation();

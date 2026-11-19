@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
 import {
   CHAT_AI_COMMANDS,
+  chatAiCommandUsesDraft,
   parseChatAiStoreWorkerResponse,
   type ChatAiCommand,
   type ChatAiStoreWorkerRequest,
@@ -35,7 +36,7 @@ export type DesktopElectronChatAiStoreHost = {
 export function createDesktopElectronChatAiStoreHost(input: {
   readonly resolveSelectedDataRoot: () => Promise<string> | string;
   readonly workerUrl?: URL;
-  readonly resolveTurnScope?: () => Promise<{ readonly signal: AbortSignal; readonly revision: string }>;
+  readonly resolveTurnScope?: () => Promise<{ readonly signal: AbortSignal; readonly revision: string; readonly accountKey: string }>;
   readonly operationGate?: DesktopDataRootOperationGate;
 }): DesktopElectronChatAiStoreHost {
   const operationGate = input.operationGate ?? createDesktopDataRootOperationGate();
@@ -45,7 +46,10 @@ export function createDesktopElectronChatAiStoreHost(input: {
   );
   let store = createStore();
   let stopped = false;
-  let turn: { id: string; signal: AbortSignal; revision: string; fence: Int32Array; unsubscribe: () => void } | undefined;
+  let accountEpoch = 0;
+  let observedRevision: string | undefined;
+  const draftFences = new Map<Int32Array, string>();
+  let turn: { accountKey: string; id: string; signal: AbortSignal; revision: string; fence: Int32Array; unsubscribe: () => void } | undefined;
   let generation = 0;
   const invalidateTurn = () => {
     generation++;
@@ -58,21 +62,49 @@ export function createDesktopElectronChatAiStoreHost(input: {
     const captured = turn;
     if (!captured || captured.id !== id || captured.signal.aborted) throw new Error('chat-ai-turn-scope-ended');
     const current = await input.resolveTurnScope?.();
-    if (turn !== captured || captured.signal.aborted || current?.signal !== captured.signal || current.revision !== captured.revision) {
+    if (turn !== captured || captured.signal.aborted || current?.signal !== captured.signal || current.revision !== captured.revision || current.accountKey !== captured.accountKey) {
       throw new Error('chat-ai-turn-scope-ended');
     }
-    return captured.fence.buffer as SharedArrayBuffer;
+    return { accountKey: captured.accountKey, fence: captured.fence.buffer as SharedArrayBuffer };
   };
   return {
     commandHandlers: {
       ...Object.fromEntries(CHAT_AI_COMMANDS.map((command) => [
         command,
-        (context: ChatAiCommandContext) => operationGate.runShared(async () => {
-          if (command !== 'chat_ai_commit_turn') return store.invoke(command, context.payload);
-          const raw = context.payload.payload as Readonly<Record<string, unknown>> | undefined;
-          const { scopeId, ...payload } = raw ?? {};
-          return store.invoke(command, { payload }, () => guard(scopeId));
-        }),
+        (context: ChatAiCommandContext) => {
+          const epoch = accountEpoch;
+          return operationGate.runShared(async () => {
+            if (command === 'chat_ai_commit_turn') {
+              const raw = context.payload.payload as Readonly<Record<string, unknown>> | undefined;
+              const { scopeId, ...payload } = raw ?? {};
+              return store.invoke(command, { payload }, () => guard(scopeId));
+            }
+            if (!chatAiCommandUsesDraft(command)) return store.invoke(command, context.payload);
+            if (stopped) throw new Error('chat-ai-store-worker-unavailable');
+            // Capture at arrival and enqueue immediately, even when account
+            // resolution for an earlier request takes longer.
+            const captured = input.resolveTurnScope?.();
+            void captured?.catch(() => undefined);
+            const fence = new Int32Array(new SharedArrayBuffer(4));
+            const invalidate = () => { Atomics.store(fence, 0, 1); };
+            let signal: AbortSignal | undefined;
+            try {
+              const result = await store.invoke(command, context.payload, async () => {
+                const scope = await captured;
+                if (!scope?.accountKey || scope.signal.aborted || epoch !== accountEpoch) throw new Error('chat-ai-turn-scope-ended');
+                draftFences.set(fence, scope.revision);
+                signal = scope.signal;
+                signal.addEventListener('abort', invalidate, { once: true });
+                return { accountKey: scope.accountKey, fence: fence.buffer };
+              });
+              if (Atomics.load(fence, 0)) throw new Error('chat-ai-turn-scope-ended');
+              return result;
+            } finally {
+              signal?.removeEventListener('abort', invalidate);
+              draftFences.delete(fence);
+            }
+          });
+        },
       ])) as Omit<DesktopElectronChatAiStoreHost['commandHandlers'], 'chat_ai_begin_turn'>,
       chat_ai_begin_turn: () => operationGate.runShared(async () => {
         invalidateTurn();
@@ -87,6 +119,13 @@ export function createDesktopElectronChatAiStoreHost(input: {
     },
     invalidateTurn,
     observeAccountRevision(revision) {
+      if (revision !== observedRevision) {
+        observedRevision = revision;
+        accountEpoch++;
+        for (const [fence, ownerRevision] of draftFences) {
+          if (ownerRevision !== revision) Atomics.store(fence, 0, 1);
+        }
+      }
       if (turn && turn.revision !== revision) invalidateTurn();
     },
     close: () => { stopped = true; invalidateTurn(); return store.close(); },
@@ -130,7 +169,7 @@ class ElectronChatAiStoreWorkerClient {
   invoke(
     command: ChatAiCommand,
     payload: Readonly<Record<string, unknown>>,
-    guard?: () => Promise<SharedArrayBuffer>,
+    guard?: () => Promise<{ accountKey: string; fence: SharedArrayBuffer }>,
   ): Promise<unknown> {
     // Calls reach the Worker in arrival order, each after the previous result,
     // including its asynchronous root resolution.
@@ -142,11 +181,11 @@ class ElectronChatAiStoreWorkerClient {
   private async invokeInOrder(
     command: ChatAiCommand,
     payload: Readonly<Record<string, unknown>>,
-    guard?: () => Promise<SharedArrayBuffer>,
+    guard?: () => Promise<{ accountKey: string; fence: SharedArrayBuffer }>,
   ): Promise<unknown> {
     if (this.closed) throw new Error('chat-ai-store-worker-unavailable');
     const selectedDataRoot = await this.resolveSelectedDataRoot();
-    const turnFence = await guard?.();
+    const scope = await guard?.();
     if (this.closed) throw new Error('chat-ai-store-worker-unavailable');
     const id = `chat-ai-${this.nextId}`;
     this.nextId += 1;
@@ -158,7 +197,8 @@ class ElectronChatAiStoreWorkerClient {
       command,
       payload,
       selectedDataRoot,
-      turnFence,
+      accountKey: scope?.accountKey,
+      turnFence: scope?.fence,
     };
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });

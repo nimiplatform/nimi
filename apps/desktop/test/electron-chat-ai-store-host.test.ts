@@ -25,6 +25,11 @@ const CHAT_AI_STORE_WORKER_URL = new URL(
   import.meta.url,
 );
 
+function createTestHost(input: Parameters<typeof createDesktopElectronChatAiStoreHost>[0]) {
+  const signal = new AbortController().signal;
+  return createDesktopElectronChatAiStoreHost({ resolveTurnScope: async () => ({ signal, revision: 'active', accountKey: 'account' }), ...input });
+}
+
 function content(text: string): ChatAiMessageContent {
   return {
     parts: [{ type: 'text', text }],
@@ -48,7 +53,7 @@ function invoke(
 
 test('failed quit replaces the closed chat worker and preserves durable drafts through existing handlers', async (t) => {
   const dataRoot = await temporaryDataRoot('quit-recovery');
-  const host = createDesktopElectronChatAiStoreHost({ resolveSelectedDataRoot: () => dataRoot, workerUrl: CHAT_AI_STORE_WORKER_URL });
+  const host = createTestHost({ resolveSelectedDataRoot: () => dataRoot, workerUrl: CHAT_AI_STORE_WORKER_URL });
   t.after(async () => { await host.close(); await rm(dataRoot, { recursive: true, force: true }); });
   assert.equal(await host.resumeAfterFailedShutdown(), false);
   await invoke(host, 'chat_ai_create_thread', { payload: { id: 'recovery-thread', title: 'Recovery', createdAtMs: 100, updatedAtMs: 100, lastMessageAtMs: null } });
@@ -64,7 +69,7 @@ test('failed quit replaces the closed chat worker and preserves durable drafts t
 
 test('electron chat ai store persists the existing thread/message/draft schema', async (t) => {
   const dataRoot = await temporaryDataRoot('roundtrip');
-  const firstHost = createDesktopElectronChatAiStoreHost({
+  const firstHost = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -125,7 +130,7 @@ test('electron chat ai store persists the existing thread/message/draft schema',
     },
   });
 
-  const secondHost = createDesktopElectronChatAiStoreHost({
+  const secondHost = createTestHost({
     resolveSelectedDataRoot: async () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -179,7 +184,7 @@ test('electron chat ai store persists the existing thread/message/draft schema',
   });
   try {
     const version = database.prepare('PRAGMA user_version').get() as { user_version: number };
-    assert.equal(version.user_version, 2);
+    assert.equal(version.user_version, 3);
   } finally {
     database.close();
   }
@@ -188,7 +193,7 @@ test('electron chat ai store persists the existing thread/message/draft schema',
 test('electron chat ai store fails closed on malformed payloads and orphan messages', async (t) => {
   const dataRoot = await temporaryDataRoot('invalid');
   t.after(() => rm(dataRoot, { recursive: true, force: true }));
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -260,7 +265,7 @@ test('electron chat ai store preserves invocation order across data-root resolut
   const dataRoot = await temporaryDataRoot('ordered');
   let resolveFirstDataRoot: (() => void) | undefined;
   let resolverCalls = 0;
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => {
       resolverCalls += 1;
       if (resolverCalls !== 1) return dataRoot;
@@ -331,12 +336,12 @@ test('electron chat ai store rejects the retired route-bound schema', async (t) 
         archived_at_ms INTEGER,
         route_kind TEXT NOT NULL
       );
-      PRAGMA user_version = 2;
+      PRAGMA user_version = 3;
     `);
   } finally {
     database.close();
   }
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -350,7 +355,7 @@ test('electron chat ai store rejects the retired route-bound schema', async (t) 
 test('electron chat ai store rejects an unknown existing schema version without rewriting it', async (t) => {
   const dataRoot = await temporaryDataRoot('future-schema');
   t.after(() => rm(dataRoot, { recursive: true, force: true }));
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -365,17 +370,17 @@ test('electron chat ai store rejects an unknown existing schema version without 
     'main.db',
   );
   const database = new DatabaseSync(databasePath);
-  database.exec('PRAGMA user_version = 3;');
+  database.exec('PRAGMA user_version = 4;');
   database.close();
 
   await assert.rejects(
     invoke(host, 'chat_ai_list_threads', { payload: {} }),
-    /CHAT_AI_SCHEMA_MISMATCH: expected_version=2 observed_version=3/u,
+    /CHAT_AI_SCHEMA_MISMATCH: expected_version=3 observed_version=4/u,
   );
   const unchanged = new DatabaseSync(databasePath, { readOnly: true });
   try {
     const row = unchanged.prepare('PRAGMA user_version').get() as { user_version: number };
-    assert.equal(row.user_version, 3);
+    assert.equal(row.user_version, 4);
   } finally {
     unchanged.close();
   }
@@ -385,7 +390,7 @@ test('electron chat ai store does not recreate a missing ready data root', async
   const parentRoot = await temporaryDataRoot('missing-parent');
   t.after(() => rm(parentRoot, { recursive: true, force: true }));
   const missingDataRoot = path.join(parentRoot, 'missing-ready-root');
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => missingDataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -416,7 +421,7 @@ test('electron chat ai store rejects an intermediate symlink before writing desc
     rm(outsideRoot, { recursive: true, force: true }),
   ]));
   await symlink(outsideRoot, path.join(dataRoot, 'apps'), 'dir');
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -439,7 +444,7 @@ test('electron chat ai store rejects a sibling symlinked chat database directory
   const siblingDirectory = path.join(durableDataRoot, 'other-chat');
   await mkdir(siblingDirectory);
   await symlink(siblingDirectory, path.join(durableDataRoot, 'chat-ai'), 'dir');
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: () => dataRoot,
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
@@ -455,12 +460,12 @@ test('whole Chat turn commits once, preserves a later draft, and rejects an old 
   let releaseRoot: (() => void) | undefined;
   let enteredRoot: (() => void) | undefined;
   const session = new AbortController();
-  const host = createDesktopElectronChatAiStoreHost({
+  const host = createTestHost({
     resolveSelectedDataRoot: async () => {
       if (enteredRoot) await new Promise<void>(resolve => { releaseRoot = resolve; enteredRoot?.(); });
       return dataRoot;
     },
-    resolveTurnScope: async () => ({ signal: session.signal, revision: 'account-a' }),
+    resolveTurnScope: async () => ({ signal: session.signal, revision: 'account-a', accountKey: 'realm/account-a' }),
     workerUrl: CHAT_AI_STORE_WORKER_URL,
   });
   t.after(async () => { await host.close(); await rm(dataRoot, { recursive: true, force: true }); });
@@ -503,4 +508,86 @@ test('whole Chat turn commits once, preserves a later draft, and rejects an old 
   await host.close();
   assert.equal(await host.resumeAfterFailedShutdown(), true);
   assert.deepEqual(await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: thread.id } }), before);
+});
+
+test('same root and thread restore only the current account draft and refuse a queued old write', async t => {
+  const root = await temporaryDataRoot('scoped-drafts');
+  let account = 'A';
+  const signal = new AbortController().signal;
+  let hold: { entered: () => void; released: Promise<void> } | undefined;
+  const host = createTestHost({
+    workerUrl: CHAT_AI_STORE_WORKER_URL,
+    resolveSelectedDataRoot: async () => { if (hold) { hold.entered(); await hold.released; } return root; },
+    resolveTurnScope: async () => ({ signal, revision: account, accountKey: account }),
+  });
+  t.after(async () => { await host.close(); await rm(root, { recursive: true, force: true }); });
+  const select = (owner: string) => { account = owner; host.observeAccountRevision(owner); };
+  const read = () => invoke(host, 'chat_ai_get_draft', { payload: { threadId: 'shared' } }) as Promise<{ text: string } | null>;
+  const put = (text: string) => invoke(host, 'chat_ai_put_draft', { payload: { threadId: 'shared', text, attachments: [], updatedAtMs: 3 } });
+  select('A');
+  await invoke(host, 'chat_ai_create_thread', { payload: { id: 'shared', title: 'Shared key', createdAtMs: 1, updatedAtMs: 1, lastMessageAtMs: null } });
+  await put('first owner');
+  select('B');
+  assert.equal(await read(), null);
+  await put('second owner');
+  select('A');
+  assert.equal((await read())?.text, 'first owner');
+  let releaseWrite!: () => void;
+  const released = new Promise<void>(resolve => { releaseWrite = resolve; });
+  const entered = new Promise<void>(resolve => { hold = { entered: resolve, released }; });
+  const late = assert.rejects(put('late overwrite'), /scope-ended/);
+  await entered;
+  select('B');
+  hold = undefined;
+  releaseWrite();
+  await late;
+  const bundle = await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: 'shared' } }) as { draft: { text: string } };
+  assert.equal(bundle.draft.text, 'second owner');
+  await invoke(host, 'chat_ai_delete_draft', { payload: { threadId: 'shared' } });
+  select('A');
+  assert.equal((await read())?.text, 'first owner');
+});
+
+test('bounded turn context reads complete parent pairs at 100, 1000 and 10000 turns', async t => {
+  const dataRoot = await temporaryDataRoot('bounded-context');
+  const host = createTestHost({ resolveSelectedDataRoot: () => dataRoot, workerUrl: CHAT_AI_STORE_WORKER_URL });
+  t.after(async () => { await host.close(); await rm(dataRoot, { recursive: true, force: true }); });
+  const thread = { id: 'long', title: 'Long', createdAtMs: 1, updatedAtMs: 1, lastMessageAtMs: null };
+  await invoke(host, 'chat_ai_create_thread', { payload: thread });
+  const db = new DatabaseSync(path.join(dataRoot, 'apps', 'nimi.desktop', 'data', 'chat-ai', 'main.db'));
+  const insert = db.prepare(`INSERT INTO ai_messages(id,thread_id,role,status,content_text,content_json,parent_message_id,created_at_ms,updated_at_ms)
+    VALUES(?,'long',?,?,?,?,?,?,?)`);
+  const add = (id: string, role: string, state: string, text: string, parent: string | null, time: number) =>
+    insert.run(id, role, state, text, JSON.stringify(content(text)), parent, time, time);
+  const query = async () => (await invoke(host, 'chat_ai_get_turn_context', { payload: {threadId:'long'} }) as {
+    messages: { id: string }[];
+  }).messages.map(message => message.id);
+  try {
+    let from = 0;
+    for (const size of [100, 1000, 10000]) {
+      db.exec('BEGIN');
+      for (let i = from; i < size; i++) {
+        add('u'+i, 'user', 'complete', 'question', null, i*2);
+        add('a'+i, 'assistant', 'complete', 'answer', 'u'+i, i*2+1);
+      }
+      db.exec('COMMIT');
+      const start = performance.now();
+      const ids = await query();
+      t.diagnostic(`${size} turns, read ${(performance.now()-start).toFixed(2)} ms`);
+      assert.equal(ids.length, 32);
+      assert.deepEqual(ids.slice(0,2), ['u'+(size-16),'a'+(size-16)]);
+      assert.deepEqual(ids.slice(-2), ['u'+(size-1),'a'+(size-1)]);
+      from = size;
+    }
+    add('latest-reply', 'assistant', 'complete', 'amended', 'u9999', 20001);
+    for (let i=0; i<36; i++) add('failed'+i, 'assistant', 'failed', 'failed', 'u9999', 20002+i);
+    const ids = await query();
+    assert.equal(ids.length,32);
+    assert.deepEqual(ids.slice(-2), ['u9999','latest-reply']);
+    assert.ok(!ids.includes('a9999'));
+    add('oversized', 'assistant', 'complete', 'x'.repeat(512*1024), 'u9999', 20040);
+    assert.deepEqual(await query(), []);
+  } finally {
+    db.close();
+  }
 });

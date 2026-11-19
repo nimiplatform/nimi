@@ -745,10 +745,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       resolveTurnScope: async () => {
         const signal = registeredRuntimeBridge?.captureDesktopFormalScope?.();
         const account = await registeredRuntimeBridge?.readDesktopAccountSessionStatus?.();
-        if (!signal || signal.aborted || account?.state !== 'authenticated' || !account.authorizationRevision) {
+        if (!signal || signal.aborted || account?.state !== 'authenticated' || !account.authorizationRevision || !account.accountProjection) {
           throw new Error('chat-ai-turn-scope-unavailable');
         }
-        return { signal, revision: account.authorizationRevision };
+        return { signal, revision: account.authorizationRevision, accountKey: JSON.stringify([account.accountProjection.realmEnvironmentId, account.accountProjection.accountId]) };
       },
       operationGate: dataRootOperationGate,
     });

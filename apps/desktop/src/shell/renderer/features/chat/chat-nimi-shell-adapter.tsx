@@ -169,11 +169,12 @@ export function useAiConversationModeHost(
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
   const composerReady = setupState.status === 'ready' && !isBundleLoading;
-  const executeTextCapability = useCallback((text: string, history: ChatAiMessageRecord[], signal: AbortSignal) => runDesktopNimiTextCapability({
+  const executeTextCapability = useCallback((text: string, history: ChatAiMessageRecord[], signal: AbortSignal, onText: (text: string) => void) => runDesktopNimiTextCapability({
     client: bindings.sdk.appProduct(),
     prompt: text,
     history,
     signal,
+    onText,
   }), [bindings.sdk]);
 
   const {
@@ -338,11 +339,15 @@ export function useAiConversationModeHost(
     () => createReasoningMessageContentRenderer(reasoningLabel),
     [reasoningLabel],
   );
-  const pendingFirstBeat = Boolean(activeThreadId && submittingThreadId === activeThreadId && pending?.phase === 'generating');
-  const footerContent = pendingFirstBeat ? (
+  const visibleTurn = activeThreadId && pending?.threadId === activeThreadId ? pending : null;
+  const pendingFirstBeat = visibleTurn?.phase === 'generating' && !visibleTurn.text;
+  const footerContent = visibleTurn?.text ? (
     <ChatStreamStatus
       mode="streaming"
-      partialText={t('Chat.nimiSending', { defaultValue: 'Generating response...' })}
+      partialText={visibleTurn.text}
+      actions={visibleTurn.stop ? (
+        <button type="button" className="block mt-2 underline" onClick={visibleTurn.stop}>{t('Chat.stopGenerating')}</button>
+      ) : undefined}
       reasoningText=""
       reasoningLabel={reasoningLabel}
     />
@@ -370,6 +375,7 @@ export function useAiConversationModeHost(
     messages,
     onDismissHostFeedback: () => setHostFeedback(null),
     pendingFirstBeat,
+    onStopGenerating: visibleTurn?.stop,
     renderMessageContent,
     setChatThinkingPreference,
     setupPending: appAIConfig.isPending,

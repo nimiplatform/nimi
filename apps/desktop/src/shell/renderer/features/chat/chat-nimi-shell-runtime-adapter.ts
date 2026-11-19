@@ -12,6 +12,7 @@ export type DesktopNimiTextCapabilityInput = {
   readonly prompt: string;
   readonly history?: ChatAiThreadBundle['messages'];
   readonly signal?: AbortSignal;
+  readonly onText?: (text: string) => void;
 };
 
 const HISTORY_TURNS = 16;
@@ -55,7 +56,10 @@ export async function runDesktopNimiTextCapability(
     input.signal?.throwIfAborted();
     for await (const event of stream) {
       input.signal?.throwIfAborted();
-      if (event.type === 'delta') text += event.text;
+      if (event.type === 'delta') {
+        text += event.text;
+        input.onText?.(text);
+      }
       if (event.type === 'failed') throw Object.assign(new Error(event.reasonCode), event);
       if (event.type === 'completed') {
         if ((event.finishReason !== 'stop' && event.finishReason !== 'length') || !text.trim()) {
