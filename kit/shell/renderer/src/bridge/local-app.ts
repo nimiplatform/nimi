@@ -303,9 +303,10 @@ export type NimiLocalAppVoiceAsset = {
   readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly expiresAt: NimiLocalAppScenarioTimestamp | null;
 };
+type TokenUsage = { readonly promptTokens: number; readonly completionTokens: number; readonly totalTokens: number };
 export type NimiLocalAppScenarioExecuteResult =
-  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
-  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: { readonly promptTokens: number; readonly completionTokens: number; readonly totalTokens: number } }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter'; readonly usage?: TokenUsage }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string; readonly usage?: TokenUsage }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
   | { readonly output: NimiLocalAppTextDecideOutput; readonly traceId: string };
 export type NimiLocalAppScenarioJobSubmitResult = {
@@ -2726,6 +2727,16 @@ function parseConversationVoice(value: unknown, command: string): JsonObject {
   }) as JsonObject;
 }
 
+function validateOptionalTokenUsage(output: Readonly<Record<string, unknown>>, command: string): void {
+  if (output.usage === undefined) return;
+  const usage = assertRecord(output.usage, `${command}: token usage is invalid`);
+  assertProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], command, 'token usage');
+  const prompt = nonNegativeInteger(usage.promptTokens, command, 'promptTokens');
+  const completion = nonNegativeInteger(usage.completionTokens, command, 'completionTokens');
+  const total = nonNegativeInteger(usage.totalTokens, command, 'totalTokens');
+  if (total !== prompt + completion) throw new Error(`${command}: token usage total is invalid`);
+}
+
 function parseScenarioExecute(value: unknown, command: string, spec: JsonObject): NimiLocalAppScenarioExecuteResult {
   const record = assertRecord(value, `${command}: execute result is invalid`);
   assertProjectionKeys(record, ['output', 'traceId'], command, 'scenario execute');
@@ -2740,20 +2751,14 @@ function parseScenarioExecute(value: unknown, command: string, spec: JsonObject)
     return Object.freeze({ output: decision, traceId: record.traceId as string });
   }
   if (output.type === 'text-generate') {
-    assertProjectionKeys(output, ['type', 'items', 'finishReason'], command, 'text output');
+    assertProjectionKeys(output, ['type', 'items', 'finishReason', ...(output.usage === undefined ? [] : ['usage'])], command, 'text output');
+    validateOptionalTokenUsage(output, command);
     validateNimiLocalAppTextOutputItems(output.items);
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw new Error(`${command}: finishReason is invalid`);
   } else if (output.type === 'text-embed') {
     // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
     assertProjectionKeys(output, ['type', 'vectors', 'spaceId', ...(output.usage !== undefined ? ['usage'] : [])], command, 'embed output');
-    if (output.usage !== undefined) {
-      const usage = assertRecord(output.usage, `${command}: embed usage is invalid`);
-      assertProjectionKeys(usage, ['promptTokens', 'completionTokens', 'totalTokens'], command, 'embed usage');
-      const prompt = nonNegativeInteger(usage.promptTokens, command, 'promptTokens');
-      const completion = nonNegativeInteger(usage.completionTokens, command, 'completionTokens');
-      const total = nonNegativeInteger(usage.totalTokens, command, 'totalTokens');
-      if (total !== prompt + completion) throw new Error(`${command}: embed usage total is invalid`);
-    }
+    validateOptionalTokenUsage(output, command);
     if (!optionalProjectionText(output.spaceId, 128, command)) {
       throw new Error(`${command}: embedding spaceId is invalid`);
     }
@@ -3050,7 +3055,8 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
       carrier: validateNimiLocalAppReasoningContinuityCarrier(record.carrier) });
   }
   if (record.type === 'completed') {
-    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], command, 'text completion');
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason', ...(record.usage === undefined ? [] : ['usage'])], command, 'text completion');
+    validateOptionalTokenUsage(record, command);
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) throw new Error(`${command}: finishReason is invalid`);
     return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
   }
@@ -3062,7 +3068,7 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     if (record.interruption != null) {
       const interruption = assertRecord(record.interruption, `${command}: text interruption is invalid`);
       assertProjectionKeys(interruption, ['cause', 'resubmitDisposition'], command, 'text interruption');
-      if (interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit') {
+      if (interruption.cause !== 'runtime-restart' || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain')) {
         throw new Error(`${command}: text interruption is invalid`);
       }
     }
