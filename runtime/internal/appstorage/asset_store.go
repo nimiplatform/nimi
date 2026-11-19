@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -121,6 +122,9 @@ type assetDiskMetadata struct {
 
 type assetOwnerState struct {
 	quotaMu         sync.Mutex
+	indexReady      bool
+	records         []AssetRecord // sorted by the public path under quotaMu
+	usedBytes       int64
 	streams         chan struct{}
 	candidatesMu    sync.Mutex
 	candidatesReady bool
@@ -323,10 +327,10 @@ func (store *AssetStore) write(
 
 	state.quotaMu.Lock()
 	defer state.quotaMu.Unlock()
-	usageBytes, usageObjects, usageErr := store.reconcileOwnerUsage(ctx, objectsRoot)
-	if usageErr != nil {
-		return AssetRecord{}, usageErr
+	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
+		return AssetRecord{}, err
 	}
+	usageBytes, usageObjects := state.usedBytes, int64(len(state.records))
 	existingBytes := int64(0)
 	if existingErr == nil {
 		existingBytes = existing.SizeBytes
@@ -353,10 +357,13 @@ func (store *AssetStore) write(
 			return AssetRecord{}, ErrAssetUnavailable
 		}
 		if err := commitAssetCandidate(candidatePath, target); err != nil {
+			state.indexReady = false
 			return AssetRecord{}, fmt.Errorf("%w: commit asset payload: %v", ErrAssetUnavailable, err)
 		}
 		committed = true
-		return metadata.public(normalizedPath), nil
+		record := metadata.public(normalizedPath)
+		state.updateAsset(normalizedPath, &record)
+		return record, nil
 	}
 	if guard == nil {
 		return publish()
@@ -369,6 +376,9 @@ func (store *AssetStore) write(
 	})
 	if err == nil && !committed {
 		return AssetRecord{}, ErrAssetUnavailable
+	}
+	if err != nil && committed {
+		state.indexReady = false
 	}
 	return result, err
 }
@@ -455,7 +465,7 @@ func (store *AssetStore) List(ctx context.Context, owner ManagedOwner, prefix st
 	if err != nil {
 		return AssetListPage{}, err
 	}
-	ownerKey := managedOwnerKey(normalizedOwner)
+	state, ownerKey := store.ownerState(normalizedOwner)
 	after := ""
 	if cursor != "" {
 		payload, err := store.parseCursor(cursor)
@@ -465,18 +475,30 @@ func (store *AssetStore) List(ctx context.Context, owner ManagedOwner, prefix st
 		after = payload.After
 	}
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
-	records, err := store.listRecords(ctx, objectsRoot, normalizedPrefix)
-	if err != nil {
+	state.quotaMu.Lock()
+	defer state.quotaMu.Unlock()
+	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
 		return AssetListPage{}, err
 	}
-	sort.Slice(records, func(left, right int) bool { return records[left].RelativePath < records[right].RelativePath })
-	start := sort.Search(len(records), func(index int) bool { return records[index].RelativePath > after })
-	end := start + pageSize
-	if end > len(records) {
-		end = len(records)
+	start := sort.Search(len(state.records), func(i int) bool {
+		key := state.records[i].RelativePath
+		return key >= normalizedPrefix && key > after
+	})
+	matches := func(key string) bool {
+		return normalizedPrefix == "" || key == normalizedPrefix ||
+			strings.HasSuffix(normalizedPrefix, "/") && strings.HasPrefix(key, normalizedPrefix)
 	}
-	page := AssetListPage{Assets: append([]AssetRecord(nil), records[start:end]...)}
-	if end < len(records) && len(page.Assets) > 0 {
+	page := AssetListPage{}
+	for start < len(state.records) && len(page.Assets) < pageSize && matches(state.records[start].RelativePath) {
+		record, err := store.readRecord(ctx, objectsRoot, state.records[start].RelativePath)
+		if err != nil {
+			state.indexReady = false
+			return AssetListPage{}, err
+		}
+		page.Assets = append(page.Assets, record)
+		start++
+	}
+	if start < len(state.records) && matches(state.records[start].RelativePath) && len(page.Assets) > 0 {
 		page.NextCursor, err = store.issueCursor(assetCursorPayload{OwnerKey: ownerKey, Prefix: normalizedPrefix, After: page.Assets[len(page.Assets)-1].RelativePath})
 		if err != nil {
 			return AssetListPage{}, err
@@ -509,9 +531,14 @@ func (store *AssetStore) Remove(ctx context.Context, owner ManagedOwner, relativ
 	} else if err != nil {
 		return false, err
 	}
+	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
+		return false, err
+	}
 	if err := removeAssetPayload(target); err != nil {
+		state.indexReady = false
 		return false, ErrAssetUnavailable
 	}
+	state.updateAsset(normalizedPath, nil)
 	removeEmptyAssetParents(objectsRoot, filepath.Dir(target))
 	return true, nil
 }
@@ -549,11 +576,17 @@ func (store *AssetStore) Move(ctx context.Context, owner ManagedOwner, from stri
 	if _, err := ensureManagedParent(objectsRoot, toTarget, true); err != nil {
 		return AssetRecord{}, ErrAssetUnavailable
 	}
+	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
+		return AssetRecord{}, err
+	}
 	if err := moveAssetPayload(fromTarget, toTarget); err != nil {
+		state.indexReady = false
 		return AssetRecord{}, ErrAssetUnavailable
 	}
 	removeEmptyAssetParents(objectsRoot, filepath.Dir(fromTarget))
 	record.RelativePath = toPath
+	state.updateAsset(fromPath, nil)
+	state.updateAsset(toPath, &record)
 	return record, nil
 }
 
@@ -565,7 +598,13 @@ func (store *AssetStore) Usage(ctx context.Context, owner ManagedOwner) (int64, 
 	state, _ := store.ownerState(normalizedOwner)
 	state.quotaMu.Lock()
 	defer state.quotaMu.Unlock()
-	return store.reconcileOwnerUsage(ctx, filepath.Join(ownerRoot, "assets", "objects"))
+	if err := store.ensureAssetIndex(ctx, state, filepath.Join(ownerRoot, "assets", "objects")); err != nil {
+		return 0, 0, err
+	}
+	if state.usedBytes > store.policy.MaxOwnerBytes {
+		return 0, 0, ErrAssetQuota
+	}
+	return state.usedBytes, int64(len(state.records)), nil
 }
 
 func (store *AssetStore) ownerState(owner ManagedOwner) (*assetOwnerState, string) {
@@ -813,7 +852,7 @@ func moveAssetPayload(source string, target string) error {
 	return replaceLocalAppJSONFile(assetMetadataPath(source), assetMetadataPath(target))
 }
 
-func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string, prefix string) ([]AssetRecord, error) {
+func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string) ([]AssetRecord, error) {
 	if info, err := os.Lstat(objectsRoot); errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	} else if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
@@ -846,9 +885,6 @@ func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string, pr
 			// truth. Exact path lookup also treats them as absent.
 			return nil
 		}
-		if prefix != "" && logical != prefix && !(strings.HasSuffix(prefix, "/") && strings.HasPrefix(logical, prefix)) {
-			return nil
-		}
 		record, err := store.readRecord(ctx, objectsRoot, logical)
 		if errors.Is(err, ErrAssetNotFound) {
 			return nil
@@ -862,19 +898,41 @@ func (store *AssetStore) listRecords(ctx context.Context, objectsRoot string, pr
 	return records, err
 }
 
-func (store *AssetStore) reconcileOwnerUsage(ctx context.Context, objectsRoot string) (int64, int64, error) {
-	records, err := store.listRecords(ctx, objectsRoot, "")
+func (store *AssetStore) ensureAssetIndex(ctx context.Context, state *assetOwnerState, objectsRoot string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if state.indexReady {
+		return nil
+	}
+	records, err := store.listRecords(ctx, objectsRoot)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
-	var bytesUsed int64
+	sort.Slice(records, func(i, j int) bool { return records[i].RelativePath < records[j].RelativePath })
+	var used int64
 	for _, record := range records {
-		if record.SizeBytes < 0 || bytesUsed > store.policy.MaxOwnerBytes-record.SizeBytes {
-			return 0, 0, ErrAssetQuota
-		}
-		bytesUsed += record.SizeBytes
+		used += record.SizeBytes
 	}
-	return bytesUsed, int64(len(records)), nil
+	state.records, state.usedBytes, state.indexReady = records, used, true
+	return nil
+}
+
+func (state *assetOwnerState) updateAsset(key string, next *AssetRecord) {
+	i := sort.Search(len(state.records), func(i int) bool { return state.records[i].RelativePath >= key })
+	if i < len(state.records) && state.records[i].RelativePath == key {
+		state.usedBytes -= state.records[i].SizeBytes
+		if next == nil {
+			state.records = slices.Delete(state.records, i, i+1)
+		} else {
+			state.records[i] = *next
+		}
+	} else if next != nil {
+		state.records = slices.Insert(state.records, i, *next)
+	}
+	if next != nil {
+		state.usedBytes += next.SizeBytes
+	}
 }
 
 func normalizeAssetMediaType(value string) (string, error) {

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -491,4 +492,73 @@ func TestAssetActiveStreamLimitHonorsCancellation(t *testing.T) {
 		t.Fatalf("second Open err=%v", err)
 	}
 	_ = opened.Body.Close()
+}
+
+func BenchmarkManagedAssetPartition(b *testing.B) {
+	for _, count := range []int{10, 100, 1000} {
+		b.Run(fmt.Sprint(count), func(b *testing.B) {
+			store, err := NewAssetStore(b.TempDir(), AssetPolicy{MinFreeBytes: 1})
+			if err != nil {
+				b.Fatal(err)
+			}
+			owner := assetTestOwner("benchmark", "subject")
+			write := func(path string, overwrite bool) error {
+				_, err := store.Write(context.Background(), owner, path, "text/plain", overwrite, io.NopCloser(strings.NewReader("1234567")))
+				return err
+			}
+			for i := 0; i < count; i++ {
+				if err := write(fmt.Sprintf("records/%04d", i), false); err != nil {
+					b.Fatal(err)
+				}
+			}
+			b.Run("overwrite7B", func(b *testing.B) {
+				for b.Loop() {
+					if err := write("records/0000", true); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+			b.Run("page1", func(b *testing.B) {
+				for b.Loop() {
+					page, err := store.List(context.Background(), owner, "records/", "", 1)
+					if err != nil || len(page.Assets) != 1 {
+						b.Fatalf("page: %v %v", page, err)
+					}
+				}
+			})
+		})
+	}
+}
+
+func TestUnknownPublicationReconcilesPartitionBeforeNextQuotaCheck(t *testing.T) {
+	root := t.TempDir()
+	policy := AssetPolicy{MaxObjectBytes: 10, MaxOwnerBytes: 10, MaxOwnerObjects: 2, MinFreeBytes: 1}
+	store, err := NewAssetStore(root, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := assetTestOwner("account", "registered-subject")
+	unknown := errors.New("publication response lost")
+	_, err = store.WriteGuarded(context.Background(), owner, "a", "application/octet-stream", false, io.NopCloser(strings.NewReader("12345")), func(_ AssetRecord, commit func() error) error {
+		if err := commit(); err != nil {
+			return err
+		}
+		return unknown
+	}, "")
+	if !errors.Is(err, unknown) {
+		t.Fatal(err)
+	}
+	// Reproduce a changed durable directory before this owner has reconciled it.
+	other, err := NewAssetStore(root, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeAssetBytes(t, other, owner, "b", []byte("67890"), false)
+	if _, err := store.Write(context.Background(), owner, "c", "application/octet-stream", false, io.NopCloser(strings.NewReader("x"))); !errors.Is(err, ErrAssetQuota) {
+		t.Fatalf("unknown result did not trigger quota reconciliation: %v", err)
+	}
+	page, err := store.List(context.Background(), owner, "", "", 2)
+	if err != nil || len(page.Assets) != 2 {
+		t.Fatalf("reconciled list: %+v %v", page, err)
+	}
 }
