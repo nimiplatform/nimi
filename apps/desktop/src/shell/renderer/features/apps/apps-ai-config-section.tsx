@@ -1,10 +1,11 @@
+import { useState as useRecordState } from 'react';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/kit/ui';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import { type NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
-import { ModelConfigAIConfigSurface, type ModelConfigCapabilitySection, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
+import { AIConfigRecordControls, ModelConfigAIConfigSurface, type ModelConfigCapabilitySection, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
 
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useDesktopNimiAppAIConfig, useOverwriteDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
@@ -324,7 +325,9 @@ export function AppsAIConfigSection({
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
 
-  const appAIConfig = useDesktopNimiAppAIConfig(appId);
+  const [recordRef,setRecordRef]=useRecordState<string>();
+  const [recordError,setRecordError]=useRecordState('');
+  const appAIConfig = useDesktopNimiAppAIConfig(appId,{includeRecords:true,configRef:recordRef});
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const { t, i18n } = useTranslation();
   const copy = useAppsModelConfigCopy(appDisplayName);
@@ -374,10 +377,11 @@ export function AppsAIConfigSection({
   const overwriteAndRefreshSummary = useCallback(async (
     input: Parameters<typeof overwriteAppAIConfig.mutateAsync>[0],
   ) => {
-    const result = await overwriteAppAIConfig.mutateAsync(input);
-    onAIConfigChanged(result);
+    const current=appAIConfig.data?.record;
+    const result = await overwriteAppAIConfig.mutateAsync({...input,...(!input.record && current ? {record:{action:'save' as const,configRef:current.configRef}}:{})});
+    if (!result.record || result.record.isDefault) onAIConfigChanged(result);
     return result;
-  }, [onAIConfigChanged, overwriteAppAIConfig]);
+  }, [onAIConfigChanged, overwriteAppAIConfig,appAIConfig.data?.record]);
   const openMachineLoadout = useCallback((capabilityContract: string) => {
     // Consumer entries open the shared setup task with the exact owner,
     // account snapshot, and return handle; the task view owns the route from
@@ -412,7 +416,18 @@ export function AppsAIConfigSection({
 
   return (
     <section data-testid={`apps-ai-config-${appId}`}>
-      <ModelConfigAIConfigSurface
+      {appAIConfig.data?.records && <AIConfigRecordControls snapshot={appAIConfig.data} busy={appAIConfig.isFetching || overwriteAppAIConfig.isPending} language={i18n.language}
+        onSelect={ref=>{setRecordError('');setRecordRef(ref);}} onEdit={async edit=>{
+          try {
+            setRecordError('');
+            const result=await overwriteAndRefreshSummary({expectedRevision:edit.action==='create'?'0':appAIConfig.data!.revision,
+              capabilities:edit.action==='create'?appAIConfig.data!.config?.capabilities ?? []:[], record:edit});
+            if(result.outcome==='conflict'){setRecordError(copy.saveFailed ?? 'Configuration changed.');return false;}
+            setRecordRef(result.record?.configRef);return true;
+          }catch(e){setRecordError(e instanceof Error?e.message:String(e));return false;}
+        }} />}
+      {recordError && <p role="alert">{recordError}</p>}
+      <ModelConfigAIConfigSurface key={recordRef ?? 'default'}
         context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}
         capabilitySections={capabilitySections}

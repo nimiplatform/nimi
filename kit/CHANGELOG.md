@@ -10,6 +10,18 @@
 
 `capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
 
+## 0.24.0-rc.15
+
+- Electron validates configuration captures through the Kit SDK contract entrypoint.
+
+## 0.24.0-rc.14
+
+- A stale text configuration returns a recoverable conflict to its session. Returning to the model editor refreshes the selected configuration.
+
+## 0.24.0-rc.13
+
+- macOS installed Apps use the user-session Supervisor. The App model editor can manage named AIConfig records.
+
 ## 0.24.0-rc.11 — Text context capacity
 
 A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.

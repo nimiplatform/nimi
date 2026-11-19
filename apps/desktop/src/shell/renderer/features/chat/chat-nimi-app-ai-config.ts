@@ -62,14 +62,12 @@ export function desktopNimiAppAIConfigQueryKey(appId: string) {
 }
 
 /** Runtime-owned App AIConfig read-through; React Query is not persistence. */
-export function useDesktopNimiAppAIConfig(appId: string) {
+export function useDesktopNimiAppAIConfig(appId: string, records?: {configRef?:string; includeRecords:true}) {
   const sdk = useDesktopRendererSdk();
   const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useQuery({
-    queryKey,
-    queryFn: () => readDesktopNimiAppAIConfig(
-      appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId),
-    ),
+    queryKey:records?[...queryKey,'records',records.configRef ?? '']:queryKey,
+    queryFn: () => (appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId)).get(records),
     retry: false,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -88,7 +86,7 @@ export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
         .overwrite(input)
     ),
     onSuccess(result) {
-      queryClient.setQueryData(queryKey, {
+      if (!result.record || result.record.isDefault) queryClient.setQueryData(queryKey, {
         config: result.config,
         revision: result.revision,
         effectiveSelections: [],
