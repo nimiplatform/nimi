@@ -121,18 +121,30 @@ export class RuntimeDataChannelTransport implements CoreTransport {
 
   async #sendMessage(pending: Pending, kind: Kind, payload: Uint8Array, opening = false, traceId?: string, idempotencyKey?: string): Promise<void> {
     for (let offset = 0;;) {
-      if (pending.done || this.#closed) return;
-      if (!this.#current()) { this.close(); return; }
-      await this.#drain();
-      if (pending.done || this.#closed) return;
-      if (!this.#current()) { this.close(); return; }
       const end = Math.min(offset + CHUNK_BYTES, payload.byteLength);
       const first = opening && offset === 0;
-      const frame = RemoteTransportFrame.create({ kind, requestId: pending.id, method: first ? pending.request.methodId : '',
-        payload: payload.subarray(offset, end), chunkEnd: end === payload.byteLength,
-        timeoutMs: first ? pending.request.timeoutMs ?? 0 : 0, traceId: first ? traceId ?? '' : '', idempotencyKey: first ? idempotencyKey ?? '' : '' });
-      pending.sent = true;
-      this.#channel.send(RemoteTransportFrame.toBinary(frame));
+      const sendFrame = async () => {
+        if (pending.done || this.#closed) return;
+        await this.#drain();
+        if (pending.done || this.#closed) return;
+        if (!this.#current()) { this.close(); return; }
+        const frame = RemoteTransportFrame.create({ kind, requestId: pending.id, method: first ? pending.request.methodId : '',
+          payload: payload.subarray(offset, end), chunkEnd: end === payload.byteLength,
+          timeoutMs: first ? pending.request.timeoutMs ?? 0 : 0, traceId: first ? traceId ?? '' : '', idempotencyKey: first ? idempotencyKey ?? '' : '' });
+        pending.sent = true;
+        this.#channel.send(RemoteTransportFrame.toBinary(frame));
+      };
+      if (opening) {
+        // Opening requests share one assembly slot on the peer and must stay in ID order.
+        await sendFrame();
+      } else {
+        // Once open, the peer tracks input fragments by request ID. Yield the
+        // channel between frames so a stop can be admitted under backpressure.
+        const sent = this.#sending.then(sendFrame);
+        this.#sending = sent.catch(error => this.#cancel(pending, error));
+        await sent;
+      }
+      if (pending.done || this.#closed) return;
       if (end === payload.byteLength) return; offset = end;
     }
   }
@@ -148,8 +160,6 @@ export class RuntimeDataChannelTransport implements CoreTransport {
       if (message.byteLength > MAX_INPUT_MESSAGE_BYTES) throw protocolError('Upload method message is too large.');
       await this.#sendMessage(pending, Kind.CLIENT_STREAM_OPEN, message, true, traceId, idempotencyKey);
     } catch (error) { closeInput(iterator); throw error; }
-    // Only an individual encoded message holds the shared send queue. A slow
-    // file producer or owner does not block unrelated RPCs on this channel.
     void this.#pumpInput(pending, iterator).catch(error => this.#cancel(pending, error));
   }
 
@@ -174,9 +184,7 @@ export class RuntimeDataChannelTransport implements CoreTransport {
         const message = pending.codec.encodeRequest(next.value);
         if (message.byteLength > MAX_INPUT_MESSAGE_BYTES) throw protocolError('Upload method message is too large.');
         pending.input!.credits--;
-        const send = this.#sending.then(() => this.#sendMessage(pending, Kind.CLIENT_STREAM_DATA, message));
-        this.#sending = send.catch(error => this.#cancel(pending, error));
-        await send;
+        await this.#sendMessage(pending, Kind.CLIENT_STREAM_DATA, message);
       }
     } finally { closeInput(iterator); }
   }

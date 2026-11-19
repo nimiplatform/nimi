@@ -397,17 +397,22 @@ func (p *Peer) execute(ctx context.Context, cancel context.CancelFunc, call Call
 	if !p.Live() {
 		return
 	}
+	// Keep successive messages in this call contiguous with respect to each
+	// other. Other request IDs can use the channel between their fragments.
+	var streamMessages sync.Mutex
 	payload, stream, err := p.dispatch(ctx, p, call, func(payload []byte) error {
+		streamMessages.Lock()
+		defer streamMessages.Unlock()
 		return p.sendPayload(ctx, runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA, call.RequestID, payload)
 	})
+	streamMessages.Lock()
+	defer streamMessages.Unlock()
 	if err != nil {
 		p.sendError(call.RequestID, err)
 		return
 	}
 	if stream {
-		p.sendMu.Lock()
 		_ = p.sendFrame(ctx, &runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_STREAM_END, RequestId: call.RequestID, ChunkEnd: true})
-		p.sendMu.Unlock()
 	} else {
 		if err := p.sendPayload(ctx, runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_RESPONSE, call.RequestID, payload); err != nil {
 			p.sendError(call.RequestID, err)
@@ -416,16 +421,12 @@ func (p *Peer) execute(ctx context.Context, cancel context.CancelFunc, call Call
 }
 
 func (p *Peer) sendInputCredit(ctx context.Context, id, credits uint32) error {
-	p.sendMu.Lock()
-	defer p.sendMu.Unlock()
 	return p.sendFrame(ctx, &runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT, RequestId: id, ChunkEnd: true, InputCredits: credits})
 }
 
 func (p *Peer) sendError(id uint32, err error) {
 	frame := remoteErrorFrame(id, err)
-	p.sendMu.Lock()
 	sendErr := p.sendFrame(p.ctx, frame)
-	p.sendMu.Unlock()
 	if sendErr != nil {
 		go p.Close()
 	}
@@ -456,8 +457,6 @@ func (p *Peer) sendPayload(ctx context.Context, kind runtimev1.RemoteTransportFr
 	if len(payload) > maxMessageBytes {
 		return status.Error(codes.ResourceExhausted, "direct response too large")
 	}
-	p.sendMu.Lock()
-	defer p.sendMu.Unlock()
 	for offset := 0; ; {
 		end := min(offset+chunkBytes, len(payload))
 		if err := p.sendFrame(ctx, &runtimev1.RemoteTransportFrame{Kind: kind, RequestId: id, Payload: payload[offset:end], ChunkEnd: end == len(payload)}); err != nil {
@@ -470,6 +469,10 @@ func (p *Peer) sendPayload(ctx context.Context, kind runtimev1.RemoteTransportFr
 	}
 }
 func (p *Peer) sendFrame(ctx context.Context, frame *runtimev1.RemoteTransportFrame) error {
+	// The ordered channel has one writer and one buffered-low notification.
+	// A multi-frame response yields the writer after each physical frame.
+	p.sendMu.Lock()
+	defer p.sendMu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}

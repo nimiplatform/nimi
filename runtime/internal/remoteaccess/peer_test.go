@@ -80,16 +80,17 @@ func TestPeerPublicationRejectsClosedExpiredOrReplacedScope(t *testing.T) {
 	}
 }
 
-// This is a live transport test, not Runtime/AI or source-confirmation acceptance.
-func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
+// This exercises real transport on loopback; Runtime admission is tested by its own callers.
+func loopbackFramePeer(t *testing.T, dispatch Dispatcher) (context.Context, *Peer, <-chan *runtimev1.RemoteTransportFrame, func(*runtimev1.RemoteTransportFrame)) {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 	api := loopbackPeerAPI()
 	client, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = client.Close() }()
+	t.Cleanup(func() { cancel(); _ = client.Close() })
 	protocol := channelProtocol
 	channel, err := client.CreateDataChannel(channelLabel, &webrtc.DataChannelInit{Protocol: &protocol})
 	if err != nil {
@@ -101,7 +102,10 @@ func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
 	channel.OnMessage(func(message webrtc.DataChannelMessage) {
 		frame := &runtimev1.RemoteTransportFrame{}
 		if proto.Unmarshal(message.Data, frame) == nil {
-			frames <- frame
+			select {
+			case frames <- frame:
+			case <-ctx.Done():
+			}
 		}
 	})
 	created, err := client.CreateOffer(nil)
@@ -117,20 +121,12 @@ func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
-	var dispatched atomic.Int32
 	assertLoopbackCandidates(t, client.LocalDescription().SDP)
-	server, answer, err := newPeer(ctx, ctx, api, PeerInfo{Deadline: time.Now().Add(time.Minute), AccountInvalidated: make(chan struct{})}, client.LocalDescription().SDP, nil,
-		func(_ context.Context, _ *Peer, call Call, _ func([]byte) error) ([]byte, bool, error) {
-			if call.IdempotencyKey != "direct-config-control" {
-				t.Error("lost non-authorizing idempotency control")
-			}
-			dispatched.Add(1)
-			return bytes.ToUpper(call.Payload), false, nil
-		})
+	server, answer, err := newPeer(ctx, ctx, api, PeerInfo{Deadline: time.Now().Add(time.Minute), AccountInvalidated: make(chan struct{})}, client.LocalDescription().SDP, nil, dispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer server.Close()
+	t.Cleanup(func() { cancel(); server.Close() })
 	assertLoopbackCandidates(t, answer)
 	if err = client.SetRemoteDescription(webrtc.SessionDescription{Type: webrtc.SDPTypeAnswer, SDP: answer}); err != nil {
 		t.Fatal(err)
@@ -140,7 +136,6 @@ func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
-	payload := bytes.Repeat([]byte("fragment-data"), 4000)
 	send := func(frame *runtimev1.RemoteTransportFrame) {
 		t.Helper()
 		data, err := proto.Marshal(frame)
@@ -151,6 +146,19 @@ func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	return ctx, server, frames, send
+}
+
+func TestLiveDirectDataChannelFragmentsAndRejectsRequestReplay(t *testing.T) {
+	var dispatched atomic.Int32
+	ctx, server, frames, send := loopbackFramePeer(t, func(_ context.Context, _ *Peer, call Call, _ func([]byte) error) ([]byte, bool, error) {
+		if call.IdempotencyKey != "direct-config-control" {
+			t.Error("lost non-authorizing idempotency control")
+		}
+		dispatched.Add(1)
+		return bytes.ToUpper(call.Payload), false, nil
+	})
+	payload := bytes.Repeat([]byte("fragment-data"), 4000)
 	for offset := 0; offset < len(payload); {
 		end := min(offset+chunkBytes, len(payload))
 		method := ""
@@ -189,6 +197,51 @@ complete:
 	}
 	if dispatched.Load() != 1 {
 		t.Fatal("request replay executed again")
+	}
+}
+
+func TestDirectControlResponseDuringLargeTransfer(t *testing.T) {
+	payload := bytes.Repeat([]byte("0123456789abcdef"), 1<<19)
+	ctx, _, frames, send := loopbackFramePeer(t, func(_ context.Context, _ *Peer, call Call, _ func([]byte) error) ([]byte, bool, error) {
+		if call.RequestID == 1 {
+			return payload, false, nil
+		}
+		return []byte("stopped"), false, nil
+	})
+	request := func(id uint32, method string) {
+		send(&runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_REQUEST, RequestId: id, Method: method, ChunkEnd: true})
+	}
+	request(1, "/transport/large-result")
+	var received []byte
+	controlRequested, controlReceived, complete := false, false, false
+	for !complete || !controlReceived {
+		select {
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		case frame := <-frames:
+			if frame.Kind != runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_RESPONSE {
+				t.Fatalf("unexpected frame %v", frame.Kind)
+			}
+			switch frame.RequestId {
+			case 1:
+				received = append(received, frame.Payload...)
+				complete = frame.ChunkEnd
+				if !controlRequested {
+					request(2, "/transport/control")
+					controlRequested = true
+				}
+			case 2:
+				if complete || !frame.ChunkEnd || string(frame.Payload) != "stopped" {
+					t.Fatalf("control response unavailable until after %d of %d bytes", len(received), len(payload))
+				}
+				controlReceived = true
+			default:
+				t.Fatalf("unexpected request ID %d", frame.RequestId)
+			}
+		}
+	}
+	if !bytes.Equal(received, payload) {
+		t.Fatal("interleaved response changed transmitted bytes")
 	}
 }
 
@@ -334,21 +387,23 @@ func TestDirectPeerStreamsLargeInputBeforeEOFWithoutBlockingOtherCalls(t *testin
 		for offset := 0; offset < len(part); offset += chunkBytes {
 			end := min(offset+chunkBytes, len(part))
 			send(&runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA, RequestId: 1, Payload: part[offset:end], ChunkEnd: end == len(part)})
-		}
-		if message == 5 {
-			if observed.Load() == 0 {
-				t.Fatal("owner did not receive any data before EOF")
-			}
-			send(&runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_REQUEST, RequestId: 2, Method: "/probe", ChunkEnd: true})
-			for {
-				frame := receive()
-				if frame.RequestId == 2 {
-					if frame.Kind != runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_RESPONSE || string(frame.Payload) != "available" {
-						t.Fatal(frame)
-					}
-					break
+			if message == 5 && offset == 0 {
+				if observed.Load() == 0 {
+					t.Fatal("owner did not receive any data before EOF")
 				}
-				consumeCredit(frame)
+				start := time.Now()
+				send(&runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_REQUEST, RequestId: 2, Method: "/probe", ChunkEnd: true})
+				for {
+					frame := receive()
+					if frame.RequestId == 2 {
+						if frame.Kind != runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_RESPONSE || string(frame.Payload) != "available" {
+							t.Fatal(frame)
+						}
+						t.Logf("control round trip during partial upload message: %v", time.Since(start))
+						break
+					}
+					consumeCredit(frame)
+				}
 			}
 		}
 	}

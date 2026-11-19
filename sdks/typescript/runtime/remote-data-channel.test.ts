@@ -359,3 +359,55 @@ test('a completed unary result survives later connection loss while unfinished c
   await assert.rejects(pending, { reasonCode: 'SDK_RUNTIME_REMOTE_UNAVAILABLE' });
   assert.equal(channel.sent.filter(frame => frame.requestId === 1 && frame.method).length, 1);
 });
+
+test('an independent response completes between fragments of an earlier response', async () => {
+  const channel = new Channel();
+  const transport = new RuntimeDataChannelTransport(channel, () => true);
+  const first = transport.unary<{ revision: string }>({ methodId: readMethod, body: {} });
+  const firstId = await sent(channel);
+  const payload = (revision: string) => GetAppAIConfigResponse.toBinary(GetAppAIConfigResponse.create({ revision }));
+  const split = payload('321');
+  channel.receive({ kind: Kind.RESPONSE, requestId: firstId, payload: split.subarray(0, 1) });
+  const second = transport.unary<{ revision: string }>({ methodId: readMethod, body: {} });
+  await until(() => channel.sent.length === 2);
+  const secondId = channel.sent[1].requestId;
+  assert.notEqual(firstId, secondId);
+  channel.receive({ kind: Kind.RESPONSE, requestId: secondId, payload: payload('42'), chunkEnd: true });
+  assert.equal((await second).revision, '42');
+  channel.receive({ kind: Kind.RESPONSE, requestId: firstId, payload: split.subarray(1), chunkEnd: true });
+  assert.equal((await first).revision, '321');
+  transport.close();
+});
+
+test('a control request can reach the wire between two fragments of the same asset input', async () => {
+  const channel = new Channel();
+  const transport = new RuntimeDataChannelTransport(channel, () => true);
+  const runtime = new RuntimeTypedClient(new CoreClient({ transport }));
+  const app = createRemoteRuntimeAppClients(runtime, 'nimi.test');
+  const source = new Uint8Array(1024 * 1024).fill(23);
+  const streamEnd = receiveUpload(channel);
+  const handleUpload = channel.onSend!;
+  let control: Promise<unknown> | undefined;
+  channel.onSend = frame => {
+    handleUpload(frame);
+    if (frame.kind === Kind.CLIENT_STREAM_DATA && !control) {
+      control = runtime.invokeIntegrationCall({ targetRef: 'pc', operation: 'session.stopInput', inputJson: '{}' });
+    }
+    if (frame.kind === Kind.REQUEST) {
+      channel.receive({ kind: Kind.RESPONSE, requestId: frame.requestId, chunkEnd: true, payload: new Uint8Array() });
+    }
+  };
+  const pending = app.storage.assets.write({ relativePath: 'file.bin', body: source });
+  const messages = await streamEnd;
+  const uploadId = channel.sent[0].requestId;
+  channel.receive({ kind: Kind.RESPONSE, requestId: uploadId, chunkEnd: true,
+    payload: WriteLocalAppAssetResponse.toBinary({ asset: { relativePath: 'file.bin', sizeBytes: String(source.length),
+      sha256: 'sha256:' + '0'.repeat(64), createdAt: { seconds: '1', nanos: 0 }, updatedAt: { seconds: '1', nanos: 0 } }, reasonCode: ReasonCode.ACTION_EXECUTED }) });
+  await Promise.all([pending, control]); transport.close();
+  const stop = channel.sent.findIndex(frame => frame.kind === Kind.REQUEST && frame.method.endsWith('/InvokeIntegrationCall'));
+  const first = channel.sent.findIndex(frame => frame.kind === Kind.CLIENT_STREAM_DATA);
+  const last = channel.sent.findIndex(frame => frame.kind === Kind.CLIENT_STREAM_DATA && frame.chunkEnd);
+  assert.ok(stop > first && stop < last, `first=${first}, control=${stop}, chunkEnd=${last}`);
+  const chunks = messages.flatMap(({ frame }) => frame.oneofKind === 'bodyChunk' ? [frame.bodyChunk] : []);
+  assert.deepEqual(Buffer.concat(chunks), Buffer.from(source));
+});
