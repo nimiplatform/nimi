@@ -3,7 +3,14 @@
   "minimumReductionPercent": 20,
   "targets": {
     "desktop": {
-      "entryChunkBytes": 2477584,
+      "entryBudgetBytes": 40000,
+      "startupBudgetBytes": {
+        "common": 7050000,
+        "recovery": 7050000,
+        "setup": 7100000,
+        "login": 7050000,
+        "home": 7600000
+      },
       "maxLargestAppChunkBytes": 460000
     },
     "web": {

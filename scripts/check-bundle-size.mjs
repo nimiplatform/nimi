@@ -50,6 +50,38 @@ async function readEntryChunkSize(targetName) {
   };
 }
 
+async function checkDesktopStartup(budgets, failures) {
+  const distDir = await resolveTargetDistDir('desktop');
+  const manifest = JSON.parse(await fs.readFile(path.join(distDir, '.vite', 'manifest.json'), 'utf8'));
+  const common = ['index.html', 'main.tsx', 'App.tsx'];
+  const routes = {
+    common, recovery: common,
+    setup: [...common, 'features/nimi-home/first-run-gate-panel.tsx'],
+    login: [...common, 'features/auth/login-page.tsx'],
+    home: [...common, 'app-shell/layouts/main-layout.tsx', 'features/home/nimi-overview.tsx'],
+  };
+  const sizes = new Map();
+  for (const [route, roots] of Object.entries(routes)) {
+    const files = new Set();
+    const visit = key => {
+      const chunk = manifest[key];
+      if (!chunk) throw new Error(`Desktop ${route}: missing manifest entry ${key}`);
+      if (files.has(chunk.file)) return;
+      files.add(chunk.file);
+      for (const dep of chunk.imports ?? []) visit(dep);
+    };
+    roots.forEach(visit);
+    let bytes = 0;
+    for (const file of files) {
+      if (!sizes.has(file)) sizes.set(file, (await fs.stat(path.join(distDir, file))).size);
+      bytes += sizes.get(file);
+    }
+    const budget = budgets[route];
+    process.stdout.write(`[bundle-size] desktop ${route}: ${files.size} chunks, ${bytes} bytes, budget ${budget}\n`);
+    if (!(bytes <= budget)) failures.push(`desktop ${route} exceeds startup budget`);
+  }
+}
+
 async function readLargestAppChunk(targetName) {
   return readLargestChunk(targetName, ({ fileName }) => !fileName.startsWith('vendor-'), 'non-vendor app chunk');
 }
@@ -131,6 +163,7 @@ async function main() {
     const budgetBytes = Number.isFinite(explicitBudgetBytes) && explicitBudgetBytes > 0
       ? explicitBudgetBytes
       : Math.floor(baselineBytes * (1 - minReductionPercent / 100));
+    if (targetName === 'desktop') await checkDesktopStartup(targetBaseline.startupBudgetBytes, failures);
     const current = await readEntryChunkSize(targetName);
     const largestAppChunk = await readLargestAppChunk(targetName);
     const maxLargestAppChunkBytes = Number(targetBaseline.maxLargestAppChunkBytes || 0);

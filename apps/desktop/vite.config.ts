@@ -243,6 +243,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      manifest: true,
       outDir: path.resolve(import.meta.dirname, 'dist'),
       emptyOutDir: true,
       modulePreload: {
