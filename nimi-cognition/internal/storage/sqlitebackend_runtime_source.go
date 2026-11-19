@@ -165,7 +165,7 @@ func (b *SQLiteBackend) InspectRuntimeSourceState(ctx context.Context, scopeID s
 	if err != nil {
 		return RuntimeSourceState{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	state, err := readRuntimeSourceState(ctx, tx, scopeID)
 	if err != nil {
 		return RuntimeSourceState{}, err
@@ -224,7 +224,7 @@ func (b *SQLiteBackend) SearchRuntimeSource(ctx context.Context, scopeID, snapsh
 	if err != nil {
 		return nil, RuntimeSourceState{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	state, err := readRuntimeSourceState(ctx, tx, scopeID)
 	if err != nil {
 		return nil, RuntimeSourceState{}, err

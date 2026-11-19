@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -113,7 +114,9 @@ func TestSnapshotStreamIsIndependentOfInvocationsAndRevalidatesGrant(t *testing.
 		t.Fatal("reconnect did not return current state")
 	}
 	cancel()
-	<-done
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("stream ended with %v", err)
+	}
 	var n int
 	if err := s.backend.DB().QueryRow("SELECT COUNT(*) FROM runtime_integration_call").Scan(&n); err != nil || n != 0 {
 		t.Fatal("observation generated call history", n, err)

@@ -295,7 +295,7 @@ func TestDiskJobBodyReaderAllowsOtherBodiesAndAppPublication(t *testing.T) {
 	if !ok {
 		t.Fatal("first result did not open")
 	}
-	defer first.Body.Close()
+	defer func() { _ = first.Body.Close() }()
 
 	committing, finishCommit := make(chan struct{}), make(chan struct{})
 	defer func() {
@@ -353,7 +353,7 @@ func TestDiskJobBodyReaderAllowsOtherBodiesAndAppPublication(t *testing.T) {
 	if !ok {
 		t.Fatal("second reader of the first result did not open")
 	}
-	defer other.Body.Close()
+	defer func() { _ = other.Body.Close() }()
 	_ = first.Body.Close()
 	_ = first.Body.Close()
 	if err := store.DeleteJobBody("job-a", "first"); !errors.Is(err, ErrJobBodyInUse) {
@@ -368,7 +368,7 @@ func TestDiskJobBodyReaderAllowsOtherBodiesAndAppPublication(t *testing.T) {
 	if !ok {
 		t.Fatal("new payload did not open")
 	}
-	defer newReader.Body.Close()
+	defer func() { _ = newReader.Body.Close() }()
 	_ = other.Body.Close()
 	if err := store.DeleteJobBody("job-a", "first"); !errors.Is(err, ErrJobBodyInUse) {
 		t.Fatalf("old close released a reader of the replacement: %v", err)

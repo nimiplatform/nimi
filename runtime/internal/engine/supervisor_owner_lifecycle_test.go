@@ -379,7 +379,9 @@ func TestStopAllKillsEnginesStillRunningAtTheShutdownDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 	started := time.Now()
-	mgr.StopAll(ctx)
+	if err := mgr.StopAll(ctx); err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
 	if elapsed := time.Since(started); elapsed > 3*time.Second {
 		t.Fatalf("StopAll outran its deadline: %s", elapsed)
 	}
@@ -410,7 +412,9 @@ func TestStopAllCancelsAnEngineStartInFlight(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	stopStarted := time.Now()
-	mgr.StopAll(ctx)
+	if err := mgr.StopAll(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if elapsed := time.Since(stopStarted); elapsed > 4*time.Second {
 		t.Fatalf("StopAll waited on the start instead of canceling it: %s", elapsed)
 	}

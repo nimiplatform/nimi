@@ -150,7 +150,9 @@ func TestRejectedConversationBackupPreservesBrokenPrimaryAndSideFiles(t *testing
 	}
 	b, err := runtimepersistence.Open(nil, state, ValidateConversationStorage)
 	if b != nil {
-		b.Close()
+		if err := b.Close(); err != nil {
+			t.Error(err)
+		}
 		t.Fatal("accepted retired backup")
 	}
 	if refusal, ok := storedformat.As(err); !ok || refusal.Owner() != conversationStorageOwner {

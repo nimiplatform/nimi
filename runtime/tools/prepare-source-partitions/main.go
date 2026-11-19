@@ -41,7 +41,7 @@ func plan(ctx context.Context, db *sql.DB) (runtimeagent.OfflinePartitionPlan, e
 	if err != nil {
 		return runtimeagent.OfflinePartitionPlan{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	return runtimeagent.ReviewSourcePartitions(ctx, tx, nil)
 }
 
@@ -56,7 +56,8 @@ func prepare(ctx context.Context, src *sql.DB, path, expected string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	// The target may already be installed when the staging directory is removed.
+	defer func() { _ = os.RemoveAll(dir) }()
 	stage := filepath.Join(dir, "memory.db")
 	if _, err = src.ExecContext(ctx, "VACUUM INTO ?", stage); err != nil {
 		return err
@@ -68,7 +69,7 @@ func prepare(ctx context.Context, src *sql.DB, path, expected string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	if _, err = db.ExecContext(ctx, "PRAGMA journal_mode=DELETE"); err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func prepare(ctx context.Context, src *sql.DB, path, expected string) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	type edit struct {
 		agent             string
 		original, updated []byte
@@ -161,7 +162,7 @@ func run(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	r, err := plan(ctx, db)
 	if err != nil {
 		return err

@@ -24,7 +24,11 @@ func TestWhisperDiarizationActualManagedProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	manager.SetRuntimeWorkRoot(filepath.Join(root, "work"))
-	defer manager.StopAll(context.Background())
+	defer func() {
+		if err := manager.StopAll(context.Background()); err != nil {
+			t.Error(err)
+		}
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 	uv, err := manager.EnsureUVToolDependency(ctx)

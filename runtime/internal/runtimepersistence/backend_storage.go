@@ -91,7 +91,8 @@ func restoreLatestHealthyBackup(targetPath string, backupDir string, validate []
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(stage)
+	// The target may already be installed when the staging directory is removed.
+	defer func() { _ = os.RemoveAll(stage) }()
 	var lastErr error
 	for i, candidate := range candidates {
 		prepared := filepath.Join(stage, fmt.Sprintf("candidate-%d.db", i))
@@ -107,7 +108,7 @@ func restoreLatestHealthyBackup(targetPath string, backupDir string, validate []
 	return fmt.Errorf("no healthy sqlite backups available")
 }
 
-func prepareRecoverySnapshot(source, prepared string, validate []func(*sql.DB, bool) error) error {
+func prepareRecoverySnapshot(source, prepared string, validate []func(*sql.DB, bool) error) (retErr error) {
 	if err := copyFile(source, prepared); err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func prepareRecoverySnapshot(source, prepared string, validate []func(*sql.DB, b
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { retErr = errors.Join(retErr, db.Close()) }()
 	var busy, pages, done int
 	if err := db.QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &pages, &done); err != nil {
 		return err

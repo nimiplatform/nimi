@@ -345,7 +345,7 @@ func TestConversationCommittedQuoteSurvivesRestartWithoutRecoveryInputCopy(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	input, err := readOriginalConversationInput(context.Background(), tx, anchorID, turn.TurnID)
 	if err != nil || input == nil || input.Quote == nil || input.Quote.Text != "quoted text" {
 		t.Fatalf("original input quote lost after compaction: %+v", input)

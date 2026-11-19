@@ -144,7 +144,11 @@ func TestReceivedOutboxBackupIsDisposedAfterHandoffBatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer replaced.Close()
+	defer func() {
+		if err := replaced.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 	if err := replaced.QueryRow(`SELECT payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE operation_id='received-operation'`).Scan(&payload); err != nil || payload {
 		t.Fatalf("replacement retained delivered body: %v %v", payload, err)
 	}
@@ -180,7 +184,9 @@ func TestSameBackupRedactsOnlyItsSettledItems(t *testing.T) {
 		}
 		var bodies int
 		err = db.QueryRow(`SELECT count(*) FROM runtime_cognition_memory_outbox WHERE operation_id IN ('operation-first','operation-later') AND payload IS NOT NULL`).Scan(&bodies)
-		db.Close()
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
 		if err != nil || bodies != want {
 			t.Fatalf("remaining backup bodies: %d, want %d: %v", bodies, want, err)
 		}
@@ -260,7 +266,11 @@ func TestSettledOutboxScaleAndSharedWriter(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer db.Close()
+			defer func() {
+				if err := db.Close(); err != nil {
+					t.Error(err)
+				}
+			}()
 			var total, redacted int
 			if err := db.QueryRow(`SELECT count(*),sum(payload IS NULL AND state='received') FROM runtime_cognition_memory_outbox WHERE operation_id LIKE 'scale-%'`).Scan(&total, &redacted); err != nil || total != count || redacted != count {
 				t.Fatalf("coverage %d %d: %v", total, redacted, err)

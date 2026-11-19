@@ -32,12 +32,12 @@ func TestWindowsJobExitRequiresLastProcessAndRetainsConfirmation(t *testing.T) {
 	if err := parent.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer parent.Process.Kill()
+	defer func() { _ = parent.Process.Kill() }()
 	tree, err := bindSupervisorProcessLifecycle(parent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer releaseSupervisorProcessLifecycle(tree)
+	defer func() { _ = releaseSupervisorProcessLifecycle(tree) }()
 	if err := os.WriteFile(gate, nil, 0600); err != nil {
 		t.Fatal(err)
 	}

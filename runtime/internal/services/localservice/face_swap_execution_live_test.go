@@ -34,7 +34,11 @@ func TestFaceSwapManagedExecution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { manager.StopAll(context.Background()) })
+	t.Cleanup(func() {
+		if err := manager.StopAll(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
 	manager.SetRuntimeWorkRoot(filepath.Join(root, "engine-work"))
 	profile, err := manager.EnsurePythonDependencyProfile(ctx, filepath.Join(dataRoot, "dependencies", "uv", "uv.exe"), python, engine.FaceSwapConsumerID, "windows/amd64", "cuda")
 	if err != nil {

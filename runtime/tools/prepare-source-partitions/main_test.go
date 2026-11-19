@@ -15,7 +15,11 @@ func TestOpenFilePreservesNativePathAndAccessMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer writable.Close()
+	defer func() {
+		if err := writable.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 	if _, err := writable.Exec("CREATE TABLE marker (value INTEGER); INSERT INTO marker VALUES (42)"); err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +28,11 @@ func TestOpenFilePreservesNativePathAndAccessMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer source.Close()
+	defer func() {
+		if err := source.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 	var value int
 	if err := source.QueryRow("SELECT value FROM marker").Scan(&value); err != nil || value != 42 {
 		t.Fatalf("read source value = %d, err = %v", value, err)

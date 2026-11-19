@@ -191,7 +191,7 @@ func (s *Service) retryInputLocked(ctx context.Context, a *publicChatAnchorState
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var raw string
 	var answered bool
 	err = tx.QueryRowContext(ctx, `SELECT r.recovery_json,coalesce(t.answered,0) FROM runtime_conversation_recovery r

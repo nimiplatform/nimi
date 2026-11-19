@@ -39,7 +39,7 @@ func (s *Service) lifeConversationInput(ctx context.Context, ref string) ([]agen
 	if err != nil {
 		return nil, nil, false, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var raw string
 	err = tx.QueryRowContext(ctx, `SELECT anchor_json FROM runtime_conversation_anchor WHERE local_agent_ref=? AND anchor_json IS NOT NULL`, ref).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -61,7 +61,7 @@ func (s *Service) lifeConversationInput(ctx context.Context, ref string) ([]agen
 	if err != nil {
 		return nil, nil, false, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var pairs []agentTurnTranscriptPairInput
 	for rows.Next() {
 		var id, raw string

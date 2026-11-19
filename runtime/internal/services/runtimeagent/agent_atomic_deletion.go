@@ -58,7 +58,7 @@ func agentAtomicProjectionDeletionHook(
 		for rows.Next() {
 			var id string
 			if err := rows.Scan(&id); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 			anchorIDs = append(anchorIDs, id)

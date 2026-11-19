@@ -15,7 +15,7 @@ func (b *SQLiteBackend) ReadRuntimeSourceReferences(ctx context.Context, scopeID
 	if err != nil {
 		return nil, RuntimeSourceState{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	state, err := readRuntimeSourceState(ctx, tx, scopeID)
 	if err != nil {
 		return nil, RuntimeSourceState{}, err

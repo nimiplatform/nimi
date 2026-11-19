@@ -239,21 +239,21 @@ func readConversationChildren(db conversationRowReader, snapshot *persistedPubli
 			var id, key, raw, body string
 			var completed bool
 			if err := rows.Scan(&id, &key, &raw, &completed, &body); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 			i, ok := indices[id]
 			if !ok {
-				rows.Close()
+				_ = rows.Close()
 				return fmt.Errorf("orphaned conversation child")
 			}
 			if err := query.scan(&snapshot.Anchors[i], key, raw, completed, body); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return err
 			}
 		}
 		if err := rows.Err(); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		if err := rows.Close(); err != nil {

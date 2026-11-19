@@ -141,7 +141,11 @@ func TestSourceQueryCorruptVectorKeepsOnlyVerifiedExactBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 	if _, err := db.Exec(`UPDATE runtime_source_unit SET embedding_json='bad'`); err != nil {
 		t.Fatal(err)
 	}

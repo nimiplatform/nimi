@@ -31,7 +31,7 @@ func ReviewSourcePartitions(ctx context.Context, tx *sql.Tx, visit func(agent st
 	if err != nil {
 		return plan, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	digest := sha256.New()
 	for rows.Next() {
 		s, found, err := scanRealmSourceSnapshotV2Row(rows)

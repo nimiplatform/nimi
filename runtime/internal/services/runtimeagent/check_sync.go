@@ -71,7 +71,7 @@ func (s *Service) CheckSyncStateDirectory(ctx context.Context, stateDirectory st
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var anchorID, raw string
 		if err := rows.Scan(&anchorID, &raw); err != nil {

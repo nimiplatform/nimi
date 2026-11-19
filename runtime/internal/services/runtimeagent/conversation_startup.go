@@ -30,20 +30,20 @@ func readConversationStartup(tx *sql.Tx, raw string) (persistedPublicChatSurface
 			var key, raw, body string
 			var completed bool
 			if err := rows.Scan(&key, &raw, &completed, &body); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return snapshot, err
 			}
 			var p persistedPublicChatTurnSnapshot
 			if err := decodeConversationRow(raw, &p); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return snapshot, err
 			}
 			if err := restoreConversationProjectionText(&p, body); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return snapshot, err
 			}
 			if key != p.TurnID {
-				rows.Close()
+				_ = rows.Close()
 				return snapshot, fmt.Errorf("conversation projection identity mismatch")
 			}
 			if key == a.ActiveSnapshotID {
@@ -60,7 +60,7 @@ func readConversationStartup(tx *sql.Tx, raw string) (persistedPublicChatSurface
 			}
 		}
 		if err := rows.Err(); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return snapshot, err
 		}
 		if err := rows.Close(); err != nil {
@@ -117,7 +117,7 @@ func (s *Service) loadConversationRowsLocked(ctx context.Context, a *publicChatA
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	first := 0
 	if execution {
 		if !a.coldFacts && a.persistedTranscriptCount != a.transcriptCount() {

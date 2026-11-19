@@ -28,7 +28,7 @@ func (s *Service) readConversationWindow(ctx context.Context, resolved localAppA
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	out, header, err := readConversationWindowHeader(ctx, tx, resolved, id)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func readConversationWindowTurns(ctx context.Context, tx *sql.Tx, out *conversat
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var turnID string
 		var seq sql.NullInt64
@@ -275,7 +275,7 @@ func selectDisplayTurnIDs(ctx context.Context, tx *sql.Tx, header persistedPubli
 	if err != nil {
 		return nil, false, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var groups, n, bytes int
 	for rows.Next() {
 		c, err := scan(rows)

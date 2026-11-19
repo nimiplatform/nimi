@@ -375,7 +375,7 @@ func readConversationFacts(db conversationRowReader, snapshot *persistedPublicCh
 			return fmt.Errorf("conversation sequence mismatch")
 		}
 		if err := validateCommittedConversationTurn(turn, seq); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		snapshot.Anchors[index].CommittedTranscript = append(snapshot.Anchors[index].CommittedTranscript, turn)

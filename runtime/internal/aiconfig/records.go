@@ -269,7 +269,7 @@ func readSQLRecords(ctx context.Context, db queryer, k storeKey, ref string, all
 	if e != nil {
 		return nil, e
 	}
-	defer rs.Close()
+	defer func() { _ = rs.Close() }()
 	rr := records{}
 	for rs.Next() {
 		var r memoryRow

@@ -12,7 +12,7 @@ import (
 // its files. Even a read-only SQLite connection may rebuild the shm index.
 // For an uncheckpointed WAL, use private coordination files and the same
 // committed main/WAL pair. Clean databases require no copy.
-func InspectStoredDatabase(localStatePath string, inspect func(*sql.DB) error) error {
+func InspectStoredDatabase(localStatePath string, inspect func(*sql.DB) error) (retErr error) {
 	source, err := databasePath(localStatePath)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func InspectStoredDatabase(localStatePath string, inspect func(*sql.DB) error) e
 		if err != nil {
 			return err
 		}
-		defer os.RemoveAll(dir)
+		defer func() { retErr = errors.Join(retErr, os.RemoveAll(dir)) }()
 		path = filepath.Join(dir, dbFileName)
 		// Links keep large files off the copy path on the same filesystem.
 		// Only the private shm is writable.
@@ -59,7 +59,7 @@ func InspectStoredDatabase(localStatePath string, inspect func(*sql.DB) error) e
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() { retErr = errors.Join(retErr, db.Close()) }()
 	db.SetMaxOpenConns(1)
 	return inspect(db)
 }

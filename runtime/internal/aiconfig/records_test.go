@@ -14,7 +14,11 @@ func TestNamedAppRecordsKeepOwnerDefaultAndRevisionsIndependent(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	sql, e := NewSQLiteStore(db)
 	if e != nil {
 		t.Fatal(e)

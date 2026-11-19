@@ -163,13 +163,13 @@ func TestAppProviderAssetTransferAcrossPartitions(t *testing.T) {
 func TestAppProviderRevocationBeforeAssetPublication(t *testing.T) {
 	f := assetFixture(t, assetToProvider)
 	id := f.offer(t)
-	done := make(chan error, 1)
+	done := make(chan struct{})
 	go func() {
 		r, err := f.complete(id, f.destination)
 		if err == nil && r.Accepted {
 			t.Error("accepted after revocation")
 		}
-		done <- err
+		close(done)
 	}()
 	select {
 	case <-f.assets.prepared:

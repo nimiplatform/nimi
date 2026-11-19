@@ -211,7 +211,7 @@ func TestConversationWindowUsesOneReadVersionAndOnlyTargetedOriginal(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	old, header, err := readConversationWindowHeader(ctx, tx, resolved, id)
 	if err != nil {
 		t.Fatal(err)

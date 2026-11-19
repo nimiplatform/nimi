@@ -16,7 +16,7 @@ func ConvertConversationStorage(ctx context.Context, db *sql.DB, apply bool) (bo
 	if err != nil {
 		return false, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	raw, err := readRuntimeAgentMetaValue(tx, runtimeAgentMetaPublicChatSurfaceStateKey)
 	if err != nil {
 		return false, err
@@ -139,15 +139,15 @@ func readOfflineConversationV2(tx *sql.Tx, snapshot *persistedPublicChatSurfaceS
 		var id, raw string
 		var a persistedPublicChatAnchor
 		if err := rows.Scan(&id, &raw); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		if err := decodeConversationRow(raw, &a); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		if id != a.ConversationAnchorID || len(a.CommittedTranscript) > 0 {
-			rows.Close()
+			_ = rows.Close()
 			return fmt.Errorf("invalid v2 conversation header")
 		}
 		a.LocalAppSequence = max(a.LocalAppSequence, sequences[id])
@@ -155,7 +155,7 @@ func readOfflineConversationV2(tx *sql.Tx, snapshot *persistedPublicChatSurfaceS
 		snapshot.Anchors = append(snapshot.Anchors, a)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return err
 	}
 	if err := rows.Close(); err != nil {
@@ -170,22 +170,22 @@ func readOfflineConversationV2(tx *sql.Tx, snapshot *persistedPublicChatSurfaceS
 		var seq uint64
 		var turn publicChatCommittedTranscriptTurn
 		if err := rows.Scan(&id, &seq, &raw); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		if err := decodeConversationRow(raw, &turn); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		i, ok := indices[id]
 		if !ok || seq != turn.Sequence || seq != uint64(len(snapshot.Anchors[i].CommittedTranscript)) {
-			rows.Close()
+			_ = rows.Close()
 			return fmt.Errorf("v2 conversation sequence invalid")
 		}
 		snapshot.Anchors[i].CommittedTranscript = append(snapshot.Anchors[i].CommittedTranscript, turn)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return err
 	}
 	if err := rows.Close(); err != nil {

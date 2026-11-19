@@ -444,7 +444,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	raw, err := readRuntimeAgentMetaValue(tx, runtimeAgentMetaPublicChatSurfaceStateKey)
 	if err != nil || strings.TrimSpace(raw) == "" {
 		return err
