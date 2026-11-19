@@ -21,7 +21,7 @@ import { spawnSyncCommand } from '../lib/command-runner.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 const outputRoot = path.join(repoRoot, 'dist', 'component-release');
-const candidate = process.env.GITHUB_EVENT_NAME === 'pull_request' || (!process.env.GITHUB_ACTIONS && process.argv.includes('--candidate'));
+const candidate = process.env.GITHUB_EVENT_NAME === 'pull_request' || process.env.NIMI_NPM_RELEASE_RC === 'true' || (!process.env.GITHUB_ACTIONS && process.argv.includes('--candidate'));
 const COMPONENTS = new Set(['sdk', 'kit', 'app-tools', 'sdk-adapter-vercel-ai']);
 
 function run(command, args, { cwd = repoRoot, stdio = 'inherit' } = {}) {

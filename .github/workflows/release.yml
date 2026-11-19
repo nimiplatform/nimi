@@ -26,9 +26,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Exact stable SDK SemVer for a dry-run
+        description: Exact stable or RC SDK version for a dry-run
         required: true
         type: string
+
+env:
+  NIMI_NPM_RELEASE_RC: 'true'
 
 permissions:
   contents: read
@@ -112,7 +115,7 @@ jobs:
           shopt -s nullglob
           tarballs=(dist/component-release/sdk/*.tgz)
           test "${#tarballs[@]}" -eq 1
-          npm publish "${tarballs[0]}" --access public --dry-run
+          npm publish "${tarballs[0]}" --access public --tag "$(node scripts/release/component-version.mjs --npm-tag sdks/typescript/package.json)" --dry-run
       - name: Upload exact SDK package for tag publication
         if: steps.release.outputs.production == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -170,5 +173,5 @@ jobs:
             remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
           else
-            npm publish "${tarballs[0]}" --access public --provenance
+            npm publish "${tarballs[0]}" --access public --tag "$(node scripts/release/component-version.mjs --npm-tag sdks/typescript/package.json)" --provenance
           fi

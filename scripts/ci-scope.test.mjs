@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse } from 'yaml';
-import { requireComponentVersion } from './release/component-version.mjs';
+import { npmDependencyFloor, npmPublicationTag, requireComponentVersion } from './release/component-version.mjs';
 import test from 'node:test';
 import { CI_LANES, selectCiScope, assertCiResults } from './lib/ci-scope.mjs';
 
@@ -283,4 +283,13 @@ test('candidate version admission is limited to stable and canonical rc versions
   assert.equal(requireComponentVersion('1.2.3-rc.7', true), '1.2.3-rc.7');
   for (const version of ['1.2.3-rc.07', '1.2.3-beta.1', 'v1.2.3', '']) assert.throws(() => requireComponentVersion(version, true));
   assert.throws(() => requireComponentVersion('1.2.3-rc.7', false));
+});
+
+test('RC component publication selects pre and keeps stable dependency checks', () => {
+  assert.equal(npmPublicationTag('1.2.3-rc.4'), 'pre');
+  assert.equal(npmPublicationTag('1.2.3'), 'latest');
+  assert.equal(npmPublicationTag('0.12.4', 'maintenance-0.12'), 'maintenance-0.12');
+  assert.equal(npmDependencyFloor('1.2.3-rc.4', '^1.0.0-rc.2'), '1.0.0-rc.2');
+  assert.throws(() => npmDependencyFloor('1.2.3', '^1.0.0-rc.2'));
+  assert.throws(() => npmDependencyFloor('1.2.3-rc.4', 'latest'));
 });
