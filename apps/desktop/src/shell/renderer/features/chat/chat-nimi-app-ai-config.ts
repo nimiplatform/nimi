@@ -53,20 +53,20 @@ export async function readDesktopNimiAppAIConfig(
   return reader.get();
 }
 
-export function desktopNimiAppAIConfigQueryKey(appId: string) {
+export function desktopNimiAppAIConfigQueryKey(appId: string, records?: {configRef?: string; includeRecords: true}) {
   const exactAppId = appId.trim();
   if (!exactAppId || exactAppId !== appId) {
     throw new Error('Nimi App AIConfig requires one exact appId.');
   }
-  return ['app-ai-config', exactAppId] as const;
+  const base = ['app-ai-config', exactAppId] as const;
+  return records ? [...base, 'records', records.configRef ?? ''] as const : base;
 }
 
 /** Runtime-owned App AIConfig read-through; React Query is not persistence. */
 export function useDesktopNimiAppAIConfig(appId: string, records?: {configRef?:string; includeRecords:true}) {
   const sdk = useDesktopRendererSdk();
-  const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useQuery({
-    queryKey:records?[...queryKey,'records',records.configRef ?? '']:queryKey,
+    queryKey: desktopNimiAppAIConfigQueryKey(appId, records),
     queryFn: () => (appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId)).get(records),
     retry: false,
     staleTime: 0,

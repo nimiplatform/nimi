@@ -26,7 +26,7 @@ test('an observed empty AIConfig still shows declared capabilities before the co
   const queryClient = new QueryClient();
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
   const appId = 'example.unconfigured';
-  queryClient.setQueryData(desktopNimiAppAIConfigQueryKey(appId), {
+  queryClient.setQueryData(desktopNimiAppAIConfigQueryKey(appId, {includeRecords: true}), {
     config: null, revision: 'revision-1', effectiveSelections: [],
   });
   // Static rendering reads cached owner data; no SDK mutation or effect runs.
@@ -116,14 +116,14 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.match(sectionSource, /allowedRoutes=\{allowedRoutes\}/u);
   assert.doesNotMatch(sectionSource, /headerSlot=/u);
   assert.doesNotMatch(sectionSource, /parentos/iu);
-  assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId\)/u);
+  assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId,\s*\{includeRecords:\s*true,\s*configRef:\s*recordRef\}\)/u);
   assert.match(sectionSource, /useOverwriteDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /effectiveSelections=\{appAIConfig\.data\?\.effectiveSelections\}/u);
   assert.doesNotMatch(sectionSource, /projectDesktopAIConfigEffectiveSelections/u);
   assert.match(sectionSource, /listOptions\(query\)/u);
   assert.doesNotMatch(sectionSource, /createDesktopCloudAIConfigModule/u);
   assert.doesNotMatch(sectionSource, /buildAppsOneClickLocalAIConfig|machineSelections|oneClickFailure/u);
-  assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(input\)[\s\S]*onAIConfigChanged\(result\)/u);
+  assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(\{\.\.\.input,[\s\S]*onAIConfigChanged\(result\)/u);
 });
 
 test('Apps AIConfig mutations refresh the canonical card summary lane', async () => {

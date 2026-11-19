@@ -77,7 +77,6 @@
   border-color: var(--nimi-sidebar-border) !important;
   border-radius: var(--nimi-radius-md);
   box-shadow: none;
-  backdrop-filter: none !important;
 }
 
 /* Settings keeps its existing transparent right canvas hierarchy. */
