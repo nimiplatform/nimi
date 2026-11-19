@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -30,7 +31,7 @@ import (
 const maxLlamaInvocationErrorBody = 64 << 10
 
 type llamaInvocationSubstrate interface {
-	Ensure(context.Context, string, []string, func() error, localexecution.TextProgressFunc) (string, bool, error)
+	Ensure(context.Context, string, []string, func(context.Context) error, localexecution.TextProgressFunc) (string, bool, error)
 	Healthy() bool
 	// AccessKey is the current worker's private key; empty when none runs.
 	AccessKey() string
@@ -156,20 +157,23 @@ func (h *ExecutionHost) ExecuteEmbed(
 		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("llama embedding invocation plan is incomplete"))
 	}
 
+	queuedAt := time.Now()
 	select {
 	case <-ctx.Done():
 		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
+	acquiredAt := time.Now()
 	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
 	h.residentModelAssets.capture(plan.ModelFiles())
 
-	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+	endpoint, resident, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func(validationCtx context.Context) error {
 		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
 			return err
 		}
-		return validateInvocationModelContent(plan.ModelFiles())
+		return validateInvocationModelContentContext(validationCtx, plan.ModelFiles())
 	}, progress)
+	h.logger.Info("llama invocation preparation", "capability", "text.embed", "lease_wait_us", acquiredAt.Sub(queuedAt).Microseconds(), "prepare_ms", time.Since(acquiredAt).Milliseconds(), "resident", resident, "ready", err == nil)
 	if err != nil {
 		h.logger.Warn("llama invocation load failed",
 			"event", "engine.llama.invocation_load_failed",
@@ -268,20 +272,23 @@ func (h *ExecutionHost) execute(
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("llama invocation plan is incomplete"))
 	}
 
+	queuedAt := time.Now()
 	select {
 	case <-ctx.Done():
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
+	acquiredAt := time.Now()
 	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
 	h.residentModelAssets.capture(plan.ModelFiles())
 
-	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+	endpoint, resident, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func(validationCtx context.Context) error {
 		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
 			return err
 		}
-		return validateInvocationModelContent(plan.ModelFiles())
+		return validateInvocationModelContentContext(validationCtx, plan.ModelFiles())
 	}, progress)
+	h.logger.Info("llama invocation preparation", "capability", "text.generate", "lease_wait_us", acquiredAt.Sub(queuedAt).Microseconds(), "prepare_ms", time.Since(acquiredAt).Milliseconds(), "resident", resident, "ready", err == nil)
 	if err != nil {
 		if ctx.Err() != nil {
 			return localexecution.TextResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
@@ -325,10 +332,6 @@ func (h *ExecutionHost) execute(
 		return h.consumeStream(ctx, response.Body, onDelta)
 	}
 	return h.consumeResponse(ctx, response.Body)
-}
-
-func validateInvocationModelContent(files []capabilitydriver.InvocationExactBinding) error {
-	return validateInvocationModelContentContext(context.Background(), files)
 }
 
 func validateInvocationModelContentContext(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
@@ -798,7 +801,7 @@ type managerLlamaInvocationSubstrate struct {
 type managerLlamaInvocationLoad struct {
 	processKey      string
 	args            []string
-	validateContent func() error
+	validateContent func(context.Context) error
 	ctx             context.Context
 	cancel          context.CancelFunc
 	waiters         int
@@ -827,7 +830,7 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 	ctx context.Context,
 	processKey string,
 	processArgs []string,
-	validateContent func() error,
+	validateContent func(context.Context) error,
 	progress localexecution.TextProgressFunc,
 ) (string, bool, error) {
 	if s == nil || s.manager == nil {
@@ -846,7 +849,7 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 			if err == nil {
 				s.mu.Unlock()
 				if validateContent != nil {
-					if err := validateContent(); err != nil {
+					if err := validateContent(ctx); err != nil {
 						return "", false, err
 					}
 				}
@@ -937,7 +940,7 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 	// StartEngine gives the captured paths to llama-server. Performing this
 	// check earlier would leave process shutdown as a replacement window.
 	if load.validateContent != nil {
-		if err := load.validateContent(); err != nil {
+		if err := load.validateContent(load.ctx); err != nil {
 			s.finishLoad(load, "", "", err)
 			return
 		}

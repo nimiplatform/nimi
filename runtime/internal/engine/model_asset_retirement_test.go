@@ -16,7 +16,7 @@ type retirementSubstrate struct {
 	stopErr error
 }
 
-func (*retirementSubstrate) Ensure(context.Context, string, []string, func() error, localexecution.TextProgressFunc) (string, bool, error) {
+func (*retirementSubstrate) Ensure(context.Context, string, []string, func(context.Context) error, localexecution.TextProgressFunc) (string, bool, error) {
 	panic("not an inference test")
 }
 func (*retirementSubstrate) Healthy() bool     { return true }

@@ -105,10 +105,10 @@ type fakeLlamaInvocationSubstrate struct {
 }
 
 func (f *fakeLlamaInvocationSubstrate) Ensure(
-	_ context.Context,
+	ctx context.Context,
 	key string,
 	args []string,
-	validateContent func() error,
+	validateContent func(context.Context) error,
 	progress localexecution.TextProgressFunc,
 ) (string, bool, error) {
 	f.mu.Lock()
@@ -123,7 +123,7 @@ func (f *fakeLlamaInvocationSubstrate) Ensure(
 		return f.endpoint, true, nil
 	}
 	if validateContent != nil {
-		if err := validateContent(); err != nil {
+		if err := validateContent(ctx); err != nil {
 			return "", false, err
 		}
 	}
@@ -180,7 +180,7 @@ func TestManagerInvocationSubstrateRevalidatesAfterStopAndBeforeStart(t *testing
 	substrate := newManagerLlamaInvocationSubstrate(nil)
 	substrate.manager = manager
 	validatedAtSpawnBoundary := false
-	_, _, err := substrate.Ensure(context.Background(), "replacement-plan", []string{"--model", "/exact/main.gguf"}, func() error {
+	_, _, err := substrate.Ensure(context.Background(), "replacement-plan", []string{"--model", "/exact/main.gguf"}, func(context.Context) error {
 		manager.mu.Lock()
 		defer manager.mu.Unlock()
 		validatedAtSpawnBoundary = manager.stops == 1 && manager.starts == 0 && manager.status == StatusStopped
@@ -980,7 +980,7 @@ func TestInvocationContentSealCoversCompleteDeclaredBundleIdentity(t *testing.T)
 			if test.mutate != nil {
 				test.mutate(t, &binding)
 			}
-			err := validateInvocationModelContent([]capabilitydriver.InvocationExactBinding{binding})
+			err := validateInvocationModelContentContext(context.Background(), []capabilitydriver.InvocationExactBinding{binding})
 			if got := localexecution.FailureKindOf(err); got != test.want {
 				t.Fatalf("bundle seal error=%v kind=%q, want %q", err, got, test.want)
 			}
@@ -1151,4 +1151,27 @@ func containsString(values []string, wanted string) bool {
 		}
 	}
 	return false
+}
+
+func TestResidentValidationHonorsRequestCancellation(t *testing.T) {
+	s := newManagerLlamaInvocationSubstrate(nil)
+	s.manager = &fakeLlamaExecutionManager{status: StatusHealthy, endpoint: "http://127.0.0.1:1234"}
+	s.currentKey = "resident"
+	ctx, cancel := context.WithCancel(context.Background())
+	entered := make(chan struct{})
+	result := make(chan error, 1)
+	go func() {
+		_, _, err := s.Ensure(ctx, "resident", nil, func(validation context.Context) error { close(entered); <-validation.Done(); return validation.Err() }, nil)
+		result <- err
+	}()
+	<-entered
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("resident validation outlived caller")
+	}
 }
