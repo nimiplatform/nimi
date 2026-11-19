@@ -263,7 +263,8 @@ describe('renderer local-app standard-shell surface', () => {
       { type: 'delta', sequence: '6', traceId: 'trace-1', itemIndex: 2, text: '\n' },
       { type: 'delta', sequence: '7', traceId: 'trace-1', itemIndex: 2, text: 'sources.' },
       { type: 'tool-call', sequence: '8', traceId: 'trace-1', itemIndex: 3, toolCall: call },
-      { type: 'completed', sequence: '9', traceId: 'trace-1', finishReason: 'tool-calls', usage: { promptTokens: 7, completionTokens: 2, totalTokens: 9 } },
+      { type: 'completed', sequence: '9', traceId: 'trace-1', finishReason: 'tool-calls',
+        usage: { promptTokens: 7, completionTokens: 2, totalTokens: 9 }, configuration: { configRef: 'main', revision: '2' } },
     ]) {
       const next = iterator.next();
       emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });

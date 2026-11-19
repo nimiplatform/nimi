@@ -8007,9 +8007,12 @@
       "AiVideoSessionResult",
       "AiVideoSessionTerminal",
       "AiVideoTransformedFrame",
+      "AppAIConfigDirectory",
       "AppAIConfigPresetVoiceOption",
       "AppAIConfigPresetVoiceOptions",
       "AppAIConfigPresetVoiceOptionsQuery",
+      "AppAIConfigRecord",
+      "AppAIConfigRecordEdit",
       "AppActivityAgentAssociation",
       "AppActivityFilter",
       "AppActivityOpenResult",
@@ -8022,6 +8025,8 @@
       "AppSafetyDeclaration",
       "AppSafetyOutputDeclaration",
       "AppStorageProjection",
+      "AppTextConfigCapture",
+      "AppTextConfigSelection",
       "AppendInferenceAuditRequest",
       "AppendLocalAppAgentRealtimeInputRequest",
       "AppendLocalAppAgentRealtimeInputResponse",
@@ -11910,6 +11915,13 @@
             "repeated": false,
             "optional": true,
             "number": 9
+          },
+          {
+            "name": "local_loadout_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -13178,6 +13190,19 @@
         "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
+        "name": "AppAIConfigDirectory",
+        "fields": [
+          {
+            "name": "records",
+            "type": "AppAIConfigRecord",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "AppAIConfigPresetVoiceOption",
         "fields": [
           {
@@ -13220,6 +13245,81 @@
       {
         "name": "AppAIConfigPresetVoiceOptionsQuery",
         "fields": [],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AppAIConfigRecord",
+        "fields": [
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "is_default",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "AppAIConfigRecordEdit",
+        "fields": [
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "create_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "rename_to",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "make_default",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "delete_record",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
@@ -14407,6 +14507,74 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppTextConfigCapture",
+        "fields": [
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "local_loadout_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "local_loadout_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AppTextConfigSelection",
+        "fields": [
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_local_loadout_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_local_loadout_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "ArtifactChunk",
@@ -20635,6 +20803,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -21813,6 +21988,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "config_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          },
+          {
+            "name": "include_records",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -21840,6 +22029,20 @@
             "repeated": true,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "record",
+            "type": "AppAIConfigRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "directory",
+            "type": "AppAIConfigDirectory",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -32013,6 +32216,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "configuration",
+            "type": "AppTextConfigCapture",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37538,6 +37748,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "record",
+            "type": "AppAIConfigRecordEdit",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -37572,6 +37789,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "record",
+            "type": "AppAIConfigRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -44735,6 +44959,13 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "configuration",
+            "type": "AppTextConfigSelection",
+            "repeated": false,
+            "optional": false,
+            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

@@ -27,6 +27,7 @@ type ConnectorReferenceSnapshot struct {
 }
 
 type referenceOwnerRow struct {
+	Ref      string
 	Kind     int32
 	ID       string
 	Revision uint64
@@ -45,7 +46,7 @@ func (s *MemoryStore) ConnectorReferences(ctx context.Context, account, connecto
 		if key.accountNamespace != account {
 			continue
 		}
-		rows = append(rows, referenceOwnerRow{key.ownerKind, key.ownerID, value.revision, value.config})
+		rows = append(rows, referenceOwnerRow{Ref: key.ref, Kind: key.ownerKind, ID: key.ownerID, Revision: value.revision, Config: value.config})
 		if len(rows) > maxReferenceOwners {
 			return nil, fmt.Errorf("configuration reference index exceeds its read bound")
 		}
@@ -59,7 +60,7 @@ func (s *SQLiteStore) ConnectorReferences(ctx context.Context, account, connecto
 		return nil, fmt.Errorf("begin reference read: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	result, err := tx.QueryContext(ctx, `SELECT owner_kind,owner_id,revision,config_blob FROM runtime_ai_config WHERE account_namespace=? ORDER BY owner_kind,owner_id LIMIT ?`, account, maxReferenceOwners+1)
+	result, err := tx.QueryContext(ctx, `SELECT config_ref,owner_kind,owner_id,revision,config_blob FROM runtime_ai_config WHERE account_namespace=? ORDER BY owner_kind,owner_id,config_ref LIMIT ?`, account, maxReferenceOwners+1)
 	if err != nil {
 		return nil, fmt.Errorf("read configuration references: %w", err)
 	}
@@ -67,7 +68,7 @@ func (s *SQLiteStore) ConnectorReferences(ctx context.Context, account, connecto
 	for result.Next() {
 		var row referenceOwnerRow
 		var raw []byte
-		if err := result.Scan(&row.Kind, &row.ID, &row.Revision, &raw); err != nil {
+		if err := result.Scan(&row.Ref, &row.Kind, &row.ID, &row.Revision, &raw); err != nil {
 			_ = result.Close()
 			return nil, err
 		}
@@ -107,13 +108,17 @@ func referenceSnapshot(account, connector string, rows []referenceOwnerRow) (*Co
 		if rows[i].Kind != rows[j].Kind {
 			return rows[i].Kind < rows[j].Kind
 		}
-		return rows[i].ID < rows[j].ID
+		if rows[i].ID != rows[j].ID {
+			return rows[i].ID < rows[j].ID
+		}
+		return rows[i].Ref < rows[j].Ref
 	})
 	// The entire ordered owner/revision set is read under one transaction/lock.
 	// Its digest changes for inserts, removals and updates without a second store.
 	identity := make([]struct {
 		Kind     int32
 		ID       string
+		Ref      string
 		Revision uint64
 	}, 0, len(rows))
 	refs := make([]*runtimev1.DesktopConnectorReference, 0)
@@ -129,8 +134,9 @@ func referenceSnapshot(account, connector string, rows []referenceOwnerRow) (*Co
 		identity = append(identity, struct {
 			Kind     int32
 			ID       string
+			Ref      string
 			Revision uint64
-		}{row.Kind, row.ID, row.Revision})
+		}{row.Kind, row.ID, row.Ref, row.Revision})
 		capabilities := append([]*runtimev1.AIConfigCapabilityIntent(nil), config.GetCapabilities()...)
 		sort.Slice(capabilities, func(i, j int) bool {
 			return capabilities[i].GetCapabilityContract() < capabilities[j].GetCapabilityContract()
@@ -141,7 +147,7 @@ func referenceSnapshot(account, connector string, rows []referenceOwnerRow) (*Co
 				continue
 			}
 			refs = append(refs, &runtimev1.DesktopConnectorReference{Owner: proto.Clone(config.GetOwner()).(*runtimev1.AIConfigOwner),
-				CapabilityContract: capability.GetCapabilityContract(), ImplementationId: cloud.GetImplementation().GetImplementationId(), ConfigRevision: encodeRevision(row.Revision)})
+				CapabilityContract: capability.GetCapabilityContract(), ImplementationId: cloud.GetImplementation().GetImplementationId(), ConfigRevision: encodeRevision(row.Revision), ConfigRef: proto.String(row.Ref)})
 		}
 	}
 	encoded, err := json.Marshal(struct {

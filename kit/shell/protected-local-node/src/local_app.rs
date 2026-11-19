@@ -313,8 +313,8 @@ pub async fn local_app_session_rebind() -> NativeJsonOutcome {
 }
 
 #[napi(js_name = "localAppAIConfigGet")]
-pub async fn local_app_ai_config_get() -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.app_ai_config_get().await }).await
+pub async fn local_app_ai_config_get(query: Option<JsonValue>) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.app_ai_config_get(query).await }).await
 }
 
 #[napi(js_name = "localAppAIConfigOverwrite")]
@@ -324,6 +324,7 @@ pub async fn local_app_ai_config_overwrite(
     invoke_agent(|session| async move {
         session
             .app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+                record: input.record,
                 expected_revision: input.expected_revision,
                 capabilities: input.capabilities,
             })
@@ -1127,6 +1128,7 @@ fn native_text_turn_request(
     input: NativeTextTurnInput,
 ) -> Result<LocalAppTextTurnRequest, LocalAppOperationError> {
     Ok(LocalAppTextTurnRequest {
+        configuration: input.configuration,
         reasoning: input.reasoning,
         messages: input
             .messages

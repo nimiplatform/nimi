@@ -1753,6 +1753,12 @@ fn project_text_turn_event(
         TextTurnPayload::Completed(value) => {
             let finish_reason = text_behavior::finish_reason(value.finish_reason)?;
             let mut result = json!({"type": "completed", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "finishReason": finish_reason});
+            if let Some(config)=value.configuration {
+                let mut fact=json!({"configRef":config.config_ref,"revision":config.revision});
+                if let Some(id)=config.local_loadout_ref{fact["localLoadoutRef"]=json!(id);}
+                if let Some(rev)=config.local_loadout_revision{fact["localLoadoutRevision"]=json!(rev);}
+                result["configuration"]=fact;
+            }
             if let Some(usage) = value.usage {
                 result["usage"] = text_behavior::project_token_usage(usage)?;
             }
@@ -2346,7 +2352,7 @@ mod tests {
         for usage in [None, Some(UsageStats::default()), Some(UsageStats { input_tokens: 7, output_tokens: 2, ..Default::default() })] {
             let projected = project_text_turn_event(StreamLocalAppTextTurnEvent {
                 sequence: 1, trace_id: "text-usage".into(),
-                payload: Some(TextTurnPayload::Completed(LocalAppTextTurnCompleted { finish_reason: 1, usage: usage.clone() })),
+                payload: Some(TextTurnPayload::Completed(LocalAppTextTurnCompleted { configuration:None, finish_reason: 1, usage: usage.clone() })),
             }, 1, &mut 0).unwrap();
             match usage {
                 None => assert!(projected.get("usage").is_none()),

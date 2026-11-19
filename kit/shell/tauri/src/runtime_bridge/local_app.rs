@@ -331,9 +331,9 @@ impl RuntimeBridgeLocalAppHost {
         }
     }
 
-    pub async fn app_ai_config_get(&self) -> Result<serde_json::Value, LocalAppOperationError> {
+    pub async fn app_ai_config_get(&self,query: Option<serde_json::Value>) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
-        match session.app_ai_config_get().await {
+        match session.app_ai_config_get(query).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"math"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -38,7 +39,11 @@ func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRe
 	for _, tool := range spec.GetTools() {
 		declared[tool.GetName()] = tool
 	}
-	bridge := &localAppTextTurnStreamBridge{
+	ctx, err := appTextSelectionContext(stream.Context(), req.GetConfiguration())
+	if err != nil {
+		return err
+	}
+	bridge := &localAppTextTurnStreamBridge{ctx: ctx,
 		ServerStreamingServer: stream, tools: declared,
 		toolChoice: spec.GetToolChoice(), toolChoiceName: spec.GetToolChoiceName(),
 		allowSummary: spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
@@ -57,6 +62,8 @@ func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRe
 // Local App text-turn event stream. A ToolCall is emitted only as a complete
 // item; the external host waits for terminal success before executing a batch.
 type localAppTextTurnStreamBridge struct {
+	captured *runtimev1.AppTextConfigCapture
+	ctx      context.Context
 	grpc.ServerStreamingServer[runtimev1.StreamLocalAppTextTurnEvent]
 	totalBytes     int
 	sequence       uint64
@@ -73,6 +80,16 @@ type localAppTextTurnStreamBridge struct {
 	toolChoiceName string
 }
 
+func (b *localAppTextTurnStreamBridge) captureConfiguration(value *runtimev1.AppTextConfigCapture) {
+	b.captured = value
+}
+
+func (b *localAppTextTurnStreamBridge) Context() context.Context {
+	if b.ctx != nil {
+		return b.ctx
+	}
+	return b.ServerStreamingServer.Context()
+}
 func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent) error {
 	invalid := func() error {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -198,7 +215,7 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 			return localAppTextOutputToolInvalid()
 		}
 		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Completed{
-			Completed: &runtimev1.LocalAppTextTurnCompleted{FinishReason: payload.Completed.GetFinishReason(), Usage: localAppTextUsage(payload.Completed.GetUsage())},
+			Completed: &runtimev1.LocalAppTextTurnCompleted{Configuration: b.captured, FinishReason: payload.Completed.GetFinishReason(), Usage: localAppTextUsage(payload.Completed.GetUsage())},
 		}
 		b.terminal = true
 	case *runtimev1.StreamScenarioEvent_Failed:

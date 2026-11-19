@@ -32,6 +32,7 @@ export type NimiLocalAppTextMessage = {
   readonly parts?: readonly NimiLocalAppTextPart[];
 };
 export type NimiLocalAppTextTurnInput = {
+  readonly configuration?: {readonly configRef: string; readonly expectedRevision?: string; readonly expectedLocalLoadoutRef?: string; readonly expectedLocalLoadoutRevision?: string};
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly messages: readonly NimiLocalAppTextMessage[];
   readonly tools?: readonly NimiLocalAppFunctionTool[];
@@ -179,8 +180,16 @@ export function projectLocalAppTextItems(value: unknown): readonly NimiLocalAppT
 // Only the surrounding exact typed envelopes carry protocol fields.
 // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
 export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnInput {
-  assertExactKeys(value, ['messages', 'tools', 'toolChoice', 'responseFormat', 'reasoning', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'text-turn input');
+  assertExactKeys(value, ['configuration', 'messages', 'tools', 'toolChoice', 'responseFormat', 'reasoning', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'text-turn input');
   const input = value as unknown as NimiLocalAppTextTurnInput;
+  if (input.configuration !== undefined) {
+    const c=input.configuration;
+    assertExactKeys(c,['configRef','expectedRevision','expectedLocalLoadoutRef','expectedLocalLoadoutRevision'],'AIConfig selection');
+    if (typeof c.configRef!=='string'||!/^(main|[0-9a-f]{32})$/.test(c.configRef)
+      || (c.expectedRevision!==undefined && (typeof c.expectedRevision!=='string'||!/^[1-9][0-9]*$/.test(c.expectedRevision)))
+      || (c.expectedLocalLoadoutRef===undefined)!==(c.expectedLocalLoadoutRevision===undefined)
+      || (c.expectedLocalLoadoutRef!==undefined && (typeof c.expectedLocalLoadoutRef!=='string'||!c.expectedLocalLoadoutRef ||typeof c.expectedLocalLoadoutRevision!=='string'||!c.expectedLocalLoadoutRevision))) invalid('AIConfig selection');
+  }
   toRuntimeReasoningConfig(input.reasoning, invalid);
   if (!Array.isArray(input.messages) || input.messages.length === 0 || input.messages.length > 128) invalid('messages');
   if (input.tools !== undefined && (!Array.isArray(input.tools) || input.tools.length > 64)) invalid('tools');

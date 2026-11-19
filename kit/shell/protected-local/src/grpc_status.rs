@@ -313,6 +313,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
         "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
+        "AI_CONFIG_REVISION_CONFLICT" => LocalAppReasonCode::AiConfigRevisionConflict,
         "CAPABILITY_CATALOG_MISMATCH" => LocalAppReasonCode::CapabilityCatalogMismatch,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONNECTOR_NOT_FOUND" => LocalAppReasonCode::AiConnectorNotFound,
@@ -797,10 +798,11 @@ mod tests {
     }
 
     #[test]
-    fn scenario_job_business_rejections_do_not_become_session_failures() {
+    fn ai_business_rejections_do_not_become_session_failures() {
         for (name, code, expected, public) in [
             ("AI_MEDIA_JOB_NOT_FOUND", Code::NotFound, LocalAppReasonCode::AiMediaJobNotFound, "ai-media-job-not-found"),
             ("AI_MEDIA_JOB_NOT_CANCELLABLE", Code::FailedPrecondition, LocalAppReasonCode::AiMediaJobNotCancellable, "ai-media-job-not-cancellable"),
+            ("AI_CONFIG_REVISION_CONFLICT", Code::FailedPrecondition, LocalAppReasonCode::AiConfigRevisionConflict, "ai-config-revision-conflict"),
         ] {
             assert!(ReasonCode::from_str_name(name).is_some());
             let status = integration_status(ERROR_INFO_DOMAIN, name, "ignored", code);

@@ -250,6 +250,7 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
 }
 
 export * from './config';
+export {validateAIConfigEdit, validateAIConfigRecord, type NimiAIConfigQuery, type NimiAIConfigRecord, type NimiAIConfigRecordEdit} from './capability-configuration.js';
 export * from './embeddings';
 export * from './runtime-model';
 export * from './text-runner';

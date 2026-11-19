@@ -640,10 +640,15 @@ func (b *Backend) ensureSchema() error {
 			account_namespace TEXT NOT NULL,
 			owner_kind INTEGER NOT NULL,
 			owner_id TEXT NOT NULL,
-			config_blob BLOB NOT NULL,
+			config_ref TEXT NOT NULL DEFAULT 'main',
+            display_name TEXT NOT NULL DEFAULT 'Default',
+            is_default INTEGER NOT NULL DEFAULT 1 CHECK (is_default IN (0,1)),
+            config_blob BLOB NOT NULL,
 			revision INTEGER NOT NULL,
-			PRIMARY KEY(account_namespace, owner_kind, owner_id)
+			PRIMARY KEY(account_namespace, owner_kind, owner_id, config_ref)
 		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS runtime_ai_config_default ON runtime_ai_config(account_namespace,owner_kind,owner_id) WHERE is_default=1`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS runtime_ai_config_name ON runtime_ai_config(account_namespace,owner_kind,owner_id,display_name)`,
 		`CREATE TABLE IF NOT EXISTS runtime_ai_profile (
 			account_namespace TEXT NOT NULL,
 			profile_id TEXT NOT NULL,

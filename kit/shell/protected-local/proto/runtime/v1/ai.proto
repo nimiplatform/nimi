@@ -1599,6 +1599,13 @@ message LocalAppScenarioJobEvent {
 // Single-step TEXT_GENERATE App surface. Function tools, ordered host-provided
 // results and structured output reuse canonical text behavior. The external
 // AI host owns tool execution and the next request; Runtime owns no agent loop.
+message AppTextConfigSelection {
+  string config_ref = 1;
+  string expected_revision = 2;
+  string expected_local_loadout_ref = 3;
+  string expected_local_loadout_revision = 4;
+}
+
 message StreamLocalAppTextTurnRequest {
   repeated LocalAppTextCandidateMessage messages = 1;
   optional float temperature = 2;
@@ -1615,6 +1622,7 @@ message StreamLocalAppTextTurnRequest {
   ResponseFormat response_format = 13;
   // Omission preserves the selected exact implementation's default.
   ReasoningConfig reasoning = 14;
+  AppTextConfigSelection configuration = 15;
 }
 
 message LocalAppTextTurnDelta {
@@ -1639,7 +1647,16 @@ message LocalAppTextTurnReasoningSummary {
   bool item_completed = 3;
 }
 
+// Captured at admission. Safe references belong to the calling App owner.
+message AppTextConfigCapture {
+  string config_ref = 1;
+  string revision = 2;
+  optional string local_loadout_ref = 3;
+  optional string local_loadout_revision = 4;
+}
+
 message LocalAppTextTurnCompleted {
+  AppTextConfigCapture configuration = 3;
   FinishReason finish_reason = 1;
   // Reported aggregate token counts. Absence means unknown, including zero.
   UsageStats usage = 2;

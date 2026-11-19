@@ -1478,6 +1478,12 @@ export interface AIConfigEffectiveSelection {
      * @generated from protobuf field: optional uint64 request_capacity_floor_tokens = 9
      */
     requestCapacityFloorTokens?: string;
+    /**
+     * Stable guard for the exact selected Local Loadout, including its committed revision.
+     *
+     * @generated from protobuf field: optional string local_loadout_revision = 10
+     */
+    localLoadoutRevision?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ReasoningInputCapabilities
@@ -1729,6 +1735,30 @@ export interface ListAppAIConfigOptionsResponse {
  * consistency assertion checked against Runtime-authenticated caller truth;
  * it is never accepted as caller identity.
  *
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigRecord
+ */
+export interface AppAIConfigRecord {
+    /**
+     * @generated from protobuf field: string config_ref = 1
+     */
+    configRef: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string revision = 3
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: bool is_default = 4
+     */
+    isDefault: boolean;
+}
+/**
+ * All management resolves the same protected App owner. A reference never
+ * grants access by itself. Empty selects the owner's current default.
+ *
  * @generated from protobuf message nimi.runtime.v1.GetAppAIConfigRequest
  */
 export interface GetAppAIConfigRequest {
@@ -1736,6 +1766,14 @@ export interface GetAppAIConfigRequest {
      * @generated from protobuf field: nimi.runtime.v1.AIConfigOwner owner = 1
      */
     owner?: AIConfigOwner;
+    /**
+     * @generated from protobuf field: optional string config_ref = 2
+     */
+    configRef?: string;
+    /**
+     * @generated from protobuf field: optional bool include_records = 3
+     */
+    includeRecords?: boolean;
 }
 /**
  * Protected Home read-only index. Visibility here grants no Get/Overwrite access.
@@ -1776,6 +1814,10 @@ export interface DesktopConnectorReference {
      * @generated from protobuf field: string config_revision = 4
      */
     configRevision: string;
+    /**
+     * @generated from protobuf field: optional string config_ref = 5
+     */
+    configRef?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListDesktopConnectorReferencesResponse
@@ -1799,6 +1841,15 @@ export interface ListDesktopConnectorReferencesResponse {
     observedAt?: Timestamp;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigDirectory
+ */
+export interface AppAIConfigDirectory {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppAIConfigRecord records = 1
+     */
+    records: AppAIConfigRecord[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetAppAIConfigResponse
  */
 export interface GetAppAIConfigResponse {
@@ -1814,6 +1865,56 @@ export interface GetAppAIConfigResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3
      */
     effectiveSelections: AIConfigEffectiveSelection[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppAIConfigRecord record = 4
+     */
+    record?: AppAIConfigRecord;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppAIConfigDirectory directory = 5
+     */
+    directory?: AppAIConfigDirectory;
+}
+/**
+ * Saving a config remains one complete-value compare-and-swap. Other
+ * mutations operate on the exact named record at its expected revision.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigRecordEdit
+ */
+export interface AppAIConfigRecordEdit {
+    /**
+     * @generated from protobuf field: string config_ref = 1
+     */
+    configRef: string;
+    /**
+     * @generated from protobuf oneof: change
+     */
+    change: {
+        oneofKind: "createName";
+        /**
+         * @generated from protobuf field: string create_name = 2
+         */
+        createName: string;
+    } | {
+        oneofKind: "renameTo";
+        /**
+         * @generated from protobuf field: string rename_to = 3
+         */
+        renameTo: string;
+    } | {
+        oneofKind: "makeDefault";
+        /**
+         * @generated from protobuf field: bool make_default = 4
+         */
+        makeDefault: boolean;
+    } | {
+        oneofKind: "deleteRecord";
+        /**
+         * @generated from protobuf field: bool delete_record = 5
+         */
+        deleteRecord: boolean;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OverwriteAppAIConfigRequest
@@ -1827,11 +1928,19 @@ export interface OverwriteAppAIConfigRequest {
      * @generated from protobuf field: string expected_revision = 2
      */
     expectedRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppAIConfigRecordEdit record = 3
+     */
+    record?: AppAIConfigRecordEdit;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OverwriteAppAIConfigResponse
  */
 export interface OverwriteAppAIConfigResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppAIConfigRecord record = 5
+     */
+    record?: AppAIConfigRecord;
     /**
      * @generated from protobuf field: nimi.runtime.v1.AIConfig config = 1
      */
@@ -6151,7 +6260,8 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
             { no: 6, name: "text_replay", kind: "message", T: () => TextReplayCompatibility },
             { no: 7, name: "reasoning_input", kind: "message", T: () => ReasoningInputCapabilities },
             { no: 8, name: "context_window_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
-            { no: 9, name: "request_capacity_floor_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ }
+            { no: 9, name: "request_capacity_floor_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 10, name: "local_loadout_revision", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AIConfigEffectiveSelection>): AIConfigEffectiveSelection {
@@ -6202,6 +6312,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                 case /* optional uint64 request_capacity_floor_tokens */ 9:
                     message.requestCapacityFloorTokens = reader.uint64().toString();
                     break;
+                case /* optional string local_loadout_revision */ 10:
+                    message.localLoadoutRevision = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6241,6 +6354,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* optional uint64 request_capacity_floor_tokens = 9; */
         if (message.requestCapacityFloorTokens !== undefined)
             writer.tag(9, WireType.Varint).uint64(message.requestCapacityFloorTokens);
+        /* optional string local_loadout_revision = 10; */
+        if (message.localLoadoutRevision !== undefined)
+            writer.tag(10, WireType.LengthDelimited).string(message.localLoadoutRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7102,10 +7218,83 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
  */
 export const ListAppAIConfigOptionsResponse = new ListAppAIConfigOptionsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigRecord$Type extends MessageType<AppAIConfigRecord> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigRecord", [
+            { no: 1, name: "config_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "is_default", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppAIConfigRecord>): AppAIConfigRecord {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configRef = "";
+        message.name = "";
+        message.revision = "";
+        message.isDefault = false;
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigRecord>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigRecord): AppAIConfigRecord {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string config_ref */ 1:
+                    message.configRef = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* string revision */ 3:
+                    message.revision = reader.string();
+                    break;
+                case /* bool is_default */ 4:
+                    message.isDefault = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string config_ref = 1; */
+        if (message.configRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.configRef);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* string revision = 3; */
+        if (message.revision !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.revision);
+        /* bool is_default = 4; */
+        if (message.isDefault !== false)
+            writer.tag(4, WireType.Varint).bool(message.isDefault);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigRecord
+ */
+export const AppAIConfigRecord = new AppAIConfigRecord$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetAppAIConfigRequest$Type extends MessageType<GetAppAIConfigRequest> {
     constructor() {
         super("nimi.runtime.v1.GetAppAIConfigRequest", [
-            { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner }
+            { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner },
+            { no: 2, name: "config_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "include_records", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<GetAppAIConfigRequest>): GetAppAIConfigRequest {
@@ -7122,6 +7311,12 @@ class GetAppAIConfigRequest$Type extends MessageType<GetAppAIConfigRequest> {
                 case /* nimi.runtime.v1.AIConfigOwner owner */ 1:
                     message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
                     break;
+                case /* optional string config_ref */ 2:
+                    message.configRef = reader.string();
+                    break;
+                case /* optional bool include_records */ 3:
+                    message.includeRecords = reader.bool();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7137,6 +7332,12 @@ class GetAppAIConfigRequest$Type extends MessageType<GetAppAIConfigRequest> {
         /* nimi.runtime.v1.AIConfigOwner owner = 1; */
         if (message.owner)
             AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* optional string config_ref = 2; */
+        if (message.configRef !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.configRef);
+        /* optional bool include_records = 3; */
+        if (message.includeRecords !== undefined)
+            writer.tag(3, WireType.Varint).bool(message.includeRecords);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7217,7 +7418,8 @@ class DesktopConnectorReference$Type extends MessageType<DesktopConnectorReferen
             { no: 1, name: "owner", kind: "message", T: () => AIConfigOwner },
             { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "implementation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "config_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "config_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "config_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DesktopConnectorReference>): DesktopConnectorReference {
@@ -7246,6 +7448,9 @@ class DesktopConnectorReference$Type extends MessageType<DesktopConnectorReferen
                 case /* string config_revision */ 4:
                     message.configRevision = reader.string();
                     break;
+                case /* optional string config_ref */ 5:
+                    message.configRef = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7270,6 +7475,9 @@ class DesktopConnectorReference$Type extends MessageType<DesktopConnectorReferen
         /* string config_revision = 4; */
         if (message.configRevision !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.configRevision);
+        /* optional string config_ref = 5; */
+        if (message.configRef !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.configRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7351,12 +7559,61 @@ class ListDesktopConnectorReferencesResponse$Type extends MessageType<ListDeskto
  */
 export const ListDesktopConnectorReferencesResponse = new ListDesktopConnectorReferencesResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigDirectory$Type extends MessageType<AppAIConfigDirectory> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigDirectory", [
+            { no: 1, name: "records", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppAIConfigRecord }
+        ]);
+    }
+    create(value?: PartialMessage<AppAIConfigDirectory>): AppAIConfigDirectory {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.records = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigDirectory>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigDirectory): AppAIConfigDirectory {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AppAIConfigRecord records */ 1:
+                    message.records.push(AppAIConfigRecord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigDirectory, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AppAIConfigRecord records = 1; */
+        for (let i = 0; i < message.records.length; i++)
+            AppAIConfigRecord.internalBinaryWrite(message.records[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigDirectory
+ */
+export const AppAIConfigDirectory = new AppAIConfigDirectory$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
     constructor() {
         super("nimi.runtime.v1.GetAppAIConfigResponse", [
             { no: 1, name: "config", kind: "message", T: () => AIConfig },
             { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection }
+            { no: 3, name: "effective_selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIConfigEffectiveSelection },
+            { no: 4, name: "record", kind: "message", T: () => AppAIConfigRecord },
+            { no: 5, name: "directory", kind: "message", T: () => AppAIConfigDirectory }
         ]);
     }
     create(value?: PartialMessage<GetAppAIConfigResponse>): GetAppAIConfigResponse {
@@ -7381,6 +7638,12 @@ class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
                 case /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections */ 3:
                     message.effectiveSelections.push(AIConfigEffectiveSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.AppAIConfigRecord record */ 4:
+                    message.record = AppAIConfigRecord.internalBinaryRead(reader, reader.uint32(), options, message.record);
+                    break;
+                case /* nimi.runtime.v1.AppAIConfigDirectory directory */ 5:
+                    message.directory = AppAIConfigDirectory.internalBinaryRead(reader, reader.uint32(), options, message.directory);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7402,6 +7665,12 @@ class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
         /* repeated nimi.runtime.v1.AIConfigEffectiveSelection effective_selections = 3; */
         for (let i = 0; i < message.effectiveSelections.length; i++)
             AIConfigEffectiveSelection.internalBinaryWrite(message.effectiveSelections[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppAIConfigRecord record = 4; */
+        if (message.record)
+            AppAIConfigRecord.internalBinaryWrite(message.record, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppAIConfigDirectory directory = 5; */
+        if (message.directory)
+            AppAIConfigDirectory.internalBinaryWrite(message.directory, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7413,11 +7682,100 @@ class GetAppAIConfigResponse$Type extends MessageType<GetAppAIConfigResponse> {
  */
 export const GetAppAIConfigResponse = new GetAppAIConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigRecordEdit$Type extends MessageType<AppAIConfigRecordEdit> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigRecordEdit", [
+            { no: 1, name: "config_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "create_name", kind: "scalar", oneof: "change", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "rename_to", kind: "scalar", oneof: "change", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "make_default", kind: "scalar", oneof: "change", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "delete_record", kind: "scalar", oneof: "change", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppAIConfigRecordEdit>): AppAIConfigRecordEdit {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configRef = "";
+        message.change = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigRecordEdit>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigRecordEdit): AppAIConfigRecordEdit {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string config_ref */ 1:
+                    message.configRef = reader.string();
+                    break;
+                case /* string create_name */ 2:
+                    message.change = {
+                        oneofKind: "createName",
+                        createName: reader.string()
+                    };
+                    break;
+                case /* string rename_to */ 3:
+                    message.change = {
+                        oneofKind: "renameTo",
+                        renameTo: reader.string()
+                    };
+                    break;
+                case /* bool make_default */ 4:
+                    message.change = {
+                        oneofKind: "makeDefault",
+                        makeDefault: reader.bool()
+                    };
+                    break;
+                case /* bool delete_record */ 5:
+                    message.change = {
+                        oneofKind: "deleteRecord",
+                        deleteRecord: reader.bool()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigRecordEdit, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string config_ref = 1; */
+        if (message.configRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.configRef);
+        /* string create_name = 2; */
+        if (message.change.oneofKind === "createName")
+            writer.tag(2, WireType.LengthDelimited).string(message.change.createName);
+        /* string rename_to = 3; */
+        if (message.change.oneofKind === "renameTo")
+            writer.tag(3, WireType.LengthDelimited).string(message.change.renameTo);
+        /* bool make_default = 4; */
+        if (message.change.oneofKind === "makeDefault")
+            writer.tag(4, WireType.Varint).bool(message.change.makeDefault);
+        /* bool delete_record = 5; */
+        if (message.change.oneofKind === "deleteRecord")
+            writer.tag(5, WireType.Varint).bool(message.change.deleteRecord);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigRecordEdit
+ */
+export const AppAIConfigRecordEdit = new AppAIConfigRecordEdit$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class OverwriteAppAIConfigRequest$Type extends MessageType<OverwriteAppAIConfigRequest> {
     constructor() {
         super("nimi.runtime.v1.OverwriteAppAIConfigRequest", [
             { no: 1, name: "config", kind: "message", T: () => AIConfig },
-            { no: 2, name: "expected_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "expected_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "record", kind: "message", T: () => AppAIConfigRecordEdit }
         ]);
     }
     create(value?: PartialMessage<OverwriteAppAIConfigRequest>): OverwriteAppAIConfigRequest {
@@ -7438,6 +7796,9 @@ class OverwriteAppAIConfigRequest$Type extends MessageType<OverwriteAppAIConfigR
                 case /* string expected_revision */ 2:
                     message.expectedRevision = reader.string();
                     break;
+                case /* nimi.runtime.v1.AppAIConfigRecordEdit record */ 3:
+                    message.record = AppAIConfigRecordEdit.internalBinaryRead(reader, reader.uint32(), options, message.record);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7456,6 +7817,9 @@ class OverwriteAppAIConfigRequest$Type extends MessageType<OverwriteAppAIConfigR
         /* string expected_revision = 2; */
         if (message.expectedRevision !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.expectedRevision);
+        /* nimi.runtime.v1.AppAIConfigRecordEdit record = 3; */
+        if (message.record)
+            AppAIConfigRecordEdit.internalBinaryWrite(message.record, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7470,6 +7834,7 @@ export const OverwriteAppAIConfigRequest = new OverwriteAppAIConfigRequest$Type(
 class OverwriteAppAIConfigResponse$Type extends MessageType<OverwriteAppAIConfigResponse> {
     constructor() {
         super("nimi.runtime.v1.OverwriteAppAIConfigResponse", [
+            { no: 5, name: "record", kind: "message", T: () => AppAIConfigRecord },
             { no: 1, name: "config", kind: "message", T: () => AIConfig },
             { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "committed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
@@ -7490,6 +7855,9 @@ class OverwriteAppAIConfigResponse$Type extends MessageType<OverwriteAppAIConfig
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* nimi.runtime.v1.AppAIConfigRecord record */ 5:
+                    message.record = AppAIConfigRecord.internalBinaryRead(reader, reader.uint32(), options, message.record);
+                    break;
                 case /* nimi.runtime.v1.AIConfig config */ 1:
                     message.config = AIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
                     break;
@@ -7526,6 +7894,9 @@ class OverwriteAppAIConfigResponse$Type extends MessageType<OverwriteAppAIConfig
         /* nimi.runtime.v1.ReasonCode reason_code = 4; */
         if (message.reasonCode !== 0)
             writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.AppAIConfigRecord record = 5; */
+        if (message.record)
+            AppAIConfigRecord.internalBinaryWrite(message.record, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

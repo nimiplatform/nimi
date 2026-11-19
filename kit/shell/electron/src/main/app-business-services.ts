@@ -259,7 +259,7 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
       cancelConnectionSetup: input => request('integrationCancelConnectionSetup', input),
     }),
     aiConfig: createNimiLocalAppAIConfigClient({
-      get: () => request('aiConfigGet'),
+      get: query => request('aiConfigGet', query ?? {}),
       overwrite: (input) => request('aiConfigOverwrite', input),
       listOptions: (input) => request('aiConfigLocalOptions', input.kind === 'preset-voices'
         ? { kind: input.kind, capabilityContract: '', search: '' }

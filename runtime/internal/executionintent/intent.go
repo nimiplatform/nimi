@@ -23,6 +23,8 @@ import (
 // Driver-owned target intent; Runtime opens custody later for the separately
 // committed exact Connector reference.
 type Intent struct {
+	AppConfigRef        string
+	AppConfigRevision   string
 	CapabilityContract  string
 	RequiredFeatures    []string
 	Defaults            *structpb.Struct
@@ -79,6 +81,7 @@ func (i Intent) ConnectorID() string {
 
 func Clone(input Intent) Intent {
 	out := Intent{
+		AppConfigRef: input.AppConfigRef, AppConfigRevision: input.AppConfigRevision,
 		CapabilityContract: strings.TrimSpace(input.CapabilityContract),
 		RequiredFeatures:   append([]string(nil), input.RequiredFeatures...),
 		Route:              input.Route,

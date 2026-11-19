@@ -237,6 +237,7 @@ export type NimiRunEvent =
     }
   | {
       readonly type: 'done';
+      readonly configuration?: {readonly configRef:string; readonly revision:string; readonly localLoadoutRef?:string; readonly localLoadoutRevision?:string};
       readonly finishReason: NimiFinishReason;
       readonly usage?: NimiUsage;
     }

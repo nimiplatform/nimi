@@ -51,10 +51,20 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 	}
 	useCtx, releaseModelAssets := localexecution.WithModelAssetUseScope(stream.Context())
 	defer releaseModelAssets()
-	capturedCtx, _, err := s.captureScenarioExecutionIntent(useCtx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	capturedCtx, intent, err := s.captureScenarioExecutionIntent(useCtx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if err != nil {
 		s.logScenarioStreamFailure("execution-intent", req, err)
 		return err
+	}
+	if sink, ok := stream.(interface {
+		captureConfiguration(*runtimev1.AppTextConfigCapture)
+	}); ok && intent.AppConfigRef != "" {
+		fact := &runtimev1.AppTextConfigCapture{ConfigRef: intent.AppConfigRef, Revision: intent.AppConfigRevision}
+		if local, ok := localexecution.SelectedLocalExecutionFromContext(capturedCtx, intent.CapabilityContract); ok {
+			fact.LocalLoadoutRef = &local.LoadoutID
+			fact.LocalLoadoutRevision = &local.LoadoutRevision
+		}
+		sink.captureConfiguration(fact)
 	}
 	stream = &executionIntentScenarioStream{ServerStreamingServer: stream, ctx: capturedCtx}
 	restartStream := newRuntimeRestartScenarioStream(s, stream)

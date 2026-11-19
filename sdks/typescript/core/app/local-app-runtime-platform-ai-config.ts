@@ -1,8 +1,10 @@
+import { validateAIConfigRecord } from '../ai/capability-configuration.js';
 import { projectSpeechInputCapabilities } from '../ai/speech-input.js';
 import { projectReasoningInputCapabilities } from '../ai/reasoning.js';
 import { projectMusicInputCapabilities } from '../ai/music-input.js';
 import { projectVoiceReferenceInput } from '../ai/voice-reference-input.js';
 import type {
+  NimiAIConfigQuery,
   NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,
@@ -36,13 +38,13 @@ export type NimiLocalAppAIConfigIntentInput = {
 };
 
 export type NimiLocalAppAIConfigShell = {
-  readonly get: () => Promise<unknown>;
+  readonly get: (query?: NimiAIConfigQuery) => Promise<unknown>;
   readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<unknown>;
   readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<unknown>;
 };
 
 export type NimiLocalAppAIConfigClient = {
-  readonly get: () => Promise<NimiAIConfigSnapshot>;
+  readonly get: (query?: NimiAIConfigQuery) => Promise<NimiAIConfigSnapshot>;
   readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
   readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
 };
@@ -57,7 +59,7 @@ export function createNimiLocalAppAIConfigClient(
   shell: NimiLocalAppAIConfigShell,
 ): NimiLocalAppAIConfigClient {
   return Object.freeze({
-    get: async () => projectAppAIConfigSnapshot(await shell.get()),
+    get: async (query) => projectAppAIConfigSnapshot(await shell.get(query)),
     overwrite: async (input) => {
       validateCapabilityIntents(input.capabilities);
       requireRevision(input.expectedRevision);
@@ -153,7 +155,7 @@ function validateOptionsQuery(query: NimiAIConfigOptionsQuery): void {
 
 function projectAppAIConfigSnapshot(value: unknown): NimiAIConfigSnapshot {
   const snapshot = asRecord(value);
-  assertExactProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], 'App AIConfig snapshot');
+  assertExactProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections', ...(['record','records'].filter(k=>snapshot && Object.hasOwn(snapshot,k)))], 'App AIConfig snapshot');
   assertSafeProjection(snapshot);
   const config = snapshot.config === null ? null : projectAppAIConfig(snapshot.config);
   const revision = requireProjectionRevision(snapshot.revision);
@@ -163,6 +165,8 @@ function projectAppAIConfigSnapshot(value: unknown): NimiAIConfigSnapshot {
     config,
     revision,
     effectiveSelections: Object.freeze([...snapshot.effectiveSelections]),
+    ...(snapshot.record===undefined?{}:{record:validateAIConfigRecord(snapshot.record)}),
+    ...(snapshot.records===undefined?{}:{records:Array.isArray(snapshot.records)?snapshot.records.map(validateAIConfigRecord):localAppProjectionError('invalid AIConfig records')}),
   }) as NimiAIConfigSnapshot;
 }
 
@@ -173,12 +177,13 @@ function projectAppAIConfigOverwrite(value: unknown): NimiAIConfigOverwriteResul
   const revision = requireProjectionRevision(result.revision);
   const config = result.config === null ? null : projectAppAIConfig(result.config);
   if (result.outcome === 'committed' && config) {
-    assertExactProjectionKeys(result, ['outcome', 'config', 'revision'], 'App AIConfig committed overwrite');
-    return Object.freeze({ outcome: 'committed', config, revision });
+    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', ...(result.record===undefined?[]:['record'])], 'App AIConfig committed overwrite');
+    return Object.freeze({ outcome: 'committed', config, revision,...(result.record===undefined?{}:{record:validateAIConfigRecord(result.record)}) });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AI_CONFIG_REVISION_CONFLICT') {
-    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], 'App AIConfig conflict overwrite');
-    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
+    assertExactProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode', ...(result.record===undefined?[]:['record'])], 'App AIConfig conflict overwrite');
+    return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode,
+      ...(result.record === undefined ? {} : { record: validateAIConfigRecord(result.record) }) });
   }
   return localAppProjectionError('App AIConfig overwrite outcome');
 }
@@ -260,7 +265,7 @@ function projectCapabilityIntent(value: unknown, index: number): void {
 
 function projectEffectiveSelection(value: unknown, index: number): void {
   const selection = asRecord(value);
-  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(selection && Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(selection && Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(selection && Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], `App AIConfig effective selection ${index}`);
+  assertExactProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(selection && Object.hasOwn(selection,'localLoadoutRevision') ? ['localLoadoutRevision'] : []), ...(selection && Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(selection && Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(selection && Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(selection && Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], `App AIConfig effective selection ${index}`);
   for (const [key, route] of [['contextWindowTokens', 'local'], ['requestCapacityFloorTokens', 'cloud']] as const) {
     if (selection && Object.hasOwn(selection, key)) {
       const count = selection[key];

@@ -9,6 +9,7 @@ import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest }
 export type NimiLocalAppTextModelOptions = {
   /** Explicit Runtime mode. SYNC exposes events only after the complete result. */
   readonly executionMode?: 'stream' | 'sync';
+  readonly configuration?: NimiLocalAppTextTurnInput['configuration'];
 };
 
 type TextCarrier = Pick<NimiLocalAppAIConsumptionClient, 'text'>;
@@ -18,7 +19,7 @@ function invalid(detail: string): never {
   return localAppError(`Local App text model cannot represent ${detail}.`, 'SDK_LOCAL_APP_INPUT_INVALID', 'use_admitted_local_app_text_fields');
 }
 
-function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput {
+function localInput(request: NimiGenerateTextRequest, configuration?: NimiLocalAppTextTurnInput['configuration']): NimiLocalAppTextTurnInput {
   assertExactKeys(request, ['messages', 'tools', 'toolChoice', 'responseFormat', 'parameters', 'signal'], 'text model request');
   const parameters = request.parameters ?? {};
   assertExactKeys(parameters, ['reasoning', 'temperature', 'topP', 'topK', 'maxTokens', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'], 'Local App text parameters');
@@ -76,7 +77,7 @@ function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput
     return { type: 'function' as const, name: tool.name, description: tool.description, inputSchema: tool.inputSchema };
   });
   return validateLocalAppTextInput({
-    messages, tools, toolChoice: request.toolChoice, responseFormat: request.responseFormat,
+    ...(configuration ? {configuration} : {}), messages, tools, toolChoice: request.toolChoice, responseFormat: request.responseFormat,
     ...parameters, stop: typeof parameters.stop === 'string' ? [parameters.stop] : parameters.stop,
   });
 }
@@ -87,19 +88,19 @@ function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput
  * mode. Neither mode executes business tools or owns a multi-step workflow.
  */
 // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
-export function createNimiLocalAppTextModel(ai: TextCarrier, options?: { readonly executionMode?: 'stream' }): NimiAiModel;
+export function createNimiLocalAppTextModel(ai: TextCarrier, options?: { readonly executionMode?: 'stream'; readonly configuration?: NimiLocalAppTextTurnInput['configuration'] }): NimiAiModel;
 export function createNimiLocalAppTextModel(ai: SynchronousTextCarrier, options: NimiLocalAppTextModelOptions): NimiAiModel;
 export function createNimiLocalAppTextModel(
   ai: TextCarrier & Partial<Pick<NimiLocalAppAIConsumptionClient, 'scenario'>>,
   options: NimiLocalAppTextModelOptions = {},
 ): NimiAiModel {
-  assertExactKeys(options, ['executionMode'], 'Local App text model options');
+  assertExactKeys(options, ['executionMode','configuration'], 'Local App text model options');
   if (options.executionMode !== undefined && options.executionMode !== 'sync' && options.executionMode !== 'stream') invalid('execution mode');
   if (options.executionMode === 'sync' && typeof ai.scenario?.execute !== 'function') invalid('synchronous Scenario carrier');
 
   async function* executeText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
     request.signal?.throwIfAborted();
-    const input = localInput(request);
+    const input = localInput(request,options.configuration);
     const result = await ai.scenario!.execute({ type: 'text-generate', ...input }, request.signal ? { signal: request.signal } : undefined);
     request.signal?.throwIfAborted();
     if (result.output.type !== 'text-generate') localAppProjectionError('synchronous text output');
@@ -118,7 +119,7 @@ export function createNimiLocalAppTextModel(
 
   async function* streamText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
     request.signal?.throwIfAborted();
-    const input = localInput(request);
+    const input = localInput(request,options.configuration);
     let stream: Awaited<ReturnType<typeof ai.text.streamTurn>> | undefined;
     let close: Promise<void> | undefined;
     let failed = false;
@@ -139,7 +140,7 @@ export function createNimiLocalAppTextModel(
         else if (event.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: event.text, itemIndex: event.itemIndex, itemCompleted: event.itemCompleted };
         else if (event.type === 'tool-call') yield { type: 'tool-call', toolCall: event.toolCall, itemIndex: event.itemIndex };
         else if (event.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: { ...event.carrier, payload: new Uint8Array(event.carrier.payload) }, itemIndex: event.itemIndex, itemCompleted: true };
-        else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason, ...(event.usage ? { usage: event.usage } : {}) };
+        else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason, ...(event.configuration ? {configuration:event.configuration} : {}), ...(event.usage ? { usage: event.usage } : {}) };
         else throw createNimiError({
           message: `Nimi text generation failed: ${event.reasonCode}.`,
           code: event.reasonCode, reasonCode: event.reasonCode, actionHint: event.actionHint,

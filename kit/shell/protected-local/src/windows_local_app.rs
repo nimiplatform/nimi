@@ -460,12 +460,12 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     }
 
     fn app_ai_config_get(
-        &self,
+        &self, query: Option<serde_json::Value>,
     ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
     {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
-            app_ai_config::get(self.checked_channel()?).await
+            app_ai_config::get(self.checked_channel()?,query).await
         })
     }
 

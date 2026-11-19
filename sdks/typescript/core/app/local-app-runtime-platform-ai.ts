@@ -406,7 +406,7 @@ export type NimiLocalAppTextTurnEvent =
   | { readonly type: 'reasoning-continuity'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string; readonly itemIndex: number }
   | { readonly type: 'tool-call'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly toolCall: NimiLocalAppToolCall }
-  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter'; readonly usage?: NimiUsage }
+  | { readonly type: 'completed'; readonly configuration?: { readonly configRef:string; readonly revision:string; readonly localLoadoutRef?:string; readonly localLoadoutRevision?:string }; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter'; readonly usage?: NimiUsage }
   | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string; readonly interruption?: NimiLocalAppExecutionInterruption };
 
 export type NimiLocalAppScenarioJobEvent = {
@@ -1423,6 +1423,15 @@ function projectSubscription<T>(
   return Object.freeze(projected);
 }
 
+export function projectCapture(value: unknown) {
+  const r=asRecord(value);
+  if (!r || typeof r.configRef!=='string' || !/^(main|[a-f0-9]{32})$/.test(r.configRef) ||
+    typeof r.revision!=='string' || !/^[1-9][0-9]*$/.test(r.revision) || (r.localLoadoutRef===undefined)!==(r.localLoadoutRevision===undefined) ||
+    (r.localLoadoutRef!==undefined && (typeof r.localLoadoutRef!=='string'||typeof r.localLoadoutRevision!=='string'))) return localAppProjectionError('invalid configuration capture');
+  assertExactProjectionKeys(r,['configRef','revision',...(r.localLoadoutRef===undefined?[]:['localLoadoutRef','localLoadoutRevision'])],'configuration capture');
+  return {configRef:r.configRef,revision:r.revision,...(typeof r.localLoadoutRef==='string'?{localLoadoutRef:r.localLoadoutRef,localLoadoutRevision:r.localLoadoutRevision as string}:{})};
+}
+
 function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
   const record = asRecord(value);
   if (!record || !/^[1-9][0-9]*$/u.test(String(record.sequence))) localAppProjectionError('text-turn event');
@@ -1446,9 +1455,9 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
     return Object.freeze({ ...base, type: 'reasoning-continuity', itemIndex: projectionInteger(record.itemIndex, 'continuity item index', 0, 4_294_967_295), carrier: projectLocalAppContinuity(record.carrier) });
   }
   if (record.type === 'completed') {
-    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason', ...(record.usage !== undefined ? ['usage'] : [])], 'text-turn completed');
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason', ...(record.configuration ? ['configuration'] : []), ...(record.usage !== undefined ? ['usage'] : [])], 'text-turn completed');
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) localAppProjectionError('text-turn finishReason');
-    return Object.freeze({ ...base, type: 'completed', finishReason: record.finishReason, ...(record.usage === undefined ? {} : { usage: projectTokenUsage(record.usage) }) }) as NimiLocalAppTextTurnEvent;
+    return Object.freeze({ ...base, type: 'completed', finishReason: record.finishReason, ...(record.configuration ? {configuration:projectCapture(record.configuration)} : {}), ...(record.usage === undefined ? {} : { usage: projectTokenUsage(record.usage) }) }) as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], 'text-turn failed');
@@ -1874,6 +1883,8 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   const format = input.responseFormat;
   return {
     messages,
+    ...(input.configuration ? {configuration:{configRef:input.configuration.configRef,expectedRevision:input.configuration.expectedRevision ?? '',
+      expectedLocalLoadoutRef:input.configuration.expectedLocalLoadoutRef ?? '', expectedLocalLoadoutRevision:input.configuration.expectedLocalLoadoutRevision ?? ''}} : {}),
     tools: toRuntimeTools(input.tools),
     ...(input.reasoning === undefined ? {} : { reasoning: toRuntimeReasoningConfig(input.reasoning, (detail) => localAppError(detail, 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_admitted_local_app_text_input')) }),
     toolChoice: choice === 'none' ? ToolChoiceMode.NONE : choice === 'auto' ? ToolChoiceMode.AUTO
@@ -2165,6 +2176,7 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
         ...base,
         type: 'completed',
         finishReason: runtimeFinishReason(event.payload.completed.finishReason),
+        ...(event.payload.completed.configuration ? {configuration:event.payload.completed.configuration} : {}),
         ...(event.payload.completed.usage ? { usage: runtimeTokenUsage(event.payload.completed.usage) } : {}),
       };
     case 'failed':

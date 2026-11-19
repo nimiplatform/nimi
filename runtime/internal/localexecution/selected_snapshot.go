@@ -17,8 +17,8 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 		return nil
 	}
 	out := &SelectedLocalExecution{
-		ModelAssetUse:                   input.ModelAssetUse,
-		LoadoutID:                       input.LoadoutID,
+		ModelAssetUse: input.ModelAssetUse,
+		LoadoutID:     input.LoadoutID, LoadoutRevision: input.LoadoutRevision,
 		CapabilityContract:              input.CapabilityContract,
 		DisplayName:                     input.DisplayName,
 		RecipeID:                        input.RecipeID,

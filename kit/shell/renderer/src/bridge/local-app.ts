@@ -1,3 +1,4 @@
+import { validateNimiAppTextConfigCapture, validateAIConfigRecord, type NimiAIConfigQuery} from '@nimiplatform/kit/core/sdk-contract';
 import type { NimiLocalAppConversationFollowUpCancelInput, } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppConversationQuoteInput, projectNimiLocalAppConversationMessageReadResult, type NimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
@@ -454,7 +455,7 @@ export type NimiLocalAppAgentConfigureShellSurface = {
     }) => Promise<JsonObject>;
   };
   readonly sharedAIConfig: {
-    readonly get: () => Promise<NimiAIConfigSnapshot>;
+    readonly get: (query?: NimiAIConfigQuery) => Promise<NimiAIConfigSnapshot>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
     readonly listOptions: (query: NimiSharedLocalAgentAIConfigOptionsQuery) => Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   };
@@ -840,9 +841,9 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
   };
 }
 
-export function getNimiLocalAppAIConfig(): Promise<NimiAIConfigSnapshot> {
+export function getNimiLocalAppAIConfig(query?: NimiAIConfigQuery): Promise<NimiAIConfigSnapshot> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigGet'];
-  return invokeChecked(command, {}, (value) => parseAppAIConfigSnapshot(value, command));
+  return invokeChecked(command, query ?? {}, (value) => parseAppAIConfigSnapshot(value, command));
 }
 
 export function overwriteNimiLocalAppAIConfig(
@@ -850,6 +851,7 @@ export function overwriteNimiLocalAppAIConfig(
 ): Promise<NimiAIConfigOverwriteResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigOverwrite'];
   const payload = {
+    ...(input.record ? {record:input.record} : {}),
     expectedRevision: requiredText(input.expectedRevision, 'expectedRevision', command, MAX_IDENTIFIER_LENGTH),
     capabilities: canonicalAIConfigCapabilities(input.capabilities, command),
   };
@@ -3055,9 +3057,13 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
       carrier: validateNimiLocalAppReasoningContinuityCarrier(record.carrier) });
   }
   if (record.type === 'completed') {
-    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason', ...(record.usage === undefined ? [] : ['usage'])], command, 'text completion');
+    const fields = ['type', 'sequence', 'traceId', 'finishReason'];
+    if (record.usage !== undefined) fields.push('usage');
+    if (record.configuration !== undefined) fields.push('configuration');
+    assertProjectionKeys(record, fields, command, 'text completion');
     validateOptionalTokenUsage(record, command);
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) throw new Error(`${command}: finishReason is invalid`);
+    if (record.configuration !== undefined) validateNimiAppTextConfigCapture(record.configuration);
     return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
@@ -3886,14 +3892,16 @@ function parseSafeProjection(value: unknown, command: string): JsonObject {
 function parseAppAIConfigSnapshot(value: unknown, command: string): NimiAIConfigSnapshot {
   const snapshot = parseSafeProjection(value, command);
   rejectPortableAppAIConfigFields(snapshot, command);
-  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections'], command, 'App AIConfig snapshot');
+  assertProjectionKeys(snapshot, ['config', 'revision', 'effectiveSelections', ...['record','records'].filter(k=>Object.hasOwn(snapshot,k))], command, 'App AIConfig snapshot');
   const revision = parseRevision(snapshot.revision, command);
   const config = snapshot.config === null ? null : parseAppAIConfig(snapshot.config, command);
   if (!Array.isArray(snapshot.effectiveSelections) || snapshot.effectiveSelections.length > 128) {
     throw new Error(`${command}: effective selections are invalid`);
   }
   snapshot.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
-  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]) }) as NimiAIConfigSnapshot;
+  return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]),
+    ...(snapshot.record===undefined ? {} : {record:validateAIConfigRecord(snapshot.record)}),
+    ...(snapshot.records===undefined ? {} : {records:Array.isArray(snapshot.records)?snapshot.records.map(validateAIConfigRecord):(()=>{throw new Error('Invalid config records')})()}) }) as NimiAIConfigSnapshot;
 }
 
 function parseAppAIConfigOverwrite(value: unknown, command: string): NimiAIConfigOverwriteResult {
@@ -3902,11 +3910,11 @@ function parseAppAIConfigOverwrite(value: unknown, command: string): NimiAIConfi
   const revision = parseRevision(result.revision, command);
   const config = result.config === null ? null : parseAppAIConfig(result.config, command);
   if (result.outcome === 'committed' && config) {
-    assertProjectionKeys(result, ['outcome', 'config', 'revision'], command, 'App AIConfig committed overwrite');
-    return Object.freeze({ outcome: 'committed', config, revision });
+    assertProjectionKeys(result, ['outcome', 'config', 'revision', ...(result.record===undefined?[]:['record'])], command, 'App AIConfig committed overwrite');
+    return Object.freeze({ outcome: 'committed', config, revision, ...(result.record===undefined?{}:{record:validateAIConfigRecord(result.record)}) });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AI_CONFIG_REVISION_CONFLICT') {
-    assertProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], command, 'App AIConfig conflict overwrite');
+    assertProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode', ...(result.record===undefined?[]:['record'])], command, 'App AIConfig conflict overwrite');
     return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
   }
   throw new Error(`${command}: overwrite outcome is invalid`);
@@ -3994,7 +4002,7 @@ function requiredVoiceOptionText(value: unknown, field: string, command: string,
 
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
-  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], command, 'effective selection');
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'localLoadoutRevision') ? ['localLoadoutRevision'] : []), ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], command, 'effective selection');
   for (const [key, route] of [['contextWindowTokens', 'local'], ['requestCapacityFloorTokens', 'cloud']] as const) {
     if (!Object.hasOwn(selection, key)) continue;
     const capacity = selection[key];

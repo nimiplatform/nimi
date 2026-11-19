@@ -1,3 +1,4 @@
+import { validateAIConfigEdit } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppAgentWorkStart, validateNimiLocalAppAgentWorkScope, validateNimiLocalAppAgentWorkToolResult, validateNimiLocalAppAgentWorkSubscribe, validateNimiLocalAppIntegrationInput, type NimiLocalAppIntegrationMethod } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppVoiceConvertSpec } from '@nimiplatform/kit/core/sdk-contract';
@@ -281,7 +282,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
     if (method === 'realmWorldCreationEligibilityGet') return await input.host.realmWorldCreationEligibilityGet();
-    if (method === 'aiConfigGet') return await input.host.aiConfigGet();
+    if (method === 'aiConfigGet') return await input.host.aiConfigGet(payload);
     if (method === 'aiConfigOverwrite') return await input.host.aiConfigOverwrite(payload);
     if (method === 'aiConfigLocalOptions') return await input.host.aiConfigLocalOptions(payload);
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
@@ -443,12 +444,16 @@ function validatePayload(
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigGet':
+      assertExactKeys(payload, ['configRef','includeRecords'].filter(key=>Object.hasOwn(payload,key)), command);
+      if ((payload.configRef !== undefined && (typeof payload.configRef !== 'string' || !/^(main|[a-f0-9]{32})$/.test(payload.configRef)))
+        || (payload.includeRecords !== undefined && typeof payload.includeRecords !== 'boolean')) throw invalidPayload(command,'Invalid config selection');
+      return payload as NimiElectronLocalAppRecord;
     case 'agentReferenceList':
     case 'sharedAgentAIConfigGet':
       assertExactKeys(payload, [], command);
       return {};
     case 'aiConfigOverwrite':
-      assertExactKeys(payload, ['expectedRevision', 'capabilities'], command);
+      assertExactKeys(payload, ['expectedRevision', 'capabilities', ...(payload.record===undefined?[]:['record'])], command);
       if (typeof payload.expectedRevision !== 'string'
         || !/^(0|[1-9][0-9]*)$/u.test(payload.expectedRevision)
         || !Array.isArray(payload.capabilities)) {
@@ -457,6 +462,7 @@ function validatePayload(
       assertNoPortableAppAIConfigFields(payload.capabilities, command);
       validateJsonValue(payload.capabilities, command, 4 * 1024 * 1024);
       return {
+        ...(payload.record===undefined?{}:{record:validateAIConfigEdit(payload.record)}),
         expectedRevision: payload.expectedRevision,
         capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
       };
@@ -2470,6 +2476,7 @@ function standardCode(reasonCode: string) {
     case 'agent-presentation-revision-conflict':
     case 'agent-utopia-revision-conflict':
     case 'agent-conversation-context-revision-conflict': return 'content-conflict' as const;
+    case 'ai-config-revision-conflict': return 'content-conflict' as const;
     case 'realm-unavailable': return 'realm-unavailable' as const;
     case 'rate-limited': return 'rate-limited' as const;
     case 'upstream-failed': return 'upstream-failed' as const;
@@ -2571,6 +2578,7 @@ function actionHint(reasonCode: string): string {
     case 'ai-remote-model-catalog-stale':
     case 'capability-catalog-mismatch':
     case 'ai-config-invalid':
+    case 'ai-config-revision-conflict':
     case 'ai-connector-not-found': return 'reselect_app_ai_config_target';
     case 'ai-connector-disabled': return 'enable_cloud_connector_or_reselect_target';
     case 'ai-connector-credential-missing': return 'add_cloud_connector_credential_or_reselect_target';

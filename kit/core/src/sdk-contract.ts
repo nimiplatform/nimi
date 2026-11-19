@@ -97,7 +97,7 @@ export type {
   NimiLocalAppTextTurnInput,
   NimiLocalAppTextOutputItem,
 } from '@nimiplatform/sdk';
-export { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/sdk/app';
+export { validateNimiAppTextConfigCapture, validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/sdk/app';
 export {
   createNimiLocalAppAIConsumptionClient,
   createNimiLocalAppAIConfigClient,
@@ -122,6 +122,7 @@ export type {
   NimiAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,
   NimiAIConfigOverwriteResult,
+  NimiAIConfigQuery, NimiAIConfigRecord, NimiAIConfigRecordEdit,
   NimiAIConfigSnapshot,
   NimiSharedLocalAgentCapabilityParticipation,
   NimiSharedLocalAgentAIConfigSnapshot,
@@ -469,3 +470,5 @@ export type { NimiAppRuntimeClient } from '@nimiplatform/sdk/app';
 
 export { createNimiAppCharacterDiscoveryRuntimeClient, validateNimiAppCharacterQuery, validateNimiAppCharacterConnect } from '@nimiplatform/sdk/app';
 export type { NimiAppCharacterDiscoveryShell } from '@nimiplatform/sdk/app';
+
+export { validateAIConfigEdit, validateAIConfigRecord } from '@nimiplatform/sdk/ai';

@@ -56,7 +56,7 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 	}
 	implementation, _ := proto.Clone(loadout.GetImplementation()).(*runtimev1.CapabilityImplementationIdentity)
 	option := localexecution.LoadoutOption{
-		LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
+		LoadoutRevision: loadout.GetRevision(), LoadoutID: loadout.GetLoadoutId(), DisplayName: loadout.GetDisplayName(),
 		CapabilityContract:              loadout.GetCapabilityContract(),
 		Implementation:                  implementation,
 		ImplementationSupportedFeatures: append([]string(nil), loadout.GetImplementationSupportedFeatures()...),
@@ -251,7 +251,7 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 		dependencySources = append(dependencySources, codec)
 	}
 	return &localexecution.SelectedLocalExecution{
-		LoadoutID:          loadout.GetLoadoutId(),
+		LoadoutRevision: loadout.GetRevision(), LoadoutID: loadout.GetLoadoutId(),
 		CapabilityContract: capabilityContract, DisplayName: loadout.GetDisplayName(),
 		RecipeID: loadout.GetRecipeId(), RecipeRevision: loadout.GetRecipeRevision(), RecipeCustody: custody,
 		DriverIdentity: identity, PortableConfig: cloneStruct(loadout.GetOptions()),

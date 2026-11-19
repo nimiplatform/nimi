@@ -12,6 +12,14 @@ Realm image-set descriptors can include `boundedFamily` alongside their complete
 
 Home can resolve up to 100 world summaries with `worldPublicControllerGetWorldCatalogByIds` and up to 100 relationship targets in one readable world with `worldCoreControllerGetRelationshipTargets`. Missing or unreadable items are omitted. Use the matching Runtime broker policy when updating the SDK and Home.
 
+## 0.24.0-rc.10
+
+- Configuration write conflicts preserve the current record reference and revision when supplied by Runtime.
+
+## 0.24.0-rc.9
+
+- App AIConfig can read and manage named records. Protected text steps can pin a record and require its observed revision and Local Loadout before dispatch.
+
 ## 0.24.0-rc.7 — Text context capacity
 
 A ready text.generate effective selection can expose `contextWindowTokens` from its Local Driver and Loadout. A Cloud catalog row can supply `requestCapacityFloorTokens`, a conservative request floor that does not define a combined context limit. Missing capacity remains absent. The value describes a configuration read. Execution still captures its own resources at admission. Update the Runtime, native carrier and SDK together.

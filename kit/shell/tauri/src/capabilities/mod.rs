@@ -611,9 +611,10 @@ pub mod local_app {
 
     #[tauri::command]
     pub async fn local_app_ai_config_get(
+        payload: Option<serde_json::Value>,
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
     ) -> Result<serde_json::Value, String> {
-        crate::standard_local_app::ai_config_get_for_host(host.inner()).await
+        crate::standard_local_app::ai_config_get_for_host(host.inner(),payload).await
     }
 
     #[tauri::command]

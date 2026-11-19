@@ -3871,6 +3871,27 @@ export interface LocalAppScenarioJobEvent {
  * results and structured output reuse canonical text behavior. The external
  * AI host owns tool execution and the next request; Runtime owns no agent loop.
  *
+ * @generated from protobuf message nimi.runtime.v1.AppTextConfigSelection
+ */
+export interface AppTextConfigSelection {
+    /**
+     * @generated from protobuf field: string config_ref = 1
+     */
+    configRef: string;
+    /**
+     * @generated from protobuf field: string expected_revision = 2
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: string expected_local_loadout_ref = 3
+     */
+    expectedLocalLoadoutRef: string;
+    /**
+     * @generated from protobuf field: string expected_local_loadout_revision = 4
+     */
+    expectedLocalLoadoutRevision: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.StreamLocalAppTextTurnRequest
  */
 export interface StreamLocalAppTextTurnRequest {
@@ -3932,6 +3953,10 @@ export interface StreamLocalAppTextTurnRequest {
      * @generated from protobuf field: nimi.runtime.v1.ReasoningConfig reasoning = 14
      */
     reasoning?: ReasoningConfig;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppTextConfigSelection configuration = 15
+     */
+    configuration?: AppTextConfigSelection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnDelta
@@ -3992,9 +4017,36 @@ export interface LocalAppTextTurnReasoningSummary {
     itemCompleted: boolean;
 }
 /**
+ * Captured at admission. Safe references belong to the calling App owner.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppTextConfigCapture
+ */
+export interface AppTextConfigCapture {
+    /**
+     * @generated from protobuf field: string config_ref = 1
+     */
+    configRef: string;
+    /**
+     * @generated from protobuf field: string revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: optional string local_loadout_ref = 3
+     */
+    localLoadoutRef?: string;
+    /**
+     * @generated from protobuf field: optional string local_loadout_revision = 4
+     */
+    localLoadoutRevision?: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnCompleted
  */
 export interface LocalAppTextTurnCompleted {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppTextConfigCapture configuration = 3
+     */
+    configuration?: AppTextConfigCapture;
     /**
      * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 1
      */
@@ -17189,6 +17241,77 @@ class LocalAppScenarioJobEvent$Type extends MessageType<LocalAppScenarioJobEvent
  */
 export const LocalAppScenarioJobEvent = new LocalAppScenarioJobEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppTextConfigSelection$Type extends MessageType<AppTextConfigSelection> {
+    constructor() {
+        super("nimi.runtime.v1.AppTextConfigSelection", [
+            { no: 1, name: "config_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_local_loadout_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_local_loadout_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppTextConfigSelection>): AppTextConfigSelection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configRef = "";
+        message.expectedRevision = "";
+        message.expectedLocalLoadoutRef = "";
+        message.expectedLocalLoadoutRevision = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppTextConfigSelection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppTextConfigSelection): AppTextConfigSelection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string config_ref */ 1:
+                    message.configRef = reader.string();
+                    break;
+                case /* string expected_revision */ 2:
+                    message.expectedRevision = reader.string();
+                    break;
+                case /* string expected_local_loadout_ref */ 3:
+                    message.expectedLocalLoadoutRef = reader.string();
+                    break;
+                case /* string expected_local_loadout_revision */ 4:
+                    message.expectedLocalLoadoutRevision = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppTextConfigSelection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string config_ref = 1; */
+        if (message.configRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.configRef);
+        /* string expected_revision = 2; */
+        if (message.expectedRevision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedRevision);
+        /* string expected_local_loadout_ref = 3; */
+        if (message.expectedLocalLoadoutRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedLocalLoadoutRef);
+        /* string expected_local_loadout_revision = 4; */
+        if (message.expectedLocalLoadoutRevision !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedLocalLoadoutRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppTextConfigSelection
+ */
+export const AppTextConfigSelection = new AppTextConfigSelection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextTurnRequest> {
     constructor() {
         super("nimi.runtime.v1.StreamLocalAppTextTurnRequest", [
@@ -17205,7 +17328,8 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
             { no: 11, name: "tool_choice", kind: "enum", T: () => ["nimi.runtime.v1.ToolChoiceMode", ToolChoiceMode, "TOOL_CHOICE_MODE_"] },
             { no: 12, name: "tool_choice_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "response_format", kind: "message", T: () => ResponseFormat },
-            { no: 14, name: "reasoning", kind: "message", T: () => ReasoningConfig }
+            { no: 14, name: "reasoning", kind: "message", T: () => ReasoningConfig },
+            { no: 15, name: "configuration", kind: "message", T: () => AppTextConfigSelection }
         ]);
     }
     create(value?: PartialMessage<StreamLocalAppTextTurnRequest>): StreamLocalAppTextTurnRequest {
@@ -17266,6 +17390,9 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
                 case /* nimi.runtime.v1.ReasoningConfig reasoning */ 14:
                     message.reasoning = ReasoningConfig.internalBinaryRead(reader, reader.uint32(), options, message.reasoning);
                     break;
+                case /* nimi.runtime.v1.AppTextConfigSelection configuration */ 15:
+                    message.configuration = AppTextConfigSelection.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -17320,6 +17447,9 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
         /* nimi.runtime.v1.ReasoningConfig reasoning = 14; */
         if (message.reasoning)
             ReasoningConfig.internalBinaryWrite(message.reasoning, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppTextConfigSelection configuration = 15; */
+        if (message.configuration)
+            AppTextConfigSelection.internalBinaryWrite(message.configuration, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -17557,9 +17687,79 @@ class LocalAppTextTurnReasoningSummary$Type extends MessageType<LocalAppTextTurn
  */
 export const LocalAppTextTurnReasoningSummary = new LocalAppTextTurnReasoningSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppTextConfigCapture$Type extends MessageType<AppTextConfigCapture> {
+    constructor() {
+        super("nimi.runtime.v1.AppTextConfigCapture", [
+            { no: 1, name: "config_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "local_loadout_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "local_loadout_revision", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppTextConfigCapture>): AppTextConfigCapture {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configRef = "";
+        message.revision = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppTextConfigCapture>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppTextConfigCapture): AppTextConfigCapture {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string config_ref */ 1:
+                    message.configRef = reader.string();
+                    break;
+                case /* string revision */ 2:
+                    message.revision = reader.string();
+                    break;
+                case /* optional string local_loadout_ref */ 3:
+                    message.localLoadoutRef = reader.string();
+                    break;
+                case /* optional string local_loadout_revision */ 4:
+                    message.localLoadoutRevision = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppTextConfigCapture, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string config_ref = 1; */
+        if (message.configRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.configRef);
+        /* string revision = 2; */
+        if (message.revision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.revision);
+        /* optional string local_loadout_ref = 3; */
+        if (message.localLoadoutRef !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.localLoadoutRef);
+        /* optional string local_loadout_revision = 4; */
+        if (message.localLoadoutRevision !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.localLoadoutRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppTextConfigCapture
+ */
+export const AppTextConfigCapture = new AppTextConfigCapture$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnCompleted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextTurnCompleted", [
+            { no: 3, name: "configuration", kind: "message", T: () => AppTextConfigCapture },
             { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
             { no: 2, name: "usage", kind: "message", T: () => UsageStats }
         ]);
@@ -17576,6 +17776,9 @@ class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnComplet
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* nimi.runtime.v1.AppTextConfigCapture configuration */ 3:
+                    message.configuration = AppTextConfigCapture.internalBinaryRead(reader, reader.uint32(), options, message.configuration);
+                    break;
                 case /* nimi.runtime.v1.FinishReason finish_reason */ 1:
                     message.finishReason = reader.int32();
                     break;
@@ -17600,6 +17803,9 @@ class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnComplet
         /* nimi.runtime.v1.UsageStats usage = 2; */
         if (message.usage)
             UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppTextConfigCapture configuration = 3; */
+        if (message.configuration)
+            AppTextConfigCapture.internalBinaryWrite(message.configuration, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

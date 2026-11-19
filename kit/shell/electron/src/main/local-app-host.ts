@@ -1,4 +1,4 @@
-import { RuntimeReasonCode, type NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
+import { RuntimeReasonCode, validateNimiAppTextConfigCapture, type NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
 import { projectNimiLocalAppConversationMessageReadResult, validateNimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js';
 import {
@@ -279,6 +279,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'request-too-large',
   'response-too-large',
   'ai-config-invalid',
+  'ai-config-revision-conflict',
   'capability-catalog-mismatch',
   'ai-config-not-found',
   'ai-connector-not-found',
@@ -437,7 +438,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   /** Main-process lifecycle only; invalidation precedes installing any new scope. */
   readonly localAppSessionRebind: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppAIConfigGet: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppAIConfigGet: (query?: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -592,7 +593,7 @@ export type NimiElectronProtectedLocalBinding = {
 export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
   readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
-  readonly aiConfigGet: () => Promise<NimiElectronLocalAppRecord>;
+  readonly aiConfigGet: (query?: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textGenerateCandidate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1005,8 +1006,8 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return status;
   }
 
-  aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
-    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigGet());
+  aiConfigGet(query?: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokePortableAppAIConfig(() => this.binding.localAppAIConfigGet(query));
   }
 
   aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1728,8 +1729,8 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().renewTechnicalSession();
   }
 
-  aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().aiConfigGet();
+  aiConfigGet(query?: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().aiConfigGet(query);
   }
 
   aiConfigOverwrite(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -2789,9 +2790,9 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
       itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), carrier: validateTextContinuity(value.carrier) });
   }
   if (value.type === 'completed') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason', ...(value.usage !== undefined ? ['usage'] : [])])
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason', ...(value.configuration === undefined ? [] : ['configuration']), ...(value.usage !== undefined ? ['usage'] : [])])
       || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
-    return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason), ...(value.usage === undefined ? {} : { usage: validateTokenUsage(value.usage) }) });
+    return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason), ...(value.configuration===undefined?{}:{configuration:validateNimiAppTextConfigCapture(value.configuration)}), ...(value.usage === undefined ? {} : { usage: validateTokenUsage(value.usage) }) });
   }
   if (value.type === 'failed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : [])])) throw untrustedRuntimeError();

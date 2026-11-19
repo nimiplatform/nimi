@@ -191,6 +191,7 @@ pub struct NativeLocalDevelopmentEndRunInput {
 
 #[napi(object)]
 pub struct NativeAppAIConfigOverwriteInput {
+    pub record: Option<JsonValue>,
     pub expected_revision: String,
     pub capabilities: JsonValue,
 }
@@ -227,6 +228,7 @@ pub struct NativeTextTurnMessage {
 
 #[napi(object)]
 pub struct NativeTextTurnInput {
+    pub configuration: Option<JsonValue>,
     pub reasoning: Option<JsonValue>,
     pub messages: Vec<NativeTextTurnMessage>,
     pub temperature: Option<f64>,

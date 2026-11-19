@@ -110,7 +110,7 @@ describe('Electron protected local-app host', () => {
     expect(rebinds).toBe(0);
   });
 
-  it.each(['ai-remote-model-catalog-stale', 'capability-catalog-mismatch', 'ai-connector-disabled', 'ai-connector-credential-missing'])(
+  it.each(['ai-config-revision-conflict', 'ai-remote-model-catalog-stale', 'capability-catalog-mismatch', 'ai-connector-disabled', 'ai-connector-credential-missing'])(
     'keeps %s from a committed Cloud target in the existing session so the owner can reselect',
     async (reasonCode) => {
       let invalidations = 0; let rebinds = 0;
@@ -1304,10 +1304,11 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ completed: false, event });
   });
 
-  it('preserves missing and reported text usage through native Host validation', async () => {
+  it('preserves the captured configuration and missing or reported usage through native Host validation', async () => {
     for (const usage of [undefined, { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, { promptTokens: 7, completionTokens: 2, totalTokens: 9 }]) {
       const output = { type: 'text-generate', items: [{ type: 'text', text: 'Answer.' }], finishReason: 'stop', ...(usage ? { usage } : {}) };
-      const event = { type: 'completed', sequence: '1', traceId: 'trace-usage', finishReason: 'stop', ...(usage ? { usage } : {}) };
+      const event = { type: 'completed', sequence: '1', traceId: 'trace-usage', finishReason: 'stop',
+        configuration: { configRef: 'main', revision: '2' }, ...(usage ? { usage } : {}) };
       const host = createNimiElectronLocalAppHostForBinding({
         ...binding([]),
         localAppScenarioExecute: async () => ({ status: 'ok' as const, value: { output, traceId: 'trace-usage' } }),

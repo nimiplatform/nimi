@@ -50,7 +50,8 @@ type ExactDependencySource struct {
 // machine selection. Configured is true for every successful resolution;
 // incomplete configurations return a typed error instead of a partial value.
 type SelectedLocalExecution struct {
-	ModelAssetUse *ModelAssetUse `json:"-"`
+	LoadoutRevision string
+	ModelAssetUse   *ModelAssetUse `json:"-"`
 	// EmbeddingDimension is verified by the exact Driver Model Contract.
 	EmbeddingDimension int
 	LoadoutID          string
@@ -79,6 +80,7 @@ type SelectedLocalExecution struct {
 }
 
 type LoadoutOption struct {
+	LoadoutRevision                 string
 	ContextWindowTokens             uint64
 	LoadoutID                       string
 	DisplayName                     string

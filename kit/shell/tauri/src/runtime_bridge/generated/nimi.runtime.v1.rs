@@ -4628,6 +4628,9 @@ pub struct AiConfigEffectiveSelection {
     /// Reviewed conservative request-capacity floor for an exact Cloud catalog row.
     #[prost(uint64, optional, tag = "9")]
     pub request_capacity_floor_tokens: ::core::option::Option<u64>,
+    /// Stable guard for the exact selected Local Loadout, including its committed revision.
+    #[prost(string, optional, tag = "10")]
+    pub local_loadout_revision: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof = "ai_config_effective_selection::Resource", tags = "3, 5")]
     pub resource: ::core::option::Option<ai_config_effective_selection::Resource>,
 }
@@ -4776,9 +4779,26 @@ pub mod list_app_ai_config_options_response {
 /// consistency assertion checked against Runtime-authenticated caller truth;
 /// it is never accepted as caller identity.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppAiConfigRecord {
+    #[prost(string, tag = "1")]
+    pub config_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub is_default: bool,
+}
+/// All management resolves the same protected App owner. A reference never
+/// grants access by itself. Empty selects the owner's current default.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub owner: ::core::option::Option<AiConfigOwner>,
+    #[prost(string, optional, tag = "2")]
+    pub config_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "3")]
+    pub include_records: ::core::option::Option<bool>,
 }
 /// Protected Home read-only index. Visibility here grants no Get/Overwrite access.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -4800,6 +4820,8 @@ pub struct DesktopConnectorReference {
     pub implementation_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub config_revision: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub config_ref: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListDesktopConnectorReferencesResponse {
@@ -4813,6 +4835,11 @@ pub struct ListDesktopConnectorReferencesResponse {
     pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppAiConfigDirectory {
+    #[prost(message, repeated, tag = "1")]
+    pub records: ::prost::alloc::vec::Vec<AppAiConfigRecord>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAppAiConfigResponse {
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
@@ -4820,6 +4847,33 @@ pub struct GetAppAiConfigResponse {
     pub revision: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
     pub effective_selections: ::prost::alloc::vec::Vec<AiConfigEffectiveSelection>,
+    #[prost(message, optional, tag = "4")]
+    pub record: ::core::option::Option<AppAiConfigRecord>,
+    #[prost(message, optional, tag = "5")]
+    pub directory: ::core::option::Option<AppAiConfigDirectory>,
+}
+/// Saving a config remains one complete-value compare-and-swap. Other
+/// mutations operate on the exact named record at its expected revision.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppAiConfigRecordEdit {
+    #[prost(string, tag = "1")]
+    pub config_ref: ::prost::alloc::string::String,
+    #[prost(oneof = "app_ai_config_record_edit::Change", tags = "2, 3, 4, 5")]
+    pub change: ::core::option::Option<app_ai_config_record_edit::Change>,
+}
+/// Nested message and enum types in `AppAIConfigRecordEdit`.
+pub mod app_ai_config_record_edit {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(string, tag = "2")]
+        CreateName(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        RenameTo(::prost::alloc::string::String),
+        #[prost(bool, tag = "4")]
+        MakeDefault(bool),
+        #[prost(bool, tag = "5")]
+        DeleteRecord(bool),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteAppAiConfigRequest {
@@ -4827,9 +4881,13 @@ pub struct OverwriteAppAiConfigRequest {
     pub config: ::core::option::Option<AiConfig>,
     #[prost(string, tag = "2")]
     pub expected_revision: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub record: ::core::option::Option<AppAiConfigRecordEdit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OverwriteAppAiConfigResponse {
+    #[prost(message, optional, tag = "5")]
+    pub record: ::core::option::Option<AppAiConfigRecord>,
     #[prost(message, optional, tag = "1")]
     pub config: ::core::option::Option<AiConfig>,
     #[prost(string, tag = "2")]
@@ -7615,6 +7673,17 @@ pub struct LocalAppScenarioJobEvent {
 /// Single-step TEXT_GENERATE App surface. Function tools, ordered host-provided
 /// results and structured output reuse canonical text behavior. The external
 /// AI host owns tool execution and the next request; Runtime owns no agent loop.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppTextConfigSelection {
+    #[prost(string, tag = "1")]
+    pub config_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub expected_revision: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expected_local_loadout_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub expected_local_loadout_revision: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamLocalAppTextTurnRequest {
     #[prost(message, repeated, tag = "1")]
@@ -7646,6 +7715,8 @@ pub struct StreamLocalAppTextTurnRequest {
     /// Omission preserves the selected exact implementation's default.
     #[prost(message, optional, tag = "14")]
     pub reasoning: ::core::option::Option<ReasoningConfig>,
+    #[prost(message, optional, tag = "15")]
+    pub configuration: ::core::option::Option<AppTextConfigSelection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnDelta {
@@ -7678,8 +7749,22 @@ pub struct LocalAppTextTurnReasoningSummary {
     #[prost(bool, tag = "3")]
     pub item_completed: bool,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+/// Captured at admission. Safe references belong to the calling App owner.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppTextConfigCapture {
+    #[prost(string, tag = "1")]
+    pub config_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub revision: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub local_loadout_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub local_loadout_revision: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnCompleted {
+    #[prost(message, optional, tag = "3")]
+    pub configuration: ::core::option::Option<AppTextConfigCapture>,
     #[prost(enumeration = "FinishReason", tag = "1")]
     pub finish_reason: i32,
     /// Reported aggregate token counts. Absence means unknown, including zero.

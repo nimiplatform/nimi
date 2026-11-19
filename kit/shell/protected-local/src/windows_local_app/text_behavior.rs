@@ -404,7 +404,17 @@ pub(super) fn request(
             })
         })
         .transpose()?;
+    #[derive(serde::Deserialize)]
+    #[serde(rename_all="camelCase", deny_unknown_fields)]
+    struct Selection { config_ref:String, #[serde(default)] expected_revision:String,
+        #[serde(default)] expected_local_loadout_ref:String, #[serde(default)] expected_local_loadout_revision:String }
+    let configuration=input.configuration.map(|v| {
+        let q: Selection=serde_json::from_value(v).map_err(|_|invalid_payload())?;
+        Ok::<_,LocalAppOperationError>(crate::generated::AppTextConfigSelection{config_ref:q.config_ref, expected_revision:q.expected_revision,
+            expected_local_loadout_ref:q.expected_local_loadout_ref,expected_local_loadout_revision:q.expected_local_loadout_revision})
+    }).transpose()?;
     Ok(StreamLocalAppTextTurnRequest {
+        configuration,
         reasoning: input.reasoning.map(parse_reasoning).transpose()?.flatten(),
         messages,
         tools,

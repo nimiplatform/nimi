@@ -106,6 +106,7 @@ pub enum LocalAppReasonCode {
     AiVoiceJobNotFound,
     AiVoiceJobNotCancellable,
     AiConfigInvalid,
+    AiConfigRevisionConflict,
     CapabilityCatalogMismatch,
     AiConfigNotFound,
     AiConnectorNotFound,
@@ -242,6 +243,7 @@ impl LocalAppReasonCode {
             Self::AiVoiceJobNotFound => "ai-voice-job-not-found",
             Self::AiVoiceJobNotCancellable => "ai-voice-job-not-cancellable",
             Self::AiConfigInvalid => "ai-config-invalid",
+            Self::AiConfigRevisionConflict => "ai-config-revision-conflict",
             Self::CapabilityCatalogMismatch => "capability-catalog-mismatch",
             Self::AiConfigNotFound => "ai-config-not-found",
             Self::AiConnectorNotFound => "ai-connector-not-found",
@@ -415,6 +417,7 @@ pub struct LocalAppTextMessage {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppTextTurnRequest {
+    pub configuration: Option<JsonValue>,
     pub messages: Vec<LocalAppTextMessage>,
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
@@ -1046,6 +1049,7 @@ pub struct LocalAppSharedAgentAIConfigLocalOptionsRequest {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAIConfigOverwriteRequest {
+    pub record: Option<JsonValue>,
     pub expected_revision: String,
     pub capabilities: JsonValue,
 }
@@ -1839,7 +1843,7 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn app_ai_config_get(
-        &self,
+        &self, query: Option<JsonValue>,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn app_ai_config_overwrite(

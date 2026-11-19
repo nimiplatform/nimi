@@ -183,6 +183,11 @@ func localAppValidTraceID(traceID string) bool {
 // closed-set SYNC spec only, including bounded function-tool text behavior:
 // no route, implementation, target, model, stream, or job field.
 func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.ExecuteLocalAppScenarioRequest) (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
+	var selectionErr error
+	ctx, selectionErr = appTextSelectionContext(ctx, req.GetTextGenerate().GetConfiguration())
+	if selectionErr != nil {
+		return nil, selectionErr
+	}
 	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
 	if err != nil {
 		return nil, err

@@ -2510,6 +2510,7 @@ type AIConfigEffectiveSelection struct {
 	ReasoningInput             *ReasoningInputCapabilities      `json:"reasoning_input,omitempty"`
 	ContextWindowTokens        *uint64                          `json:"context_window_tokens,omitempty"`
 	RequestCapacityFloorTokens *uint64                          `json:"request_capacity_floor_tokens,omitempty"`
+	LocalLoadoutRevision       *string                          `json:"local_loadout_revision,omitempty"`
 }
 
 type AIConfigLocalIntent struct {
@@ -3133,6 +3134,10 @@ type AiVideoTransformedFrame struct {
 	Frame       []byte `json:"frame,omitempty"`
 }
 
+type AppAIConfigDirectory struct {
+	Records []AppAIConfigRecord `json:"records,omitempty"`
+}
+
 type AppAIConfigPresetVoiceOption struct {
 	VoiceId        string   `json:"voice_id,omitempty"`
 	Name           string   `json:"name,omitempty"`
@@ -3144,6 +3149,21 @@ type AppAIConfigPresetVoiceOptions struct {
 }
 
 type AppAIConfigPresetVoiceOptionsQuery struct {
+}
+
+type AppAIConfigRecord struct {
+	ConfigRef string `json:"config_ref,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Revision  string `json:"revision,omitempty"`
+	IsDefault bool   `json:"is_default,omitempty"`
+}
+
+type AppAIConfigRecordEdit struct {
+	ConfigRef    string `json:"config_ref,omitempty"`
+	CreateName   string `json:"create_name,omitempty"`
+	RenameTo     string `json:"rename_to,omitempty"`
+	MakeDefault  bool   `json:"make_default,omitempty"`
+	DeleteRecord bool   `json:"delete_record,omitempty"`
 }
 
 type AppActivityAgentAssociation struct {
@@ -3301,6 +3321,20 @@ type AppStorageProjection struct {
 	StoragePolicyRef string          `json:"storage_policy_ref,omitempty"`
 	ReasonCode       ReasonCode      `json:"reason_code,omitempty"`
 	Detail           string          `json:"detail,omitempty"`
+}
+
+type AppTextConfigCapture struct {
+	ConfigRef            string  `json:"config_ref,omitempty"`
+	Revision             string  `json:"revision,omitempty"`
+	LocalLoadoutRef      *string `json:"local_loadout_ref,omitempty"`
+	LocalLoadoutRevision *string `json:"local_loadout_revision,omitempty"`
+}
+
+type AppTextConfigSelection struct {
+	ConfigRef                    string `json:"config_ref,omitempty"`
+	ExpectedRevision             string `json:"expected_revision,omitempty"`
+	ExpectedLocalLoadoutRef      string `json:"expected_local_loadout_ref,omitempty"`
+	ExpectedLocalLoadoutRevision string `json:"expected_local_loadout_revision,omitempty"`
 }
 
 type AppendInferenceAuditRequest struct {
@@ -4691,6 +4725,7 @@ type DesktopConnectorReference struct {
 	CapabilityContract string         `json:"capability_contract,omitempty"`
 	ImplementationId   string         `json:"implementation_id,omitempty"`
 	ConfigRevision     string         `json:"config_revision,omitempty"`
+	ConfigRef          *string        `json:"config_ref,omitempty"`
 }
 
 type DisableAutonomyRequest struct {
@@ -4955,13 +4990,17 @@ type GetAgentStateResponse struct {
 }
 
 type GetAppAIConfigRequest struct {
-	Owner *AIConfigOwner `json:"owner,omitempty"`
+	Owner          *AIConfigOwner `json:"owner,omitempty"`
+	ConfigRef      *string        `json:"config_ref,omitempty"`
+	IncludeRecords *bool          `json:"include_records,omitempty"`
 }
 
 type GetAppAIConfigResponse struct {
 	Config              *AIConfig                    `json:"config,omitempty"`
 	Revision            string                       `json:"revision,omitempty"`
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
+	Record              *AppAIConfigRecord           `json:"record,omitempty"`
+	Directory           *AppAIConfigDirectory        `json:"directory,omitempty"`
 }
 
 type GetAppPackageInfoRequest struct {
@@ -7120,8 +7159,9 @@ type LocalAppTextGenerateOutput struct {
 }
 
 type LocalAppTextTurnCompleted struct {
-	FinishReason FinishReason `json:"finish_reason,omitempty"`
-	Usage        *UsageStats  `json:"usage,omitempty"`
+	FinishReason  FinishReason          `json:"finish_reason,omitempty"`
+	Usage         *UsageStats           `json:"usage,omitempty"`
+	Configuration *AppTextConfigCapture `json:"configuration,omitempty"`
 }
 
 type LocalAppTextTurnContinuity struct {
@@ -8151,15 +8191,17 @@ type OpenVideoSessionResponse struct {
 }
 
 type OverwriteAppAIConfigRequest struct {
-	Config           *AIConfig `json:"config,omitempty"`
-	ExpectedRevision string    `json:"expected_revision,omitempty"`
+	Config           *AIConfig              `json:"config,omitempty"`
+	ExpectedRevision string                 `json:"expected_revision,omitempty"`
+	Record           *AppAIConfigRecordEdit `json:"record,omitempty"`
 }
 
 type OverwriteAppAIConfigResponse struct {
-	Config     *AIConfig  `json:"config,omitempty"`
-	Revision   string     `json:"revision,omitempty"`
-	Committed  bool       `json:"committed,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Config     *AIConfig          `json:"config,omitempty"`
+	Revision   string             `json:"revision,omitempty"`
+	Committed  bool               `json:"committed,omitempty"`
+	ReasonCode ReasonCode         `json:"reason_code,omitempty"`
+	Record     *AppAIConfigRecord `json:"record,omitempty"`
 }
 
 type OverwriteLocalAppSharedLocalAgentAIConfigRequest struct {
@@ -9677,6 +9719,7 @@ type StreamLocalAppTextTurnRequest struct {
 	ToolChoiceName   string                         `json:"tool_choice_name,omitempty"`
 	ResponseFormat   *ResponseFormat                `json:"response_format,omitempty"`
 	Reasoning        *ReasoningConfig               `json:"reasoning,omitempty"`
+	Configuration    *AppTextConfigSelection        `json:"configuration,omitempty"`
 }
 
 type StreamScenarioEvent struct {

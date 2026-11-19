@@ -28,9 +28,34 @@ use crate::{
 const MAX_JSON_DEPTH: usize = 32;
 const MAX_JSON_NODES: usize = 100_000;
 
-pub async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
+#[derive(serde::Deserialize,Default)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+struct ConfigQuery { config_ref:Option<String>,include_records:Option<bool> }
+
+#[derive(serde::Deserialize)]
+#[serde(tag="action",rename_all="kebab-case",rename_all_fields="camelCase",deny_unknown_fields)]
+enum RecordEdit {
+    Save{config_ref:String}, Create{name:String}, Rename{config_ref:String,name:String},
+    MakeDefault{config_ref:String}, Delete{config_ref:String},
+}
+fn record_edit(value:JsonValue)->Result<crate::generated::AppAiConfigRecordEdit,LocalAppOperationError>{
+    use crate::generated::{AppAiConfigRecordEdit, app_ai_config_record_edit::Change};
+    let (config_ref,change)=match serde_json::from_value(value).map_err(|_|invalid_payload())? {
+        RecordEdit::Save{config_ref}=>(config_ref,None),
+        RecordEdit::Create{name}=>(String::new(),Some(Change::CreateName(name))),
+        RecordEdit::Rename{config_ref,name}=>(config_ref,Some(Change::RenameTo(name))),
+        RecordEdit::MakeDefault{config_ref}=>(config_ref,Some(Change::MakeDefault(true))),
+        RecordEdit::Delete{config_ref}=>(config_ref,Some(Change::DeleteRecord(true))),
+    };
+    Ok(AppAiConfigRecordEdit{config_ref,change})
+}
+fn record_projection(record:crate::generated::AppAiConfigRecord)->JsonValue {
+    json!({"configRef":record.config_ref,"name":record.name,"revision":record.revision,"isDefault":record.is_default})
+}
+pub async fn get(channel: Channel, query:Option<JsonValue>) -> Result<JsonValue, LocalAppOperationError> {
+    let query:ConfigQuery=query.map(serde_json::from_value).transpose().map_err(|_|invalid_payload())?.unwrap_or_default();
     let response = crate::grpc_limits::runtime_ai_client(channel)
-        .get_app_ai_config(GetAppAiConfigRequest { owner: None })
+        .get_app_ai_config(GetAppAiConfigRequest { owner: None, config_ref:query.config_ref,include_records:query.include_records })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
@@ -43,11 +68,10 @@ pub async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> 
         .into_iter()
         .map(project_effective_selection)
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(json!({
-        "config": config,
-        "revision": response.revision,
-        "effectiveSelections": effective,
-    }))
+    let mut snapshot=json!({"config":config,"revision":response.revision,"effectiveSelections":effective});
+    if let Some(record)=response.record {snapshot["record"]=record_projection(record);}
+    if let Some(directory)=response.directory {snapshot["records"]=json!(directory.records.into_iter().map(record_projection).collect::<Vec<_>>());}
+    Ok(snapshot)
 }
 
 pub async fn overwrite(
@@ -58,6 +82,7 @@ pub async fn overwrite(
     let capabilities = parse_capabilities(request.capabilities)?;
     let response = crate::grpc_limits::runtime_ai_client(channel)
         .overwrite_app_ai_config(OverwriteAppAiConfigRequest {
+            record:request.record.map(record_edit).transpose()?,
             config: Some(AiConfig {
                 owner: None,
                 capabilities,
@@ -67,7 +92,10 @@ pub async fn overwrite(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_overwrite_response(response)
+    let record=response.record.clone().map(record_projection);
+    let mut result=project_overwrite_response(response)?;
+    if let Some(record)=record{result["record"]=record;}
+    Ok(result)
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r014
@@ -237,6 +265,7 @@ pub(super) fn project_effective_selection(
         "resource": resource,
         "reasons": selection.reasons,
     });
+    if let Some(rev)=selection.local_loadout_revision {projected["localLoadoutRevision"]=json!(rev);}
     for (count, key, expected_route) in [
         (selection.context_window_tokens, "contextWindowTokens", "local"),
         (selection.request_capacity_floor_tokens, "requestCapacityFloorTokens", "cloud"),
@@ -1033,6 +1062,7 @@ mod tests {
 
     fn overwrite_response() -> OverwriteAppAiConfigResponse {
         OverwriteAppAiConfigResponse {
+            record:None,
             committed: true,
             config: Some(AiConfig {
                 owner: Some(AiConfigOwner {

@@ -273,3 +273,48 @@ func TestLocalAppTextTurnStreamBridgeDropsStartedAndUsage(t *testing.T) {
 		t.Fatalf("trimmed stream sequence = %+v", mock.events)
 	}
 }
+
+func TestLocalAppTextRecordGuardPrecedesModelDispatch(t *testing.T) {
+	svc := newTestService(nil)
+	config := appAIConfig("nimi.realm-persona-studio", localAppAIConfigIntent("text.generate"))
+	if err := overwriteAIConfigStoreForTest(context.Background(), svc.aiConfigStore, "account-1", config); err != nil {
+		t.Fatal(err)
+	}
+	local := selectedTextExecutionForTest(t, "new-loadout", "app.gguf")
+	local.LoadoutRevision = "new-revision"
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: local})
+	calls := 0
+	host := &localTextHostStub{streamFn: func(_ context.Context, emit func(localexecution.TextDelta) error) (localexecution.TextResult, error) {
+		calls++
+		if e := emit(localexecution.TextDelta{Text: "ok"}); e != nil {
+			return localexecution.TextResult{}, e
+		}
+		return localexecution.TextResult{Text: "ok", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}, nil
+	}}
+	svc.SetLocalTextExecutionHost(host)
+	for _, sel := range []*runtimev1.AppTextConfigSelection{
+		{ConfigRef: "main", ExpectedRevision: "2"},
+		{ConfigRef: "main", ExpectedRevision: "1", ExpectedLocalLoadoutRef: "old-loadout", ExpectedLocalLoadoutRevision: "old-revision"},
+		{ConfigRef: "main", ExpectedRevision: "1", ExpectedLocalLoadoutRef: local.LoadoutID, ExpectedLocalLoadoutRevision: "old-revision"},
+	} {
+		req := validLocalAppTextTurnRequest()
+		req.Configuration = sel
+		err := svc.StreamLocalAppTextTurn(req, &mockLocalAppTextTurnStream{ctx: localAppTextTurnContext()})
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_CONFIG_REVISION_CONFLICT {
+			t.Fatalf("wrong admission for %v: %v", sel, err)
+		}
+	}
+	if calls != 0 {
+		t.Fatal("stale selection reached model")
+	}
+	req := validLocalAppTextTurnRequest()
+	req.Configuration = &runtimev1.AppTextConfigSelection{ConfigRef: "main", ExpectedRevision: "1", ExpectedLocalLoadoutRef: local.LoadoutID, ExpectedLocalLoadoutRevision: local.LoadoutRevision}
+	stream := &mockLocalAppTextTurnStream{ctx: localAppTextTurnContext()}
+	if err := svc.StreamLocalAppTextTurn(req, stream); err != nil {
+		t.Fatal(err)
+	}
+	actual := stream.events[len(stream.events)-1].GetCompleted().GetConfiguration()
+	if calls != 1 || actual.GetConfigRef() != "main" || actual.GetRevision() != "1" || actual.GetLocalLoadoutRevision() != local.LoadoutRevision {
+		t.Fatalf("bad capture: %v calls=%d", actual, calls)
+	}
+}

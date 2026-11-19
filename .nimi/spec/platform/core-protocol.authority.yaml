@@ -200,7 +200,7 @@ units:
   - id: definition.nimi.platform.core-protocol.app-ai-config-owner
     kind: definition
     title: App AIConfig owner
-    meaning: Each admitted Nimi App or product owner has exactly one AIConfig whose owner identity is the canonical app or product identity; app launch, features, modules, surfaces, and renderer instances do not create additional AIConfig owners.
+    meaning: Each admitted Nimi App or product has one canonical account-scoped owner which may hold multiple named AIConfig records and one default when records exist. The Runtime-minted record reference is scoped to that owner; app launch, features, modules, surfaces, and renderer instances do not create additional AIConfig owners.
     relations:
       - type: supersedes
         target: definition.nimi.platform.core-protocol.app-launch-ai-scope
@@ -695,7 +695,7 @@ units:
     modality: must_not
     statement: An App, product, or Runtime LocalAgent subsystem creates extra AIConfig owners for a feature, module, Agent, tab, session, thread, document, selected record, modal, wizard step, route, window, conversation, renderer, or other subordinate or transient object.
     condition: Whenever an AIConfig owner boundary is declared or persisted.
-    failure: Keep exactly one AIConfig for the canonical owner and represent subordinate selection in its owning domain state.
+    failure: Keep one canonical App owner, resolve a Session’s reference within that owner, and keep the LocalAgent subsystem configuration singular.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-config-owner

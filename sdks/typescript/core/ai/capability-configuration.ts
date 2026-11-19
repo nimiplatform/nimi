@@ -64,7 +64,50 @@ export type NimiSharedLocalAgentCapabilityParticipation = {
     | 'image.generate';
 };
 
+export type NimiAIConfigRecord = Readonly<{ configRef: string; name: string; revision: string; isDefault: boolean }>;
+export type NimiAIConfigQuery = Readonly<{ configRef?: string; includeRecords?: boolean }>;
+export type NimiAIConfigRecordEdit = Readonly<
+  | { configRef: string; action: 'save' }
+  | { action: 'create'; name: string }
+  | { configRef: string; action: 'rename'; name: string }
+  | { configRef: string; action: 'make-default' | 'delete' }
+>;
+
+export function validateAIConfigRecord(value: unknown): NimiAIConfigRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return invalidConfiguration('Invalid AIConfig record.');
+  const r = value as Record<string, unknown>;
+  if (Object.keys(r).sort().join('|') !== 'configRef|isDefault|name|revision' || typeof r.configRef !== 'string'
+    || !/^(main|[a-f0-9]{32})$/.test(r.configRef) || typeof r.name !== 'string' || !r.name.trim()
+    || typeof r.revision !== 'string' || !/^[1-9][0-9]*$/.test(r.revision) || typeof r.isDefault !== 'boolean') {
+    return invalidConfiguration('Invalid AIConfig record.');
+  }
+  return Object.freeze({ configRef: r.configRef, isDefault: r.isDefault, name: r.name, revision: r.revision });
+}
+
+export function validateAIConfigEdit(value: unknown): NimiAIConfigRecordEdit {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return invalidConfiguration('Invalid AIConfig edit.');
+  const r = value as Record<string, unknown>;
+  if (r.action === 'create' || r.action === 'rename') {
+    if (typeof r.name !== 'string' || !r.name.trim() || r.name !== r.name.trim() || [...r.name].length > 128) return invalidConfiguration('Invalid AIConfig name.');
+  } else if (r.action !== 'save' && r.action !== 'make-default' && r.action !== 'delete') return invalidConfiguration('Invalid AIConfig action.');
+  if (r.action !== 'create' && (typeof r.configRef !== 'string' || !/^(main|[a-f0-9]{32})$/.test(r.configRef))) return invalidConfiguration('Invalid AIConfig reference.');
+  const keys = r.action === 'create' ? 'action|name' : r.action === 'rename' ? 'action|configRef|name' : 'action|configRef';
+  if (Object.keys(r).sort().join('|') !== keys) return invalidConfiguration('Invalid AIConfig edit fields.');
+  return value as NimiAIConfigRecordEdit;
+}
+function encodeAppRecord(edit: NimiAIConfigRecordEdit): NonNullable<OverwriteAppAIConfigRequest['record']> {
+  switch (edit.action) {
+    case 'create': return { configRef:'', change:{oneofKind:'createName',createName:edit.name} };
+    case 'rename': return { configRef:edit.configRef,change:{oneofKind:'renameTo',renameTo:edit.name} };
+    case 'make-default': return {configRef:edit.configRef,change:{oneofKind:'makeDefault',makeDefault:true}};
+    case 'delete': return {configRef:edit.configRef,change:{oneofKind:'deleteRecord',deleteRecord:true}};
+    default: return {configRef:edit.configRef,change:{oneofKind:undefined}};
+  }
+}
+
 export type NimiAIConfigSnapshot = {
+  readonly record?: NimiAIConfigRecord;
+  readonly records?: readonly NimiAIConfigRecord[];
   readonly config: NimiPortableAppAIConfig | null;
   readonly revision: string;
   readonly effectiveSelections: readonly NimiAIConfigEffectiveSelection[];
@@ -77,6 +120,7 @@ export type NimiSharedLocalAgentAIConfigSnapshot = NimiAIConfigSnapshot & {
 export type NimiAIConfigEffectiveState = 'ready' | 'missing' | 'blocked' | 'unavailable';
 
 export type NimiAIConfigEffectiveSelection = {
+  readonly localLoadoutRevision?: string;
   readonly contextWindowTokens?: number;
   readonly requestCapacityFloorTokens?: number;
   readonly reasoningInput?: import('./reasoning').NimiReasoningInputCapabilities;
@@ -99,14 +143,16 @@ export type NimiTextReplayCompatibility = {
 };
 
 export type NimiAIConfigOverwriteInput = {
+  readonly record?: NimiAIConfigRecordEdit;
   readonly expectedRevision: string;
   readonly capabilities: readonly NimiPortableAppAIConfigIntent[];
 };
 
 export type NimiAIConfigOverwriteResult =
-  | { readonly outcome: 'committed'; readonly config: NimiPortableAppAIConfig; readonly revision: string }
+  | { readonly outcome: 'committed'; readonly record?: NimiAIConfigRecord; readonly config: NimiPortableAppAIConfig; readonly revision: string }
   | {
       readonly outcome: 'conflict';
+      readonly record?: NimiAIConfigRecord;
       readonly config: NimiPortableAppAIConfig | null;
       readonly revision: string;
       readonly reasonCode: 'AI_CONFIG_REVISION_CONFLICT' | 'AGENT_AI_CONFIG_REVISION_CONFLICT';
@@ -234,7 +280,7 @@ export interface NimiAppAIConfigRpcClient {
 export interface NimiAppAIConfigClient {
   readonly appId: string;
   readonly owner: AIConfigOwner;
-  get(options?: RuntimeTypedCallOptions): Promise<NimiAIConfigSnapshot>;
+  get(options?: RuntimeTypedCallOptions & NimiAIConfigQuery): Promise<NimiAIConfigSnapshot>;
   overwrite(
     input: NimiAIConfigOverwriteInput,
     options?: RuntimeTypedCallOptions,
@@ -296,12 +342,15 @@ function createAppAIConfigOperations(
 ): NimiLocalAppAIConfigRuntimeClient {
   const client = 'ai' in runtime ? runtime.ai : runtime;
   return Object.freeze({
-    async get(callOptions?: RuntimeTypedCallOptions) {
-      const response = await client.getAppAIConfig(owner ? { owner } : {}, callOptions);
+    async get(options?: RuntimeTypedCallOptions & NimiAIConfigQuery) {
+      const { configRef, includeRecords, ...callOptions } = options ?? {};
+      const response = await client.getAppAIConfig({ ...(owner ? { owner } : {}), ...(configRef === undefined ? {} : {configRef}), ...(includeRecords===undefined?{}:{includeRecords}) }, options ? callOptions : undefined);
       return Object.freeze({
         config: response.config ? requireAppConfig(response.config, appId, 'GetAppAIConfig') : null,
         revision: requireRevision(response.revision),
         effectiveSelections: Object.freeze(response.effectiveSelections.map(projectEffectiveSelection)),
+        ...(response.record ? {record: validateAIConfigRecord(response.record)} : {}),
+        ...(response.directory ? {records:Object.freeze(response.directory.records.map(validateAIConfigRecord))} : {}),
       });
     },
     async overwrite(
@@ -319,6 +368,7 @@ function createAppAIConfigOperations(
             capabilities: [...input.capabilities],
           },
           expectedRevision: requireRevision(input.expectedRevision),
+          ...(input.record ? {record:encodeAppRecord(validateAIConfigEdit(input.record))} : {}),
         },
         withNimiRuntimeIdempotencyMetadata(
           callOptions ?? {},
@@ -333,7 +383,7 @@ function createAppAIConfigOperations(
         if (!config || response.reasonCode !== RuntimeReasonCode.REASON_CODE_UNSPECIFIED) {
           return invalidConfiguration('OverwriteAppAIConfig returned an invalid commit result');
         }
-        return Object.freeze({ outcome: 'committed' as const, config, revision });
+        return Object.freeze({ outcome: 'committed' as const, config, revision, ...(response.record ? {record:validateAIConfigRecord(response.record)} : {}) });
       }
       if (response.reasonCode !== RuntimeReasonCode.AI_CONFIG_REVISION_CONFLICT) {
         return invalidConfiguration('OverwriteAppAIConfig returned an invalid conflict result');
@@ -343,6 +393,7 @@ function createAppAIConfigOperations(
         config,
         revision,
         reasonCode: 'AI_CONFIG_REVISION_CONFLICT' as const,
+        ...(response.record ? { record: validateAIConfigRecord(response.record) } : {}),
       });
     },
     async listOptions(query: NimiAIConfigOptionsQuery, callOptions?: RuntimeTypedCallOptions) {
@@ -446,6 +497,7 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
     state,
     resource,
     reasons: Object.freeze([...value.reasons]),
+    ...(value.localLoadoutRevision ? {localLoadoutRevision:value.localLoadoutRevision} : {}),
     ...(capacity === undefined ? {} : { contextWindowTokens: capacity }),
     ...(floor === undefined ? {} : { requestCapacityFloorTokens: floor }),
     ...(value.reasoningInput ? { reasoningInput: projectReasoningInputCapabilities(value.reasoningInput, invalidConfiguration) } : {}),

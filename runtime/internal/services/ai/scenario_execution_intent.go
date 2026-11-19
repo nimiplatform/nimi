@@ -8,10 +8,30 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
+
+type appTextSelectionKey struct{}
+
+// A scoped App may select a record of its authenticated owner and require
+// that dispatch still observes the revision and Local resource it displayed.
+func appTextSelectionContext(ctx context.Context, sel *runtimev1.AppTextConfigSelection) (context.Context, error) {
+	if sel == nil {
+		return ctx, nil
+	}
+	if !aiconfig.ValidRecordRef(sel.ConfigRef) || (sel.ExpectedRevision != "" && (!validAppAIConfigRevision(sel.ExpectedRevision) || sel.ExpectedRevision == "0")) ||
+		(sel.ExpectedLocalLoadoutRef == "") != (sel.ExpectedLocalLoadoutRevision == "") || len(sel.ExpectedLocalLoadoutRef) > 256 || len(sel.ExpectedLocalLoadoutRevision) > 256 {
+		return ctx, invalidAppAIConfigError()
+	}
+	return context.WithValue(ctx, appTextSelectionKey{}, sel), nil
+}
+
+func selectionConflict() error {
+	return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_REVISION_CONFLICT)
+}
 
 // captureScenarioExecutionIntent resolves caller-owned AIConfig once and puts
 // an immutable private snapshot on the in-process context. Public Scenario
@@ -28,6 +48,12 @@ func (s *Service) captureScenarioExecutionIntent(
 	capturedCtx, err = s.captureReferencedLocalExecution(capturedCtx, intent)
 	if err == nil {
 		intent, _ = executionintent.FromContext(capturedCtx)
+		if sel, _ := ctx.Value(appTextSelectionKey{}).(*runtimev1.AppTextConfigSelection); sel != nil && sel.ExpectedLocalLoadoutRef != "" {
+			local, ok := localexecution.SelectedLocalExecutionFromContext(capturedCtx, capabilityContract)
+			if !ok || local.LoadoutID != sel.ExpectedLocalLoadoutRef || local.LoadoutRevision != sel.ExpectedLocalLoadoutRevision {
+				return capturedCtx, executionintent.Intent{}, selectionConflict()
+			}
+		}
 	}
 	return capturedCtx, intent, err
 }
@@ -61,7 +87,26 @@ func (s *Service) resolveScenarioExecutionIntent(
 	if s == nil || s.aiConfigStore == nil {
 		return ctx, executionintent.Intent{}, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	config, _, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, derivedAppAIConfigOwner(caller.appID))
+	owner := derivedAppAIConfigOwner(caller.appID)
+	var ref, revision string
+	var config *runtimev1.AIConfig
+	var found bool
+	if sel, _ := ctx.Value(appTextSelectionKey{}).(*runtimev1.AppTextConfigSelection); sel != nil {
+		records, ok := s.aiConfigStore.(aiconfig.RecordStore)
+		if !ok {
+			return ctx, executionintent.Intent{}, appAIConfigPersistenceError(fmt.Errorf("named records unavailable"))
+		}
+		r, e := records.ReadRecord(ctx, caller.accountNamespace, owner, sel.ConfigRef, false)
+		if e == nil && r.Record != nil && sel.ExpectedRevision != "" && sel.ExpectedRevision != r.Revision() {
+			return ctx, executionintent.Intent{}, selectionConflict()
+		}
+		config, found, err = r.Config, r.Record != nil, e
+		if r.Record != nil {
+			ref, revision = r.Record.ConfigRef, r.Record.Revision
+		}
+	} else {
+		config, _, found, err = s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
+	}
 	if err != nil {
 		return ctx, executionintent.Intent{}, appAIConfigPersistenceError(err)
 	}
@@ -81,6 +126,8 @@ func (s *Service) resolveScenarioExecutionIntent(
 				grpcerr.ReasonOptions{Message: "AIConfig capability execution intent is incomplete"},
 			)
 		}
+		intent.AppConfigRef = ref
+		intent.AppConfigRevision = revision
 		return executionintent.WithIntent(ctx, intent), intent, nil
 	}
 	return ctx, executionintent.Intent{}, grpcerr.WithReasonCodeOptions(

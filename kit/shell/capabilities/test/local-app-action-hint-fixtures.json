@@ -22,6 +22,7 @@
   { "reasonCode": "ai-remote-model-catalog-stale", "actionHint": "reselect_app_ai_config_target" },
   { "reasonCode": "capability-catalog-mismatch", "actionHint": "reselect_app_ai_config_target" },
   { "reasonCode": "ai-config-invalid", "actionHint": "reselect_app_ai_config_target" },
+  { "reasonCode": "ai-config-revision-conflict", "actionHint": "reselect_app_ai_config_target" },
   { "reasonCode": "ai-connector-not-found", "actionHint": "reselect_app_ai_config_target" },
   { "reasonCode": "ai-connector-disabled", "actionHint": "enable_cloud_connector_or_reselect_target" },
   { "reasonCode": "ai-connector-credential-missing", "actionHint": "add_cloud_connector_credential_or_reselect_target" },

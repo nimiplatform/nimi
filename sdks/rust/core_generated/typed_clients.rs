@@ -4862,6 +4862,7 @@ pub struct AIConfigEffectiveSelection {
     pub reasoning_input: Option<Box<ReasoningInputCapabilities>>,
     pub context_window_tokens: Option<u64>,
     pub request_capacity_floor_tokens: Option<u64>,
+    pub local_loadout_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5701,6 +5702,11 @@ pub struct AiVideoTransformedFrame {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigDirectory {
+    pub records: Vec<Box<AppAIConfigRecord>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppAIConfigPresetVoiceOption {
     pub voice_id: Option<String>,
     pub name: Option<String>,
@@ -5715,6 +5721,23 @@ pub struct AppAIConfigPresetVoiceOptions {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppAIConfigPresetVoiceOptionsQuery {
 
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigRecord {
+    pub config_ref: Option<String>,
+    pub name: Option<String>,
+    pub revision: Option<String>,
+    pub is_default: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigRecordEdit {
+    pub config_ref: Option<String>,
+    pub create_name: Option<String>,
+    pub rename_to: Option<String>,
+    pub make_default: Option<bool>,
+    pub delete_record: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5884,6 +5907,22 @@ pub struct AppStorageProjection {
     pub storage_policy_ref: Option<String>,
     pub reason_code: Option<ReasonCode>,
     pub detail: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppTextConfigCapture {
+    pub config_ref: Option<String>,
+    pub revision: Option<String>,
+    pub local_loadout_ref: Option<String>,
+    pub local_loadout_revision: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppTextConfigSelection {
+    pub config_ref: Option<String>,
+    pub expected_revision: Option<String>,
+    pub expected_local_loadout_ref: Option<String>,
+    pub expected_local_loadout_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8035,6 +8074,7 @@ pub struct DesktopConnectorReference {
     pub capability_contract: Option<String>,
     pub implementation_id: Option<String>,
     pub config_revision: Option<String>,
+    pub config_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8503,6 +8543,8 @@ pub struct GetAgentStateResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAppAIConfigRequest {
     pub owner: Option<Box<AIConfigOwner>>,
+    pub config_ref: Option<String>,
+    pub include_records: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8510,6 +8552,8 @@ pub struct GetAppAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
     pub revision: Option<String>,
     pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
+    pub record: Option<Box<AppAIConfigRecord>>,
+    pub directory: Option<Box<AppAIConfigDirectory>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11679,6 +11723,7 @@ pub struct LocalAppTextGenerateOutput {
 pub struct LocalAppTextTurnCompleted {
     pub finish_reason: Option<FinishReason>,
     pub usage: Option<Box<UsageStats>>,
+    pub configuration: Option<Box<AppTextConfigCapture>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13081,6 +13126,7 @@ pub struct OpenVideoSessionResponse {
 pub struct OverwriteAppAIConfigRequest {
     pub config: Option<Box<AIConfig>>,
     pub expected_revision: Option<String>,
+    pub record: Option<Box<AppAIConfigRecordEdit>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13089,6 +13135,7 @@ pub struct OverwriteAppAIConfigResponse {
     pub revision: Option<String>,
     pub committed: Option<bool>,
     pub reason_code: Option<ReasonCode>,
+    pub record: Option<Box<AppAIConfigRecord>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15584,6 +15631,7 @@ pub struct StreamLocalAppTextTurnRequest {
     pub tool_choice_name: Option<String>,
     pub response_format: Option<Box<ResponseFormat>>,
     pub reasoning: Option<Box<ReasoningConfig>>,
+    pub configuration: Option<Box<AppTextConfigSelection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

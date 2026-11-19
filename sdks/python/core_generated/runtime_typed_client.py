@@ -336,6 +336,7 @@ class AIConfigEffectiveSelection:
     reasoning_input: ReasoningInputCapabilities | None = None
     context_window_tokens: int | None = None
     request_capacity_floor_tokens: int | None = None
+    local_loadout_revision: str | None = None
 
 @dataclass(frozen=True)
 class AIConfigLocalIntent:
@@ -964,6 +965,10 @@ class AiVideoTransformedFrame:
     frame: bytes | None = None
 
 @dataclass(frozen=True)
+class AppAIConfigDirectory:
+    records: tuple[AppAIConfigRecord, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class AppAIConfigPresetVoiceOption:
     voice_id: str | None = None
     name: str | None = None
@@ -976,6 +981,21 @@ class AppAIConfigPresetVoiceOptions:
 @dataclass(frozen=True)
 class AppAIConfigPresetVoiceOptionsQuery:
     pass
+
+@dataclass(frozen=True)
+class AppAIConfigRecord:
+    config_ref: str | None = None
+    name: str | None = None
+    revision: str | None = None
+    is_default: bool | None = None
+
+@dataclass(frozen=True)
+class AppAIConfigRecordEdit:
+    config_ref: str | None = None
+    create_name: str | None = None
+    rename_to: str | None = None
+    make_default: bool | None = None
+    delete_record: bool | None = None
 
 @dataclass(frozen=True)
 class AppActivityAgentAssociation:
@@ -1133,6 +1153,20 @@ class AppStorageProjection:
     storage_policy_ref: str | None = None
     reason_code: ReasonCode | None = None
     detail: str | None = None
+
+@dataclass(frozen=True)
+class AppTextConfigCapture:
+    config_ref: str | None = None
+    revision: str | None = None
+    local_loadout_ref: str | None = None
+    local_loadout_revision: str | None = None
+
+@dataclass(frozen=True)
+class AppTextConfigSelection:
+    config_ref: str | None = None
+    expected_revision: str | None = None
+    expected_local_loadout_ref: str | None = None
+    expected_local_loadout_revision: str | None = None
 
 @dataclass(frozen=True)
 class AppendInferenceAuditRequest:
@@ -2527,6 +2561,7 @@ class DesktopConnectorReference:
     capability_contract: str | None = None
     implementation_id: str | None = None
     config_revision: str | None = None
+    config_ref: str | None = None
 
 @dataclass(frozen=True)
 class DisableAutonomyRequest:
@@ -2794,12 +2829,16 @@ class GetAgentStateResponse:
 @dataclass(frozen=True)
 class GetAppAIConfigRequest:
     owner: AIConfigOwner | None = None
+    config_ref: str | None = None
+    include_records: bool | None = None
 
 @dataclass(frozen=True)
 class GetAppAIConfigResponse:
     config: AIConfig | None = None
     revision: str | None = None
     effective_selections: tuple[AIConfigEffectiveSelection, ...] = field(default_factory=tuple)
+    record: AppAIConfigRecord | None = None
+    directory: AppAIConfigDirectory | None = None
 
 @dataclass(frozen=True)
 class GetAppPackageInfoRequest:
@@ -4987,6 +5026,7 @@ class LocalAppTextGenerateOutput:
 class LocalAppTextTurnCompleted:
     finish_reason: FinishReason | None = None
     usage: UsageStats | None = None
+    configuration: AppTextConfigCapture | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextTurnContinuity:
@@ -6021,6 +6061,7 @@ class OpenVideoSessionResponse:
 class OverwriteAppAIConfigRequest:
     config: AIConfig | None = None
     expected_revision: str | None = None
+    record: AppAIConfigRecordEdit | None = None
 
 @dataclass(frozen=True)
 class OverwriteAppAIConfigResponse:
@@ -6028,6 +6069,7 @@ class OverwriteAppAIConfigResponse:
     revision: str | None = None
     committed: bool | None = None
     reason_code: ReasonCode | None = None
+    record: AppAIConfigRecord | None = None
 
 @dataclass(frozen=True)
 class OverwriteLocalAppSharedLocalAgentAIConfigRequest:
@@ -7553,6 +7595,7 @@ class StreamLocalAppTextTurnRequest:
     tool_choice_name: str | None = None
     response_format: ResponseFormat | None = None
     reasoning: ReasoningConfig | None = None
+    configuration: AppTextConfigSelection | None = None
 
 @dataclass(frozen=True)
 class StreamScenarioEvent:

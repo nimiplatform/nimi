@@ -78,6 +78,7 @@ pub struct LocalAppSharedAgentAIConfigOverwritePayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAIConfigOverwritePayload {
+    record: Option<Value>,
     expected_revision: String,
     capabilities: Value,
 }
@@ -581,8 +582,8 @@ fn artifact_upload_request(
     })
 }
 
-pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
-    host.app_ai_config_get().await.map_err(map_local_app_error)
+pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost,query: Option<Value>) -> Result<Value, String> {
+    host.app_ai_config_get(query).await.map_err(map_local_app_error)
 }
 
 pub async fn ai_config_overwrite_for_host(
@@ -592,6 +593,7 @@ pub async fn ai_config_overwrite_for_host(
     let payload: LocalAppAIConfigOverwritePayload =
         parse_payload(payload, "local_app_ai_config_overwrite")?;
     host.app_ai_config_overwrite(LocalAppAIConfigOverwriteRequest {
+        record: payload.record,
         expected_revision: payload.expected_revision,
         capabilities: payload.capabilities,
     })
@@ -1995,7 +1997,7 @@ fn standard_code(reason: &str) -> &'static str {
         "access-denied" => "access-denied",
         "owner-authority-missing" => "owner-authority-missing",
         "content-conflict" => "content-conflict",
-        "agent-conversation-context-revision-conflict" => "content-conflict",
+        "agent-conversation-context-revision-conflict" | "ai-config-revision-conflict" => "content-conflict",
         "realm-unavailable" => "realm-unavailable",
         "rate-limited" => "rate-limited",
         "upstream-failed" => "upstream-failed",
@@ -2062,6 +2064,7 @@ fn action_hint(reason: &str) -> &'static str {
         "ai-remote-model-catalog-stale"
         | "capability-catalog-mismatch"
         | "ai-config-invalid"
+        | "ai-config-revision-conflict"
         | "ai-connector-not-found" => "reselect_app_ai_config_target",
         "ai-connector-disabled" => "enable_cloud_connector_or_reselect_target",
         "ai-connector-credential-missing" => "add_cloud_connector_credential_or_reselect_target",

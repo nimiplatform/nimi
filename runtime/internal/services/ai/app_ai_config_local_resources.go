@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -34,9 +35,21 @@ func (s *Service) validateChangedAppAIConfigResourceReferences(
 	ctx context.Context,
 	accountNamespace string,
 	owner *runtimev1.AIConfigOwner,
-	candidate *runtimev1.AIConfig,
+	candidate *runtimev1.AIConfig, edit *runtimev1.AppAIConfigRecordEdit,
 ) error {
-	current, _, found, err := s.aiConfigStore.Get(ctx, accountNamespace, owner)
+	var current *runtimev1.AIConfig
+	var found bool
+	var err error
+	if edit == nil {
+		current, _, found, err = s.aiConfigStore.Get(ctx, accountNamespace, owner)
+	} else if edit.GetCreateName() == "" {
+		records, ok := s.aiConfigStore.(aiconfig.RecordStore)
+		if !ok {
+			return appAIConfigPersistenceError(fmt.Errorf("named records unavailable"))
+		}
+		r, e := records.ReadRecord(ctx, accountNamespace, owner, edit.GetConfigRef(), false)
+		current, found, err = r.Config, r.Record != nil, e
+	}
 	if err != nil {
 		return appAIConfigPersistenceError(err)
 	}
@@ -140,6 +153,9 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 		// Configuration reads project current identity. They must not enter Job
 		// admission and hash model payloads while holding inventory locks.
 		if identity := option.TextBehaviorIdentity; capability.GetCapabilityContract() == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY && identity != nil {
+			if option.LoadoutRevision != "" {
+				selection.LocalLoadoutRevision = proto.String(option.LoadoutRevision)
+			}
 			if option.ContextWindowTokens > 0 {
 				selection.ContextWindowTokens = proto.Uint64(option.ContextWindowTokens)
 			}

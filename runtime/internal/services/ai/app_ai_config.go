@@ -50,7 +50,26 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	config, revision, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
+	var config *runtimev1.AIConfig
+	var revision string
+	var found bool
+	var selected aiconfig.RecordSnapshot
+	if req.GetConfigRef() != "" || req.GetIncludeRecords() {
+		if req.GetConfigRef() != "" && !aiconfig.ValidRecordRef(req.GetConfigRef()) {
+			return nil, invalidAppAIConfigError()
+		}
+		records, ok := s.aiConfigStore.(aiconfig.RecordStore)
+		if !ok {
+			return nil, appAIConfigPersistenceError(fmt.Errorf("named records unavailable"))
+		}
+		selected, err = records.ReadRecord(ctx, caller.accountNamespace, owner, req.GetConfigRef(), req.GetIncludeRecords())
+		config, revision, found = selected.Config, selected.Revision(), selected.Record != nil
+		if err == nil && !found && req.GetConfigRef() != "" {
+			return nil, appAIConfigStoreError(aiconfig.ErrRecordMissing)
+		}
+	} else {
+		config, revision, found, err = s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
+	}
 	if contextErr := ctx.Err(); contextErr != nil {
 		return nil, status.FromContextError(contextErr).Err()
 	}
@@ -58,7 +77,11 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 		return nil, appAIConfigStoreError(err)
 	}
 	if !found {
-		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
+		response := &runtimev1.GetAppAIConfigResponse{Revision: revision}
+		if req.GetIncludeRecords() {
+			response.Directory = &runtimev1.AppAIConfigDirectory{}
+		}
+		return response, nil
 	}
 	ctx = localexecution.WithReadProjection(ctx)
 	effective := s.projectAppAIConfigEffectiveSelections(ctx, caller.accountNamespace, config)
@@ -68,7 +91,11 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		config = portableLocalAppAIConfigProjection(config)
 	}
-	return &runtimev1.GetAppAIConfigResponse{Config: config, Revision: revision, EffectiveSelections: effective}, nil
+	response := &runtimev1.GetAppAIConfigResponse{Config: config, Revision: revision, EffectiveSelections: effective, Record: selected.Record}
+	if req.GetIncludeRecords() {
+		response.Directory = &runtimev1.AppAIConfigDirectory{Records: selected.Records}
+	}
+	return response, nil
 }
 
 // @nimi-authority: definition.nimi.platform.core-protocol.ai-config
@@ -107,15 +134,23 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 	if s == nil || s.aiConfigStore == nil {
 		return nil, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	if err := s.validateChangedAppAIConfigResourceReferences(ctx, caller.accountNamespace, owner, canonical); err != nil {
+	if err := s.validateChangedAppAIConfigResourceReferences(ctx, caller.accountNamespace, owner, canonical, req.GetRecord()); err != nil {
 		return nil, err
 	}
-	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(
-		ctx,
-		caller.accountNamespace,
-		req.GetExpectedRevision(),
-		canonical,
-	)
+	var committedConfig *runtimev1.AIConfig
+	var revision string
+	var committed bool
+	var metadata *runtimev1.AppAIConfigRecord
+	if edit := req.GetRecord(); edit != nil {
+		records, ok := s.aiConfigStore.(aiconfig.RecordStore)
+		if !ok {
+			return nil, appAIConfigPersistenceError(fmt.Errorf("named records unavailable"))
+		}
+		result, ok, e := records.EditRecord(ctx, caller.accountNamespace, req.GetExpectedRevision(), canonical, edit)
+		committedConfig, revision, metadata, committed, err = result.Config, result.Revision(), result.Record, ok, e
+	} else {
+		committedConfig, revision, committed, err = s.aiConfigStore.Overwrite(ctx, caller.accountNamespace, req.GetExpectedRevision(), canonical)
+	}
 	if err != nil {
 		return nil, appAIConfigStoreError(err)
 	}
@@ -123,7 +158,7 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 		committedConfig = portableLocalAppAIConfigProjection(committedConfig)
 	}
 	response := &runtimev1.OverwriteAppAIConfigResponse{
-		Config: committedConfig, Revision: revision, Committed: committed,
+		Config: committedConfig, Revision: revision, Committed: committed, Record: metadata,
 	}
 	if !committed {
 		response.ReasonCode = runtimev1.ReasonCode_AI_CONFIG_REVISION_CONFLICT
@@ -274,6 +309,12 @@ func appAIConfigPersistenceError(cause error) error {
 }
 
 func appAIConfigStoreError(cause error) error {
+	if errors.Is(cause, aiconfig.ErrRecordInvalid) {
+		return invalidAppAIConfigError()
+	}
+	if errors.Is(cause, aiconfig.ErrRecordMissing) {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	}
 	if errors.Is(cause, aiconfig.ErrInvalidPersistedConfig) {
 		return grpcerr.WrapWithReasonCode(
 			codes.FailedPrecondition,

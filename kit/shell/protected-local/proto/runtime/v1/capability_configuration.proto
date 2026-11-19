@@ -594,6 +594,8 @@ message AIConfigEffectiveSelection {
   optional uint64 context_window_tokens = 8;
   // Reviewed conservative request-capacity floor for an exact Cloud catalog row.
   optional uint64 request_capacity_floor_tokens = 9;
+  // Stable guard for the exact selected Local Loadout, including its committed revision.
+  optional string local_loadout_revision = 10;
 }
 
 message ReasoningInputCapabilities {
@@ -689,8 +691,19 @@ message ListAppAIConfigOptionsResponse {
 // App AIConfig mutation is whole-object only. The owner carried here is a
 // consistency assertion checked against Runtime-authenticated caller truth;
 // it is never accepted as caller identity.
+message AppAIConfigRecord {
+  string config_ref = 1;
+  string name = 2;
+  string revision = 3;
+  bool is_default = 4;
+}
+
+// All management resolves the same protected App owner. A reference never
+// grants access by itself. Empty selects the owner's current default.
 message GetAppAIConfigRequest {
   AIConfigOwner owner = 1;
+  optional string config_ref = 2;
+  optional bool include_records = 3;
 }
 
 // Protected Home read-only index. Visibility here grants no Get/Overwrite access.
@@ -705,6 +718,7 @@ message DesktopConnectorReference {
   string capability_contract = 2;
   string implementation_id = 3;
   string config_revision = 4;
+  optional string config_ref = 5;
 }
 
 message ListDesktopConnectorReferencesResponse {
@@ -714,18 +728,38 @@ message ListDesktopConnectorReferencesResponse {
   google.protobuf.Timestamp observed_at = 4;
 }
 
+message AppAIConfigDirectory {
+  repeated AppAIConfigRecord records = 1;
+}
+
 message GetAppAIConfigResponse {
   AIConfig config = 1;
   string revision = 2;
   repeated AIConfigEffectiveSelection effective_selections = 3;
+  AppAIConfigRecord record = 4;
+  AppAIConfigDirectory directory = 5;
+}
+
+// Saving a config remains one complete-value compare-and-swap. Other
+// mutations operate on the exact named record at its expected revision.
+message AppAIConfigRecordEdit {
+  string config_ref = 1;
+  oneof change {
+    string create_name = 2;
+    string rename_to = 3;
+    bool make_default = 4;
+    bool delete_record = 5;
+  }
 }
 
 message OverwriteAppAIConfigRequest {
   AIConfig config = 1;
   string expected_revision = 2;
+  AppAIConfigRecordEdit record = 3;
 }
 
 message OverwriteAppAIConfigResponse {
+  AppAIConfigRecord record = 5;
   AIConfig config = 1;
   string revision = 2;
   bool committed = 3;
