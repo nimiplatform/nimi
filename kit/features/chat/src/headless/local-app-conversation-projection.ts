@@ -34,9 +34,19 @@ export type CanonicalConversationEventReduction = {
   readonly projection: CanonicalConversationProjection;
 };
 
+const turnIndexes = new WeakMap<CanonicalConversationProjection['turns'], Map<string, NimiLocalAppConversationTurn>>();
+function indexedTurn(projection: CanonicalConversationProjection, id: string) {
+  let turns = turnIndexes.get(projection.turns);
+  if (!turns) {
+    turns = new Map(projection.turns.map(turn => [turn.turnId, turn]));
+    turnIndexes.set(projection.turns, turns);
+  }
+  return turns.get(id);
+}
+
 /** Presentation facts from owner state, shared by every LocalAgent consumer. */
 export function localAppConversationMessageState(projection: CanonicalConversationProjection, message: NimiLocalAppConversationMessage) {
-  const turn = projection.turns.find(value => value.turnId === message.turnId);
+  const turn = indexedTurn(projection, message.turnId);
   return {
     partial: message.partial,
     textPending: message.partial && turn?.status === 'active' && projection.state.textTurnId === message.turnId,
@@ -45,6 +55,19 @@ export function localAppConversationMessageState(projection: CanonicalConversati
       && turn?.status === 'active' && !message.partial && projection.state.textTurnId !== message.turnId,
     canRegenerate: turn?.canRegenerate === true,
     turn,
+  };
+}
+
+/** A materializer belongs to one mounted conversation. Source identity
+ * and the row's actual presentation dependencies determine reuse. */
+export function createConversationRowProjector<Row>() {
+  const rows = new WeakMap<object, { inputs: readonly unknown[]; row: Row }>();
+  return (source: object, inputs: readonly unknown[], build: () => Row): Row => {
+    const old = rows.get(source);
+    if (old && old.inputs.length === inputs.length && inputs.every((value, i) => old.inputs[i] === value)) return old.row;
+    const row = build();
+    rows.set(source, { inputs, row });
+    return row;
   };
 }
 
@@ -70,6 +93,7 @@ function replaceByIdentity<T>(
   const nextIdentity = identity(value);
   const index = values.findIndex((item) => identity(item) === nextIdentity);
   if (index < 0) return Object.freeze([...values, value]);
+  if (values[index] === value) return values;
   return Object.freeze(values.map((item, itemIndex) => itemIndex === index ? value : item));
 }
 
@@ -102,7 +126,7 @@ function nextTurn(
   projection: CanonicalConversationProjection,
   event: Exclude<NimiLocalAppConversationEvent, {type:'state-changed'}>,
 ): NimiLocalAppConversationTurn {
-  const current = projection.turns.find((turn) => turn.turnId === event.turnId);
+  const current = indexedTurn(projection, event.turnId);
   const base: NimiLocalAppConversationTurn = current || {
     turnId: event.turnId,
     origin: event.type === 'turn-accepted' ? event.origin : 'user',
@@ -166,7 +190,9 @@ export function reduceCanonicalConversationEvent(
   let liveTools = projection.liveTools;
   let transientByTurn = projection.transientByTurn;
 
-  if (event.type === 'turn-accepted') turns = turns.map(turn => ({ ...turn, canRegenerate: false }));
+  if (event.type === 'turn-accepted' && turns.some(turn => turn.canRegenerate)) {
+    turns = turns.map(turn => turn.canRegenerate ? { ...turn, canRegenerate: false } : turn);
+  }
   turns = replaceByIdentity(turns, nextTurn(projection, event), (turn) => turn.turnId);
   switch (event.type) {
     case 'text-delta': {

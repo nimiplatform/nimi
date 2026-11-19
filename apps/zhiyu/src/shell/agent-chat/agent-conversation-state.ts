@@ -1,4 +1,4 @@
-import { seedCanonicalConversationProjection, localAppConversationMessageState, type CanonicalConversationProjection, type createCanonicalConversationMediaReader } from '@nimiplatform/kit/features/chat/headless';
+import { createConversationRowProjector, seedCanonicalConversationProjection, localAppConversationMessageState, type CanonicalConversationProjection, type createCanonicalConversationMediaReader } from '@nimiplatform/kit/features/chat/headless';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
 import type {
   NimiLocalAppAgentHandle,
@@ -47,14 +47,26 @@ export function projectZhiyuConversation(input: {
   agentHandle: NimiLocalAppAgentHandle;
   conversationAnchorId: string;
   projection: CanonicalConversationProjection;
+  row?: ReturnType<typeof createConversationRowProjector<ConversationCanonicalMessage>>;
   media?: Pick<ReturnType<typeof createCanonicalConversationMediaReader>, 'get'>;
 }): ZhiyuAgentChatStatus {
   const { projection } = input;
+  const row = input.row ?? createConversationRowProjector<ConversationCanonicalMessage>();
+  const voices = new Map(projection.voices.map(voice => [voice.messageId, voice]));
+  const failures = new Map<string, typeof projection.actions[number][]>();
+  for (const action of projection.actions) if (action.status === 'failed') {
+    const items = failures.get(action.turnId);
+    if (items) items.push(action); else failures.set(action.turnId, [action]);
+  }
   const messages = projection.messages.map(message => {
-    const view = projectZhiyuLocalAppConversationMessage({ ...input, message, createdAt: '' });
     const presentation = localAppConversationMessageState(projection, message);
     const artifact = message.parts.find(part => part.kind === 'artifact-ref');
-    const voice = projection.voices.find(value => value.messageId === message.messageId);
+    const voice = voices.get(message.messageId);
+    const mediaUrl = artifact ? input.media?.get(artifact.artifactId).mediaUrl : undefined;
+    const imageFailures = failures.get(message.turnId) ?? [];
+    return row(message, [input.agentHandle, input.conversationAnchorId, presentation.turn, presentation.textPending,
+      presentation.mediaRunning, mediaUrl, voice, ...imageFailures], () => {
+    const view = projectZhiyuLocalAppConversationMessage({ ...input, message, createdAt: '' });
     return {
       ...view,
       status: presentation.partial ? presentation.textPending ? 'streaming' as const : presentation.stopped ? 'canceled' as const : 'error' as const : 'complete' as const,
@@ -67,17 +79,19 @@ export function projectZhiyuConversation(input: {
         canonicalCanRegenerate: presentation.canRegenerate,
         canonicalMediaRunning: presentation.mediaRunning,
         canonicalImageFailures: message.role === 'assistant' && message.parts.some(part => part.kind === 'text')
-          ? projection.actions.filter(action => action.turnId === message.turnId && action.status === 'failed').map(action => ({ actionId: action.actionId, reasonCode: action.reasonCode, message: action.message })) : [],
+          ? imageFailures.map(action => ({ actionId: action.actionId, reasonCode: action.reasonCode, message: action.message })) : [],
         canonicalVoiceState: voice?.state,
         canonicalVoiceArtifactId: voice?.artifactId,
         ...(voice?.state === 'failed' ? { voiceError: voice.reasonCode, voiceErrorMessage: voice.message } : {}),
-        ...(artifact ? { mediaUrl: input.media?.get(artifact.artifactId).mediaUrl } : {}),
+        ...(artifact ? { mediaUrl } : {}),
       },
     } as ConversationCanonicalMessage;
+    });
   });
+  const answered = new Set(messages.filter(m => m.role === 'agent' && m.kind === 'text').map(m => m.metadata?.runtimeTurnId));
   for (const turn of projection.turns) {
     const transient = projection.transientByTurn[turn.turnId];
-    if (messages.some(message => message.role === 'agent' && message.kind === 'text' && message.metadata?.runtimeTurnId === turn.turnId)) continue;
+    if (answered.has(turn.turnId)) continue;
     if (turn.status === 'completed' || (!transient && !turn.inputTurnId && projection.state.textTurnId !== turn.turnId)) continue;
     const view: ConversationCanonicalMessage = {
       id: `canonical-turn:${turn.turnId}`, sessionId: input.conversationAnchorId, targetId: input.agentHandle,

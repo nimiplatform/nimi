@@ -1,5 +1,5 @@
 import { observeLocalAppConversation, type LocalAppConversationObservation } from './local-app-conversation-session.js';
-import { localAppConversationMessageState, type CanonicalConversationProjection } from './local-app-conversation-projection.js';
+import { createConversationRowProjector, localAppConversationMessageState, type CanonicalConversationProjection } from './local-app-conversation-projection.js';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
@@ -234,6 +234,7 @@ export function createAppConversationEntrySession(input: Readonly<{
   hostPort: AppConversationHostPort;
 }>): AppConversationEntrySession {
   let state = EMPTY_STATE;
+  const committedRow = createConversationRowProjector<ConversationCanonicalMessage>();
   let epoch = 0;
   let active: ActiveEntrySession | null = null;
   let disposed = false;
@@ -354,10 +355,13 @@ export function createAppConversationEntrySession(input: Readonly<{
     if (active !== session || disposed || session.epoch !== epoch) return;
     const messages = projection.messages.map(message => {
       const presentation = localAppConversationMessageState(projection, message);
+      const mediaUrl = session.previews.get(message.messageId)?.mediaUrl;
+      return committedRow(message, [session.reference, session.conversationAnchorId, mediaUrl, presentation.textPending, presentation.stopped, presentation.mediaRunning], () => {
       const mapped = projectCommittedMessage({ reference: session.reference, conversationAnchorId: session.conversationAnchorId,
-        message, mediaUrl: session.previews.get(message.messageId)?.mediaUrl });
+        message, mediaUrl });
       return { ...mapped, status: message.partial ? presentation.textPending ? 'streaming' as const : presentation.stopped ? 'canceled' as const : 'error' as const : 'complete' as const,
         metadata: { ...mapped.metadata, canonicalPartial: message.partial, canonicalMediaRunning: presentation.mediaRunning, } };
+      });
     });
     for (const turn of projection.turns) {
       const transient = projection.transientByTurn[turn.turnId];

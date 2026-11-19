@@ -395,6 +395,7 @@ describe('App Conversation entry session', () => {
   it('accepts a strictly increasing public sequence gap without clearing committed truth', async () => {
     const testHarness = harness();
     await readySession(testHarness);
+    const committedRow = testHarness.session.getState().messages[0];
     testHarness.queue.push({
       type: 'turn-started',
       conversationAnchorId: 'anchor-a',
@@ -402,6 +403,7 @@ describe('App Conversation entry session', () => {
       turnId: 'turn-gap',
     });
     await vi.waitFor(() => expect(testHarness.session.getState().throughSequence).toBe('4'));
+    expect(testHarness.session.getState().messages[0]).toBe(committedRow);
     expect(testHarness.session.getState()).toMatchObject({
       status: 'ready',
       conversationAnchorId: 'anchor-a',

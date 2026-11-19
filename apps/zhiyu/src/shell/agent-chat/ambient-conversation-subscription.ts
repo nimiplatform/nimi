@@ -1,4 +1,4 @@
-import { observeLocalAppConversation, createCanonicalConversationMediaReader, isLocalAppConversationAccessDenied, type CanonicalConversationProjection, type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
+import { createConversationRowProjector, observeLocalAppConversation, createCanonicalConversationMediaReader, isLocalAppConversationAccessDenied, type CanonicalConversationProjection, type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
 import type { NimiLocalAppAgentHandle, NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from '../app/evidence';
 import { projectZhiyuConversation } from './agent-conversation-state';
@@ -13,9 +13,10 @@ export function subscribeZhiyuAmbientConversation(input: {
   let media: ReturnType<typeof createCanonicalConversationMediaReader> | null = null;
   let observation: LocalAppConversationObservation | null = null;
   let closed = false;
+  const row = createConversationRowProjector<ZhiyuEvidence['chat']['messages'][number]>();
   const publish = () => {
     if (!closed && projection && media) input.onChat({
-      ...projectZhiyuConversation({ ...input.identity, projection, media }),
+      ...projectZhiyuConversation({ ...input.identity, projection, media, row }),
       mediaReadError: media.getReadError(),
     });
   };

@@ -282,7 +282,7 @@ export function createConversationShellViewModel(
 export { simplifyChineseDisplayText } from './introduction-text.js';
 export { agentIntroductionDisplayText, agentIntroductionQuestions, agentIntroductionSubtitle } from './agent-introduction.js';
 
-export { seedCanonicalConversationProjection, reduceCanonicalConversationEvent, localAppConversationMessageState } from './headless/local-app-conversation-projection.js';
+export { createConversationRowProjector, seedCanonicalConversationProjection, reduceCanonicalConversationEvent, localAppConversationMessageState } from './headless/local-app-conversation-projection.js';
 export type { CanonicalConversationProjection, CanonicalConversationEventReduction } from './headless/local-app-conversation-projection.js';
 export { observeLocalAppConversation, createCanonicalConversationMediaReader } from './headless/local-app-conversation-session.js';
 export type { LocalAppConversationScope, LocalAppConversationObservation } from './headless/local-app-conversation-session.js';

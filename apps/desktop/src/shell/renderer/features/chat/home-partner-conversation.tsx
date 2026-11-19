@@ -6,7 +6,7 @@ import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { createBrowserAppConversationHostPort, createCanonicalConversationMediaReader, reconcileAgentSubmission,
+import { createConversationRowProjector, createBrowserAppConversationHostPort, createCanonicalConversationMediaReader, reconcileAgentSubmission,
   observeLocalAppConversation, useAgentComposerPersistence, type AgentPendingSubmission, type CanonicalConversationProjection,
   type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
 import { useAgentIntroduction, useLocalAppConversationHistory, useLocalAppConversationPlayback, useLocalAppConversationQuote, type ConversationReadPosition } from '@nimiplatform/kit/features/chat/runtime';
@@ -199,16 +199,18 @@ function PartnerTranscript({ target, reference, anchor, scope, accountId, railRe
     }
   }, [target.messageId, target.turnId, projection, history.locate]);
 
+  const recordRow = useMemo(() => createConversationRowProjector<ReturnType<typeof materializeCanonicalConversationBundle>['messages'][number]>(), [identity]);
+  const displayRow = useMemo(() => createConversationRowProjector<ConversationCanonicalMessage>(), [identity, t]);
   const visible = history.projection;
   const messages = useMemo(() => {
     if (!visible) return [];
     const { messages: records } = materializeCanonicalConversationBundle({
-      projection: visible, media: media.current ?? undefined, nowMs: 0,
+      row: recordRow, projection: visible, media: media.current ?? undefined, nowMs: 0,
       thread: { id: anchor, title: reference.displayName, updatedAtMs: 0, lastMessageAtMs: null,
         targetSnapshot: { ...identity, displayName: reference.displayName, avatarUrl: reference.avatarUrl,
           handle: '', worldId: null, worldName: null, bio: null, ownershipType: null, greeting: null, builtinDocsContext: null } },
     });
-    return records.map((message): ConversationCanonicalMessage => {
+    return records.map(message => displayRow(message, [], () => {
       const emptyReply = message.role === 'assistant' && message.kind === 'text' && message.status === 'error' && !message.contentText.trim();
       return {
         id: message.id, sessionId: anchor, targetId: reference.agentHandle, source: 'agent',
@@ -221,8 +223,8 @@ function PartnerTranscript({ target, reference, anchor, scope, accountId, railRe
         metadata: { ...message.metadataJson, artifactId: message.artifactId, mediaUrl: message.mediaUrl,
           mediaMimeType: message.mediaMimeType, ...(message.kind === 'image' ? { caption: message.contentText } : {}) },
       };
-    });
-  }, [visible, anchor, reference, identity, mediaRevision, t]);
+    }));
+  }, [visible, anchor, reference, identity, mediaRevision, t, recordRow, displayRow]);
   const replies = new Map(activity.recent.records.filter(record => record.source.kind === 'runtime-agent' &&
     record.agent?.agentRef === reference.activityAgentRef && record.userView.unread).map(record => [record.key, record]));
 

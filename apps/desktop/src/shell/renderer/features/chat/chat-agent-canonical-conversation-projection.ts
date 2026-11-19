@@ -1,4 +1,4 @@
-import { localAppConversationMessageState } from '@nimiplatform/kit/features/chat/headless';
+import { createConversationRowProjector, localAppConversationMessageState } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalMessageRecord, AgentLocalThreadBundle, AgentLocalThreadSummary, JsonObject } from '../../bridge/runtime-bridge/types';
 import type { CanonicalConversationProjection, createCanonicalConversationMediaReader } from '@nimiplatform/kit/features/chat/headless';
 
@@ -48,12 +48,16 @@ function insertConversationChild(messages: AgentLocalMessageRecord[], child: Age
 
 // @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function materializeCanonicalConversationBundle(input: {
+  row?: ReturnType<typeof createConversationRowProjector<AgentLocalMessageRecord>>;
   media?: Pick<ReturnType<typeof createCanonicalConversationMediaReader>, 'get'>;
   thread: AgentLocalThreadSummary;
   projection: CanonicalConversationProjection;
   nowMs: number;
 }): AgentLocalThreadBundle {
   const messages: AgentLocalMessageRecord[] = [];
+  const row = input.row ?? createConversationRowProjector<AgentLocalMessageRecord>();
+  const voices = new Map(input.projection.voices.map(voice => [voice.messageId, voice]));
+  const actionTurns = new Set(input.projection.actions.map(action => action.turnId));
   for (const message of input.projection.messages) {
     const presentation = localAppConversationMessageState(input.projection, message);
     const { turn } = presentation;
@@ -62,7 +66,10 @@ export function materializeCanonicalConversationBundle(input: {
     const resolved = artifact
       ? input.media?.get(artifact.artifactId) ?? { mediaUrl: null, mimeType: null }
       : { mediaUrl: null, mimeType: null };
-    const projected: AgentLocalMessageRecord = {
+    const voice = message.role === 'assistant' && !artifact ? voices.get(message.messageId) : undefined;
+    const controlRejected = !message.partial && turn?.status === 'completed' && turn.reasonCode === 'AI_OUTPUT_INVALID' && !actionTurns.has(message.turnId);
+    const projected = row(message, [input.thread.id, input.nowMs, turn, presentation.textPending, presentation.mediaRunning,
+      controlRejected, resolved.mediaUrl, resolved.mimeType, voice], () => ({
       ...baseMessage({
         id: message.messageId,
         threadId: input.thread.id,
@@ -82,12 +89,11 @@ export function materializeCanonicalConversationBundle(input: {
           canonicalInputTurnId: turn?.inputTurnId || null,
           canonicalOrigin: turn?.origin || 'user',
           canonicalMediaRunning: presentation.mediaRunning,
-          canonicalControlRejected: !message.partial && turn?.status === 'completed' && turn.reasonCode === 'AI_OUTPUT_INVALID'
-            && !input.projection.actions.some(action => action.turnId === message.turnId),
+          canonicalControlRejected: controlRejected,
+          ...(voice ? { canonicalVoiceId: voice.voiceId, canonicalVoiceState: voice.state,
+            canonicalVoiceArtifactId: voice.artifactId, canonicalVoiceReasonCode: voice.reasonCode } : {}),
           canonicalConversationAnchorId: input.projection.conversationAnchorId,
           canonicalTurnId: message.turnId,
-          canonicalThroughSequence: input.projection.throughSequence,
-          canonicalTruncatedBefore: input.projection.truncatedBefore,
         },
       }),
       mediaUrl: resolved.mediaUrl,
@@ -96,7 +102,7 @@ export function materializeCanonicalConversationBundle(input: {
       error: message.partial && turn?.status !== 'active' && turn?.terminalReason !== 'user_cancel'
         ? { code: turn?.reasonCode || 'AI_STREAM_BROKEN', message: turn?.message || 'The reply is incomplete.' }
         : null,
-    };
+    }));
     if (artifact && message.role === 'assistant') insertConversationChild(messages, projected);
     else messages.push(projected);
   }
@@ -110,7 +116,7 @@ export function materializeCanonicalConversationBundle(input: {
     const resolved = action.artifactId
       ? input.media?.get(action.artifactId) ?? { mediaUrl: null, mimeType: null }
       : { mediaUrl: null, mimeType: null };
-    insertConversationChild(messages, {
+    insertConversationChild(messages, row(action, [input.thread.id, input.nowMs, resolved.mediaUrl, resolved.mimeType, textOnlyInput], () => ({
       ...baseMessage({
         id: messageId,
         threadId: input.thread.id,
@@ -124,7 +130,6 @@ export function materializeCanonicalConversationBundle(input: {
           canonicalTurnId: action.turnId,
           canonicalActionId: action.actionId,
           canonicalActionStatus: action.status,
-          canonicalThroughSequence: input.projection.throughSequence,
           ...(action.status === 'failed' ? {
             imageFailureReasonCode: action.reasonCode,
             imageOperationId: action.actionId,
@@ -138,30 +143,19 @@ export function materializeCanonicalConversationBundle(input: {
       error: action.status === 'failed'
         ? { code: action.reasonCode || 'RUNTIME_CALL_FAILED', message: action.message || 'Image generation failed.' }
         : null,
-    });
+    })));
     messageIds.add(messageId);
   }
 
-  for (const voice of input.projection.voices) {
-    const parent = messages.find(message => message.id === voice.messageId && message.kind === 'text' && message.role === 'assistant');
-    if (!parent) continue; // The canonical sidecar remains in the bounded snapshot even when its text is outside it.
-    parent.metadataJson = {
-      ...parent.metadataJson,
-      canonicalVoiceId: voice.voiceId,
-      canonicalVoiceState: voice.state,
-      canonicalVoiceArtifactId: voice.artifactId,
-      canonicalVoiceReasonCode: voice.reasonCode,
-    };
-  }
-
+  const answered = new Set(messages.filter(item => item.role === 'assistant' && item.kind === 'text').map(item => item.metadataJson?.canonicalTurnId));
   const turnOrder = new Map(input.projection.turns.map((turn, index) => [turn.turnId, index]));
   for (const turn of input.projection.turns) {
     const transient = input.projection.transientByTurn[turn.turnId];
     if (turn.origin !== 'user' && turn.origin !== 'app' && !transient?.text?.trim()) continue;
-    if (messages.some(message => message.role === 'assistant' && message.kind === 'text' && message.metadataJson?.canonicalTurnId === turn.turnId)) continue;
+    if (answered.has(turn.turnId)) continue;
     if (!transient && !turn.inputTurnId && input.projection.state.textTurnId !== turn.turnId && turn.origin !== 'app') continue;
     if (turn.status === 'completed') continue;
-    const placeholder = {
+    const placeholder = row(turn, [input.thread.id, input.nowMs, transient], () => ({
       ...baseMessage({
         id: `canonical-turn:${turn.turnId}`,
         threadId: input.thread.id,
@@ -180,11 +174,10 @@ export function materializeCanonicalConversationBundle(input: {
           canonicalInputTurnId: turn.inputTurnId,
           canonicalPartial: true,
           canonicalReasoningState: transient?.reasoningState || null,
-          canonicalThroughSequence: input.projection.throughSequence,
         },
       }),
       error: turn.status !== 'active' && turn.terminalReason !== 'user_cancel' ? { code: turn.reasonCode || 'AI_STREAM_BROKEN', message: turn.message || 'The reply is incomplete.' } : null,
-    };
+    }));
     // Empty failed attempts have no canonical text message. Keep their status
     // at the Runtime's turn position, before any later successful retry.
     const nextMessage = messages.findIndex(message => {
