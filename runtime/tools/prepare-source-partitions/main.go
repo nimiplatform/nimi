@@ -9,11 +9,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	_ "modernc.org/sqlite"
 )
@@ -29,11 +29,7 @@ func openFile(path, mode string) (*sql.DB, error) {
 	if !i.Mode().IsRegular() {
 		return nil, errors.New("regular SQLite file required")
 	}
-	u := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
-	q := u.Query()
-	q.Set("mode", mode)
-	u.RawQuery = q.Encode()
-	db, err := sql.Open("sqlite", u.String())
+	db, err := sql.Open("sqlite", runtimepersistence.SQLiteFileURI(path, "mode="+mode))
 	if err == nil {
 		db.SetMaxOpenConns(1)
 	}

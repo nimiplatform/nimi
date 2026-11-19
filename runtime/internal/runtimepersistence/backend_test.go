@@ -11,6 +11,14 @@ import (
 	"time"
 )
 
+func TestSQLiteFileURIWithDriveLetter(t *testing.T) {
+	got := SQLiteFileURI("C:/Nimi #1/memory%.db", "mode=ro")
+	const want = "file:///C:/Nimi%20%231/memory%25.db?mode=ro"
+	if got != want {
+		t.Fatalf("drive-letter URI = %q, want %q", got, want)
+	}
+}
+
 func TestBackendFailsClosedWithoutHealthyBackup(t *testing.T) {
 	t.Parallel()
 

@@ -97,21 +97,18 @@ func sourceProseSentenceEnd(s string, start, end int) int {
 	for pos := start; pos < end; {
 		r, n := utf8.DecodeRuneInString(s[pos:end])
 		pos += n
-		switch r {
-		case '.': // Decimal points, initials and dots inside words stay in the sentence.
-			if pos < end {
-				next, _ := utf8.DecodeRuneInString(s[pos:end])
-				if !unicode.IsSpace(next) && !isSourceProseClosing(next) {
-					continue
-				}
-			}
-		case '。', '！', '？', '!', '?', '；', ';', '…':
-		default:
+		if r != ';' && r != '；' && !isSourceProseTerminal(r) {
 			continue
+		}
+		if r == '.' && pos < end {
+			next, _ := utf8.DecodeRuneInString(s[pos:end])
+			if !unicode.IsSpace(next) && !isSourceProseClosing(next) {
+				continue // Keep decimal points and dots inside words.
+			}
 		}
 		for pos < end {
 			next, size := utf8.DecodeRuneInString(s[pos:end])
-			if !isSourceProseClosing(next) && !strings.ContainsRune("。！？!?….", next) {
+			if !isSourceProseClosing(next) && !isSourceProseTerminal(next) {
 				break
 			}
 			pos += size
@@ -121,4 +118,10 @@ func sourceProseSentenceEnd(s string, start, end int) int {
 	return end
 }
 
-func isSourceProseClosing(r rune) bool { return strings.ContainsRune("’”」』】）)]\"'", r) }
+func isSourceProseTerminal(r rune) bool {
+	return r == '…' || unicode.Is(unicode.Sentence_Terminal, r)
+}
+
+func isSourceProseClosing(r rune) bool {
+	return r == '"' || r == '\'' || unicode.In(r, unicode.Pe, unicode.Pf)
+}

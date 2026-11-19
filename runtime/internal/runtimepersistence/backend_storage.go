@@ -30,11 +30,17 @@ func sqliteFileDSN(path, query string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	uriPath := filepath.ToSlash(absolute)
-	if filepath.VolumeName(absolute) != "" && !strings.HasPrefix(uriPath, "/") {
+	return SQLiteFileURI(absolute, query), nil
+}
+
+// SQLiteFileURI encodes an absolute database path and a pre-encoded query.
+func SQLiteFileURI(absolutePath, rawQuery string) string {
+	uriPath := filepath.ToSlash(absolutePath)
+	if !strings.HasPrefix(uriPath, "/") {
+		// A Windows drive letter belongs in the URI path.
 		uriPath = "/" + uriPath
 	}
-	return (&url.URL{Scheme: "file", Path: uriPath, RawQuery: query}).String(), nil
+	return (&url.URL{Scheme: "file", Path: uriPath, RawQuery: rawQuery}).String()
 }
 
 func openSQLite(path string, writeConn bool, verify bool) (*sql.DB, error) {
