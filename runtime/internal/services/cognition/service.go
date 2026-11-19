@@ -243,10 +243,18 @@ func (s *Service) DeleteAgentSource(ctx context.Context, accountID, scopeID, sna
 	return projectAgentSourceOutcome(out), err
 }
 
+type agentSourceBridge interface {
+	IngestAgentSource(context.Context, nimicognition.RuntimeAuthorization, nimicognition.RuntimeSourceIngestionEnvelope) (nimicognition.RuntimeSourceOutcome, error)
+	InspectAgentSource(context.Context, nimicognition.RuntimeAuthorization, string, string) (nimicognition.RuntimeSourceOutcome, error)
+	SearchAgentSource(context.Context, nimicognition.RuntimeAuthorization, string, string, string, string, []float64, int) (nimicognition.RuntimeSourceOutcome, error)
+	ReadAgentSourceReferences(context.Context, nimicognition.RuntimeAuthorization, nimicognition.RuntimeSourceReferenceRead) (nimicognition.RuntimeSourceOutcome, error)
+	DeleteAgentSource(context.Context, nimicognition.RuntimeAuthorization, string, string) (nimicognition.RuntimeSourceOutcome, error)
+}
+
 type Service struct {
 	logger       *slog.Logger
 	owner        *nimicognition.V1Owner
-	sourceBridge *nimicognition.RuntimeSourceBridge
+	sourceBridge agentSourceBridge
 	root         string
 
 	mu                           sync.RWMutex

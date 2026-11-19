@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/embedding"
 )
 
+var ErrRuntimeSourceVectorCorrupt = errors.New("storage: runtime source embedding is missing or corrupt")
 var ErrRuntimeSourceScopeNotFound = errors.New("runtime source scope not found")
 var ErrRuntimeSourceSnapshotMismatch = errors.New("runtime source snapshot mismatch")
 var ErrRuntimeSourceEmbeddingMismatch = errors.New("runtime source embedding mismatch")
@@ -142,8 +143,14 @@ func (b *SQLiteBackend) ReplaceRuntimeSourceCorpus(
 }
 
 func (b *SQLiteBackend) GetRuntimeSourceState(ctx context.Context, scopeID string) (RuntimeSourceState, error) {
+	return readRuntimeSourceState(ctx, b.db, scopeID)
+}
+
+func readRuntimeSourceState(ctx context.Context, db interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, scopeID string) (RuntimeSourceState, error) {
 	var state RuntimeSourceState
-	err := b.db.QueryRowContext(ctx, `SELECT scope_id,snapshot_identity,partition_identity,status,generation,embedding_identity,embedding_dimension,(SELECT COUNT(*) FROM runtime_source_unit u WHERE u.scope_id=s.scope_id),(SELECT COUNT(*) FROM runtime_source_omission o WHERE o.scope_id=s.scope_id) FROM runtime_source_scope s WHERE scope_id=?`, scopeID).Scan(&state.ScopeID, &state.SnapshotIdentity, &state.PartitionIdentity, &state.Status, &state.Generation, &state.EmbeddingIdentity, &state.EmbeddingDimension, &state.UnitCount, &state.OmissionCount)
+	err := db.QueryRowContext(ctx, `SELECT scope_id,snapshot_identity,partition_identity,status,generation,embedding_identity,embedding_dimension,(SELECT COUNT(*) FROM runtime_source_unit u WHERE u.scope_id=s.scope_id),(SELECT COUNT(*) FROM runtime_source_omission o WHERE o.scope_id=s.scope_id) FROM runtime_source_scope s WHERE scope_id=?`, scopeID).Scan(&state.ScopeID, &state.SnapshotIdentity, &state.PartitionIdentity, &state.Status, &state.Generation, &state.EmbeddingIdentity, &state.EmbeddingDimension, &state.UnitCount, &state.OmissionCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return RuntimeSourceState{}, ErrRuntimeSourceScopeNotFound
 	}
@@ -154,24 +161,29 @@ func (b *SQLiteBackend) GetRuntimeSourceState(ctx context.Context, scopeID strin
 }
 
 func (b *SQLiteBackend) InspectRuntimeSourceState(ctx context.Context, scopeID string) (RuntimeSourceState, error) {
-	state, err := b.GetRuntimeSourceState(ctx, scopeID)
+	tx, err := b.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return RuntimeSourceState{}, err
+	}
+	defer tx.Rollback()
+	state, err := readRuntimeSourceState(ctx, tx, scopeID)
 	if err != nil {
 		return RuntimeSourceState{}, err
 	}
 	if state.Generation == 0 {
 		return RuntimeSourceState{}, errors.New("storage: runtime source generation is corrupt")
 	}
-	if err := b.validateStoredRuntimeSourceUnits(ctx, scopeID, state, true); err != nil {
+	if err := validateStoredRuntimeSourceUnits(ctx, tx, scopeID, state); err != nil {
 		return RuntimeSourceState{}, err
 	}
-	if err := b.validateStoredRuntimeSourceOmissions(ctx, scopeID, state.OmissionCount); err != nil {
+	if err := validateStoredRuntimeSourceOmissions(ctx, tx, scopeID, state.OmissionCount); err != nil {
 		return RuntimeSourceState{}, err
 	}
 	return state, nil
 }
 
-func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(ctx context.Context, scopeID string, state RuntimeSourceState, validateEmbeddings bool) error {
-	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+func validateStoredRuntimeSourceUnits(ctx context.Context, tx *sql.Tx, scopeID string, state RuntimeSourceState) error {
+	rows, err := tx.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source units: %w", err)
 	}
@@ -186,13 +198,9 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(ctx context.Context, sc
 		if err := json.Unmarshal(rawProvenanceRefs, &unit.ProvenanceRefs); err != nil || unit.ProvenanceRefs == nil || !validStoredRuntimeSourceUnit(unit) {
 			return errors.New("storage: runtime source unit is corrupt")
 		}
-		if !validateEmbeddings {
-			count++
-			continue
-		}
 		if state.Status == "ready" {
 			if err := json.Unmarshal(rawEmbedding, &unit.Embedding); err != nil || len(unit.Embedding) != state.EmbeddingDimension || !finiteRuntimeSourceVector(unit.Embedding) {
-				return errors.New("storage: runtime source embedding is missing or corrupt")
+				return ErrRuntimeSourceVectorCorrupt
 			}
 		} else if len(rawEmbedding) != 0 {
 			return errors.New("storage: non-ready runtime source unit carries an embedding")
@@ -212,14 +220,28 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(ctx context.Context, sc
 }
 
 func (b *SQLiteBackend) SearchRuntimeSource(ctx context.Context, scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) ([]RuntimeSourceUnit, RuntimeSourceState, error) {
-	state, err := b.InspectRuntimeSourceState(ctx, scopeID)
+	tx, err := b.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, RuntimeSourceState{}, err
+	}
+	defer tx.Rollback()
+	state, err := readRuntimeSourceState(ctx, tx, scopeID)
 	if err != nil {
 		return nil, RuntimeSourceState{}, err
 	}
 	if state.SnapshotIdentity != snapshotIdentity {
 		return nil, state, ErrRuntimeSourceSnapshotMismatch
 	}
+	if state.Generation == 0 {
+		return nil, state, errors.New("storage: runtime source generation is corrupt")
+	}
+	if err := validateStoredRuntimeSourceOmissions(ctx, tx, scopeID, state.OmissionCount); err != nil {
+		return nil, state, err
+	}
 	if state.Status != "ready" {
+		if err := validateStoredRuntimeSourceUnits(ctx, tx, scopeID, state); err != nil {
+			return nil, state, err
+		}
 		return nil, state, nil
 	}
 	if state.EmbeddingIdentity == "" || state.EmbeddingIdentity != embeddingIdentity || state.EmbeddingDimension <= 0 || len(queryEmbedding) != state.EmbeddingDimension || !finiteRuntimeSourceVector(queryEmbedding) {
@@ -228,7 +250,7 @@ func (b *SQLiteBackend) SearchRuntimeSource(ctx context.Context, scopeID, snapsh
 	if limit <= 0 {
 		limit = 8
 	}
-	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+	rows, err := tx.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return nil, state, fmt.Errorf("storage: search runtime source: %w", err)
 	}
@@ -247,7 +269,7 @@ func (b *SQLiteBackend) SearchRuntimeSource(ctx context.Context, scopeID, snapsh
 			return nil, state, errors.New("storage: runtime source unit is corrupt")
 		}
 		if err := json.Unmarshal(rawEmbedding, &unit.Embedding); err != nil || len(unit.Embedding) != state.EmbeddingDimension || !finiteRuntimeSourceVector(unit.Embedding) {
-			return nil, state, errors.New("storage: runtime source embedding is missing or corrupt")
+			return nil, state, ErrRuntimeSourceVectorCorrupt
 		}
 		unit.Score = embedding.CosineSimilarity(queryEmbedding, unit.Embedding)
 		if math.IsNaN(unit.Score) || math.IsInf(unit.Score, 0) {
@@ -304,8 +326,8 @@ func validStoredRuntimeSourceUnit(unit RuntimeSourceUnit) bool {
 	return true
 }
 
-func (b *SQLiteBackend) validateStoredRuntimeSourceOmissions(ctx context.Context, scopeID string, expectedCount int) error {
-	rows, err := b.db.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,omission_reason,provenance_refs_json FROM runtime_source_omission WHERE scope_id=?`, scopeID)
+func validateStoredRuntimeSourceOmissions(ctx context.Context, tx *sql.Tx, scopeID string, expectedCount int) error {
+	rows, err := tx.QueryContext(ctx, `SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,omission_reason,provenance_refs_json FROM runtime_source_omission WHERE scope_id=?`, scopeID)
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source omissions: %w", err)
 	}

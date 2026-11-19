@@ -51,13 +51,25 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 		}
 		return out, nil
 	}
-	indexCtx, cancelIndex := context.WithTimeout(ctx, agentSourceIndexReadBudget)
+	budget := agentSourceIndexReadBudget
+	if deadline, ok := ctx.Deadline(); ok {
+		budget = min(budget, time.Until(deadline))
+	}
+	var exactReserve time.Duration
+	if len(query.ExactSourceRefs) > 0 {
+		exactReserve = budget / 3
+	}
+	start := time.Now()
+	indexCtx, cancelIndex := context.WithTimeout(ctx, budget-exactReserve)
 	auth := agentSourceAuthorization(accountID, scopeID, nimicognition.RuntimeAuthorizationActionSearchAgentSource, nimicognition.RuntimeBridgeOperationSearchAgentSource)
 	state, err := s.sourceBridge.InspectAgentSource(indexCtx, auth, scopeID, snapshotIdentity)
-	deadline, _ := indexCtx.Deadline()
-	remaining := time.Until(deadline)
+	remaining := budget - time.Since(start)
+	inspectTimeout := errors.Is(indexCtx.Err(), context.DeadlineExceeded)
 	cancelIndex()
-	if err != nil {
+	if ctx.Err() != nil {
+		return AgentSourceOutcome{}, ctx.Err()
+	}
+	if err != nil && (len(query.ExactSourceRefs) == 0 || !(nimicognition.IsRuntimeSourceVectorCorrupt(err) || inspectTimeout)) {
 		return AgentSourceOutcome{}, err
 	}
 	if remaining <= 0 {
@@ -65,6 +77,12 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 	}
 
 	semantic := projectAgentSourceOutcome(state)
+	if err != nil {
+		semantic.Status = "failure"
+		if inspectTimeout {
+			semantic.Status = "timeout"
+		}
+	}
 	execution := AgentSourceEmbeddingExecution{Status: "unconfigured"}
 	if state.Status == "ready" {
 		if executor := s.agentSourceExecutor(); executor != nil {
@@ -95,12 +113,21 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 	defer cancelIndex()
 	if semantic.Status == "ready" {
 		auth = agentSourceAuthorization(accountID, scopeID, nimicognition.RuntimeAuthorizationActionSearchAgentSource, nimicognition.RuntimeBridgeOperationSearchAgentSource)
-		out, searchErr := s.sourceBridge.SearchAgentSource(indexCtx, auth, scopeID, snapshotIdentity, execution.Identity, query.Text, execution.Vectors[0], query.Limit)
+		searchCtx, cancelSearch := context.WithTimeout(indexCtx, remaining-exactReserve)
+		out, searchErr := s.sourceBridge.SearchAgentSource(searchCtx, auth, scopeID, snapshotIdentity, execution.Identity, query.Text, execution.Vectors[0], query.Limit)
+		searchTimeout := errors.Is(searchCtx.Err(), context.DeadlineExceeded)
+		cancelSearch()
 		if searchErr != nil {
 			if len(query.ExactSourceRefs) == 0 {
 				return AgentSourceOutcome{}, searchErr
 			}
 			semantic.Status = "failure"
+			if searchTimeout {
+				semantic.Status = "timeout"
+			}
+		} else if state.Generation != out.Generation {
+			semantic = projectAgentSourceOutcome(out)
+			semantic.Status = "unavailable"
 		} else {
 			semantic = projectAgentSourceOutcome(out)
 			for _, unit := range out.Units {
@@ -127,6 +154,9 @@ func (s *Service) SearchAgentSource(ctx context.Context, accountID, localAgentRe
 	}
 	result := exact
 	result.Status = semantic.Status
+	if state.Generation == 0 {
+		return result, nil
+	}
 	if semantic.Generation != exact.Generation {
 		// The body is current, but the earlier semantic result belongs to a
 		// different generation. Keep the exact read without its old scores.

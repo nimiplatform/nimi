@@ -84,6 +84,7 @@ func (b *SQLiteBackend) initRuntimeSource() error {
 			PRIMARY KEY(scope_id, unit_id),
 			FOREIGN KEY(scope_id) REFERENCES runtime_source_scope(scope_id) ON DELETE CASCADE
 		);`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_source_unit_ref ON runtime_source_unit(scope_id,source_ref_id);`,
 		`CREATE TABLE IF NOT EXISTS runtime_source_omission (
 			scope_id TEXT NOT NULL,
 			unit_id TEXT NOT NULL,

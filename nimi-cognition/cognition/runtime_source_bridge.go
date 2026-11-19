@@ -102,6 +102,10 @@ var errRuntimeAuthorizationDenied = errors.New("runtime source bridge authorizat
 // envelope bound. Cognition validates it and never truncates or repartitions.
 const runtimeSourceSemanticTextMaxBytes = 8 * 1024
 
+func IsRuntimeSourceVectorCorrupt(err error) bool {
+	return errors.Is(err, storage.ErrRuntimeSourceVectorCorrupt)
+}
+
 func IsRuntimeAuthorizationDenied(err error) bool {
 	return errors.Is(err, errRuntimeAuthorizationDenied)
 }

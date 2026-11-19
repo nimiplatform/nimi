@@ -117,7 +117,7 @@ func TestAgentSourceGenerationCommitsBuildingBeforeTerminalReady(t *testing.T) {
 	}
 }
 
-func newSourceTestService(t *testing.T) (*Service, func()) {
+func newSourceTestService(t testing.TB) (*Service, func()) {
 	t.Helper()
 	svc, err := NewV1Owner(nil, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "runtime.db")})
 	if err != nil {
