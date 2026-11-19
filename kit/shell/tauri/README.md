@@ -1,5 +1,7 @@
 # nimi-shell-tauri
 
+Official third-party desktop App support currently covers Electron on Windows x64 and macOS arm64. The Tauri adapter remains available as independent source and historical releases.
+
 Shared Rust/Tauri host glue for Nimi apps.
 
 ## Ownership Boundary

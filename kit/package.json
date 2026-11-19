@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.24.0-rc.15",
+  "version": "0.24.0-rc.16",
   "description": "The product-grade cross-app toolkit for Nimi apps.",
   "license": "MIT",
   "private": false,
@@ -421,6 +421,11 @@
       "types": "./dist/auth/app/mobile.d.ts",
       "import": "./dist/auth/app/mobile.js",
       "default": "./dist/auth/app/mobile.js"
+    },
+    "./shell/renderer/tauri": {
+      "types": "./dist/shell/renderer/bootstrap/tauri.d.ts",
+      "import": "./dist/shell/renderer/bootstrap/tauri.js",
+      "default": "./dist/shell/renderer/bootstrap/tauri.js"
     }
   },
   "scripts": {
@@ -444,7 +449,6 @@
     "@radix-ui/react-switch": "1.4.1",
     "@radix-ui/react-tooltip": "1.4.1",
     "@tanstack/react-virtual": "3.14.26",
-    "@tauri-apps/api": "2.12.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "1.70.0",
@@ -470,7 +474,8 @@
     "react-i18next": "^17.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/app": "^8.0.0",
-    "@capacitor/browser": "^8.0.0"
+    "@capacitor/browser": "^8.0.0",
+    "@tauri-apps/api": "2.12.4"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -489,6 +494,9 @@
       "optional": true
     },
     "@capacitor/browser": {
+      "optional": true
+    },
+    "@tauri-apps/api": {
       "optional": true
     }
   },
@@ -509,7 +517,8 @@
     "vitest": "5.1.0",
     "@capacitor/core": "8.6.2",
     "@capacitor/app": "8.1.2",
-    "@capacitor/browser": "8.0.5"
+    "@capacitor/browser": "8.0.5",
+    "@tauri-apps/api": "2.12.4"
   },
   "capacitor": {
     "android": {

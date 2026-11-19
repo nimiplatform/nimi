@@ -197,11 +197,6 @@ jobs:
         run: pnpm check:no-desktop-as-user-facing-name
       - name: gate.ui.glass-boundary
         run: pnpm check:ui-glass-boundary
-      - name: Install Linux dependencies for Rust bridge generation
-        if: needs.changes.outputs.kit_changed == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Check Kit contracts
         if: needs.changes.outputs.kit_changed == 'true'
         run: pnpm check:nimi-kit

@@ -55,7 +55,7 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   const carrierSource = codePaths.some(file => /^kit\/shell\/protected-local(?:-node)?\//u.test(file)
     && !macPackageFiles.test(file) && !windowsPackageFiles.test(file));
   const macosCarrier = proto || carrierSource || touches(/^rust-toolchain\.toml$/u);
-  const kitNative = macosCarrier || touches(/^kit\/shell\/(?:capabilities|tauri)\//u);
+  const kitNative = macosCarrier || touches(/^kit\/shell\/capabilities\//u);
   const kitNativePackage = macosCarrier || touches(/^(?:kit\/package\.json|config\/product-update-policy\.mjs|\.github\/workflows\/release-kit\.yml|scripts\/release\/(?:component-version|build-component-package)\.mjs)$/u);
   const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
   const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);

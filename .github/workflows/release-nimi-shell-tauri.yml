@@ -13,6 +13,7 @@ on:
       - .secrets.baseline
       - .github/workflows/release-nimi-shell-tauri.yml
       - kit/shell/protected-local/**
+      - scripts/check-runtime-bridge-proto-drift.mjs
       - kit/shell/tauri/**
       - proto/**
   workflow_dispatch:
@@ -100,6 +101,9 @@ jobs:
             echo "protected_version=${protected_version}"
             echo "version=${version}"
           } >> "${GITHUB_OUTPUT}"
+      - name: Check generated Tauri Runtime bridge
+        if: runner.os == 'Linux'
+        run: node scripts/check-runtime-bridge-proto-drift.mjs
       - name: Test Tauri shell source
         run: cargo test --manifest-path kit/shell/tauri/Cargo.toml --locked
       - name: Report dry-run dependency boundary

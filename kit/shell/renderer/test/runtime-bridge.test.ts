@@ -1,3 +1,4 @@
+import { installNimiShellRuntimeBridge as installTauriBridge } from '../src/bootstrap/tauri.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -227,7 +228,8 @@ describe('installNimiShellRuntimeBridge', () => {
     };
 
     expect(testGlobal.window.isTauri).toBeUndefined();
-    expect(installNimiShellRuntimeBridge()).toEqual({ installed: true, host: 'tauri' });
+    expect(installNimiShellRuntimeBridge()).toEqual({ installed: false, reason: 'standard-host-preload-required' });
+    expect(installTauriBridge()).toEqual({ installed: true, host: 'tauri' });
     expect(hasTauriInvoke()).toBe(true);
 
     await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'], {})).resolves.toEqual({

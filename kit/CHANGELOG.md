@@ -14,6 +14,10 @@ The protected Electron App Host now observes the end of its existing Runtime ses
 
 `capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
 
+## 0.24.0-rc.16
+
+The default renderer bridge uses the injected host synchronously. Existing raw Tauri integrations can install the optional @tauri-apps/api peer and import installNimiShellRuntimeBridge from @nimiplatform/kit/shell/renderer/tauri. The supported native App host is Electron on Windows x64 and macOS arm64.
+
 ## 0.24.0-rc.15
 
 - Electron validates configuration captures through the Kit SDK contract entrypoint.

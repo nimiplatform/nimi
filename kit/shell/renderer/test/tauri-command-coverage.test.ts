@@ -1,10 +1,10 @@
+import { installNimiShellRuntimeBridge } from '../src/bootstrap/tauri.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   BridgeError,
-  installNimiShellRuntimeBridge,
   invoke,
   invokeTauri,
 } from '../src/bridge/index.js';

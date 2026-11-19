@@ -81,5 +81,5 @@ jobs:
             kit|macos-production) cargo audit --file kit/shell/protected-local-node/Cargo.lock ;;
           esac
           case "$COMPONENT" in
-            kit|tauri) cargo audit --file kit/shell/tauri/Cargo.lock ;;
+            tauri) cargo audit --file kit/shell/tauri/Cargo.lock ;;
           esac
