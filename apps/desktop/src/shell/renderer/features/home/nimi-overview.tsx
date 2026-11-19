@@ -3,7 +3,7 @@ import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUp, ChevronRight } from 'lucide-react';
-import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -30,29 +30,9 @@ import { HomeMessageCenter } from './home-message-center.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages, type HomeSystemListing } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
-import { useHomeRowCapacity } from './use-home-row-capacity.js';
 import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
 
 const HOME_APP_LIMIT = 8;
-// Tile geometry of the Home app buttons (w-[92px] + gap-1): only as many
-// tiles as fit one row are rendered, measured from the row itself.
-const HOME_APP_TILE_WIDTH = 92;
-const HOME_APP_TILE_GAP = 4;
-
-/** Matches Tailwind's lg breakpoint so ordinary desktop windows retain Messages on the right. */
-const HOME_SPLIT_MEDIA_QUERY = '(min-width: 1024px)';
-
-function useSplitColumns(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const media = window.matchMedia(HOME_SPLIT_MEDIA_QUERY);
-      media.addEventListener('change', onChange);
-      return () => media.removeEventListener('change', onChange);
-    },
-    () => window.matchMedia(HOME_SPLIT_MEDIA_QUERY).matches,
-    () => false,
-  );
-}
 
 function greetingKey(hour: number): string {
   if (hour < 5) return 'runtimeConfig.overview.greetingNight';
@@ -111,12 +91,6 @@ export function NimiOverview() {
     setIntegrationIntent(intent ?? null);
     void navigation.push({ id: 'home', homeSection: 'integrations' });
   };
-  const splitColumns = useSplitColumns();
-  const { ref: appsRowRef, capacity: appsRowCapacity } = useHomeRowCapacity({
-    tileWidth: HOME_APP_TILE_WIDTH,
-    tileGap: HOME_APP_TILE_GAP,
-    limit: HOME_APP_LIMIT,
-  });
   const health = useQuery({
     queryKey: ['nimi-overview', 'runtime-health'],
     queryFn: () => sdk.machineProduct().audit.getRuntimeHealth({}),
@@ -241,7 +215,7 @@ export function NimiOverview() {
   });
 
   const heading = (
-    <h1 className="min-w-0 text-[26px] font-bold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[32px]">
+    <h1 className="min-w-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[28px]">
       {displayName
         ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
         : t(greetingKey(now.getHours()))}
@@ -295,87 +269,15 @@ export function NimiOverview() {
   );
 
   const renderOverview = (messages: HomeMessages | null) => (
-    // The greeting/date header and conversation card stay above the main
-    // sections. From lg, the Messages toolbar joins the greeting row so both
-    // titles share one text baseline, and the message list keeps its
-    // independent right-hand scroll; narrow windows retain the single-page
-    // stacking order.
-    <div className="grid items-start gap-5 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
-      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-2 lg:col-start-1 lg:row-start-1 lg:self-baseline">
-        {heading}
-        <p className="shrink-0 text-[13px] text-[var(--nimi-text-secondary)]" data-testid="home-date">
-          {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
-        </p>
-      </div>
-      <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-x-8">
+      <div className="flex min-w-0 flex-col gap-4">
+        <header className="flex min-h-11 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-1">
+          {heading}
+          <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="home-date">
+            {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+          </p>
+        </header>
         <HomeAgentCard />
-      </div>
-      {messages ? (
-        <HomeMessagesColumn
-          messages={messages}
-          context={cardContext(messages)}
-          appArtworkForNotice={appArtworkForNotice}
-          onViewAll={() => openCenter('all')}
-        />
-      ) : null}
-      <div className="min-w-0 lg:col-start-1 lg:row-start-3 lg:min-h-0 lg:self-stretch">
-        <ScrollArea
-          className="lg:h-full"
-          viewportClassName="bg-transparent [&>div]:!block"
-          contentClassName="flex flex-col gap-5"
-        >
-          <section className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-apps">
-            <SectionHeader
-              title={t('runtimeConfig.overview.apps')}
-              action={t('runtimeConfig.overview.allApps')}
-              onAction={() => navigation.push({ id: 'apps' })}
-            />
-            <BundledZhiyuEntry />
-            {apps.isError ||
-            apps.data?.status === 'error' ||
-            (apps.data?.status === 'loaded' &&
-              (apps.data.catalogStatus === 'unavailable' || apps.data.runtimeError)) ? (
-              <InlineAlert tone="warning">{t('runtimeConfig.overview.appsUnavailable')}</InlineAlert>
-            ) : null}
-            {apps.isPending ? <LoadingSkeleton lines={2} label={t('Common.loading')} /> : null}
-            {unique.length ? (
-              <div ref={appsRowRef} className="flex flex-wrap gap-1">
-                {unique.slice(0, appsRowCapacity).map((entry) => {
-                  const update = hasAvailableCatalogUpdate(entry);
-                  return (
-                    <button
-                      key={entry.identity.appId}
-                      type="button"
-                      className="flex w-[92px] flex-col items-center gap-2 rounded-2xl px-1 py-2.5 text-center transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                      onClick={() => openApp(entry.identity.appId, entry.identity.entryKey)}
-                      data-testid={`home-app:${entry.identity.appId}`}
-                      title={update ? `${entry.identity.displayName} · ${t('runtimeConfig.overview.updateTag')}` : entry.identity.displayName}
-                    >
-                      <span className="relative">
-                        <AppArtworkIcon
-                          appId={entry.identity.appId}
-                          displayName={entry.identity.displayName}
-                          iconUrl={iconUrls.get(entry.identity.appId)}
-                          size="lg"
-                        />
-                        {update ? (
-                          <span
-                            className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full border-2 border-[var(--nimi-surface-panel)] bg-[var(--nimi-status-info)] text-[var(--nimi-text-inverse)]"
-                            aria-label={t('runtimeConfig.overview.updateTag')}
-                          >
-                            <ArrowUp size={9} strokeWidth={3.5} />
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="flex w-full flex-col items-center gap-0.5">
-                        <span className="w-full truncate text-xs font-medium">{entry.identity.displayName}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </section>
         {messagesAccountKey ? (
           <HomeGettingStarted
             key={messagesAccountKey}
@@ -388,8 +290,57 @@ export function NimiOverview() {
             onOpenApps={() => void navigation.push({ id: 'apps' })}
           />
         ) : null}
+      </div>
+      <div className="flex min-w-0 flex-col gap-4">
+        {messages ? (
+          <HomeMessagesColumn
+            messages={messages}
+            context={cardContext(messages)}
+            appArtworkForNotice={appArtworkForNotice}
+            onViewAll={() => openCenter('all')}
+          />
+        ) : null}
+        <section className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-apps">
+          <SectionHeader
+            title={t('runtimeConfig.overview.apps')}
+            action={t('runtimeConfig.overview.allApps')}
+            onAction={() => navigation.push({ id: 'apps' })}
+          />
+          <BundledZhiyuEntry />
+          {apps.isError ||
+          apps.data?.status === 'error' ||
+          (apps.data?.status === 'loaded' &&
+            (apps.data.catalogStatus === 'unavailable' || apps.data.runtimeError)) ? (
+            <InlineAlert tone="warning">{t('runtimeConfig.overview.appsUnavailable')}</InlineAlert>
+          ) : null}
+          {apps.isPending ? <LoadingSkeleton lines={2} label={t('Common.loading')} /> : null}
+          {unique.length ? (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-1">
+              {unique.slice(0, HOME_APP_LIMIT).map((entry) => {
+                const update = hasAvailableCatalogUpdate(entry);
+                return (
+                  <button
+                    key={entry.identity.appId}
+                    type="button"
+                    className="flex min-w-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                    onClick={() => openApp(entry.identity.appId, entry.identity.entryKey)}
+                    data-testid={`home-app:${entry.identity.appId}`}
+                  >
+                    <AppArtworkIcon appId={entry.identity.appId} displayName={entry.identity.displayName} iconUrl={iconUrls.get(entry.identity.appId) ?? null} size="xl" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{entry.identity.displayName}</span>
+                      {update ? <span className="flex items-center gap-1 text-xs text-[var(--nimi-action-primary-bg)]"><ArrowUp size={12} aria-hidden="true" />{t('runtimeConfig.overview.updateTag')}</span> : null}
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      </div>
+      <div className="min-w-0 lg:col-span-2">
         <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
-        </ScrollArea>
       </div>
     </div>
   );
@@ -418,24 +369,13 @@ export function NimiOverview() {
         />
       ) : (
         <>
-          {splitColumns ? (
-            // Wide windows pin the date and greeting and scroll the main
-            // sections and the Messages column independently. A page-level
-            // ScrollArea cannot work here: Radix wraps its content in a
-            // display:table div that always grows with the content, so no
-            // bounded height reaches the columns.
-            <div className={`${SHELL_PAGE_WIDTH_CLASS} flex min-h-0 flex-1 flex-col pb-2 pt-5`}>
-              {renderOverview(messages)}
-            </div>
-          ) : (
-            <ScrollArea
-              className="min-h-0 flex-1"
-              viewportClassName="bg-transparent [&>div]:!block"
-              contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-4 pt-5`}
-            >
-              {renderOverview(messages)}
-            </ScrollArea>
-          )}
+          <ScrollArea
+            className="min-h-0 flex-1"
+            viewportClassName="bg-transparent [&>div]:!block"
+            contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-6 pt-4 lg:pt-6`}
+          >
+            {renderOverview(messages)}
+          </ScrollArea>
           <footer className={`${SHELL_PAGE_WIDTH_CLASS} z-20 shrink-0 pt-2`} data-testid="home-status-dock">
             <HomeMachineStatus
               runtime={homeRuntimeState(health)}

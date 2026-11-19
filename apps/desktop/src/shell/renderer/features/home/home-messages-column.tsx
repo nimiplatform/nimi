@@ -1,7 +1,7 @@
 import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { ActionMenu, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HomeMessageCard,
@@ -72,14 +72,6 @@ export function HomeMessageSourceNotices({ messages, systemSources, app = true, 
         </InlineAlert>
       ) : null}
     </>
-  );
-}
-
-function EmptyHint({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-[20px] border border-dashed border-[var(--nimi-border-subtle)] px-4 py-5 text-center text-sm text-[var(--nimi-text-secondary)]">
-      {children}
-    </div>
   );
 }
 
@@ -166,29 +158,35 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
       />
     );
   };
-  // Separate overview grid cells: the toolbar shares the greeting row so
-  // lg:self-baseline aligns both titles' text baselines, and only the list
-  // scrolls; below lg they stack in the page's single-column order.
+  const quiet = !filtered && !loading && complete && groups?.length === 0
+    && messages.offHomeCount === 0 && pending.known && pending.count === 0
+    && messages.preferences.state.status === 'ready' && !messages.preferences.saveFailed;
   return (
-    <>
-      <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-1.5 px-1 lg:col-start-2 lg:row-start-1 lg:self-baseline" data-testid="home-messages-toolbar">
-        <h2 className="text-xl font-semibold tracking-tight">{t('runtimeConfig.overview.messages.title')}</h2>
-        <button
-          type="button"
-          aria-pressed={filter === 'pending'}
-          onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
-          className={`rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${filter === 'pending'
-            ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-            : 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]'}`}
-          data-testid="home-messages-pending"
-        >
-          {pending.known
-            ? t(pending.more ? 'runtimeConfig.overview.messages.filterPendingCountMore' : 'runtimeConfig.overview.messages.filterPendingCount', { count: pending.count })
-            : t('runtimeConfig.overview.messages.filterPending')}
-        </button>
+    <aside className="group/messages min-w-0" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
+      <div className="flex min-h-11 min-w-0 flex-wrap items-center gap-x-2 gap-y-1" data-testid="home-messages-toolbar">
+        <h2 className={`text-base font-semibold ${quiet ? 'sr-only group-has-[.home-message-notices:not(:empty)]/messages:not-sr-only' : ''}`}>{t('runtimeConfig.overview.messages.title')}</h2>
+        {quiet ? (
+          <span className="inline-flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)] group-has-[.home-message-notices:not(:empty)]/messages:hidden">
+            <Bell size={15} aria-hidden="true" />{t('runtimeConfig.overview.messages.empty')}
+          </span>
+        ) : (
+          <button
+            type="button"
+            aria-pressed={filter === 'pending'}
+            onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${filter === 'pending'
+              ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+              : pending.count > 0 ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]'}`}
+            data-testid="home-messages-pending"
+          >
+            {pending.known
+              ? t(pending.more ? 'runtimeConfig.overview.messages.filterPendingCountMore' : 'runtimeConfig.overview.messages.filterPendingCount', { count: pending.count })
+              : t('runtimeConfig.overview.messages.filterPending')}
+          </button>
+        )}
         <div className="ml-auto flex items-center gap-1">
-          <Button tone="ghost" size="sm" onClick={onViewAll} aria-label={t('runtimeConfig.overview.messages.viewAll')} data-testid="home-messages-view-all">
-            {t('runtimeConfig.overview.messages.viewAllShort')}
+          <Button tone="ghost" size="sm" onClick={onViewAll} data-testid="home-messages-view-all">
+            {t('runtimeConfig.overview.messages.viewAll')}
           </Button>
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
@@ -214,46 +212,43 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           </Popover>
         </div>
       </div>
-      <aside className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:self-stretch" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
-        <ScrollArea className="lg:h-full" viewportClassName="bg-transparent" contentClassName="flex flex-col gap-5">
-          {filtered ? (
-            <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
-              <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>
-              <Button tone="ghost" size="sm" onClick={clearFilters}>{t('runtimeConfig.overview.messages.clearFilters')}</Button>
-            </div>
-          ) : null}
+      <ScrollArea className="min-w-0 lg:max-h-[50vh]" contentClassName="flex flex-col gap-3">
+        {filtered ? (
+          <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
+            <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>
+            <Button tone="ghost" size="sm" onClick={clearFilters}>{t('runtimeConfig.overview.messages.clearFilters')}</Button>
+          </div>
+        ) : null}
 
+        <div className="home-message-notices flex flex-col gap-3 empty:hidden">
           <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
           <HomeMessageSourceNotices messages={messages} systemSources={systemSources} />
+        </div>
 
-          <div
-            ref={listRef}
-            tabIndex={-1}
-            aria-label={t('runtimeConfig.overview.messages.title')}
-            className="flex flex-col gap-5 outline-none"
-            data-testid="home-messages-list"
-          >
-            {groups?.map(renderGroup)}
-            {!groups?.length && !loading ? (
-              <EmptyHint>
-                <Bell size={18} aria-hidden="true" className="text-[var(--nimi-text-muted)]" />
-                <p>
-                  {!filtered && messages.offHomeCount > 0
-                    ? t('runtimeConfig.overview.messages.allHidden')
-                    : complete
-                      ? t(filtered ? 'runtimeConfig.overview.messages.noMatches' : 'runtimeConfig.overview.messages.empty')
-                      : t('runtimeConfig.overview.messages.notLoaded')}
-                </p>
-              </EmptyHint>
-            ) : null}
-            {loading ? (
-              <div className="rounded-[20px] px-3.5 py-3">
-                <LoadingSkeleton lines={2} label={t('Common.loading')} />
-              </div>
-            ) : null}
-          </div>
-        </ScrollArea>
-      </aside>
-    </>
+        <div
+          ref={listRef}
+          tabIndex={-1}
+          aria-label={t('runtimeConfig.overview.messages.title')}
+          className="flex flex-col gap-3 outline-none"
+          data-testid="home-messages-list"
+        >
+          {groups?.map(renderGroup)}
+          {!quiet && !groups?.length && !loading ? (
+            <p className="py-2 text-sm text-[var(--nimi-text-secondary)]">
+              {!filtered && messages.offHomeCount > 0
+                ? t('runtimeConfig.overview.messages.allHidden')
+                : complete
+                  ? t(filtered ? 'runtimeConfig.overview.messages.noMatches' : 'runtimeConfig.overview.messages.empty')
+                  : t('runtimeConfig.overview.messages.notLoaded')}
+            </p>
+          ) : null}
+          {loading ? (
+            <div className="rounded-[20px] px-3.5 py-3">
+              <LoadingSkeleton lines={2} label={t('Common.loading')} />
+            </div>
+          ) : null}
+        </div>
+      </ScrollArea>
+    </aside>
   );
 }

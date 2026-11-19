@@ -257,6 +257,9 @@ test('Home empty states distinguish hidden, complete and not yet loaded', async 
   assert.match(hidden, /首页消息已隐藏，可在消息中心查看。/);
   const empty = renderColumn(controller({ messages: [] }));
   assert.match(empty, /没有消息/);
+  assert.doesNotMatch(empty, /data-testid="home-messages-pending"/, 'a confirmed empty timeline has no zero-count badge');
+  assert.match(empty, /data-testid="home-messages-filter"/);
+  assert.match(empty, /data-testid="home-messages-view-all"/);
   assert.doesNotMatch(empty, /暂无动态/);
   const partial = renderColumn(controller({ messages: [], recent: view([], { complete: false, hasMore: true }) }));
   assert.match(partial, /尚未加载到匹配事项/);

@@ -16,6 +16,7 @@ export type HomeRecentChatPartner = Readonly<{
   avatarUrl: string | null;
   media?: WorldPublicSourceCardDto['media'];
   lastMessageText: string | null;
+  previewUnavailable?: boolean;
   /** Summary title backing the preview when the last turn carried no text. */
   conversationTitle: string | null;
   updatedAtMs: number | null;
@@ -80,6 +81,7 @@ export async function fetchHomeRecentChatPartners(input: {
       displayName: normalizeText(reference?.displayName) || agent.displayName,
       avatarUrl: normalizeText(reference?.avatarUrl) || null,
       lastMessageText: normalizeText(latest?.lastMessageText) || null,
+      previewUnavailable: summaries === null,
       conversationTitle: normalizeText(latest?.title) || null,
       updatedAtMs: summaryTimestampMs(latest?.updatedAt),
       hasUnread: false,

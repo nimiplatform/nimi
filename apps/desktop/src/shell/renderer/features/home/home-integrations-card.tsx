@@ -14,11 +14,11 @@ const HOME_AUTHORIZED_APP_SLOTS = 3;
 // Tile geometry matches the Home apps row (w-[92px] + gap-1): only as many
 // tiles as fit one row are rendered, measured from the row itself; the rest
 // stay reachable through the more-services tile and the full panel.
-const HOME_INTEGRATION_TILE_WIDTH = 92;
+const HOME_INTEGRATION_TILE_WIDTH = 156;
 const HOME_INTEGRATION_TILE_GAP = 4;
 
 const serviceTileClass =
-  'flex w-[92px] flex-col items-center gap-2 rounded-2xl px-1 py-2.5 text-center transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
+  'flex w-[156px] grow items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
 
 type HomeAuthorizedApp = {
   readonly consumerRef: string;
@@ -79,7 +79,7 @@ export function HomeIntegrationsCard({
   const hiddenAppCount = authorizedApps.length - shownApps.length;
   return (
     <section
-      className="flex flex-col gap-3 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]"
+      className="flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
       data-testid="home-integrations"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -109,9 +109,9 @@ export function HomeIntegrationsCard({
               data-testid={`home-integration-service:${kind}`}
               title={serviceLabel(kind, t)}
             >
-              <IntegrationServiceIcon kind={kind} large />
-              <span className="flex w-full flex-col items-center gap-0.5">
-                <span className="w-full truncate text-xs font-medium">{serviceLabel(kind, t)}</span>
+              <IntegrationServiceIcon kind={kind} />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="break-words text-sm font-medium">{serviceLabel(kind, t)}</span>
                 {snapshot ? (
                   <span className="flex items-center gap-1 text-xs text-[var(--nimi-text-secondary)]">
                     <span
@@ -133,8 +133,8 @@ export function HomeIntegrationsCard({
           className={`${serviceTileClass} text-[var(--nimi-text-secondary)]`}
           data-testid="home-integrations-more-services"
         >
-          <span className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-subtle)]">
-            <Plus size={20} aria-hidden="true" />
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)]">
+            <Plus size={16} aria-hidden="true" />
           </span>
           <span className="text-xs">{t('Integrations.homeMoreServices')}</span>
         </button>

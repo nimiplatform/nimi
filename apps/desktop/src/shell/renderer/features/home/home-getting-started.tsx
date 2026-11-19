@@ -31,7 +31,7 @@ export function HomeGettingStarted(props: HomeGettingStartedProps) {
     writeStorageTextTo(resolveBrowserStorage('local'), storageKey, String(next));
   };
   return (
-    <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-home-card-elevation)]" data-testid="home-first-run">
+    <section className="flex min-w-0 flex-col gap-3 border-t border-[var(--nimi-border-subtle)] px-1 pt-4" data-testid="home-first-run">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>
         <Button tone="ghost" size="sm" aria-expanded={!collapsed} aria-controls="home-getting-started-steps" onClick={toggle}>

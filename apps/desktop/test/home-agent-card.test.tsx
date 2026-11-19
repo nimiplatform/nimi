@@ -112,7 +112,8 @@ test('recent chat avatars render Realm-managed images when the runtime URL is ab
       unavailableResourceRefs: [],
     };
     await withMountedView({ partners: [{ ...PARTNERS[0]!, media }] }, document => {
-      const image = document.querySelector('[data-testid="home-recent-chat:lumi"] img');
+      assert.equal(document.querySelector('[data-testid="home-recent-chats-strip"]'), null, 'a lone partner needs no switcher');
+      const image = document.querySelector('[data-testid="home-recent-chat-preview"] img');
       assert.equal(image?.getAttribute('src'), 'https://media.example/character.webp');
       assert.equal(image?.getAttribute('alt'), 'Lumi');
       assert.equal(image?.getAttribute('sizes'), '34px');
@@ -167,6 +168,12 @@ test('preview falls back to the conversation title, then to continue-chat guidan
   });
   assert.match(textless, /data-testid="home-recent-chat-message">继续对话/);
   assert.doesNotMatch(textless, /还没有对话/);
+  const unavailable = render({
+    partners: [{ localAgentRef: 'mei', displayName: 'Mei', avatarUrl: null, lastMessageText: null, previewUnavailable: true, conversationTitle: null, updatedAtMs: null, hasUnread: false }],
+    selectedId: 'mei',
+  });
+  assert.match(unavailable, /暂时无法读取对话预览/);
+  assert.doesNotMatch(unavailable, /还没有对话/);
 });
 
 test('pending partners show a skeleton instead of a stale strip', async () => {

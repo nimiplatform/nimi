@@ -891,6 +891,7 @@
       "replyPlaceholder": "Reply to {{name}}…",
       "replySend": "Open chat with draft",
       "yesterdayAt": "Yesterday {{time}}",
+      "previewUnavailable": "Conversation preview unavailable",
       "noMessageYet": "No conversation yet — say the first word",
       "openConversation": "Open chat with {{name}}"
     },
