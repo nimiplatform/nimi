@@ -56,16 +56,7 @@ func appendAgentTurnCognitionInputs(items map[agentTurnContextLaneID][]agentTurn
 		return candidates[i].UnitID < candidates[j].UnitID
 	})
 	for index, candidate := range candidates {
-		basis := candidate.SelectionBasis
-		if basis == "" {
-			basis = "embedding"
-		}
-		content := agentTurnContextTypedContent("Optional snapshot-bound Cognition source candidate",
-			agentTurnContextTextField{Name: "category", Values: []string{candidate.Category}},
-			agentTurnContextTextField{Name: "selection_basis", Values: []string{basis}},
-			agentTurnContextTextField{Name: "matched_term", Values: []string{candidate.MatchedTerm}},
-			agentTurnContextTextField{Name: "source", Values: []string{candidate.Text}},
-		)
+		content := agentTurnCognitionContent(candidate.Category, candidate.SelectionBasis, candidate.MatchedTerm, candidate.Text)
 		item, err := newAgentTurnContextItem(
 			agentTurnContextLaneCognitionSource,
 			"cognition.source."+candidate.UnitID,
@@ -86,6 +77,18 @@ func appendAgentTurnCognitionInputs(items map[agentTurnContextLaneID][]agentTurn
 		items[agentTurnContextLaneCognitionSource] = append(items[agentTurnContextLaneCognitionSource], item)
 	}
 	return nil
+}
+
+func agentTurnCognitionContent(category, basis, term, source string) string {
+	if basis == "" {
+		basis = "embedding"
+	}
+	return agentTurnContextTypedContent("Optional snapshot-bound Cognition source candidate",
+		agentTurnContextTextField{Name: "category", Values: []string{category}},
+		agentTurnContextTextField{Name: "selection_basis", Values: []string{basis}},
+		agentTurnContextTextField{Name: "matched_term", Values: []string{term}},
+		agentTurnContextTextField{Name: "source", Values: []string{source}},
+	)
 }
 
 func projectAgentTurnContextCognitionManifest(lanes []agentTurnContextLane, input agentTurnCognitionInput) agentTurnContextCognitionManifestV1 {

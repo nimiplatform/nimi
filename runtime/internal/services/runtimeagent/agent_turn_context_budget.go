@@ -153,27 +153,26 @@ func truncateOptionalCognitionSourceContext(lanes []agentTurnContextLane, budget
 			if item.AuthorityOwner != agentTurnContextAuthorityCognitionSource || item.Mandatory {
 				continue
 			}
-			used += item.TokenEstimate
 			candidates = append(candidates, agentTurnContextTruncationCandidate{LaneIndex: laneIndex, ItemIndex: itemIndex, Class: item.TruncationClass, Rank: item.Rank, Priority: item.Priority, StableID: item.StableID})
 		}
 	}
 	sort.SliceStable(candidates, func(i, j int) bool {
 		if candidates[i].Rank != candidates[j].Rank {
-			return candidates[i].Rank < candidates[j].Rank
+			return candidates[i].Rank > candidates[j].Rank
 		}
-		return candidates[i].StableID > candidates[j].StableID
+		return candidates[i].StableID < candidates[j].StableID
 	})
 	for _, candidate := range candidates {
-		if used <= budget {
-			break
-		}
 		item := &lanes[candidate.LaneIndex].Items[candidate.ItemIndex]
 		if !item.Included {
 			continue
 		}
+		if item.TokenEstimate <= budget-used {
+			used += item.TokenEstimate
+			continue
+		}
 		item.Included = false
 		item.Truncated = true
-		used -= item.TokenEstimate
 	}
 	return used
 }

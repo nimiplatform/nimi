@@ -390,7 +390,7 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 	if err := appendOptionalStrings("source.assets", "source_asset_detail", "semanticPayload.canonicalSource.profile.assets", characterRef, agentTurnContextV3PriorityOptional, "Proof-covered source asset detail", "assets", assetValues); err != nil {
 		return err
 	}
-	if err := appendUnit("source.biography.summary", "biography_event", "semanticPayload.canonicalSource.profile.narrative.summary", characterRef, agentTurnContextV3PriorityKnowledge, "Source biography detail", agentTurnContextTextField{Name: "summary", Values: []string{profile.Narrative.Summary}}); err != nil {
+	if err := appendLocalAgentSourceProse(partition, seenSourcePaths, seenCoverageIDs, localAgentCognitionSourceUnitV1{StableID: "source.biography.summary", Category: "biography_event", SourcePath: "semanticPayload.canonicalSource.profile.narrative.summary", SourceRef: characterRef, Priority: agentTurnContextV3PriorityKnowledge}, "Source biography detail", "summary", profile.Narrative.Summary); err != nil {
 		return err
 	}
 	if err := appendOptionalStrings("source.behavior.archetype", "behavior_detail", "semanticPayload.canonicalSource.profile.narrative.archetype", characterRef, agentTurnContextV3PriorityCoreBehavior, "Source behavior archetype", "archetype", agentTurnContextOptionalString(profile.Narrative.Archetype)); err != nil {
@@ -510,7 +510,7 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		return err
 	}
 	if world.Narrative != nil {
-		if err := appendUnit("source.world.setting", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.narrative.setting", worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world setting", agentTurnContextTextField{Name: "setting", Values: []string{world.Narrative.Setting}}); err != nil {
+		if err := appendLocalAgentSourceProse(partition, seenSourcePaths, seenCoverageIDs, localAgentCognitionSourceUnitV1{StableID: "source.world.setting", Category: "world_setting_detail", SourcePath: "semanticPayload.materializationContext.owningWorld.core.narrative.setting", SourceRef: worldRef, Priority: agentTurnContextV3PriorityWorldBaseline}, "Owning world setting", "setting", world.Narrative.Setting); err != nil {
 			return err
 		}
 	}
