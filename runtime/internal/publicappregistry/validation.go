@@ -2,9 +2,11 @@ package publicappregistry
 
 import (
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"net/url"
 	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 )
 
 func validateIndex(index registryIndexDocument) error {
@@ -12,7 +14,7 @@ func validateIndex(index registryIndexDocument) error {
 		return fmt.Errorf("validate public App Registry index: %w", ErrInvalidRegistrySnapshot)
 	}
 	for appID, row := range index.Apps {
-		if !appIDPattern.MatchString(appID) || !exactText(row.DisplayName) ||
+		if !appidentity.Valid(appID) || !exactText(row.DisplayName) ||
 			(row.Visibility != "public" && row.Visibility != "hidden") || row.AdmissionStatus != "approved" ||
 			len(row.LatestAdmittedReleaseByTarget) == 0 {
 			return fmt.Errorf("validate public App Registry index row %s: %w", appID, ErrInvalidRegistrySnapshot)
@@ -72,7 +74,7 @@ func validateDescriptor(descriptor approvedDescriptorDocument, descriptorPath, a
 }
 
 func validateCandidateFacts(candidate approvedCandidate) error {
-	if !appIDPattern.MatchString(candidate.AppID) || !exactText(candidate.DisplayName) || !exactText(candidate.Version) ||
+	if !appidentity.Valid(candidate.AppID) || !exactText(candidate.DisplayName) || !exactText(candidate.Version) ||
 		candidate.Release.Tag != "v"+candidate.Version || !candidate.Release.Immutable || candidate.Release.Prerelease ||
 		!commitSHAPattern.MatchString(candidate.Release.CommitSHA) || candidate.Package.Kind != "nimiapp" ||
 		candidate.Package.RuntimeKind != "native" || candidate.Package.RegistrationMode != "app-managed" ||

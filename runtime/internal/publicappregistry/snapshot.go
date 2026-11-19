@@ -20,10 +20,10 @@ import (
 	"time"
 
 	"github.com/dlclark/regexp2"
-	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
-
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
+	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 const (
@@ -58,10 +58,9 @@ var (
 	ErrRegistryUnavailable     = errors.New("public App Registry is unavailable")
 
 	commitSHAPattern     = regexp.MustCompile(`^[0-9a-f]{40}$`)
-	appIDPattern         = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$`)
 	versionPattern       = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$`)
 	targetIDPattern      = regexp.MustCompile(`^[a-z0-9]+(?:[_-][a-z0-9]+)*$`)
-	descriptorPathRegexp = regexp.MustCompile(`^descriptors/([a-z][a-z0-9]*(?:[._-][a-z0-9]+)+)/([^/]+)\.json$`)
+	descriptorPathRegexp = regexp.MustCompile(`^descriptors/(` + appidentity.Pattern + `)/([^/]+)\.json$`)
 )
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-eco-002b
@@ -552,7 +551,7 @@ func (s *Snapshot) resolve(ctx context.Context, appID, targetID string) (Resolve
 	if s == nil || s.source == nil || s.descriptorSchema == nil || !commitSHAPattern.MatchString(s.revision) {
 		return ResolvedApprovedTarget{}, fmt.Errorf("resolve approved App target: %w", ErrInvalidRegistrySnapshot)
 	}
-	if !appIDPattern.MatchString(appID) {
+	if !appidentity.Valid(appID) {
 		return ResolvedApprovedTarget{}, fmt.Errorf("resolve approved App target: %w", ErrCatalogAppNotFound)
 	}
 	if !targetIDPattern.MatchString(targetID) {
@@ -985,7 +984,7 @@ func descriptorAppID(descriptorID string) (string, bool) {
 		return "", false
 	}
 	appID := descriptorID[:separator]
-	return appID, appIDPattern.MatchString(appID)
+	return appID, appidentity.Valid(appID)
 }
 
 func validDescriptorID(value string) bool {

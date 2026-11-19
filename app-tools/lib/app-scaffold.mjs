@@ -1,3 +1,4 @@
+import { isAppId } from './app-identifiers.mjs';
 import { WEB_BASE_TEMPLATE_PATHS, webDevelopmentInput, webBuildProfile, webPackage, webDependencyMatrix } from './web-scaffold.mjs';
 import { resolveWebAppScaffoldFeatures } from './app-scaffold-capabilities.mjs';
 import path from 'node:path';
@@ -395,7 +396,7 @@ function normalizeExplicitAppId(input) {
   if (raw !== raw.trim() || raw !== raw.toLowerCase()) {
     throw new Error(`Invalid app id: ${input}`);
   }
-  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(raw)) {
+  if (!isAppId(raw)) {
     throw new Error(`Invalid app id: ${input}`);
   }
   return raw;
@@ -1685,7 +1686,7 @@ export function createAppScaffoldCandidate(input) {
   return createAppScaffold({ ...input, plan });
 }
 
-export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile']);
+export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile', 'public_slug']);
 
 // Source configuration is editable; existing scaffold checks still cover identity and carrier fields.
 export function hashScaffoldManagedContent(relativePath, content) {

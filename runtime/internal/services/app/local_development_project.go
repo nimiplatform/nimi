@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 )
 
 func resolveLocalDevelopmentProject(rootPath, expectedAppID string, shellKind runtimev1.LocalDevelopmentShellKind) (localDevelopmentProjectSnapshot, error) {
@@ -15,9 +17,9 @@ func resolveLocalDevelopmentProject(rootPath, expectedAppID string, shellKind ru
 	if err != nil {
 		return localDevelopmentProjectSnapshot{}, err
 	}
-	appID := firstNonEmpty(manifest.AppID, manifest.AppIDCamel)
+	appID := cmp.Or(manifest.AppID, manifest.AppIDCamel)
 	displayName := firstNonEmpty(manifest.DisplayName, manifest.DisplayNameCamel)
-	if appID == "" || !safeLocalAppID(appID) || appID != strings.TrimSpace(appID) || displayName == "" || displayName != strings.TrimSpace(displayName) {
+	if !appidentity.Valid(appID) || displayName == "" || displayName != strings.TrimSpace(displayName) {
 		return localDevelopmentProjectSnapshot{}, errors.New("local-development manifest requires canonical app_id and display_name")
 	}
 	if expected := strings.TrimSpace(expectedAppID); expected == "" || expected != expectedAppID || expected != appID {
@@ -43,7 +45,7 @@ func resolveLocalDevelopmentProject(rootPath, expectedAppID string, shellKind ru
 }
 
 func validateLocalDevelopmentProject(project localDevelopmentProjectSnapshot) error {
-	if !safeLocalAppID(project.AppID) || strings.TrimSpace(project.DisplayName) == "" ||
+	if !appidentity.Valid(project.AppID) || strings.TrimSpace(project.DisplayName) == "" ||
 		!filepath.IsAbs(project.ProjectRoot) || !filepath.IsAbs(project.ManifestPath) || project.ShellKind <= 0 {
 		return errLocalDevelopmentInvalid
 	}

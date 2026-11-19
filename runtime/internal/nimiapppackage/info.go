@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"gopkg.in/yaml.v3"
@@ -82,7 +83,7 @@ func ParseAppInfo(raw []byte) (AppInfo, error) {
 	if len(raw) == 0 || len(raw) > MaxAppInfoBytes || !utf8.Valid(raw) || jsonstrict.Decode(raw, &info) != nil {
 		return invalid("document")
 	}
-	if info.Format != "nimi.app-info/v1" || !localAppID.MatchString(info.AppID) || !infoText(info.Version, 200) || !infoText(info.TargetID, 200) {
+	if info.Format != "nimi.app-info/v1" || !appidentity.Valid(info.AppID) || !infoText(info.Version, 200) || !infoText(info.TargetID, 200) {
 		return invalid("identity or format")
 	}
 	if !infoText(info.DisplayName, 120) || !infoText(info.Summary, 280) {

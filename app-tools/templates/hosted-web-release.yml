@@ -1,0 +1,88 @@
+name: Release immutable Nimi Web bundle
+on:
+  push:
+    tags: ['web-v*']
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      asset_id: ${{ steps.upload.outputs.artifact-id }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#web-v}"
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if grep -Eq 'file:.*(\.tgz|\.nimi/local)|link:|workspace:' pnpm-workspace.yaml pnpm-lock.yaml; then
+            echo 'Web production requires published package resolutions in the lockfile.' >&2
+            exit 1
+          fi
+      - run: corepack enable && pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Build the hosted Web release
+        env:
+          NIMI_WEB_VERSION: ${{ steps.release.outputs.version }}
+          NIMI_WEB_ARCHIVE: nimi-web-${{ steps.release.outputs.version }}.zip
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.['build:web:release'] ? 0 : 1)"; then
+            pnpm run build:web:release
+          else
+            pnpm run build:release
+          fi
+          test -s "$NIMI_WEB_ARCHIVE"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        id: upload
+        with:
+          name: hosted-web
+          path: nimi-web-*.zip
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ needs.build.outputs.asset_id }}
+          path: release
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: release/nimi-web-*.zip
+      - name: Publish exact assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEB_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          asset="release/nimi-web-$WEB_VERSION.zip"
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --latest=false --title "Web $WEB_VERSION" --notes "Web release $WEB_VERSION"
+          fi
+          if [[ "$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" == true ]]; then
+            if gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p "$(basename "$asset")" --dir "$RUNNER_TEMP"; then
+              cmp "$asset" "$RUNNER_TEMP/$(basename "$asset")"
+            else
+              gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" "$asset"
+            fi
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
+          fi
+          gh release verify-asset "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY"

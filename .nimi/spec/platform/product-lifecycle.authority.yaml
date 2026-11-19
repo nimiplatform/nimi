@@ -1305,9 +1305,9 @@ units:
     kind: rule
     title: P-WEB-005 informational App pages stay non-distributional
     modality: must_not
-    statement: A Web App page installs an App, creates a public catalog or distribution authority, or promises ordinary-user App availability beyond the current rule.nimi.platform.app-ecosystem.p-napp-040a scope, under which verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path while ordinary repair and other platforms remain unavailable.
+    statement: A Web App page installs an App, creates independent admission or distribution truth, presents a runnable Web action without a current verified hosted release, or promises native availability beyond the current rule.nimi.platform.app-ecosystem.p-napp-040a scope, under which verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path while ordinary repair and other platforms remain unavailable.
     condition: Whenever Web presents Nimi App information.
-    failure: Keep the page static and informational and remove the installation, catalog, distribution, or release promise.
+    failure: Show accurate product information and currently available per-carrier actions. Keep ordinary native installation with Home.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface

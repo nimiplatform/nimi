@@ -90,18 +90,3 @@ func firstNonEmpty(values ...string) string {
 	}
 	return ""
 }
-
-func safeLocalAppID(value string) bool {
-	value = strings.TrimSpace(value)
-	if value == "" || strings.ContainsAny(value, `/\`) {
-		return false
-	}
-	for _, character := range value {
-		if character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' ||
-			character >= '0' && character <= '9' || character == '.' || character == '-' || character == '_' {
-			continue
-		}
-		return false
-	}
-	return true
-}

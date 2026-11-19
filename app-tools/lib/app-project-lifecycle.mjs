@@ -1,3 +1,4 @@
+import { hostedWebIdentity, isAppId } from './app-identifiers.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readAppInfo } from './app-info.mjs';
 import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
@@ -55,6 +56,10 @@ const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
 const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
 const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF, 'web-pnpm']);
 const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
+const HOSTED_WEB_WORKFLOW_PATH = '.github/workflows/nimi-web-release.yml';
+function hostedWorkflowSource() {
+  return readFileSync(new URL('../templates/hosted-web-release.yml', import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+}
 const APP_IDENTITY_PATH = '.nimi/config/app-identity.yaml';
 const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
@@ -107,7 +112,7 @@ function readSubmittedManifest(targetDir, sources) {
     || appId !== document?.app_id
     || !displayName.trim()
     || displayName !== displayName.trim()
-    || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/u.test(appId)
+    || !isAppId(appId)
     || !SUPPORTED_APP_SCAFFOLD_PROFILES.includes(profile)
   ) {
     throw new Error('Existing submitted app requires canonical app_id and supported profile');
@@ -117,7 +122,8 @@ function readSubmittedManifest(targetDir, sources) {
   }
   const platform = document.platform || 'desktop';
   if (!['desktop', 'web'].includes(platform)) throw new Error('Unsupported App platform.');
-  const rendererOrigin = platform === 'web' ? readWebDevelopment(document).site.origin : document?.local_development?.electron?.renderer_origin;
+  const hosted = Object.hasOwn(document, 'public_slug') ? hostedWebIdentity(appId, document.public_slug) : null;
+  const rendererOrigin = platform === 'web' ? (hosted?.origin ?? readWebDevelopment(document).site.origin) : document?.local_development?.electron?.renderer_origin;
   let parsedOrigin;
   try {
     parsedOrigin = new URL(rendererOrigin);
@@ -152,7 +158,7 @@ function readSubmittedManifest(targetDir, sources) {
       throw new Error(`nimi.app.yaml ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
   }
-  return Object.freeze({ appId, displayName, profile, platform, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
+  return Object.freeze({ appId, displayName, profile, platform, version, publicSlug: hosted?.slug, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
 }
 
 function assertNoRetiredScaffoldState(targetDir) {
@@ -1016,7 +1022,7 @@ function isScopedComponentReleaseWorkflow(source, targetDir) {
   });
 }
 
-function assertManagedWorkflowCurrent(targetDir, sources) {
+function assertManagedWorkflowCurrent(targetDir, sources, hosted) {
   const workflowPath = path.join(targetDir, MANAGED_WORKFLOW_PATH);
   if (!hasProjectFile(targetDir, MANAGED_WORKFLOW_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${MANAGED_WORKFLOW_PATH}`);
   if (readProjectText(targetDir, MANAGED_WORKFLOW_PATH, sources) !== managedAppReleaseWorkflowSource()) {
@@ -1026,6 +1032,7 @@ function assertManagedWorkflowCurrent(targetDir, sources) {
   for (const name of existsSync(workflowDir) ? readdirSync(workflowDir).sort() : []) {
     const candidatePath = path.join(workflowDir, name);
     if (candidatePath === workflowPath || !/\.ya?ml$/iu.test(name)) continue;
+    if (hosted && name === 'nimi-web-release.yml') continue;
     const source = readFileSync(candidatePath, 'utf8');
     if (!isScopedComponentReleaseWorkflow(source, targetDir) && (
       /\bgh\s+release\s+(?:create|upload|edit|delete)\b/iu.test(source)
@@ -1187,7 +1194,10 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   }
   assertNoStandaloneParentSources(targetDir, sources);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
-  if (descriptor.platform !== 'web') assertManagedWorkflowCurrent(targetDir, sources);
+  if (descriptor.publicSlug && (!hasProjectFile(targetDir, HOSTED_WEB_WORKFLOW_PATH, sources) || readProjectText(targetDir, HOSTED_WEB_WORKFLOW_PATH, sources).replaceAll('\r\n', '\n') !== hostedWorkflowSource())) {
+    throw new Error('The hosted Web workflow must match App Tools. Use nimi-app sync to install its reviewed template.');
+  }
+  if (descriptor.platform !== 'web') assertManagedWorkflowCurrent(targetDir, sources, Boolean(descriptor.publicSlug));
   const localPackages = assertPnpmWorkspaceCurrent(targetDir, sources, options.production === true);
   if (options.requireInstalledLock === true) {
     assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions, combination);
@@ -1315,6 +1325,13 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
       content: managedAppReleaseWorkflowSource(),
       previous: existsSync(workflowPath) ? readFileSync(workflowPath, 'utf8') : '',
     });
+  }
+  if (descriptor.publicSlug) {
+    const hostedPath = path.join(targetDir, HOSTED_WEB_WORKFLOW_PATH);
+    const previous = existsSync(hostedPath) ? readFileSync(hostedPath, 'utf8') : null;
+    const template = hostedWorkflowSource();
+    if (previous !== null && previous.replaceAll('\r\n', '\n') !== template) throw new Error('Unknown hosted Web workflow collision: ' + HOSTED_WEB_WORKFLOW_PATH);
+    planned.push({ path: hostedPath, content: template, previous });
   }
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
@@ -1514,8 +1531,8 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
   const { descriptor, buildProfile, combination } = existingState || assertProjectLifecycleCurrent(targetDir, effective, { requireInstalledLock: true, production: options.production === true, managed });
   if (options.production === true) {
-    if (descriptor.platform === 'web') throw new Error('Web release preflight is not implemented; use development check.');
-    for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
+    if (descriptor.platform === 'web' && !descriptor.publicSlug) throw new Error('Web release preflight requires a hosted public_slug; use development check for other Web sources.');
+    if (descriptor.platform !== 'web') for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
   }
   const safetyProfile = descriptor.safetyProfile ? 'declared' : 'undeclared';
   if (options.production === true && !options.json && safetyProfile === 'undeclared') {

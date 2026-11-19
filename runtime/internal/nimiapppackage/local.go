@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
@@ -26,8 +26,6 @@ type LocalMetadata struct {
 	Expected    Expected
 	DisplayName string
 }
-
-var localAppID = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$`)
 
 func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string) (LocalMetadata, error) {
 	if ctx == nil {
@@ -125,7 +123,7 @@ func localMetadata(manifestRaw, declarationRaw []byte, targetOS, targetArch stri
 	// include all three components, while retaining valid prerelease/build data.
 	version := "v" + manifest.Version
 	withoutBuild, _, _ := strings.Cut(version, "+")
-	if !localAppID.MatchString(manifest.AppID) || !semver.IsValid(version) || semver.Canonical(version) != withoutBuild {
+	if !appidentity.Valid(manifest.AppID) || !semver.IsValid(version) || semver.Canonical(version) != withoutBuild {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
 	if err := validatePlatformManifestShape(manifestRaw, targetOS); err != nil {

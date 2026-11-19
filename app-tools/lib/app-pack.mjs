@@ -1,3 +1,4 @@
+import { isAppId } from './app-identifiers.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-009b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-018a
@@ -332,7 +333,7 @@ function readPackInputs(targetDir, targetId) {
   const requiresTauri = buildProfileRef === TAURI_BUILD_PROFILE_REF;
   const appId = String(manifest.app_id || '');
   const version = String(packageJson.version || '');
-  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/u.test(appId)) throw new Error('nimi.app.yaml app_id must be canonical and dotted');
+  if (!isAppId(appId)) throw new Error('nimi.app.yaml app_id must be canonical and dotted');
   if (!SEMVER_PATTERN.test(version) || manifest.version !== version) {
     throw new Error('package.json and nimi.app.yaml versions must be exact and lockstep before pack');
   }

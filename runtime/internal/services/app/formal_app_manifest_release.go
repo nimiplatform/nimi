@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
+	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 	"gopkg.in/yaml.v3"
 )
 
@@ -179,9 +181,9 @@ func readFormalAppManifest(releaseRoot string, manifestPath string) (FormalAppRe
 	if _, legacy := shape["permissions"]; legacy || manifest.AppAccess == nil {
 		return FormalAppRelease{}, nil, errFormalAppReleaseUnavailable
 	}
-	appID := firstNonEmpty(manifest.AppID, manifest.AppIDCamel)
+	appID := cmp.Or(manifest.AppID, manifest.AppIDCamel)
 	displayName := firstNonEmpty(manifest.DisplayName, manifest.DisplayNameCamel)
-	if !safeLocalAppID(appID) || appID != strings.TrimSpace(appID) || displayName == "" || displayName != strings.TrimSpace(displayName) ||
+	if !appidentity.Valid(appID) || displayName == "" || displayName != strings.TrimSpace(displayName) ||
 		(manifest.AppID != "" && manifest.AppIDCamel != "" && manifest.AppID != manifest.AppIDCamel) ||
 		(manifest.DisplayName != "" && manifest.DisplayNameCamel != "" && manifest.DisplayName != manifest.DisplayNameCamel) {
 		return FormalAppRelease{}, nil, errFormalAppReleaseUnavailable

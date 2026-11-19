@@ -1,3 +1,4 @@
+import { isAppId } from './app-identifiers.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readMobileDevelopment } from './mobile-development.mjs';
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
@@ -717,7 +718,7 @@ function validateExistingSubmittedApp(targetDir) {
   }
   const appId = typeof parsed?.app_id === 'string' ? parsed.app_id.trim() : '';
   const profile = typeof parsed?.profile === 'string' ? parsed.profile.trim() : '';
-  if (!appId || appId !== parsed?.app_id || !SUPPORTED_APP_SCAFFOLD_PROFILES.includes(profile)) {
+  if (!isAppId(appId) || appId !== parsed?.app_id || !SUPPORTED_APP_SCAFFOLD_PROFILES.includes(profile)) {
     throw new Error('Existing submitted app requires canonical app_id and supported profile');
   }
   if (parsed?.manifest_role !== 'submitted-input') {

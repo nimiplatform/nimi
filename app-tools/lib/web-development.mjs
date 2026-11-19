@@ -1,4 +1,6 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.scaffold-web-carrier
+import { isAppId, isClientId } from './app-identifiers.mjs';
+import { hostedWebViteConfig } from './hosted-web-release.mjs';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
@@ -26,9 +28,9 @@ function readWebSource(appId, web, release = false) {
   if (callback.origin !== site.origin || callback.username || callback.password || callback.search || callback.hash || callback.href !== web.redirect_uri) {
     throw new Error('Web callback must be an exact URL on the configured HTTPS App origin.');
   }
-  for (const [label, value] of [['app_id', appId], ['client_id', web.client_id], ['realm_environment_id', web.realm_environment_id]]) {
-    if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u.test(value)) throw new Error(`Invalid Web ${label}.`);
-  }
+  if (!isAppId(appId)) throw new Error('Invalid Web app_id.');
+  if (!isClientId(web.client_id)) throw new Error('Invalid Web client_id.');
+  if (typeof web.realm_environment_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u.test(web.realm_environment_id)) throw new Error('Invalid Web realm_environment_id.');
   return { site, official, config: Object.freeze({
     appId, clientId: web.client_id, realmEnvironmentId: web.realm_environment_id,
     officialWebBaseUrl: official.origin, realmBaseUrl: site.origin, redirectUri: callback.href,
@@ -79,6 +81,7 @@ export function nimiWebViteConfig({ root, env = process.env, serve = true, relea
   const manifest = parseYaml(readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8'));
   if (release) {
     if (serve) throw new Error('Web release configuration requires a build.');
+    if (Object.hasOwn(manifest, 'public_slug')) return hostedWebViteConfig(manifest, env);
     const required = key => {
       const value = env[key];
       if (typeof value !== 'string' || !value || value !== value.trim()) throw new Error(`Set ${key} for the Web release.`);
