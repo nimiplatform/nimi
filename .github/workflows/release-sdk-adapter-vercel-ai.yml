@@ -19,7 +19,10 @@ on:
       - scripts/check-sdk-kit-pack-audit.mjs
       - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
+      - scripts/release/component-version.mjs
       - sdks/typescript/**
+      - '!sdks/typescript/core/**/*.test.ts'
+      - '!sdks/typescript/runtime/**/*.test.ts'
   workflow_dispatch:
     inputs:
       version:
@@ -88,10 +91,7 @@ jobs:
             version="${package_version}"
             production=false
           fi
-          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "Vercel adapter version must be a stable SemVer: ${version}" >&2
-            exit 1
-          fi
+          node scripts/release/component-version.mjs "${version}"
           test "${package_version}" = "${version}"
           {
             echo "artifact_name=sdk-adapter-vercel-ai-component-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"

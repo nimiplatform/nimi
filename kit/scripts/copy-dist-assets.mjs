@@ -93,4 +93,8 @@ for (const relativePath of [
 
 // Native plugin source is built by the consuming Android project. Preserve its
 // Gradle src/main layout instead of applying the TypeScript flattening rule.
-cpSync(path.join(kitRoot, 'auth/android'), path.join(distRoot, 'auth/android'), { recursive: true });
+const androidAuth = path.join(kitRoot, 'auth/android');
+cpSync(androidAuth, path.join(distRoot, 'auth/android'), {
+  recursive: true,
+  filter: source => path.relative(androidAuth, source) !== path.join('src', 'test'),
+});

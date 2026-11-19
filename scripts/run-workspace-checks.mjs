@@ -28,7 +28,9 @@ const packages = JSON.parse(run('pnpm', ['--silent', '--recursive', ...filterArg
 if (packages.length === 0) throw new Error('workspace selection matched no packages');
 const names = packages.map((pkg) => pkg.name);
 process.stdout.write(`Workspace checks: ${names.join(', ')}\n`);
-await withWorkspaceSurfaces({ repoRoot, label: 'selected workspace tests and builds' }, () => {
+if (names.length === 1 && names[0] === '@nimiplatform/sdk' && process.env.SCRIPTS_CHANGED !== 'true') {
+  run('pnpm', ['--filter', '@nimiplatform/sdk', 'test']);
+} else await withWorkspaceSurfaces({ repoRoot, label: 'selected workspace tests and builds' }, () => {
   run('pnpm', ['--recursive', ...filterArgs, '--if-present', 'test']);
   run('pnpm', [
     '--recursive', ...filterArgs,

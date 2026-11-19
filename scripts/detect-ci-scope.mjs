@@ -24,7 +24,7 @@ export function detectCiScope({ repoRoot = process.cwd(), eventName, baseSha, he
   if (!isCommitOid(comparisonBase) || comparisonBase === headSha) {
     throw new Error('CI comparison base is unavailable or equals the head');
   }
-  const files = full ? [] : git(['diff', '--name-only', '-z', comparisonBase, headSha]).split('\0').filter(Boolean);
+  const files = full ? [] : git(['diff', '--no-renames', '--name-only', '-z', comparisonBase, headSha]).split('\0').filter(Boolean);
   const docsReview = selectDocsReview(repoRoot, files);
   return { comparison_base_sha: comparisonBase, docs_review_targets: docsReview, ...selectCiScope(files, { full, docsReviewTargets: docsReview }) };
 }

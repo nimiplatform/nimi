@@ -18,7 +18,10 @@ on:
       - scripts/check-sdk-kit-pack-audit.mjs
       - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
+      - scripts/release/component-version.mjs
       - sdks/typescript/**
+      - '!sdks/typescript/core/**/*.test.ts'
+      - '!sdks/typescript/runtime/**/*.test.ts'
   workflow_dispatch:
     inputs:
       version:
@@ -87,10 +90,7 @@ jobs:
             version="${package_version}"
             production=false
           fi
-          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "Kit version must be a stable SemVer: ${version}" >&2
-            exit 1
-          fi
+          node scripts/release/component-version.mjs "${version}"
           test "${package_version}" = "${version}"
           {
             echo "artifact_name=kit-component-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
@@ -178,7 +178,8 @@ jobs:
           $kit = Get-Content kit/package.json -Raw | ConvertFrom-Json
           $native = Get-Content kit/shell/protected-local-node/npm/win32-x64/package.json -Raw | ConvertFrom-Json
           if ($native.name -ne '@nimiplatform/kit-protected-local-win32-x64' -or $native.version -ne $kit.version) { throw 'Windows native identity must match Kit' }
-          if ($kit.version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Kit requires stable SemVer' }
+          node scripts/release/component-version.mjs $kit.version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -ne "refs/tags/kit/v$($kit.version)") { throw 'Kit tag/version mismatch' }
           if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -and $env:INPUT_VERSION.TrimStart('v') -ne $kit.version) { throw 'Kit dispatch/version mismatch' }
           "artifact_name=kit-windows-native-package-$env:GITHUB_SHA-$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_OUTPUT
@@ -261,7 +262,8 @@ jobs:
           const native = JSON.parse(readFileSync('kit/shell/protected-local-node/npm/darwin-arm64/package.json', 'utf8'));
           assert.equal(native.name, '@nimiplatform/kit-protected-local-darwin-arm64');
           assert.equal(native.version, kit.version);
-          assert.match(kit.version, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/u);
+          const { requireComponentVersion } = await import('./scripts/release/component-version.mjs');
+          requireComponentVersion(kit.version);
           if (process.env.GITHUB_EVENT_NAME === 'push') assert.equal(process.env.GITHUB_REF, `refs/tags/kit/v${kit.version}`);
           if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') assert.equal(process.env.INPUT_VERSION.replace(/^v/u, ''), kit.version);
           JS

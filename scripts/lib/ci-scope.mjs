@@ -13,11 +13,14 @@ export const CI_LANES = {
 
 export function selectCiScope(files, { full = false, docsReviewTargets = [] } = {}) {
   const paths = files.map((file) => file.replaceAll('\\', '/'));
-  const codePaths = paths.filter((file) => !/\.(?:md|mdx)$/u.test(file) || file.endsWith('.authority.md'));
+  const sdkUnitTest = /^sdks\/typescript\/(?:core|runtime)\/.+\.test\.ts$/u;
+  const sdkTestsChanged = paths.some(file => sdkUnitTest.test(file));
+  const codePaths = paths.filter(file => !sdkUnitTest.test(file)
+    && (!/\.(?:md|mdx)$/u.test(file) || file.endsWith('.authority.md')));
   const touches = (pattern) => full || codePaths.some((file) => pattern.test(file));
   const shared = touches(/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.github\/workflows\/ci\.yml)$/u);
   const scripts = touches(/^scripts\//u);
-  const checkerOnly = /^(?:scripts\/(?:check-eol-noise|check-text-encoding-gate)\.mjs|scripts\/lib\/text-encoding-gate\.mjs)$/u;
+  const checkerOnly = /^(?:scripts\/(?:ci-scope\.test|check-eol-noise|check-text-encoding-gate)\.mjs|scripts\/lib\/text-encoding-gate\.mjs)$/u;
   const productScripts = full || codePaths.some((file) => file.startsWith('scripts/') && !checkerOnly.test(file));
   const productAuthority = full || codePaths.some((file) => file.startsWith('.nimi/')
     && !file.startsWith('.nimi/methodology/')
@@ -55,6 +58,9 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
     if (file.startsWith('nimi2d/')) filters.add('./nimi2d');
   }
 
+  const productWorkspaces = filters.size > 0;
+  if (sdkTestsChanged && !sdk && !filters.has('*')) filters.add('@nimiplatform/sdk');
+
   const remoteGuide = /^docs\/(?:zh\/)?(?:sdk\/|start\/(?:connect-|install\.|troubleshooting\.|use-nimi-lab\.)|runtime\/(?:account-and-session|multimodal)|platform\/(?:kit\/|architecture\/))/u;
   const remoteClients = full || sdk || kit || touches(/^app-tools\//u)
     || touches(/^scripts\/prepare-docs-mobile-reference\.mjs$/u)
@@ -66,7 +72,7 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
     remote_clients_changed: remoteClients,
     docs_changed: full || remoteClients || docsSourceChecks || docsReviewTargets.length > 0
       || paths.some((file) => /^(?:docs\/|examples\/)|\.(?:md|mdx)$/u.test(file)),
-    core_changed: shared || scripts || config || authority || filters.size > 0
+    core_changed: shared || scripts || config || authority || productWorkspaces
       || touches(/^(?:\.github\/|licenses\/|LICENSE$|\.gitignore$|\.gitattributes$|\.editorconfig$)/u),
     workspace_changed: filters.size > 0,
     workspace_filters: [...filters],

@@ -15,12 +15,13 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { requireComponentVersion } from './component-version.mjs';
 import { spawnSyncCommand } from '../lib/command-runner.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 const outputRoot = path.join(repoRoot, 'dist', 'component-release');
-const STABLE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+const candidate = process.env.GITHUB_EVENT_NAME === 'pull_request' || (!process.env.GITHUB_ACTIONS && process.argv.includes('--candidate'));
 const COMPONENTS = new Set(['sdk', 'kit', 'app-tools', 'sdk-adapter-vercel-ai']);
 
 function run(command, args, { cwd = repoRoot, stdio = 'inherit' } = {}) {
@@ -40,7 +41,7 @@ function parseArgs(argv) {
   const values = {};
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === '--') continue;
+    if (token === '--' || token === '--candidate' && candidate) continue;
     if (!token.startsWith('--')) throw new Error(`unexpected argument: ${token}`);
     const value = argv[index + 1];
     if (!value || value.startsWith('--')) throw new Error(`${token} requires a value`);
@@ -65,10 +66,7 @@ function readJson(relativePath) {
 
 function packageVersion(relativePath) {
   const version = String(readJson(relativePath).version || '');
-  if (!STABLE_VERSION.test(version)) {
-    throw new Error(`${relativePath} must contain a final stable SemVer; found ${version}`);
-  }
-  return version;
+  return requireComponentVersion(version, candidate);
 }
 
 function copyPackage(sourceRoot, destinationRoot) {

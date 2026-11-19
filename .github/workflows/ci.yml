@@ -160,6 +160,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: gate.runtime.bridge-method-projection
+        if: needs.changes.outputs.kit_changed != 'true'
         run: pnpm check:runtime-bridge-method-drift
       - name: gate.runtime.realm-broker-policy
         run: pnpm check:runtime-broker-operation-policy

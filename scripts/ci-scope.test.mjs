@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { parse } from 'yaml';
+import { requireComponentVersion } from './release/component-version.mjs';
 import test from 'node:test';
 import { CI_LANES, selectCiScope, assertCiResults } from './lib/ci-scope.mjs';
 
@@ -188,4 +192,46 @@ test('docs checks run when their own scripts change', () => {
     assert.equal(scope.docs_changed, true);
     assert.equal(scope.remote_clients_changed, false);
   }
+});
+
+test('private SDK unit tests run the SDK suite and public testing changes retain consumers', () => {
+  const testPath = 'sdks/typescript/core/app/local-app-conversation-quote.test.ts';
+  assert.deepEqual(selectCiScope([testPath]).workspace_filters, ['@nimiplatform/sdk']);
+  assert.equal(selectCiScope([testPath]).sdk_changed, false);
+  assert.equal(selectCiScope([testPath]).remote_clients_changed, false);
+  assert.deepEqual(selectCiScope(['scripts/ci-scope.test.mjs']).workspace_filters, []);
+  const needs = successfulResults([testPath]);
+  assert.throws(() => assertCiResults({ ...needs, 'workspace-regression': { result: 'failure' } }), /workspace-regression/u);
+  assert.equal(selectCiScope([testPath, 'sdks/typescript/testing/index.ts']).sdk_changed, true);
+});
+
+test('component validation across the full PR follows both sides of a rename', () => {
+  const releases = ['release', 'release-kit', 'release-app-tools', 'release-sdk-adapter-vercel-ai'].map(name =>
+    parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8')));
+  function selectedJobs(paths) {
+    return releases.flatMap(workflow => {
+      const matched = paths.some(file => workflow.on.pull_request.paths.reduce((include, glob) => {
+        const negative = glob.startsWith('!');
+        return path.posix.matchesGlob(file, negative ? glob.slice(1) : glob) ? !negative : include;
+      }, false));
+      return matched ? Object.keys(workflow.jobs).filter(name => name.startsWith('validate')).map(name => workflow.name + '/' + name) : [];
+    });
+  }
+  const unit = 'sdks/typescript/core/app/local-app-conversation-quote.test.ts';
+  assert.deepEqual(selectedJobs([unit]), []);
+  assert.deepEqual(selectedJobs(['scripts/ci-scope.test.mjs']), []);
+  for (const paths of [
+    ['sdks/typescript/core/app/old.ts', unit],
+    [unit, 'sdks/typescript/core/app/new.ts'],
+    ['sdks/typescript/testing/index.ts'],
+  ]) assert.equal(selectedJobs(paths).length, 5);
+  assert.equal(selectedJobs(['kit/shell/protected-local/src/lib.rs']).length, 3);
+  for (const w of releases) assert.deepEqual(w.on.push.tags.length, 1);
+});
+
+test('candidate version admission is limited to stable and canonical rc versions', () => {
+  assert.equal(requireComponentVersion('1.2.3', false), '1.2.3');
+  assert.equal(requireComponentVersion('1.2.3-rc.7', true), '1.2.3-rc.7');
+  for (const version of ['1.2.3-rc.07', '1.2.3-beta.1', 'v1.2.3', '']) assert.throws(() => requireComponentVersion(version, true));
+  assert.throws(() => requireComponentVersion('1.2.3-rc.7', false));
 });

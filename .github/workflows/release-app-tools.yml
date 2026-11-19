@@ -20,6 +20,7 @@ on:
       - pnpm-lock.yaml
       - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
+      - scripts/release/component-version.mjs
       - sdks/typescript/package.json
   workflow_dispatch:
     inputs:
@@ -89,10 +90,7 @@ jobs:
             version="${package_version}"
             production=false
           fi
-          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "App Tools version must be a stable SemVer: ${version}" >&2
-            exit 1
-          fi
+          node scripts/release/component-version.mjs "${version}"
           test "${package_version}" = "${version}"
           {
             echo "artifact_name=app-tools-component-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
