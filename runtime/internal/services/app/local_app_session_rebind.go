@@ -126,7 +126,7 @@ func (s *Service) RebindLocalAppSessionProjection(ctx context.Context) (authserv
 }
 
 func (s *Service) localAppRebindSupervision(ctx context.Context, connection *protectedlocal.LocalAppConnection, previous localAppRuntimeSession) error {
-	if !connection.Live() || !connection.ProtectedOperationAllowed() || previous.desktopOwner == nil || !previous.desktopOwner.VerifiedDesktopTransport() {
+	if !connection.Live() || !connection.ProtectedOperationAllowed() || previous.desktopOwner == nil || (!previous.desktopOwner.VerifiedDesktopTransport() && !previous.desktopOwner.InstalledSupervisorTransport()) {
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 	}
 	if claimed, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok && claimed != previous.desktopOwner {

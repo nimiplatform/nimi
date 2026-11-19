@@ -77,7 +77,7 @@ func (s *Service) GetLocalDevelopmentRunAccess(ctx context.Context, req *runtime
 				host = launch.HostExecutablePath
 			}
 			ownedHosts = append(ownedHosts, host)
-		} else if session.desktopOwner != nil && session.desktopOwner.VerifiedDesktopTransport() {
+		} else if session.desktopOwner != nil && (session.desktopOwner.VerifiedDesktopTransport() || session.desktopOwner.InstalledSupervisorTransport()) {
 			foreign = true
 		}
 	}
@@ -191,7 +191,7 @@ func (s *Service) localAppRunAccess(ctx context.Context, owner *protectedlocal.C
 	if uncertain {
 		return false, "", runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE
 	}
-	if currentRef == "" || !owner.VerifiedDesktopTransport() {
+	if currentRef == "" || (!owner.VerifiedDesktopTransport() && !owner.InstalledSupervisorTransport()) {
 		return false, "", runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED
 	}
 	return true, currentRef, runtimev1.ReasonCode_ACTION_EXECUTED

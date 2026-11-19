@@ -35,10 +35,21 @@ type installedAppLaunch struct {
 	liveness    protectedlocal.DesktopProcessLiveness
 }
 
+func requireInstalledAppControl(ctx context.Context) error {
+	conn, _ := protectedlocal.DesktopConnectionFromContext(ctx)
+	if conn.InstalledSupervisorTransport() {
+		return nil
+	}
+	if process, ok := conn.ClientProcess(); ok && process.OS == protectedlocal.OSMacOS {
+		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	return requireProtectedLocalDevelopmentDesktop(ctx)
+}
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
 func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.PrepareInstalledAppLaunchRequest) (*runtimev1.PrepareInstalledAppLaunchResponse, error) {
-	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
+	if err := requireInstalledAppControl(ctx); err != nil {
 		return nil, err
 	}
 	if s == nil || s.appInstallCoordinator == nil || s.localAppKernel == nil || req == nil {
@@ -80,11 +91,11 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		id := runID
 		expires := s.now().UTC().Add(30 * time.Second)
 		if s.directLocalAppLaunches != nil {
-			peer, direct := owner.DirectDesktopPeer()
+			peer, direct := owner.InstalledLaunchPeer()
 			if !direct {
 				return installedLaunchUnavailable()
 			}
-			prepared, err := s.directLocalAppLaunches.Prepare(owner, handle, runID, verified.Registration.SourceGeneration,
+			prepared, err := s.directLocalAppLaunches.PrepareInstalled(owner, handle, runID, verified.Registration.SourceGeneration,
 				verified.Registration.DeclarationGeneration, peer.PID, peer.UID, verified.RuntimeEntry, expires)
 			if err != nil {
 				return err
@@ -211,7 +222,7 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 			deadline = lease.expires
 		}
 		if s.directLocalAppLaunches != nil {
-			peer, direct := owner.DirectDesktopPeer()
+			peer, direct := owner.InstalledLaunchPeer()
 			if !direct {
 				return installedLaunchMismatch()
 			}
@@ -235,7 +246,7 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 }
 
 func (s *Service) EndInstalledAppRun(ctx context.Context, req *runtimev1.EndInstalledAppRunRequest) (*runtimev1.EndInstalledAppRunResponse, error) {
-	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
+	if err := requireInstalledAppControl(ctx); err != nil {
 		return nil, err
 	}
 	if req == nil {
@@ -270,7 +281,7 @@ func (s *Service) EndInstalledAppRun(ctx context.Context, req *runtimev1.EndInst
 
 // @nimi-authority: rule.nimi.runtime.app-surface.run-access-scope-projection
 func (s *Service) GetInstalledAppRunAccess(ctx context.Context, req *runtimev1.GetInstalledAppRunAccessRequest) (*runtimev1.GetInstalledAppRunAccessResponse, error) {
-	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
+	if err := requireInstalledAppControl(ctx); err != nil {
 		return nil, err
 	}
 	if req == nil {

@@ -1725,7 +1725,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-home-shell
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
-    meaning: Nimi is the installable product name and Nimi Home is its currently Desktop-hosted replaceable entry shell. Desktop owns exact native App Host launch and supervision; remote App entry and native package lifecycle remain distinct carriers of the Nimi App product unit and do not turn the official Web site into a browser-hosted Home.
+    meaning: Nimi is the installable product name and Nimi Home is its currently Desktop-hosted replaceable entry shell. Desktop owns native App management; its macOS user-session Supervisor holds the exact installed Host and process witness across Home exit; remote App entry and native package lifecycle remain distinct carriers of the Nimi App product unit and do not turn the official Web site into a browser-hosted Home.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade

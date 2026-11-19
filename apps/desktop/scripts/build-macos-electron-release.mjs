@@ -128,6 +128,10 @@ try {
   const embeddedLocalHost = path.join(desktopApp, 'Contents', 'Frameworks', localDevelopment ? 'Nimi Local App Host Dev.app' : 'Nimi Local App Host.app');
   await runDittoCopy(localHostApp, embeddedLocalHost);
   await stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment);
+  const supervisorPath = path.join(desktopApp, 'Contents/Helpers/nimi-app-supervisor');
+  await mkdir(path.dirname(supervisorPath), {recursive:true});
+  await cp(path.resolve(desktopRoot, '../../kit/shell/protected-local-node/target/release/nimi-app-supervisor'), supervisorPath);
+  await chmod(supervisorPath, 0o755);
   const debugPath = await preserveReleaseSourceMaps({ transactionRoot, localRoot, sourceRevision, target: 'macos-arm64' });
   process.stdout.write(`Private source maps (not release assets): ${debugPath}\n`);
 
@@ -506,6 +510,9 @@ async function signMacOSApplication(appPath, releaseInput, options) {
     ignore: (candidate) => Boolean(options.ignore?.(candidate))
       || (statSync(candidate).isFile() && !isMacOSMachO(candidate)),
     optionsForFile: (candidate) => {
+      if (candidate === path.join(appPath, 'Contents/Helpers/nimi-app-supervisor')) return {
+        additionalArguments: ['--identifier', 'ai.nimi.app-supervisor'], entitlements: runtimeEntitlements, hardenedRuntime: true, signatureFlags: 'runtime',
+      };
       if (candidate === updaterPath) return { additionalArguments: ['--identifier', 'ai.nimi.product-update'], entitlements: runtimeEntitlements,
         hardenedRuntime: true, signatureFlags: 'runtime' };
       if (candidate === runtimePath) {

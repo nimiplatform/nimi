@@ -7,6 +7,37 @@ import { createDesktopInstalledAppHost } from '../src-electron/installed-app-hos
 import { runDesktopShutdownSteps } from '../src-electron/product-update-shutdown.js';
 import { createSystemEntryAdmission } from '../src-electron/system-entry-admission.js';
 
+test('a new Home reattaches and stops the same installed run after the previous Home detaches', async () => {
+  const id = '42'.repeat(32);
+  const selector = 'installed-harness';
+  let running = true;
+  const stopped: string[] = [];
+  const ended: string[] = [];
+  const control = {
+    async list() { return running ? [{ launchId: id, appId: 'ai.nimi.harness', launchSelector: selector }] : []; },
+    async launch(): Promise<never> { throw new Error('reattaching must preserve the existing process'); },
+    async status(handle: string) { assert.equal(handle, id); return { running, exitCode: null }; },
+    async access(handle: string) { assert.equal(handle, id); return { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: '' }; },
+    async stop(handle: string) { stopped.push(handle); running = false; },
+    async end(handle: string) { ended.push(handle); },
+    async focus() {}, async completeUninstall() {},
+  };
+  const previous = createDesktopInstalledAppHost(control);
+  assert.equal(await previous.hasActiveRuns(), true);
+  await previous.detach();
+  assert.deepEqual(stopped, []);
+  const reopened = createDesktopInstalledAppHost(control);
+  try {
+    const [view] = await reopened.commandHandlers.installed_app_runs_list!({ payload: {} }) as { state: string; accessAvailable: boolean }[];
+    assert.ok(view);
+    assert.equal(view.state, 'running');
+    assert.equal(view.accessAvailable, true);
+    await reopened.commandHandlers.installed_app_stop!({ payload: { payload: { launchSelector: [...Buffer.from(selector)] } } });
+    assert.deepEqual(stopped, [id]);
+    assert.deepEqual(ended, [id]);
+  } finally { await reopened.detach(); }
+});
+
 test('installed system-entry focus rejects scope loss or Stop while fresh native admission is pending', async () => {
   for (const change of ['invalidate', 'locked', 'stop'] as const) {
     let blockRead = false, release!: () => void, entered!: () => void;

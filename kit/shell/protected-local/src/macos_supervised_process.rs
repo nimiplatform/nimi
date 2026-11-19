@@ -317,7 +317,7 @@ fn installed_app_environment(environment: Vec<CString>) -> Vec<CString> {
         .collect()
 }
 
-fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
+pub(crate) fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
     #[cfg(feature = "macos-source-local-development")]
     {
         let source_native_entry =

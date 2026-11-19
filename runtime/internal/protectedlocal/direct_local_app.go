@@ -69,6 +69,10 @@ type DirectLocalAppLaunch struct {
 	InstalledProcess            ProcessTuple
 }
 
+func (launch DirectLocalAppLaunch) liveOwner() bool {
+	return launch.DesktopOwner.VerifiedDesktopTransport() || (launch.InstalledRegistrationHandle != "" && launch.DesktopOwner.InstalledSupervisorTransport())
+}
+
 func (launch DirectLocalAppLaunch) valid() bool {
 	return launch.LaunchID != (Identifier{}) &&
 		launch.RegistrationHandle != (Identifier{}) &&
@@ -114,9 +118,20 @@ func (launches *DirectLocalAppLaunches) Prepare(
 	hostExecutablePath string,
 	expiresAt time.Time,
 ) (DirectLocalAppLaunch, error) {
+	if !desktopOwner.VerifiedDesktopTransport() {
+		return DirectLocalAppLaunch{}, fmt.Errorf("development launch requires verified Desktop")
+	}
+	return launches.PrepareInstalled(desktopOwner, registrationHandle, supervisorRunID, sourceGeneration, declarationGeneration, desktopPID, expectedUID, hostExecutablePath, expiresAt)
+}
+
+func (launches *DirectLocalAppLaunches) PrepareInstalled(
+	desktopOwner *Connection, registrationHandle, supervisorRunID Identifier,
+	sourceGeneration, declarationGeneration uint64, desktopPID, expectedUID uint32,
+	hostExecutablePath string, expiresAt time.Time,
+) (DirectLocalAppLaunch, error) {
 	hostExecutablePath = filepath.Clean(strings.TrimSpace(hostExecutablePath))
-	ownerPeer, ownerOK := desktopOwner.DirectDesktopPeer()
-	if launches == nil || !ownerOK || !desktopOwner.VerifiedDesktopTransport() || ownerPeer.PID != desktopPID || ownerPeer.UID != expectedUID || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
+	ownerPeer, ownerOK := desktopOwner.InstalledLaunchPeer()
+	if launches == nil || !ownerOK || ownerPeer.PID != desktopPID || ownerPeer.UID != expectedUID || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
 		sourceGeneration == 0 || declarationGeneration == 0 || desktopPID == 0 || expectedUID == 0 ||
 		!filepath.IsAbs(hostExecutablePath) || expiresAt.IsZero() {
 		return DirectLocalAppLaunch{}, fmt.Errorf("complete direct local-app launch authority is required")

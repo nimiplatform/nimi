@@ -489,3 +489,86 @@ mod peer_result_tests {
         }
     }
 }
+
+pub(crate) fn supervisor_paths() -> Result<(PathBuf, PathBuf), ProtectedCarrierError> {
+    #[cfg(feature = "macos-source-local-development")]
+    {
+        let root = expected_source_runtime_executable()?
+            .parent()
+            .ok_or_else(untrusted)?
+            .to_owned();
+        let home = option_env!("NIMI_SUPERVISOR_SOURCE_HOME").ok_or_else(untrusted)?;
+        return Ok((root.join("nimi-app-supervisor"), home.into()));
+    }
+    #[cfg(all(
+        feature = "macos-local-development",
+        not(feature = "macos-source-local-development")
+    ))]
+    return Ok((
+        "/Applications/Nimi Dev.app/Contents/Helpers/nimi-app-supervisor".into(),
+        "/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev".into(),
+    ));
+    #[cfg(not(any(
+        feature = "macos-local-development",
+        feature = "macos-source-local-development"
+    )))]
+    return Ok((
+        "/Applications/Nimi.app/Contents/Helpers/nimi-app-supervisor".into(),
+        "/Applications/Nimi.app/Contents/MacOS/Nimi".into(),
+    ));
+}
+
+pub(crate) fn verify_supervisor_peer(fd: RawFd, server: bool) -> Result<(), ProtectedCarrierError> {
+    unsafe extern "C" {
+        fn nimi_macos_verify_supervisor_peer(
+            fd: i32,
+            path: *const libc::c_char,
+            requirement: *const libc::c_char,
+            team: *const libc::c_char,
+            identifier: *const libc::c_char,
+            anchor: i32,
+            adhoc: i32,
+        ) -> i32;
+    }
+    use std::os::unix::ffi::OsStrExt;
+    let (supervisor, home) = supervisor_paths()?;
+    let path = CString::new(
+        if server { supervisor } else { home }
+            .as_os_str()
+            .as_bytes(),
+    )
+    .map_err(|_| untrusted())?;
+    #[cfg(not(feature = "macos-source-local-development"))]
+    {
+        let identifier = match (server, cfg!(feature = "macos-local-development")) {
+            (true, false) => "ai.nimi.app-supervisor",
+            (true, true) => "ai.nimi.app-supervisor.dev",
+            (false, false) => "ai.nimi.apps.nimi.desktop",
+            (false, true) => "ai.nimi.apps.nimi.desktop.dev",
+        };
+        let policy = signing_policy(identifier)?;
+        peer_verification_result(unsafe {
+            nimi_macos_verify_supervisor_peer(
+                fd,
+                path.as_ptr(),
+                policy.requirement.as_ptr(),
+                policy.team.as_ptr(),
+                policy.identifier.as_ptr(),
+                i32::from(policy.require_trusted_anchor),
+                i32::from(policy.require_ad_hoc),
+            )
+        })
+    }
+    #[cfg(feature = "macos-source-local-development")]
+    peer_verification_result(unsafe {
+        nimi_macos_verify_supervisor_peer(
+            fd,
+            path.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            std::ptr::null(),
+            0,
+            0,
+        )
+    })
+}

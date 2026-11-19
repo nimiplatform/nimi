@@ -194,7 +194,7 @@ func (creds protectedDesktopTransportCredentials) ServerHandshake(raw net.Conn) 
 		creds.refusals.recordHandshake(runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED)
 		return nil, nil, fmt.Errorf("protected Desktop transport requires a native verified connection")
 	}
-	if !connection.desktopConnection.VerifiedDesktopTransport() {
+	if !connection.desktopConnection.VerifiedDesktopTransport() && !connection.desktopConnection.InstalledSupervisorTransport() {
 		creds.refusals.recordHandshake(runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		return nil, nil, fmt.Errorf("protected Desktop transport requires the verified Desktop role")
 	}
@@ -286,6 +286,17 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if p, ok := peer.FromContext(ctx); ok {
+			if auth, ok := p.AuthInfo.(*protectedDesktopAuthInfo); ok && auth != nil && auth.connection.InstalledSupervisorTransport() {
+				if !installedSupervisorMethod(info.FullMethod) {
+					return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+				}
+				if err := protectedlocal.RevalidateDesktopConnectionProcess(ctx, auth.connection); err != nil {
+					return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+				}
+				return handler(protectedlocal.ContextWithDesktopConnection(ctx, auth.connection), req)
+			}
 		}
 		bundledProfile, bundled, bundledErr := resolveProtectedBundledAppProfile(ctx, info.FullMethod, protectedlocal.FirstPartyMethodUnary)
 		if bundledErr != nil {
@@ -414,6 +425,20 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			defer cancel()
 		}
 		return handler(protectedContext, req)
+	}
+}
+
+// An installed-App supervisor is never a first-party Home or account caller.
+// Its native channel remains live across the lifetime of management windows.
+func installedSupervisorMethod(method string) bool {
+	switch method {
+	case "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+		"/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+		"/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun":
+		return true
+	default:
+		return false
 	}
 }
 

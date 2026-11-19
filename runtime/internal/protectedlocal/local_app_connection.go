@@ -169,7 +169,7 @@ func EstablishInstalledAppConnection(registrationHandle string, trustClass Local
 func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch, runtimeGeneration Identifier) (*LocalAppConnection, error) {
 	if !peer.valid() || !launch.valid() || launch.Process.PID == 0 || launch.BindDeadline.IsZero() ||
 		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID || runtimeGeneration == (Identifier{}) ||
-		launch.DesktopOwner == nil || !launch.DesktopOwner.VerifiedDesktopTransport() {
+		launch.DesktopOwner == nil || !launch.liveOwner() {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app peer or launch is incomplete"))
 	}
 	directPeer := peer
@@ -258,7 +258,7 @@ func (connection *LocalAppConnection) Live() bool {
 	}
 	// Owner revocation closes admission immediately, even when an earlier
 	// owner cleanup is still delaying this child's synchronous Revoke hook.
-	return connection.directLaunch == nil || connection.directLaunch.DesktopOwner.VerifiedDesktopTransport()
+	return connection.directLaunch == nil || connection.directLaunch.liveOwner()
 }
 
 func (trustClass LocalAppTrustClass) valid() bool {

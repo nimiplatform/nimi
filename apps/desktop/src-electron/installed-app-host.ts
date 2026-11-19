@@ -38,14 +38,35 @@ export function createDesktopInstalledAppHost(
     ...(access?.available ? { executionScopeRef: access.executionScopeRef } : {}),
     intentional,
   });
+  // The Supervisor owns the handles. Home attaches to its existing runs on
+  // startup, including before a full product stop or a data-root handoff.
+  let attached: Promise<void> | undefined;
+  const attach = () => {
+    if (!control.list) return Promise.resolve();
+    attached ??= control.list().then(live => {
+      for (const item of live) {
+        const selector = Buffer.from(item.launchSelector, 'utf8');
+        const key = selector.toString('base64');
+        const known = runs.get(key);
+        if (!known || (!known.pending && known.launchId !== item.launchId)) runs.set(key, { selector, launchId: item.launchId, displayName: item.appId, pending: false,
+          view: { launchSelector: [...selector], state: 'running', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' } });
+      }
+    }).finally(() => { attached = undefined; });
+    return attached;
+  };
   const observeRuns = async () => {
     if (closing || observing) return;
     observing = true;
     try {
+      await attach();
       for (const run of runs.values()) {
         if (!run.launchId || run.pending) continue;
         try { await refresh(run); }
         catch { onExecutorChanged?.({ key: `installed:${Buffer.from(run.selector).toString('base64')}`, displayName: run.displayName ?? 'Installed App', state: 'scope-unknown' }); }
+      }
+    } catch {
+      for (const run of runs.values()) {
+        if (run.launchId) onExecutorChanged?.({ key: `installed:${Buffer.from(run.selector).toString('base64')}`, displayName: run.displayName || 'Installed App', state: 'scope-unknown' });
       }
     } finally { observing = false; }
   };
@@ -74,7 +95,7 @@ export function createDesktopInstalledAppHost(
         return project(run);
       }
       // @nimi-authority: definition.nimi.platform.app-ecosystem.app-host-restart-request
-      if (status.exitCode === NIMI_APP_HOST_RESTART_EXIT_CODE && !closing && !run.stopRequested) {
+      if (!control.list && status.exitCode === NIMI_APP_HOST_RESTART_EXIT_CODE && !closing && !run.stopRequested) {
         return await invoke('installed_app_launch', { payload: { launchSelector: [...run.selector] } }) as InstalledAppRun;
       }
       run.exitState = run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed';
@@ -94,6 +115,7 @@ export function createDesktopInstalledAppHost(
     return project(run);
   };
   const invoke = async (command: typeof COMMANDS[number], payload: Readonly<Record<string, unknown>>): Promise<unknown> => {
+    await attach();
     if (command === 'installed_app_runs_list') return Promise.all([...runs.values()].map(refresh));
     const selector = parseSelector(payload, command);
     const key = Buffer.from(selector).toString('base64');
@@ -240,6 +262,13 @@ export function createDesktopInstalledAppHost(
   };
   startObserving();
   return {
+    async detach(): Promise<void> {
+      closing = true;
+      if (observationTimer) clearInterval(observationTimer);
+      observationTimer = undefined;
+      // Already accepted launches must become visible for the next Home.
+      while ([...runs.values()].some(run => run.pending)) await new Promise(resolve => setTimeout(resolve, 25));
+    },
     resume(): void { closing = false; startObserving(); },
     quitImpact(): readonly string[] {
       return [...runs.values()]
@@ -252,6 +281,7 @@ export function createDesktopInstalledAppHost(
     }),
     /** Whether any installed App is starting, running, or awaiting release. */
     async hasActiveRuns(): Promise<boolean> {
+      await attach();
       for (const run of runs.values()) {
         if (run.pending) return true;
         if (!run.launchId || run.exitState) continue;
@@ -261,9 +291,19 @@ export function createDesktopInstalledAppHost(
     },
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [command, (context: { readonly payload: Readonly<Record<string, unknown>> }) => invoke(command, context.payload)])),
     async shutdown(releasePolicy: 'required' | 'quit-after-process-exit' = 'required'): Promise<void> {
+      await attach();
       closing = true;
       if (observationTimer) clearInterval(observationTimer);
       observationTimer = undefined;
+      if (control.drain) {
+        await control.drain();
+        for (const run of runs.values()) {
+          run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+          observe(run, true);
+        }
+        runs.clear();
+        return;
+      }
       for (const [key, run] of [...runs]) {
         // A queued launch is refused on gate admission while closing; after an
         // aborted handoff resumes this owner it proceeds and stays tracked.

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -67,4 +68,40 @@ func macOSDesktopProcessTuple(
 		return ProcessTuple{}, fmt.Errorf("validate verified macOS Desktop process tuple: %w", err)
 	}
 	return tuple, nil
+}
+
+// The installed App supervisor is a separate native image with its own signing
+// identifier and fixed location beside the Runtime. Sharing an audit session
+// with Home is necessary but never sufficient to acquire either authority.
+func verifyMacOSControlPeer(audit macOSAuditIdentity, homePath string) (DesktopPeerIdentity, ProcessTuple, bool, error) {
+	path := filepath.Join(filepath.Dir(MacOSRuntimeExecutablePath), "nimi-app-supervisor")
+	identifier := ""
+	if MacOSDesktopApplicationPath != "" {
+		path = filepath.Join(MacOSDesktopApplicationPath, "Contents", "Helpers", "nimi-app-supervisor")
+		identifier = strings.Replace(MacOSDesktopSigningIdentifier, "apps.nimi.desktop", "app-supervisor", 1)
+	}
+	initial, err := inspectMacOSProcess(audit.pid)
+	if err != nil {
+		return DesktopPeerIdentity{}, ProcessTuple{}, false, err
+	}
+	if initial.executablePath != path {
+		peer, process, err := verifyConnectedMacOSDesktop(audit, homePath)
+		return peer, process, false, err
+	}
+	var policy macOSCodePolicy
+	if identifier != "" {
+		policy, err = newMacOSCodePolicy(identifier)
+		if err != nil {
+			return DesktopPeerIdentity{}, ProcessTuple{}, true, err
+		}
+	}
+	code, err := verifyMacOSProcessIdentity(initial, &audit, policy, path, 0, false)
+	if err != nil {
+		return DesktopPeerIdentity{}, ProcessTuple{}, true, err
+	}
+	process, err := macOSDesktopProcessTuple(initial, audit, code, path, "macos-installed-app-supervisor-v1")
+	if err != nil {
+		return DesktopPeerIdentity{}, ProcessTuple{}, true, err
+	}
+	return DesktopPeerIdentity{OS: OSMacOS, PID: audit.pid, UID: audit.euid, AuditSession: audit.auditSession}, process, true, nil
 }

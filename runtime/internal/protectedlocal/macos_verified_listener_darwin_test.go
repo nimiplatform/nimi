@@ -150,3 +150,37 @@ func testMacOSVerifiedDesktopConnection(
 	t.Cleanup(connection.Revoke)
 	return &macOSVerifiedDesktopNetConn{connection: connection, listener: listener}
 }
+
+func TestInstalledSupervisorHasIndependentLifetimeAndNoHomeAuthority(t *testing.T) {
+	listener := &MacOSVerifiedDesktopListener{}
+	home := testMacOSVerifiedDesktopConnection(t, listener, DesktopPeerIdentity{OS: OSMacOS, PID: 111, UID: 501, AuditSession: 7})
+	supervisor := testMacOSVerifiedDesktopConnection(t, listener, DesktopPeerIdentity{OS: OSMacOS, PID: 222, UID: 501, AuditSession: 7})
+	supervisor.connection.installedSupervisor = true
+	if _, ok := listener.activate(home); !ok {
+		t.Fatal("Home was not attached")
+	}
+	if replaced, ok := listener.activate(supervisor); !ok || replaced != nil {
+		t.Fatal("supervisor displaced Home")
+	}
+	if supervisor.connection.VerifiedDesktopTransport() {
+		t.Fatal("supervisor acquired the Home transport")
+	}
+	if _, ok := supervisor.connection.DirectDesktopPeer(); ok {
+		t.Fatal("supervisor acquired Home session authority")
+	}
+	if _, ok := supervisor.connection.InstalledLaunchPeer(); !ok {
+		t.Fatal("supervisor has no launch witness")
+	}
+	listener.release(home)
+	if listener.active != nil || listener.supervisor != supervisor {
+		t.Fatal("exiting Home changed the live supervisor")
+	}
+	next := testMacOSVerifiedDesktopConnection(t, listener, DesktopPeerIdentity{OS: OSMacOS, PID: 333, UID: 501, AuditSession: 7})
+	if _, ok := listener.activate(next); !ok || listener.supervisor != supervisor {
+		t.Fatal("new Home failed to attach independently")
+	}
+	supervisor.connection.Revoke()
+	if supervisor.connection.InstalledSupervisorTransport() {
+		t.Fatal("revoked supervisor retained authority")
+	}
+}

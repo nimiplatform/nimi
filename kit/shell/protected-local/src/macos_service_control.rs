@@ -901,26 +901,59 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
 }
 
 async fn open_verified_runtime_channel() -> Result<(Channel, libc::pid_t), ProtectedCarrierError> {
+    // The service registration belongs to the Home bundle. Its standalone
+    // supervisor uses the verified socket after authenticating Home.
     #[cfg(not(feature = "macos-source-local-development"))]
     if macos_service_status()? != SERVICE_ENABLED {
         return Err(unavailable());
     }
+    let (stream, pid) = open_verified_control_socket().await?;
+    Ok((
+        channel_from_verified_socket(stream, unavailable).await?,
+        pid,
+    ))
+}
+
+pub(crate) async fn open_supervisor_runtime_channel(
+) -> Result<(Channel, std::os::fd::OwnedFd), ProtectedCarrierError> {
+    use std::os::fd::AsFd;
+    let (stream, _) = open_verified_control_socket().await?;
+    let lifetime = stream
+        .as_fd()
+        .try_clone_to_owned()
+        .map_err(|_| unavailable())?;
+    Ok((
+        channel_from_verified_socket(stream, unavailable).await?,
+        lifetime,
+    ))
+}
+
+async fn open_verified_control_socket() -> Result<(UnixStream, libc::pid_t), ProtectedCarrierError>
+{
     let socket_path = runtime_socket_path()?;
     let socket_text = socket_path.to_str().ok_or_else(untrusted)?;
     let stream = UnixStream::connect(&socket_path)
         .await
         .map_err(|_| unavailable())?;
-    verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
+    // With a launchd socket, connect() can complete before accept() supplies
+    // the peer audit token. Keep this same socket until it can be verified.
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(1);
+    loop {
+        match verify_runtime_peer_once(stream.as_raw_fd(), socket_text) {
+            Ok(()) => break,
+            Err(error) if error.retryable() && tokio::time::Instant::now() < deadline => {
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
     #[cfg(not(feature = "macos-source-local-development"))]
     let runtime_pid = verified_socket_peer_pid(stream.as_raw_fd())?;
     #[cfg(feature = "macos-source-local-development")]
     let runtime_pid = 0;
     // Peer identity has passed the fixed production policy. A failed HTTP/2
     // handshake means this verified service connection is not ready.
-    Ok((
-        channel_from_verified_socket(stream, unavailable).await?,
-        runtime_pid,
-    ))
+    Ok((stream, runtime_pid))
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(

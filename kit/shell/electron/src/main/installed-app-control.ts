@@ -23,6 +23,8 @@ export class NimiElectronInstalledAppError extends Error {
 // Main-only control. Lease identity and native process handles never enter the
 // renderer or App bridge, and Runtime still derives all installed authority.
 export interface NimiElectronInstalledAppControl {
+  drain?(): Promise<void>;
+  list?(): Promise<readonly { readonly launchSelector: string; readonly launchId: string; readonly appId: string }[]>;
   launch(selector: Uint8Array, signal?: AbortSignal): Promise<{ readonly launchId: string; readonly processId: number; readonly appId: string; readonly version: string }>;
   status(launchId: string): Promise<{ readonly running: boolean; readonly exitCode: number | null }>;
   focus(launchId: string): Promise<void>;
@@ -42,7 +44,41 @@ export function createNimiElectronInstalledAppControl(): NimiElectronInstalledAp
     binding = loaded as Binding;
     return binding;
   };
-  return createInstalledControl(resolve);
+  if (process.platform !== 'darwin') return createInstalledControl(resolve);
+  const manage = (operation: string, input: Readonly<Record<string, unknown>> = {}) => {
+    const call = resolve().desktopManageSupervisedApp;
+    if (typeof call !== 'function') throw new NimiElectronInstalledAppError('local-app-operation-unavailable');
+    return call({ operation, ...input });
+  };
+  const control = createInstalledControl(() => ({
+    desktopLaunchInstalledApp: async input => {
+      const result = await manage('launch', input);
+      if (result.status !== 'ok' || !isRecord(result.value)) return result;
+      const { launchSelector, ...value } = result.value;
+      if (launchSelector !== input.launchSelector) invalid();
+      return {status: 'ok', value};
+    },
+    desktopCancelInstalledAppLaunch: input => manage('cancel', input),
+    desktopInstalledAppStatus: input => manage('status', input),
+    desktopFocusInstalledApp: input => manage('focus', input),
+    desktopStopInstalledApp: input => manage('stop', input),
+    desktopEndInstalledAppRun: input => manage('end', input),
+    desktopInstalledAppRunAccess: input => manage('access', input),
+    desktopCompleteAppUninstall: input => resolve().desktopCompleteAppUninstall!(input),
+  }));
+  return { ...control, async drain() {
+    const result = await manage('drain');
+    if (result.status === 'error') throw new NimiElectronInstalledAppError(result.reasonCode);
+    if (!isRecord(result.value) || result.value.drained !== true) invalid();
+  }, async list() {
+    const result = await manage('list');
+    if (result.status === 'error') throw new NimiElectronInstalledAppError(result.reasonCode);
+    if (!isRecord(result.value) || !Array.isArray(result.value.runs)) return invalid();
+    return result.value.runs.map((row: unknown) => {
+      if (!isRecord(row) || typeof row.launchSelector !== 'string' || !row.launchSelector || Buffer.byteLength(row.launchSelector) > 160) return invalid();
+      return { launchSelector: row.launchSelector, launchId: identifier(row.launchId), appId: requiredText(row.appId) };
+    });
+  } };
 }
 
 function createInstalledControl(resolve: () => Binding): NimiElectronInstalledAppControl {

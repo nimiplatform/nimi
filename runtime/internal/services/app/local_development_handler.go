@@ -235,11 +235,14 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 }
 
 func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLocalAppProcessRequest) (*runtimev1.BindLocalAppProcessResponse, error) {
+	if s != nil && req != nil && s.installedLaunch(req.GetLaunchId()) != nil {
+		if err := requireInstalledAppControl(ctx); err != nil {
+			return nil, err
+		}
+		return s.bindInstalledAppProcess(ctx, req)
+	}
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
-	}
-	if s != nil && req != nil && s.installedLaunch(req.GetLaunchId()) != nil {
-		return s.bindInstalledAppProcess(ctx, req)
 	}
 	if s == nil || s.localDevelopment == nil || req == nil || (s.directLocalAppLaunches == nil && (s.localDevelopmentRegistry == nil || s.localDevelopmentVerifier == nil)) {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)

@@ -24,7 +24,7 @@ func RevalidateDirectLocalAppProcess(ctx context.Context, connection *LocalAppCo
 }
 
 func RevalidateDesktopConnectionProcess(ctx context.Context, owner *Connection) error {
-	if owner == nil || !owner.VerifiedDesktopTransport() || owner.revalidateProcess == nil {
+	if owner == nil || (!owner.VerifiedDesktopTransport() && !owner.InstalledSupervisorTransport()) || owner.revalidateProcess == nil {
 		return fmt.Errorf("current Desktop process verifier is unavailable")
 	}
 	return owner.revalidateProcess(ctx)
@@ -34,7 +34,7 @@ func VerifyLocalAppProcessParent(ctx context.Context, pid uint32, owner *Connect
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if owner == nil || !owner.VerifiedDesktopTransport() {
+	if owner == nil || (!owner.VerifiedDesktopTransport() && !owner.InstalledSupervisorTransport()) {
 		return fmt.Errorf("App supervisor is unavailable")
 	}
 	parent, ok := owner.ClientProcess()

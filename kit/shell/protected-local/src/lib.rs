@@ -271,3 +271,11 @@ pub use windows_service_control::terminate_source_local_development_host;
 pub use windows_service_control::{
     invalidate_verified_desktop_runtime_channel, open_verified_desktop_runtime_channel,
 };
+
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos_app_supervisor;
+#[cfg(target_os = "macos")]
+pub use macos_app_supervisor::{
+    manage_installed_apps, run_macos_app_supervisor, AppSupervisorCommand,
+};

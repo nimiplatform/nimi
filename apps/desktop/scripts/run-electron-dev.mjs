@@ -74,10 +74,9 @@ const children = new Set();
 // Desktop quits in bounded steps of its own: each supervised dev App stops its
 // build tool and renderer (TERM, 5 s, KILL, 5 s each), its Host (2 s) and its
 // Runtime registration, then Desktop releases formal resources (5 s) and its
-// remaining hosts (avatar handoff 2.5 s, profile slot 1 s). The launcher sends
-// Desktop one SIGTERM and never cuts that short: a second signal forces, and
-// this backstop only ends a quit that is stuck, whose App Hosts and tool
-// processes then leave with their Desktop owner.
+// remaining hosts (avatar handoff 2.5 s, profile slot 1 s). Give Home that
+// time after its owner requests exit. pnpm can forward the same Ctrl-C more
+// than once, so only the timeout escalates to forced termination.
 const DESKTOP_QUIT_BACKSTOP_MS = 60_000;
 const CHILD_STOP_GRACE_MS = 2_000;
 const desktopChildren = new WeakSet();
@@ -85,8 +84,6 @@ let shuttingDown = false;
 const dependencyAbort = new AbortController();
 let dependencyTask;
 let childrenShutdownTask;
-let forceShutdown;
-const forceRequested = new Promise((resolve) => { forceShutdown = resolve; });
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -94,11 +91,7 @@ const SIGNAL_EXIT_CODES = new Map([
 ]);
 for (const signal of SIGNAL_EXIT_CODES.keys()) {
   process.on(signal, () => {
-    if (shuttingDown) {
-      forceShutdown();
-      return;
-    }
-    void shutdownFromSignal(signal);
+    if (!shuttingDown) void shutdownFromSignal(signal);
   });
 }
 
@@ -162,7 +155,7 @@ async function runWindowsDesktopDev() {
       },
     }));
     await requestAllChildrenShutdown('SIGTERM');
-    process.exit(exitCode ?? 0);
+    process.exit(exitCode);
   } catch (error) {
     await requestAllChildrenShutdown('SIGTERM');
     const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
@@ -232,7 +225,7 @@ async function runMacOSDesktopDev() {
       },
     }));
     await requestAllChildrenShutdown('SIGTERM');
-    process.exit(exitCode ?? 0);
+    process.exit(exitCode);
   } catch (error) {
     await requestAllChildrenShutdown('SIGTERM');
     const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
@@ -375,7 +368,11 @@ function spawnRenderer() {
 // Desktop gets its own process group on POSIX so a terminal Ctrl-C reaches
 // only this launcher, which then asks Desktop to quit exactly once.
 function spawnDesktopTracked(command, args, options) {
-  const child = spawnTracked(command, args, { ...options, detached: process.platform !== 'win32' });
+  const child = spawnTracked(command, args, {
+    ...options,
+    stdio: process.platform === 'darwin' ? ['inherit', 'inherit', 'inherit', 'ipc'] : options.stdio,
+    detached: process.platform !== 'win32',
+  });
   desktopChildren.add(child);
   return child;
 }
@@ -411,29 +408,29 @@ async function requestAllChildrenShutdown(signal) {
 }
 
 async function requestProcessTreeShutdown(child, signal) {
-  if (!child?.pid || child.exitCode !== null) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
     return;
   }
   const desktop = desktopChildren.has(child);
   if (process.platform === 'win32') {
     spawn('taskkill.exe', ['/pid', String(child.pid), '/t'], { stdio: 'ignore', windowsHide: true });
+  } else if (desktop) {
+    // macOS delivers SIGTERM as an interactive Electron quit. Closing our
+    // inherited IPC channel identifies a launcher exit and lets Home clean up.
+    if (child.connected) child.disconnect();
   } else {
-    // Electron treats a repeated signal as an immediate kill, so Desktop gets
-    // exactly one, and only from here (it runs in its own process group).
-    child.kill(desktop ? 'SIGTERM' : signal);
+    child.kill(signal);
   }
-  const stopped = await Promise.race([
-    waitForExitOrTimeout(child, desktop ? DESKTOP_QUIT_BACKSTOP_MS : CHILD_STOP_GRACE_MS),
-    forceRequested.then(() => false),
-  ]);
+  const stopped = await waitForExitOrTimeout(child, desktop ? DESKTOP_QUIT_BACKSTOP_MS : CHILD_STOP_GRACE_MS);
   if (!stopped) {
+    if (desktop) process.stderr.write('[run-electron-dev] Home is still running after the quit request. Forcing its exit.\n');
     forceKillProcessTree(child);
     await waitForExitOrTimeout(child, 1_000);
   }
 }
 
 function forceKillProcessTree(child) {
-  if (!child?.pid || child.exitCode !== null) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
     return;
   }
   if (process.platform === 'win32') {
@@ -459,12 +456,15 @@ async function runDesktopElectronUntilExit(spawnElectron) {
 
 function waitForExit(child) {
   return new Promise((resolve) => {
-    child.on('exit', (code) => resolve(code));
+    child.once('exit', (code, signal) => {
+      if (signal) process.stderr.write(`[run-electron-dev] Home exited on ${signal}.\n`);
+      resolve(code ?? 1);
+    });
   });
 }
 
 function waitForExitOrTimeout(child, timeoutMs) {
-  if (child.exitCode !== null) {
+  if (child.exitCode !== null || child.signalCode !== null) {
     return Promise.resolve(true);
   }
   return new Promise((resolve) => {

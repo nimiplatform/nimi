@@ -189,12 +189,13 @@ type connectionRevokeHook struct {
 }
 
 type Connection struct {
-	origin      OriginContext
-	client      ProcessTuple
-	directPeer  DesktopPeerIdentity
-	live        atomic.Bool
-	done        chan struct{}
-	revokedDone chan struct{}
+	origin              OriginContext
+	client              ProcessTuple
+	directPeer          DesktopPeerIdentity
+	installedSupervisor bool
+	live                atomic.Bool
+	done                chan struct{}
+	revokedDone         chan struct{}
 
 	revalidateProcess func(context.Context) error
 	clientLiveness    DesktopProcessLiveness
@@ -382,6 +383,19 @@ func (connection *Connection) ClientProcess() (ProcessTuple, bool) {
 // DirectDesktopPeer returns only the minimal identity retained by a per-user
 // native peer path. Production Windows continues to use ClientProcess.
 func (connection *Connection) DirectDesktopPeer() (DesktopPeerIdentity, bool) {
+	if connection == nil || connection.installedSupervisor {
+		return DesktopPeerIdentity{}, false
+	}
+	return connection.controlPeer()
+}
+
+// InstalledSupervisorTransport can only be established by the native verifier
+// for the platform user-session executable. It carries no Home or account role.
+func (connection *Connection) InstalledSupervisorTransport() bool {
+	return connection != nil && connection.installedSupervisor && connection.live.Load()
+}
+
+func (connection *Connection) controlPeer() (DesktopPeerIdentity, bool) {
 	if connection == nil || !connection.live.Load() ||
 		(connection.directPeer.OS != OSMacOS && connection.directPeer.OS != OSWindows) ||
 		connection.directPeer.PID == 0 || connection.directPeer.UID == 0 ||
@@ -389,6 +403,15 @@ func (connection *Connection) DirectDesktopPeer() (DesktopPeerIdentity, bool) {
 		return DesktopPeerIdentity{}, false
 	}
 	return connection.directPeer, true
+}
+
+// InstalledLaunchPeer identifies the verified owner of an installed launch.
+// Windows continues using its verified Desktop owner until its supervisor port.
+func (connection *Connection) InstalledLaunchPeer() (DesktopPeerIdentity, bool) {
+	if connection.InstalledSupervisorTransport() || connection.VerifiedDesktopTransport() {
+		return connection.controlPeer()
+	}
+	return DesktopPeerIdentity{}, false
 }
 
 // VerifiedDesktopTransport reports authority created by a native verified

@@ -251,6 +251,7 @@ let quitCleanup: Promise<void> | undefined;
 let stopProductRuntime: (() => Promise<void>) | undefined;
 let quitCleanupComplete = false;
 let ownerQuitRequested = false;
+let exitHomeOnly = false;
 let systemSessionEnding = false;
 let entryUnavailableNoticeOpen = false;
 type DesktopRuntimeStatus = { readonly running: boolean; readonly managed: boolean; readonly launchMode: string; readonly version?: string; readonly lastError?: string };
@@ -314,8 +315,14 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(ELECTRON_DEVELOPMENT_BUILD ? `${APP_ID}.dev` : APP_ID);
 }
 if (SOURCE_PER_USER_RUNTIME_D2) {
+  const quitFromOwner = () => {
+    if (ownerQuitRequested) return;
+    ownerQuitRequested = true;
+    app.quit();
+  };
+  if (process.platform === 'darwin' && process.connected) process.once('disconnect', quitFromOwner);
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-    process.once(signal, () => { ownerQuitRequested = true; app.quit(); });
+    process.once(signal, quitFromOwner);
   }
 }
 configureDesktopElectronChromiumRuntime();
@@ -936,7 +943,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     // @nimi-authority: rule.nimi.desktop.command-execution.r006
     homeChromeHost = createNimiElectronAppChromeHost({
       metadata: { name: 'Nimi Home', version: desktopPackage.version },
-      allowedRendererUrls: allowedRendererUrls(), app,
+      allowedRendererUrls: allowedRendererUrls(), app: { quit: requestHomeExit },
       appCommands: [
         { id: 'home.open-settings', menu: 'file', labels: { en: 'Settings', zh: '设置' }, shortcut: 'Ctrl+,', macShortcut: 'Cmd+,' },
         { id: 'home.open-troubleshooting', menu: 'help', labels: { en: 'Troubleshooting', zh: '故障排查' } },
@@ -1295,6 +1302,14 @@ app.on('window-all-closed', () => {
   }
 });
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-runtime-lifecycle
+function requestHomeExit() {
+  if (process.platform !== 'darwin' || !normalHomeWorkAllowed()) { app.quit(); return; }
+  if (quitCleanup || systemSessionEnding || productUpdateAdapter && !productUpdateAdapter.canSafelyReopen()) return;
+  exitHomeOnly = true;
+  app.quit();
+}
+
 app.on('before-quit', (event) => {
   if (systemSessionEnding) return;
   if (productUpdateAdapter && !productUpdateAdapter.canSafelyReopen()) {
@@ -1304,7 +1319,7 @@ app.on('before-quit', (event) => {
   }
   if (quitCleanupComplete) return;
   event.preventDefault();
-  if (ownerQuitRequested || homeRelaunchRequested || maintenanceRelaunchRequested || !desktopStartupSettled || AVATAR_ONLY_DEVELOPMENT_MODE) {
+  if (exitHomeOnly || ownerQuitRequested || homeRelaunchRequested || maintenanceRelaunchRequested || !desktopStartupSettled || AVATAR_ONLY_DEVELOPMENT_MODE) {
     void prepareDesktopQuit().then(async () => {
       quitCleanupComplete = true;
       await finishDesktopHomeProfileBeforeExit();
@@ -1325,6 +1340,7 @@ function prepareDesktopQuit(): Promise<void> {
 
 async function recoverDesktopAfterFailedQuit(error: unknown): Promise<void> {
   ownerQuitRequested = false;
+  exitHomeOnly = false;
   homeRelaunchRequested = false;
   maintenanceRelaunchRequested = false;
   // @nimi-authority: rule.nimi.desktop.shell-ui.r066
@@ -1616,7 +1632,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   const steps = [
     { operation: 'product-update-download', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => productUpdateHost?.stop() },
     { operation: 'local-app-host', critical: true, timeoutMs: 30_000, run: () => localHost?.shutdown() },
-    { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => installedHost?.shutdown(
+    { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => exitHomeOnly && !forUpdate ? installedHost?.detach() : installedHost?.shutdown(
       forUpdate || homeRelaunchRequested || maintenanceRelaunchRequested ? 'required' : 'quit-after-process-exit',
     ) },
     { operation: 'bundled-zhiyu-host', critical: true, timeoutMs: 30_000, run: () => bundledZhiyuHost?.shutdown() },
@@ -1639,7 +1655,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   ];
   const result = await runDesktopProductShutdown({
     steps, forUpdate,
-    stopRuntime: homeRelaunchRequested || maintenanceRelaunchRequested ? undefined : stopProductRuntime,
+    stopRuntime: exitHomeOnly || homeRelaunchRequested || maintenanceRelaunchRequested ? undefined : stopProductRuntime,
   });
   const report: DesktopShutdownReport = { ...result, diagnostics: [...result.diagnostics, ...ordinaryDiagnostics] };
   for (const failure of [...report.criticalFailures, ...report.diagnostics]) {

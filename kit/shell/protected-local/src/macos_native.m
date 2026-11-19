@@ -951,7 +951,7 @@ int nimi_macos_open_url(const char *raw_url) {
 
 static int nimi_macos_spawn_authorized(const char *executable, char *const argv[], char *const envp[],
                                       const char *working_directory, uint32_t *pid_output,
-                                      int installed) {
+                                      int installed, int suspended) {
     if (executable == NULL || argv == NULL || argv[0] == NULL || envp == NULL ||
         working_directory == NULL || pid_output == NULL ||
         executable[0] != '/' || working_directory[0] != '/') return EINVAL;
@@ -985,7 +985,8 @@ static int nimi_macos_spawn_authorized(const char *executable, char *const argv[
         posix_spawnattr_destroy(&attributes);
         return result;
     }
-    short flags = POSIX_SPAWN_START_SUSPENDED | POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_CLOEXEC_DEFAULT;
+    short flags = POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_CLOEXEC_DEFAULT;
+    if (suspended) flags |= POSIX_SPAWN_START_SUSPENDED;
     if ((result = posix_spawnattr_setflags(&attributes, flags)) == 0) {
         result = posix_spawnattr_setpgroup(&attributes, 0);
     }
@@ -1001,12 +1002,20 @@ static int nimi_macos_spawn_authorized(const char *executable, char *const argv[
 
 int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char *const envp[],
                                const char *working_directory, uint32_t *pid_output) {
-    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 0);
+    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 0, 1);
 }
 
 int nimi_macos_spawn_installed_suspended(const char *executable, char *const argv[], char *const envp[],
                                          const char *working_directory, uint32_t *pid_output) {
-    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 1);
+    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 1, 1);
+}
+
+// Home's service connections, Chromium descriptors and stdio must never
+// cross into the long-lived user agent. Use the same CLOEXEC spawn primitive
+// as installed children, with the fixed supervisor image and no App profile.
+int nimi_macos_spawn_app_supervisor(const char *executable, char *const envp[], uint32_t *pid) {
+    char *argv[] = {(char *)executable, NULL};
+    return nimi_macos_spawn_authorized(executable, argv, envp, "/", pid, 1, 0);
 }
 
 int nimi_macos_watch_child(uint32_t pid) {
@@ -1163,4 +1172,59 @@ int nimi_macos_terminate_child_group(uint32_t pid) {
         observed = waitpid(child, &status, 0);
     } while (observed < 0 && errno == EINTR);
     return observed == child || (observed < 0 && errno == ECHILD) ? 0 : EIO;
+}
+
+// Each management connection is between the signed Home and user agent in
+// the same login session. Socket location and file permissions are not proof.
+int nimi_macos_supervisor_session(uint32_t *asid) {
+    audit_token_t own;
+    mach_msg_type_number_t length = TASK_AUDIT_TOKEN_COUNT;
+    if (asid == NULL || geteuid() == 0 || getuid() != geteuid() ||
+        task_info(mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&own, &length) != KERN_SUCCESS ||
+        length != TASK_AUDIT_TOKEN_COUNT || audit_token_to_asid(own) == 0) return EACCES;
+    *asid = audit_token_to_asid(own);
+    return 0;
+}
+
+int nimi_macos_verify_supervisor_peer(int fd, const char *path, const char *requirement,
+                                      const char *team, const char *identifier,
+                                      int anchor, int adhoc) {
+#ifdef NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT
+    (void)requirement; (void)team; (void)identifier; (void)anchor; (void)adhoc;
+#endif
+    audit_token_t token;
+    socklen_t size = sizeof(token);
+    uint32_t asid;
+    if (!path || path[0] != '/' || nimi_macos_supervisor_session(&asid) != 0 ||
+        getsockopt(fd, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &size) != 0 || size != sizeof(token) ||
+        (uint32_t)audit_token_to_asid(token) != asid || audit_token_to_euid(token) != geteuid() ||
+        audit_token_to_ruid(token) != getuid() || audit_token_to_pidversion(token) == 0) return EACCES;
+    pid_t pid = audit_token_to_pid(token);
+    struct proc_bsdinfo before, after;
+    char actual[PROC_PIDPATHINFO_MAXSIZE], checked[PROC_PIDPATHINFO_MAXSIZE];
+    if (nimi_process_snapshot(pid, &before, actual, sizeof(actual)) != 0 ||
+        strcmp(path, actual) != 0 || before.pbi_ruid != getuid() || before.pbi_uid != geteuid()) return EACCES;
+#ifndef NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT
+    struct stat st;
+    if (lstat(path, &st) != 0 || !S_ISREG(st.st_mode) || st.st_uid != 0 || (st.st_mode & 0022) != 0) return EACCES;
+    int result = nimi_verify_runtime_code(pid, &token, requirement, team, identifier, anchor, adhoc);
+    if (result != 0) return result;
+#endif
+    return nimi_process_snapshot(pid, &after, checked, sizeof(checked)) == 0 &&
+           strcmp(path, checked) == 0 && nimi_same_process(&before, &after) ? 0 : EACCES;
+}
+
+void nimi_macos_wait_control_disconnect(int fd) {
+    int q = kqueue();
+    if (q < 0) return;
+    struct kevent event;
+    EV_SET(&event, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
+    if (kevent(q, &event, 1, NULL, 0, NULL) == 0) {
+        for (;;) {
+            int n = kevent(q, NULL, 0, &event, 1, NULL);
+            if (n < 0 && errno == EINTR) continue;
+            if (n <= 0 || (event.flags & (EV_ERROR | EV_EOF))) break;
+        }
+    }
+    close(q);
 }

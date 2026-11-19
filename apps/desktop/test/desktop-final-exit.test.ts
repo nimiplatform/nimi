@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
@@ -34,8 +35,11 @@ const willQuitRegistration = mainTree.statements.find((statement) => {
   return ts.isPropertyAccessExpression(call.expression) && call.expression.expression.getText(mainTree) === 'app'
     && call.expression.name.text === 'on' && call.arguments[0]?.getText(mainTree) === "'will-quit'";
 });
+const sourceOwnerRegistration = mainTree.statements.find(statement =>
+  ts.isIfStatement(statement) && statement.expression.getText(mainTree) === 'SOURCE_PER_USER_RUNTIME_D2');
 assert.ok(finalExitDeclaration, 'main must own final IPC teardown');
 assert.ok(willQuitRegistration, 'main must defer ordinary IPC teardown until will-quit');
+assert.ok(sourceOwnerRegistration, 'source Home must observe its launcher');
 
 function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
   let registered = true;
@@ -43,6 +47,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
   let quitCount = 0;
   const exits: number[] = [];
   const listeners = new Map<string, () => void>();
+  const launcher = Object.assign(new EventEmitter(), { platform: 'darwin', connected: true });
   const bridge = {
     disposeFormalAppResources: async () => {},
     restoreFormalAppResources: async () => false,
@@ -60,7 +65,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     systemEntryHost: undefined, connectorAuthAcquisitionHost: undefined,
     registeredRuntimeBridge: bridge, productUpdateHost: undefined,
     DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS: 100,
-    homeRelaunchRequested: false, ownerQuitRequested: false,
+    process: launcher, exitHomeOnly: false, homeRelaunchRequested: false, ownerQuitRequested: false,
     stopProductRuntime: async () => {}, maintenanceRelaunchRequested: false,
     homeHostProfile: { mode: 'root' }, homeTemporaryEnvironment: { restore() {} },
     SOURCE_PER_USER_RUNTIME_D2: true, HOME_PROFILE_RELAUNCH_EXIT_CODE: 75,
@@ -75,7 +80,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
   };
   // Run actual main-process wiring and cleanup without booting Electron or touching a Runtime.
   const setup = ts.transpileModule(
-    `${finalExitDeclaration!.getText(mainTree)}\n${willQuitRegistration!.getText(mainTree)}`,
+    [finalExitDeclaration!, willQuitRegistration!, sourceOwnerRegistration!].map(node => node.getText(mainTree)).join('\n'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } },
   ).outputText;
   const owner = runInNewContext(
@@ -83,7 +88,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     ({ shutdownBeforeQuit, finishDesktopHomeProfileBeforeExit, recoverDesktopAfterFailedQuit });`, state,
   ) as { shutdownBeforeQuit(): Promise<unknown>; finishDesktopHomeProfileBeforeExit(): Promise<void>; recoverDesktopAfterFailedQuit(error: unknown): Promise<void> };
   return {
-    bridge, state, exits, shutdown: owner.shutdownBeforeQuit, finishHomeProfile: owner.finishDesktopHomeProfileBeforeExit,
+    bridge, state, exits, launcher, shutdown: owner.shutdownBeforeQuit, finishHomeProfile: owner.finishDesktopHomeProfileBeforeExit,
     recover: owner.recoverDesktopAfterFailedQuit,
     finishNativeQuit: () => { listeners.get('will-quit')!(); },
     quitCount: () => quitCount,
@@ -94,6 +99,15 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     },
   };
 }
+
+test('a source launcher disconnect requests one owner quit even if a signal follows', () => {
+  const fixture = shutdownFixture();
+  assert.equal(fixture.state.ownerQuitRequested, false);
+  fixture.launcher.emit('disconnect');
+  assert.equal(fixture.state.ownerQuitRequested, true);
+  fixture.launcher.emit('SIGTERM');
+  assert.equal(fixture.quitCount(), 1);
+});
 
 test('resource cleanup retains the IPC owner while Home can still send its final observations', async () => {
   const fixture = shutdownFixture();

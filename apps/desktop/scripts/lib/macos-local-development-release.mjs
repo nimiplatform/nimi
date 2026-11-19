@@ -68,6 +68,7 @@ export async function finalizeMacOSLocalDevelopmentCandidate({
     runtimeEntitlements,
   );
 
+  await verifyLocalDevelopmentCode(path.join(desktopApp, 'Contents/Helpers/nimi-app-supervisor'), 'ai.nimi.app-supervisor.dev');
   await verifyLocalDevelopmentCode(
     runtimePath,
     CONTRACT.runtimeSigningIdentifier,
@@ -102,7 +103,8 @@ async function signApplication(app, ignore) {
     identityValidation: false,
     ignore,
     optionsForFile: (candidate) => ({
-      additionalArguments: ['--timestamp=none'],
+      additionalArguments: candidate === path.join(app, 'Contents/Helpers/nimi-app-supervisor')
+        ? ['--timestamp=none', '--identifier', 'ai.nimi.app-supervisor.dev'] : ['--timestamp=none'],
       entitlements: candidate === app || candidate.endsWith('.app')
         || candidate.includes(`${path.sep}Contents${path.sep}MacOS${path.sep}`)
         ? electronEntitlements

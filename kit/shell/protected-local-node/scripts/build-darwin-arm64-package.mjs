@@ -1,5 +1,6 @@
-import { copyFileSync, existsSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, renameSync, realpathSync, readFileSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
@@ -39,6 +40,24 @@ const cargoEnvironment = {
 if (layoutOnly || localDevelopment || sourceLocalDevelopment) {
   delete cargoEnvironment.NIMI_MACOS_TEAM_ID;
 }
+if (sourceLocalDevelopment) {
+  const requireDesktop = createRequire(path.join(workspaceRoot, 'apps/desktop/package.json'));
+  cargoEnvironment.NIMI_SUPERVISOR_SOURCE_HOME = realpathSync(requireDesktop('electron'));
+}
+const supervisorArgs = [...cargoArguments, '--bin', 'nimi-app-supervisor', '--target-dir', path.join(crateRoot, 'target')];
+supervisorArgs[supervisorArgs.indexOf('--manifest-path') + 1] = path.resolve(crateRoot, '../protected-local/Cargo.toml');
+const supervisor = spawnSync('cargo', supervisorArgs, { cwd: workspaceRoot, env: cargoEnvironment, stdio: 'inherit' });
+if (supervisor.status !== 0) throw new Error('macOS App Supervisor build failed');
+if (sourceLocalDevelopment) {
+  const output = path.join(workspaceRoot, '.nimi/local/imp3/runtime-local-development/nimi-app-supervisor');
+  mkdirSync(path.dirname(output), {recursive:true});
+  const built = path.join(crateRoot, 'target/release/nimi-app-supervisor');
+  if (!existsSync(output) || !readFileSync(built).equals(readFileSync(output))) {
+    const staging = output + '.' + process.pid;
+    copyFileSync(built, staging);
+    renameSync(staging, output);
+  }
+}
 const cargo = spawnSync('cargo', cargoArguments, {
   cwd: workspaceRoot,
   env: cargoEnvironment,
@@ -51,13 +70,17 @@ if (cargo.status !== 0) {
 const source = path.join(crateRoot, 'target', 'release', 'libnimi_shell_protected_local_node.dylib');
 const target = path.join(crateRoot, 'npm', 'darwin-arm64', 'nimi_shell_protected_local.node');
 if (!existsSync(source)) throw new Error(`native Node-API output is missing: ${source}`);
-copyFileSync(source, target);
+const prepared = target + '.' + process.pid;
+copyFileSync(source, prepared);
 const installName = spawnSync('/usr/bin/install_name_tool', [
-  '-id', '@rpath/nimi_shell_protected_local.node', target,
+  '-id', '@rpath/nimi_shell_protected_local.node', prepared,
 ], { cwd: workspaceRoot, encoding: 'utf8' });
 if (installName.status !== 0) {
+  unlinkSync(prepared);
   throw new Error(`normalizing macOS native module install name failed: ${installName.stderr.trim()}`);
 }
+if (existsSync(target) && readFileSync(target).equals(readFileSync(prepared))) unlinkSync(prepared);
+else renameSync(prepared, target);
 console.log(
   `[protected-local] wrote ${path.relative(workspaceRoot, target)}${
     localDevelopment

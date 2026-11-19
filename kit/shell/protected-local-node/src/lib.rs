@@ -1189,6 +1189,17 @@ pub async fn desktop_remove_local_development_registration(
     .await
 }
 
+#[cfg(target_os = "macos")]
+#[napi(js_name = "desktopManageSupervisedApp")]
+pub async fn desktop_manage_supervised_app(input: JsonValue) -> JsonValue {
+    match serde_json::from_value(input) {
+        Ok(command) => nimi_shell_protected_local::manage_installed_apps(command).await,
+        Err(_) => {
+            json!({"status":"error","reasonCode":"installed-app-launch-failed","retryable":false})
+        }
+    }
+}
+
 #[napi(js_name = "desktopLaunchInstalledApp")]
 pub fn desktop_launch_installed_app<'env>(
     env: &'env napi::Env,

@@ -913,6 +913,7 @@ func appOperationCapability(admission localappop.Admission) (string, bool) {
 		localappop.OperationIntegrationCatalogList,
 		localappop.OperationIntegrationConnectionList,
 		localappop.OperationIntegrationCallInvoke,
+		localappop.OperationIntegrationSnapshotsSubscribe,
 		localappop.OperationIntegrationCallGet,
 		localappop.OperationIntegrationCallList,
 		localappop.OperationIntegrationCallCancel,

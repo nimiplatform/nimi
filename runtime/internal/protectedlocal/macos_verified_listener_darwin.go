@@ -27,6 +27,7 @@ type MacOSVerifiedDesktopListener struct {
 	mu         sync.Mutex
 	primed     net.Conn
 	active     *macOSVerifiedDesktopNetConn
+	supervisor *macOSVerifiedDesktopNetConn
 	activeDone chan struct{}
 	closed     bool
 	closeOnce  sync.Once
@@ -111,7 +112,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			continue
 		}
-		client, process, err := verifyConnectedMacOSDesktop(audit, listener.state.expectedDesktopExecutable)
+		client, process, supervisor, err := verifyMacOSControlPeer(audit, listener.state.expectedDesktopExecutable)
 		if err != nil {
 			listener.rejectPeer("desktop-process", err)
 			_ = raw.Close()
@@ -129,6 +130,7 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			continue
 		}
+		desktopConnection.installedSupervisor = supervisor
 		desktopConnection.revalidateProcess = func(ctx context.Context) error {
 			if err := ctx.Err(); err != nil {
 				return err
@@ -136,11 +138,11 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			if err := revalidateMacOSAuditProcess(audit); err != nil {
 				return err
 			}
-			_, current, err := verifyConnectedMacOSDesktop(audit, listener.state.expectedDesktopExecutable)
+			_, current, currentSupervisor, err := verifyMacOSControlPeer(audit, listener.state.expectedDesktopExecutable)
 			if err != nil {
 				return err
 			}
-			if current != process {
+			if current != process || supervisor != currentSupervisor {
 				return fmt.Errorf("verified Desktop process changed")
 			}
 			return nil
@@ -175,18 +177,24 @@ func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerified
 	if listener.closed || connection == nil || connection.connection == nil {
 		return nil, false
 	}
-	previous := listener.active
+	slot := &listener.active
+	if connection.connection.installedSupervisor {
+		slot = &listener.supervisor
+	}
+	previous := *slot
 	// A failed HTTP/2 channel can remain open at the Unix socket layer. Admit
 	// replacement only after the new connection independently verifies as the
 	// exact same OS process; a different Desktop process never displaces it.
 	if previous != nil && !sameMacOSDesktopPeer(previous, connection) {
 		return nil, false
 	}
-	if listener.activeDone != nil {
-		close(listener.activeDone)
+	if slot == &listener.active {
+		if listener.activeDone != nil {
+			close(listener.activeDone)
+		}
+		listener.activeDone = make(chan struct{})
 	}
-	listener.active = connection
-	listener.activeDone = make(chan struct{})
+	*slot = connection
 	return previous, true
 }
 
@@ -195,8 +203,8 @@ func sameMacOSDesktopPeer(left, right *macOSVerifiedDesktopNetConn) bool {
 	if left == nil || right == nil || left.connection == nil || right.connection == nil {
 		return false
 	}
-	leftPeer, leftOK := left.connection.DirectDesktopPeer()
-	rightPeer, rightOK := right.connection.DirectDesktopPeer()
+	leftPeer, leftOK := left.connection.controlPeer()
+	rightPeer, rightOK := right.connection.controlPeer()
 	leftProcess, leftProcessOK := left.connection.ClientProcess()
 	rightProcess, rightProcessOK := right.connection.ClientProcess()
 	// PID and audit session alone do not distinguish a replaced process or
@@ -208,8 +216,13 @@ func (listener *MacOSVerifiedDesktopListener) release(connection *macOSVerifiedD
 	listener.mu.Lock()
 	if listener.active == connection {
 		listener.active = nil
-		close(listener.activeDone)
-		listener.activeDone = nil
+		if listener.activeDone != nil {
+			close(listener.activeDone)
+			listener.activeDone = nil
+		}
+	}
+	if listener.supervisor == connection {
+		listener.supervisor = nil
 	}
 	listener.mu.Unlock()
 }
@@ -230,9 +243,10 @@ func (listener *MacOSVerifiedDesktopListener) Close() error {
 		listener.closed = true
 		primed := listener.primed
 		active := listener.active
+		supervisor := listener.supervisor
 		listener.primed = nil
 		listener.mu.Unlock()
-		listener.closeErr = errors.Join(listener.raw.Close(), closeNetConn(primed), closeNetConn(active))
+		listener.closeErr = errors.Join(listener.raw.Close(), closeNetConn(primed), closeNetConn(active), closeNetConn(supervisor))
 	})
 	return listener.closeErr
 }
