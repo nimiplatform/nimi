@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -90,18 +91,31 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 // Strip a Markdown fence only when it frames the known APML message carrier.
 // Other Markdown/code remains public text, rather than a new output protocol.
 func publicChatCarrierContent(raw string) string {
-	text := strings.TrimSpace(raw)
+	return publicChatCarrierContentMode(raw, true)
+}
+
+func publicChatCarrierContentMode(raw string, final bool) string {
+	text := strings.TrimLeftFunc(raw, unicode.IsSpace)
+	if !final && strings.HasPrefix("```", text) {
+		return ""
+	}
 	if strings.HasPrefix(text, "```") {
 		line := strings.IndexByte(text, '\n')
 		if line < 0 {
-			return ""
+			if !final {
+				return ""
+			}
+			return strings.TrimSpace(text)
 		}
-		body := strings.TrimSpace(text[line+1:])
+		body := strings.TrimLeftFunc(text[line+1:], unicode.IsSpace)
 		if strings.HasPrefix("<message", body) || startsWithAPMLRoot(body, "message") {
-			return strings.TrimSpace(strings.TrimSuffix(body, "```"))
+			if !final {
+				return body
+			}
+			return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(body), "```"))
 		}
 	}
-	return text
+	return strings.TrimSpace(text)
 }
 
 // Only reserved wire markers delimit private output. Incomplete marker prefixes

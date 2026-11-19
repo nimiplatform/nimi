@@ -147,7 +147,7 @@ func replyCodeEnd(raw string, start int, final bool) (int, bool) {
 		for i+run < len(raw) && raw[i+run] == mark {
 			run++
 		}
-		if run == width {
+		if run == width && (final || i+run < len(raw)) {
 			return i + run, true
 		}
 		i += run - 1

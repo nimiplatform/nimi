@@ -99,7 +99,14 @@ func publicChatAPMLReply(result *publicChatAPMLInterpretation) (*publicChatStruc
 // Streaming and final interpretation use the same lexical prefix, including
 // when a malformed entity and readable text arrive in one network fragment.
 func publicChatStreamingMessageText(raw string) (string, bool) {
-	raw = publicChatCarrierContent(raw)
+	// Provider fragments may split a UTF-8 character.
+	for len(raw) > 0 {
+		if r, n := utf8.DecodeLastRuneInString(raw); r != utf8.RuneError || n != 1 {
+			break
+		}
+		raw = raw[:len(raw)-1]
+	}
+	raw = publicChatCarrierContentMode(raw, false)
 	if !startsWithAPMLRoot(raw, "message") {
 		text, tail := publicChatPlainReplyPartsMode(raw, false)
 		if startsWithAPMLRoot(tail, "message") {
@@ -115,6 +122,47 @@ func publicChatStreamingMessageText(raw string) (string, bool) {
 	}
 	result := interpretPublicChatXML(prepareAPMLReplyBody(raw, false))
 	return result.Envelope.Message.Text, result.MessageSeen
+}
+
+// A stream can extend an already interpreted, undecorated message without
+// decoding its growing XML document again. Any lexical ambiguity returns to
+// the full interpreter immediately. The accumulated carrier remains intact.
+type publicChatStreamingProjection struct {
+	bodyAt int
+	probed bool
+}
+
+func (p *publicChatStreamingProjection) text(raw, delta string) (string, bool) {
+	if p.bodyAt > 0 {
+		if ordinaryAPMLCharacters(delta) {
+			return strings.TrimSpace(raw[p.bodyAt:]), true
+		}
+		p.bodyAt = 0
+	}
+	visible, valid := publicChatStreamingMessageText(raw)
+	if p.probed || !valid || visible == "" {
+		return visible, valid
+	}
+	p.probed = true
+	if startsWithAPMLRoot(raw, "message") {
+		header := xml.NewDecoder(strings.NewReader(raw))
+		if _, err := header.Token(); err == nil {
+			start := int(header.InputOffset())
+			body := raw[start:]
+			if ordinaryAPMLCharacters(body) && strings.TrimSpace(body) == visible {
+				p.bodyAt = start
+			}
+		}
+	}
+	return visible, valid
+}
+
+func ordinaryAPMLCharacters(value string) bool {
+	// Delimiters, XML entities, XML line endings and incomplete code points
+	// must use the same lexical rules as final interpretation.
+	return utf8.ValidString(value) && strings.IndexFunc(value, func(r rune) bool {
+		return r == '<' || r == '&' || r == '`' || r == '~' || r == '\\' || r == ']' || r == '\r' || r < 0x20 && r != '\t' && r != '\n' || r == 0xfffe || r == 0xffff
+	}) < 0
 }
 
 func interpretPublicChatAPML(raw string) *publicChatAPMLInterpretation {
@@ -386,6 +434,14 @@ func prepareAPMLReplyBody(raw string, final bool) string {
 		return raw
 	}
 	start := int(header.InputOffset())
+	if !final {
+		// Entity decoding is shared by ordinary APML and literal Markdown.
+		// A partial entity at the network edge has no determined character yet.
+		if amp := strings.LastIndexByte(raw[start:], '&'); amp >= 0 &&
+			strings.Trim(raw[start+amp+1:], "#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") == "" {
+			raw = raw[:start+amp]
+		}
+	}
 	end := replyMessageBodyEnd(raw, start, final)
 	bodyClosed := end < len(raw)
 	// Body boundaries are structural. Never use an effect-tail delimiter to

@@ -255,6 +255,7 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 
 	var output strings.Builder
 	projected := ""
+	var projection publicChatStreamingProjection
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID: session.CallerAppID, SubjectUserID: session.SubjectUserID,
 		Messages:             publicChatAgentTurnProviderMessages(compilation.ProviderPrompt.Messages),
@@ -277,7 +278,7 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 		if delta := event.GetDelta(); delta != nil {
 			if text := scenarioStreamText(event); text != "" {
 				output.WriteString(text)
-				visible, valid := publicChatStreamingMessageText(output.String())
+				visible, valid := projection.text(output.String(), text)
 				if valid && strings.HasPrefix(visible, projected) && len(visible) > len(projected) {
 					if publish != nil {
 						if err := publish(visible[len(projected):]); err != nil {

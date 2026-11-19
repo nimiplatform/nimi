@@ -49,6 +49,18 @@ func (r publicChatRuntime) runTurn(
 	streamCompletedAt := time.Time{}
 	firstDeltaObserved := false
 	projectedText := ""
+	publicTextObserved := false
+	publishText := func(delta string) error {
+		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
+			return err
+		}
+		if !publicTextObserved {
+			publicTextObserved = true
+			r.svc.observeLatency("runtime.agent.turn.started_to_first_public_text_ms", runStartedAt, "turn_id", turn.TurnID)
+		}
+		return nil
+	}
+	var projection publicChatStreamingProjection
 	reasoningObserved := false
 
 	contextCompilation, compositionErr := r.composePublicChatTurnContext(ctx, session, turn, req)
@@ -167,10 +179,10 @@ func (r publicChatRuntime) runTurn(
 					projection.TraceID = traceID
 					projection.OutputObserved = true
 				})
-				visible, valid := publicChatStreamingMessageText(accumulatedText.String())
+				visible, valid := projection.text(accumulatedText.String(), textDelta)
 				if valid && strings.HasPrefix(visible, projectedText) && len(visible) > len(projectedText) {
 					delta := visible[len(projectedText):]
-					if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
+					if err := publishText(delta); err != nil {
 						return err
 					}
 					projectedText = visible
@@ -370,7 +382,7 @@ func (r publicChatRuntime) runTurn(
 			return
 		}
 		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation, req.MaxOutputTokens, func(delta string) error {
-			if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
+			if err := publishText(delta); err != nil {
 				return err
 			}
 			projectedText += delta
@@ -573,9 +585,7 @@ func (r publicChatRuntime) runTurn(
 		remainingText = structured.Message.Text[len(projectedText):]
 	}
 	if remainingText != "" {
-		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
-			"text": remainingText,
-		}); err != nil {
+		if err := publishText(remainingText); err != nil {
 			r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat committed text_delta event failed: "+err.Error())
 			return
 		}
