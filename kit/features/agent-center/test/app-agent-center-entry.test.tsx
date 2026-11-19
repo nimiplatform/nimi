@@ -78,6 +78,8 @@ function entryClient(input: {
     agents: {
       listReferences: input.references,
       getIntroduction: async () => ownerUnavailable(),
+      listCharacters: async () => ownerUnavailable(),
+      connectCharacter: async () => ownerUnavailable(),
     },
     agentConfigure: configureClient(input.managerCalls),
   };

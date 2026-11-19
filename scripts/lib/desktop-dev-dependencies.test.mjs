@@ -155,7 +155,7 @@ test('a conflicting source Runtime stops local setup before it invokes the Realm
   const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-conflict-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(path.join(root, 'apps', 'web'), { recursive: true });
-  writeFileSync(path.join(root, '.env'), 'NIMI_DEV_REALM_DIR=unused-workspace\n');
+  writeFileSync(path.join(root, '.env'), 'NIMI_DEV_REALM_DIR=unused\n');
   const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;

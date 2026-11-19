@@ -216,10 +216,11 @@ describe('chat realm helpers', () => {
 
     const uploadedAvatar = { resourceId: 'avatar-resource', contentVersion: 'a'.repeat(64), publicationGeneration: 1,
       policyVersion: 'v1', expiresAt: null, images: [], originalUrl: null, previewUrl: null, video: null };
-    aliceNewer.otherUser.avatarResourceId = uploadedAvatar.resourceId;
-    aliceNewer.otherUser.avatarMedia = uploadedAvatar;
-    aliceNewer.otherUser.avatarUrl = null;
-    expect(toRealmHumanTargetSummary(aliceNewer, {
+    const withAvatar = {
+      ...aliceNewer,
+      otherUser: { ...aliceNewer.otherUser, avatarResourceId: uploadedAvatar.resourceId, avatarMedia: uploadedAvatar, avatarUrl: null },
+    };
+    expect(toRealmHumanTargetSummary(withAvatar, {
       noMessagesFallback: 'No messages',
       unknownTitle: 'Unknown',
     })).toMatchObject({

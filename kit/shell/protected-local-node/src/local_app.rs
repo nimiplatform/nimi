@@ -3360,6 +3360,7 @@ mod session_rebind_tests {
     #[test]
     fn native_text_turn_conversion_preserves_extended_sampling() {
         let request = native_text_turn_request(NativeTextTurnInput {
+            configuration: None,
             reasoning: Some(serde_json::json!({"activation":"required","effort":"xhigh","presentation":"summary"})),
             messages: vec![NativeTextTurnMessage {
                 role: "user".to_string(),

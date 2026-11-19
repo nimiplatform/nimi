@@ -313,6 +313,8 @@ function formalClient(
     agents: {
       listReferences: vi.fn(listReferences),
       getIntroduction: async () => { throw new Error('Unexpected getIntroduction call'); },
+      listCharacters: async () => { throw new Error('Unexpected listCharacters call'); },
+      connectCharacter: async () => { throw new Error('Unexpected connectCharacter call'); },
     },
     agentRealtime: realtimeClient(),
   };

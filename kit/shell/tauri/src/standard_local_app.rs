@@ -2439,6 +2439,7 @@ mod tests {
             R::AiRemoteModelCatalogStale,
             R::CapabilityCatalogMismatch,
             R::AiConfigInvalid,
+            R::AiConfigRevisionConflict,
             R::AiConnectorNotFound,
             R::AiConnectorDisabled,
             R::AiConnectorCredentialMissing,
