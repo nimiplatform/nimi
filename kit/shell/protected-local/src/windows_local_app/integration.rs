@@ -49,6 +49,30 @@ fn names(input: &Value, key: &str) -> Result<Vec<String>, LocalAppOperationError
     }
     Ok(names)
 }
+fn asset_endpoint(input: &Value) -> Result<IntegrationAssetEndpoint, LocalAppOperationError> {
+    let source = if let Some(info) = input.get("source") {
+        exact(input, &["relativePath", "source"])?;
+        exact(info, &["sha256", "mediaType", "sizeBytes"])?;
+        let hash = text(info, "sha256", 71, false)?;
+        let size = number(info, "sizeBytes", 32 * 1024 * 1024)?;
+        if size == 0 || !hash.strip_prefix("sha256:").is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))) {
+            return Err(invalid_payload());
+        }
+        Some(IntegrationAssetInfo { sha256: hash, media_type: text(info, "mediaType", 255, false)?, size_bytes: size })
+    } else {
+        exact(input, &["relativePath"])?;
+        None
+    };
+    Ok(IntegrationAssetEndpoint { relative_path: text(input, "relativePath", 4096, false)?, source })
+}
+
+fn call_asset(input: &Value, fields: &[&str]) -> Result<Option<IntegrationAssetEndpoint>, LocalAppOperationError> {
+    let mut keys = fields.to_vec();
+    if input.get("asset").is_some() { keys.push("asset"); }
+    exact(input, &keys)?;
+    input.get("asset").map(asset_endpoint).transpose()
+}
+
 // @nimi-authority: rule.nimi.runtime.integration.description
 fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationError> {
     let mut keys = vec![
@@ -63,6 +87,7 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
     if input.get("displayName").is_some() {
         keys.push("displayName");
     }
+    if input.get("assetTransfer").is_some() { keys.push("assetTransfer"); }
     exact(input, &keys)?;
     let display_name = input.get("displayName")
         .map(|_| text(input, "displayName", 512, false))
@@ -85,7 +110,12 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
     {
         return Err(invalid_payload());
     }
+    let asset_transfer = input.get("assetTransfer").map(|_| text(input, "assetTransfer", 16, false)).transpose()?;
+    if asset_transfer.as_deref().is_some_and(|direction| !["to-provider", "to-consumer"].contains(&direction) || effect != "write") {
+        return Err(invalid_payload());
+    }
     Ok(IntegrationOperation {
+        asset_transfer,
         name: text(input, "name", 128, false)?,
         display_name,
         description: text(input, "description", 4096, true)?,
@@ -107,6 +137,7 @@ fn operations(input: &Value) -> Result<Vec<IntegrationOperation>, LocalAppOperat
 }
 fn project_operation(v: IntegrationOperation) -> Value {
     let mut result = json!({"name":v.name,"description":v.description,"inputSchemaJson":v.input_schema_json,"outputSchemaJson":v.output_schema_json,"effect":v.effect,"supportsCancel":v.supports_cancel,"retryPolicy":v.retry_policy});
+    if let Some(direction) = v.asset_transfer { result["assetTransfer"] = json!(direction); }
     if let Some(display_name) = v.display_name {
         result["displayName"] = Value::String(display_name);
     }
@@ -197,8 +228,9 @@ pub(super) async fn invoke(
     channel: Channel,
     input: Value,
 ) -> Result<Value, LocalAppOperationError> {
-    exact(&input, &["targetRef", "operation", "inputJson"])?;
+    let asset = call_asset(&input, &["targetRef", "operation", "inputJson"])?;
     let request = InvokeIntegrationCallRequest {
+        asset,
         target_ref: text(&input, "targetRef", 512, false)?,
         operation: text(&input, "operation", 256, false)?,
         input_json: text(&input, "inputJson", 256 * 1024, false)?,
@@ -304,16 +336,22 @@ pub(super) async fn poll_provider(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    Ok(
-        json!({"calls":response.calls.into_iter().map(|v|json!({"callId":v.call_id,"targetRef":v.target_ref,"operation":v.operation,"inputJson":v.input_json,"consumerDisplayName":v.consumer_display_name,"consumerRef":v.consumer_ref})).collect::<Vec<_>>(),"canceledCallIds":response.canceled_call_ids}),
-    )
+    let calls: Vec<_> = response.calls.into_iter().map(|v| {
+        let mut call = json!({"callId":v.call_id,"targetRef":v.target_ref,"operation":v.operation,"inputJson":v.input_json,"consumerDisplayName":v.consumer_display_name,"consumerRef":v.consumer_ref});
+        if let Some(asset) = v.offered_asset {
+            call["offeredAsset"] = json!({"sha256": asset.sha256, "mediaType": asset.media_type, "sizeBytes": asset.size_bytes});
+        }
+        call
+    }).collect();
+    Ok(json!({"calls":calls,"canceledCallIds":response.canceled_call_ids}))
 }
 pub(super) async fn complete_provider(
     channel: Channel,
     input: Value,
 ) -> Result<Value, LocalAppOperationError> {
-    exact(&input, &["callId", "resultJson", "errorCode"])?;
+    let asset = call_asset(&input, &["callId", "resultJson", "errorCode"])?;
     let request = CompleteIntegrationProviderRequest {
+        asset,
         call_id: text(&input, "callId", 512, false)?,
         result_json: text(&input, "resultJson", 1024 * 1024, true)?,
         error_code: text(&input, "errorCode", 512, true)?,

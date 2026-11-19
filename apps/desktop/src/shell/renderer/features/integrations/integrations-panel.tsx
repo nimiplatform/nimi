@@ -1379,6 +1379,9 @@ export function IntegrationsPanel({
                           <span className="mt-1 block text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
                             {display.summary}
                           </span>
+                          {op.assetTransfer && <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">
+                            {t(op.assetTransfer === 'to-provider' ? 'Integrations.sendManagedFile' : 'Integrations.receiveManagedFile')}
+                          </span>}
                         </span>
                         <span aria-hidden="true" className={`mt-0.5 ${permissionCheckClass}`}>
                           <Check size={13} strokeWidth={3} />

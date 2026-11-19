@@ -84,7 +84,14 @@ export function validateNimiLocalAppIntegrationInput(method: NimiLocalAppIntegra
   const connectionInput = method === 'putConnection' || method === 'startConnectionSetup';
   if (connectionInput && input?.adapter === 'weixin' && input.displayName === undefined) input.displayName = '';
   if (method === 'submitConnectionSetup' && input && input.action === undefined) input.action = '';
-  assertExactKeys(input, INPUT_KEYS[method], 'Integration input');
+  const hasAsset = (method === 'invoke' || method === 'completeProvider') && input?.asset !== undefined;
+  assertExactKeys(input, hasAsset ? [...INPUT_KEYS[method], 'asset'] : INPUT_KEYS[method], 'Integration input');
+  if (hasAsset) {
+    const asset = asRecord(input.asset);
+    assertExactKeys(asset, asset?.source === undefined ? ['relativePath'] : ['relativePath', 'source'], 'Integration asset endpoint');
+    const relativePath = text(asset.relativePath, 4096, false);
+    input.asset = { relativePath, ...(asset.source === undefined ? {} : { source: assetInfo(asset.source, false) }) };
+  }
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > 33 * 1024 * 1024) return invalid();
   for (const key of INPUT_KEYS[method]) {
     if (key === 'action') { if (input.action !== '' && input.action !== 'create-new-target') return invalid(); }
@@ -132,11 +139,28 @@ function text(value: unknown, bound: number, empty = false, projection = false):
   return value;
 }
 function list(value: unknown, max = 1000): unknown[] { if (!Array.isArray(value) || value.length > max) return localAppProjectionError('Integration list'); return value; }
+// @nimi-authority: rule.nimi.runtime.integration.app-provider-asset-transfer
+function assetInfo(value: unknown, projection: boolean) {
+  const info = asRecord(value);
+  const keys = ['sha256', 'mediaType', 'sizeBytes'];
+  if (projection) assertExactProjectionKeys(info, keys, 'Integration asset metadata'); else assertExactKeys(info, keys, 'Integration asset metadata');
+  const sha256 = text(info.sha256, 71, false, projection);
+  const mediaType = text(info.mediaType, 255, false, projection);
+  const sizeBytes = info.sizeBytes;
+  if (!/^sha256:[0-9a-f]{64}$/.test(sha256) || !Number.isSafeInteger(sizeBytes) || Number(sizeBytes) < 1 || Number(sizeBytes) > 32*1024*1024) {
+    return projection ? localAppProjectionError('Integration asset metadata') : invalid();
+  }
+  return Object.freeze({ sha256, mediaType, sizeBytes: Number(sizeBytes) });
+}
 // @nimi-authority: rule.nimi.runtime.integration.description
 function operation(value: unknown, projection = true): NimiIntegrationOperation {
   const row = asRecord(value); const keys = ['name','description','inputSchemaJson','outputSchemaJson','effect','supportsCancel','retryPolicy'];
   if (row && Object.hasOwn(row, 'displayName')) keys.push('displayName');
+  if (row && Object.hasOwn(row, 'assetTransfer')) keys.push('assetTransfer');
   if (projection) assertExactProjectionKeys(row, keys, 'Integration operation'); else assertExactKeys(row, keys, 'Integration operation');
+  if (row.assetTransfer !== undefined && (row.effect !== 'write' || !['to-provider','to-consumer'].includes(String(row.assetTransfer)))) {
+    return projection ? localAppProjectionError('Integration asset direction') : invalid();
+  }
   if (row.displayName !== undefined) {
     const displayName = text(row.displayName, 512, false, projection);
     if (displayName.trim() !== displayName) return projection ? localAppProjectionError('Integration display name') : invalid();
@@ -188,7 +212,17 @@ function project(method: NimiLocalAppIntegrationMethod, value: unknown): unknown
   if (method === 'setPermission') { assertExactProjectionKeys(row,['permission'],'Integration permission response'); return permission(row.permission); }
   if (method === 'pollProvider') {
     assertExactProjectionKeys(row,['calls','canceledCallIds'],'Integration provider poll');
-    return Object.freeze({ calls: Object.freeze(list(row.calls,64).map(v => { const item = asRecord(v); assertExactProjectionKeys(item,['callId','targetRef','operation','inputJson','consumerDisplayName','consumerRef'],'Integration provider call'); for (const key of Object.keys(item)) text(item[key],key === 'inputJson' ? 256*1024 : 512,key === 'consumerDisplayName',true); try { JSON.parse(String(item.inputJson)); } catch { return localAppProjectionError('Integration provider input'); } return Object.freeze({...item}); })), canceledCallIds: Object.freeze(list(row.canceledCallIds,1024).map(v => text(v,512,false,true))) });
+    const calls = list(row.calls, 64).map(value => {
+      const item = asRecord(value);
+      const keys = ['callId', 'targetRef', 'operation', 'inputJson', 'consumerDisplayName', 'consumerRef'];
+      const optional: string[] = [];
+      if (item?.offeredAsset !== undefined) optional.push('offeredAsset');
+      assertExactProjectionKeys(item, [...keys, ...optional], 'Integration provider call');
+      for (const key of keys) text(item[key], key === 'inputJson' ? 256*1024 : 512, key === 'consumerDisplayName', true);
+      try { JSON.parse(String(item.inputJson)); } catch { return localAppProjectionError('Integration provider input'); }
+      return Object.freeze({ ...item, ...(item.offeredAsset === undefined ? {} : { offeredAsset: assetInfo(item.offeredAsset, true) }) });
+    });
+    return Object.freeze({ calls: Object.freeze(calls), canceledCallIds: Object.freeze(list(row.canceledCallIds,1024).map(v => text(v,512,false,true))) });
   }
   assertExactProjectionKeys(row,['targets','permissions','consumers','calls'],'Integration management');
   return Object.freeze({ targets: Object.freeze(list(row.targets).map(target)), permissions: Object.freeze(list(row.permissions,4096).map(permission)), consumers: Object.freeze(list(row.consumers).map(consumer)), calls: Object.freeze(list(row.calls,100).map(call)) });

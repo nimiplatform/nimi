@@ -242,6 +242,18 @@ units:
         target: definition.nimi.runtime.app-surface.app-projection-plane
       - type: applies_to
         target: definition.nimi.runtime.integration.call-plane
+  - id: rule.nimi.runtime.integration.app-provider-asset-transfer
+    kind: rule
+    title: App-provider file transfer requires both active participants
+    modality: must
+    statement: A registered App provider may declare one managed asset to be transferred to the provider or to the consumer as part of an explicitly permitted write operation. The direction is part of the operation contract. Each participant supplies only a relative path in its own account and registered-subject asset partition. The sender names the exact digest, positive size and media type. The receiver selects a new non-overwriting destination. Runtime retains bounded metadata with the accepted call and offers only safe metadata to the provider. At completion it reads the identified immutable source, verifies no more than 32 MiB, and adopts the bytes using the receiving asset owner. Final publication holds the existing consumer and provider session, current permission and cancellation fences. Only successful asset publication permits a completed result. Bytes, private paths and credentials stay out of call history and audit. A transfer direction change requires a new operation identity or a fresh explicit grant. Existing JSON-only operations retain their declared behavior.
+    condition: When a consumer invokes an App-provided Integration operation with one managed file.
+    failure: Reject missing, changed, foreign or oversized sources, wrong-direction endpoints, occupied destinations and expired authority. Report an uncertain effect when publication succeeded but its terminal fact could not be recorded.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-projection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
   - id: rule.nimi.runtime.integration.feishu-inbound-bounds
     kind: rule
     title: Feishu WebSocket limits precede allocation and task creation

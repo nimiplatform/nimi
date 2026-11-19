@@ -21,6 +21,9 @@ message IntegrationOperation {
   // Source-owned display copy only; name remains the permission/invocation ID.
   // Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
   optional string display_name = 8;
+  // App providers only. Absent for ordinary JSON calls.
+  optional string asset_transfer = 9; // "to-provider" or "to-consumer"
+
 }
 
 message IntegrationTarget {
@@ -74,10 +77,25 @@ message ListIntegrationCatalogRequest {}
 message ListIntegrationCatalogResponse { repeated IntegrationTarget targets = 1; }
 message ListIntegrationConnectionsRequest {}
 message ListIntegrationConnectionsResponse { repeated IntegrationTarget connections = 1; }
+// Immutable source metadata. The sender's private path stays in Runtime.
+message IntegrationAssetInfo {
+  string sha256 = 1;
+  string media_type = 2;
+  uint32 size_bytes = 3;
+}
+
+// Each caller names a path in its own managed asset partition. Only the
+// sending endpoint supplies source metadata. A destination must be new.
+message IntegrationAssetEndpoint {
+  string relative_path = 1;
+  IntegrationAssetInfo source = 2;
+}
+
 message InvokeIntegrationCallRequest {
   string target_ref = 1;
   string operation = 2;
   string input_json = 3;
+  IntegrationAssetEndpoint asset = 4;
 }
 message InvokeIntegrationCallResponse { IntegrationCall call = 1; }
 message GetIntegrationCallRequest { string call_id = 1; }
@@ -106,6 +124,7 @@ message IntegrationProviderCall {
   // Runtime-derived account and Registered App Subject reference, never caller input.
   // Providers use this to scope their own multi-call business object references.
   string consumer_ref = 6;
+  IntegrationAssetInfo offered_asset = 7;
 }
 message PollIntegrationProviderResponse {
   repeated IntegrationProviderCall calls = 1;
@@ -115,6 +134,7 @@ message CompleteIntegrationProviderRequest {
   string call_id = 1;
   string result_json = 2;
   string error_code = 3;
+  IntegrationAssetEndpoint asset = 4;
 }
 message CompleteIntegrationProviderResponse { bool accepted = 1; }
 

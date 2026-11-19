@@ -4213,9 +4213,10 @@ type CompleteAppPackageUninstallResponse struct {
 }
 
 type CompleteIntegrationProviderRequest struct {
-	CallId     string `json:"call_id,omitempty"`
-	ResultJson string `json:"result_json,omitempty"`
-	ErrorCode  string `json:"error_code,omitempty"`
+	CallId     string                    `json:"call_id,omitempty"`
+	ResultJson string                    `json:"result_json,omitempty"`
+	ErrorCode  string                    `json:"error_code,omitempty"`
+	Asset      *IntegrationAssetEndpoint `json:"asset,omitempty"`
 }
 
 type CompleteIntegrationProviderResponse struct {
@@ -5524,6 +5525,17 @@ type InstallModelFromPlanResponse struct {
 	Disposition      LocalTransferDisposition `json:"disposition,omitempty"`
 }
 
+type IntegrationAssetEndpoint struct {
+	RelativePath string                `json:"relative_path,omitempty"`
+	Source       *IntegrationAssetInfo `json:"source,omitempty"`
+}
+
+type IntegrationAssetInfo struct {
+	Sha256    string `json:"sha256,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	SizeBytes uint32 `json:"size_bytes,omitempty"`
+}
+
 type IntegrationCall struct {
 	CallId              string `json:"call_id,omitempty"`
 	TargetRef           string `json:"target_ref,omitempty"`
@@ -5589,6 +5601,7 @@ type IntegrationOperation struct {
 	SupportsCancel   bool    `json:"supports_cancel,omitempty"`
 	RetryPolicy      string  `json:"retry_policy,omitempty"`
 	DisplayName      *string `json:"display_name,omitempty"`
+	AssetTransfer    *string `json:"asset_transfer,omitempty"`
 }
 
 type IntegrationPermission struct {
@@ -5599,12 +5612,13 @@ type IntegrationPermission struct {
 }
 
 type IntegrationProviderCall struct {
-	CallId              string `json:"call_id,omitempty"`
-	TargetRef           string `json:"target_ref,omitempty"`
-	Operation           string `json:"operation,omitempty"`
-	InputJson           string `json:"input_json,omitempty"`
-	ConsumerDisplayName string `json:"consumer_display_name,omitempty"`
-	ConsumerRef         string `json:"consumer_ref,omitempty"`
+	CallId              string                `json:"call_id,omitempty"`
+	TargetRef           string                `json:"target_ref,omitempty"`
+	Operation           string                `json:"operation,omitempty"`
+	InputJson           string                `json:"input_json,omitempty"`
+	ConsumerDisplayName string                `json:"consumer_display_name,omitempty"`
+	ConsumerRef         string                `json:"consumer_ref,omitempty"`
+	OfferedAsset        *IntegrationAssetInfo `json:"offered_asset,omitempty"`
 }
 
 type IntegrationQQOfficialConfig struct {
@@ -5664,9 +5678,10 @@ type InterruptRealtimeOutputResponse struct {
 }
 
 type InvokeIntegrationCallRequest struct {
-	TargetRef string `json:"target_ref,omitempty"`
-	Operation string `json:"operation,omitempty"`
-	InputJson string `json:"input_json,omitempty"`
+	TargetRef string                    `json:"target_ref,omitempty"`
+	Operation string                    `json:"operation,omitempty"`
+	InputJson string                    `json:"input_json,omitempty"`
+	Asset     *IntegrationAssetEndpoint `json:"asset,omitempty"`
 }
 
 type InvokeIntegrationCallResponse struct {

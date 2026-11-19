@@ -2049,6 +2049,7 @@ class CompleteIntegrationProviderRequest:
     call_id: str | None = None
     result_json: str | None = None
     error_code: str | None = None
+    asset: IntegrationAssetEndpoint | None = None
 
 @dataclass(frozen=True)
 class CompleteIntegrationProviderResponse:
@@ -3376,6 +3377,17 @@ class InstallModelFromPlanResponse:
     disposition: LocalTransferDisposition | None = None
 
 @dataclass(frozen=True)
+class IntegrationAssetEndpoint:
+    relative_path: str | None = None
+    source: IntegrationAssetInfo | None = None
+
+@dataclass(frozen=True)
+class IntegrationAssetInfo:
+    sha256: str | None = None
+    media_type: str | None = None
+    size_bytes: int | None = None
+
+@dataclass(frozen=True)
 class IntegrationCall:
     call_id: str | None = None
     target_ref: str | None = None
@@ -3441,6 +3453,7 @@ class IntegrationOperation:
     supports_cancel: bool | None = None
     retry_policy: str | None = None
     display_name: str | None = None
+    asset_transfer: str | None = None
 
 @dataclass(frozen=True)
 class IntegrationPermission:
@@ -3457,6 +3470,7 @@ class IntegrationProviderCall:
     input_json: str | None = None
     consumer_display_name: str | None = None
     consumer_ref: str | None = None
+    offered_asset: IntegrationAssetInfo | None = None
 
 @dataclass(frozen=True)
 class IntegrationQQOfficialConfig:
@@ -3521,6 +3535,7 @@ class InvokeIntegrationCallRequest:
     target_ref: str | None = None
     operation: str | None = None
     input_json: str | None = None
+    asset: IntegrationAssetEndpoint | None = None
 
 @dataclass(frozen=True)
 class InvokeIntegrationCallResponse:

@@ -58,6 +58,12 @@ export interface IntegrationOperation {
      * @generated from protobuf field: optional string display_name = 8
      */
     displayName?: string;
+    /**
+     * App providers only. Absent for ordinary JSON calls.
+     *
+     * @generated from protobuf field: optional string asset_transfer = 9
+     */
+    assetTransfer?: string; // "to-provider" or "to-consumer"
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.IntegrationTarget
@@ -233,6 +239,41 @@ export interface ListIntegrationConnectionsResponse {
     connections: IntegrationTarget[];
 }
 /**
+ * Immutable source metadata. The sender's private path stays in Runtime.
+ *
+ * @generated from protobuf message nimi.runtime.v1.IntegrationAssetInfo
+ */
+export interface IntegrationAssetInfo {
+    /**
+     * @generated from protobuf field: string sha256 = 1
+     */
+    sha256: string;
+    /**
+     * @generated from protobuf field: string media_type = 2
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: uint32 size_bytes = 3
+     */
+    sizeBytes: number;
+}
+/**
+ * Each caller names a path in its own managed asset partition. Only the
+ * sending endpoint supplies source metadata. A destination must be new.
+ *
+ * @generated from protobuf message nimi.runtime.v1.IntegrationAssetEndpoint
+ */
+export interface IntegrationAssetEndpoint {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationAssetInfo source = 2
+     */
+    source?: IntegrationAssetInfo;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.InvokeIntegrationCallRequest
  */
 export interface InvokeIntegrationCallRequest {
@@ -248,6 +289,10 @@ export interface InvokeIntegrationCallRequest {
      * @generated from protobuf field: string input_json = 3
      */
     inputJson: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationAssetEndpoint asset = 4
+     */
+    asset?: IntegrationAssetEndpoint;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InvokeIntegrationCallResponse
@@ -400,6 +445,10 @@ export interface IntegrationProviderCall {
      * @generated from protobuf field: string consumer_ref = 6
      */
     consumerRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationAssetInfo offered_asset = 7
+     */
+    offeredAsset?: IntegrationAssetInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PollIntegrationProviderResponse
@@ -430,6 +479,10 @@ export interface CompleteIntegrationProviderRequest {
      * @generated from protobuf field: string error_code = 3
      */
     errorCode: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.IntegrationAssetEndpoint asset = 4
+     */
+    asset?: IntegrationAssetEndpoint;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CompleteIntegrationProviderResponse
@@ -821,7 +874,8 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
             { no: 5, name: "effect", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "supports_cancel", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "retry_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "asset_transfer", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<IntegrationOperation>): IntegrationOperation {
@@ -866,6 +920,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
                 case /* optional string display_name */ 8:
                     message.displayName = reader.string();
                     break;
+                case /* optional string asset_transfer */ 9:
+                    message.assetTransfer = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -902,6 +959,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
         /* optional string display_name = 8; */
         if (message.displayName !== undefined)
             writer.tag(8, WireType.LengthDelimited).string(message.displayName);
+        /* optional string asset_transfer = 9; */
+        if (message.assetTransfer !== undefined)
+            writer.tag(9, WireType.LengthDelimited).string(message.assetTransfer);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1460,12 +1520,130 @@ class ListIntegrationConnectionsResponse$Type extends MessageType<ListIntegratio
  */
 export const ListIntegrationConnectionsResponse = new ListIntegrationConnectionsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class IntegrationAssetInfo$Type extends MessageType<IntegrationAssetInfo> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationAssetInfo", [
+            { no: 1, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "size_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationAssetInfo>): IntegrationAssetInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sha256 = "";
+        message.mediaType = "";
+        message.sizeBytes = 0;
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationAssetInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationAssetInfo): IntegrationAssetInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string sha256 */ 1:
+                    message.sha256 = reader.string();
+                    break;
+                case /* string media_type */ 2:
+                    message.mediaType = reader.string();
+                    break;
+                case /* uint32 size_bytes */ 3:
+                    message.sizeBytes = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationAssetInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string sha256 = 1; */
+        if (message.sha256 !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sha256);
+        /* string media_type = 2; */
+        if (message.mediaType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mediaType);
+        /* uint32 size_bytes = 3; */
+        if (message.sizeBytes !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.sizeBytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationAssetInfo
+ */
+export const IntegrationAssetInfo = new IntegrationAssetInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IntegrationAssetEndpoint$Type extends MessageType<IntegrationAssetEndpoint> {
+    constructor() {
+        super("nimi.runtime.v1.IntegrationAssetEndpoint", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source", kind: "message", T: () => IntegrationAssetInfo }
+        ]);
+    }
+    create(value?: PartialMessage<IntegrationAssetEndpoint>): IntegrationAssetEndpoint {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<IntegrationAssetEndpoint>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IntegrationAssetEndpoint): IntegrationAssetEndpoint {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* nimi.runtime.v1.IntegrationAssetInfo source */ 2:
+                    message.source = IntegrationAssetInfo.internalBinaryRead(reader, reader.uint32(), options, message.source);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IntegrationAssetEndpoint, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* nimi.runtime.v1.IntegrationAssetInfo source = 2; */
+        if (message.source)
+            IntegrationAssetInfo.internalBinaryWrite(message.source, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IntegrationAssetEndpoint
+ */
+export const IntegrationAssetEndpoint = new IntegrationAssetEndpoint$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class InvokeIntegrationCallRequest$Type extends MessageType<InvokeIntegrationCallRequest> {
     constructor() {
         super("nimi.runtime.v1.InvokeIntegrationCallRequest", [
             { no: 1, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "asset", kind: "message", T: () => IntegrationAssetEndpoint }
         ]);
     }
     create(value?: PartialMessage<InvokeIntegrationCallRequest>): InvokeIntegrationCallRequest {
@@ -1491,6 +1669,9 @@ class InvokeIntegrationCallRequest$Type extends MessageType<InvokeIntegrationCal
                 case /* string input_json */ 3:
                     message.inputJson = reader.string();
                     break;
+                case /* nimi.runtime.v1.IntegrationAssetEndpoint asset */ 4:
+                    message.asset = IntegrationAssetEndpoint.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1512,6 +1693,9 @@ class InvokeIntegrationCallRequest$Type extends MessageType<InvokeIntegrationCal
         /* string input_json = 3; */
         if (message.inputJson !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.inputJson);
+        /* nimi.runtime.v1.IntegrationAssetEndpoint asset = 4; */
+        if (message.asset)
+            IntegrationAssetEndpoint.internalBinaryWrite(message.asset, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2115,7 +2299,8 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
             { no: 3, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "consumer_display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "consumer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "consumer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "offered_asset", kind: "message", T: () => IntegrationAssetInfo }
         ]);
     }
     create(value?: PartialMessage<IntegrationProviderCall>): IntegrationProviderCall {
@@ -2153,6 +2338,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
                 case /* string consumer_ref */ 6:
                     message.consumerRef = reader.string();
                     break;
+                case /* nimi.runtime.v1.IntegrationAssetInfo offered_asset */ 7:
+                    message.offeredAsset = IntegrationAssetInfo.internalBinaryRead(reader, reader.uint32(), options, message.offeredAsset);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2183,6 +2371,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
         /* string consumer_ref = 6; */
         if (message.consumerRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.consumerRef);
+        /* nimi.runtime.v1.IntegrationAssetInfo offered_asset = 7; */
+        if (message.offeredAsset)
+            IntegrationAssetInfo.internalBinaryWrite(message.offeredAsset, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2254,7 +2445,8 @@ class CompleteIntegrationProviderRequest$Type extends MessageType<CompleteIntegr
         super("nimi.runtime.v1.CompleteIntegrationProviderRequest", [
             { no: 1, name: "call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "result_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "error_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "error_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "asset", kind: "message", T: () => IntegrationAssetEndpoint }
         ]);
     }
     create(value?: PartialMessage<CompleteIntegrationProviderRequest>): CompleteIntegrationProviderRequest {
@@ -2280,6 +2472,9 @@ class CompleteIntegrationProviderRequest$Type extends MessageType<CompleteIntegr
                 case /* string error_code */ 3:
                     message.errorCode = reader.string();
                     break;
+                case /* nimi.runtime.v1.IntegrationAssetEndpoint asset */ 4:
+                    message.asset = IntegrationAssetEndpoint.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2301,6 +2496,9 @@ class CompleteIntegrationProviderRequest$Type extends MessageType<CompleteIntegr
         /* string error_code = 3; */
         if (message.errorCode !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.errorCode);
+        /* nimi.runtime.v1.IntegrationAssetEndpoint asset = 4; */
+        if (message.asset)
+            IntegrationAssetEndpoint.internalBinaryWrite(message.asset, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

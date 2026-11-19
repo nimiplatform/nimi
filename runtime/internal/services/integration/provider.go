@@ -31,7 +31,8 @@ func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev
 	// This first provider surface supports bounded local handlers, not nested
 	// delegated execution. Do not claim cancellation/retry absent a handler contract.
 	for _, op := range req.Operations {
-		if op.SupportsCancel || op.RetryPolicy != "none" {
+		if op.SupportsCancel || op.RetryPolicy != "none" || (op.AssetTransfer != nil &&
+			((op.GetAssetTransfer() != assetToConsumer && op.GetAssetTransfer() != assetToProvider) || op.Effect != "write")) {
 			return nil, failure(codes.InvalidArgument, "INTEGRATION_PROVIDER_BEHAVIOR_UNSUPPORTED")
 		}
 	}
@@ -171,7 +172,11 @@ func (s *Service) PollIntegrationProvider(ctx context.Context, req *runtimev1.Po
 				continue
 			}
 			c.delivered = true
-			result.Calls = append(result.Calls, &runtimev1.IntegrationProviderCall{CallId: c.fact.CallId, TargetRef: c.target.Public.TargetRef, Operation: c.op.Name, InputJson: c.input, ConsumerDisplayName: c.fact.ConsumerDisplayName, ConsumerRef: ref("icons_", c.decision.AccountID, c.decision.RegisteredAppSubject)})
+			offered := &runtimev1.IntegrationProviderCall{CallId: c.fact.CallId, TargetRef: c.target.Public.TargetRef, Operation: c.op.Name, InputJson: c.input, ConsumerDisplayName: c.fact.ConsumerDisplayName, ConsumerRef: ref("icons_", c.decision.AccountID, c.decision.RegisteredAppSubject)}
+			if c.asset != nil && c.asset.Source != nil {
+				offered.OfferedAsset = proto.Clone(c.asset.Source).(*runtimev1.IntegrationAssetInfo)
+			}
+			result.Calls = append(result.Calls, offered)
 			if len(result.Calls) == 16 {
 				break
 			}
@@ -207,10 +212,11 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 	record.set("call_id", req.CallId)
 	s.mu.Lock()
 	c := s.calls[req.CallId]
-	if c == nil || c.target.Account != d.AccountID || c.target.Subject != d.RegisteredAppSubject || c.providerSession != d.SessionID || !c.delivered || c.fact.Status != "accepted" || c.ctx.Err() != nil {
+	if c == nil || c.target.Account != d.AccountID || c.target.Subject != d.RegisteredAppSubject || c.providerSession != d.SessionID || !c.delivered || c.preparingAsset || c.fact.Status != "accepted" || c.ctx.Err() != nil {
 		s.mu.Unlock()
 		return record.notAccepted(), nil
 	}
+	consumerAsset := c.asset
 	s.mu.Unlock()
 	record.set("target_ref", c.target.Public.TargetRef)
 	record.set("integration_operation", c.op.Name)
@@ -219,11 +225,14 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 		return record.notAccepted(), nil
 	}
 	if req.ErrorCode != "" {
-		if len(req.ErrorCode) > 128 {
+		if len(req.ErrorCode) > 128 || req.Asset != nil {
 			return nil, failure(codes.InvalidArgument, "INTEGRATION_ERROR_BOUNDS")
 		}
 		record.set("call_state", "failed")
 		return record.completion(s.finishProvider(ctx, c, d, "failed", "", "PROVIDER_FAILED", record)), nil
+	}
+	if err := validateAssetEndpoint(c.op.GetAssetTransfer(), req.Asset, false); err != nil {
+		return nil, err
 	}
 	value, err := decodeJSON(req.ResultJson, maxOutput)
 	if err != nil {
@@ -231,6 +240,9 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 	}
 	if err := validateSchema(c.op.OutputSchemaJson, value); err != nil {
 		return nil, err
+	}
+	if consumerAsset != nil {
+		return s.completeAsset(ctx, c, d, consumerAsset, req.Asset, req.ResultJson, record)
 	}
 	record.set("call_state", "completed")
 	return record.completion(s.finishProvider(ctx, c, d, "completed", req.ResultJson, "", record)), nil
@@ -241,6 +253,10 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 // The accepted terminal fact and its audit result commit in one transaction.
 // @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
 func (s *Service) finishProvider(providerCtx context.Context, c *invocation, completing accountservice.LocalAppCallerDecision, state, result, reason string, record *operationAudit) bool {
+	return s.finishProviderGuarded(providerCtx, c, completing, state, result, reason, record, nil)
+}
+
+func (s *Service) finishProviderGuarded(providerCtx context.Context, c *invocation, completing accountservice.LocalAppCallerDecision, state, result, reason string, record *operationAudit, publish func() error) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() || c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) || c.fact.Status != "accepted" {
@@ -258,6 +274,16 @@ func (s *Service) finishProvider(providerCtx context.Context, c *invocation, com
 		// Current expiry is checked by the App owner for both participants.
 		if p.ctx.Err() != nil || closed(completing.SessionInvalidated) {
 			return adapterError("INTEGRATION_SCOPE_ENDED")
+		}
+		if publish != nil {
+			if err := publish(); err != nil {
+				record.set("call_state", "failed")
+				s.finishLockedInContext(commitCtx, c, "failed", "", "INTEGRATION_MEDIA_UNAVAILABLE", record)
+				return nil
+			}
+		}
+		if record != nil {
+			record.set("call_state", state)
 		}
 		accepted = s.finishLockedInContext(commitCtx, c, state, result, reason, record)
 		return nil

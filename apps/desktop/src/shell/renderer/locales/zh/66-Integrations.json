@@ -59,6 +59,8 @@
   "verified": "连接已验证，现有许可和回复位置已保留。",
   "operations": "允许的操作",
   "read": "读取",
+  "sendManagedFile": "此操作会将所选的一个文件发送给提供方。",
+  "receiveManagedFile": "此操作会将提供方的一个文件保存到调用应用中。",
   "write": "可能更改数据",
   "apps": "应用",
   "allowed": "已保存所选使用许可。",

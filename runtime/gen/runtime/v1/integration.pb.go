@@ -85,7 +85,9 @@ type IntegrationOperation struct {
 	RetryPolicy string `protobuf:"bytes,7,opt,name=retry_policy,json=retryPolicy,proto3" json:"retry_policy,omitempty"`
 	// Source-owned display copy only; name remains the permission/invocation ID.
 	// Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
-	DisplayName   *string `protobuf:"bytes,8,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
+	DisplayName *string `protobuf:"bytes,8,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
+	// App providers only. Absent for ordinary JSON calls.
+	AssetTransfer *string `protobuf:"bytes,9,opt,name=asset_transfer,json=assetTransfer,proto3,oneof" json:"asset_transfer,omitempty"` // "to-provider" or "to-consumer"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -172,6 +174,13 @@ func (x *IntegrationOperation) GetRetryPolicy() string {
 func (x *IntegrationOperation) GetDisplayName() string {
 	if x != nil && x.DisplayName != nil {
 		return *x.DisplayName
+	}
+	return ""
+}
+
+func (x *IntegrationOperation) GetAssetTransfer() string {
+	if x != nil && x.AssetTransfer != nil {
+		return *x.AssetTransfer
 	}
 	return ""
 }
@@ -711,18 +720,134 @@ func (x *ListIntegrationConnectionsResponse) GetConnections() []*IntegrationTarg
 	return nil
 }
 
-type InvokeIntegrationCallRequest struct {
+// Immutable source metadata. The sender's private path stays in Runtime.
+type IntegrationAssetInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetRef     string                 `protobuf:"bytes,1,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
-	Operation     string                 `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
-	InputJson     string                 `protobuf:"bytes,3,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
+	Sha256        string                 `protobuf:"bytes,1,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	MediaType     string                 `protobuf:"bytes,2,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	SizeBytes     uint32                 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IntegrationAssetInfo) Reset() {
+	*x = IntegrationAssetInfo{}
+	mi := &file_runtime_v1_integration_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IntegrationAssetInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IntegrationAssetInfo) ProtoMessage() {}
+
+func (x *IntegrationAssetInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_integration_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IntegrationAssetInfo.ProtoReflect.Descriptor instead.
+func (*IntegrationAssetInfo) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *IntegrationAssetInfo) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *IntegrationAssetInfo) GetMediaType() string {
+	if x != nil {
+		return x.MediaType
+	}
+	return ""
+}
+
+func (x *IntegrationAssetInfo) GetSizeBytes() uint32 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+// Each caller names a path in its own managed asset partition. Only the
+// sending endpoint supplies source metadata. A destination must be new.
+type IntegrationAssetEndpoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RelativePath  string                 `protobuf:"bytes,1,opt,name=relative_path,json=relativePath,proto3" json:"relative_path,omitempty"`
+	Source        *IntegrationAssetInfo  `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IntegrationAssetEndpoint) Reset() {
+	*x = IntegrationAssetEndpoint{}
+	mi := &file_runtime_v1_integration_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IntegrationAssetEndpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IntegrationAssetEndpoint) ProtoMessage() {}
+
+func (x *IntegrationAssetEndpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_integration_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IntegrationAssetEndpoint.ProtoReflect.Descriptor instead.
+func (*IntegrationAssetEndpoint) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *IntegrationAssetEndpoint) GetRelativePath() string {
+	if x != nil {
+		return x.RelativePath
+	}
+	return ""
+}
+
+func (x *IntegrationAssetEndpoint) GetSource() *IntegrationAssetInfo {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+type InvokeIntegrationCallRequest struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	TargetRef     string                    `protobuf:"bytes,1,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	Operation     string                    `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	InputJson     string                    `protobuf:"bytes,3,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
+	Asset         *IntegrationAssetEndpoint `protobuf:"bytes,4,opt,name=asset,proto3" json:"asset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InvokeIntegrationCallRequest) Reset() {
 	*x = InvokeIntegrationCallRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[9]
+	mi := &file_runtime_v1_integration_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +859,7 @@ func (x *InvokeIntegrationCallRequest) String() string {
 func (*InvokeIntegrationCallRequest) ProtoMessage() {}
 
 func (x *InvokeIntegrationCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[9]
+	mi := &file_runtime_v1_integration_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +872,7 @@ func (x *InvokeIntegrationCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeIntegrationCallRequest.ProtoReflect.Descriptor instead.
 func (*InvokeIntegrationCallRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *InvokeIntegrationCallRequest) GetTargetRef() string {
@@ -771,6 +896,13 @@ func (x *InvokeIntegrationCallRequest) GetInputJson() string {
 	return ""
 }
 
+func (x *InvokeIntegrationCallRequest) GetAsset() *IntegrationAssetEndpoint {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
 type InvokeIntegrationCallResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Call          *IntegrationCall       `protobuf:"bytes,1,opt,name=call,proto3" json:"call,omitempty"`
@@ -780,7 +912,7 @@ type InvokeIntegrationCallResponse struct {
 
 func (x *InvokeIntegrationCallResponse) Reset() {
 	*x = InvokeIntegrationCallResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[10]
+	mi := &file_runtime_v1_integration_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -792,7 +924,7 @@ func (x *InvokeIntegrationCallResponse) String() string {
 func (*InvokeIntegrationCallResponse) ProtoMessage() {}
 
 func (x *InvokeIntegrationCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[10]
+	mi := &file_runtime_v1_integration_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -805,7 +937,7 @@ func (x *InvokeIntegrationCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeIntegrationCallResponse.ProtoReflect.Descriptor instead.
 func (*InvokeIntegrationCallResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InvokeIntegrationCallResponse) GetCall() *IntegrationCall {
@@ -824,7 +956,7 @@ type GetIntegrationCallRequest struct {
 
 func (x *GetIntegrationCallRequest) Reset() {
 	*x = GetIntegrationCallRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[11]
+	mi := &file_runtime_v1_integration_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +968,7 @@ func (x *GetIntegrationCallRequest) String() string {
 func (*GetIntegrationCallRequest) ProtoMessage() {}
 
 func (x *GetIntegrationCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[11]
+	mi := &file_runtime_v1_integration_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +981,7 @@ func (x *GetIntegrationCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationCallRequest.ProtoReflect.Descriptor instead.
 func (*GetIntegrationCallRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetIntegrationCallRequest) GetCallId() string {
@@ -868,7 +1000,7 @@ type GetIntegrationCallResponse struct {
 
 func (x *GetIntegrationCallResponse) Reset() {
 	*x = GetIntegrationCallResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[12]
+	mi := &file_runtime_v1_integration_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -880,7 +1012,7 @@ func (x *GetIntegrationCallResponse) String() string {
 func (*GetIntegrationCallResponse) ProtoMessage() {}
 
 func (x *GetIntegrationCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[12]
+	mi := &file_runtime_v1_integration_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -893,7 +1025,7 @@ func (x *GetIntegrationCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationCallResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationCallResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetIntegrationCallResponse) GetCall() *IntegrationCall {
@@ -912,7 +1044,7 @@ type ListIntegrationCallsRequest struct {
 
 func (x *ListIntegrationCallsRequest) Reset() {
 	*x = ListIntegrationCallsRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[13]
+	mi := &file_runtime_v1_integration_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -924,7 +1056,7 @@ func (x *ListIntegrationCallsRequest) String() string {
 func (*ListIntegrationCallsRequest) ProtoMessage() {}
 
 func (x *ListIntegrationCallsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[13]
+	mi := &file_runtime_v1_integration_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -937,7 +1069,7 @@ func (x *ListIntegrationCallsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIntegrationCallsRequest.ProtoReflect.Descriptor instead.
 func (*ListIntegrationCallsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListIntegrationCallsRequest) GetLimit() uint32 {
@@ -956,7 +1088,7 @@ type ListIntegrationCallsResponse struct {
 
 func (x *ListIntegrationCallsResponse) Reset() {
 	*x = ListIntegrationCallsResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[14]
+	mi := &file_runtime_v1_integration_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1100,7 @@ func (x *ListIntegrationCallsResponse) String() string {
 func (*ListIntegrationCallsResponse) ProtoMessage() {}
 
 func (x *ListIntegrationCallsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[14]
+	mi := &file_runtime_v1_integration_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1113,7 @@ func (x *ListIntegrationCallsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIntegrationCallsResponse.ProtoReflect.Descriptor instead.
 func (*ListIntegrationCallsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListIntegrationCallsResponse) GetCalls() []*IntegrationCall {
@@ -1000,7 +1132,7 @@ type CancelIntegrationCallRequest struct {
 
 func (x *CancelIntegrationCallRequest) Reset() {
 	*x = CancelIntegrationCallRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[15]
+	mi := &file_runtime_v1_integration_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1144,7 @@ func (x *CancelIntegrationCallRequest) String() string {
 func (*CancelIntegrationCallRequest) ProtoMessage() {}
 
 func (x *CancelIntegrationCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[15]
+	mi := &file_runtime_v1_integration_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1157,7 @@ func (x *CancelIntegrationCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelIntegrationCallRequest.ProtoReflect.Descriptor instead.
 func (*CancelIntegrationCallRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CancelIntegrationCallRequest) GetCallId() string {
@@ -1044,7 +1176,7 @@ type CancelIntegrationCallResponse struct {
 
 func (x *CancelIntegrationCallResponse) Reset() {
 	*x = CancelIntegrationCallResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[16]
+	mi := &file_runtime_v1_integration_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1056,7 +1188,7 @@ func (x *CancelIntegrationCallResponse) String() string {
 func (*CancelIntegrationCallResponse) ProtoMessage() {}
 
 func (x *CancelIntegrationCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[16]
+	mi := &file_runtime_v1_integration_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1069,7 +1201,7 @@ func (x *CancelIntegrationCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelIntegrationCallResponse.ProtoReflect.Descriptor instead.
 func (*CancelIntegrationCallResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CancelIntegrationCallResponse) GetCall() *IntegrationCall {
@@ -1091,7 +1223,7 @@ type RegisterIntegrationProviderRequest struct {
 
 func (x *RegisterIntegrationProviderRequest) Reset() {
 	*x = RegisterIntegrationProviderRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[17]
+	mi := &file_runtime_v1_integration_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1235,7 @@ func (x *RegisterIntegrationProviderRequest) String() string {
 func (*RegisterIntegrationProviderRequest) ProtoMessage() {}
 
 func (x *RegisterIntegrationProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[17]
+	mi := &file_runtime_v1_integration_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1248,7 @@ func (x *RegisterIntegrationProviderRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RegisterIntegrationProviderRequest.ProtoReflect.Descriptor instead.
 func (*RegisterIntegrationProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RegisterIntegrationProviderRequest) GetIntegrationId() string {
@@ -1156,7 +1288,7 @@ type RegisterIntegrationProviderResponse struct {
 
 func (x *RegisterIntegrationProviderResponse) Reset() {
 	*x = RegisterIntegrationProviderResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[18]
+	mi := &file_runtime_v1_integration_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1168,7 +1300,7 @@ func (x *RegisterIntegrationProviderResponse) String() string {
 func (*RegisterIntegrationProviderResponse) ProtoMessage() {}
 
 func (x *RegisterIntegrationProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[18]
+	mi := &file_runtime_v1_integration_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1181,7 +1313,7 @@ func (x *RegisterIntegrationProviderResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use RegisterIntegrationProviderResponse.ProtoReflect.Descriptor instead.
 func (*RegisterIntegrationProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RegisterIntegrationProviderResponse) GetTarget() *IntegrationTarget {
@@ -1200,7 +1332,7 @@ type UnregisterIntegrationProviderRequest struct {
 
 func (x *UnregisterIntegrationProviderRequest) Reset() {
 	*x = UnregisterIntegrationProviderRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[19]
+	mi := &file_runtime_v1_integration_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1212,7 +1344,7 @@ func (x *UnregisterIntegrationProviderRequest) String() string {
 func (*UnregisterIntegrationProviderRequest) ProtoMessage() {}
 
 func (x *UnregisterIntegrationProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[19]
+	mi := &file_runtime_v1_integration_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1225,7 +1357,7 @@ func (x *UnregisterIntegrationProviderRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use UnregisterIntegrationProviderRequest.ProtoReflect.Descriptor instead.
 func (*UnregisterIntegrationProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *UnregisterIntegrationProviderRequest) GetTargetRef() string {
@@ -1244,7 +1376,7 @@ type UnregisterIntegrationProviderResponse struct {
 
 func (x *UnregisterIntegrationProviderResponse) Reset() {
 	*x = UnregisterIntegrationProviderResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[20]
+	mi := &file_runtime_v1_integration_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1256,7 +1388,7 @@ func (x *UnregisterIntegrationProviderResponse) String() string {
 func (*UnregisterIntegrationProviderResponse) ProtoMessage() {}
 
 func (x *UnregisterIntegrationProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[20]
+	mi := &file_runtime_v1_integration_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1269,7 +1401,7 @@ func (x *UnregisterIntegrationProviderResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use UnregisterIntegrationProviderResponse.ProtoReflect.Descriptor instead.
 func (*UnregisterIntegrationProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UnregisterIntegrationProviderResponse) GetRemoved() bool {
@@ -1288,7 +1420,7 @@ type PollIntegrationProviderRequest struct {
 
 func (x *PollIntegrationProviderRequest) Reset() {
 	*x = PollIntegrationProviderRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[21]
+	mi := &file_runtime_v1_integration_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1300,7 +1432,7 @@ func (x *PollIntegrationProviderRequest) String() string {
 func (*PollIntegrationProviderRequest) ProtoMessage() {}
 
 func (x *PollIntegrationProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[21]
+	mi := &file_runtime_v1_integration_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1313,7 +1445,7 @@ func (x *PollIntegrationProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PollIntegrationProviderRequest.ProtoReflect.Descriptor instead.
 func (*PollIntegrationProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *PollIntegrationProviderRequest) GetWaitMs() uint32 {
@@ -1332,14 +1464,15 @@ type IntegrationProviderCall struct {
 	ConsumerDisplayName string                 `protobuf:"bytes,5,opt,name=consumer_display_name,json=consumerDisplayName,proto3" json:"consumer_display_name,omitempty"`
 	// Runtime-derived account and Registered App Subject reference, never caller input.
 	// Providers use this to scope their own multi-call business object references.
-	ConsumerRef   string `protobuf:"bytes,6,opt,name=consumer_ref,json=consumerRef,proto3" json:"consumer_ref,omitempty"`
+	ConsumerRef   string                `protobuf:"bytes,6,opt,name=consumer_ref,json=consumerRef,proto3" json:"consumer_ref,omitempty"`
+	OfferedAsset  *IntegrationAssetInfo `protobuf:"bytes,7,opt,name=offered_asset,json=offeredAsset,proto3" json:"offered_asset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IntegrationProviderCall) Reset() {
 	*x = IntegrationProviderCall{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[22]
+	mi := &file_runtime_v1_integration_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1351,7 +1484,7 @@ func (x *IntegrationProviderCall) String() string {
 func (*IntegrationProviderCall) ProtoMessage() {}
 
 func (x *IntegrationProviderCall) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[22]
+	mi := &file_runtime_v1_integration_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1364,7 +1497,7 @@ func (x *IntegrationProviderCall) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationProviderCall.ProtoReflect.Descriptor instead.
 func (*IntegrationProviderCall) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *IntegrationProviderCall) GetCallId() string {
@@ -1409,6 +1542,13 @@ func (x *IntegrationProviderCall) GetConsumerRef() string {
 	return ""
 }
 
+func (x *IntegrationProviderCall) GetOfferedAsset() *IntegrationAssetInfo {
+	if x != nil {
+		return x.OfferedAsset
+	}
+	return nil
+}
+
 type PollIntegrationProviderResponse struct {
 	state           protoimpl.MessageState     `protogen:"open.v1"`
 	Calls           []*IntegrationProviderCall `protobuf:"bytes,1,rep,name=calls,proto3" json:"calls,omitempty"`
@@ -1419,7 +1559,7 @@ type PollIntegrationProviderResponse struct {
 
 func (x *PollIntegrationProviderResponse) Reset() {
 	*x = PollIntegrationProviderResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[23]
+	mi := &file_runtime_v1_integration_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1431,7 +1571,7 @@ func (x *PollIntegrationProviderResponse) String() string {
 func (*PollIntegrationProviderResponse) ProtoMessage() {}
 
 func (x *PollIntegrationProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[23]
+	mi := &file_runtime_v1_integration_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1444,7 +1584,7 @@ func (x *PollIntegrationProviderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PollIntegrationProviderResponse.ProtoReflect.Descriptor instead.
 func (*PollIntegrationProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PollIntegrationProviderResponse) GetCalls() []*IntegrationProviderCall {
@@ -1462,17 +1602,18 @@ func (x *PollIntegrationProviderResponse) GetCanceledCallIds() []string {
 }
 
 type CompleteIntegrationProviderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	ResultJson    string                 `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,3,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	CallId        string                    `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
+	ResultJson    string                    `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	ErrorCode     string                    `protobuf:"bytes,3,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	Asset         *IntegrationAssetEndpoint `protobuf:"bytes,4,opt,name=asset,proto3" json:"asset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CompleteIntegrationProviderRequest) Reset() {
 	*x = CompleteIntegrationProviderRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[24]
+	mi := &file_runtime_v1_integration_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1484,7 +1625,7 @@ func (x *CompleteIntegrationProviderRequest) String() string {
 func (*CompleteIntegrationProviderRequest) ProtoMessage() {}
 
 func (x *CompleteIntegrationProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[24]
+	mi := &file_runtime_v1_integration_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1638,7 @@ func (x *CompleteIntegrationProviderRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CompleteIntegrationProviderRequest.ProtoReflect.Descriptor instead.
 func (*CompleteIntegrationProviderRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CompleteIntegrationProviderRequest) GetCallId() string {
@@ -1521,6 +1662,13 @@ func (x *CompleteIntegrationProviderRequest) GetErrorCode() string {
 	return ""
 }
 
+func (x *CompleteIntegrationProviderRequest) GetAsset() *IntegrationAssetEndpoint {
+	if x != nil {
+		return x.Asset
+	}
+	return nil
+}
+
 type CompleteIntegrationProviderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
@@ -1530,7 +1678,7 @@ type CompleteIntegrationProviderResponse struct {
 
 func (x *CompleteIntegrationProviderResponse) Reset() {
 	*x = CompleteIntegrationProviderResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[25]
+	mi := &file_runtime_v1_integration_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1690,7 @@ func (x *CompleteIntegrationProviderResponse) String() string {
 func (*CompleteIntegrationProviderResponse) ProtoMessage() {}
 
 func (x *CompleteIntegrationProviderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[25]
+	mi := &file_runtime_v1_integration_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1703,7 @@ func (x *CompleteIntegrationProviderResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CompleteIntegrationProviderResponse.ProtoReflect.Descriptor instead.
 func (*CompleteIntegrationProviderResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CompleteIntegrationProviderResponse) GetAccepted() bool {
@@ -1575,7 +1723,7 @@ type GetIntegrationManagementRequest struct {
 
 func (x *GetIntegrationManagementRequest) Reset() {
 	*x = GetIntegrationManagementRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[26]
+	mi := &file_runtime_v1_integration_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1587,7 +1735,7 @@ func (x *GetIntegrationManagementRequest) String() string {
 func (*GetIntegrationManagementRequest) ProtoMessage() {}
 
 func (x *GetIntegrationManagementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[26]
+	mi := &file_runtime_v1_integration_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1600,7 +1748,7 @@ func (x *GetIntegrationManagementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationManagementRequest.ProtoReflect.Descriptor instead.
 func (*GetIntegrationManagementRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{28}
 }
 
 type GetIntegrationManagementResponse struct {
@@ -1615,7 +1763,7 @@ type GetIntegrationManagementResponse struct {
 
 func (x *GetIntegrationManagementResponse) Reset() {
 	*x = GetIntegrationManagementResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[27]
+	mi := &file_runtime_v1_integration_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1775,7 @@ func (x *GetIntegrationManagementResponse) String() string {
 func (*GetIntegrationManagementResponse) ProtoMessage() {}
 
 func (x *GetIntegrationManagementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[27]
+	mi := &file_runtime_v1_integration_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1788,7 @@ func (x *GetIntegrationManagementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationManagementResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationManagementResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetIntegrationManagementResponse) GetTargets() []*IntegrationTarget {
@@ -1687,7 +1835,7 @@ type PutIntegrationConnectionRequest struct {
 
 func (x *PutIntegrationConnectionRequest) Reset() {
 	*x = PutIntegrationConnectionRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[28]
+	mi := &file_runtime_v1_integration_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1699,7 +1847,7 @@ func (x *PutIntegrationConnectionRequest) String() string {
 func (*PutIntegrationConnectionRequest) ProtoMessage() {}
 
 func (x *PutIntegrationConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[28]
+	mi := &file_runtime_v1_integration_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1712,7 +1860,7 @@ func (x *PutIntegrationConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PutIntegrationConnectionRequest.ProtoReflect.Descriptor instead.
 func (*PutIntegrationConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *PutIntegrationConnectionRequest) GetTargetRef() string {
@@ -1766,7 +1914,7 @@ type PutIntegrationConnectionResponse struct {
 
 func (x *PutIntegrationConnectionResponse) Reset() {
 	*x = PutIntegrationConnectionResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[29]
+	mi := &file_runtime_v1_integration_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1778,7 +1926,7 @@ func (x *PutIntegrationConnectionResponse) String() string {
 func (*PutIntegrationConnectionResponse) ProtoMessage() {}
 
 func (x *PutIntegrationConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[29]
+	mi := &file_runtime_v1_integration_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1791,7 +1939,7 @@ func (x *PutIntegrationConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PutIntegrationConnectionResponse.ProtoReflect.Descriptor instead.
 func (*PutIntegrationConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PutIntegrationConnectionResponse) GetConnection() *IntegrationTarget {
@@ -1817,7 +1965,7 @@ type IntegrationConnectionConfig struct {
 
 func (x *IntegrationConnectionConfig) Reset() {
 	*x = IntegrationConnectionConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[30]
+	mi := &file_runtime_v1_integration_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1829,7 +1977,7 @@ func (x *IntegrationConnectionConfig) String() string {
 func (*IntegrationConnectionConfig) ProtoMessage() {}
 
 func (x *IntegrationConnectionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[30]
+	mi := &file_runtime_v1_integration_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +1990,7 @@ func (x *IntegrationConnectionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationConnectionConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationConnectionConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *IntegrationConnectionConfig) GetMcp() *IntegrationMcpConfig {
@@ -1896,7 +2044,7 @@ type IntegrationMcpConfig struct {
 
 func (x *IntegrationMcpConfig) Reset() {
 	*x = IntegrationMcpConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[31]
+	mi := &file_runtime_v1_integration_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1908,7 +2056,7 @@ func (x *IntegrationMcpConfig) String() string {
 func (*IntegrationMcpConfig) ProtoMessage() {}
 
 func (x *IntegrationMcpConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[31]
+	mi := &file_runtime_v1_integration_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1921,7 +2069,7 @@ func (x *IntegrationMcpConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationMcpConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationMcpConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *IntegrationMcpConfig) GetEndpoint() string {
@@ -1939,7 +2087,7 @@ type IntegrationTelegramConfig struct {
 
 func (x *IntegrationTelegramConfig) Reset() {
 	*x = IntegrationTelegramConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[32]
+	mi := &file_runtime_v1_integration_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1951,7 +2099,7 @@ func (x *IntegrationTelegramConfig) String() string {
 func (*IntegrationTelegramConfig) ProtoMessage() {}
 
 func (x *IntegrationTelegramConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[32]
+	mi := &file_runtime_v1_integration_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1964,7 +2112,7 @@ func (x *IntegrationTelegramConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationTelegramConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationTelegramConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{34}
 }
 
 type IntegrationWeixinConfig struct {
@@ -1975,7 +2123,7 @@ type IntegrationWeixinConfig struct {
 
 func (x *IntegrationWeixinConfig) Reset() {
 	*x = IntegrationWeixinConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[33]
+	mi := &file_runtime_v1_integration_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1987,7 +2135,7 @@ func (x *IntegrationWeixinConfig) String() string {
 func (*IntegrationWeixinConfig) ProtoMessage() {}
 
 func (x *IntegrationWeixinConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[33]
+	mi := &file_runtime_v1_integration_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2000,7 +2148,7 @@ func (x *IntegrationWeixinConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationWeixinConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationWeixinConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{35}
 }
 
 type IntegrationFeishuConfig struct {
@@ -2015,7 +2163,7 @@ type IntegrationFeishuConfig struct {
 
 func (x *IntegrationFeishuConfig) Reset() {
 	*x = IntegrationFeishuConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[34]
+	mi := &file_runtime_v1_integration_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2027,7 +2175,7 @@ func (x *IntegrationFeishuConfig) String() string {
 func (*IntegrationFeishuConfig) ProtoMessage() {}
 
 func (x *IntegrationFeishuConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[34]
+	mi := &file_runtime_v1_integration_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2040,7 +2188,7 @@ func (x *IntegrationFeishuConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationFeishuConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationFeishuConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *IntegrationFeishuConfig) GetAppId() string {
@@ -2066,7 +2214,7 @@ type IntegrationQQOfficialConfig struct {
 
 func (x *IntegrationQQOfficialConfig) Reset() {
 	*x = IntegrationQQOfficialConfig{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[35]
+	mi := &file_runtime_v1_integration_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2078,7 +2226,7 @@ func (x *IntegrationQQOfficialConfig) String() string {
 func (*IntegrationQQOfficialConfig) ProtoMessage() {}
 
 func (x *IntegrationQQOfficialConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[35]
+	mi := &file_runtime_v1_integration_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2091,7 +2239,7 @@ func (x *IntegrationQQOfficialConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationQQOfficialConfig.ProtoReflect.Descriptor instead.
 func (*IntegrationQQOfficialConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *IntegrationQQOfficialConfig) GetAppId() string {
@@ -2111,7 +2259,7 @@ type IntegrationOneBotV11Config struct {
 
 func (x *IntegrationOneBotV11Config) Reset() {
 	*x = IntegrationOneBotV11Config{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[36]
+	mi := &file_runtime_v1_integration_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2123,7 +2271,7 @@ func (x *IntegrationOneBotV11Config) String() string {
 func (*IntegrationOneBotV11Config) ProtoMessage() {}
 
 func (x *IntegrationOneBotV11Config) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[36]
+	mi := &file_runtime_v1_integration_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2136,7 +2284,7 @@ func (x *IntegrationOneBotV11Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationOneBotV11Config.ProtoReflect.Descriptor instead.
 func (*IntegrationOneBotV11Config) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *IntegrationOneBotV11Config) GetListener() string {
@@ -2174,7 +2322,7 @@ type IntegrationConnectionSetup struct {
 
 func (x *IntegrationConnectionSetup) Reset() {
 	*x = IntegrationConnectionSetup{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[37]
+	mi := &file_runtime_v1_integration_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2186,7 +2334,7 @@ func (x *IntegrationConnectionSetup) String() string {
 func (*IntegrationConnectionSetup) ProtoMessage() {}
 
 func (x *IntegrationConnectionSetup) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[37]
+	mi := &file_runtime_v1_integration_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2199,7 +2347,7 @@ func (x *IntegrationConnectionSetup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntegrationConnectionSetup.ProtoReflect.Descriptor instead.
 func (*IntegrationConnectionSetup) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *IntegrationConnectionSetup) GetSetupId() string {
@@ -2278,7 +2426,7 @@ type StartIntegrationConnectionSetupRequest struct {
 
 func (x *StartIntegrationConnectionSetupRequest) Reset() {
 	*x = StartIntegrationConnectionSetupRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[38]
+	mi := &file_runtime_v1_integration_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2290,7 +2438,7 @@ func (x *StartIntegrationConnectionSetupRequest) String() string {
 func (*StartIntegrationConnectionSetupRequest) ProtoMessage() {}
 
 func (x *StartIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[38]
+	mi := &file_runtime_v1_integration_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2303,7 +2451,7 @@ func (x *StartIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use StartIntegrationConnectionSetupRequest.ProtoReflect.Descriptor instead.
 func (*StartIntegrationConnectionSetupRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StartIntegrationConnectionSetupRequest) GetTargetRef() string {
@@ -2350,7 +2498,7 @@ type StartIntegrationConnectionSetupResponse struct {
 
 func (x *StartIntegrationConnectionSetupResponse) Reset() {
 	*x = StartIntegrationConnectionSetupResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[39]
+	mi := &file_runtime_v1_integration_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2362,7 +2510,7 @@ func (x *StartIntegrationConnectionSetupResponse) String() string {
 func (*StartIntegrationConnectionSetupResponse) ProtoMessage() {}
 
 func (x *StartIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[39]
+	mi := &file_runtime_v1_integration_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2375,7 +2523,7 @@ func (x *StartIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use StartIntegrationConnectionSetupResponse.ProtoReflect.Descriptor instead.
 func (*StartIntegrationConnectionSetupResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *StartIntegrationConnectionSetupResponse) GetSetup() *IntegrationConnectionSetup {
@@ -2394,7 +2542,7 @@ type GetIntegrationConnectionSetupRequest struct {
 
 func (x *GetIntegrationConnectionSetupRequest) Reset() {
 	*x = GetIntegrationConnectionSetupRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[40]
+	mi := &file_runtime_v1_integration_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2406,7 +2554,7 @@ func (x *GetIntegrationConnectionSetupRequest) String() string {
 func (*GetIntegrationConnectionSetupRequest) ProtoMessage() {}
 
 func (x *GetIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[40]
+	mi := &file_runtime_v1_integration_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2419,7 +2567,7 @@ func (x *GetIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetIntegrationConnectionSetupRequest.ProtoReflect.Descriptor instead.
 func (*GetIntegrationConnectionSetupRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetIntegrationConnectionSetupRequest) GetSetupId() string {
@@ -2438,7 +2586,7 @@ type GetIntegrationConnectionSetupResponse struct {
 
 func (x *GetIntegrationConnectionSetupResponse) Reset() {
 	*x = GetIntegrationConnectionSetupResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[41]
+	mi := &file_runtime_v1_integration_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2450,7 +2598,7 @@ func (x *GetIntegrationConnectionSetupResponse) String() string {
 func (*GetIntegrationConnectionSetupResponse) ProtoMessage() {}
 
 func (x *GetIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[41]
+	mi := &file_runtime_v1_integration_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2463,7 +2611,7 @@ func (x *GetIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetIntegrationConnectionSetupResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationConnectionSetupResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetIntegrationConnectionSetupResponse) GetSetup() *IntegrationConnectionSetup {
@@ -2486,7 +2634,7 @@ type SubmitIntegrationConnectionSetupRequest struct {
 
 func (x *SubmitIntegrationConnectionSetupRequest) Reset() {
 	*x = SubmitIntegrationConnectionSetupRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[42]
+	mi := &file_runtime_v1_integration_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2498,7 +2646,7 @@ func (x *SubmitIntegrationConnectionSetupRequest) String() string {
 func (*SubmitIntegrationConnectionSetupRequest) ProtoMessage() {}
 
 func (x *SubmitIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[42]
+	mi := &file_runtime_v1_integration_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2511,7 +2659,7 @@ func (x *SubmitIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use SubmitIntegrationConnectionSetupRequest.ProtoReflect.Descriptor instead.
 func (*SubmitIntegrationConnectionSetupRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *SubmitIntegrationConnectionSetupRequest) GetSetupId() string {
@@ -2551,7 +2699,7 @@ type SubmitIntegrationConnectionSetupResponse struct {
 
 func (x *SubmitIntegrationConnectionSetupResponse) Reset() {
 	*x = SubmitIntegrationConnectionSetupResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[43]
+	mi := &file_runtime_v1_integration_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2563,7 +2711,7 @@ func (x *SubmitIntegrationConnectionSetupResponse) String() string {
 func (*SubmitIntegrationConnectionSetupResponse) ProtoMessage() {}
 
 func (x *SubmitIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[43]
+	mi := &file_runtime_v1_integration_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2576,7 +2724,7 @@ func (x *SubmitIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use SubmitIntegrationConnectionSetupResponse.ProtoReflect.Descriptor instead.
 func (*SubmitIntegrationConnectionSetupResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *SubmitIntegrationConnectionSetupResponse) GetSetup() *IntegrationConnectionSetup {
@@ -2595,7 +2743,7 @@ type CancelIntegrationConnectionSetupRequest struct {
 
 func (x *CancelIntegrationConnectionSetupRequest) Reset() {
 	*x = CancelIntegrationConnectionSetupRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[44]
+	mi := &file_runtime_v1_integration_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2607,7 +2755,7 @@ func (x *CancelIntegrationConnectionSetupRequest) String() string {
 func (*CancelIntegrationConnectionSetupRequest) ProtoMessage() {}
 
 func (x *CancelIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[44]
+	mi := &file_runtime_v1_integration_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2620,7 +2768,7 @@ func (x *CancelIntegrationConnectionSetupRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use CancelIntegrationConnectionSetupRequest.ProtoReflect.Descriptor instead.
 func (*CancelIntegrationConnectionSetupRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *CancelIntegrationConnectionSetupRequest) GetSetupId() string {
@@ -2639,7 +2787,7 @@ type CancelIntegrationConnectionSetupResponse struct {
 
 func (x *CancelIntegrationConnectionSetupResponse) Reset() {
 	*x = CancelIntegrationConnectionSetupResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[45]
+	mi := &file_runtime_v1_integration_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2651,7 +2799,7 @@ func (x *CancelIntegrationConnectionSetupResponse) String() string {
 func (*CancelIntegrationConnectionSetupResponse) ProtoMessage() {}
 
 func (x *CancelIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[45]
+	mi := &file_runtime_v1_integration_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2664,7 +2812,7 @@ func (x *CancelIntegrationConnectionSetupResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use CancelIntegrationConnectionSetupResponse.ProtoReflect.Descriptor instead.
 func (*CancelIntegrationConnectionSetupResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *CancelIntegrationConnectionSetupResponse) GetSetup() *IntegrationConnectionSetup {
@@ -2683,7 +2831,7 @@ type RemoveIntegrationConnectionRequest struct {
 
 func (x *RemoveIntegrationConnectionRequest) Reset() {
 	*x = RemoveIntegrationConnectionRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[46]
+	mi := &file_runtime_v1_integration_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2695,7 +2843,7 @@ func (x *RemoveIntegrationConnectionRequest) String() string {
 func (*RemoveIntegrationConnectionRequest) ProtoMessage() {}
 
 func (x *RemoveIntegrationConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[46]
+	mi := &file_runtime_v1_integration_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2708,7 +2856,7 @@ func (x *RemoveIntegrationConnectionRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RemoveIntegrationConnectionRequest.ProtoReflect.Descriptor instead.
 func (*RemoveIntegrationConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *RemoveIntegrationConnectionRequest) GetTargetRef() string {
@@ -2727,7 +2875,7 @@ type RemoveIntegrationConnectionResponse struct {
 
 func (x *RemoveIntegrationConnectionResponse) Reset() {
 	*x = RemoveIntegrationConnectionResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[47]
+	mi := &file_runtime_v1_integration_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2739,7 +2887,7 @@ func (x *RemoveIntegrationConnectionResponse) String() string {
 func (*RemoveIntegrationConnectionResponse) ProtoMessage() {}
 
 func (x *RemoveIntegrationConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[47]
+	mi := &file_runtime_v1_integration_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2752,7 +2900,7 @@ func (x *RemoveIntegrationConnectionResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use RemoveIntegrationConnectionResponse.ProtoReflect.Descriptor instead.
 func (*RemoveIntegrationConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *RemoveIntegrationConnectionResponse) GetRemoved() bool {
@@ -2774,7 +2922,7 @@ type SetIntegrationPermissionRequest struct {
 
 func (x *SetIntegrationPermissionRequest) Reset() {
 	*x = SetIntegrationPermissionRequest{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[48]
+	mi := &file_runtime_v1_integration_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2786,7 +2934,7 @@ func (x *SetIntegrationPermissionRequest) String() string {
 func (*SetIntegrationPermissionRequest) ProtoMessage() {}
 
 func (x *SetIntegrationPermissionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[48]
+	mi := &file_runtime_v1_integration_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2799,7 +2947,7 @@ func (x *SetIntegrationPermissionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntegrationPermissionRequest.ProtoReflect.Descriptor instead.
 func (*SetIntegrationPermissionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *SetIntegrationPermissionRequest) GetConsumerRef() string {
@@ -2832,7 +2980,7 @@ type SetIntegrationPermissionResponse struct {
 
 func (x *SetIntegrationPermissionResponse) Reset() {
 	*x = SetIntegrationPermissionResponse{}
-	mi := &file_runtime_v1_integration_proto_msgTypes[49]
+	mi := &file_runtime_v1_integration_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2844,7 +2992,7 @@ func (x *SetIntegrationPermissionResponse) String() string {
 func (*SetIntegrationPermissionResponse) ProtoMessage() {}
 
 func (x *SetIntegrationPermissionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_integration_proto_msgTypes[49]
+	mi := &file_runtime_v1_integration_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2857,7 +3005,7 @@ func (x *SetIntegrationPermissionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntegrationPermissionResponse.ProtoReflect.Descriptor instead.
 func (*SetIntegrationPermissionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SetIntegrationPermissionResponse) GetPermission() *IntegrationPermission {
@@ -2871,7 +3019,7 @@ var File_runtime_v1_integration_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\n" +
-	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x02\n" +
+	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x03\n" +
 	"\x14IntegrationOperation\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
@@ -2880,8 +3028,10 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\x06effect\x18\x05 \x01(\tR\x06effect\x12'\n" +
 	"\x0fsupports_cancel\x18\x06 \x01(\bR\x0esupportsCancel\x12!\n" +
 	"\fretry_policy\x18\a \x01(\tR\vretryPolicy\x12&\n" +
-	"\fdisplay_name\x18\b \x01(\tH\x00R\vdisplayName\x88\x01\x01B\x0f\n" +
-	"\r_display_name\"\xe3\x02\n" +
+	"\fdisplay_name\x18\b \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12*\n" +
+	"\x0easset_transfer\x18\t \x01(\tH\x01R\rassetTransfer\x88\x01\x01B\x0f\n" +
+	"\r_display_nameB\x11\n" +
+	"\x0f_asset_transfer\"\xe3\x02\n" +
 	"\x11IntegrationTarget\x12\x1d\n" +
 	"\n" +
 	"target_ref\x18\x01 \x01(\tR\ttargetRef\x12%\n" +
@@ -2932,13 +3082,23 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\atargets\x18\x01 \x03(\v2\".nimi.runtime.v1.IntegrationTargetR\atargets\"#\n" +
 	"!ListIntegrationConnectionsRequest\"j\n" +
 	"\"ListIntegrationConnectionsResponse\x12D\n" +
-	"\vconnections\x18\x01 \x03(\v2\".nimi.runtime.v1.IntegrationTargetR\vconnections\"z\n" +
+	"\vconnections\x18\x01 \x03(\v2\".nimi.runtime.v1.IntegrationTargetR\vconnections\"l\n" +
+	"\x14IntegrationAssetInfo\x12\x16\n" +
+	"\x06sha256\x18\x01 \x01(\tR\x06sha256\x12\x1d\n" +
+	"\n" +
+	"media_type\x18\x02 \x01(\tR\tmediaType\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\rR\tsizeBytes\"~\n" +
+	"\x18IntegrationAssetEndpoint\x12#\n" +
+	"\rrelative_path\x18\x01 \x01(\tR\frelativePath\x12=\n" +
+	"\x06source\x18\x02 \x01(\v2%.nimi.runtime.v1.IntegrationAssetInfoR\x06source\"\xbb\x01\n" +
 	"\x1cInvokeIntegrationCallRequest\x12\x1d\n" +
 	"\n" +
 	"target_ref\x18\x01 \x01(\tR\ttargetRef\x12\x1c\n" +
 	"\toperation\x18\x02 \x01(\tR\toperation\x12\x1d\n" +
 	"\n" +
-	"input_json\x18\x03 \x01(\tR\tinputJson\"U\n" +
+	"input_json\x18\x03 \x01(\tR\tinputJson\x12?\n" +
+	"\x05asset\x18\x04 \x01(\v2).nimi.runtime.v1.IntegrationAssetEndpointR\x05asset\"U\n" +
 	"\x1dInvokeIntegrationCallResponse\x124\n" +
 	"\x04call\x18\x01 \x01(\v2 .nimi.runtime.v1.IntegrationCallR\x04call\"4\n" +
 	"\x19GetIntegrationCallRequest\x12\x17\n" +
@@ -2968,7 +3128,7 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"%UnregisterIntegrationProviderResponse\x12\x18\n" +
 	"\aremoved\x18\x01 \x01(\bR\aremoved\"9\n" +
 	"\x1ePollIntegrationProviderRequest\x12\x17\n" +
-	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xe5\x01\n" +
+	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xb1\x02\n" +
 	"\x17IntegrationProviderCall\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x12\x1d\n" +
 	"\n" +
@@ -2977,16 +3137,18 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\n" +
 	"input_json\x18\x04 \x01(\tR\tinputJson\x122\n" +
 	"\x15consumer_display_name\x18\x05 \x01(\tR\x13consumerDisplayName\x12!\n" +
-	"\fconsumer_ref\x18\x06 \x01(\tR\vconsumerRef\"\x8d\x01\n" +
+	"\fconsumer_ref\x18\x06 \x01(\tR\vconsumerRef\x12J\n" +
+	"\roffered_asset\x18\a \x01(\v2%.nimi.runtime.v1.IntegrationAssetInfoR\fofferedAsset\"\x8d\x01\n" +
 	"\x1fPollIntegrationProviderResponse\x12>\n" +
 	"\x05calls\x18\x01 \x03(\v2(.nimi.runtime.v1.IntegrationProviderCallR\x05calls\x12*\n" +
-	"\x11canceled_call_ids\x18\x02 \x03(\tR\x0fcanceledCallIds\"}\n" +
+	"\x11canceled_call_ids\x18\x02 \x03(\tR\x0fcanceledCallIds\"\xbe\x01\n" +
 	"\"CompleteIntegrationProviderRequest\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x12\x1f\n" +
 	"\vresult_json\x18\x02 \x01(\tR\n" +
 	"resultJson\x12\x1d\n" +
 	"\n" +
-	"error_code\x18\x03 \x01(\tR\terrorCode\"A\n" +
+	"error_code\x18\x03 \x01(\tR\terrorCode\x12?\n" +
+	"\x05asset\x18\x04 \x01(\v2).nimi.runtime.v1.IntegrationAssetEndpointR\x05asset\"A\n" +
 	"#CompleteIntegrationProviderResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\"!\n" +
 	"\x1fGetIntegrationManagementRequest\"\xa6\x02\n" +
@@ -3118,7 +3280,7 @@ func file_runtime_v1_integration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_integration_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runtime_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_runtime_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_runtime_v1_integration_proto_goTypes = []any{
 	(IntegrationConnectionSetupAction)(0),            // 0: nimi.runtime.v1.IntegrationConnectionSetupAction
 	(*IntegrationOperation)(nil),                     // 1: nimi.runtime.v1.IntegrationOperation
@@ -3130,124 +3292,130 @@ var file_runtime_v1_integration_proto_goTypes = []any{
 	(*ListIntegrationCatalogResponse)(nil),           // 7: nimi.runtime.v1.ListIntegrationCatalogResponse
 	(*ListIntegrationConnectionsRequest)(nil),        // 8: nimi.runtime.v1.ListIntegrationConnectionsRequest
 	(*ListIntegrationConnectionsResponse)(nil),       // 9: nimi.runtime.v1.ListIntegrationConnectionsResponse
-	(*InvokeIntegrationCallRequest)(nil),             // 10: nimi.runtime.v1.InvokeIntegrationCallRequest
-	(*InvokeIntegrationCallResponse)(nil),            // 11: nimi.runtime.v1.InvokeIntegrationCallResponse
-	(*GetIntegrationCallRequest)(nil),                // 12: nimi.runtime.v1.GetIntegrationCallRequest
-	(*GetIntegrationCallResponse)(nil),               // 13: nimi.runtime.v1.GetIntegrationCallResponse
-	(*ListIntegrationCallsRequest)(nil),              // 14: nimi.runtime.v1.ListIntegrationCallsRequest
-	(*ListIntegrationCallsResponse)(nil),             // 15: nimi.runtime.v1.ListIntegrationCallsResponse
-	(*CancelIntegrationCallRequest)(nil),             // 16: nimi.runtime.v1.CancelIntegrationCallRequest
-	(*CancelIntegrationCallResponse)(nil),            // 17: nimi.runtime.v1.CancelIntegrationCallResponse
-	(*RegisterIntegrationProviderRequest)(nil),       // 18: nimi.runtime.v1.RegisterIntegrationProviderRequest
-	(*RegisterIntegrationProviderResponse)(nil),      // 19: nimi.runtime.v1.RegisterIntegrationProviderResponse
-	(*UnregisterIntegrationProviderRequest)(nil),     // 20: nimi.runtime.v1.UnregisterIntegrationProviderRequest
-	(*UnregisterIntegrationProviderResponse)(nil),    // 21: nimi.runtime.v1.UnregisterIntegrationProviderResponse
-	(*PollIntegrationProviderRequest)(nil),           // 22: nimi.runtime.v1.PollIntegrationProviderRequest
-	(*IntegrationProviderCall)(nil),                  // 23: nimi.runtime.v1.IntegrationProviderCall
-	(*PollIntegrationProviderResponse)(nil),          // 24: nimi.runtime.v1.PollIntegrationProviderResponse
-	(*CompleteIntegrationProviderRequest)(nil),       // 25: nimi.runtime.v1.CompleteIntegrationProviderRequest
-	(*CompleteIntegrationProviderResponse)(nil),      // 26: nimi.runtime.v1.CompleteIntegrationProviderResponse
-	(*GetIntegrationManagementRequest)(nil),          // 27: nimi.runtime.v1.GetIntegrationManagementRequest
-	(*GetIntegrationManagementResponse)(nil),         // 28: nimi.runtime.v1.GetIntegrationManagementResponse
-	(*PutIntegrationConnectionRequest)(nil),          // 29: nimi.runtime.v1.PutIntegrationConnectionRequest
-	(*PutIntegrationConnectionResponse)(nil),         // 30: nimi.runtime.v1.PutIntegrationConnectionResponse
-	(*IntegrationConnectionConfig)(nil),              // 31: nimi.runtime.v1.IntegrationConnectionConfig
-	(*IntegrationMcpConfig)(nil),                     // 32: nimi.runtime.v1.IntegrationMcpConfig
-	(*IntegrationTelegramConfig)(nil),                // 33: nimi.runtime.v1.IntegrationTelegramConfig
-	(*IntegrationWeixinConfig)(nil),                  // 34: nimi.runtime.v1.IntegrationWeixinConfig
-	(*IntegrationFeishuConfig)(nil),                  // 35: nimi.runtime.v1.IntegrationFeishuConfig
-	(*IntegrationQQOfficialConfig)(nil),              // 36: nimi.runtime.v1.IntegrationQQOfficialConfig
-	(*IntegrationOneBotV11Config)(nil),               // 37: nimi.runtime.v1.IntegrationOneBotV11Config
-	(*IntegrationConnectionSetup)(nil),               // 38: nimi.runtime.v1.IntegrationConnectionSetup
-	(*StartIntegrationConnectionSetupRequest)(nil),   // 39: nimi.runtime.v1.StartIntegrationConnectionSetupRequest
-	(*StartIntegrationConnectionSetupResponse)(nil),  // 40: nimi.runtime.v1.StartIntegrationConnectionSetupResponse
-	(*GetIntegrationConnectionSetupRequest)(nil),     // 41: nimi.runtime.v1.GetIntegrationConnectionSetupRequest
-	(*GetIntegrationConnectionSetupResponse)(nil),    // 42: nimi.runtime.v1.GetIntegrationConnectionSetupResponse
-	(*SubmitIntegrationConnectionSetupRequest)(nil),  // 43: nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
-	(*SubmitIntegrationConnectionSetupResponse)(nil), // 44: nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
-	(*CancelIntegrationConnectionSetupRequest)(nil),  // 45: nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
-	(*CancelIntegrationConnectionSetupResponse)(nil), // 46: nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
-	(*RemoveIntegrationConnectionRequest)(nil),       // 47: nimi.runtime.v1.RemoveIntegrationConnectionRequest
-	(*RemoveIntegrationConnectionResponse)(nil),      // 48: nimi.runtime.v1.RemoveIntegrationConnectionResponse
-	(*SetIntegrationPermissionRequest)(nil),          // 49: nimi.runtime.v1.SetIntegrationPermissionRequest
-	(*SetIntegrationPermissionResponse)(nil),         // 50: nimi.runtime.v1.SetIntegrationPermissionResponse
-	(*timestamppb.Timestamp)(nil),                    // 51: google.protobuf.Timestamp
+	(*IntegrationAssetInfo)(nil),                     // 10: nimi.runtime.v1.IntegrationAssetInfo
+	(*IntegrationAssetEndpoint)(nil),                 // 11: nimi.runtime.v1.IntegrationAssetEndpoint
+	(*InvokeIntegrationCallRequest)(nil),             // 12: nimi.runtime.v1.InvokeIntegrationCallRequest
+	(*InvokeIntegrationCallResponse)(nil),            // 13: nimi.runtime.v1.InvokeIntegrationCallResponse
+	(*GetIntegrationCallRequest)(nil),                // 14: nimi.runtime.v1.GetIntegrationCallRequest
+	(*GetIntegrationCallResponse)(nil),               // 15: nimi.runtime.v1.GetIntegrationCallResponse
+	(*ListIntegrationCallsRequest)(nil),              // 16: nimi.runtime.v1.ListIntegrationCallsRequest
+	(*ListIntegrationCallsResponse)(nil),             // 17: nimi.runtime.v1.ListIntegrationCallsResponse
+	(*CancelIntegrationCallRequest)(nil),             // 18: nimi.runtime.v1.CancelIntegrationCallRequest
+	(*CancelIntegrationCallResponse)(nil),            // 19: nimi.runtime.v1.CancelIntegrationCallResponse
+	(*RegisterIntegrationProviderRequest)(nil),       // 20: nimi.runtime.v1.RegisterIntegrationProviderRequest
+	(*RegisterIntegrationProviderResponse)(nil),      // 21: nimi.runtime.v1.RegisterIntegrationProviderResponse
+	(*UnregisterIntegrationProviderRequest)(nil),     // 22: nimi.runtime.v1.UnregisterIntegrationProviderRequest
+	(*UnregisterIntegrationProviderResponse)(nil),    // 23: nimi.runtime.v1.UnregisterIntegrationProviderResponse
+	(*PollIntegrationProviderRequest)(nil),           // 24: nimi.runtime.v1.PollIntegrationProviderRequest
+	(*IntegrationProviderCall)(nil),                  // 25: nimi.runtime.v1.IntegrationProviderCall
+	(*PollIntegrationProviderResponse)(nil),          // 26: nimi.runtime.v1.PollIntegrationProviderResponse
+	(*CompleteIntegrationProviderRequest)(nil),       // 27: nimi.runtime.v1.CompleteIntegrationProviderRequest
+	(*CompleteIntegrationProviderResponse)(nil),      // 28: nimi.runtime.v1.CompleteIntegrationProviderResponse
+	(*GetIntegrationManagementRequest)(nil),          // 29: nimi.runtime.v1.GetIntegrationManagementRequest
+	(*GetIntegrationManagementResponse)(nil),         // 30: nimi.runtime.v1.GetIntegrationManagementResponse
+	(*PutIntegrationConnectionRequest)(nil),          // 31: nimi.runtime.v1.PutIntegrationConnectionRequest
+	(*PutIntegrationConnectionResponse)(nil),         // 32: nimi.runtime.v1.PutIntegrationConnectionResponse
+	(*IntegrationConnectionConfig)(nil),              // 33: nimi.runtime.v1.IntegrationConnectionConfig
+	(*IntegrationMcpConfig)(nil),                     // 34: nimi.runtime.v1.IntegrationMcpConfig
+	(*IntegrationTelegramConfig)(nil),                // 35: nimi.runtime.v1.IntegrationTelegramConfig
+	(*IntegrationWeixinConfig)(nil),                  // 36: nimi.runtime.v1.IntegrationWeixinConfig
+	(*IntegrationFeishuConfig)(nil),                  // 37: nimi.runtime.v1.IntegrationFeishuConfig
+	(*IntegrationQQOfficialConfig)(nil),              // 38: nimi.runtime.v1.IntegrationQQOfficialConfig
+	(*IntegrationOneBotV11Config)(nil),               // 39: nimi.runtime.v1.IntegrationOneBotV11Config
+	(*IntegrationConnectionSetup)(nil),               // 40: nimi.runtime.v1.IntegrationConnectionSetup
+	(*StartIntegrationConnectionSetupRequest)(nil),   // 41: nimi.runtime.v1.StartIntegrationConnectionSetupRequest
+	(*StartIntegrationConnectionSetupResponse)(nil),  // 42: nimi.runtime.v1.StartIntegrationConnectionSetupResponse
+	(*GetIntegrationConnectionSetupRequest)(nil),     // 43: nimi.runtime.v1.GetIntegrationConnectionSetupRequest
+	(*GetIntegrationConnectionSetupResponse)(nil),    // 44: nimi.runtime.v1.GetIntegrationConnectionSetupResponse
+	(*SubmitIntegrationConnectionSetupRequest)(nil),  // 45: nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
+	(*SubmitIntegrationConnectionSetupResponse)(nil), // 46: nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
+	(*CancelIntegrationConnectionSetupRequest)(nil),  // 47: nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
+	(*CancelIntegrationConnectionSetupResponse)(nil), // 48: nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
+	(*RemoveIntegrationConnectionRequest)(nil),       // 49: nimi.runtime.v1.RemoveIntegrationConnectionRequest
+	(*RemoveIntegrationConnectionResponse)(nil),      // 50: nimi.runtime.v1.RemoveIntegrationConnectionResponse
+	(*SetIntegrationPermissionRequest)(nil),          // 51: nimi.runtime.v1.SetIntegrationPermissionRequest
+	(*SetIntegrationPermissionResponse)(nil),         // 52: nimi.runtime.v1.SetIntegrationPermissionResponse
+	(*timestamppb.Timestamp)(nil),                    // 53: google.protobuf.Timestamp
 }
 var file_runtime_v1_integration_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.IntegrationTarget.operations:type_name -> nimi.runtime.v1.IntegrationOperation
 	4,  // 1: nimi.runtime.v1.IntegrationPermission.consumer:type_name -> nimi.runtime.v1.IntegrationConsumer
-	51, // 2: nimi.runtime.v1.IntegrationCall.created_at:type_name -> google.protobuf.Timestamp
-	51, // 3: nimi.runtime.v1.IntegrationCall.updated_at:type_name -> google.protobuf.Timestamp
+	53, // 2: nimi.runtime.v1.IntegrationCall.created_at:type_name -> google.protobuf.Timestamp
+	53, // 3: nimi.runtime.v1.IntegrationCall.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 4: nimi.runtime.v1.ListIntegrationCatalogResponse.targets:type_name -> nimi.runtime.v1.IntegrationTarget
 	2,  // 5: nimi.runtime.v1.ListIntegrationConnectionsResponse.connections:type_name -> nimi.runtime.v1.IntegrationTarget
-	5,  // 6: nimi.runtime.v1.InvokeIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
-	5,  // 7: nimi.runtime.v1.GetIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
-	5,  // 8: nimi.runtime.v1.ListIntegrationCallsResponse.calls:type_name -> nimi.runtime.v1.IntegrationCall
-	5,  // 9: nimi.runtime.v1.CancelIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
-	1,  // 10: nimi.runtime.v1.RegisterIntegrationProviderRequest.operations:type_name -> nimi.runtime.v1.IntegrationOperation
-	2,  // 11: nimi.runtime.v1.RegisterIntegrationProviderResponse.target:type_name -> nimi.runtime.v1.IntegrationTarget
-	23, // 12: nimi.runtime.v1.PollIntegrationProviderResponse.calls:type_name -> nimi.runtime.v1.IntegrationProviderCall
-	2,  // 13: nimi.runtime.v1.GetIntegrationManagementResponse.targets:type_name -> nimi.runtime.v1.IntegrationTarget
-	3,  // 14: nimi.runtime.v1.GetIntegrationManagementResponse.permissions:type_name -> nimi.runtime.v1.IntegrationPermission
-	4,  // 15: nimi.runtime.v1.GetIntegrationManagementResponse.consumers:type_name -> nimi.runtime.v1.IntegrationConsumer
-	5,  // 16: nimi.runtime.v1.GetIntegrationManagementResponse.calls:type_name -> nimi.runtime.v1.IntegrationCall
-	31, // 17: nimi.runtime.v1.PutIntegrationConnectionRequest.config:type_name -> nimi.runtime.v1.IntegrationConnectionConfig
-	2,  // 18: nimi.runtime.v1.PutIntegrationConnectionResponse.connection:type_name -> nimi.runtime.v1.IntegrationTarget
-	32, // 19: nimi.runtime.v1.IntegrationConnectionConfig.mcp:type_name -> nimi.runtime.v1.IntegrationMcpConfig
-	33, // 20: nimi.runtime.v1.IntegrationConnectionConfig.telegram:type_name -> nimi.runtime.v1.IntegrationTelegramConfig
-	34, // 21: nimi.runtime.v1.IntegrationConnectionConfig.weixin:type_name -> nimi.runtime.v1.IntegrationWeixinConfig
-	35, // 22: nimi.runtime.v1.IntegrationConnectionConfig.feishu:type_name -> nimi.runtime.v1.IntegrationFeishuConfig
-	36, // 23: nimi.runtime.v1.IntegrationConnectionConfig.qq_official:type_name -> nimi.runtime.v1.IntegrationQQOfficialConfig
-	37, // 24: nimi.runtime.v1.IntegrationConnectionConfig.onebot_v11:type_name -> nimi.runtime.v1.IntegrationOneBotV11Config
-	51, // 25: nimi.runtime.v1.IntegrationConnectionSetup.expires_at:type_name -> google.protobuf.Timestamp
-	31, // 26: nimi.runtime.v1.StartIntegrationConnectionSetupRequest.config:type_name -> nimi.runtime.v1.IntegrationConnectionConfig
-	38, // 27: nimi.runtime.v1.StartIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
-	38, // 28: nimi.runtime.v1.GetIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
-	0,  // 29: nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest.action:type_name -> nimi.runtime.v1.IntegrationConnectionSetupAction
-	38, // 30: nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
-	38, // 31: nimi.runtime.v1.CancelIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
-	3,  // 32: nimi.runtime.v1.SetIntegrationPermissionResponse.permission:type_name -> nimi.runtime.v1.IntegrationPermission
-	6,  // 33: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:input_type -> nimi.runtime.v1.ListIntegrationCatalogRequest
-	8,  // 34: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:input_type -> nimi.runtime.v1.ListIntegrationConnectionsRequest
-	10, // 35: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:input_type -> nimi.runtime.v1.InvokeIntegrationCallRequest
-	12, // 36: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:input_type -> nimi.runtime.v1.GetIntegrationCallRequest
-	14, // 37: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:input_type -> nimi.runtime.v1.ListIntegrationCallsRequest
-	16, // 38: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:input_type -> nimi.runtime.v1.CancelIntegrationCallRequest
-	18, // 39: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:input_type -> nimi.runtime.v1.RegisterIntegrationProviderRequest
-	20, // 40: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:input_type -> nimi.runtime.v1.UnregisterIntegrationProviderRequest
-	22, // 41: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:input_type -> nimi.runtime.v1.PollIntegrationProviderRequest
-	25, // 42: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:input_type -> nimi.runtime.v1.CompleteIntegrationProviderRequest
-	27, // 43: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:input_type -> nimi.runtime.v1.GetIntegrationManagementRequest
-	29, // 44: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:input_type -> nimi.runtime.v1.PutIntegrationConnectionRequest
-	47, // 45: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:input_type -> nimi.runtime.v1.RemoveIntegrationConnectionRequest
-	49, // 46: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:input_type -> nimi.runtime.v1.SetIntegrationPermissionRequest
-	39, // 47: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:input_type -> nimi.runtime.v1.StartIntegrationConnectionSetupRequest
-	41, // 48: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:input_type -> nimi.runtime.v1.GetIntegrationConnectionSetupRequest
-	43, // 49: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:input_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
-	45, // 50: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:input_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
-	7,  // 51: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:output_type -> nimi.runtime.v1.ListIntegrationCatalogResponse
-	9,  // 52: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:output_type -> nimi.runtime.v1.ListIntegrationConnectionsResponse
-	11, // 53: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:output_type -> nimi.runtime.v1.InvokeIntegrationCallResponse
-	13, // 54: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:output_type -> nimi.runtime.v1.GetIntegrationCallResponse
-	15, // 55: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:output_type -> nimi.runtime.v1.ListIntegrationCallsResponse
-	17, // 56: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:output_type -> nimi.runtime.v1.CancelIntegrationCallResponse
-	19, // 57: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:output_type -> nimi.runtime.v1.RegisterIntegrationProviderResponse
-	21, // 58: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:output_type -> nimi.runtime.v1.UnregisterIntegrationProviderResponse
-	24, // 59: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:output_type -> nimi.runtime.v1.PollIntegrationProviderResponse
-	26, // 60: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:output_type -> nimi.runtime.v1.CompleteIntegrationProviderResponse
-	28, // 61: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:output_type -> nimi.runtime.v1.GetIntegrationManagementResponse
-	30, // 62: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:output_type -> nimi.runtime.v1.PutIntegrationConnectionResponse
-	48, // 63: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:output_type -> nimi.runtime.v1.RemoveIntegrationConnectionResponse
-	50, // 64: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:output_type -> nimi.runtime.v1.SetIntegrationPermissionResponse
-	40, // 65: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:output_type -> nimi.runtime.v1.StartIntegrationConnectionSetupResponse
-	42, // 66: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:output_type -> nimi.runtime.v1.GetIntegrationConnectionSetupResponse
-	44, // 67: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:output_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
-	46, // 68: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:output_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
-	51, // [51:69] is the sub-list for method output_type
-	33, // [33:51] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	10, // 6: nimi.runtime.v1.IntegrationAssetEndpoint.source:type_name -> nimi.runtime.v1.IntegrationAssetInfo
+	11, // 7: nimi.runtime.v1.InvokeIntegrationCallRequest.asset:type_name -> nimi.runtime.v1.IntegrationAssetEndpoint
+	5,  // 8: nimi.runtime.v1.InvokeIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
+	5,  // 9: nimi.runtime.v1.GetIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
+	5,  // 10: nimi.runtime.v1.ListIntegrationCallsResponse.calls:type_name -> nimi.runtime.v1.IntegrationCall
+	5,  // 11: nimi.runtime.v1.CancelIntegrationCallResponse.call:type_name -> nimi.runtime.v1.IntegrationCall
+	1,  // 12: nimi.runtime.v1.RegisterIntegrationProviderRequest.operations:type_name -> nimi.runtime.v1.IntegrationOperation
+	2,  // 13: nimi.runtime.v1.RegisterIntegrationProviderResponse.target:type_name -> nimi.runtime.v1.IntegrationTarget
+	10, // 14: nimi.runtime.v1.IntegrationProviderCall.offered_asset:type_name -> nimi.runtime.v1.IntegrationAssetInfo
+	25, // 15: nimi.runtime.v1.PollIntegrationProviderResponse.calls:type_name -> nimi.runtime.v1.IntegrationProviderCall
+	11, // 16: nimi.runtime.v1.CompleteIntegrationProviderRequest.asset:type_name -> nimi.runtime.v1.IntegrationAssetEndpoint
+	2,  // 17: nimi.runtime.v1.GetIntegrationManagementResponse.targets:type_name -> nimi.runtime.v1.IntegrationTarget
+	3,  // 18: nimi.runtime.v1.GetIntegrationManagementResponse.permissions:type_name -> nimi.runtime.v1.IntegrationPermission
+	4,  // 19: nimi.runtime.v1.GetIntegrationManagementResponse.consumers:type_name -> nimi.runtime.v1.IntegrationConsumer
+	5,  // 20: nimi.runtime.v1.GetIntegrationManagementResponse.calls:type_name -> nimi.runtime.v1.IntegrationCall
+	33, // 21: nimi.runtime.v1.PutIntegrationConnectionRequest.config:type_name -> nimi.runtime.v1.IntegrationConnectionConfig
+	2,  // 22: nimi.runtime.v1.PutIntegrationConnectionResponse.connection:type_name -> nimi.runtime.v1.IntegrationTarget
+	34, // 23: nimi.runtime.v1.IntegrationConnectionConfig.mcp:type_name -> nimi.runtime.v1.IntegrationMcpConfig
+	35, // 24: nimi.runtime.v1.IntegrationConnectionConfig.telegram:type_name -> nimi.runtime.v1.IntegrationTelegramConfig
+	36, // 25: nimi.runtime.v1.IntegrationConnectionConfig.weixin:type_name -> nimi.runtime.v1.IntegrationWeixinConfig
+	37, // 26: nimi.runtime.v1.IntegrationConnectionConfig.feishu:type_name -> nimi.runtime.v1.IntegrationFeishuConfig
+	38, // 27: nimi.runtime.v1.IntegrationConnectionConfig.qq_official:type_name -> nimi.runtime.v1.IntegrationQQOfficialConfig
+	39, // 28: nimi.runtime.v1.IntegrationConnectionConfig.onebot_v11:type_name -> nimi.runtime.v1.IntegrationOneBotV11Config
+	53, // 29: nimi.runtime.v1.IntegrationConnectionSetup.expires_at:type_name -> google.protobuf.Timestamp
+	33, // 30: nimi.runtime.v1.StartIntegrationConnectionSetupRequest.config:type_name -> nimi.runtime.v1.IntegrationConnectionConfig
+	40, // 31: nimi.runtime.v1.StartIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
+	40, // 32: nimi.runtime.v1.GetIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
+	0,  // 33: nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest.action:type_name -> nimi.runtime.v1.IntegrationConnectionSetupAction
+	40, // 34: nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
+	40, // 35: nimi.runtime.v1.CancelIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
+	3,  // 36: nimi.runtime.v1.SetIntegrationPermissionResponse.permission:type_name -> nimi.runtime.v1.IntegrationPermission
+	6,  // 37: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:input_type -> nimi.runtime.v1.ListIntegrationCatalogRequest
+	8,  // 38: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:input_type -> nimi.runtime.v1.ListIntegrationConnectionsRequest
+	12, // 39: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:input_type -> nimi.runtime.v1.InvokeIntegrationCallRequest
+	14, // 40: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:input_type -> nimi.runtime.v1.GetIntegrationCallRequest
+	16, // 41: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:input_type -> nimi.runtime.v1.ListIntegrationCallsRequest
+	18, // 42: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:input_type -> nimi.runtime.v1.CancelIntegrationCallRequest
+	20, // 43: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:input_type -> nimi.runtime.v1.RegisterIntegrationProviderRequest
+	22, // 44: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:input_type -> nimi.runtime.v1.UnregisterIntegrationProviderRequest
+	24, // 45: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:input_type -> nimi.runtime.v1.PollIntegrationProviderRequest
+	27, // 46: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:input_type -> nimi.runtime.v1.CompleteIntegrationProviderRequest
+	29, // 47: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:input_type -> nimi.runtime.v1.GetIntegrationManagementRequest
+	31, // 48: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:input_type -> nimi.runtime.v1.PutIntegrationConnectionRequest
+	49, // 49: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:input_type -> nimi.runtime.v1.RemoveIntegrationConnectionRequest
+	51, // 50: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:input_type -> nimi.runtime.v1.SetIntegrationPermissionRequest
+	41, // 51: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:input_type -> nimi.runtime.v1.StartIntegrationConnectionSetupRequest
+	43, // 52: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:input_type -> nimi.runtime.v1.GetIntegrationConnectionSetupRequest
+	45, // 53: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:input_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
+	47, // 54: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:input_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
+	7,  // 55: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:output_type -> nimi.runtime.v1.ListIntegrationCatalogResponse
+	9,  // 56: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:output_type -> nimi.runtime.v1.ListIntegrationConnectionsResponse
+	13, // 57: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:output_type -> nimi.runtime.v1.InvokeIntegrationCallResponse
+	15, // 58: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:output_type -> nimi.runtime.v1.GetIntegrationCallResponse
+	17, // 59: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:output_type -> nimi.runtime.v1.ListIntegrationCallsResponse
+	19, // 60: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:output_type -> nimi.runtime.v1.CancelIntegrationCallResponse
+	21, // 61: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:output_type -> nimi.runtime.v1.RegisterIntegrationProviderResponse
+	23, // 62: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:output_type -> nimi.runtime.v1.UnregisterIntegrationProviderResponse
+	26, // 63: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:output_type -> nimi.runtime.v1.PollIntegrationProviderResponse
+	28, // 64: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:output_type -> nimi.runtime.v1.CompleteIntegrationProviderResponse
+	30, // 65: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:output_type -> nimi.runtime.v1.GetIntegrationManagementResponse
+	32, // 66: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:output_type -> nimi.runtime.v1.PutIntegrationConnectionResponse
+	50, // 67: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:output_type -> nimi.runtime.v1.RemoveIntegrationConnectionResponse
+	52, // 68: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:output_type -> nimi.runtime.v1.SetIntegrationPermissionResponse
+	42, // 69: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:output_type -> nimi.runtime.v1.StartIntegrationConnectionSetupResponse
+	44, // 70: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:output_type -> nimi.runtime.v1.GetIntegrationConnectionSetupResponse
+	46, // 71: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:output_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
+	48, // 72: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:output_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
+	55, // [55:73] is the sub-list for method output_type
+	37, // [37:55] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_integration_proto_init() }
@@ -3262,7 +3430,7 @@ func file_runtime_v1_integration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_integration_proto_rawDesc), len(file_runtime_v1_integration_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   50,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

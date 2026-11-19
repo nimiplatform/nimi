@@ -88,6 +88,8 @@ type target struct {
 	Public               *runtimev1.IntegrationTarget           `json:"public"`
 }
 type invocation struct {
+	asset           *runtimev1.IntegrationAssetEndpoint
+	preparingAsset  bool
 	decision        accountservice.LocalAppCallerDecision
 	ctx             context.Context
 	cancel          context.CancelFunc
@@ -361,6 +363,9 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	if t.Public.Kind == "telegram" && t.TelegramBotID <= 0 {
 		return nil, failure(codes.FailedPrecondition, "INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED")
 	}
+	if err := validateAssetEndpoint(op.GetAssetTransfer(), req.Asset, true); err != nil {
+		return nil, err
+	}
 	if err := validateSchema(op.InputSchemaJson, input); err != nil {
 		return nil, err
 	}
@@ -396,6 +401,9 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	execCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
 	c := &invocation{decision: d, ctx: execCtx, cancel: cancel, target: t, op: op, input: req.InputJson, credential: credential, fact: fact, providerSession: providerSession, done: make(chan struct{})}
 	c.ctx = context.WithValue(execCtx, invocationContextKey{}, c)
+	if req.Asset != nil {
+		c.asset = proto.Clone(req.Asset).(*runtimev1.IntegrationAssetEndpoint)
+	}
 	s.calls[fact.CallId] = c
 	s.workers.Add(1)
 	go s.run(c)
@@ -552,7 +560,7 @@ func (s *Service) finishLockedInContext(ctx context.Context, c *invocation, stat
 	if c.fact.Status != "accepted" {
 		return false
 	}
-	c.input, c.credential = "", ""
+	c.input, c.credential, c.asset = "", "", nil
 	c.fact.Status, c.fact.ResultJson, c.fact.ErrorCode = state, result, reason
 	c.fact.UpdatedAt = timestamppb.Now()
 	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), terminalRecordTimeout)
@@ -641,7 +649,7 @@ func compatibleOperations(old, next []*runtimev1.IntegrationOperation) bool {
 				break
 			}
 		}
-		if current == nil || previous.InputSchemaJson != current.InputSchemaJson || previous.OutputSchemaJson != current.OutputSchemaJson || previous.Effect != current.Effect || previous.SupportsCancel != current.SupportsCancel || previous.RetryPolicy != current.RetryPolicy {
+		if current == nil || previous.GetAssetTransfer() != current.GetAssetTransfer() || previous.InputSchemaJson != current.InputSchemaJson || previous.OutputSchemaJson != current.OutputSchemaJson || previous.Effect != current.Effect || previous.SupportsCancel != current.SupportsCancel || previous.RetryPolicy != current.RetryPolicy {
 			return false
 		}
 	}

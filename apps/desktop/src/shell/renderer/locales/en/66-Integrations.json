@@ -59,6 +59,8 @@
   "verified": "Connection verified. Existing permissions and reply position are retained.",
   "operations": "Allowed operations",
   "read": "Read",
+  "sendManagedFile": "This operation sends one selected file to the provider.",
+  "receiveManagedFile": "This operation saves one file from the provider in the calling app.",
   "write": "May make changes",
   "apps": "Apps",
   "allowed": "The selected permissions have been saved.",

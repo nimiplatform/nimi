@@ -7314,80 +7314,17 @@ pub struct CompleteAppPackageUninstallResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompleteIntegrationProviderRequest {
-    #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
     pub call_id: Option<String>,
-    #[serde(rename = "result_json", skip_serializing_if = "Option::is_none")]
     pub result_json: Option<String>,
-    #[serde(rename = "error_code", skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
+    pub asset: Option<Box<IntegrationAssetEndpoint>>,
 }
 
-impl CompleteIntegrationProviderRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
-    }
-
-    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "CompleteIntegrationProviderRequest", field }
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
-        let object = json_object(raw, Self::decode_error("<body>"))?;
-        Self::from_json_object(&object)
-    }
-
-    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
-        let mut out = Self::default();
-        out.call_id = match object.get("call_id") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("call_id"))?),
-            None => None,
-        };
-        out.result_json = match object.get("result_json") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("result_json"))?),
-            None => None,
-        };
-        out.error_code = match object.get("error_code") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("error_code"))?),
-            None => None,
-        };
-        Ok(out)
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompleteIntegrationProviderResponse {
-    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
-}
-
-impl CompleteIntegrationProviderResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
-    }
-
-    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "CompleteIntegrationProviderResponse", field }
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
-        let object = json_object(raw, Self::decode_error("<body>"))?;
-        Self::from_json_object(&object)
-    }
-
-    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
-        let mut out = Self::default();
-        out.accepted = match object.get("accepted") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
-            None => None,
-        };
-        Ok(out)
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9656,6 +9593,19 @@ pub struct InstallModelFromPlanResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationAssetEndpoint {
+    pub relative_path: Option<String>,
+    pub source: Option<Box<IntegrationAssetInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationAssetInfo {
+    pub sha256: Option<String>,
+    pub media_type: Option<String>,
+    pub size_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IntegrationCall {
     pub call_id: Option<String>,
     pub target_ref: Option<String>,
@@ -9728,6 +9678,7 @@ pub struct IntegrationOperation {
     pub supports_cancel: Option<bool>,
     pub retry_policy: Option<String>,
     pub display_name: Option<String>,
+    pub asset_transfer: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9746,6 +9697,7 @@ pub struct IntegrationProviderCall {
     pub input_json: Option<String>,
     pub consumer_display_name: Option<String>,
     pub consumer_ref: Option<String>,
+    pub offered_asset: Option<Box<IntegrationAssetInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9885,6 +9837,7 @@ pub struct InvokeIntegrationCallRequest {
     pub target_ref: Option<String>,
     pub operation: Option<String>,
     pub input_json: Option<String>,
+    pub asset: Option<Box<IntegrationAssetEndpoint>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17213,14 +17166,6 @@ impl TryFrom<Vec<u8>> for ExternalAgentGatewayStatusResponse {
     }
 }
 
-impl TryFrom<Vec<u8>> for CompleteIntegrationProviderResponse {
-    type Error = RuntimeResponseDecodeError;
-
-    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
-        Self::from_transport(&body)
-    }
-}
-
 impl TryFrom<Vec<u8>> for RemoveIntegrationConnectionResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -17645,20 +17590,6 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         Ack::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
-            type_name: error.type_name,
-            field: error.field,
-        })
-    }
-
-    pub fn complete_integration_provider(&self, request: CompleteIntegrationProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CompleteIntegrationProviderResponse, RuntimeTypedClientError<T::Error>> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        }).map_err(RuntimeTypedClientError::Transport)?;
-        CompleteIntegrationProviderResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
-            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
             type_name: error.type_name,
             field: error.field,
         })

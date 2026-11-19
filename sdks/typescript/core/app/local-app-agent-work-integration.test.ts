@@ -271,3 +271,25 @@ test('Integration preserves unavailable permission source metadata without turni
   projected = { ...permission, consumer: { ...installed, consumerRef: development.consumerRef } };
   await assert.rejects(client.getManagement());
 });
+
+test('integration asset endpoints preserve each participant’s fields and bound offered metadata', async () => {
+  const source = { sha256: 'sha256:' + 'a'.repeat(64), sizeBytes: 1472000, mediaType: 'application/pdf' };
+  const asset = { relativePath: 'outgoing/report', source };
+  const input = { targetRef: 'target-1', operation: 'session.import', inputJson: '{}', asset };
+  assert.deepEqual(validateNimiLocalAppIntegrationInput('invoke', input).asset, asset);
+  for (const bad of [{ ...source, sizeBytes: 0 }, { ...source, sizeBytes: 32 * 1024 * 1024 + 1 },
+    { ...source, sha256: 'short' }, { ...source, relativePath: 'some-other-source' }]) {
+    assert.throws(() => validateNimiLocalAppIntegrationInput('invoke', { ...input, asset: { ...asset, source: bad } }));
+  }
+  const delivered = { callId: 'c1', targetRef: 'target-1', operation: 'session.import', inputJson: '{}',
+    consumerDisplayName: 'Phone', consumerRef: 'source-1', offeredAsset: source };
+  const received: unknown[] = [];
+  const client = createNimiLocalAppIntegrationClient({
+    pollProvider: async () => ({ calls: [delivered], canceledCallIds: [] }),
+    completeProvider: async request => { received.push(request); return { accepted: true }; },
+  } as NimiLocalAppIntegrationShell);
+  assert.deepEqual((await client.pollProvider({ waitMs: 0 })).calls, [delivered]);
+  const completion = { callId: 'c1', resultJson: '{}', errorCode: '', asset: { relativePath: 'incoming/receipt' } };
+  assert.deepEqual(await client.completeProvider(completion), { accepted: true });
+  assert.deepEqual(received, [completion]);
+});
