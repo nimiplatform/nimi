@@ -75,7 +75,7 @@ function createHitRegionStub(): BackendHitRegion {
   return {
     body: { left: 0.1, top: 0.1, right: 0.9, bottom: 0.9 },
     drag: { left: 0.1, top: 0.1, right: 0.9, bottom: 0.9 },
-    isOpaqueAtClientPoint: null,
+    isOpaqueAtClientPoint: () => true,
   };
 }
 
@@ -768,7 +768,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
   });
 
-  it('falls back to the current drag rectangle when a Tier A/B precision probe returns null', async () => {
+  it('rejects Live2D drag when a Tier A/B precision probe returns null', async () => {
     runtimeFlags.hostRuntime = true;
     const emit = vi.fn();
     const backend = createMockBackend({
@@ -810,12 +810,12 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     await Promise.resolve();
 
-    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
     expect(emit.mock.calls.some(([event]) => event.name === 'avatar.user.drag.start'))
-      .toBe(true);
+      .toBe(false);
   });
 
-  it('falls back to the current drag rectangle when the precision probe throws', async () => {
+  it('rejects Live2D drag when the precision probe throws', async () => {
     runtimeFlags.hostRuntime = true;
     const backend = createMockBackend({
       hitRegion: {
@@ -841,7 +841,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     await Promise.resolve();
 
-    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
   });
 
   it('requires the point to be inside the current bounded drag rectangle before probing precision', async () => {
@@ -875,7 +875,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     expect(beginManualDragWindowMock).not.toHaveBeenCalled();
   });
 
-  it('allows Tier C rectangle drag when the backend deliberately publishes no precision probe', async () => {
+  it('rejects Live2D rectangle drag when the backend has no precision probe', async () => {
     runtimeFlags.hostRuntime = true;
     const backend = createMockBackend({
       hitRegion: {
@@ -899,7 +899,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     await Promise.resolve();
 
-    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
   });
 
   it('does not arm manual drag when the backend publishes an invalid zero-area region', async () => {

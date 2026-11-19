@@ -21,10 +21,8 @@ import type {
   BackendSurface,
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';
-import { createLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from './backend-session.js';
 import { Live2DCarrierVisualSurface } from './Live2DCarrierVisualSurface.js';
-import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 
 export type Live2DCarrierSurfaceDeps = {
   session: Live2DBackendSession;
@@ -38,59 +36,21 @@ export function createLive2DCarrierSurface(
 ): BackendSurface {
   const Component = (props: BackendSurfaceProps) => {
     const announcedAudioRef = useRef(false);
-    const announcedRegionRef = useRef(false);
-    const hostRef = useRef<HTMLDivElement | null>(null);
-
     useEffect(() => {
       if (announcedAudioRef.current || !props.onAudioConsumerReady) return;
       announcedAudioRef.current = true;
       props.onAudioConsumerReady(deps.audioConsumer);
     }, [props.onAudioConsumerReady]);
 
-    // Build the hit-region with alpha-mask path on
-    // tier A/B, bbox-only on tier C. The cubism canvas is created
-    // lazily by Live2DCarrierVisualSurface inside `hostRef`; we read
-    // it through a closure each probe instead of capturing a stale
-    // reference.
-    useEffect(() => {
-      if (announcedRegionRef.current || !props.onHitRegionChange) return;
-      announcedRegionRef.current = true;
-      const hitRegion = createLive2DHitRegion({
-        getCanvas: () => {
-          const host = hostRef.current;
-          if (!host) return null;
-          return host.querySelector<HTMLCanvasElement>(
-            'canvas.avatar-live2d-carrier__canvas',
-          );
-        },
-        getViewport: () => {
-          const host = hostRef.current;
-          if (!host) return null;
-          const rect = host.getBoundingClientRect();
-          if (rect.width <= 0 || rect.height <= 0) return null;
-          return {
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height,
-          };
-        },
-        deviceTier: getCachedDeviceTier()?.tier ?? 'C',
-        onDegraded: (detail) => {
-          console.warn(`[avatar:live2d] hit-region degraded: ${detail.reason_code}`);
-        },
-      });
-      props.onHitRegionChange(hitRegion);
-      deps.onHitRegionPublished?.();
-    }, [deps.onHitRegionPublished, props.onHitRegionChange]);
-
     return (
-      <div ref={hostRef} style={{ width: '100%', height: '100%' }}>
+      <div style={{ width: '100%', height: '100%' }}>
         <Live2DCarrierVisualSurface
           session={deps.session}
           audioConsumer={deps.audioConsumer}
           paramMouthFormSupported={deps.paramMouthFormSupported}
           reducedMotion={props.reducedMotion}
+          onHitRegionChange={props.onHitRegionChange}
+          onHitRegionPublished={deps.onHitRegionPublished}
           onPresentationStateChange={props.onPresentationStateChange}
           onPresentationRestart={props.onPresentationRestart}
         />

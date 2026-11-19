@@ -116,6 +116,7 @@ function createVisualHost(): Live2DCarrierVisualHost {
   canvas.toDataURL = vi.fn(() => 'data:image/png;base64,avatar');
   return {
     canvas,
+    bodyBounds: () => null,
     drawFrame: vi.fn(() => createFrameStats()),
     resize: vi.fn(),
     unload: vi.fn(),

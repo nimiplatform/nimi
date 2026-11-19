@@ -40,6 +40,7 @@ function createModel(initial: Record<string, number>): Live2DVisualModelShape {
     getDrawableCount: () => 1,
     getDrawableOpacity: () => 1,
     getDrawableDynamicFlagIsVisible: () => true,
+    getDrawableVertices: () => new Float32Array([-0.5,-0.5,0.5,0.5]),
     getDrawableVertexCount: () => 4,
   };
 }

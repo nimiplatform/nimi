@@ -22,6 +22,7 @@ import {
   type Live2DLookAtIdleReasonCode,
 } from './live2d-look-at-idle.js';
 
+type BodyBounds = { left: number; top: number; right: number; bottom: number };
 export type Live2DCarrierVisualDrawStats = {
   width: number;
   height: number;
@@ -48,6 +49,7 @@ export type Live2DCarrierVisualDrawStats = {
 
 export type Live2DCarrierVisualHost = {
   readonly canvas: HTMLCanvasElement;
+  bodyBounds(): BodyBounds | null;
   drawFrame(input?: {
     deltaTimeSeconds?: number;
     seconds?: number;
@@ -69,6 +71,7 @@ export type Live2DCarrierVisualHostDeps = {
 };
 
 type VisualModelHandle = {
+  bodyBounds(): BodyBounds | null;
   drawFrame(input: {
     width: number;
     height: number;
@@ -159,6 +162,8 @@ async function createVisualModel(input: {
     private modelSetting: InstanceType<Live2DVisualRuntime['CubismModelSettingJson']> | null = null;
     private readonly textures: WebGLTexture[] = [];
     private baseModelMatrix: Float32Array | null = null;
+    private cachedBounds: BodyBounds | null | undefined;
+    private lastProjection: Float32Array | null = null;
     private widePortraitMode: boolean = false;
     private defaultFramebuffer: WebGLFramebuffer | null = null;
     private readonly motions = new Map<string, unknown[]>();
@@ -212,6 +217,7 @@ async function createVisualModel(input: {
     }
 
     public resize(width: number, height: number): void {
+      this.lastProjection = null;
       if (width <= 0 || height <= 0) {
         return;
       }
@@ -358,6 +364,8 @@ async function createVisualModel(input: {
         offscreen.releaseStaleRenderTextures(input.gl);
       }
 
+      this.lastProjection = projectionMatrix.getArray();
+      this.cachedBounds = undefined;
       const drawableCount = model.getDrawableCount();
       let visibleDrawableCount = 0;
       let nonZeroOpacityDrawableCount = 0;
@@ -400,6 +408,29 @@ async function createVisualModel(input: {
       };
     }
 
+    // Only a degraded pointer query needs the coarse body. Reuse the visible
+    // model and matrix from the last draw, never the nominal canvas dimensions.
+    public bodyBounds(): BodyBounds | null {
+      const matrix = this.lastProjection;
+      const model = getModelRef(this);
+      if (!matrix || !model) return null;
+      if (this.cachedBounds !== undefined) return this.cachedBounds;
+      let left = 1, top = 1, right = 0, bottom = 0;
+      for (let i = 0; i < model.getDrawableCount(); i++) {
+        if (!model.getDrawableDynamicFlagIsVisible(i) || model.getDrawableOpacity(i) <= 0) continue;
+        const xy = model.getDrawableVertices(i);
+        for (let v = 0; v + 1 < xy.length; v += 2) {
+          const x = (1 + matrix[0]! * xy[v]! + matrix[4]! * xy[v + 1]! + matrix[12]!) / 2;
+          const y = (1 - matrix[1]! * xy[v]! - matrix[5]! * xy[v + 1]! - matrix[13]!) / 2;
+          left = Math.min(left, x); right = Math.max(right, x);
+          top = Math.min(top, y); bottom = Math.max(bottom, y);
+        }
+      }
+      left = Math.max(0,left); top = Math.max(0,top); right = Math.min(1,right); bottom = Math.min(1,bottom);
+      this.cachedBounds = left < right && top < bottom ? { left, right, top, bottom } : null;
+      return this.cachedBounds;
+    }
+
     public drawFrame(inputFrame: {
       width: number;
       height: number;
@@ -411,6 +442,7 @@ async function createVisualModel(input: {
     }
 
     public override release(): void {
+      this.lastProjection = null;
       runtime.CubismWebGLOffscreenManager.getInstance().removeContext(input.gl);
       for (const texture of this.textures) {
         input.gl.deleteTexture(texture);
@@ -541,6 +573,7 @@ async function createVisualModel(input: {
 // @nimi-authority: rule.nimi.avatar.embodiment.r078
 export async function createLive2DCarrierVisualHost(
   input: {
+    precisePointerHits?: boolean;
     canvas: HTMLCanvasElement;
     session: Live2DBackendSession;
     width: number;
@@ -559,12 +592,12 @@ export async function createLive2DCarrierVisualHost(
     alpha: true,
     antialias: true,
     premultipliedAlpha: true,
-    preserveDrawingBuffer: false,
+    preserveDrawingBuffer: input.precisePointerHits === true,
   }) || input.canvas.getContext('webgl', {
     alpha: true,
     antialias: true,
     premultipliedAlpha: true,
-    preserveDrawingBuffer: false,
+    preserveDrawingBuffer: input.precisePointerHits === true,
   })) as WebGLRenderingContext | WebGL2RenderingContext | null;
   if (!gl) {
     throw new Error('Live2D carrier visual host could not acquire a WebGL context');
@@ -586,6 +619,7 @@ export async function createLive2DCarrierVisualHost(
 
   return {
     canvas: input.canvas,
+    bodyBounds: () => model.bodyBounds(),
     drawFrame(frameInput = {}) {
       return model.drawFrame({
         width: input.canvas.width,

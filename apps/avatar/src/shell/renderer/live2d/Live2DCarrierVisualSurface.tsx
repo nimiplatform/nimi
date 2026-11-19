@@ -4,7 +4,8 @@ import {
   createLive2DCarrierVisualHost,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
-import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
+import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
+import { createLive2DHitRegion, type BackendHitRegion, type BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DLipsyncDriver } from './live2d-lipsync-driver.js';
 import { PresentationUnavailableSurface } from '../presentation-unavailable/presentation-unavailable-surface.js';
 import type { BackendPresentationState } from '../carrier/backend-branch.js';
@@ -14,6 +15,8 @@ type Live2DCarrierVisualSurfaceProps = {
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
   reducedMotion?: boolean;
+  onHitRegionChange?: (region: BackendHitRegion) => void;
+  onHitRegionPublished?: () => void;
   onPresentationStateChange?: (state: BackendPresentationState) => void;
   onPresentationRestart?: () => void;
 };
@@ -53,7 +56,10 @@ export function Live2DCarrierVisualSurface({
   reducedMotion,
   onPresentationStateChange,
   onPresentationRestart,
+  onHitRegionChange, onHitRegionPublished,
 }: Live2DCarrierVisualSurfaceProps) {
+  const hitCallbacks = useRef({ onHitRegionChange, onHitRegionPublished });
+  hitCallbacks.current = { onHitRegionChange, onHitRegionPublished };
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
   const lastFrameTimeRef = useRef<number | null>(null);
@@ -101,6 +107,7 @@ export function Live2DCarrierVisualSurface({
     let attemptWatchdog: number | null = null;
     let contextRestoreWatchdog: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
+    const tier = getCachedDeviceTier()?.tier ?? 'C';
     let visualHost: Live2DCarrierVisualHost | null = null;
     let activeCanvas: HTMLCanvasElement | null = null;
     let removeCanvasListeners: () => void = () => {};
@@ -226,6 +233,15 @@ export function Live2DCarrierVisualSurface({
         if (statusRef.current !== 'ready' && hasObservedCarrierOutput(stats)) {
           clearAttemptWatchdog();
           setSurfaceStatus('ready');
+          const current = visualHost;
+          const region = createLive2DHitRegion({
+            deviceTier: tier,
+            getCanvas: () => visualHost === current ? current.canvas : null,
+            getViewport: () => visualHost === current ? current.canvas.getBoundingClientRect() : null,
+            getBodyBounds: () => visualHost === current ? current.bodyBounds() : null,
+          });
+          hitCallbacks.current.onHitRegionChange?.(region);
+          hitCallbacks.current.onHitRegionPublished?.();
         }
       } catch (renderError) {
         failSurface(renderError);
@@ -302,6 +318,7 @@ export function Live2DCarrierVisualSurface({
         const size = measureHost(host);
         const created = await createLive2DCarrierVisualHost({
           canvas,
+          precisePointerHits: tier !== 'C' && Boolean(hitCallbacks.current.onHitRegionChange),
           session,
           width: size.width,
           height: size.height,

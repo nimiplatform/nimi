@@ -1,31 +1,8 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Computes BackendHitRegion for the Live2D branch.
-//
-// `computeLive2DHitRegion` provides the bbox snapshot path
-// (body+drag rectangles cover the full nominal viewport so OS-level
-// click-through fallback works) and is consumed by
-// `live2d-backend-branch.ts` to derive an immediate static region from
-// the compatibility report.
-//
-// `createLive2DHitRegion` wires the alpha-mask
-// `isOpaqueAtClientPoint` query against the live cubism canvas via
-// `gl.readPixels` (1×1 only — full-canvas reads are forbidden by the
-// app-shell contract). On device tier C (or capability
-// failure) it degrades to bbox-only with `isOpaqueAtClientPoint = null`
-// and fires `onDegraded({ reason_code: 'device_tier_c' })` once.
-//
-// Spec authorities:
-//   - .nimi/spec/avatar/embodiment-surface.authority.yaml §2.3.1
-//     (alpha-mask threshold = 10/255; alpha-mask precedes bbox; null
-//      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
-//   - .nimi/spec/avatar/embodiment-surface.authority.yaml §BackendHitRegion
-//   - .nimi/spec/avatar/embodiment-surface.authority.yaml §"Hit Testing"
-//   - .nimi/spec/avatar/embodiment-surface.authority.yaml §6
-//
-// Alpha-mask threshold is centralized as a named contract constant; drift
-// audits forbid scattered float / byte
-// literals in the function body. Tests verify the constant is exported.
+// The static region has no model evidence. Mounted carriers supply current
+// geometry for coarse capture, and a readable one-pixel alpha sample for
+// precise pointer decisions.
 
 import type { BackendHitRegion } from './backend-branch.js';
 import type { Live2DCompatibilityReport } from './live2d-compatibility.js';
@@ -39,24 +16,14 @@ export const LIVE2D_ALPHA_MASK_THRESHOLD = 10 / 255;
  *  [0, 255]. */
 export const LIVE2D_ALPHA_MASK_THRESHOLD_BYTE = 10;
 
-/** Default: full-viewport bbox; drag rect equals body rect.
- *  alpha-mask is null in this static path (the dynamic
- *  `createLive2DHitRegion` factory wires it for tier A/B). */
+/** Before a model has rendered there is no known body or drag target. */
 export const LIVE2D_DEFAULT_HIT_REGION: BackendHitRegion = Object.freeze({
-  body: { left: 0, top: 0, right: 1, bottom: 1 },
-  drag: { left: 0, top: 0, right: 1, bottom: 1 },
+  body: Object.freeze({ left: 0, top: 0, right: 0, bottom: 0 }),
+  drag: Object.freeze({ left: 0, top: 0, right: 0, bottom: 0 }),
   isOpaqueAtClientPoint: null,
 });
 
 export type Live2DHitRegionInput = {
-  /** Compatibility report drives `hit_regions.fallback`:
-   *   - 'alpha_mask_only' adapter declarations use bbox when a live canvas
-   *     probe is unavailable; we surface the full-viewport
-   *     bbox so click events reach the carrier instead of failing
-   *     closed.
-   *   - 'fail_closed' is honored by emitting a zero-area body bbox so
-   *     the carrier rejects all clicks; drag remains 0-area.
-   */
   compatibility?: Live2DCompatibilityReport | null;
 };
 
@@ -99,6 +66,7 @@ export type Live2DHitRegionDeviceTier = 'A' | 'B' | 'C';
 
 export type CreateLive2DHitRegionInputs = {
   /** Returns the live2d cubism canvas element (or null if not mounted). */
+  getBodyBounds?: () => BackendHitRegion['body'] | null;
   getCanvas: () => HTMLCanvasElement | null;
   /** Returns the canvas's bounding client rect (left/top in window
    *  coords; width/height in CSS pixels). */
@@ -143,8 +111,8 @@ function readAlphaByteFromCanvas(
   } catch {
     return null;
   }
-  if (gl == null) return null;
-  // Cubism's shipping context uses preserveDrawingBuffer=false. Outside the
+  if (gl == null || gl.isContextLost?.()) return null;
+  // On a non-preserved context, outside the
   // renderer's own frame callback the default framebuffer may already be
   // invalidated, so a zero alpha sample is not evidence of transparency.
   // Report precision as unavailable and let the bounded body rectangle own
@@ -185,8 +153,8 @@ export function createLive2DHitRegion(
       recordedAt: nowIsoString(),
     });
     return {
-      body: FULL_VIEWPORT_RECT,
-      drag: FULL_VIEWPORT_RECT,
+      get body() { return input.getBodyBounds?.() ?? ZERO_REGION.body; },
+      drag: ZERO_REGION.drag,
       isOpaqueAtClientPoint: null,
     };
   }
@@ -228,7 +196,7 @@ export function createLive2DHitRegion(
   };
 
   return {
-    body: FULL_VIEWPORT_RECT,
+    get body() { return input.getBodyBounds?.() ?? ZERO_REGION.body; },
     drag: FULL_VIEWPORT_RECT,
     isOpaqueAtClientPoint,
   };

@@ -224,6 +224,7 @@ function createFakeRuntime(
       getDrawableCount: () => drawables.length,
       getDrawableOpacity: (index: number) => drawables[index]?.opacity ?? 0,
       getDrawableDynamicFlagIsVisible: (index: number) => drawables[index]?.visible ?? false,
+      getDrawableVertices: () => new Float32Array([-0.5,-0.5,0.5,0.5]),
       getDrawableVertexCount: () => 4,
     };
     private readonly renderer = {

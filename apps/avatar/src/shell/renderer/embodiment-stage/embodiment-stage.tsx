@@ -630,6 +630,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         const dragAllowed = event.button === 0
           && embodied
           && pointCanStartBackendDrag(
+            backend?.kind,
             currentHitRegionRef.current,
             bodyRef.current?.parentElement,
             event.clientX,
@@ -875,6 +876,7 @@ function backendBodyRect(
 }
 
 function pointCanStartBackendDrag(
+  kind: BackendBranch['kind'] | undefined,
   region: BackendHitRegion | null,
   stageEl: Element | null | undefined,
   clientX: number,
@@ -892,15 +894,14 @@ function pointCanStartBackendDrag(
   const bottom = stageRect.top + region.drag.bottom * stageRect.height;
   const insideRect = clientX >= left && clientX < right && clientY >= top && clientY < bottom;
   if (!insideRect) return false;
-  // The current bounded drag rectangle is the required admission floor. Tier C
-  // deliberately has no precision probe; Tier A/B may temporarily have no
-  // readable current-frame sample. Both cases retain the rectangle fallback.
-  // Only a readable, explicit transparent result overrides it.
-  if (region.isOpaqueAtClientPoint === null) return true;
+  // The Live2D mesh bounds may enclose holes in the texture. Only
+  // a current opaque pixel can start a drag on that backend.
+  if (region.isOpaqueAtClientPoint === null) return kind !== 'live2d';
   try {
-    return region.isOpaqueAtClientPoint(clientX, clientY) !== false;
+    const opaque = region.isOpaqueAtClientPoint(clientX, clientY);
+    return opaque === true || opaque === null && kind !== 'live2d';
   } catch {
-    return true;
+    return kind !== 'live2d';
   }
 }
 

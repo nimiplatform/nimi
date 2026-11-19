@@ -115,13 +115,14 @@ describe('live2d-hit-region constants', () => {
 });
 
 describe('createLive2DHitRegion (tier A)', () => {
-  it('returns body and drag bbox covering full viewport', () => {
+  it('uses the current model bounds when precision is unavailable', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => makeFakeCanvas({ gl: makeFakeGl(255) }),
       getViewport: () => VIEWPORT,
+      getBodyBounds: () => ({ left: 0.2, top: 0.1, right: 0.8, bottom: 0.9 }),
       deviceTier: 'A',
     });
-    expect(region.body).toEqual({ left: 0, top: 0, right: 1, bottom: 1 });
+    expect(region.body).toEqual({ left: 0.2, top: 0.1, right: 0.8, bottom: 0.9 });
     expect(region.drag).toEqual({ left: 0, top: 0, right: 1, bottom: 1 });
   });
 
@@ -308,14 +309,15 @@ describe('createLive2DHitRegion (tier C)', () => {
     expect(region.isOpaqueAtClientPoint).toBeNull();
   });
 
-  it('still exposes full-viewport body and drag bbox', () => {
+  it('keeps only current model bounds and disables dragging on tier C', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => makeFakeCanvas({ gl: makeFakeGl(255) }),
       getViewport: () => VIEWPORT,
+      getBodyBounds: () => ({ left: 0.2, top: 0.1, right: 0.8, bottom: 0.9 }),
       deviceTier: 'C',
     });
-    expect(region.body).toEqual({ left: 0, top: 0, right: 1, bottom: 1 });
-    expect(region.drag).toEqual({ left: 0, top: 0, right: 1, bottom: 1 });
+    expect(region.body).toEqual({ left: 0.2, top: 0.1, right: 0.8, bottom: 0.9 });
+    expect(region.drag).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
   });
 
   it('fires onDegraded once with reason_code = device_tier_c', () => {

@@ -93,6 +93,7 @@ export type Live2DVisualModelShape = {
   getDrawableCount: () => number;
   getDrawableOpacity: (drawableIndex: number) => number;
   getDrawableDynamicFlagIsVisible: (drawableIndex: number) => boolean;
+  getDrawableVertices: (drawableIndex: number) => Float32Array;
   getDrawableVertexCount: (drawableIndex: number) => number;
 };
 
