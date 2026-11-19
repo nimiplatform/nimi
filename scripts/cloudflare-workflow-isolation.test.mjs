@@ -64,10 +64,15 @@ test('Web retains automatic main publication and rollback avoids all build and d
   assert.equal(ci.jobs['main-security'].with.source_sha, '${{ github.sha }}');
   assert.ok(workflow.on.workflow_call.inputs.security_sha.required);
   assert.equal(workflow.jobs['manual-security'].with.source_sha, '${{ needs.build.outputs.source_sha }}');
-  const admission = workflow.jobs.deploy.steps.find(step => step.id === 'admission');
+  const steps = workflow.jobs.deploy.steps;
+  const preview = steps.find(step => step.name === 'Deploy and verify preview');
+  const admission = steps.find(step => step.id === 'admission');
+  const promote = steps.find(step => step.name === 'Deploy the same build to production');
+  assert.ok(preview && steps.indexOf(preview) < steps.indexOf(admission));
+  assert.ok(steps.indexOf(admission) < steps.indexOf(promote));
+  assert.equal(admission.run, 'node scripts/release/web-promotion.mjs');
   assert.equal(admission.env.SOURCE_SHA, '${{ needs.build.outputs.source_sha }}');
   assert.equal(admission.env.SECURITY_SHA, '${{ inputs.security_sha || needs.manual-security.outputs.verified_sha }}');
-  const promote = workflow.jobs.deploy.steps.find(step => step.name === 'Deploy the same build to production');
   assert.equal(promote.if, "steps.admission.outputs.current == 'true'");
   assert.match(workflow.jobs.build.if, /rollback_deployment_id == ''/u);
   assert.match(workflow.jobs.rollback.if, /rollback_deployment_id != ''/u);

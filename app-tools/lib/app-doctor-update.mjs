@@ -4,7 +4,7 @@ import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app
 import { readAppIntroduction } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { intersects, minVersion } from 'semver';
+import { minVersion } from 'semver';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
@@ -20,7 +20,7 @@ import {
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
 import { assertLifecycleGuidanceCurrent, LIFECYCLE_SKILL_PATH, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
 import { applyProjectFiles, assertProjectOutputPath, describeChanges, plannedFile } from './app-project-files.mjs';
-import { appToolsDeclaration, resolveDependencyCombination } from './app-dependency-combinations.mjs';
+import { appToolsDeclaration, matchesRecordedHostDependencies, resolveDependencyCombination } from './app-dependency-combinations.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -220,8 +220,7 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
 function retainMatchingHostFiles(targetDir, lock, snapshot, versions) {
   const matrix = lock.dependencyMatrix;
   const migration = 'Migrate the App-owned feature modules and matching Host with the selected SDK/Kit before sync.';
-  if (!intersects(matrix.npm['@nimiplatform/sdk'], versions.sdkVersion)
-    || !intersects(matrix.npm['@nimiplatform/kit'], versions.kitVersion)
+  if (!matchesRecordedHostDependencies(matrix.npm, versions)
     || matrix.cargo['nimi-shell-tauri'] !== snapshot.lock.dependencyMatrix.cargo['nimi-shell-tauri']) {
     throw new Error(migration);
   }
@@ -759,8 +758,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   const effective = { ...versions, ...combination, appToolsVersion };
   const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions: effective, targetDir, refreshDerived: true });
   if (combination.source === 'existing'
-    && (!intersects(combination.sdkVersion, intent.dependencyMatrix.npm['@nimiplatform/sdk'])
-      || !intersects(combination.kitVersion, intent.dependencyMatrix.npm['@nimiplatform/kit']))) {
+    && !matchesRecordedHostDependencies(intent.dependencyMatrix.npm, combination)) {
     throw new Error('The selected SDK/Kit requires a different Host. Initialize with the creator combination or migrate the Host and App-owned feature modules together.');
   }
   validateAppProjectInputs(targetDir, currentManifest, readJsonFile(path.join(targetDir, 'package.json')), true);

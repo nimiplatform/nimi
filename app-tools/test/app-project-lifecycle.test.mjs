@@ -1629,6 +1629,39 @@ test('a compatible creator patch initializes with retained specifiers and still 
   } finally { rmSync(target, { recursive: true, force: true }); }
 });
 
+for (const [command, kitPin] of [['init', '=0.24.0-rc.1'], ['sync', '0.24.0-rc.1']]) {
+  test(`${command} preserves exact RC pins within the scaffold's recorded SDK and Kit ranges`, t => {
+    const target = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-rc-selection-'));
+    t.after(() => rmSync(target, { recursive: true, force: true }));
+    const creator = {
+      ...versions, appToolsVersion: '^0.16.0-rc.2', sdkVersion: '^0.24.0-rc.2',
+      kitVersion: '^0.24.0-rc.1', nimiShellTauriVersion: '0.12.0',
+    };
+    const scaffold = buildAppScaffoldSnapshot({
+      profile: 'standalone', versions: creator, appId: 'pins.example', appTitle: 'Pins',
+      packageName: 'pins-example', targetDir: target, features: [],
+    });
+    for (const file of command === 'init' ? scaffold.createFiles : scaffold.files) {
+      const dest = path.join(target, file.path);
+      mkdirSync(path.dirname(dest), { recursive: true });
+      writeFileSync(dest, file.content);
+    }
+    const manifest = path.join(target, 'package.json');
+    const pkg = JSON.parse(readFileSync(manifest));
+    pkg.dependencies['@nimiplatform/sdk'] = '0.24.0-rc.2';
+    pkg.dependencies['@nimiplatform/kit'] = kitPin;
+    writeFileSync(manifest, JSON.stringify(pkg, null, 2) + '\n');
+    const preview = runCli([command, '--dry-run', '--json'], target, process.env);
+    assert.equal(preview.status, 0, preview.stdout + preview.stderr);
+    const changes = JSON.parse(preview.stdout).changes;
+    const lock = JSON.parse(changes.find(file => file.path === SCAFFOLD_LOCK_PATH).after);
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '0.24.0-rc.2');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/kit'], kitPin);
+    assert.equal(lock.dependencyMatrix.cargo['nimi-shell-tauri'], creator.nimiShellTauriVersion);
+    assert.equal(changes.some(file => file.path.startsWith('src/') || file.path.startsWith('src-electron/')), false);
+  });
+}
+
 test('the default native test command reports missing tests and runs the first author test', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-empty-app-tests-'));
   const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm', packageManager: versions.packageManager });

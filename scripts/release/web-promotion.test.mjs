@@ -7,24 +7,26 @@ import test from 'node:test';
 import { canPromoteWebBuild } from './web-promotion.mjs';
 
 test('Web promotion binds security to the artifact source and skips superseded automatic builds', t => {
-  const repoRoot = mkdtempSync(path.join(tmpdir(), 'nimi-web-promotion-'));
-  t.after(() => rmSync(repoRoot, { recursive: true, force: true }));
-  const git = (...args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
+  const root = mkdtempSync(path.join(tmpdir(), 'nimi-web-promotion-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const upstream = path.join(root, 'upstream');
+  const runner = path.join(root, 'runner');
+  mkdirSync(upstream);
+  const git = (...args) => execFileSync('git', args, { cwd: upstream, encoding: 'utf8' }).trim();
   git('init', '-q', '-b', 'main');
   git('config', 'user.name', 'CI Test');
   git('config', 'user.email', 'ci@example.invalid');
   function commit(file) {
-    const target = path.join(repoRoot, file);
+    const target = path.join(upstream, file);
     mkdirSync(path.dirname(target), { recursive: true });
     writeFileSync(target, file);
     git('add', file);
     git('-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=.git/hooks', 'commit', '-qm', file);
-    const revision = git('rev-parse', 'HEAD');
-    git('update-ref', 'refs/remotes/origin/main', revision);
-    return revision;
+    return git('rev-parse', 'HEAD');
   }
   const sourceSha = commit('apps/web/src/site.css');
-  const build = { repoRoot, sourceSha, securitySha: sourceSha, event: 'push' };
+  git('clone', '--quiet', upstream, runner);
+  const build = { repoRoot: runner, sourceSha, securitySha: sourceSha, event: 'push' };
   assert.equal(canPromoteWebBuild(build), true);
   const desktop = commit('apps/desktop/src/renderer.ts');
   assert.equal(canPromoteWebBuild(build), true);
@@ -33,4 +35,6 @@ test('Web promotion binds security to the artifact source and skips superseded a
   commit('runtime/catalog/providers/xai.yaml');
   assert.equal(canPromoteWebBuild(build), false);
   assert.equal(canPromoteWebBuild({ ...build, event: 'workflow_dispatch' }), true);
+  git('-C', runner, 'remote', 'set-url', 'origin', path.join(root, 'unavailable'));
+  assert.throws(() => canPromoteWebBuild({ ...build, event: 'workflow_dispatch' }), /git fetch/u);
 });

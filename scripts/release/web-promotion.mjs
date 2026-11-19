@@ -9,7 +9,10 @@ export function canPromoteWebBuild({ event, sourceSha, securitySha, repoRoot = p
   if (!/^[a-f0-9]{40}$/u.test(sourceSha ?? '') || sourceSha !== securitySha) {
     throw new Error('Web build and successful security checks must identify the same commit');
   }
-  const git = args => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  const git = args => execFileSync('git', args, {
+    cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 16 * 1024 * 1024,
+  });
+  git(['fetch', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']);
   const main = git(['rev-parse', '--verify', 'refs/remotes/origin/main']).trim();
   git(['merge-base', '--is-ancestor', sourceSha, main]);
   if (event === 'workflow_dispatch') return true;

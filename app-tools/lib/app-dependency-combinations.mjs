@@ -1,5 +1,5 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
-import { gt, minVersion, satisfies, subset, valid, validRange } from 'semver';
+import { gt, intersects, minVersion, satisfies, subset, valid, validRange } from 'semver';
 
 // The manifest names the tested candidate/default combination. Explicitly selected
 // development pairs use the same current Host, never an older template.
@@ -57,13 +57,29 @@ function describe(combination) {
   return `${SDK}@${combination.sdkVersion} with ${KIT}@${combination.kitVersion}`;
 }
 
+// semver's range intersection can reject a prerelease pin that satisfies the range.
+function selectionsOverlap(recorded, selected) {
+  const selectedPin = valid(validRange(selected));
+  if (selectedPin) return satisfies(selectedPin, recorded);
+  const recordedPin = valid(validRange(recorded));
+  if (recordedPin) return satisfies(recordedPin, selected);
+  return intersects(recorded, selected);
+}
+
+export function matchesRecordedHostDependencies(npm, combination) {
+  return selectionsOverlap(npm[SDK], combination.sdkVersion)
+    && selectionsOverlap(npm[KIT], combination.kitVersion);
+}
+
 // Some rows share a minor line but select different native crates. Match each
 // declaration to its most specific admitted floor, then validate the pair.
 function matchingLine(spec, lines) {
-  if (typeof spec !== 'string' || !validRange(spec) || !minVersion(spec)) return undefined;
+  const range = typeof spec === 'string' && validRange(spec);
+  if (!range || !minVersion(range)) return undefined;
+  const pin = valid(range);
   let best;
   for (const line of new Set(lines)) {
-    const admitted = valid(spec) ? satisfies(spec, line) : subset(spec, line);
+    const admitted = pin ? satisfies(pin, line) : subset(range, line);
     if (admitted && (!best || gt(minVersion(line), minVersion(best)))) best = line;
   }
   return best;

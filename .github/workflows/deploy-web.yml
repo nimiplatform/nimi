@@ -88,9 +88,7 @@ jobs:
         env:
           SOURCE_SHA: ${{ steps.source.outputs.sha }}
           SECURITY_SHA: ${{ inputs.security_sha }}
-        run: |
-          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-          node scripts/release/web-promotion.mjs
+        run: node scripts/release/web-promotion.mjs
 
   manual-security:
     if: github.event_name == 'workflow_dispatch' && inputs.publish && inputs.rollback_deployment_id == ''
