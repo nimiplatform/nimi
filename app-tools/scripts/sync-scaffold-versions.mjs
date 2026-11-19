@@ -4,7 +4,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { validateAppScaffoldCargoDependencyValue } from '../lib/app-scaffold-capabilities.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOOLS_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -35,7 +34,6 @@ export function buildScaffoldVersionProjection() {
   if (!current || typeof current !== 'object' || Array.isArray(current)) {
     throw new Error('app-tools package manifest is missing nimiScaffoldVersions');
   }
-  validateAppScaffoldCargoDependencyValue(current.nimiShellTauriVersion, 'nimiScaffoldVersions.nimiShellTauriVersion');
   return Object.freeze({
     ...current,
     appToolsVersion: publicPackageRange(appToolsManifest, '@nimiplatform/app-tools'),

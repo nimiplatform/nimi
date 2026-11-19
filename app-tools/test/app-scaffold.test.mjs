@@ -20,7 +20,6 @@ import {
   createAppScaffold,
   createAppScaffoldCandidate,
   hashScaffoldContent,
-  renderCargoDependencyValue,
   renderInitialAppLicense,
   resolveAppScaffoldCreateInput,
   SCAFFOLD_APP_OWNED_HANDOVER_PATHS,
@@ -40,7 +39,6 @@ import {
   resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
-  validateAppScaffoldCargoDependencyValue,
   validateAppScaffoldModuleRegistry,
 } from '../lib/app-scaffold-capabilities.mjs';
 import { resolveWindowsResourceVersion } from '../lib/app-scaffold-profiles.mjs';
@@ -67,8 +65,6 @@ const versions = {
   viteReactPluginVersion: '5.0.0',
   tailwindcssVersion: '4.0.0',
   tailwindcssViteVersion: '4.0.0',
-  tauriCliVersion: '2.0.0-cli',
-  nimiShellTauriVersion: '0.2.0',
   electronPackagerVersion: '20.0.0-packager',
   electronVersion: '42.0.0-electron',
   esbuildVersion: '0.28.0-esbuild',
@@ -341,29 +337,6 @@ function writeInstalledLock(target) {
     lockfileVersion: '9.0',
     importers: { '.': importer },
   }));
-  const cargo = readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8');
-  const shellVersion = cargo.match(/^nimi-shell-tauri\s*=\s*"([^"]+)"$/mu)?.[1];
-  assert.ok(shellVersion, 'generated Cargo manifest must use a registry nimi-shell-tauri version');
-  writeFileSync(path.join(target, 'src-tauri', 'Cargo.lock'), [
-    'version = 4',
-    '',
-    '[[package]]',
-    'name = "nimi-shell-tauri"',
-    `version = "${shellVersion}"`,
-    'source = "registry+https://github.com/rust-lang/crates.io-index"',
-    `checksum = "${'a'.repeat(64)}"`,
-    '',
-  ].join('\n'));
-}
-
-function assertTauriIconSupport(generated) {
-  const tauriConfig = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
-  assert.deepEqual(tauriConfig.bundle?.icon, ['icons/icon.png', 'icons/icon.ico']);
-  const icon = generated.readBytes('src-tauri/icons/icon.png');
-  assert.deepEqual([...icon.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const ico = generated.readBytes('src-tauri/icons/icon.ico');
-  assert.deepEqual([...ico.subarray(0, 6)], [0x00, 0x00, 0x01, 0x00, 0x01, 0x00]);
-  assert.deepEqual([...ico.subarray(22, 30)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 }
 
 function devPortFromScript(script) {
@@ -465,17 +438,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     );
 
     // Identity is rewritten everywhere; no Nimi Lab source identity leaks through.
+    assert.equal(generated.lock().appIdentity.nativeBundleIdentifier, 'ai.nimi.apps.acme.widget');
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme\.widget"/);
     assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /export \{ appId, appTitle, scaffoldProfile \} from '\.\/app-identity\.js'/);
-    const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
-    assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
-    assert.equal(tauri.productName, 'Acme Widget');
-    assert.equal(tauri.build.devUrl, `http://127.0.0.1:${devPort}`);
-    assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
-    assert.ok(generated.read('src-tauri/Cargo.toml').includes(`nimi-shell-tauri = "${versions.nimiShellTauriVersion}"`));
-    assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.55"/);
     assert.match(generated.read('nimi.app.yaml'), /^app_access: \[\]$/m);
     assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope:|qualifier:|operation_id:|resource_ref:/);
 
@@ -483,11 +450,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
       'nimi.app.yaml',
       'src/shell/auth/app-identity.ts',
       'src/shell/auth/runtime-platform.ts',
-      'src-tauri/tauri.conf.json',
-      'src-tauri/Cargo.toml',
       'src/main.tsx',
       'src/shell/routes/product-area.tsx',
-      'src-tauri/src/main.rs',
     ];
     for (const relativePath of identityScannedFiles) {
       const content = generated.read(relativePath);
@@ -507,7 +471,6 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.ok(generated.read('vite.config.ts').includes("'**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**'"));
     assert.ok(generated.read('vite.config.ts').includes("optimizeDeps: { entries: ['index.html'] }"));
     assert.ok(generated.read('vite.config.ts').includes("'**/android/app/src/main/assets/public/**'"));
-    assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /lab_storage|world_tour|lab_/);
     assertGeneratedPathMissing(generated, 'src/lab');
     assertGeneratedPathMissing(generated, 'src/capabilities');
     assertGeneratedPathExists(generated, 'src/workbench-core/workbench-core.tsx');
@@ -640,14 +603,6 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
       payload_path: 'dist-electron-package/acme-widget-shell-win32-x64',
       runtime_entry: 'payload/acme-widget-shell.exe',
     });
-    assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
-    const tauriBuildScript = generated.read('src-tauri/build.rs');
-    assert.match(tauriBuildScript, /<requestedExecutionLevel level="asInvoker" uiAccess="false" \/>/u);
-    for (const [, commentBody] of tauriBuildScript.matchAll(/<!--([\s\S]*?)-->/gu)) {
-      assert.equal(commentBody.includes('--'), false, 'XML comments must not contain internal double hyphens');
-    }
-    assert.match(tauriBuildScript, /WindowsAttributes::new\(\)\.app_manifest\(WINDOWS_APP_MANIFEST\)/u);
-    assert.doesNotMatch(tauriBuildScript, /requireAdministrator|highestAvailable|uiAccess="true"/u);
     assert.equal(lock.managedFileHashes['src/shell/workbench-target-adapter.ts'].class, 'scaffold-managed glue');
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/shell/auth/auth-gate.tsx'), false);
     assert.equal(lock.appOwnedInitialHashes['package.json'].class, 'app-owned product code');
@@ -783,7 +738,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.doesNotMatch(workflowSource, /candidate-uploads|Account|Bearer|--clobber|publish:\s*true/u);
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/lab/lab-workbench.tsx'), false);
 
-    assertTauriIconSupport(generated);
+    assertGeneratedPathMissing(generated, 'src-tauri');
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     assert.match(runtimePlatform, /getTargetAppSession/);
     assert.match(runtimePlatform, /snapshot\.runtime\.status === 'connected'/);
@@ -938,7 +893,7 @@ test('default starter AGENTS stays generic and does not inherit Lab ownership', 
   }
 });
 
-test('dotted app id maps losslessly to the Tauri bundle identifier', () => {
+test('dotted app id maps losslessly to the Electron OS bundle identifier', () => {
   const generated = scaffold('standalone', {
     appId: 'acme.widget',
     title: 'Acme Widget',
@@ -947,8 +902,6 @@ test('dotted app id maps losslessly to the Tauri bundle identifier', () => {
   try {
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme\.widget"/);
-    const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
-    assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
   } finally {
     generated.cleanup();
   }
@@ -962,8 +915,6 @@ test('identity replacement never reprocesses target values containing starter li
   });
   try {
     assert.equal(generated.lock().appIdentity.cargoPackageName, 'acme-widget2-shell');
-    assert.match(generated.read('src-tauri/Cargo.toml'), /^name = "acme-widget2-shell"$/m);
-    assert.doesNotMatch(generated.read('src-tauri/Cargo.toml'), /acme-widget222-shell/);
     assert.match(generated.read('README.md'), /Acme Widget2/);
     assert.doesNotMatch(generated.read('README.md'), /Acme Widget22/);
   } finally {
@@ -1008,7 +959,8 @@ test('generated package.json scripts reference only commands and existing local 
     assert.equal(packageJson.scripts['build:electron'], 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs');
     assert.equal(packageJson.scripts['build:electron:production'], 'node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs');
     assert.match(packageJson.scripts['build:electron:production'], /^node scripts\/clean-electron-production\.mjs && /);
-    assert.equal(packageJson.scripts['build:tauri:production'], 'tauri build');
+    assert.equal(packageJson.scripts['build:tauri:production'], undefined);
+    assert.equal(packageJson.devDependencies['@tauri-apps/cli'], undefined);
     assert.equal(packageJson.scripts['build:shell'], undefined);
     assert.equal(packageJson.scripts.postinstall, 'install-electron --no');
     assert.doesNotMatch(JSON.stringify(packageJson.scripts), /--shell\s+tauri/);
@@ -1048,23 +1000,6 @@ test('generated app installs the Kit app-host bridge at renderer bootstrap', () 
   }
 });
 
-test('generated app grants the Tauri event capability streaming needs', () => {
-  // Installing the listen hook is not enough: calling it invokes the core:event
-  // plugin command, which Tauri v2 gates behind a capability. Without it, stream
-  // open fails closed with SDK_RUNTIME_TAURI_STREAM_OPEN_FAILED ("event.listen not
-  // allowed"). The main window must grant core:event (via core:default).
-  const generated = scaffold('standalone');
-  try {
-    const capability = JSON.parse(generated.read('src-tauri/capabilities/default.json'));
-    assert.ok(capability.windows.includes('main'), 'capability must target the main window');
-    const permissions = capability.permissions.map((entry) => (typeof entry === 'string' ? entry : entry.identifier));
-    const grantsEvent = permissions.some((p) => p === 'core:default' || p === 'core:event:default' || p === 'core:event:allow-listen');
-    assert.ok(grantsEvent, `capability must grant core:event for stream listen; got ${JSON.stringify(permissions)}`);
-  } finally {
-    generated.cleanup();
-  }
-});
-
 test('standalone scaffold always uses public dependency declarations', () => {
   const generated = scaffold('standalone');
   try {
@@ -1074,12 +1009,11 @@ test('standalone scaffold always uses public dependency declarations', () => {
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
-    assert.ok(generated.read('src-tauri/Cargo.toml').includes(`nimi-shell-tauri = "${versions.nimiShellTauriVersion}"`));
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /scaffoldProfile = "standalone"/);
     assert.match(generated.read('README.md'), /Profile: `standalone`/);
-    assertTauriIconSupport(generated);
+    assertGeneratedPathMissing(generated, 'src-tauri');
   } finally {
     generated.cleanup();
   }
@@ -1152,7 +1086,7 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
-  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency versions/iu);
+  assert.match(readme, /Electron on Windows x64 and macOS arm64/iu);
   assert.match(readme, /complete `\.tgz` archives via `pnpm-workspace.yaml` overrides/u);
   assert.match(readme, /never point dependencies at a Nimi source checkout/u);
   assert.match(starterReadme, /App-owned product code/u);
@@ -1232,7 +1166,6 @@ test('create accepts explicit identity through structured carrier surfaces and c
 
     assert.match(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'), /app_id: studio\.canvas/);
     assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = "studio\.canvas"/);
-    assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
     const doctor = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.equal(doctor.status, 0, doctor.stderr);
@@ -1261,7 +1194,6 @@ test('create accepts package author and scoped npm package metadata', () => {
     assert.equal(packageJson.name, '@studio/canvas');
     assert.equal(packageJson.author, 'Studio Maintainers');
     assert.equal(lock.cargoPackageName, 'studio-canvas-shell');
-    assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
     const doctor = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.equal(doctor.status, 0, doctor.stderr);
@@ -1299,13 +1231,10 @@ test('create accepts safely serialized Display Name and one person-or-team autho
     ], tempRoot);
     assert.equal(result.status, 0, result.stderr);
     const manifest = parseYaml(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'));
-    const tauri = JSON.parse(readFileSync(path.join(target, 'src-tauri/tauri.conf.json'), 'utf8'));
     const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
     const identityModule = readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8');
     const intent = JSON.parse(readFileSync(path.join(target, '.nimi/app-scaffold/intent.json'), 'utf8'));
     assert.equal(manifest.display_name, displayName);
-    assert.equal(tauri.productName, displayName);
-    assert.equal(tauri.app.windows[0].title, displayName);
     assert.equal(packageJson.author, 'Studio Team');
     assert.match(identityModule, new RegExp(`appTitle = ${JSON.stringify(displayName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     assert.equal(intent.appIdentity.displayName, displayName);
@@ -1392,10 +1321,6 @@ test('standalone scaffold CLI accepts arbitrary repositories and hard-cuts works
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], scaffoldVersions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], scaffoldVersions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], scaffoldVersions.appToolsVersion);
-    assert.ok(
-      readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8')
-        .includes(`nimi-shell-tauri = "${scaffoldVersions.nimiShellTauriVersion}"`),
-    );
   } finally {
     rmSync(thirdPartyRepo, { recursive: true, force: true });
   }
@@ -1440,10 +1365,7 @@ test('candidate high-level plan reuses standalone output without exposing a work
     assert.deepEqual(candidatePlan.preview.topology, publicPlan.preview.topology);
     assert.equal(candidatePlan.resolvedInput.targetDir, target);
     assert.equal(candidatePlan.preview.profile, 'standalone');
-    assert.equal(
-      candidatePlan.preview.cargoDependencies['nimi-shell-tauri'],
-      JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions.nimiShellTauriVersion,
-    );
+    assert.equal(candidatePlan.preview.cargoDependencies, undefined);
     assert.equal(candidatePlan.preview.identity.devPort, publicPlan.preview.identity.devPort);
     assert.deepEqual(candidatePlan.preview.directFeatures, ['studio-create']);
     assert.equal(existsSync(target), false);
@@ -1988,7 +1910,6 @@ test('create rejects catalog dependency cycles and target collisions', () => {
     appAccessItems: [],
     sourceMappings: [{ sourceRoot: `src/modules/${id}`, targetRoot }],
     npmDependencies: {},
-    cargoDependencies: {},
     hostAdapterContract: 'test-host-v1',
     views: [`${id}.view`],
     navigation: [`${id}.view`],
@@ -2059,8 +1980,8 @@ test('phase 7 file ownership rejects exact case-folded and file-prefix collision
   );
 });
 
-test('phase 7 Cargo dependency objects compare structurally and render non-empty safe TOML', () => {
-  const moduleEntry = (id, order, cargoDependencies) => ({
+test('feature modules only admit public registry npm dependencies', () => {
+  const moduleEntry = (id, order) => ({
     id,
     kind: 'feature',
     lifecycle: 'candidate',
@@ -2070,7 +1991,6 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
     sourceMappings: [{ sourceRoot: `src/modules/${id}`, targetRoot: `src/capabilities/${id}` }],
     appAccessItems: [],
     npmDependencies: {},
-    cargoDependencies,
     hostAdapterContract: 'test-host-v1',
     views: [`${id}.view`],
     navigation: [`${id}.view`],
@@ -2082,37 +2002,9 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
       componentExport: 'TestComponent',
     },
   });
-  const expected = {
-    version: '1.2.3',
-    features: ['derive', 'serde'],
-    'default-features': false,
-    optional: true,
-  };
-  const registry = {
-    alpha: moduleEntry('alpha', 10, { shared: expected }),
-    beta: moduleEntry('beta', 20, {
-      shared: { optional: true, features: ['derive', 'serde'], version: '1.2.3', 'default-features': false },
-    }),
-  };
-  const resolved = resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], registry);
-  assert.deepEqual(resolved.cargoDependencies.shared, expected);
-  assert.equal(
-    renderCargoDependencyValue(expected, 'shared'),
-    '{ default-features = false, features = ["derive", "serde"], optional = true, version = "1.2.3" }',
-  );
-  assert.throws(
-    () => renderCargoDependencyValue({ path: '../crate' }, 'local'),
-    /Cargo dependency field is invalid: local\.path/,
-  );
   assert.throws(
     () => resolveAppScaffoldCandidateFeatures(['alpha'], {
-      alpha: moduleEntry('alpha', 10, { local: { path: '../crate' } }),
-    }),
-    /Cargo dependency field is invalid: alpha:local\.path/,
-  );
-  assert.throws(
-    () => resolveAppScaffoldCandidateFeatures(['alpha'], {
-      alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { local: 'workspace:*' } },
+      alpha: { ...moduleEntry('alpha', 10), npmDependencies: { local: 'workspace:*' } },
     }),
     /npm dependency must use a public registry version: alpha:local/,
   );
@@ -2129,65 +2021,17 @@ test('phase 7 Cargo dependency objects compare structurally and render non-empty
   ]) {
     assert.throws(
       () => resolveAppScaffoldCandidateFeatures(['alpha'], {
-        alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { vcs: spec } },
+        alpha: { ...moduleEntry('alpha', 10), npmDependencies: { vcs: spec } },
       }),
       /npm dependency must use a public registry version: alpha:vcs/,
     );
   }
   for (const spec of ['^1.2.3', '>=1 <2', 'latest', 'npm:@scope/renamed-package@~2.1.0']) {
     assert.doesNotThrow(() => resolveAppScaffoldCandidateFeatures(['alpha'], {
-      alpha: { ...moduleEntry('alpha', 10, {}), npmDependencies: { registry: spec } },
+      alpha: { ...moduleEntry('alpha', 10), npmDependencies: { registry: spec } },
     }));
   }
-  for (const spec of ['../crate', 'not a version', 'git://example.test/repo']) {
-    assert.throws(
-      () => validateAppScaffoldCargoDependencyValue(spec, 'invalid-string'),
-      /Cargo dependency must use a public registry version: invalid-string/,
-    );
-  }
-  for (const spec of ['0.1.0', '^1.2.3', '~1.2', '>=1.2.3, <2', '1.*']) {
-    assert.doesNotThrow(() => validateAppScaffoldCargoDependencyValue(spec, 'valid-string'));
-  }
-  assert.throws(
-    () => buildAppScaffoldCandidateSnapshot({
-      profile: 'standalone',
-      versions: { ...versions, nimiShellTauriVersion: '../crate' },
-      appId: 'invalid.base-cargo',
-      appTitle: 'Invalid Base Cargo',
-      packageName: 'invalid-base-cargo',
-      features: [],
-    }),
-    /Cargo dependency must use a public registry version: nimi-shell-tauri/,
-  );
-  for (const descriptor of [
-    { version: ['1'] },
-    { optional: 'false' },
-    { features: true },
-    { package: false },
-  ]) {
-    assert.throws(
-      () => resolveAppScaffoldCandidateFeatures(['alpha'], {
-        alpha: moduleEntry('alpha', 10, { invalid: descriptor }),
-      }),
-      /Cargo dependency value has the wrong type: alpha:invalid/,
-    );
-  }
-  assert.throws(
-    () => resolveAppScaffoldCandidateFeatures(['alpha', 'beta'], {
-      alpha: moduleEntry('alpha', 10, { shared: { version: '1' } }),
-      beta: moduleEntry('beta', 20, { shared: { version: '2' } }),
-    }),
-    /Cargo dependency version collision for shared/,
-  );
-  assert.throws(() => renderCargoDependencyValue({}, 'empty'), /Cargo dependency is empty: empty/);
-  assert.throws(
-    () => renderCargoDependencyValue({ git: 'https://example.test/repo' }, 'unsafe'),
-    /Cargo dependency field is invalid: unsafe\.git/,
-  );
-  assert.throws(
-    () => renderCargoDependencyValue({ features: ['derive', ''] }, 'bad-features'),
-    /Cargo dependency value has the wrong type: bad-features\.features/,
-  );
+
 });
 
 test('phase 7 candidate materialization reports the exact residual target after filesystem failure', () => {
@@ -2464,8 +2308,6 @@ test('sync advances the App version while preserving immutable scaffold identity
       assert.deepEqual(parseYaml(generated.read('nimi.app.yaml'))[field], sourceManifest[field]);
       assert.deepEqual(parseYaml(generated.read('.nimi/admission/submission.yaml'))[field], sourceManifest[field]);
     }
-    assert.match(generated.read('src-tauri/Cargo.toml'), /^version = "0\.1\.1"$/mu);
-    assert.equal(JSON.parse(generated.read('src-tauri/tauri.conf.json')).version, '0.1.1');
     assert.equal(parseYaml(generated.read('.nimi/config/app-identity.yaml')).version, '0.1.1');
     assert.equal(parseYaml(generated.read('.nimi/admission/submission.yaml')).version, '0.1.1');
     const synchronizedIntent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
@@ -2680,22 +2522,8 @@ test('sync adopts and check audits an existing submitted App without creating a 
     ].join('\n');
     writeFileSync(manifestPath, manifest);
     writeFileSync(path.join(target, 'src', 'main.ts'), 'export const app = true;\n');
-    writeFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), [
-      '[package]',
-      'name = "existing-app-shell"',
-      'version = "0.1.0"',
-      '',
-      '[dependencies]',
-      `nimi-shell-tauri = "${lifecycleVersions.nimiShellTauriVersion}"`,
-      '',
-    ].join('\n'));
-    writeFileSync(path.join(target, 'src-tauri', 'tauri.conf.json'), `${JSON.stringify({
-      productName: 'Existing App',
-      version: '0.1.0',
-      identifier: 'ai.nimi.apps.existing.app',
-    }, null, 2)}\n`);
     writeFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), [
-      'build_profile_ref: tauri-pnpm-vite',
+      'build_profile_ref: electron-packager-pnpm-vite',
       'test_command: pnpm run test:app',
       'build_command: pnpm run build:shell',
       'targets:',

@@ -10,17 +10,6 @@ function frozenSourceMapping(sourceRoot, targetRoot = sourceRoot) {
 }
 
 function frozenModule(definition) {
-  const cargoDependencies = Object.fromEntries(
-    Object.entries(definition.cargoDependencies || {}).map(([name, value]) => [
-      name,
-      value && typeof value === 'object' && !Array.isArray(value)
-        ? Object.freeze({
-            ...value,
-            ...(Array.isArray(value.features) ? { features: Object.freeze([...value.features]) } : {}),
-          })
-        : value,
-    ]),
-  );
   return Object.freeze({
     ...definition,
     carriers: Object.freeze([...(definition.carriers || ['desktop'])]),
@@ -30,7 +19,6 @@ function frozenModule(definition) {
     capabilityContractRefs: Object.freeze([...(definition.capabilityContractRefs || [])]),
     requiredStandardizedFeatureRefs: Object.freeze([...(definition.requiredStandardizedFeatureRefs || [])]),
     npmDependencies: Object.freeze({ ...(definition.npmDependencies || {}) }),
-    cargoDependencies: Object.freeze(cargoDependencies),
     views: Object.freeze([...(definition.views || [])]),
     navigation: Object.freeze([...(definition.navigation || [])]),
     styles: Object.freeze([...(definition.styles || [])]),
@@ -51,7 +39,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
       i18next: '$versions.i18nextVersion',
       'lucide-react': '$versions.lucideReactVersion',
     },
-    cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
     views: [],
     navigation: [],
@@ -77,7 +64,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     capabilityContractRefs: ['text.generate', 'text.embed'],
     requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
-    cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
     views: ['text.generate', 'chat.stream', 'text.embed'],
     navigation: ['text.generate', 'chat.stream', 'text.embed'],
@@ -103,7 +89,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     capabilityContractRefs: ['image.generate', 'video.generate', 'music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'],
     requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
-    cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
     views: ['image.generate', 'video.generate', 'music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'],
     navigation: ['image.generate', 'video.generate', 'music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'],
@@ -129,7 +114,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     capabilityContractRefs: ['audio.synthesize', 'audio.transcribe', 'voice.create'],
     requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
-    cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
     views: ['audio.synthesize', 'audio.transcribe', 'voice.create', 'speech.bundle'],
     navigation: ['audio.synthesize', 'audio.transcribe', 'voice.create', 'speech.bundle'],
@@ -155,7 +139,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     npmDependencies: {
       'lucide-react': '$versions.lucideReactVersion',
     },
-    cargoDependencies: {},
     hostAdapterContract: 'clipboard-copy-v1',
     views: ['kit-recipes'],
     navigation: ['kit-recipes'],
@@ -180,7 +163,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     npmDependencies: {
       'lucide-react': '$versions.lucideReactVersion',
     },
-    cargoDependencies: {},
     hostAdapterContract: 'local-app-standard-shell-v1',
     views: ['agent-center'],
     navigation: ['agent-center'],
@@ -205,7 +187,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     npmDependencies: {
       'lucide-react': '$versions.lucideReactVersion',
     },
-    cargoDependencies: {},
     hostAdapterContract: 'app-conversation-browser-media-v1',
     views: ['agent-conversation'],
     navigation: ['agent-conversation'],
@@ -230,7 +211,6 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     npmDependencies: {
       'lucide-react': '$versions.lucideReactVersion',
     },
-    cargoDependencies: {},
     hostAdapterContract: 'agent-realtime-browser-media-v1',
     views: ['agent-realtime'],
     navigation: ['agent-realtime'],
@@ -295,52 +275,6 @@ function targetPathForOwnedSource(entry, sourcePath) {
   return suffix ? `${mapping.targetRoot}/${suffix}` : mapping.targetRoot;
 }
 
-function canonicalDependencyValue(value) {
-  if (Array.isArray(value)) return value.map(canonicalDependencyValue);
-  if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.keys(value).sort().map((key) => [key, canonicalDependencyValue(value[key])]),
-  );
-}
-
-function dependencyValuesEqual(left, right) {
-  return JSON.stringify(canonicalDependencyValue(left)) === JSON.stringify(canonicalDependencyValue(right));
-}
-
-export function validateAppScaffoldCargoDependencyValue(value, label) {
-  if (typeof value === 'string') {
-    if (isCargoRegistryVersionRequirement(value)) return;
-    throw new Error(`App scaffold module Cargo dependency must use a public registry version: ${label}`);
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`App scaffold module Cargo dependency is invalid: ${label}`);
-  }
-  const allowed = new Set(['version', 'package', 'features', 'default-features', 'optional']);
-  const entries = Object.entries(value);
-  if (entries.length === 0) throw new Error(`App scaffold module Cargo dependency is empty: ${label}`);
-  for (const [key, field] of entries) {
-    if (!allowed.has(key)) throw new Error(`App scaffold module Cargo dependency field is invalid: ${label}.${key}`);
-    if (key === 'version' && typeof field === 'string') {
-      if (!isCargoRegistryVersionRequirement(field)) {
-        throw new Error(`App scaffold module Cargo dependency must use a public registry version: ${label}.${key}`);
-      }
-      continue;
-    }
-    if (key === 'package' && typeof field === 'string') {
-      if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(field)) {
-        throw new Error(`App scaffold module Cargo dependency package name is invalid: ${label}.${key}`);
-      }
-      continue;
-    }
-    if (key === 'features' && Array.isArray(field) && field.every((item) => typeof item === 'string' && item && item === item.trim())) continue;
-    if ((key === 'default-features' || key === 'optional') && typeof field === 'boolean') continue;
-    throw new Error(`App scaffold module Cargo dependency value has the wrong type: ${label}.${key}`);
-  }
-  if (!Object.hasOwn(value, 'version')) {
-    throw new Error(`App scaffold module Cargo registry dependency version is missing: ${label}`);
-  }
-}
-
 function assertPublicNpmDependencyVersion(value, label) {
   if (typeof value === 'string' && /^\$versions\.[A-Za-z][A-Za-z0-9]*$/u.test(value)) return;
   validateAppScaffoldNpmRegistryVersion(value, label);
@@ -360,32 +294,6 @@ export function validateAppScaffoldNpmRegistryVersion(value, label) {
 function isNpmRegistryVersionSelector(value) {
   if (semver.validRange(value, { loose: false }) !== null) return true;
   return /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(value);
-}
-
-const CARGO_NUMERIC_IDENTIFIER = '(?:0|[1-9][0-9]*)';
-const CARGO_PRERELEASE_IDENTIFIER = '[0-9A-Za-z-]+';
-const CARGO_PRERELEASE = `(?:-${CARGO_PRERELEASE_IDENTIFIER}(?:\\.${CARGO_PRERELEASE_IDENTIFIER})*)?`;
-const CARGO_BUILD = `(?:\\+${CARGO_PRERELEASE_IDENTIFIER}(?:\\.${CARGO_PRERELEASE_IDENTIFIER})*)?`;
-const CARGO_VERSION = new RegExp(
-  `^(?:\\*|${CARGO_NUMERIC_IDENTIFIER}|${CARGO_NUMERIC_IDENTIFIER}\\.\\*|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}\\.\\*|${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}\\.${CARGO_NUMERIC_IDENTIFIER}${CARGO_PRERELEASE}${CARGO_BUILD})$`,
-  'u',
-);
-
-function isCargoRegistryVersionRequirement(value) {
-  if (typeof value !== 'string' || !value || value !== value.trim()) return false;
-  const comparators = value.split(',').map((entry) => entry.trim());
-  if (comparators.length === 0 || comparators.some((entry) => !entry)) return false;
-  return comparators.every((entry) => {
-    const match = entry.match(/^(\^|~|>=|<=|>|<|=)?\s*(.+)$/u);
-    if (!match || !isCargoVersionToken(match[2])) return false;
-    return !(match[1] && match[2].includes('*'));
-  });
-}
-
-function isCargoVersionToken(value) {
-  if (!CARGO_VERSION.test(value)) return false;
-  if (value.includes('*') || value.split(/[+-]/u, 1)[0].split('.').length < 3) return true;
-  return semver.valid(value, { loose: false }) !== null;
 }
 
 function assertProductEntry(id, entry) {
@@ -489,20 +397,11 @@ function assertModuleEntry(id, entry, registry) {
   if (!entry.npmDependencies || typeof entry.npmDependencies !== 'object' || Array.isArray(entry.npmDependencies)) {
     throw new Error(`App scaffold module npmDependencies are missing: ${id}`);
   }
-  if (!entry.cargoDependencies || typeof entry.cargoDependencies !== 'object' || Array.isArray(entry.cargoDependencies)) {
-    throw new Error(`App scaffold module cargoDependencies are missing: ${id}`);
-  }
   for (const [name, version] of Object.entries(entry.npmDependencies)) {
     if (!name || name !== name.trim() || typeof version !== 'string' || !version.trim()) {
       throw new Error(`App scaffold module npm dependency is invalid: ${id}: ${name || 'missing'}`);
     }
     assertPublicNpmDependencyVersion(version, `${id}:${name}`);
-  }
-  for (const [name, value] of Object.entries(entry.cargoDependencies)) {
-    if (!name || name !== name.trim() || value === undefined || value === null) {
-      throw new Error(`App scaffold module Cargo dependency is invalid: ${id}: ${name || 'missing'}`);
-    }
-    validateAppScaffoldCargoDependencyValue(value, `${id}:${name}`);
   }
   if (typeof entry.hostAdapterContract !== 'string' || !entry.hostAdapterContract.trim()) {
     throw new Error(`App scaffold module hostAdapterContract is missing: ${id}`);
@@ -658,7 +557,6 @@ function resolveAppScaffoldGraph(input, registry, mode) {
   const appAccessItems = [];
   const appAccessSeen = new Set();
   const npmDependencies = {};
-  const cargoDependencies = {};
   const views = [];
   const navigation = [];
   const styles = [];
@@ -706,12 +604,6 @@ function resolveAppScaffoldGraph(input, registry, mode) {
       }
       npmDependencies[name] = version;
     }
-    for (const [name, version] of Object.entries(entry.cargoDependencies)) {
-      if (Object.hasOwn(cargoDependencies, name) && !dependencyValuesEqual(cargoDependencies[name], version)) {
-        throw new Error(`App scaffold module Cargo dependency version collision for ${name}`);
-      }
-      cargoDependencies[name] = version;
-    }
   }
 
   return Object.freeze({
@@ -723,7 +615,6 @@ function resolveAppScaffoldGraph(input, registry, mode) {
     capabilityContractRefs: Object.freeze(capabilityContractRefs),
     requiredStandardizedFeatureRefs: Object.freeze(requiredStandardizedFeatureRefs),
     npmDependencies: Object.freeze(npmDependencies),
-    cargoDependencies: Object.freeze(cargoDependencies),
     views: Object.freeze(views),
     navigation: Object.freeze(navigation),
     styles: Object.freeze(styles),

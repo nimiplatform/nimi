@@ -620,20 +620,20 @@ test('aggregate verifies final target bytes and creates one version candidate', 
   }
 });
 
-test('explicit Tauri pack independently enforces package, manifest, Cargo, and Tauri version lockstep', () => {
-  const root = fixture({ buildProfileRef: 'tauri-pnpm-vite' });
+test('Tauri primary profile rejects pack and aggregate even with a previous valid target', () => {
+  const root = fixture();
   try {
-    writeFileSync(path.join(root, 'src-tauri', 'tauri.conf.json'), '{"version":"0.2.0"}\n');
-    assert.throws(
-      () => packAppTarget(root, { target: 'windows-x86_64' }),
-      /versions must be exact and lockstep/u,
-    );
+    packAppTarget(root, { target: 'windows-x86_64' });
+    const profile = path.join(root, '.nimi/config/build-profile.yaml');
+    writeFileSync(profile, readFileSync(profile, 'utf8').replace('electron-packager-pnpm-vite', 'tauri-pnpm-vite'));
+    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /tauri-pnpm-vite is unsupported/);
+    assert.throws(() => aggregateAppTargetCandidates(root), /tauri-pnpm-vite is unsupported/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('pack rejects unknown build profile refs and applies Tauri source checks only to the explicit Tauri profile', () => {
+test('pack rejects unknown build profile refs and accepts both Electron profiles without a Tauri tree', () => {
   const electronRoot = fixture();
   const appOwnedRoot = fixture({ buildProfileRef: 'electron-pnpm' });
   const tauriRoot = fixture({ buildProfileRef: 'tauri-pnpm-vite' });
@@ -658,7 +658,7 @@ test('pack rejects unknown build profile refs and applies Tauri source checks on
     rmSync(path.join(tauriRoot, 'src-tauri'), { recursive: true, force: true });
     assert.throws(
       () => packAppTarget(tauriRoot, { target: 'windows-x86_64' }),
-      /src-tauri\/Cargo\.toml is missing/u,
+      /tauri-pnpm-vite is unsupported/u,
     );
   } finally {
     rmSync(electronRoot, { recursive: true, force: true });

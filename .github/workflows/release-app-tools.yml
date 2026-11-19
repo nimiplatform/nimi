@@ -15,7 +15,6 @@ on:
       - app-tools/**
       - apps/lab/**
       - kit/package.json
-      - kit/shell/tauri/Cargo.toml
       - package.json
       - pnpm-lock.yaml
       - scripts/lib/command-runner.mjs
@@ -111,11 +110,10 @@ jobs:
           tarballs=(dist/component-release/app-tools/*.tgz)
           test "${#tarballs[@]}" -eq 1
           npm publish "${tarballs[0]}" --access public --tag "$(node scripts/release/component-version.mjs --npm-tag app-tools/package.json)" --dry-run
-      - name: Require every scaffolded public dependency for tag publication
-        if: steps.release.outputs.production == 'true'
+      - name: Resolve scaffold dependency floors from the packed manifest
+        id: floors
         env:
           INPUT_OWNER_VERSION: ${{ steps.release.outputs.version }}
-          CRATES_IO_USER_AGENT: nimi-component-release/1.0 (+https://github.com/nimiplatform/nimi)
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -124,13 +122,20 @@ jobs:
           package_json="$(tar -xOf "${tarballs[0]}" package/package.json)"
           sdk_range="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.sdkVersion || ''))")"
           kit_range="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.kitVersion || ''))")"
-          tauri_version="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.nimiShellTauriVersion || ''))")"
           sdk_floor="$(node scripts/release/component-version.mjs --dependency-floor "${INPUT_OWNER_VERSION}" "${sdk_range}")"
           kit_floor="$(node scripts/release/component-version.mjs --dependency-floor "${INPUT_OWNER_VERSION}" "${kit_range}")"
-          if ! [[ "${tauri_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then echo "invalid scaffold Tauri version: ${tauri_version}" >&2; exit 1; fi
-          npm view "@nimiplatform/sdk@${sdk_floor}" version >/dev/null
-          npm view "@nimiplatform/kit@${kit_floor}" version >/dev/null
-          curl --retry 3 --retry-delay 2 --retry-all-errors --fail --silent --show-error --user-agent "${CRATES_IO_USER_AGENT}" "https://crates.io/api/v1/crates/nimi-shell-tauri/${tauri_version}" >/dev/null
+          echo "sdk=$sdk_floor" >> "$GITHUB_OUTPUT"
+          echo "kit=$kit_floor" >> "$GITHUB_OUTPUT"
+          echo "Scaffold requires SDK $sdk_floor and Kit $kit_floor"
+      - name: Verify exact public npm dependencies for tag publication
+        if: steps.release.outputs.production == 'true'
+        env:
+          SDK_FLOOR: ${{ steps.floors.outputs.sdk }}
+          KIT_FLOOR: ${{ steps.floors.outputs.kit }}
+        run: |
+          set -euo pipefail
+          test "$(npm view "@nimiplatform/sdk@$SDK_FLOOR" version --registry=https://registry.npmjs.org)" = "$SDK_FLOOR"
+          test "$(npm view "@nimiplatform/kit@$KIT_FLOOR" version --registry=https://registry.npmjs.org)" = "$KIT_FLOOR"
       - name: Upload exact App Tools package for tag publication
         if: steps.release.outputs.production == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

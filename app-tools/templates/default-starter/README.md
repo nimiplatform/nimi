@@ -43,7 +43,7 @@ The default `windows-x86_64` build outputs a fresh non-installer Electron direct
 
 The production bundle rejects `--nimi-dev-renderer-url`. The protected native binding arrives only through Kit's optional dependency—do not add it directly to this App.
 
-`pnpm run build:tauri:production` remains an explicit alternative when a Tauri build profile is deliberately selected; it is not the default production carrier.
+Electron packages target Windows x64 and macOS arm64. Standard builds use Node, pnpm and the prebuilt native Kit package for the target.
 
 ### Packaging & Release Boundaries
 

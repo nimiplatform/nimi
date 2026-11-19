@@ -52,22 +52,6 @@
       "class": "app-owned product code"
     },
     {
-      "path": "src-tauri/build.rs",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src-tauri/capabilities/default.json",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src-tauri/Cargo.toml",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src-tauri/tauri.conf.json",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "src/shell/App.tsx",
       "class": "scaffold-managed glue"
     },

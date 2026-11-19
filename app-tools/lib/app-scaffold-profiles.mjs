@@ -62,11 +62,6 @@ export function buildDefaultStarterFiles(identity) {
     },
     ...buildGeneratedModuleCompositionFiles(identity),
     {
-      path: 'src-tauri/src/main.rs',
-      content: renderDefaultTauriMain(),
-      mutationClass: 'scaffold-managed glue',
-    },
-    {
       path: 'src-electron/main.ts',
       content: renderDefaultElectronMain(identity),
       mutationClass: 'scaffold-managed glue',
@@ -317,6 +312,8 @@ function renderDefaultElectronProductionPackager(identity) {
     "      await writeFile(packagedManifestPath, `${JSON.stringify(packagedManifest, null, 2)}\\n`);",
     '    }],',
     '    win32metadata: {',
+    '      // Match the starter license holder when the App omits its optional author.',
+    '      ...(appPackage.author ? {} : { CompanyName: APP_PRODUCT_NAME }),',
     '      ProductName: APP_PRODUCT_NAME,',
     '      FileDescription: APP_PRODUCT_NAME,',
     '      InternalName: APP_EXECUTABLE_NAME,',
@@ -1312,25 +1309,6 @@ function renderGeneratedAIStudioHostAdapter(resolution, platform = 'desktop') {
     '        rootTestId="nimi-app-ai-studio"',
     '      />',
     '  );',
-    '}',
-    '',
-  ].join('\n');
-}
-
-function renderDefaultTauriMain() {
-  return [
-    'fn main() {',
-    '    tauri::Builder::default()',
-    '        .setup(|app| {',
-    '            use tauri::Manager;',
-    '            app.manage(',
-    '                nimi_shell_tauri::capabilities::runtime::RuntimeBridgeLocalAppHost::platform_default(),',
-    '            );',
-    '            Ok(())',
-    '        })',
-    '        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_local_app_standard_shell_handler![])',
-    '        .run(tauri::generate_context!())',
-    '        .expect("failed to run Nimi App shell");',
     '}',
     '',
   ].join('\n');

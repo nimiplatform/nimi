@@ -142,8 +142,6 @@ function buildKit(outputDir) {
 }
 
 function smokeAppTools(tarball) {
-  const scaffoldVersions = readJson('app-tools/package.json').nimiScaffoldVersions;
-  const appToolsVersion = packageVersion('app-tools/package.json');
   const smokeRoot = mkdtempSync(path.join(tmpdir(), 'nimi-app-tools-package-'));
   try {
     writeFileSync(path.join(smokeRoot, 'package.json'), '{"private":true}\n', 'utf8');
@@ -160,6 +158,9 @@ function smokeAppTools(tarball) {
       'create', '--dir', appRoot, '--profile', 'standalone', '--title', 'Component Release Smoke',
     ], { cwd: smokeRoot });
     const scaffold = JSON.parse(readFileSync(path.join(appRoot, 'package.json'), 'utf8'));
+    const packed = JSON.parse(readFileSync(path.join(smokeRoot, 'node_modules/@nimiplatform/app-tools/package.json'), 'utf8'));
+    const scaffoldVersions = packed.nimiScaffoldVersions;
+    const appToolsVersion = packed.version;
     const expected = {
       '@nimiplatform/sdk': scaffoldVersions.sdkVersion,
       '@nimiplatform/kit': scaffoldVersions.kitVersion,

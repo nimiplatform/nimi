@@ -332,7 +332,6 @@ async function main() {
   const shellCratesByName = new Map(shellCrates.map((crate) => [crate.name, crate]));
   const protectedLocalVersion = shellCratesByName.get('nimi-shell-protected-local')?.version || '';
   const protectedLocalNode = shellCratesByName.get('nimi-shell-protected-local-node');
-  const tauriVersion = shellCratesByName.get('nimi-shell-tauri')?.version || '';
   if (protectedLocalNode && protectedLocalNode.version !== protectedLocalVersion) {
     violations.push(
       `${protectedLocalNode.name} version ${protectedLocalNode.version || '<missing>'} `
@@ -358,10 +357,6 @@ async function main() {
   if (scaffoldVersions?.appToolsVersion !== expectedAppToolsRange) {
     violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
-  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(scaffoldVersions?.nimiShellTauriVersion ?? '')) {
-    violations.push('app-tools/package.json nimiScaffoldVersions.nimiShellTauriVersion must be a stable public Cargo version');
-  }
-
   if (sdkPackage?.version) {
     const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
     const versionNotAdvanced = runtimeSurfaceContext && (

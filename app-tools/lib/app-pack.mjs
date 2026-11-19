@@ -1,3 +1,4 @@
+import { assertDesktopHostSupport } from './app-host-support.mjs';
 import { isAppId } from './app-identifiers.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-009b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
@@ -35,7 +36,6 @@ const AGGREGATE_FORMAT = 'nimi.app-release-candidate/v1';
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
 const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
-const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
 const OUTPUT_DIR = 'dist/nimi-app';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
 const TARGETS = Object.freeze({
@@ -136,21 +136,6 @@ function readYaml(filePath, label) {
   } catch (error) {
     throw new Error(`Invalid ${label}: ${error instanceof Error ? error.message : String(error)}`);
   }
-}
-
-function readCargoPackageVersion(source) {
-  let inPackage = false;
-  for (const line of source.split(/\r?\n/u)) {
-    const header = line.match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/u);
-    if (header) {
-      inPackage = header[1] === 'package';
-      continue;
-    }
-    if (!inPackage) continue;
-    const match = line.match(/^\s*version\s*=\s*"([^"]+)"\s*(?:#.*)?$/u);
-    if (match) return match[1];
-  }
-  throw new Error('src-tauri/Cargo.toml [package] version is missing');
 }
 
 function collectPayload(payloadPath, os) {
@@ -312,7 +297,17 @@ export function readNimiAppArchive(bytes) {
   return entries;
 }
 
+function readNativePackProfile(targetDir) {
+  const profile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
+  assertDesktopHostSupport(profile.build_profile_ref);
+  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF].includes(profile.build_profile_ref)) {
+    throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(profile.build_profile_ref)}`);
+  }
+  return profile;
+}
+
 function readPackInputs(targetDir, targetId) {
+  const buildProfile = readNativePackProfile(targetDir);
   const target = TARGETS[targetId];
   if (!target) throw new Error(`Unsupported App package target: ${targetId}`);
   const packageJson = readJson(path.join(targetDir, 'package.json'), 'package.json');
@@ -325,30 +320,11 @@ function readPackInputs(targetDir, targetId) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readYaml(manifestPath, 'nimi.app.yaml');
   const appInfo = readAppInfo(targetDir, targetId);
-  const buildProfile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
-  const buildProfileRef = buildProfile.build_profile_ref;
-  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF].includes(buildProfileRef)) {
-    throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(buildProfileRef)}`);
-  }
-  const requiresTauri = buildProfileRef === TAURI_BUILD_PROFILE_REF;
   const appId = String(manifest.app_id || '');
   const version = String(packageJson.version || '');
   if (!isAppId(appId)) throw new Error('nimi.app.yaml app_id must be canonical and dotted');
   if (!SEMVER_PATTERN.test(version) || manifest.version !== version) {
     throw new Error('package.json and nimi.app.yaml versions must be exact and lockstep before pack');
-  }
-  if (requiresTauri) {
-    const cargoPath = path.join(targetDir, 'src-tauri', 'Cargo.toml');
-    const tauriPath = path.join(targetDir, 'src-tauri', 'tauri.conf.json');
-    if (!existsSync(cargoPath)) throw new Error('src-tauri/Cargo.toml is missing');
-    if (!existsSync(tauriPath)) throw new Error('src-tauri/tauri.conf.json is missing');
-    const tauriConfig = readJson(tauriPath, 'src-tauri/tauri.conf.json');
-    if (
-      readCargoPackageVersion(readFileSync(cargoPath, 'utf8')) !== version
-      || tauriConfig.version !== version
-    ) {
-      throw new Error('package.json, nimi.app.yaml, Cargo.toml, and tauri.conf.json versions must be exact and lockstep before pack');
-    }
   }
   const configured = buildProfile.targets?.[targetId];
   if (!configured || typeof configured !== 'object' || Array.isArray(configured)) throw new Error(`Build profile does not declare target: ${targetId}`);
@@ -551,6 +527,7 @@ export function packAppTarget(cwd, options = {}) {
 
 export function aggregateAppTargetCandidates(cwd, options = {}) {
   const targetDir = path.resolve(cwd, String(options.dir || '').trim() || '.');
+  readNativePackProfile(targetDir);
   const outputDir = path.join(targetDir, OUTPUT_DIR);
   if (!existsSync(outputDir)) throw new Error('No target metadata exists to aggregate');
   const files = readdirSync(outputDir).filter((name) => name.endsWith('.target.json')).sort();

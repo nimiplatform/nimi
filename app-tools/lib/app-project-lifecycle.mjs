@@ -1,3 +1,4 @@
+import { assertDesktopHostSupport } from './app-host-support.mjs';
 import { hostedWebIdentity, isAppId } from './app-identifiers.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readAppInfo } from './app-info.mjs';
@@ -53,8 +54,7 @@ const SYNCHRONIZED_NIMI_PACKAGES = new Set([
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
 const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
-const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
-const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF, 'web-pnpm']);
+const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, 'web-pnpm']);
 const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
 const HOSTED_WEB_WORKFLOW_PATH = '.github/workflows/nimi-web-release.yml';
 function hostedWorkflowSource() {
@@ -175,7 +175,7 @@ function assertNoRetiredScaffoldState(targetDir) {
 
 // The SDK/Kit pair comes from the App's resolved combination; the tool
 // dependencies come from the selected tool version. Both are one judgment
-// shared by manifest, lock, Cargo and workflow checks.
+// shared by manifest, lock and workflow checks.
 function expectedNimiDependencies(versions, combination, packageJson) {
   return Object.freeze([
     Object.freeze({ name: '@nimiplatform/sdk', section: 'dependencies', version: combination.sdkVersion }),
@@ -679,95 +679,6 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, 
   }
 }
 
-function assertCargoLockCurrent(targetDir, version) {
-  const cargoLockError = (detail) => new Error(`${detail}. Run cargo update -p nimi-shell-tauri --precise ${version}, then rerun nimi-app check.`);
-  const lockPath = path.join(targetDir, 'src-tauri', 'Cargo.lock');
-  if (!existsSync(lockPath)) {
-    throw cargoLockError('src-tauri/Cargo.lock is missing');
-  }
-  const blocks = readFileSync(lockPath, 'utf8').split(/\r?\n\[\[package\]\]\r?\n/u);
-  const block = blocks.find((entry) => /^name\s*=\s*"nimi-shell-tauri"\s*$/mu.test(entry));
-  if (!block) throw cargoLockError('src-tauri/Cargo.lock is missing nimi-shell-tauri');
-  const lockedVersion = block.match(/^version\s*=\s*"([^"]+)"\s*$/mu)?.[1];
-  const source = block.match(/^source\s*=\s*"([^"]+)"\s*$/mu)?.[1];
-  const checksum = block.match(/^checksum\s*=\s*"([a-f0-9]{64})"\s*$/mu)?.[1];
-  if (lockedVersion !== version || !source?.startsWith('registry+') || !checksum) {
-    throw cargoLockError(`src-tauri/Cargo.lock nimi-shell-tauri must resolve registry version ${version} with checksum`);
-  }
-}
-
-function cargoDependencyLocations(source) {
-  const lines = source.split(/\r?\n/u);
-  let section = '';
-  const entries = [];
-  let dependenciesHeader = -1;
-  for (let index = 0; index < lines.length; index += 1) {
-    const header = lines[index].match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/u);
-    if (header) {
-      section = header[1];
-      if (section === 'dependencies') dependenciesHeader = index;
-      continue;
-    }
-    if (/^\s*nimi-shell-tauri\s*=/u.test(lines[index])) {
-      entries.push({ index, section, line: lines[index].trim() });
-    }
-  }
-  return { lines, entries, dependenciesHeader };
-}
-
-function normalizeCargoManifest(source, version) {
-  const newline = source.includes('\r\n') ? '\r\n' : '\n';
-  const hadFinalNewline = source.endsWith('\n');
-  const { lines, entries, dependenciesHeader } = cargoDependencyLocations(source);
-  if (entries.length > 1 || entries.some((entry) => entry.section !== 'dependencies')) {
-    throw new Error('src-tauri/Cargo.toml must declare nimi-shell-tauri exactly once under [dependencies]');
-  }
-  const canonicalLine = `nimi-shell-tauri = "${version}"`;
-  if (entries.length === 1) {
-    lines[entries[0].index] = canonicalLine;
-  } else if (dependenciesHeader >= 0) {
-    let insertion = lines.length;
-    for (let index = dependenciesHeader + 1; index < lines.length; index += 1) {
-      if (/^\s*\[[^\]]+\]/u.test(lines[index])) {
-        insertion = index;
-        break;
-      }
-    }
-    if (insertion === lines.length && lines.at(-1) === '') insertion -= 1;
-    lines.splice(insertion, 0, canonicalLine);
-  } else {
-    if (lines.at(-1) === '') lines.pop();
-    if (lines.length > 0 && lines.at(-1) !== '') lines.push('');
-    lines.push('[dependencies]', canonicalLine);
-  }
-  const rendered = lines.join(newline);
-  return hadFinalNewline && !rendered.endsWith(newline) ? `${rendered}${newline}` : rendered;
-}
-
-function assertCargoManifestCurrent(source, version) {
-  const { entries } = cargoDependencyLocations(source);
-  const expected = `nimi-shell-tauri = "${version}"`;
-  if (entries.length !== 1 || entries[0].section !== 'dependencies' || entries[0].line !== expected) {
-    throw new Error(`src-tauri/Cargo.toml nimi-shell-tauri must use exact public version ${version}`);
-  }
-}
-
-function normalizeTauriConfig(config, appId) {
-  if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    throw new Error('src-tauri/tauri.conf.json must contain an object');
-  }
-  const normalized = JSON.parse(JSON.stringify(config));
-  normalized.identifier = `ai.nimi.apps.${appId}`;
-  return `${JSON.stringify(normalized, null, 2)}\n`;
-}
-
-function assertTauriConfigCurrent(config, appId) {
-  const expected = `ai.nimi.apps.${appId}`;
-  if (config?.identifier !== expected) {
-    throw new Error(`src-tauri/tauri.conf.json identifier must be ${expected}`);
-  }
-}
-
 function normalizeStandaloneSourceFiles(targetDir, sources) {
   const planned = [];
   for (const name of ['vite.config.ts', 'vite.config.js', 'vite.config.mjs']) {
@@ -829,77 +740,24 @@ function tauriIdentifierFromAppId(appId) {
   return `ai.nimi.apps.${appId}`;
 }
 
-function readProjectLifecycleFiles(targetDir, buildProfileRef, sources) {
+function readProjectLifecycleFiles(targetDir, sources) {
   const packagePath = path.join(targetDir, 'package.json');
   if (!existsSync(packagePath)) throw new Error('Required App lifecycle file is missing: package.json');
-  const files = {
+  const packageSource = readProjectText(targetDir, 'package.json', sources);
+  return {
     packagePath,
-    packageSource: readProjectText(targetDir, 'package.json', sources),
-    packageJson: JSON.parse(readProjectText(targetDir, 'package.json', sources)),
-    cargoPath: null,
-    cargoSource: null,
-    tauriPath: null,
-    tauriSource: null,
-    tauriConfig: null,
+    packageSource,
+    packageJson: JSON.parse(packageSource),
   };
-  if (buildProfileRef !== TAURI_BUILD_PROFILE_REF) return files;
-  files.cargoPath = path.join(targetDir, 'src-tauri', 'Cargo.toml');
-  files.tauriPath = path.join(targetDir, 'src-tauri', 'tauri.conf.json');
-  for (const requiredPath of [files.cargoPath, files.tauriPath]) {
-    if (!existsSync(requiredPath)) throw new Error(`Required App lifecycle file is missing: ${path.relative(targetDir, requiredPath)}`);
-  }
-  files.cargoSource = readProjectText(targetDir, 'src-tauri/Cargo.toml', sources);
-  files.tauriSource = readProjectText(targetDir, 'src-tauri/tauri.conf.json', sources);
-  files.tauriConfig = JSON.parse(files.tauriSource);
-  return files;
 }
 
-function readCargoPackageVersion(source) {
-  let inPackage = false;
-  for (const line of source.split(/\r?\n/u)) {
-    const header = line.match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/u);
-    if (header) {
-      inPackage = header[1] === 'package';
-      continue;
-    }
-    if (!inPackage) continue;
-    const match = line.match(/^\s*version\s*=\s*"([^"]+)"\s*(?:#.*)?$/u);
-    if (match) return match[1];
-  }
-  throw new Error('src-tauri/Cargo.toml [package] version is missing');
-}
-
-function readCargoPackageName(source) {
-  let inPackage = false;
-  for (const line of source.split(/\r?\n/u)) {
-    const header = line.match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/u);
-    if (header) {
-      inPackage = header[1] === 'package';
-      continue;
-    }
-    if (!inPackage) continue;
-    const match = line.match(/^\s*name\s*=\s*"([^"]+)"\s*(?:#.*)?$/u);
-    if (match) return match[1];
-  }
-  throw new Error('src-tauri/Cargo.toml [package] name is missing');
-}
-
-function assertVersionLockstep(files, descriptor, buildProfileRef) {
+function assertVersionLockstep(files, descriptor) {
   const version = files.packageJson.version;
   if (typeof version !== 'string' || !SEMVER_PATTERN.test(version)) {
     throw new Error('package.json version must be an exact semantic version');
   }
-  const observed = [['nimi.app.yaml', descriptor.version]];
-  if (buildProfileRef === TAURI_BUILD_PROFILE_REF) {
-    observed.push(
-      ['src-tauri/Cargo.toml', readCargoPackageVersion(files.cargoSource)],
-      ['src-tauri/tauri.conf.json', files.tauriConfig.version],
-    );
-  }
-  for (const [name, candidate] of observed) {
-    if (candidate !== null && candidate !== undefined && candidate !== version) {
-      throw new Error(`${name} version must match package.json version ${version}`);
-    }
+  if (descriptor.version != null && descriptor.version !== version) {
+    throw new Error(`nimi.app.yaml version must match package.json version ${version}`);
   }
   return version;
 }
@@ -1081,6 +939,7 @@ function readBuildProfile(targetDir, sources) {
   const buildProfileRef = typeof profile.build_profile_ref === 'string'
     ? profile.build_profile_ref
     : '';
+  assertDesktopHostSupport(buildProfileRef);
   if (!SUPPORTED_BUILD_PROFILE_REFS.has(buildProfileRef)) {
     throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(profile.build_profile_ref)}`);
   }
@@ -1176,22 +1035,14 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
-  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
+  const files = readProjectLifecycleFiles(targetDir, sources);
   const combination = selectDependencyCombination(files.packageJson, versions, options.managed === true);
   assertPackageManifestCurrent(files.packageJson, versions, combination, descriptor.platform);
-  const version = assertVersionLockstep(files, descriptor, buildProfile.buildProfileRef);
-  let nativeIdentity = {
+  const version = assertVersionLockstep(files, descriptor);
+  const nativeIdentity = {
     cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
     tauriIdentifier: tauriIdentifierFromAppId(descriptor.appId),
   };
-  if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
-    assertCargoManifestCurrent(files.cargoSource, combination.nimiShellTauriVersion);
-    assertTauriConfigCurrent(files.tauriConfig, descriptor.appId);
-    nativeIdentity = {
-      cargoPackageName: readCargoPackageName(files.cargoSource),
-      tauriIdentifier: files.tauriConfig.identifier,
-    };
-  }
   assertNoStandaloneParentSources(targetDir, sources);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
   if (descriptor.publicSlug && (!hasProjectFile(targetDir, HOSTED_WEB_WORKFLOW_PATH, sources) || readProjectText(targetDir, HOSTED_WEB_WORKFLOW_PATH, sources).replaceAll('\r\n', '\n') !== hostedWorkflowSource())) {
@@ -1201,9 +1052,6 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const localPackages = assertPnpmWorkspaceCurrent(targetDir, sources, options.production === true);
   if (options.requireInstalledLock === true) {
     assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions, combination);
-    if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
-      assertCargoLockCurrent(targetDir, combination.nimiShellTauriVersion);
-    }
   }
   return { descriptor, files, version, buildProfile, authoring, combination };
 }
@@ -1212,12 +1060,11 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
-  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
+  const files = readProjectLifecycleFiles(targetDir, sources);
   const version = files.packageJson.version;
   if (typeof version !== 'string' || !SEMVER_PATTERN.test(version)) {
     throw new Error('package.json version must be an exact semantic version before sync');
   }
-  const requiresTauri = buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF;
   const combination = selectDependencyCombination(files.packageJson, versions, managed);
   const lockPath = path.join(targetDir, 'pnpm-lock.yaml');
   const importer = existsSync(lockPath) ? parseYamlFile(readFileSync(lockPath, 'utf8'), lockPath)?.importers?.['.'] : null;
@@ -1229,24 +1076,13 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
     profile: descriptor.profile,
     ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     packageName: files.packageJson.name,
-    cargoPackageName: requiresTauri
-      ? readCargoPackageName(files.cargoSource)
-      : cargoPackageNameFromNpmPackageName(files.packageJson.name),
-    tauriIdentifier: requiresTauri
-      ? files.tauriConfig.identifier
-      : tauriIdentifierFromAppId(descriptor.appId),
+    cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
+    tauriIdentifier: tauriIdentifierFromAppId(descriptor.appId),
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
     { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource, combination, toolchainUpdates), previous: files.packageSource },
   ];
-  if (requiresTauri) {
-    planned.push(
-      { path: files.cargoPath, content: normalizeCargoManifest(files.cargoSource, combination.nimiShellTauriVersion), previous: files.cargoSource },
-      { path: files.tauriPath, content: normalizeTauriConfig(files.tauriConfig, descriptor.appId), previous: files.tauriSource },
-    );
-    identity.tauriIdentifier = tauriIdentifierFromAppId(descriptor.appId);
-  }
   planned.push(...normalizeStandaloneSourceFiles(targetDir, sources));
   const identityPath = path.join(targetDir, APP_IDENTITY_PATH);
   planned.push({
@@ -1338,17 +1174,6 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
   return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination, toolchainUpdates, packageJson: files.packageJson };
 }
 
-function lifecycleNextSteps(buildProfileRef, combination) {
-  return [
-    'pnpm install',
-    ...(buildProfileRef === TAURI_BUILD_PROFILE_REF
-      ? [`cargo update -p nimi-shell-tauri --precise ${combination.nimiShellTauriVersion}`]
-      : []),
-    'nimi-app sync',
-    'nimi-app check',
-  ];
-}
-
 function runNimicodingSync(targetDir, mode, runners) {
   if (!runners?.runNimicodingSync) throw new Error('Missing nimicoding sync runner');
   const result = runners.runNimicodingSync(targetDir, mode);
@@ -1383,6 +1208,7 @@ export function validateAppInitialization(targetDir, versions) {
 }
 
 function ownershipHandoverMessage(handover) {
+  if (handover.path.startsWith('src-tauri/')) return `${handover.path} leaves scaffold management (${handover.file}).`;
   if (handover.file === 'missing') {
     return `${handover.path} now belongs to the App and is missing; add the App's own ${handover.path} before packaging.`;
   }
@@ -1414,7 +1240,7 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
     dryRun: options.dryRun === true, skillPath: LIFECYCLE_SKILL_PATH,
     changes: describeChanges(targetDir, plan.planned), ownerSteps: lifecycleOwnerSteps(versions),
     nextSteps: [...plan.toolchainUpdates.filter(dep => dep.lockedAffected && dep.from === dep.to && !dep.manual)
-      .map(dep => `pnpm update ${dep.name}`), ...lifecycleNextSteps(plan.buildProfileRef, plan.combination)],
+      .map(dep => `pnpm update ${dep.name}`), 'pnpm install', 'nimi-app sync', 'nimi-app check'],
     dependencyCombination: describeCombination(plan.combination, toolVersions),
     ...(scaffold ? { retainedHostFiles: scaffold.snapshot.retainedHostFiles ?? [] } : {}),
     ...(scaffold ? { ownershipHandover: handovers } : {}),
@@ -1500,8 +1326,7 @@ export function adoptAppProject(cwd, options = {}, versions, runners = {}) {
   } catch (cause) {
     throw new Error(`${cause.message}. Prepare the real App-owned Host and build/test inputs using ${LIFECYCLE_SKILL_PATH}`, { cause });
   }
-  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, 'web-pnpm'].includes(plan.buildProfileRef)) throw new Error('Existing-App init supports web-pnpm, electron-pnpm and electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
-  const files = readProjectLifecycleFiles(targetDir, plan.buildProfileRef);
+  const files = readProjectLifecycleFiles(targetDir, sources);
   const profile = readBuildProfile(targetDir, sources);
   for (const command of [profile.testCommand, profile.buildCommand, ...Object.keys(profile.targets).map((target) => selectBuildOwner(profile, target).command)]) {
     const script = command.match(/^pnpm\s+run\s+([^\s]+)(?:\s|$)/u)?.[1];

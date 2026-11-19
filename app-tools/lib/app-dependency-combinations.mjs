@@ -10,19 +10,20 @@ const SDK = '@nimiplatform/sdk';
 const KIT = '@nimiplatform/kit';
 
 export const ADDITIONAL_DEPENDENCY_COMBINATIONS = Object.freeze([
-  Object.freeze({ sdkVersion: '^0.24.0-rc.2', kitVersion: '^0.24.0-rc.1', nimiShellTauriVersion: '0.12.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.22.2', kitVersion: '^0.22.1', nimiShellTauriVersion: '0.11.1', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.22.1', kitVersion: '^0.22.1', nimiShellTauriVersion: '0.11.1', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.22.1', kitVersion: '^0.22.0', nimiShellTauriVersion: '0.11.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.22.0', kitVersion: '^0.22.0', nimiShellTauriVersion: '0.11.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.21.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.20.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.19.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.1', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.0', nimiShellTauriVersion: '0.10.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.20.0', kitVersion: '^0.17.0', nimiShellTauriVersion: '0.9.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.18.1', kitVersion: '^0.15.3', nimiShellTauriVersion: '0.7.0', source: 'existing' }),
-  Object.freeze({ sdkVersion: '^0.19.0', kitVersion: '^0.16.0', nimiShellTauriVersion: '0.8.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.24.0-rc.7', kitVersion: '^0.24.0-rc.11', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.24.0-rc.2', kitVersion: '^0.24.0-rc.1', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.22.2', kitVersion: '^0.22.1', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.22.1', kitVersion: '^0.22.1', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.22.1', kitVersion: '^0.22.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.22.0', kitVersion: '^0.22.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.21.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.20.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.19.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.1', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.21.0', kitVersion: '^0.18.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.20.0', kitVersion: '^0.17.0', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.18.1', kitVersion: '^0.15.3', source: 'existing' }),
+  Object.freeze({ sdkVersion: '^0.19.0', kitVersion: '^0.16.0', source: 'existing' }),
 ]);
 
 export function isLocalDependencySpec(value) {
@@ -48,7 +49,6 @@ export function defaultDependencyCombination(versions) {
   return Object.freeze({
     sdkVersion: versions.sdkVersion,
     kitVersion: versions.kitVersion,
-    nimiShellTauriVersion: versions.nimiShellTauriVersion,
     source: 'default',
   });
 }
@@ -71,7 +71,7 @@ export function matchesRecordedHostDependencies(npm, combination) {
     && selectionsOverlap(npm[KIT], combination.kitVersion);
 }
 
-// Some rows share a minor line but select different native crates. Match each
+// Some verified pairs share a minor line. Match each
 // declaration to its most specific admitted floor, then validate the pair.
 function matchingLine(spec, lines) {
   const range = typeof spec === 'string' && validRange(spec);

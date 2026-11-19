@@ -221,8 +221,7 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
 function retainMatchingHostFiles(targetDir, lock, snapshot, versions) {
   const matrix = lock.dependencyMatrix;
   const migration = 'Migrate the App-owned feature modules and matching Host with the selected SDK/Kit before sync.';
-  if (!matchesRecordedHostDependencies(matrix.npm, versions)
-    || matrix.cargo['nimi-shell-tauri'] !== snapshot.lock.dependencyMatrix.cargo['nimi-shell-tauri']) {
+  if (!matchesRecordedHostDependencies(matrix.npm, versions)) {
     throw new Error(migration);
   }
   assertSameJson(lock.hostAdapterContracts, snapshot.lock.hostAdapterContracts, 'Scaffold host adapter contracts');
@@ -232,13 +231,13 @@ function retainMatchingHostFiles(targetDir, lock, snapshot, versions) {
     if (!expected || !/^(?:src\/|src-electron\/|vite\.config\.ts$)/u.test(file.path)) return file;
     const recorded = lock.managedFileHashes?.[file.path];
     if (!recorded || recorded.class !== expected.class) throw new Error(`${file.path}: ${migration}`);
-    if (recorded.sha256 === expected.sha256) return file;
     const absolute = path.join(targetDir, file.path);
     assertProjectOutputPath(targetDir, absolute);
-    const content = readFileSync(absolute);
-    if (hashScaffoldManagedContent(file.path, content) !== recorded.sha256) {
+    const content = existsSync(absolute) ? readFileSync(absolute) : null;
+    if (!content || hashScaffoldManagedContent(file.path, content) !== recorded.sha256) {
       throw new Error(`Managed scaffold drift detected: ${file.path}. Restore its locked source before sync.`);
     }
+    if (recorded.sha256 === expected.sha256) return file;
     snapshot.lock.managedFileHashes[file.path] = { ...expected, sha256: recorded.sha256 };
     snapshot.retainedHostFiles.push(file.path);
     return { ...file, content };
@@ -477,27 +476,6 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
   }
   if (missing.length > 0) {
     throw new Error(`Missing required scaffold support files: ${missing.join(', ')}`);
-  }
-
-  if (snapshot.lock.platform === 'web') return;
-  const tauriConfig = JSON.parse(readFileSync(path.join(targetDir, 'src-tauri/tauri.conf.json'), 'utf8'));
-  const icons = tauriConfig?.bundle?.icon;
-  if (!Array.isArray(icons) || icons.join(',') !== 'icons/icon.png,icons/icon.ico') {
-    throw new Error('Tauri icon support drift: bundle.icon must be ["icons/icon.png","icons/icon.ico"]');
-  }
-  const icon = readFileSync(path.join(targetDir, 'src-tauri/icons/icon.png'));
-  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  if (icon.length !== 68 || pngSignature.some((value, index) => icon[index] !== value)) {
-    throw new Error('Tauri icon support drift: src-tauri/icons/icon.png is not the scaffold PNG');
-  }
-  const ico = readFileSync(path.join(targetDir, 'src-tauri/icons/icon.ico'));
-  const icoHeader = [0x00, 0x00, 0x01, 0x00, 0x01, 0x00];
-  if (
-    ico.length !== 90
-    || icoHeader.some((value, index) => ico[index] !== value)
-    || pngSignature.some((value, index) => ico[index + 22] !== value)
-  ) {
-    throw new Error('Tauri icon support drift: src-tauri/icons/icon.ico is not the scaffold ICO');
   }
 }
 
@@ -864,7 +842,13 @@ function collectExpectedClasses(snapshot) {
 // A lock written by an earlier scaffold version can still list a file that the
 // current generator creates once for the App to own. Only the declared paths
 // may change owner, and only from managed glue to App-owned product code.
+const RETIRED_TAURI_GLUE = new Set([
+  'src-tauri/Cargo.toml', 'src-tauri/build.rs', 'src-tauri/capabilities/default.json',
+  'src-tauri/tauri.conf.json', 'src-tauri/src/main.rs', 'src-tauri/icons/icon.png', 'src-tauri/icons/icon.ico',
+]);
+
 function isAppOwnedHandover(relativePath, lockedEntry, current) {
+  if (!current && RETIRED_TAURI_GLUE.has(relativePath)) return lockedEntry?.class === 'scaffold-managed glue';
   return SCAFFOLD_APP_OWNED_HANDOVER_PATHS.includes(relativePath)
     && lockedEntry?.class === 'scaffold-managed glue'
     && current?.owner === 'app-owned'
@@ -905,14 +889,14 @@ function assertNoClassificationConflict(lock, snapshot, targetDir) {
       handovers.push(describeAppOwnedHandover(targetDir, relativePath, entry));
       continue;
     }
-    throw new Error(`Scaffold classification conflict: ${relativePath}`);
+    throw new Error(`Scaffold classification conflict: ${relativePath}. Review its ownership and restore the matching scaffold lock before sync.`);
   }
   for (const [relativePath, entry] of Object.entries(lock.appOwnedInitialHashes || {})) {
     const current = currentClasses.get(relativePath);
     if (current?.owner === 'app-owned' && current.class === entry.class) {
       continue;
     }
-    throw new Error(`Scaffold classification conflict: ${relativePath}`);
+    throw new Error(`Scaffold classification conflict: ${relativePath}. Review its ownership and restore the matching scaffold lock before sync.`);
   }
   return handovers;
 }

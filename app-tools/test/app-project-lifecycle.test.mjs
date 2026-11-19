@@ -238,7 +238,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
     '',
     '[[package]]',
     'name = "nimi-shell-tauri"',
-    `version = "${versions.nimiShellTauriVersion}"`,
+    `version = "0.11.1"`,
     'source = "registry+https://github.com/rust-lang/crates.io-index"',
     `checksum = "${'a'.repeat(64)}"`,
     '',
@@ -273,7 +273,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
   writeFileSync(path.join(target, 'scripts', 'owner-test.mjs'), 'process.stdout.write("owner test ran\\n");\n');
   writeFileSync(path.join(target, 'scripts', 'owner-build.mjs'), 'process.stdout.write("owner build ran\\n");\n');
   writeFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), [
-    `build_profile_ref: ${options.buildProfileRef || 'tauri-pnpm-vite'}`,
+    `build_profile_ref: ${options.buildProfileRef || 'electron-packager-pnpm-vite'}`,
     'test_command: node scripts/owner-test.mjs',
     'build_command: node scripts/owner-build.mjs',
     'targets:',
@@ -1056,6 +1056,8 @@ test('sync closes the former unknown-command path and only normalizes submitted 
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-project-sync-'));
   const target = writeExistingSubmittedApp(tempRoot);
   const env = fakeNimicodingEnv(tempRoot);
+  const cargoPath = path.join(target, 'src-tauri', 'Cargo.toml');
+  const cargoBefore = readFileSync(cargoPath);
   const productBefore = readFileSync(path.join(target, 'src', 'product', 'owned.ts'));
   try {
     const result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
@@ -1065,8 +1067,6 @@ test('sync closes the former unknown-command path and only normalizes submitted 
     assert.equal(payload.managed, false);
     assert.deepEqual(payload.synchronizedFiles, [
       'package.json',
-      'src-tauri/Cargo.toml',
-      'src-tauri/tauri.conf.json',
       'vite.config.ts',
       'src/styles.css',
       '.nimi/config/app-identity.yaml',
@@ -1078,7 +1078,6 @@ test('sync closes the former unknown-command path and only normalizes submitted 
     ]);
     assert.deepEqual(payload.nextSteps, [
       'pnpm install',
-      `cargo update -p nimi-shell-tauri --precise ${versions.nimiShellTauriVersion}`,
       'nimi-app sync',
       'nimi-app check',
     ]);
@@ -1111,11 +1110,7 @@ test('sync closes the former unknown-command path and only normalizes submitted 
     assert.deepEqual(workspace.overrides, { 'unrelated-package': '1.2.3' });
     assert.deepEqual(workspace.allowBuilds, { esbuild: true });
 
-    const cargo = readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8');
-    assert.match(cargo, new RegExp(`^nimi-shell-tauri = "${versions.nimiShellTauriVersion.replaceAll('.', '\\.')}"$`, 'm'));
-    assert.doesNotMatch(cargo, /\bpath\s*=/u);
-    const tauri = JSON.parse(readFileSync(path.join(target, 'src-tauri', 'tauri.conf.json'), 'utf8'));
-    assert.equal(tauri.identifier, 'ai.nimi.apps.focused.existing');
+    assert.deepEqual(readFileSync(cargoPath), cargoBefore);
     assert.deepEqual(readFileSync(path.join(target, 'src', 'product', 'owned.ts')), productBefore);
     assert.deepEqual(parseYaml(readFileSync(path.join(target, '.nimi', 'methodology', 'authority-authoring.yaml'), 'utf8')), { source: 'focused-lifecycle-test' });
   } finally {
@@ -1510,7 +1505,7 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
   }
 });
 
-test('an older Tauri combination is rejected before changing Host or Cargo inputs', () => {
+test('an unlisted SDK/Kit combination is rejected before changing Host inputs', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-old-tauri-combination-'));
   const target = writeExistingSubmittedApp(tempRoot, { packageManager: versions.packageManager });
   const env = fakeNimicodingEnv(tempRoot);
@@ -1635,7 +1630,7 @@ for (const [command, kitPin] of [['init', '=0.24.0-rc.1'], ['sync', '0.24.0-rc.1
     t.after(() => rmSync(target, { recursive: true, force: true }));
     const creator = {
       ...versions, appToolsVersion: '^0.16.0-rc.2', sdkVersion: '^0.24.0-rc.2',
-      kitVersion: '^0.24.0-rc.1', nimiShellTauriVersion: '0.12.0',
+      kitVersion: '^0.24.0-rc.1',
     };
     const scaffold = buildAppScaffoldSnapshot({
       profile: 'standalone', versions: creator, appId: 'pins.example', appTitle: 'Pins',
@@ -1657,7 +1652,6 @@ for (const [command, kitPin] of [['init', '=0.24.0-rc.1'], ['sync', '0.24.0-rc.1
     const lock = JSON.parse(changes.find(file => file.path === SCAFFOLD_LOCK_PATH).after);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '0.24.0-rc.2');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/kit'], kitPin);
-    assert.equal(lock.dependencyMatrix.cargo['nimi-shell-tauri'], creator.nimiShellTauriVersion);
     assert.equal(changes.some(file => file.path.startsWith('src/') || file.path.startsWith('src-electron/')), false);
   });
 }
@@ -1694,7 +1688,7 @@ test('the default native test command reports missing tests and runs the first a
 test('a tool update preserves the locked Host of a maintained combination and rejects an unrecorded edit', () => {
   const target = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-retained-host-'));
   try {
-    const maintained = { ...versions, sdkVersion: '^0.22.2', kitVersion: '^0.22.1', nimiShellTauriVersion: '0.11.1' };
+    const maintained = { ...versions, sdkVersion: '^0.22.2', kitVersion: '^0.22.1' };
     const prior = buildAppScaffoldSnapshot({ profile: 'standalone', versions: maintained, appId: 'retained.example',
       appTitle: 'Retained', packageName: 'retained-example', targetDir: target, features: [] });
     const clientPath = 'src/shell/auth/local-app-client.ts';

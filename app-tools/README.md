@@ -62,7 +62,7 @@ Set `--author` to the person or team responsible for the App and its license.
 
 ### Dependencies & Existing Projects
 
-Standalone third-party Apps must declare public npm and Cargo dependency versions. Use published packages, or override them for local development with the complete archives described below—never point dependencies at a Nimi source checkout.
+The supported native App host is Electron on Windows x64 and macOS arm64. Standard projects need Node, pnpm, prebuilt Kit bindings and a ready Nimi Home and Runtime. Apps own any additional Rust toolchain. Existing Tauri projects can use their original tools or explicitly migrate to Electron. Use published packages, or override them for local development with the complete archives described below—never point dependencies at a Nimi source checkout.
 
 - **SDK and Kit Version Alignment**: Keep the SDK/Kit combination in the selected package's `nimiScaffoldVersions` and lockfile (`sync` preserves supported ranges and exact pins, and rejects an unlisted pairing). Source manifests may select numbered RC packages; a candidate version does not claim public availability. Use Kit's matching optional native package and the Runtime contract named by that combination's migration notes.
 - **Tool and security updates**: The CLI accepts compatible patches within a bounded project range. Preview dependency changes with `pnpm exec nimi-app sync --dry-run --json`. Sync raises compatible direct Vite and Electron security floors. Select a patched version explicitly when your pin excludes the fix. After sync run `pnpm install`, `pnpm exec nimi-app check` and `pnpm audit`, then commit the updated App lockfile. An installed App follows its package and Runtime contracts independently of the authoring CLI.

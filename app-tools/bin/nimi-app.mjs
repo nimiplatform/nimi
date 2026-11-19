@@ -220,6 +220,7 @@ function printUsage() {
       '  AI features resolve the internal ai-studio-core once; it cannot be selected directly.',
       '  Generated Apps exclude Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native/diagnostic surfaces.',
       '',
+      'Native desktop support: Electron on Windows x64 and macOS arm64. Standard builds use Node and pnpm with prebuilt Kit bindings.',
       'Third-party topology:',
       '  standalone: any empty target directory using public dependency version declarations.',
       '  Development may resolve complete local npm tarballs through documented overrides; no additional create mode is needed.',

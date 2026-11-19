@@ -24,7 +24,7 @@ export function webBuildProfile() {
 
 export function webPackage(pkg) {
   const { main: _main, ...result } = pkg;
-  for (const name of ['@electron/packager', '@tauri-apps/cli', 'electron', 'pngjs']) delete result.devDependencies[name];
+  for (const name of ['@electron/packager', 'electron', 'pngjs']) delete result.devDependencies[name];
   result.pnpm = { onlyBuiltDependencies: ['esbuild'] };
   result.scripts = { dev: 'nimi-app dev --platform web', 'dev:web-renderer': 'vite',
     init: 'nimi-app init', sync: 'nimi-app sync', check: 'nimi-app check', test: 'nimi-app test',
@@ -34,8 +34,7 @@ export function webPackage(pkg) {
 }
 
 export function webDependencyMatrix(matrix) {
-  for (const name of ['@electron/packager', '@tauri-apps/cli', 'electron', 'pngjs']) delete matrix.npm[name];
-  matrix.cargo = {}; delete matrix.toolchain.rust; delete matrix.toolchain.tauri;
+  for (const name of ['@electron/packager', 'electron', 'pngjs']) delete matrix.npm[name];
   return matrix;
 }
 

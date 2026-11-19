@@ -17,7 +17,6 @@ import {
   resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
-  validateAppScaffoldCargoDependencyValue,
   validateAppScaffoldNpmRegistryVersion,
 } from './app-scaffold-capabilities.mjs';
 import {
@@ -77,8 +76,6 @@ const GENERATED_GITIGNORE = [
   '.DS_Store',
   '',
 ].join('\n');
-const MINIMAL_TAURI_ICON_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
-const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgGAAAAHxXEiQAAAAtJREFUeJxjYAACAAAFAAF6Xqs/AAAAAElFTkSuQmCC', 'base64');
 
 const APP_RELEASE_WORKFLOW = [
   'name: nimi-app-release',
@@ -624,7 +621,6 @@ function buildPackageJson(profile, versions, identity) {
     '@nimiplatform/app-tools': versions.appToolsVersion,
     '@nimiplatform/nimi-coding': versions.nimicodingVersion,
     '@tailwindcss/vite': versions.tailwindcssViteVersion,
-    '@tauri-apps/cli': versions.tauriCliVersion,
     '@types/node': versions.nodeTypesVersion,
     '@types/react': versions.reactTypesVersion,
     '@types/react-dom': versions.reactDomTypesVersion,
@@ -666,7 +662,6 @@ function buildPackageJson(profile, versions, identity) {
       build: 'tsc --noEmit && vite build',
       'build:electron': 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs',
       'build:electron:production': 'node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs',
-      'build:tauri:production': 'tauri build',
       postinstall: 'install-electron --no',
       validate: 'node scripts/validate.mjs',
     },
@@ -709,96 +704,6 @@ function resolveScaffoldVersionReference(value, versions, dependencyName) {
   }
   validateAppScaffoldNpmRegistryVersion(resolved, dependencyName);
   return resolved;
-}
-
-function buildCargoDependencies(profile, versions, capabilityResolution) {
-  const dependencies = {
-    'nimi-shell-tauri': versions.nimiShellTauriVersion,
-    tauri: { version: '2', features: [] },
-    serde: { version: '1', features: ['derive'] },
-    serde_json: '1',
-    url: '2',
-    base64: '0.23',
-    dirs: '7',
-    time: '=0.3.55',
-    'tauri-build': { version: '2', features: [] },
-  };
-  for (const [name, value] of Object.entries(capabilityResolution.cargoDependencies || {})) {
-    if (Object.hasOwn(dependencies, name) && canonicalJson(dependencies[name]) !== canonicalJson(value)) {
-      throw new Error(`App scaffold base/module Cargo dependency collision for ${name}`);
-    }
-    dependencies[name] = value;
-  }
-  for (const [name, value] of Object.entries(dependencies)) {
-    validateAppScaffoldCargoDependencyValue(value, name);
-  }
-  return dependencies;
-}
-
-function cargoShellDependencyLine(profile, versions) {
-  return `nimi-shell-tauri = ${renderCargoDependencyValue(versions.nimiShellTauriVersion, 'nimi-shell-tauri')}`;
-}
-
-export function renderCargoDependencyValue(value, label) {
-  validateAppScaffoldCargoDependencyValue(value, label);
-  if (typeof value === 'string' && value.trim() === value && value) {
-    return JSON.stringify(value);
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`Invalid Cargo dependency descriptor: ${label}`);
-  }
-  const fields = [];
-  for (const key of Object.keys(value).sort()) {
-    const field = value[key];
-    if (typeof field === 'string' && field.trim() === field && field) {
-      fields.push(`${key} = ${JSON.stringify(field)}`);
-      continue;
-    }
-    if (typeof field === 'boolean') {
-      fields.push(`${key} = ${field ? 'true' : 'false'}`);
-      continue;
-    }
-    if (Array.isArray(field) && field.every((item) => typeof item === 'string' && item.trim() === item && item)) {
-      fields.push(`${key} = [${field.map((item) => JSON.stringify(item)).join(', ')}]`);
-      continue;
-    }
-    throw new Error(`Invalid Cargo dependency value: ${label}.${key}`);
-  }
-  if (fields.length === 0) throw new Error(`Invalid empty Cargo dependency descriptor: ${label}`);
-  return `{ ${fields.join(', ')} }`;
-}
-
-function renderCargoManifest(content, profile, versions, identity) {
-  let rendered = content.replace(
-    /^nimi-shell-tauri\s*=.*$/m,
-    cargoShellDependencyLine(profile, versions),
-  );
-  rendered = rendered.replace(
-    /^(\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m,
-    `$1${JSON.stringify(identity.version)}`,
-  );
-  const baseNames = new Set([
-    'tauri',
-    'nimi-shell-tauri',
-    'serde',
-    'serde_json',
-    'url',
-    'base64',
-    'dirs',
-    'time',
-    'tauri-build',
-  ]);
-  const additions = [];
-  for (const [name, value] of Object.entries(identity.capabilityResolution.cargoDependencies || {})) {
-    if (!/^[A-Za-z0-9_-]+$/u.test(name)) throw new Error(`Invalid Cargo dependency name: ${name}`);
-    if (baseNames.has(name)) continue;
-    additions.push(`${name} = ${renderCargoDependencyValue(value, name)}`);
-  }
-  if (additions.length === 0) return rendered;
-  const marker = '\n[build-dependencies]';
-  if (!rendered.includes(marker)) throw new Error('Generated Cargo manifest is missing [build-dependencies]');
-  rendered = rendered.replace(marker, `\n${additions.join('\n')}\n${marker}`);
-  return rendered;
 }
 
 function targetIdentityMap(identity) {
@@ -918,21 +823,6 @@ function buildNimiAppManifest(identity) {
   }, { lineWidth: 0 });
 }
 
-function renderTauriConfig(raw, identity) {
-  const config = JSON.parse(raw);
-  config.productName = identity.appTitle;
-  config.version = identity.version;
-  config.identifier = identity.nativeBundleIdentifier;
-  config.build = { ...config.build, devUrl: `http://127.0.0.1:${identity.devPort}` };
-  config.app = {
-    ...config.app,
-    windows: Array.isArray(config.app?.windows)
-      ? config.app.windows.map((window) => ({ ...window, title: identity.appTitle }))
-      : [],
-  };
-  return jsonFile(config);
-}
-
 function renderAppIdentityModule(identity) {
   return [
     `export const appId = ${JSON.stringify(identity.appId)};`,
@@ -953,9 +843,6 @@ function escapeHtmlText(input) {
 }
 
 function renderIdentitySensitiveStarterFile(relativePath, raw, manifest, identity) {
-  if (relativePath === 'src-tauri/tauri.conf.json') {
-    return renderTauriConfig(raw, identity);
-  }
   if (relativePath === 'src/shell/auth/app-identity.ts') {
     return renderAppIdentityModule(identity);
   }
@@ -965,12 +852,9 @@ function renderIdentitySensitiveStarterFile(relativePath, raw, manifest, identit
   return applyIdentityReplacement(raw, manifest, targetIdentityMap(identity));
 }
 
-function applyProfileSeam(relativePath, content, profile, versions, manifest, identity) {
+function applyProfileSeam(relativePath, content, profile, identity) {
   if (relativePath === 'nimi.app.yaml') {
     return buildNimiAppManifest(identity);
-  }
-  if (relativePath === 'src-tauri/Cargo.toml') {
-    return renderCargoManifest(content, profile, versions, identity);
   }
   if (relativePath === 'README.md') {
     return content.replace(/Profile: `standalone`/, `Profile: \`${profile}\``);
@@ -978,22 +862,21 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest, id
   return content;
 }
 
-function buildDefaultStarterTemplateFiles(identity, profile, versions) {
+function buildDefaultStarterTemplateFiles(identity, profile) {
   const { baseDir, manifest } = loadDefaultStarterSource();
-  const target = targetIdentityMap(identity);
   const entries = identity.platform === 'web' ? manifest.files.filter(entry => WEB_BASE_TEMPLATE_PATHS.has(entry.path)) : manifest.files;
   return entries.map((entry) => {
     const raw = readDefaultStarterSourceFile(baseDir, entry.path);
     const identityApplied = renderIdentitySensitiveStarterFile(entry.path, raw, manifest, identity);
     return {
       path: entry.path,
-      content: applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity),
+      content: applyProfileSeam(entry.path, identityApplied, profile, identity),
       mutationClass: entry.class,
     };
   });
 }
 
-function buildCapabilitySliceFiles(identity, profile, versions) {
+function buildCapabilitySliceFiles(identity, profile) {
   if (identity.capabilityResolution.modules.length === 0) return [];
   const { baseDir, manifest } = loadAppSource(identity.capabilityResolution.resolvedModuleIds);
   const mappings = identity.capabilityResolution.modules.flatMap((module) => (
@@ -1020,7 +903,7 @@ function buildCapabilitySliceFiles(identity, profile, versions) {
         const rendered = rewriteMappedModuleSpecifiers(raw, entry.path, outputPath, mappings);
         files.push({
           path: outputPath,
-          content: applyProfileSeam(outputPath, rendered, profile, versions, manifest, identity),
+          content: applyProfileSeam(outputPath, rendered, profile, identity),
           mutationClass: 'app-owned product code',
           ownerKind: 'module',
           ownerId: module.id,
@@ -1031,7 +914,7 @@ function buildCapabilitySliceFiles(identity, profile, versions) {
   return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-function buildWorkbenchCoreFiles(identity, profile, versions) {
+function buildWorkbenchCoreFiles(identity, profile) {
   const { baseDir, manifest } = loadAppSource(identity.capabilityResolution.resolvedModuleIds);
   const sourcePrefix = `${WORKBENCH_CORE_SOURCE_ROOT}/`;
   const selected = manifest.files.filter((entry) => entry.path.startsWith(sourcePrefix));
@@ -1043,7 +926,7 @@ function buildWorkbenchCoreFiles(identity, profile, versions) {
     assertIdentityNeutralProductSource(entry.path, raw, manifest);
     return {
       path: entry.path,
-      content: applyProfileSeam(entry.path, raw, profile, versions, manifest, identity),
+      content: applyProfileSeam(entry.path, raw, profile, identity),
       mutationClass: 'app-owned product code',
       ownerKind: 'skeleton',
       ownerId: 'workbench-core',
@@ -1220,16 +1103,6 @@ function buildStructuredFiles(identity, profile, versions) {
       content: renderScaffoldBoundary(),
       mutationClass: 'scaffold-managed glue',
     },
-    {
-      path: 'src-tauri/icons/icon.png',
-      content: MINIMAL_TAURI_ICON_PNG,
-      mutationClass: 'scaffold-managed glue',
-    },
-    {
-      path: 'src-tauri/icons/icon.ico',
-      content: MINIMAL_TAURI_ICON_ICO,
-      mutationClass: 'scaffold-managed glue',
-    },
   ];
   if (identity.platform === 'web') {
     const webPaths = new Set(['.gitignore', 'LICENSE', SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH, 'package.json', 'nimi.app.yaml', '.nimi/config/app-identity.yaml', '.nimi/config/build-profile.yaml', '.nimi/admission/submission.yaml', '.nimi/contracts/scaffold-boundary.yaml']);
@@ -1323,13 +1196,13 @@ function buildScaffoldFiles(identity, versions) {
       'structured',
     ),
     ...withFileOwner(
-      buildDefaultStarterTemplateFiles(identity, identity.profile, versions),
+      buildDefaultStarterTemplateFiles(identity, identity.profile),
       'carrier',
       'default-starter',
     ),
     ...withFileOwner(buildDefaultStarterFiles(identity), 'generated-glue', 'composition'),
-    ...buildWorkbenchCoreFiles(identity, identity.profile, versions),
-    ...buildCapabilitySliceFiles(identity, identity.profile, versions),
+    ...buildWorkbenchCoreFiles(identity, identity.profile),
+    ...buildCapabilitySliceFiles(identity, identity.profile),
   ];
 }
 
@@ -1393,7 +1266,6 @@ function buildDependencyMatrix(profile, versions, capabilityResolution, platform
       typescript: versions.typescriptVersion,
       vite: versions.viteVersion,
       tailwindcss: versions.tailwindcssVersion,
-      '@tauri-apps/cli': versions.tauriCliVersion,
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@vitejs/plugin-react': versions.viteReactPluginVersion,
       '@electron/packager': versions.electronPackagerVersion,
@@ -1402,12 +1274,9 @@ function buildDependencyMatrix(profile, versions, capabilityResolution, platform
       pngjs: versions.pngjsVersion,
       yaml: versions.yamlVersion,
     },
-    cargo: buildCargoDependencies(profile, versions, capabilityResolution),
     toolchain: {
       node: '>=24',
       pnpm: versions.packageManager.replace(/^pnpm@/u, ''),
-      rust: '>=1.80',
-      tauri: '2',
     },
   };
   return platform === 'web' ? webDependencyMatrix(matrix) : matrix;
@@ -1637,7 +1506,6 @@ function buildAppScaffoldCreatePlanWithResolver(
       resolvedAssets: snapshot.lock.resolvedAssets,
       hostAdapterContracts: snapshot.lock.hostAdapterContracts,
       npmDependencies: snapshot.lock.dependencyMatrix.npm,
-      cargoDependencies: snapshot.lock.dependencyMatrix.cargo,
       appAccessItems: snapshot.lock.appAccessItems,
       topology,
     }),
