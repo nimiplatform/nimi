@@ -1880,6 +1880,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SubmitIntegrationConnectionSetupResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+        service: "RuntimeIntegrationService",
+        method: "SubscribeIntegrationSnapshots",
+        kind: "server_stream",
+        request_type: "SubscribeIntegrationSnapshotsRequest",
+        response_type: "SubscribeIntegrationSnapshotsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
         service: "RuntimeIntegrationService",
         method: "UnregisterIntegrationProvider",

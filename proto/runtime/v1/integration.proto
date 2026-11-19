@@ -22,6 +22,7 @@ message IntegrationOperation {
   // Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
   optional string display_name = 8;
   // App providers only. Absent for ordinary JSON calls.
+  optional bool snapshot_read = 10; // App provider read dedicated to bounded snapshot subscriptions.
   optional string asset_transfer = 9; // "to-provider" or "to-consumer"
 
 }
@@ -125,6 +126,7 @@ message IntegrationProviderCall {
   // Providers use this to scope their own multi-call business object references.
   string consumer_ref = 6;
   IntegrationAssetInfo offered_asset = 7;
+  optional string after_snapshot = 8; // Empty for the first snapshot, otherwise the digest of the prior JSON.
 }
 message PollIntegrationProviderResponse {
   repeated IntegrationProviderCall calls = 1;
@@ -235,7 +237,18 @@ message SetIntegrationPermissionRequest {
 }
 message SetIntegrationPermissionResponse { IntegrationPermission permission = 1; }
 
+message SubscribeIntegrationSnapshotsRequest {
+  string target_ref = 1;
+  string operation = 2;
+  string input_json = 3;
+}
+message SubscribeIntegrationSnapshotsResponse {
+  string cursor = 1;
+  string result_json = 2;
+}
+
 service RuntimeIntegrationService {
+  rpc SubscribeIntegrationSnapshots(SubscribeIntegrationSnapshotsRequest) returns (stream SubscribeIntegrationSnapshotsResponse);
   rpc ListIntegrationCatalog(ListIntegrationCatalogRequest) returns (ListIntegrationCatalogResponse);
   rpc ListIntegrationConnections(ListIntegrationConnectionsRequest) returns (ListIntegrationConnectionsResponse);
   rpc InvokeIntegrationCall(InvokeIntegrationCallRequest) returns (InvokeIntegrationCallResponse);

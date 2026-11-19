@@ -87,6 +87,7 @@ type IntegrationOperation struct {
 	// Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
 	DisplayName *string `protobuf:"bytes,8,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
 	// App providers only. Absent for ordinary JSON calls.
+	SnapshotRead  *bool   `protobuf:"varint,10,opt,name=snapshot_read,json=snapshotRead,proto3,oneof" json:"snapshot_read,omitempty"`  // App provider read dedicated to bounded snapshot subscriptions.
 	AssetTransfer *string `protobuf:"bytes,9,opt,name=asset_transfer,json=assetTransfer,proto3,oneof" json:"asset_transfer,omitempty"` // "to-provider" or "to-consumer"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -176,6 +177,13 @@ func (x *IntegrationOperation) GetDisplayName() string {
 		return *x.DisplayName
 	}
 	return ""
+}
+
+func (x *IntegrationOperation) GetSnapshotRead() bool {
+	if x != nil && x.SnapshotRead != nil {
+		return *x.SnapshotRead
+	}
+	return false
 }
 
 func (x *IntegrationOperation) GetAssetTransfer() string {
@@ -1466,6 +1474,7 @@ type IntegrationProviderCall struct {
 	// Providers use this to scope their own multi-call business object references.
 	ConsumerRef   string                `protobuf:"bytes,6,opt,name=consumer_ref,json=consumerRef,proto3" json:"consumer_ref,omitempty"`
 	OfferedAsset  *IntegrationAssetInfo `protobuf:"bytes,7,opt,name=offered_asset,json=offeredAsset,proto3" json:"offered_asset,omitempty"`
+	AfterSnapshot *string               `protobuf:"bytes,8,opt,name=after_snapshot,json=afterSnapshot,proto3,oneof" json:"after_snapshot,omitempty"` // Empty for the first snapshot, otherwise the digest of the prior JSON.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1547,6 +1556,13 @@ func (x *IntegrationProviderCall) GetOfferedAsset() *IntegrationAssetInfo {
 		return x.OfferedAsset
 	}
 	return nil
+}
+
+func (x *IntegrationProviderCall) GetAfterSnapshot() string {
+	if x != nil && x.AfterSnapshot != nil {
+		return *x.AfterSnapshot
+	}
+	return ""
 }
 
 type PollIntegrationProviderResponse struct {
@@ -3015,11 +3031,123 @@ func (x *SetIntegrationPermissionResponse) GetPermission() *IntegrationPermissio
 	return nil
 }
 
+type SubscribeIntegrationSnapshotsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetRef     string                 `protobuf:"bytes,1,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	Operation     string                 `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	InputJson     string                 `protobuf:"bytes,3,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeIntegrationSnapshotsRequest) Reset() {
+	*x = SubscribeIntegrationSnapshotsRequest{}
+	mi := &file_runtime_v1_integration_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeIntegrationSnapshotsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeIntegrationSnapshotsRequest) ProtoMessage() {}
+
+func (x *SubscribeIntegrationSnapshotsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_integration_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeIntegrationSnapshotsRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeIntegrationSnapshotsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *SubscribeIntegrationSnapshotsRequest) GetTargetRef() string {
+	if x != nil {
+		return x.TargetRef
+	}
+	return ""
+}
+
+func (x *SubscribeIntegrationSnapshotsRequest) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *SubscribeIntegrationSnapshotsRequest) GetInputJson() string {
+	if x != nil {
+		return x.InputJson
+	}
+	return ""
+}
+
+type SubscribeIntegrationSnapshotsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cursor        string                 `protobuf:"bytes,1,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	ResultJson    string                 `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeIntegrationSnapshotsResponse) Reset() {
+	*x = SubscribeIntegrationSnapshotsResponse{}
+	mi := &file_runtime_v1_integration_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeIntegrationSnapshotsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeIntegrationSnapshotsResponse) ProtoMessage() {}
+
+func (x *SubscribeIntegrationSnapshotsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_integration_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeIntegrationSnapshotsResponse.ProtoReflect.Descriptor instead.
+func (*SubscribeIntegrationSnapshotsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_integration_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *SubscribeIntegrationSnapshotsResponse) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+func (x *SubscribeIntegrationSnapshotsResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
 var File_runtime_v1_integration_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\n" +
-	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x03\n" +
+	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbe\x03\n" +
 	"\x14IntegrationOperation\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
@@ -3028,9 +3156,12 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\x06effect\x18\x05 \x01(\tR\x06effect\x12'\n" +
 	"\x0fsupports_cancel\x18\x06 \x01(\bR\x0esupportsCancel\x12!\n" +
 	"\fretry_policy\x18\a \x01(\tR\vretryPolicy\x12&\n" +
-	"\fdisplay_name\x18\b \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12*\n" +
-	"\x0easset_transfer\x18\t \x01(\tH\x01R\rassetTransfer\x88\x01\x01B\x0f\n" +
-	"\r_display_nameB\x11\n" +
+	"\fdisplay_name\x18\b \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12(\n" +
+	"\rsnapshot_read\x18\n" +
+	" \x01(\bH\x01R\fsnapshotRead\x88\x01\x01\x12*\n" +
+	"\x0easset_transfer\x18\t \x01(\tH\x02R\rassetTransfer\x88\x01\x01B\x0f\n" +
+	"\r_display_nameB\x10\n" +
+	"\x0e_snapshot_readB\x11\n" +
 	"\x0f_asset_transfer\"\xe3\x02\n" +
 	"\x11IntegrationTarget\x12\x1d\n" +
 	"\n" +
@@ -3128,7 +3259,7 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"%UnregisterIntegrationProviderResponse\x12\x18\n" +
 	"\aremoved\x18\x01 \x01(\bR\aremoved\"9\n" +
 	"\x1ePollIntegrationProviderRequest\x12\x17\n" +
-	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xb1\x02\n" +
+	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xf0\x02\n" +
 	"\x17IntegrationProviderCall\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x12\x1d\n" +
 	"\n" +
@@ -3138,7 +3269,9 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"input_json\x18\x04 \x01(\tR\tinputJson\x122\n" +
 	"\x15consumer_display_name\x18\x05 \x01(\tR\x13consumerDisplayName\x12!\n" +
 	"\fconsumer_ref\x18\x06 \x01(\tR\vconsumerRef\x12J\n" +
-	"\roffered_asset\x18\a \x01(\v2%.nimi.runtime.v1.IntegrationAssetInfoR\fofferedAsset\"\x8d\x01\n" +
+	"\roffered_asset\x18\a \x01(\v2%.nimi.runtime.v1.IntegrationAssetInfoR\fofferedAsset\x12*\n" +
+	"\x0eafter_snapshot\x18\b \x01(\tH\x00R\rafterSnapshot\x88\x01\x01B\x11\n" +
+	"\x0f_after_snapshot\"\x8d\x01\n" +
 	"\x1fPollIntegrationProviderResponse\x12>\n" +
 	"\x05calls\x18\x01 \x03(\v2(.nimi.runtime.v1.IntegrationProviderCallR\x05calls\x12*\n" +
 	"\x11canceled_call_ids\x18\x02 \x03(\tR\x0fcanceledCallIds\"\xbe\x01\n" +
@@ -3243,11 +3376,22 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	" SetIntegrationPermissionResponse\x12F\n" +
 	"\n" +
 	"permission\x18\x01 \x01(\v2&.nimi.runtime.v1.IntegrationPermissionR\n" +
-	"permission*\x92\x01\n" +
+	"permission\"\x82\x01\n" +
+	"$SubscribeIntegrationSnapshotsRequest\x12\x1d\n" +
+	"\n" +
+	"target_ref\x18\x01 \x01(\tR\ttargetRef\x12\x1c\n" +
+	"\toperation\x18\x02 \x01(\tR\toperation\x12\x1d\n" +
+	"\n" +
+	"input_json\x18\x03 \x01(\tR\tinputJson\"`\n" +
+	"%SubscribeIntegrationSnapshotsResponse\x12\x16\n" +
+	"\x06cursor\x18\x01 \x01(\tR\x06cursor\x12\x1f\n" +
+	"\vresult_json\x18\x02 \x01(\tR\n" +
+	"resultJson*\x92\x01\n" +
 	" IntegrationConnectionSetupAction\x123\n" +
 	"/INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED\x10\x00\x129\n" +
-	"5INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET\x10\x012\x81\x13\n" +
-	"\x19RuntimeIntegrationService\x12y\n" +
+	"5INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET\x10\x012\x94\x14\n" +
+	"\x19RuntimeIntegrationService\x12\x90\x01\n" +
+	"\x1dSubscribeIntegrationSnapshots\x125.nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest\x1a6.nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse0\x01\x12y\n" +
 	"\x16ListIntegrationCatalog\x12..nimi.runtime.v1.ListIntegrationCatalogRequest\x1a/.nimi.runtime.v1.ListIntegrationCatalogResponse\x12\x85\x01\n" +
 	"\x1aListIntegrationConnections\x122.nimi.runtime.v1.ListIntegrationConnectionsRequest\x1a3.nimi.runtime.v1.ListIntegrationConnectionsResponse\x12v\n" +
 	"\x15InvokeIntegrationCall\x12-.nimi.runtime.v1.InvokeIntegrationCallRequest\x1a..nimi.runtime.v1.InvokeIntegrationCallResponse\x12m\n" +
@@ -3280,7 +3424,7 @@ func file_runtime_v1_integration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_integration_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runtime_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_runtime_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_runtime_v1_integration_proto_goTypes = []any{
 	(IntegrationConnectionSetupAction)(0),            // 0: nimi.runtime.v1.IntegrationConnectionSetupAction
 	(*IntegrationOperation)(nil),                     // 1: nimi.runtime.v1.IntegrationOperation
@@ -3335,13 +3479,15 @@ var file_runtime_v1_integration_proto_goTypes = []any{
 	(*RemoveIntegrationConnectionResponse)(nil),      // 50: nimi.runtime.v1.RemoveIntegrationConnectionResponse
 	(*SetIntegrationPermissionRequest)(nil),          // 51: nimi.runtime.v1.SetIntegrationPermissionRequest
 	(*SetIntegrationPermissionResponse)(nil),         // 52: nimi.runtime.v1.SetIntegrationPermissionResponse
-	(*timestamppb.Timestamp)(nil),                    // 53: google.protobuf.Timestamp
+	(*SubscribeIntegrationSnapshotsRequest)(nil),     // 53: nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest
+	(*SubscribeIntegrationSnapshotsResponse)(nil),    // 54: nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse
+	(*timestamppb.Timestamp)(nil),                    // 55: google.protobuf.Timestamp
 }
 var file_runtime_v1_integration_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.IntegrationTarget.operations:type_name -> nimi.runtime.v1.IntegrationOperation
 	4,  // 1: nimi.runtime.v1.IntegrationPermission.consumer:type_name -> nimi.runtime.v1.IntegrationConsumer
-	53, // 2: nimi.runtime.v1.IntegrationCall.created_at:type_name -> google.protobuf.Timestamp
-	53, // 3: nimi.runtime.v1.IntegrationCall.updated_at:type_name -> google.protobuf.Timestamp
+	55, // 2: nimi.runtime.v1.IntegrationCall.created_at:type_name -> google.protobuf.Timestamp
+	55, // 3: nimi.runtime.v1.IntegrationCall.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 4: nimi.runtime.v1.ListIntegrationCatalogResponse.targets:type_name -> nimi.runtime.v1.IntegrationTarget
 	2,  // 5: nimi.runtime.v1.ListIntegrationConnectionsResponse.connections:type_name -> nimi.runtime.v1.IntegrationTarget
 	10, // 6: nimi.runtime.v1.IntegrationAssetEndpoint.source:type_name -> nimi.runtime.v1.IntegrationAssetInfo
@@ -3367,7 +3513,7 @@ var file_runtime_v1_integration_proto_depIdxs = []int32{
 	37, // 26: nimi.runtime.v1.IntegrationConnectionConfig.feishu:type_name -> nimi.runtime.v1.IntegrationFeishuConfig
 	38, // 27: nimi.runtime.v1.IntegrationConnectionConfig.qq_official:type_name -> nimi.runtime.v1.IntegrationQQOfficialConfig
 	39, // 28: nimi.runtime.v1.IntegrationConnectionConfig.onebot_v11:type_name -> nimi.runtime.v1.IntegrationOneBotV11Config
-	53, // 29: nimi.runtime.v1.IntegrationConnectionSetup.expires_at:type_name -> google.protobuf.Timestamp
+	55, // 29: nimi.runtime.v1.IntegrationConnectionSetup.expires_at:type_name -> google.protobuf.Timestamp
 	33, // 30: nimi.runtime.v1.StartIntegrationConnectionSetupRequest.config:type_name -> nimi.runtime.v1.IntegrationConnectionConfig
 	40, // 31: nimi.runtime.v1.StartIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
 	40, // 32: nimi.runtime.v1.GetIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
@@ -3375,44 +3521,46 @@ var file_runtime_v1_integration_proto_depIdxs = []int32{
 	40, // 34: nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
 	40, // 35: nimi.runtime.v1.CancelIntegrationConnectionSetupResponse.setup:type_name -> nimi.runtime.v1.IntegrationConnectionSetup
 	3,  // 36: nimi.runtime.v1.SetIntegrationPermissionResponse.permission:type_name -> nimi.runtime.v1.IntegrationPermission
-	6,  // 37: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:input_type -> nimi.runtime.v1.ListIntegrationCatalogRequest
-	8,  // 38: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:input_type -> nimi.runtime.v1.ListIntegrationConnectionsRequest
-	12, // 39: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:input_type -> nimi.runtime.v1.InvokeIntegrationCallRequest
-	14, // 40: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:input_type -> nimi.runtime.v1.GetIntegrationCallRequest
-	16, // 41: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:input_type -> nimi.runtime.v1.ListIntegrationCallsRequest
-	18, // 42: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:input_type -> nimi.runtime.v1.CancelIntegrationCallRequest
-	20, // 43: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:input_type -> nimi.runtime.v1.RegisterIntegrationProviderRequest
-	22, // 44: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:input_type -> nimi.runtime.v1.UnregisterIntegrationProviderRequest
-	24, // 45: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:input_type -> nimi.runtime.v1.PollIntegrationProviderRequest
-	27, // 46: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:input_type -> nimi.runtime.v1.CompleteIntegrationProviderRequest
-	29, // 47: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:input_type -> nimi.runtime.v1.GetIntegrationManagementRequest
-	31, // 48: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:input_type -> nimi.runtime.v1.PutIntegrationConnectionRequest
-	49, // 49: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:input_type -> nimi.runtime.v1.RemoveIntegrationConnectionRequest
-	51, // 50: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:input_type -> nimi.runtime.v1.SetIntegrationPermissionRequest
-	41, // 51: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:input_type -> nimi.runtime.v1.StartIntegrationConnectionSetupRequest
-	43, // 52: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:input_type -> nimi.runtime.v1.GetIntegrationConnectionSetupRequest
-	45, // 53: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:input_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
-	47, // 54: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:input_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
-	7,  // 55: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:output_type -> nimi.runtime.v1.ListIntegrationCatalogResponse
-	9,  // 56: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:output_type -> nimi.runtime.v1.ListIntegrationConnectionsResponse
-	13, // 57: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:output_type -> nimi.runtime.v1.InvokeIntegrationCallResponse
-	15, // 58: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:output_type -> nimi.runtime.v1.GetIntegrationCallResponse
-	17, // 59: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:output_type -> nimi.runtime.v1.ListIntegrationCallsResponse
-	19, // 60: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:output_type -> nimi.runtime.v1.CancelIntegrationCallResponse
-	21, // 61: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:output_type -> nimi.runtime.v1.RegisterIntegrationProviderResponse
-	23, // 62: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:output_type -> nimi.runtime.v1.UnregisterIntegrationProviderResponse
-	26, // 63: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:output_type -> nimi.runtime.v1.PollIntegrationProviderResponse
-	28, // 64: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:output_type -> nimi.runtime.v1.CompleteIntegrationProviderResponse
-	30, // 65: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:output_type -> nimi.runtime.v1.GetIntegrationManagementResponse
-	32, // 66: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:output_type -> nimi.runtime.v1.PutIntegrationConnectionResponse
-	50, // 67: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:output_type -> nimi.runtime.v1.RemoveIntegrationConnectionResponse
-	52, // 68: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:output_type -> nimi.runtime.v1.SetIntegrationPermissionResponse
-	42, // 69: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:output_type -> nimi.runtime.v1.StartIntegrationConnectionSetupResponse
-	44, // 70: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:output_type -> nimi.runtime.v1.GetIntegrationConnectionSetupResponse
-	46, // 71: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:output_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
-	48, // 72: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:output_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
-	55, // [55:73] is the sub-list for method output_type
-	37, // [37:55] is the sub-list for method input_type
+	53, // 37: nimi.runtime.v1.RuntimeIntegrationService.SubscribeIntegrationSnapshots:input_type -> nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest
+	6,  // 38: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:input_type -> nimi.runtime.v1.ListIntegrationCatalogRequest
+	8,  // 39: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:input_type -> nimi.runtime.v1.ListIntegrationConnectionsRequest
+	12, // 40: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:input_type -> nimi.runtime.v1.InvokeIntegrationCallRequest
+	14, // 41: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:input_type -> nimi.runtime.v1.GetIntegrationCallRequest
+	16, // 42: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:input_type -> nimi.runtime.v1.ListIntegrationCallsRequest
+	18, // 43: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:input_type -> nimi.runtime.v1.CancelIntegrationCallRequest
+	20, // 44: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:input_type -> nimi.runtime.v1.RegisterIntegrationProviderRequest
+	22, // 45: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:input_type -> nimi.runtime.v1.UnregisterIntegrationProviderRequest
+	24, // 46: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:input_type -> nimi.runtime.v1.PollIntegrationProviderRequest
+	27, // 47: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:input_type -> nimi.runtime.v1.CompleteIntegrationProviderRequest
+	29, // 48: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:input_type -> nimi.runtime.v1.GetIntegrationManagementRequest
+	31, // 49: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:input_type -> nimi.runtime.v1.PutIntegrationConnectionRequest
+	49, // 50: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:input_type -> nimi.runtime.v1.RemoveIntegrationConnectionRequest
+	51, // 51: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:input_type -> nimi.runtime.v1.SetIntegrationPermissionRequest
+	41, // 52: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:input_type -> nimi.runtime.v1.StartIntegrationConnectionSetupRequest
+	43, // 53: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:input_type -> nimi.runtime.v1.GetIntegrationConnectionSetupRequest
+	45, // 54: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:input_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupRequest
+	47, // 55: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:input_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupRequest
+	54, // 56: nimi.runtime.v1.RuntimeIntegrationService.SubscribeIntegrationSnapshots:output_type -> nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse
+	7,  // 57: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCatalog:output_type -> nimi.runtime.v1.ListIntegrationCatalogResponse
+	9,  // 58: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationConnections:output_type -> nimi.runtime.v1.ListIntegrationConnectionsResponse
+	13, // 59: nimi.runtime.v1.RuntimeIntegrationService.InvokeIntegrationCall:output_type -> nimi.runtime.v1.InvokeIntegrationCallResponse
+	15, // 60: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationCall:output_type -> nimi.runtime.v1.GetIntegrationCallResponse
+	17, // 61: nimi.runtime.v1.RuntimeIntegrationService.ListIntegrationCalls:output_type -> nimi.runtime.v1.ListIntegrationCallsResponse
+	19, // 62: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationCall:output_type -> nimi.runtime.v1.CancelIntegrationCallResponse
+	21, // 63: nimi.runtime.v1.RuntimeIntegrationService.RegisterIntegrationProvider:output_type -> nimi.runtime.v1.RegisterIntegrationProviderResponse
+	23, // 64: nimi.runtime.v1.RuntimeIntegrationService.UnregisterIntegrationProvider:output_type -> nimi.runtime.v1.UnregisterIntegrationProviderResponse
+	26, // 65: nimi.runtime.v1.RuntimeIntegrationService.PollIntegrationProvider:output_type -> nimi.runtime.v1.PollIntegrationProviderResponse
+	28, // 66: nimi.runtime.v1.RuntimeIntegrationService.CompleteIntegrationProvider:output_type -> nimi.runtime.v1.CompleteIntegrationProviderResponse
+	30, // 67: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationManagement:output_type -> nimi.runtime.v1.GetIntegrationManagementResponse
+	32, // 68: nimi.runtime.v1.RuntimeIntegrationService.PutIntegrationConnection:output_type -> nimi.runtime.v1.PutIntegrationConnectionResponse
+	50, // 69: nimi.runtime.v1.RuntimeIntegrationService.RemoveIntegrationConnection:output_type -> nimi.runtime.v1.RemoveIntegrationConnectionResponse
+	52, // 70: nimi.runtime.v1.RuntimeIntegrationService.SetIntegrationPermission:output_type -> nimi.runtime.v1.SetIntegrationPermissionResponse
+	42, // 71: nimi.runtime.v1.RuntimeIntegrationService.StartIntegrationConnectionSetup:output_type -> nimi.runtime.v1.StartIntegrationConnectionSetupResponse
+	44, // 72: nimi.runtime.v1.RuntimeIntegrationService.GetIntegrationConnectionSetup:output_type -> nimi.runtime.v1.GetIntegrationConnectionSetupResponse
+	46, // 73: nimi.runtime.v1.RuntimeIntegrationService.SubmitIntegrationConnectionSetup:output_type -> nimi.runtime.v1.SubmitIntegrationConnectionSetupResponse
+	48, // 74: nimi.runtime.v1.RuntimeIntegrationService.CancelIntegrationConnectionSetup:output_type -> nimi.runtime.v1.CancelIntegrationConnectionSetupResponse
+	56, // [56:75] is the sub-list for method output_type
+	37, // [37:56] is the sub-list for method input_type
 	37, // [37:37] is the sub-list for extension type_name
 	37, // [37:37] is the sub-list for extension extendee
 	0,  // [0:37] is the sub-list for field type_name
@@ -3424,13 +3572,14 @@ func file_runtime_v1_integration_proto_init() {
 		return
 	}
 	file_runtime_v1_integration_proto_msgTypes[0].OneofWrappers = []any{}
+	file_runtime_v1_integration_proto_msgTypes[24].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_integration_proto_rawDesc), len(file_runtime_v1_integration_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   52,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

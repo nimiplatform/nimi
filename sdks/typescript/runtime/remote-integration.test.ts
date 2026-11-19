@@ -49,7 +49,7 @@ test('remote Integration exposes consumer operations and preserves the typed own
       consumerDisplayName: 'Search web', targetDisplayName: 'PC search', accountLabel: 'Owner' } };
   } } as unknown as RuntimeTypedClient;
   const client = createRemoteRuntimeAppClients(runtime, 'search.web').integration;
-  assert.deepEqual(Object.keys(client).sort(), ['cancelCall', 'getCall', 'invoke', 'listCalls', 'listCatalog', 'listConnections'].sort());
+  assert.deepEqual(Object.keys(client).sort(), ['cancelCall', 'getCall', 'invoke', 'listCalls', 'listCatalog', 'listConnections', 'subscribeSnapshots'].sort());
   const input = { targetRef: 'pc-search', operation: 'search.run', inputJson: '{"q":"runtime"}' };
   assert.equal((await client.invoke(input)).status, 'accepted');
   assert.deepEqual(submitted, [input]);
@@ -66,4 +66,20 @@ test('provider call identity is required separately from display copy', async ()
   assert.equal((await client.pollProvider({ waitMs: 0 })).calls[0].consumerRef, 'actual-owner-reference');
   row = { ...call, consumerRef: '' };
   await assert.rejects(client.pollProvider({ waitMs: 0 }));
+});
+
+test('snapshot subscription carries only its read query and cancellation, without invoking a task', async () => {
+  const seen: unknown[] = [];
+  const query = { targetRef: 'pc', operation: 'session.observeProgress', inputJson: '{"sessionId":"main"}' };
+  const controller = new AbortController();
+  const runtime = { async *subscribeIntegrationSnapshots(input: unknown, options: unknown) {
+    seen.push(input, options);
+    yield { cursor: '1'.repeat(64), resultJson: '{"stage":"generating"}' };
+  } } as unknown as RuntimeTypedClient;
+  const client = createRemoteRuntimeAppClients(runtime, 'nimi.example').integration;
+  const snapshots = [];
+  for await (const update of client.subscribeSnapshots(query, { signal: controller.signal })) snapshots.push(update);
+  assert.deepEqual(seen, [query, { signal: controller.signal, timeoutMs: 0 }]);
+  assert.equal(snapshots.length, 1);
+  assert.throws(() => client.subscribeSnapshots({ ...query, accountId: 'another' } as never, { signal: controller.signal }));
 });

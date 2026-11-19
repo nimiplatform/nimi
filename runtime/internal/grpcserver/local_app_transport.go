@@ -32,6 +32,7 @@ const (
 	protectedIntegrationCatalogListMethod           = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog"
 	protectedIntegrationConnectionListMethod        = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections"
 	protectedIntegrationCallInvokeMethod            = "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall"
+	protectedIntegrationSnapshotsMethod             = "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots"
 	protectedIntegrationCallGetMethod               = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall"
 	protectedIntegrationCallListMethod              = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls"
 	protectedIntegrationCallCancelMethod            = "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall"
@@ -168,6 +169,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedIntegrationCatalogListMethod:           localAppSessionMethodPolicy(),
 	protectedIntegrationConnectionListMethod:        localAppSessionMethodPolicy(),
 	protectedIntegrationCallInvokeMethod:            localAppSessionMethodPolicy(),
+	protectedIntegrationSnapshotsMethod:             localAppSessionMethodPolicy(),
 	protectedIntegrationCallGetMethod:               localAppSessionMethodPolicy(),
 	protectedIntegrationCallListMethod:              localAppSessionMethodPolicy(),
 	protectedIntegrationCallCancelMethod:            localAppSessionMethodPolicy(),
@@ -908,6 +910,8 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 		return localappop.IngressAIRealtimeEventsRead
 	case protectedSubscribeAgentRealtimeEventsMethod:
 		return localappop.IngressAgentRealtimeEventsSubscribe
+	case protectedIntegrationSnapshotsMethod:
+		return localappop.IngressIntegrationSnapshotsSubscribe
 	case protectedSubscribeAppActivityChangesMethod:
 		return localappop.IngressAppActivitySubscribe
 	case protectedOpenAppActivityMethod:
@@ -935,6 +939,13 @@ func protectedLocalAppRequestHasCallerAssertionForMethod(ctx context.Context, re
 	if method == protectedIntegrationCallInvokeMethod {
 		if invocation, matches := message.(*runtimev1.InvokeIntegrationCallRequest); matches && invocation != nil {
 			business := proto.Clone(invocation).(*runtimev1.InvokeIntegrationCallRequest)
+			business.Operation = ""
+			message = business
+		}
+	}
+	if method == protectedIntegrationSnapshotsMethod {
+		if observation, matches := message.(*runtimev1.SubscribeIntegrationSnapshotsRequest); matches && observation != nil {
+			business := proto.Clone(observation).(*runtimev1.SubscribeIntegrationSnapshotsRequest)
 			business.Operation = ""
 			message = business
 		}

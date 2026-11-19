@@ -31,7 +31,7 @@ func (s *Service) RegisterIntegrationProvider(ctx context.Context, req *runtimev
 	// This first provider surface supports bounded local handlers, not nested
 	// delegated execution. Do not claim cancellation/retry absent a handler contract.
 	for _, op := range req.Operations {
-		if op.SupportsCancel || op.RetryPolicy != "none" || (op.AssetTransfer != nil &&
+		if (op.SnapshotRead != nil && (!op.GetSnapshotRead() || op.Effect != "read" || op.AssetTransfer != nil)) || op.SupportsCancel || op.RetryPolicy != "none" || (op.AssetTransfer != nil &&
 			((op.GetAssetTransfer() != assetToConsumer && op.GetAssetTransfer() != assetToProvider) || op.Effect != "write")) {
 			return nil, failure(codes.InvalidArgument, "INTEGRATION_PROVIDER_BEHAVIOR_UNSUPPORTED")
 		}
@@ -181,6 +181,7 @@ func (s *Service) PollIntegrationProvider(ctx context.Context, req *runtimev1.Po
 				break
 			}
 		}
+		s.pollSnapshotReadsLocked(d, result)
 		s.mu.Unlock()
 		if len(result.Calls) > 0 || len(result.CanceledCallIds) > 0 || wait == 0 {
 			return result, nil
@@ -199,6 +200,9 @@ func (s *Service) PollIntegrationProvider(ctx context.Context, req *runtimev1.Po
 	}
 }
 func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev1.CompleteIntegrationProviderRequest) (_ *runtimev1.CompleteIntegrationProviderResponse, err error) {
+	if isSnapshotRead(req.GetCallId()) {
+		return s.completeSnapshotRead(ctx, req)
+	}
 	record := s.beginAudit(ctx, "integration.provider.complete")
 	defer func() { record.finish(err) }()
 	d, err := s.decision(ctx, localappop.OperationIntegrationProviderComplete)

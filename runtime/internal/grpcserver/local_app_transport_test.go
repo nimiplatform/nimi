@@ -852,3 +852,21 @@ func TestIntegrationBusinessOperationIsNotCallerAuthority(t *testing.T) {
 		t.Fatal("business operation exemption admitted unknown wire assertion")
 	}
 }
+
+func TestSnapshotReadValidatesBusinessNameOnItsOwnIngress(t *testing.T) {
+	req := &runtimev1.SubscribeIntegrationSnapshotsRequest{TargetRef: "pc", Operation: "session.observeProgress", InputJson: `{"sessionId":"main"}`}
+	ctx := context.Background()
+	if protectedLocalAppRequestHasCallerAssertionForMethod(ctx, req, protectedIntegrationSnapshotsMethod) || req.Operation != "session.observeProgress" {
+		t.Fatal("snapshot business operation was rejected or changed")
+	}
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(ctx, req, protectedIntegrationCallInvokeMethod) {
+		t.Fatal("snapshot exception applied outside its exact typed ingress")
+	}
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(metadata.NewIncomingContext(ctx, metadata.Pairs("app-operation-id", "runtime.integration.snapshots.subscribe")), req, protectedIntegrationSnapshotsMethod) {
+		t.Fatal("snapshot read accepted caller authority in metadata")
+	}
+	req.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 0x01})
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(ctx, req, protectedIntegrationSnapshotsMethod) {
+		t.Fatal("snapshot read accepted unknown wire field")
+	}
+}

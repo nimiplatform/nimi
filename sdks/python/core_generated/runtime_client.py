@@ -1872,6 +1872,14 @@ RUNTIME_METHODS = [
     "response_type": "SubmitIntegrationConnectionSetupResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+    "service": "RuntimeIntegrationService",
+    "method": "SubscribeIntegrationSnapshots",
+    "kind": "server_stream",
+    "request_type": "SubscribeIntegrationSnapshotsRequest",
+    "response_type": "SubscribeIntegrationSnapshotsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
     "service": "RuntimeIntegrationService",
     "method": "UnregisterIntegrationProvider",

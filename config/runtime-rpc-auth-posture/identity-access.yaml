@@ -166,6 +166,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls

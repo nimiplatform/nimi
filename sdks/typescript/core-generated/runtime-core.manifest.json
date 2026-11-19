@@ -2125,6 +2125,15 @@
       "source_file": "proto/runtime/v1/integration.proto",
       "methods": [
         {
+          "name": "SubscribeIntegrationSnapshots",
+          "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+          "kind": "server_stream",
+          "request_type": "SubscribeIntegrationSnapshotsRequest",
+          "response_type": "SubscribeIntegrationSnapshotsResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
           "name": "ListIntegrationCatalog",
           "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog",
           "kind": "unary",
@@ -3137,6 +3146,7 @@
     "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission",
     "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup",
     "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup",
+    "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
     "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
     "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
@@ -5108,6 +5118,14 @@
       "kind": "unary",
       "request_type": "SubmitIntegrationConnectionSetupRequest",
       "response_type": "SubmitIntegrationConnectionSetupResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+      "service": "RuntimeIntegrationService",
+      "method": "SubscribeIntegrationSnapshots",
+      "kind": "server_stream",
+      "request_type": "SubscribeIntegrationSnapshotsRequest",
+      "response_type": "SubscribeIntegrationSnapshotsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
@@ -7544,6 +7562,14 @@
       "response_type": "SubmitIntegrationConnectionSetupResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+      "service": "RuntimeIntegrationService",
+      "method": "SubscribeIntegrationSnapshots",
+      "kind": "server_stream",
+      "request_type": "SubscribeIntegrationSnapshotsRequest",
+      "response_type": "SubscribeIntegrationSnapshotsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
       "service": "RuntimeIntegrationService",
       "method": "UnregisterIntegrationProvider",
@@ -9132,6 +9158,8 @@
       "SubscribeAppActivityOpenRequestsResponse",
       "SubscribeAppMessagesRequest",
       "SubscribeDesktopAIActivityRequest",
+      "SubscribeIntegrationSnapshotsRequest",
+      "SubscribeIntegrationSnapshotsResponse",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppAgentWorkEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
@@ -24826,6 +24854,13 @@
             "repeated": false,
             "optional": true,
             "number": 9
+          },
+          {
+            "name": "snapshot_read",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/integration.proto"
@@ -24915,6 +24950,13 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "after_snapshot",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/integration.proto"
@@ -46163,6 +46205,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "SubscribeIntegrationSnapshotsRequest",
+        "fields": [
+          {
+            "name": "target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "operation",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "input_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
+      },
+      {
+        "name": "SubscribeIntegrationSnapshotsResponse",
+        "fields": [
+          {
+            "name": "cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "result_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/integration.proto"
       },
       {
         "name": "SubscribeLocalAppAgentRealtimeEventsRequest",

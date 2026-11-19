@@ -5602,6 +5602,7 @@ type IntegrationOperation struct {
 	RetryPolicy      string  `json:"retry_policy,omitempty"`
 	DisplayName      *string `json:"display_name,omitempty"`
 	AssetTransfer    *string `json:"asset_transfer,omitempty"`
+	SnapshotRead     *bool   `json:"snapshot_read,omitempty"`
 }
 
 type IntegrationPermission struct {
@@ -5619,6 +5620,7 @@ type IntegrationProviderCall struct {
 	ConsumerDisplayName string                `json:"consumer_display_name,omitempty"`
 	ConsumerRef         string                `json:"consumer_ref,omitempty"`
 	OfferedAsset        *IntegrationAssetInfo `json:"offered_asset,omitempty"`
+	AfterSnapshot       *string               `json:"after_snapshot,omitempty"`
 }
 
 type IntegrationQQOfficialConfig struct {
@@ -9897,6 +9899,17 @@ type SubscribeDesktopAIActivityRequest struct {
 	Limit int32 `json:"limit,omitempty"`
 }
 
+type SubscribeIntegrationSnapshotsRequest struct {
+	TargetRef string `json:"target_ref,omitempty"`
+	Operation string `json:"operation,omitempty"`
+	InputJson string `json:"input_json,omitempty"`
+}
+
+type SubscribeIntegrationSnapshotsResponse struct {
+	Cursor     string `json:"cursor,omitempty"`
+	ResultJson string `json:"result_json,omitempty"`
+}
+
 type SubscribeLocalAppAgentRealtimeEventsRequest struct {
 	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
 	Generation        uint64 `json:"generation,omitempty"`
@@ -12673,6 +12686,14 @@ func (c RuntimeTypedClient) SubmitIntegrationConnectionSetup(ctx context.Context
 		return SubmitIntegrationConnectionSetupResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SubmitIntegrationConnectionSetupResponse](raw, "SubmitIntegrationConnectionSetupResponse")
+}
+
+func (c RuntimeTypedClient) SubscribeIntegrationSnapshots(ctx context.Context, request SubscribeIntegrationSnapshotsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[SubscribeIntegrationSnapshotsResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[SubscribeIntegrationSnapshotsResponse]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) UnregisterIntegrationProvider(ctx context.Context, request UnregisterIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnregisterIntegrationProviderResponse, error) {

@@ -61,6 +61,10 @@ export interface IntegrationOperation {
     /**
      * App providers only. Absent for ordinary JSON calls.
      *
+     * @generated from protobuf field: optional bool snapshot_read = 10
+     */
+    snapshotRead?: boolean; // App provider read dedicated to bounded snapshot subscriptions.
+    /**
      * @generated from protobuf field: optional string asset_transfer = 9
      */
     assetTransfer?: string; // "to-provider" or "to-consumer"
@@ -449,6 +453,10 @@ export interface IntegrationProviderCall {
      * @generated from protobuf field: nimi.runtime.v1.IntegrationAssetInfo offered_asset = 7
      */
     offeredAsset?: IntegrationAssetInfo;
+    /**
+     * @generated from protobuf field: optional string after_snapshot = 8
+     */
+    afterSnapshot?: string; // Empty for the first snapshot, otherwise the digest of the prior JSON.
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PollIntegrationProviderResponse
@@ -848,6 +856,36 @@ export interface SetIntegrationPermissionResponse {
     permission?: IntegrationPermission;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest
+ */
+export interface SubscribeIntegrationSnapshotsRequest {
+    /**
+     * @generated from protobuf field: string target_ref = 1
+     */
+    targetRef: string;
+    /**
+     * @generated from protobuf field: string operation = 2
+     */
+    operation: string;
+    /**
+     * @generated from protobuf field: string input_json = 3
+     */
+    inputJson: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse
+ */
+export interface SubscribeIntegrationSnapshotsResponse {
+    /**
+     * @generated from protobuf field: string cursor = 1
+     */
+    cursor: string;
+    /**
+     * @generated from protobuf field: string result_json = 2
+     */
+    resultJson: string;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.IntegrationConnectionSetupAction
  */
 export enum IntegrationConnectionSetupAction {
@@ -875,6 +913,7 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
             { no: 6, name: "supports_cancel", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "retry_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "snapshot_read", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
             { no: 9, name: "asset_transfer", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -920,6 +959,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
                 case /* optional string display_name */ 8:
                     message.displayName = reader.string();
                     break;
+                case /* optional bool snapshot_read */ 10:
+                    message.snapshotRead = reader.bool();
+                    break;
                 case /* optional string asset_transfer */ 9:
                     message.assetTransfer = reader.string();
                     break;
@@ -962,6 +1004,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
         /* optional string asset_transfer = 9; */
         if (message.assetTransfer !== undefined)
             writer.tag(9, WireType.LengthDelimited).string(message.assetTransfer);
+        /* optional bool snapshot_read = 10; */
+        if (message.snapshotRead !== undefined)
+            writer.tag(10, WireType.Varint).bool(message.snapshotRead);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2300,7 +2345,8 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
             { no: 4, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "consumer_display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "consumer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "offered_asset", kind: "message", T: () => IntegrationAssetInfo }
+            { no: 7, name: "offered_asset", kind: "message", T: () => IntegrationAssetInfo },
+            { no: 8, name: "after_snapshot", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<IntegrationProviderCall>): IntegrationProviderCall {
@@ -2341,6 +2387,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
                 case /* nimi.runtime.v1.IntegrationAssetInfo offered_asset */ 7:
                     message.offeredAsset = IntegrationAssetInfo.internalBinaryRead(reader, reader.uint32(), options, message.offeredAsset);
                     break;
+                case /* optional string after_snapshot */ 8:
+                    message.afterSnapshot = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2374,6 +2423,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
         /* nimi.runtime.v1.IntegrationAssetInfo offered_asset = 7; */
         if (message.offeredAsset)
             IntegrationAssetInfo.internalBinaryWrite(message.offeredAsset, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* optional string after_snapshot = 8; */
+        if (message.afterSnapshot !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.afterSnapshot);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3898,3 +3950,121 @@ class SetIntegrationPermissionResponse$Type extends MessageType<SetIntegrationPe
  * @generated MessageType for protobuf message nimi.runtime.v1.SetIntegrationPermissionResponse
  */
 export const SetIntegrationPermissionResponse = new SetIntegrationPermissionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeIntegrationSnapshotsRequest$Type extends MessageType<SubscribeIntegrationSnapshotsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest", [
+            { no: 1, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeIntegrationSnapshotsRequest>): SubscribeIntegrationSnapshotsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.targetRef = "";
+        message.operation = "";
+        message.inputJson = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeIntegrationSnapshotsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeIntegrationSnapshotsRequest): SubscribeIntegrationSnapshotsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string target_ref */ 1:
+                    message.targetRef = reader.string();
+                    break;
+                case /* string operation */ 2:
+                    message.operation = reader.string();
+                    break;
+                case /* string input_json */ 3:
+                    message.inputJson = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeIntegrationSnapshotsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string target_ref = 1; */
+        if (message.targetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.targetRef);
+        /* string operation = 2; */
+        if (message.operation !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.operation);
+        /* string input_json = 3; */
+        if (message.inputJson !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.inputJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeIntegrationSnapshotsRequest
+ */
+export const SubscribeIntegrationSnapshotsRequest = new SubscribeIntegrationSnapshotsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeIntegrationSnapshotsResponse$Type extends MessageType<SubscribeIntegrationSnapshotsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse", [
+            { no: 1, name: "cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "result_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeIntegrationSnapshotsResponse>): SubscribeIntegrationSnapshotsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.cursor = "";
+        message.resultJson = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeIntegrationSnapshotsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeIntegrationSnapshotsResponse): SubscribeIntegrationSnapshotsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string cursor */ 1:
+                    message.cursor = reader.string();
+                    break;
+                case /* string result_json */ 2:
+                    message.resultJson = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeIntegrationSnapshotsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string cursor = 1; */
+        if (message.cursor !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.cursor);
+        /* string result_json = 2; */
+        if (message.resultJson !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.resultJson);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeIntegrationSnapshotsResponse
+ */
+export const SubscribeIntegrationSnapshotsResponse = new SubscribeIntegrationSnapshotsResponse$Type();

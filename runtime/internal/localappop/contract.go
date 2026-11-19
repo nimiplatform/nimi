@@ -115,6 +115,7 @@ const (
 	IngressIntegrationCatalogList
 	IngressIntegrationConnectionList
 	IngressIntegrationCallInvoke
+	IngressIntegrationSnapshotsSubscribe
 	IngressIntegrationCallGet
 	IngressIntegrationCallList
 	IngressIntegrationCallCancel
@@ -252,6 +253,7 @@ const (
 	OperationIntegrationCatalogList
 	OperationIntegrationConnectionList
 	OperationIntegrationCallInvoke
+	OperationIntegrationSnapshotsSubscribe
 	OperationIntegrationCallGet
 	OperationIntegrationCallList
 	OperationIntegrationCallCancel
@@ -388,6 +390,7 @@ const (
 	AppOperationIDIntegrationCatalogList           = "runtime.integration.catalog.list"
 	AppOperationIDIntegrationConnectionList        = "runtime.integration.connection.list"
 	AppOperationIDIntegrationCallInvoke            = "runtime.integration.call.invoke"
+	AppOperationIDIntegrationSnapshotsSubscribe    = "runtime.integration.snapshots.subscribe"
 	AppOperationIDIntegrationCallGet               = "runtime.integration.call.get"
 	AppOperationIDIntegrationCallList              = "runtime.integration.call.list"
 	AppOperationIDIntegrationCallCancel            = "runtime.integration.call.cancel"
@@ -430,6 +433,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressIntegrationCatalogList, OperationIntegrationCatalogList, AppOperationIDIntegrationCatalogList, AuthorityClassAppAccess, "integration.consume"},
 	{IngressIntegrationConnectionList, OperationIntegrationConnectionList, AppOperationIDIntegrationConnectionList, AuthorityClassAppAccess, "integration.consume"},
 	{IngressIntegrationCallInvoke, OperationIntegrationCallInvoke, AppOperationIDIntegrationCallInvoke, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationSnapshotsSubscribe, OperationIntegrationSnapshotsSubscribe, AppOperationIDIntegrationSnapshotsSubscribe, AuthorityClassAppAccess, "integration.consume"},
 	{IngressIntegrationCallGet, OperationIntegrationCallGet, AppOperationIDIntegrationCallGet, AuthorityClassAppAccess, "integration.consume"},
 	{IngressIntegrationCallList, OperationIntegrationCallList, AppOperationIDIntegrationCallList, AuthorityClassAppAccess, "integration.consume"},
 	{IngressIntegrationCallCancel, OperationIntegrationCallCancel, AppOperationIDIntegrationCallCancel, AuthorityClassAppAccess, "integration.consume"},

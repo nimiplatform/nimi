@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeIntegrationService_SubscribeIntegrationSnapshots_FullMethodName    = "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots"
 	RuntimeIntegrationService_ListIntegrationCatalog_FullMethodName           = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog"
 	RuntimeIntegrationService_ListIntegrationConnections_FullMethodName       = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections"
 	RuntimeIntegrationService_InvokeIntegrationCall_FullMethodName            = "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall"
@@ -43,6 +44,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeIntegrationServiceClient interface {
+	SubscribeIntegrationSnapshots(ctx context.Context, in *SubscribeIntegrationSnapshotsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SubscribeIntegrationSnapshotsResponse], error)
 	ListIntegrationCatalog(ctx context.Context, in *ListIntegrationCatalogRequest, opts ...grpc.CallOption) (*ListIntegrationCatalogResponse, error)
 	ListIntegrationConnections(ctx context.Context, in *ListIntegrationConnectionsRequest, opts ...grpc.CallOption) (*ListIntegrationConnectionsResponse, error)
 	InvokeIntegrationCall(ctx context.Context, in *InvokeIntegrationCallRequest, opts ...grpc.CallOption) (*InvokeIntegrationCallResponse, error)
@@ -70,6 +72,25 @@ type runtimeIntegrationServiceClient struct {
 func NewRuntimeIntegrationServiceClient(cc grpc.ClientConnInterface) RuntimeIntegrationServiceClient {
 	return &runtimeIntegrationServiceClient{cc}
 }
+
+func (c *runtimeIntegrationServiceClient) SubscribeIntegrationSnapshots(ctx context.Context, in *SubscribeIntegrationSnapshotsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SubscribeIntegrationSnapshotsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeIntegrationService_ServiceDesc.Streams[0], RuntimeIntegrationService_SubscribeIntegrationSnapshots_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeIntegrationSnapshotsRequest, SubscribeIntegrationSnapshotsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeIntegrationService_SubscribeIntegrationSnapshotsClient = grpc.ServerStreamingClient[SubscribeIntegrationSnapshotsResponse]
 
 func (c *runtimeIntegrationServiceClient) ListIntegrationCatalog(ctx context.Context, in *ListIntegrationCatalogRequest, opts ...grpc.CallOption) (*ListIntegrationCatalogResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -255,6 +276,7 @@ func (c *runtimeIntegrationServiceClient) CancelIntegrationConnectionSetup(ctx c
 // All implementations should embed UnimplementedRuntimeIntegrationServiceServer
 // for forward compatibility.
 type RuntimeIntegrationServiceServer interface {
+	SubscribeIntegrationSnapshots(*SubscribeIntegrationSnapshotsRequest, grpc.ServerStreamingServer[SubscribeIntegrationSnapshotsResponse]) error
 	ListIntegrationCatalog(context.Context, *ListIntegrationCatalogRequest) (*ListIntegrationCatalogResponse, error)
 	ListIntegrationConnections(context.Context, *ListIntegrationConnectionsRequest) (*ListIntegrationConnectionsResponse, error)
 	InvokeIntegrationCall(context.Context, *InvokeIntegrationCallRequest) (*InvokeIntegrationCallResponse, error)
@@ -282,6 +304,9 @@ type RuntimeIntegrationServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeIntegrationServiceServer struct{}
 
+func (UnimplementedRuntimeIntegrationServiceServer) SubscribeIntegrationSnapshots(*SubscribeIntegrationSnapshotsRequest, grpc.ServerStreamingServer[SubscribeIntegrationSnapshotsResponse]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeIntegrationSnapshots not implemented")
+}
 func (UnimplementedRuntimeIntegrationServiceServer) ListIntegrationCatalog(context.Context, *ListIntegrationCatalogRequest) (*ListIntegrationCatalogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListIntegrationCatalog not implemented")
 }
@@ -355,6 +380,17 @@ func RegisterRuntimeIntegrationServiceServer(s grpc.ServiceRegistrar, srv Runtim
 	}
 	s.RegisterService(&RuntimeIntegrationService_ServiceDesc, srv)
 }
+
+func _RuntimeIntegrationService_SubscribeIntegrationSnapshots_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeIntegrationSnapshotsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeIntegrationServiceServer).SubscribeIntegrationSnapshots(m, &grpc.GenericServerStream[SubscribeIntegrationSnapshotsRequest, SubscribeIntegrationSnapshotsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeIntegrationService_SubscribeIntegrationSnapshotsServer = grpc.ServerStreamingServer[SubscribeIntegrationSnapshotsResponse]
 
 func _RuntimeIntegrationService_ListIntegrationCatalog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListIntegrationCatalogRequest)
@@ -760,6 +796,12 @@ var RuntimeIntegrationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeIntegrationService_CancelIntegrationConnectionSetup_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeIntegrationSnapshots",
+			Handler:       _RuntimeIntegrationService_SubscribeIntegrationSnapshots_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "runtime/v1/integration.proto",
 }

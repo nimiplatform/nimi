@@ -103,7 +103,7 @@ func remoteAppMethodSupported(method string) bool {
 		"/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents", "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact", "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
 		"/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset":
 		return true
-	case "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog", "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections",
+	case protectedIntegrationSnapshotsMethod, "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog", "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections",
 		"/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall", "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall",
 		"/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls", "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall":
 		return true

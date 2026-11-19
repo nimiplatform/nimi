@@ -31,6 +31,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.integration.catalog.list", class: AuthorityClassAppAccess, domain: "integration.consume"},
 		{id: "runtime.integration.connection.list", class: AuthorityClassAppAccess, domain: "integration.consume"},
 		{id: "runtime.integration.call.invoke", class: AuthorityClassAppAccess, domain: "integration.consume"},
+		{id: "runtime.integration.snapshots.subscribe", class: AuthorityClassAppAccess, domain: "integration.consume"},
 		{id: "runtime.integration.call.get", class: AuthorityClassAppAccess, domain: "integration.consume"},
 		{id: "runtime.integration.call.list", class: AuthorityClassAppAccess, domain: "integration.consume"},
 		{id: "runtime.integration.call.cancel", class: AuthorityClassAppAccess, domain: "integration.consume"},

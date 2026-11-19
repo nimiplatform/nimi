@@ -157,7 +157,11 @@ function operation(value: unknown, projection = true): NimiIntegrationOperation 
   const row = asRecord(value); const keys = ['name','description','inputSchemaJson','outputSchemaJson','effect','supportsCancel','retryPolicy'];
   if (row && Object.hasOwn(row, 'displayName')) keys.push('displayName');
   if (row && Object.hasOwn(row, 'assetTransfer')) keys.push('assetTransfer');
+  if (row && Object.hasOwn(row, 'snapshotRead')) keys.push('snapshotRead');
   if (projection) assertExactProjectionKeys(row, keys, 'Integration operation'); else assertExactKeys(row, keys, 'Integration operation');
+  if (row.snapshotRead !== undefined && (row.snapshotRead !== true || row.effect !== 'read' || row.assetTransfer !== undefined)) {
+    return projection ? localAppProjectionError('Integration snapshot read') : invalid();
+  }
   if (row.assetTransfer !== undefined && (row.effect !== 'write' || !['to-provider','to-consumer'].includes(String(row.assetTransfer)))) {
     return projection ? localAppProjectionError('Integration asset direction') : invalid();
   }
@@ -217,6 +221,10 @@ function project(method: NimiLocalAppIntegrationMethod, value: unknown): unknown
       const keys = ['callId', 'targetRef', 'operation', 'inputJson', 'consumerDisplayName', 'consumerRef'];
       const optional: string[] = [];
       if (item?.offeredAsset !== undefined) optional.push('offeredAsset');
+      if (item?.afterSnapshot !== undefined) {
+        if (typeof item.afterSnapshot !== 'string' || !/^(?:[0-9a-f]{64})?$/.test(item.afterSnapshot)) return localAppProjectionError('Integration snapshot cursor');
+        optional.push('afterSnapshot');
+      }
       assertExactProjectionKeys(item, [...keys, ...optional], 'Integration provider call');
       for (const key of keys) text(item[key], key === 'inputJson' ? 256*1024 : 512, key === 'consumerDisplayName', true);
       try { JSON.parse(String(item.inputJson)); } catch { return localAppProjectionError('Integration provider input'); }
@@ -242,10 +250,16 @@ export function createNimiLocalAppIntegrationRuntimeClient(runtime: NimiLocalApp
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.integrations
-export type NimiIntegrationConsumerClient = Pick<NimiLocalAppIntegrationClient, 'listCatalog' | 'listConnections' | 'invoke' | 'getCall' | 'listCalls' | 'cancelCall'>;
-export function createNimiIntegrationConsumerRuntimeClient(runtime: NimiLocalAppIntegrationRuntime): NimiIntegrationConsumerClient {
+export type NimiIntegrationConsumerClient = Pick<NimiLocalAppIntegrationClient, 'listCatalog' | 'listConnections' | 'invoke' | 'getCall' | 'listCalls' | 'cancelCall'> & {
+  subscribeSnapshots(query: { targetRef: string; operation: string; inputJson: string }, options: { signal: AbortSignal }): AsyncIterable<{cursor: string; resultJson: string}>;
+};
+export function createNimiIntegrationConsumerRuntimeClient(runtime: NimiLocalAppIntegrationRuntime & Pick<RuntimeTypedClient,'subscribeIntegrationSnapshots'>): NimiIntegrationConsumerClient {
   const { listCatalog, listConnections, invoke, getCall, listCalls, cancelCall } = createNimiLocalAppIntegrationRuntimeClient(runtime);
-  return Object.freeze({ listCatalog, listConnections, invoke, getCall, listCalls, cancelCall });
+  const subscribeSnapshots: NimiIntegrationConsumerClient['subscribeSnapshots'] = (query, { signal }) => {
+    validateNimiLocalAppIntegrationInput('invoke', query);
+    return runtime.subscribeIntegrationSnapshots(query, { signal, timeoutMs: 0 });
+  };
+  return Object.freeze({ listCatalog, listConnections, invoke, getCall, listCalls, cancelCall, subscribeSnapshots });
 }
 export function createNimiLocalAppIntegrationRuntimeShell(runtime: NimiLocalAppIntegrationRuntime): NimiLocalAppIntegrationShell {
   // Protobuf decoding supplies message prototypes. Project typed owner values

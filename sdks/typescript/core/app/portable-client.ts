@@ -1,3 +1,4 @@
+import type { NimiIntegrationConsumerClient } from './local-app-runtime-platform-integration.js';
 import type { NimiLocalAppClient } from './local-app-runtime-platform.js';
 
 // @nimi-authority: rule.nimi.sdks.client-core.remote-runtime-carrier
@@ -10,7 +11,7 @@ export type NimiAppRuntimeClient = Pick<NimiLocalAppClient,
     readonly assets: Omit<NimiLocalAppClient['storage']['assets'], 'reveal'>;
   };
   readonly activity: NimiLocalAppClient['activity'];
-  readonly integration: Pick<NimiLocalAppClient['integration'], 'listCatalog' | 'listConnections' | 'invoke' | 'getCall' | 'listCalls' | 'cancelCall'>;
+  readonly integration: Pick<NimiLocalAppClient['integration'], 'listCatalog' | 'listConnections' | 'invoke' | 'getCall' | 'listCalls' | 'cancelCall'> & Partial<Pick<NimiIntegrationConsumerClient, 'subscribeSnapshots'>>;
   readonly realm: {
     readonly worldCore: NimiLocalAppClient['realm']['worldCore'];
     readonly personaCharacter: NimiLocalAppClient['realm']['personaCharacter'];

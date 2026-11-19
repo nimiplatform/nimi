@@ -3454,6 +3454,7 @@ class IntegrationOperation:
     retry_policy: str | None = None
     display_name: str | None = None
     asset_transfer: str | None = None
+    snapshot_read: bool | None = None
 
 @dataclass(frozen=True)
 class IntegrationPermission:
@@ -3471,6 +3472,7 @@ class IntegrationProviderCall:
     consumer_display_name: str | None = None
     consumer_ref: str | None = None
     offered_asset: IntegrationAssetInfo | None = None
+    after_snapshot: str | None = None
 
 @dataclass(frozen=True)
 class IntegrationQQOfficialConfig:
@@ -7774,6 +7776,17 @@ class SubscribeDesktopAIActivityRequest:
     limit: int | None = None
 
 @dataclass(frozen=True)
+class SubscribeIntegrationSnapshotsRequest:
+    target_ref: str | None = None
+    operation: str | None = None
+    input_json: str | None = None
+
+@dataclass(frozen=True)
+class SubscribeIntegrationSnapshotsResponse:
+    cursor: str | None = None
+    result_json: str | None = None
+
+@dataclass(frozen=True)
 class SubscribeLocalAppAgentRealtimeEventsRequest:
     realtime_session_id: str | None = None
     generation: int | None = None
@@ -9548,6 +9561,9 @@ class RuntimeTypedClient:
     async def submit_integration_connection_setup(self, request: SubmitIntegrationConnectionSetupRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitIntegrationConnectionSetupResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitIntegrationConnectionSetupResponse, raw)
+
+    def subscribe_integration_snapshots(self, request: SubscribeIntegrationSnapshotsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[SubscribeIntegrationSnapshotsResponse]:
+        return self._stream("/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots", _model_body(request), SubscribeIntegrationSnapshotsResponse, metadata=metadata, timeout_ms=timeout_ms)
 
     async def unregister_integration_provider(self, request: UnregisterIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UnregisterIntegrationProviderResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

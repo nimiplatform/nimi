@@ -87,6 +87,7 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
     if input.get("displayName").is_some() {
         keys.push("displayName");
     }
+    if input.get("snapshotRead").is_some() { keys.push("snapshotRead"); }
     if input.get("assetTransfer").is_some() { keys.push("assetTransfer"); }
     exact(input, &keys)?;
     let display_name = input.get("displayName")
@@ -114,7 +115,10 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
     if asset_transfer.as_deref().is_some_and(|direction| !["to-provider", "to-consumer"].contains(&direction) || effect != "write") {
         return Err(invalid_payload());
     }
+    let snapshot_read = input.get("snapshotRead").map(|value| value.as_bool().ok_or_else(invalid_payload)).transpose()?;
+    if snapshot_read.is_some() && (snapshot_read != Some(true) || effect != "read" || asset_transfer.is_some()) { return Err(invalid_payload()); }
     Ok(IntegrationOperation {
+        snapshot_read,
         asset_transfer,
         name: text(input, "name", 128, false)?,
         display_name,
@@ -137,6 +141,7 @@ fn operations(input: &Value) -> Result<Vec<IntegrationOperation>, LocalAppOperat
 }
 fn project_operation(v: IntegrationOperation) -> Value {
     let mut result = json!({"name":v.name,"description":v.description,"inputSchemaJson":v.input_schema_json,"outputSchemaJson":v.output_schema_json,"effect":v.effect,"supportsCancel":v.supports_cancel,"retryPolicy":v.retry_policy});
+    if let Some(mode) = v.snapshot_read { result["snapshotRead"] = json!(mode); }
     if let Some(direction) = v.asset_transfer { result["assetTransfer"] = json!(direction); }
     if let Some(display_name) = v.display_name {
         result["displayName"] = Value::String(display_name);
@@ -338,6 +343,7 @@ pub(super) async fn poll_provider(
         .into_inner();
     let calls: Vec<_> = response.calls.into_iter().map(|v| {
         let mut call = json!({"callId":v.call_id,"targetRef":v.target_ref,"operation":v.operation,"inputJson":v.input_json,"consumerDisplayName":v.consumer_display_name,"consumerRef":v.consumer_ref});
+        if let Some(cursor) = v.after_snapshot { call["afterSnapshot"] = json!(cursor); }
         if let Some(asset) = v.offered_asset {
             call["offeredAsset"] = json!({"sha256": asset.sha256, "mediaType": asset.media_type, "sizeBytes": asset.size_bytes});
         }

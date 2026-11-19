@@ -242,6 +242,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit": "anonymous_read",

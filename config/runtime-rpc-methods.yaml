@@ -902,6 +902,11 @@ services:
         authority_status: admitted_local_app
         transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall
+      - name: SubscribeIntegrationSnapshots
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots
       - name: GetIntegrationCall
         type: unary
         authority_status: admitted_local_app

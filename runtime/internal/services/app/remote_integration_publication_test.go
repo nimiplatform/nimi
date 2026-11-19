@@ -56,6 +56,9 @@ func TestRemoteConsumerNativeProviderPublication(t *testing.T) {
 					close(peer.done)
 				}
 			}()
+			if _, err := f.service.authorizeRemoteAppIngress(ctx, peer, localappop.IngressIntegrationSnapshotsSubscribe); err != nil {
+				t.Fatalf("snapshot subscriber denied with integration.consume: %v", err)
+			}
 			consumer, err := f.service.authorizeRemoteAppIngress(ctx, peer, localappop.IngressIntegrationCallInvoke)
 			if err != nil {
 				t.Fatal(err)

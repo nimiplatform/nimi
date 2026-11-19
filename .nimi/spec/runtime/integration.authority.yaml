@@ -154,7 +154,7 @@ units:
     kind: rule
     title: Exact integration carrier and management boundary
     modality: must
-    statement: RuntimeIntegrationService exposes runtime.integration.catalog.list, connection.list, call.invoke, call.get, call.list and call.cancel under integration.consume, provider.register, provider.unregister, provider.poll and provider.complete under integration.provide, and management.get, connection.put, connection.remove, permission.set and connection.setup.start/get/submit/cancel under integration.manage, where each abbreviated suffix has the runtime.integration prefix. Consumer calls use a Runtime-issued target reference and the current operation name and schema; a provider registers its bounded descriptor and polls and completes only its exact session calls. Management additionally requires the Runtime-derived built-in nimi.desktop formal App decision and a live verified Desktop connection attached by protected Desktop ingress after the desktop_account_product_v1 profile and DesktopSessionManager checks; request fields, a same-name App, self-declared integration.manage and ordinary LocalApp transport cannot construct this context or approve themselves. SDK and Kit expose the typed integration namespace without generic owner forwarding.
+    statement: RuntimeIntegrationService exposes runtime.integration.catalog.list, connection.list, call.invoke, call.get, call.list, call.cancel and snapshots.subscribe under integration.consume, provider.register, provider.unregister, provider.poll and provider.complete under integration.provide, and management.get, connection.put, connection.remove, permission.set and connection.setup.start/get/submit/cancel under integration.manage, where each abbreviated suffix has the runtime.integration prefix. Consumer calls use a Runtime-issued target reference and the current operation name and schema; a provider registers its bounded descriptor and polls and completes only its exact session calls. Management additionally requires the Runtime-derived built-in nimi.desktop formal App decision and a live verified Desktop connection attached by protected Desktop ingress after the desktop_account_product_v1 profile and DesktopSessionManager checks; request fields, a same-name App, self-declared integration.manage and ordinary LocalApp transport cannot construct this context or approve themselves. SDK and Kit expose the typed integration namespace without generic owner forwarding.
     condition: Whenever the Integration API is implemented or consumed.
     failure: Deny unmapped operations, cross-subject or stale calls, untrusted management and malformed schema input before effect dispatch.
     relations:
@@ -278,3 +278,15 @@ units:
         target: definition.nimi.runtime.integration.connection-plane
       - type: applies_to
         target: definition.nimi.runtime.integration.native-operation-contract
+  - id: rule.nimi.runtime.integration.snapshot-observation
+    kind: rule
+    title: Bounded observation of an App provider snapshot
+    modality: must
+    statement: A remote App may subscribe to an explicitly declared snapshot-only read of a live App provider under an exact current operation grant. Runtime retains at most one outstanding read per subscription in separate bounded ephemeral storage. The provider receives the original validated query and previous snapshot digest through its scoped poll and completes that read with a complete bounded JSON snapshot. Runtime validates its schema, suppresses identical snapshots and rechecks both participants and the resource permission before publication. Reads and frames do not consume durable business call slots or create per-frame call or audit records. Opening or reconnecting obtains current state, including after a gap. A subscription never invokes a business operation, starts a task or makes historical event delivery guarantees. Disconnect, expiry, withdrawal or loss of either source retires the observation. Compatible grants never widen silently into snapshot reads.
+    condition: When an App observes changing state owned by another registered App.
+    failure: Reject writes, file transfers, missing grants and stale provider completions. Cancel observation independently of the underlying business task.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane

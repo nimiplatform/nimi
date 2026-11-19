@@ -128,6 +128,7 @@ type Service struct {
 	ctx             context.Context
 	cancel          context.CancelFunc
 	mu              sync.Mutex
+	observations    map[*snapshotObservation]struct{}
 	providers       map[string]*provider
 	calls           map[string]*invocation
 	receivers       map[string]*telegramReceiver
@@ -161,7 +162,7 @@ func New(o Options) (*Service, error) {
 		client = &http.Client{Timeout: 90 * time.Second}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{backend: o.Backend, audit: o.Audit, logger: logger, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, assets: o.Assets, ctx: ctx, cancel: cancel, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
+	s := &Service{backend: o.Backend, audit: o.Audit, logger: logger, secrets: o.Secrets, revalidator: o.Revalidator, registrations: o.Registrations, desktop: o.DesktopTransport, http: client, assets: o.Assets, ctx: ctx, cancel: cancel, observations: map[*snapshotObservation]struct{}{}, providers: map[string]*provider{}, calls: map[string]*invocation{}, receivers: map[string]*telegramReceiver{}, closeDone: make(chan struct{})}
 	s.setups = map[string]*connectionSetup{}
 	s.adapters = s.adapterRegistry()
 	s.nativeReceivers = map[string]*nativeReceiver{}
@@ -356,6 +357,9 @@ func (s *Service) InvokeIntegrationCall(ctx context.Context, req *runtimev1.Invo
 	op := operation(t, req.Operation)
 	if op == nil {
 		return nil, failure(codes.NotFound, "INTEGRATION_OPERATION_NOT_FOUND")
+	}
+	if op.GetSnapshotRead() {
+		return nil, failure(codes.FailedPrecondition, "INTEGRATION_SUBSCRIPTION_REQUIRED")
 	}
 	if !s.permitted(ctx, d.AccountID, d.RegisteredAppSubject, req.TargetRef, req.Operation) {
 		return nil, failure(codes.PermissionDenied, "INTEGRATION_PERMISSION_REQUIRED")
@@ -649,7 +653,7 @@ func compatibleOperations(old, next []*runtimev1.IntegrationOperation) bool {
 				break
 			}
 		}
-		if current == nil || previous.GetAssetTransfer() != current.GetAssetTransfer() || previous.InputSchemaJson != current.InputSchemaJson || previous.OutputSchemaJson != current.OutputSchemaJson || previous.Effect != current.Effect || previous.SupportsCancel != current.SupportsCancel || previous.RetryPolicy != current.RetryPolicy {
+		if current == nil || previous.GetSnapshotRead() != current.GetSnapshotRead() || previous.GetAssetTransfer() != current.GetAssetTransfer() || previous.InputSchemaJson != current.InputSchemaJson || previous.OutputSchemaJson != current.OutputSchemaJson || previous.Effect != current.Effect || previous.SupportsCancel != current.SupportsCancel || previous.RetryPolicy != current.RetryPolicy {
 			return false
 		}
 	}

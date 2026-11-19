@@ -1919,6 +1919,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitIntegrationConnectionSetupResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots",
+    "service": "RuntimeIntegrationService",
+    "method": "SubscribeIntegrationSnapshots",
+    "kind": "server_stream",
+    "requestType": "SubscribeIntegrationSnapshotsRequest",
+    "responseType": "SubscribeIntegrationSnapshotsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
     "service": "RuntimeIntegrationService",
     "method": "UnregisterIntegrationProvider",

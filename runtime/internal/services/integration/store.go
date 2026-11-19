@@ -440,6 +440,7 @@ func (s *Service) SetIntegrationPermission(ctx context.Context, req *runtimev1.S
 		return nil, s.permissionCommitFailure(err)
 	}
 	record.committed()
+	s.revokeSnapshotReadsLocked(d.AccountID, subject, req.TargetRef, seen)
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.decision.RegisteredAppSubject == subject && c.target.Public.TargetRef == req.TargetRef && !seen[c.op.Name] {
 			s.cancelInvocationLocked(c)
@@ -506,6 +507,7 @@ func (s *Service) revokeIntegrationPermission(ctx context.Context, d accountserv
 		return nil, s.permissionCommitFailure(err)
 	}
 	record.committed()
+	s.revokeSnapshotReadsLocked(d.AccountID, subject, req.TargetRef, nil)
 	for _, c := range s.calls {
 		if c.decision.AccountID == d.AccountID && c.decision.RegisteredAppSubject == subject && c.target.Public.TargetRef == req.TargetRef {
 			s.cancelInvocationLocked(c)

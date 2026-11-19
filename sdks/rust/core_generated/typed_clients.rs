@@ -9679,6 +9679,7 @@ pub struct IntegrationOperation {
     pub retry_policy: Option<String>,
     pub display_name: Option<String>,
     pub asset_transfer: Option<String>,
+    pub snapshot_read: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9698,6 +9699,7 @@ pub struct IntegrationProviderCall {
     pub consumer_display_name: Option<String>,
     pub consumer_ref: Option<String>,
     pub offered_asset: Option<Box<IntegrationAssetInfo>>,
+    pub after_snapshot: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15906,6 +15908,89 @@ pub struct SubscribeDesktopAIActivityRequest {
     pub limit: Option<i32>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubscribeIntegrationSnapshotsRequest {
+    #[serde(rename = "target_ref", skip_serializing_if = "Option::is_none")]
+    pub target_ref: Option<String>,
+    #[serde(rename = "operation", skip_serializing_if = "Option::is_none")]
+    pub operation: Option<String>,
+    #[serde(rename = "input_json", skip_serializing_if = "Option::is_none")]
+    pub input_json: Option<String>,
+}
+
+impl SubscribeIntegrationSnapshotsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubscribeIntegrationSnapshotsRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.target_ref = match object.get("target_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("target_ref"))?),
+            None => None,
+        };
+        out.operation = match object.get("operation") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("operation"))?),
+            None => None,
+        };
+        out.input_json = match object.get("input_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("input_json"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubscribeIntegrationSnapshotsResponse {
+    #[serde(rename = "cursor", skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    #[serde(rename = "result_json", skip_serializing_if = "Option::is_none")]
+    pub result_json: Option<String>,
+}
+
+impl SubscribeIntegrationSnapshotsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubscribeIntegrationSnapshotsResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.cursor = match object.get("cursor") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("cursor"))?),
+            None => None,
+        };
+        out.result_json = match object.get("result_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("result_json"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeLocalAppAgentRealtimeEventsRequest {
     pub realtime_session_id: Option<String>,
@@ -17174,6 +17259,14 @@ impl TryFrom<Vec<u8>> for RemoveIntegrationConnectionResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for SubscribeIntegrationSnapshotsResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for UnregisterIntegrationProviderResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -17607,6 +17700,19 @@ where
             type_name: error.type_name,
             field: error.field,
         })
+    }
+
+    pub fn subscribe_integration_snapshots(&self, request: SubscribeIntegrationSnapshotsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, SubscribeIntegrationSnapshotsResponse>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/SubscribeIntegrationSnapshots".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn unregister_integration_provider(&self, request: UnregisterIntegrationProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UnregisterIntegrationProviderResponse, RuntimeTypedClientError<T::Error>> {
