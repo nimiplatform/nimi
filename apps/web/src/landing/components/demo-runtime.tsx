@@ -24,13 +24,13 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
   const [config, setConfig] = useState(false);
   const capability = c.capabilities.find((item) => item.id === selected);
   const ready = c.capabilities.filter((item) => item.ready);
-  const icons = [MessageSquare, Image, AudioLines, Mic];
+  const icons = [MessageSquare, FileBox, Image, AudioLines, Mic];
   return (
     <DemoWorkspace
       title={demo.nav.runtime}
       sidebar={
         <>
-          <p className="demo-muted px-4 pb-4">{t('4 项可用', '4 ready')}</p>
+          <p className="demo-muted px-4 pb-4">{t(`${ready.length} 项可用`, `${ready.length} ready`)}</p>
           <div className="demo-sidebar-scroll">
             {c.capabilityGroups.map((group, index) => (
               <div key={group}>
@@ -155,11 +155,11 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
               <section className="demo-ready-panel" data-tour-anchor="ready">
                 <h2>
                   <i className="demo-status-dot" />
-                  {t('可用能力 · 4', 'Available capabilities · 4')}
+                  {t(`可用能力 · ${ready.length}`, `Available capabilities · ${ready.length}`)}
                 </h2>
                 <div className="demo-capability-grid">
                   {ready.map((item, index) => {
-                    const Icon = icons[index]!;
+                    const Icon = icons[index % icons.length]!;
                     return (
                       <button key={item.id} type="button" onClick={() => setSelected(item.id)}>
                         <span className="demo-model-icon">
@@ -188,8 +188,8 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
                   <strong>{t('日常创作配置', 'Everyday creativity')}</strong>
                   <small>
                     {t(
-                      '文本生成 · 图像生成 · 语音合成 · 语音转写',
-                      'Text · Images · Speech synthesis · Transcription',
+                      '文本生成 · 文本嵌入 · 图像生成 · 语音合成 · 语音转写',
+                      'Text · Embeddings · Images · Speech synthesis · Transcription',
                     )}
                   </small>
                 </span>
@@ -201,7 +201,7 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
             {section === 'saved'
               ? t('日常创作配置', 'Everyday creativity')
               : t('本机模型与资源', 'Local models & resources')}{' '}
-            <span className="demo-muted">4</span>
+            <span className="demo-muted">{ready.length}</span>
           </h2>
           {ready.map((item) => (
             <button

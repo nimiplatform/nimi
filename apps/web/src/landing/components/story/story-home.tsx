@@ -1,7 +1,8 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Expand } from 'lucide-react';
 import { Dialog, DialogBody, DialogContent, DialogTitle, DialogTrigger } from '@nimiplatform/kit/ui';
+import type { HeroDemoSurface } from '../../content/landing-content.js';
 import type { StoryText } from '../../content/story-copy.js';
 import type { HeroContinuitySwitcherConfig } from '../hero-demo.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
@@ -19,6 +20,8 @@ export function StoryHome({
   onExpanded,
   layout = 'devices',
   continuitySwitcher,
+  stageActive,
+  dockedSurface,
   extraWindowActions,
   previewHeaderActions,
   disablePreviewModal,
@@ -29,6 +32,8 @@ export function StoryHome({
   onExpanded: (open: boolean) => void;
   layout?: 'hero' | 'devices';
   continuitySwitcher?: HeroContinuitySwitcherConfig;
+  stageActive?: boolean;
+  dockedSurface?: HeroDemoSurface;
   extraWindowActions?: ReactNode;
   previewHeaderActions?: ReactNode;
   disablePreviewModal?: boolean;
@@ -109,6 +114,16 @@ export function StoryHome({
       dockBounds.current = dock?.querySelector('.hero-demo-frame')?.getBoundingClientRect();
     }
   };
+  useEffect(() => {
+    if (!expanded) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (document.querySelector('[data-demo-nested-dialog], [data-testid="demo-app-preview"]')) return;
+      onExpanded(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [expanded, onExpanded]);
   const expandAction = docked ? (
     <DialogTrigger
       ref={expandButton}
@@ -125,7 +140,11 @@ export function StoryHome({
       {expandAction}
     </>
   ) : undefined;
-  const fallback = <HeroDemoStatic demo={demo} surface={surface === 'apps' || surface === 'chat' ? surface : 'home'} expanded windowTitle={windowTitle} windowActions={windowActions} windowClose={windowClose} />;
+  const fallbackSurface =
+    docked && dockedSurface
+      ? (dockedSurface === 'apps' || dockedSurface === 'chat' || dockedSurface === 'explore' ? dockedSurface : 'home')
+      : (surface === 'apps' || surface === 'chat' || surface === 'explore' ? surface : 'home');
+  const fallback = <HeroDemoStatic demo={demo} surface={fallbackSurface} expanded windowTitle={windowTitle} windowActions={windowActions} windowClose={windowClose} />;
   const errorFallback = <div className="hero-demo-frame flex h-full min-h-0 flex-col"><DemoWindowHeader title={windowTitle} close={windowClose}><span className="demo-preview-badge">{demo.home.badge}</span>{windowActions}</DemoWindowHeader><div className="story-load-error flex-1" role="status"><p>{t('common.loadError')}</p><button type="button" onClick={() => window.location.reload()}>{t('common.retry')}</button></div></div>;
   return <div className="story-home-dock">
     {layout === 'hero' ? <div className="story-home-slot" ref={setDock} /> : <div className="story-home-slot">
@@ -158,6 +177,16 @@ export function StoryHome({
                   windowClose={windowClose}
                   openChatRef={cueOpenChat}
                   continuitySwitcher={continuitySwitcher}
+                  stageActive={stageActive}
+                  surfaceOverride={docked ? dockedSurface : undefined}
+                  onSurfaceNavigate={
+                    docked && dockedSurface
+                      ? () => {
+                          prepareExpansion('window');
+                          onExpanded(true);
+                        }
+                      : undefined
+                  }
                   previewHeaderActions={previewHeaderActions}
                   disablePreviewModal={disablePreviewModal}
                 />

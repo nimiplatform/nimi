@@ -1,12 +1,31 @@
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { editorialSlugs } from './catalog-slugs.js';
 import { pcTargetLabels, PublicProduct, useHostedDirectory, WebLaunch } from './hosted-directory.js';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Blocks, Cpu, ExternalLink, Layers3, Play, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Blocks,
+  ChevronDown,
+  ChevronUp,
+  Cpu,
+  ExternalLink,
+  FolderLock,
+  Info,
+  Layers3,
+  Play,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Volume2,
+  X,
+} from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
 import { DemoAppPreview } from '../landing/components/demo-app-preview.js';
 import { useHeroDemoSession } from '../landing/components/hero-demo-context.js';
 import { HeroDemoSessionProvider } from '../landing/components/hero-demo-session.js';
+import { HomeCompanionBento } from '../landing/components/story/home-companion-bento.js';
 import { StoryIntegrations } from '../landing/components/story/story-capabilities.js';
 import { StoryHome } from '../landing/components/story/story-home.js';
 import { StoryWorlds } from '../landing/components/story/story-worlds.js';
@@ -18,8 +37,10 @@ import type { LandingLocale } from '../landing/i18n/locale.js';
 import {
   APP_ECOSYSTEM_COPY,
   getEcosystemApps,
+  INITIAL_VISIBLE_APP_COUNT,
   type EcosystemFilterId,
 } from './app-ecosystem-data.js';
+import { AppsFoundationStage } from './apps-foundation-stage.js';
 import { CAPABILITY_LABELS, INFORMATIONAL_CONTENT } from './informational-content.js';
 import {
   PublicSiteLink,
@@ -73,44 +94,19 @@ function LegalDocumentRedirect({ document }: { document: (typeof LEGAL_DOCUMENTS
   );
 }
 
-const HOME_WORKSPACE_HIGHLIGHTS: Readonly<Record<LandingLocale, ReadonlyArray<{
+const HOME_WORKSPACE_PILLS: Readonly<Record<LandingLocale, ReadonlyArray<{
   Icon: typeof Layers3;
-  title: string;
-  body: string;
+  label: string;
 }>>> = {
   zh: [
-    {
-      Icon: Layers3,
-      title: '桌面总控与最近对话',
-      body: '在同一工作台启动已安装应用、接着和伙伴对话，并集中查看消息与权限动态。',
-    },
-    {
-      Icon: Cpu,
-      title: '本机模型与云服务统一配置',
-      body: '管理本机已准备好的模型，或按需填入自有云端凭证，供已授权应用按模态调用。',
-    },
-    {
-      Icon: ShieldCheck,
-      title: '账号身份与本地数据分离',
-      body: '浏览器登录用于验证 Nimi 账号与世界生态身份；本机模型、伙伴记忆与 nimi_data 默认留在你的电脑上。',
-    },
+    { Icon: Cpu, label: 'AI 模型配一次，所有软件直接用' },
+    { Icon: Layers3, label: '在 Home 与织羽之间无缝接着聊' },
+    { Icon: ShieldCheck, label: '聊天与记忆默认留在你自己电脑上' },
   ],
   en: [
-    {
-      Icon: Layers3,
-      title: 'Desktop hub & active conversations',
-      body: 'Launch installed apps, pick up recent companion chats, and review permissions from a single workspace.',
-    },
-    {
-      Icon: Cpu,
-      title: 'One setup for local & cloud AI',
-      body: 'Manage local models on your machine or add your own cloud credentials once for authorized apps to share.',
-    },
-    {
-      Icon: ShieldCheck,
-      title: 'Account identity separated from local data',
-      body: 'Browser sign-in verifies your Nimi identity and world access, while local models, memories, and nimi_data stay on your device.',
-    },
+    { Icon: Cpu, label: 'Configure AI once across every app' },
+    { Icon: Layers3, label: 'Pick up chats seamlessly across Home & Zhiyu' },
+    { Icon: ShieldCheck, label: 'Chats and memory stay on your computer' },
   ],
 };
 
@@ -140,16 +136,19 @@ function HomePageInner({
         <div className="story-container">
           <div className="public-hero-header">
             <span className="public-eyebrow">
-              {locale === 'zh' ? 'Nimi Home · 桌面主入口与伙伴空间' : 'Nimi Home · Desktop Workspace & Companion Hub'}
+              {locale === 'zh' ? '伙伴与世界 · 声音、记忆与海岛日常' : 'Companions & Worlds · Voice, Memory & Island Life'}
             </span>
             <h1>{copy.home.title}</h1>
             <p className="public-hero-lead">{copy.home.intro}</p>
             <div className="public-hero-actions">
               <PublicSiteLink to={withLocaleQuery('/download', locale)} className="story-button">
                 <span>{copy.home.downloadCta}</span>
-                <ArrowRight size={16} aria-hidden="true" />
               </PublicSiteLink>
-              <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="story-button story-button-outline">
+              <a href="#local-agent" className="story-button story-button-outline">
+                <Sparkles size={16} aria-hidden="true" />
+                <span>{locale === 'zh' ? '体验海岛日常与记忆开关' : 'Try Island Life & Memory'}</span>
+              </a>
+              <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="story-link">
                 <Blocks size={16} aria-hidden="true" />
                 <span>{copy.home.appsCta}</span>
               </PublicSiteLink>
@@ -165,15 +164,12 @@ function HomePageInner({
             />
           </div>
 
-          <div className="public-feature-grid">
-            {HOME_WORKSPACE_HIGHLIGHTS[locale].map(({ Icon, title, body }) => (
-              <article key={title} className="public-feature-card">
-                <span className="story-pillar-icon" aria-hidden="true">
-                  <Icon size={20} />
-                </span>
-                <h2>{title}</h2>
-                <p>{body}</p>
-              </article>
+          <div className="public-home-highlights-strip">
+            {HOME_WORKSPACE_PILLS[locale].map(({ Icon, label }) => (
+              <div key={label} className="public-home-highlight-pill">
+                <Icon size={16} aria-hidden="true" />
+                <span>{label}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -185,25 +181,55 @@ function HomePageInner({
         onOpenWorld={(worldId) => openHomeSurface('explore', `world:${worldId}`)}
       />
 
-      <section className="public-page-section">
-        <div className="story-container public-two-column-cards">
-          <article className="public-info-card">
+      <HomeCompanionBento locale={locale} />
+
+      <section id="realm-origin" className="public-page-section public-section-tinted">
+        <div className="story-container">
+          <header className="story-heading public-section-heading-wide">
+            <span className="story-eyebrow">{copy.home.worldsExampleTitle}</span>
             <h2>{copy.home.worldsTitle}</h2>
             <p>{copy.home.worldsBody}</p>
-            <h3 className="public-step-heading">{copy.home.worldsExampleTitle}</h3>
-            <ol className="public-step-list">
-              {copy.home.worldsExampleSteps.map((step, index) => (
-                <li key={step}>
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                  <p>{step}</p>
-                </li>
-              ))}
-            </ol>
-          </article>
+          </header>
 
-          <article className="public-info-card">
-            <h2>{copy.home.startTitle}</h2>
-            <p>{copy.home.startBody}</p>
+          <ol className="public-visual-steps">
+            <li className="public-info-card public-visual-step-card">
+              <div className="public-visual-step-top">
+                <span className="public-step-num">01</span>
+                <div className="public-visual-step-avatars" aria-hidden="true">
+                  <img src="/demo/explore/emberware-court-character-0.png" alt="" width={34} height={34} />
+                  <img src="/demo/explore/meridian-archipelago-character-0.png" alt="" width={34} height={34} />
+                  <img src="/demo/explore/d10-character-1.png" alt="" width={34} height={34} />
+                </div>
+              </div>
+              <p>{copy.home.worldsExampleSteps[0]}</p>
+            </li>
+            <li className="public-info-card public-visual-step-card">
+              <div className="public-visual-step-top">
+                <span className="public-step-num">02</span>
+                <span className="public-visual-step-chip" aria-hidden="true">
+                  <FolderLock size={14} />
+                  <span>{locale === 'zh' ? '落户本机文件夹' : 'Local Folder'}</span>
+                </span>
+              </div>
+              <p>{copy.home.worldsExampleSteps[1]}</p>
+            </li>
+            <li className="public-info-card public-visual-step-card">
+              <div className="public-visual-step-top">
+                <span className="public-step-num">03</span>
+                <span className="public-visual-step-chip" aria-hidden="true">
+                  <Volume2 size={14} />
+                  <span>{locale === 'zh' ? '私聊不外传' : 'Private Forever'}</span>
+                </span>
+              </div>
+              <p>{copy.home.worldsExampleSteps[2]}</p>
+            </li>
+          </ol>
+
+          <div className="public-info-card public-start-banner">
+            <div className="public-start-banner-copy">
+              <h3>{copy.home.startTitle}</h3>
+              <p>{copy.home.startBody}</p>
+            </div>
             <div className="public-hero-actions">
               <PublicSiteLink to={withLocaleQuery('/download', locale)} className="story-button">
                 <span>{copy.home.downloadCta}</span>
@@ -213,20 +239,32 @@ function HomePageInner({
                 <span>{copy.home.appsCta}</span>
               </PublicSiteLink>
             </div>
-            <p className="public-availability-note">{copy.home.availability}</p>
-          </article>
+          </div>
         </div>
       </section>
     </PublicSiteShell>
   );
 }
 
+export const HOME_PAGE_INITIAL_DEMO: Readonly<{
+  surface: HeroDemoSurface;
+  target: string;
+}> = {
+  surface: 'explore',
+  target: 'partners',
+};
+
 function HomePage() {
   const [locale, setLocale] = usePublicPageLocale();
   const demo = useMemo(() => createCoreHeroDemo(locale), [locale]);
 
   return (
-    <HeroDemoSessionProvider key={locale} demo={demo} initialSurface="home">
+    <HeroDemoSessionProvider
+      key={locale}
+      demo={demo}
+      initialSurface={HOME_PAGE_INITIAL_DEMO.surface}
+      initialTarget={HOME_PAGE_INITIAL_DEMO.target}
+    >
       <HomePageInner locale={locale} onLocaleChange={setLocale} />
     </HeroDemoSessionProvider>
   );
@@ -267,10 +305,13 @@ function AppsPageInner({
 
   const ecosystemApps = useMemo(() => getEcosystemApps(locale), [locale]);
   const [activeFilter, setActiveFilter] = useState<EcosystemFilterId>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAllApps, setShowAllApps] = useState(false);
+  const catalogSectionRef = useRef<HTMLElement>(null);
 
   const directory = useHostedDirectory(slug);
-  const liveProduct = slug ? directory.state.products.find(entry => entry.slug === slug) : undefined;
-  const selectedEcosystemEntry = slug ? ecosystemApps.find(entry => editorialSlugs[entry.id] === slug) : undefined;
+  const liveProduct = slug ? directory.state.products.find((entry) => entry.slug === slug) : undefined;
+  const selectedEcosystemEntry = slug ? ecosystemApps.find((entry) => editorialSlugs[entry.id] === slug) : undefined;
   const selectedApp = selectedEcosystemEntry?.catalog;
   const suspended = locale === 'zh' ? '已暂停发行' : 'Distribution suspended';
 
@@ -310,19 +351,22 @@ function AppsPageInner({
     const capabilityItems = selectedApp
       ? selectedApp.capabilities.map((capability) => labels[capability] ?? capability)
       : selectedEcosystemEntry.tags;
+    const isMonorepoOfficial = origin === 'nimi-official' && !selectedApp;
     const repositoryHref = selectedApp?.repository
-      ?? (posture === 'first-party-companion'
+      ?? (isMonorepoOfficial
         ? 'https://github.com/nimiplatform/nimi'
         : 'https://github.com/nimiplatform');
     const repositoryLabel = selectedApp
       ? selectedApp.repository.replace('https://github.com/', '')
-      : posture === 'first-party-companion'
+      : isMonorepoOfficial
         ? 'nimiplatform/nimi'
         : ecosystemCopy.previewSourceNote;
     const licenseLabel = selectedApp?.license
       ?? (posture === 'first-party-companion'
         ? ecosystemCopy.licenseBundledNote
-        : ecosystemCopy.licensePreviewNote);
+        : isMonorepoOfficial
+          ? 'MIT'
+          : ecosystemCopy.licensePreviewNote);
     const pcPlatforms = liveProduct && selectedApp
       ? pcTargetLabels(liveProduct.pc_targets)
       : selectedApp?.platforms ?? copy.apps.platforms;
@@ -459,26 +503,50 @@ function AppsPageInner({
     );
   }
 
-  const listedProducts = new Map(directory.state.products.map(item => [item.app_id, item]));
-  const inDesktopCatalog = (app: typeof ecosystemApps[number]) => app.posture === 'catalog-admitted' && !listedProducts.get(app.id)?.blocked;
-  const additionalProducts = directory.state.products.filter(item => !ecosystemApps.some(app => app.id === item.app_id));
+  const additionalProducts = directory.state.products.filter((item) => !ecosystemApps.some((app) => app.id === item.app_id));
   const counts: Record<EcosystemFilterId, number> = {
     all: ecosystemApps.length + additionalProducts.length,
     'nimi-official': ecosystemApps.filter((app) => app.origin === 'nimi-official').length,
     'open-source-adapted': ecosystemApps.filter((app) => app.origin === 'open-source-adapted').length,
-    'catalog-admitted': ecosystemApps.filter(inDesktopCatalog).length,
   };
   const postureCounts = {
     'first-party-companion': ecosystemApps.filter((app) => app.posture === 'first-party-companion').length,
-    'catalog-admitted': counts['catalog-admitted'],
+    'catalog-admitted': ecosystemApps.filter((app) => app.posture === 'catalog-admitted').length,
     'interactive-preview': ecosystemApps.filter((app) => app.posture === 'interactive-preview').length,
   };
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleProducts = activeFilter === 'all' ? additionalProducts.filter((item) =>
+    `${item.display_name} ${item.summary[locale]} ${item.capabilities.join(' ')} ${item.app_id}`.toLowerCase().includes(normalizedQuery),
+  ) : [];
+  const listedProducts = new Map(directory.state.products.map((item) => [item.app_id, item]));
   const filteredApps = ecosystemApps.filter((app) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'catalog-admitted') return inDesktopCatalog(app);
-    return app.origin === activeFilter;
+    if (activeFilter !== 'all' && app.origin !== activeFilter) return false;
+    if (!normalizedQuery) return true;
+    const haystack = `${app.name} ${app.description} ${app.tags.join(' ')} ${app.id}`.toLowerCase();
+    return haystack.includes(normalizedQuery);
   });
+  const isCollapsible = activeFilter === 'all' && !normalizedQuery && filteredApps.length > INITIAL_VISIBLE_APP_COUNT;
+  const isCollapsed = isCollapsible && !showAllApps;
+  const visibleApps = isCollapsed ? filteredApps.slice(0, INITIAL_VISIBLE_APP_COUNT) : filteredApps;
+  const remainingApps = isCollapsed ? filteredApps.slice(INITIAL_VISIBLE_APP_COUNT) : [];
+  const expandPreviewIcons = remainingApps
+    .filter((app): app is typeof app & { iconSrc: string } => Boolean(app.iconSrc))
+    .slice(0, 4);
+
+  const toggleShowAllApps = () => {
+    if (showAllApps) {
+      setShowAllApps(false);
+      const section = catalogSectionRef.current;
+      if (section && typeof window !== 'undefined' && section.getBoundingClientRect().top < 0) {
+        section.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
+      }
+      return;
+    }
+    setShowAllApps(true);
+  };
 
   return (
     <PublicSiteShell
@@ -495,193 +563,285 @@ function AppsPageInner({
           <div className="story-hero-actions">
             <a href="#apps-catalog" className="story-button">
               <span>{copy.apps.listTitle}</span>
-              <ArrowRight size={16} aria-hidden="true" />
             </a>
             <a href="#create-your-own" className="story-hero-continue">
               <span>{copy.apps.createTitle}</span>
-              <ArrowUpRight size={16} aria-hidden="true" />
             </a>
           </div>
           <p className="story-hero-availability">{ecosystemCopy.heroAvailability}</p>
         </div>
 
-        <div className="public-apps-hero-showcase" aria-label={copy.apps.listTitle}>
-          {ecosystemApps.slice(0, 3).map((app, index) => (
-            <button
-              key={app.id}
-              type="button"
-              className="public-apps-hero-card"
-              data-position={index}
-              onClick={() => openInteractivePreview(app.id)}
-              aria-label={`${ecosystemCopy.previewAction} · ${app.name}`}
-            >
-              <span className="public-apps-hero-card-chrome" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <span>{app.name}</span>
-              </span>
-              <img
-                src={app.previewImageSrc}
-                alt=""
-                className="public-apps-hero-card-image"
-                loading={index === 1 ? 'eager' : 'lazy'}
-                decoding="async"
-              />
-              <span className="public-apps-hero-card-footer">
-                <span className="public-apps-hero-card-identity">
-                  {app.iconSrc ? <img src={app.iconSrc} alt="" width={28} height={28} /> : null}
-                  <strong>{app.name}</strong>
-                </span>
-                <span className="public-apps-hero-card-preview">
-                  <Play size={12} aria-hidden="true" />
-                  <span>{ecosystemCopy.previewAction}</span>
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
+        <AppsFoundationStage
+          locale={locale}
+          apps={ecosystemApps}
+          onOpenPreview={openInteractivePreview}
+        />
       </section>
 
-      <section id="apps-catalog" className="public-page-section public-apps-catalog" aria-labelledby="apps-catalog-heading">
+      <StoryIntegrations t={t} links={links} />
+
+      <section
+        ref={catalogSectionRef}
+        id="apps-catalog"
+        className="public-page-section public-section-tinted public-apps-catalog"
+        aria-labelledby="apps-catalog-heading"
+      >
         <div className="story-container">
           <header className="story-heading public-apps-catalog-heading">
             <h2 id="apps-catalog-heading">{copy.apps.listTitle}</h2>
             <p>{ecosystemCopy.previewFootnote}</p>
-            <span className="public-apps-platform-note">{ecosystemCopy.platformsSummary}</span>
           </header>
 
-          <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
-            {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
-              <button
-                key={filterId}
-                type="button"
-                aria-pressed={activeFilter === filterId}
-                className={activeFilter === filterId ? 'is-active' : undefined}
-                onClick={() => setActiveFilter(filterId)}
-              >
-                <span>{ecosystemCopy.filters[filterId]}</span>
-                <small>{counts[filterId]}</small>
-              </button>
-            ))}
-          </div>
+          <div className="public-apps-toolbar">
+            <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
+              {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
+                <button
+                  key={filterId}
+                  type="button"
+                  aria-pressed={activeFilter === filterId}
+                  className={activeFilter === filterId ? 'is-active' : undefined}
+                  onClick={() => setActiveFilter(filterId)}
+                >
+                  <span>{ecosystemCopy.filters[filterId]}</span>
+                  <small>{counts[filterId]}</small>
+                </button>
+              ))}
+            </div>
 
-          <ul className="public-apps-grid">
-            {filteredApps.map((app) => (
-              <li key={app.id} className="public-app-card" data-origin={app.origin}>
+            <div className="public-apps-search">
+              <Search size={14} aria-hidden="true" className="public-apps-search-icon" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={ecosystemCopy.searchPlaceholder}
+                aria-label={ecosystemCopy.searchAriaLabel}
+              />
+              {searchQuery ? (
                 <button
                   type="button"
-                  className="public-app-card-media"
-                  onClick={() => openInteractivePreview(app.id)}
-                  aria-label={`${ecosystemCopy.previewAction} · ${app.name}`}
+                  className="public-apps-search-clear"
+                  aria-label={ecosystemCopy.clearSearch}
+                  onClick={() => setSearchQuery('')}
                 >
-                  <img
-                    src={app.previewImageSrc}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <span className="public-app-badge public-app-card-origin" data-origin={app.origin}>
-                    {ecosystemCopy.originBadge[app.origin]}
-                  </span>
-                  <span className="public-app-card-play">
-                    <Play size={13} aria-hidden="true" />
-                    <span>{ecosystemCopy.previewAction}</span>
-                  </span>
+                  <X size={12} aria-hidden="true" />
                 </button>
+              ) : null}
+            </div>
+          </div>
 
-                <div className="public-app-card-body">
-                  <div className="public-app-card-heading">
-                    {app.iconSrc ? (
-                      <img src={app.iconSrc} alt="" width={44} height={44} loading="lazy" decoding="async" />
-                    ) : null}
-                    <h3>{app.name}</h3>
-                  </div>
+          <details className="public-apps-notes-disclosure">
+            <summary className="public-apps-notes-summary">
+              <span className="public-apps-notes-summary-main">
+                <Info size={13.5} aria-hidden="true" />
+                <span>{ecosystemCopy.platformsSummary}</span>
+              </span>
+              <span className="public-apps-notes-summary-toggle">
+                <span>{ecosystemCopy.provenanceToggleLabel}</span>
+                <ChevronDown size={13.5} aria-hidden="true" />
+              </span>
+            </summary>
 
-                  <p className="public-app-card-description">{app.description}</p>
+            <div className="public-apps-notes-body" aria-label={ecosystemCopy.provenanceCalloutTitle}>
+              <div className="public-provenance-banner">
+                <div className="public-provenance-item" data-origin="nimi-official">
+                  <span className="public-app-badge" data-origin="nimi-official">
+                    {ecosystemCopy.originBadge['nimi-official']} · {counts['nimi-official']}
+                  </span>
+                  <p>{ecosystemCopy.provenanceCalloutOfficial}</p>
+                </div>
+                <div className="public-provenance-item" data-origin="open-source-adapted">
+                  <span className="public-app-badge" data-origin="open-source-adapted">
+                    {ecosystemCopy.originBadge['open-source-adapted']} · {counts['open-source-adapted']}
+                  </span>
+                  <p>{ecosystemCopy.provenanceCalloutAdapted}</p>
+                </div>
+              </div>
 
-                  <div className="public-app-badges">
-                    <span className="public-app-badge is-posture" data-posture={app.posture}>
-                      {listedProducts.get(app.id)?.blocked ? suspended : app.catalog
-                        ? `${ecosystemCopy.postureBadge[app.posture]} · ${app.catalog.license}`
-                        : ecosystemCopy.postureBadge[app.posture]}
-                    </span>
-                  </div>
-
-                  {app.tags.length > 0 ? (
-                    <div className="public-capability-pills">
-                      {app.tags.map((tag) => (
-                        <span key={tag} className="public-capability-pill">
-                          {tag}
-                        </span>
-                      ))}
+              <div className="public-posture-breakdown" aria-label={ecosystemCopy.availabilityBreakdownLabel}>
+                {ecosystemCopy.availabilityBreakdown.filter((tier) => postureCounts[tier.posture] > 0).map((tier) => (
+                  <div key={tier.posture} className="public-posture-tier" data-posture={tier.posture}>
+                    <div className="public-posture-tier-head">
+                      <span className="public-app-badge is-posture" data-posture={tier.posture}>
+                        {tier.title}
+                      </span>
+                      <strong>{postureCounts[tier.posture]}</strong>
                     </div>
-                  ) : null}
+                    <p>{tier.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </details>
 
-                  <div className="public-app-card-actions">
-                    <button
-                      type="button"
-                      className="public-app-preview-btn"
-                      onClick={() => openInteractivePreview(app.id)}
-                    >
-                      <Play size={13} aria-hidden="true" />
-                      <span>{ecosystemCopy.previewAction}</span>
-                    </button>
+          {visibleApps.length > 0 || visibleProducts.length > 0 ? (
+            <ul className="public-apps-grid" data-collapsed={isCollapsed ? 'true' : 'false'}>
+              {visibleApps.map((app) => {
+                const isWindowsOnly = Boolean(
+                  app.catalog
+                  && app.catalog.platforms.length === 1
+                  && app.catalog.platforms[0] === 'Windows x86_64',
+                );
+                const visibleTags = app.tags.slice(0, 3);
+
+                return (
+                  <li
+                    key={app.id}
+                    className="public-app-card"
+                    data-origin={app.origin}
+                    data-posture={app.posture}
+                  >
                     <PublicSiteLink
                       to={withLocaleQuery(`/apps/${editorialSlugs[app.id]}`, locale)}
-                      className="public-app-detail-link"
+                      className="public-app-card-media"
+                      aria-label={`${app.name} · ${copy.apps.itemCta}`}
                     >
-                      <span>{copy.apps.itemCta}</span>
-                      <ArrowRight size={14} aria-hidden="true" />
+                      <img
+                        src={app.previewImageSrc}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </PublicSiteLink>
-                  </div>
-                </div>
-              </li>
-            ))}
-            {activeFilter === 'all' && additionalProducts.map(item => <li className="public-app-card" key={item.app_id}><PublicProduct item={item} locale={locale} /></li>)}
-          </ul>
-          {directory.state.next && activeFilter === 'all' && <button type="button" className="story-button" onClick={directory.more}>{locale === 'zh' ? '更多应用' : 'More apps'}</button>}
+
+                    <div className="public-app-card-body">
+                      <div className="public-app-card-heading">
+                        {app.iconSrc ? (
+                          <img src={app.iconSrc} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                        ) : null}
+                        <div className="public-app-card-title-group">
+                          <h3>{app.name}</h3>
+                          <div className="public-app-card-meta">
+                            {listedProducts.get(app.id)?.blocked && (
+                              <span className="public-app-card-meta-note">{suspended}</span>
+                            )}
+                            <span className="public-app-card-meta-origin" data-origin={app.origin}>
+                              {ecosystemCopy.originShortLabel[app.origin]}
+                            </span>
+                            {app.posture === 'first-party-companion' || app.posture === 'interactive-preview' ? (
+                              <span className="public-app-card-meta-note" data-posture={app.posture}>
+                                {ecosystemCopy.postureBadge[app.posture]}
+                              </span>
+                            ) : null}
+                            {isWindowsOnly ? (
+                              <span className="public-app-card-meta-note is-platform-limit">
+                                {ecosystemCopy.windowsOnlyBadge}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="public-app-card-description">{app.description}</p>
+
+                      {visibleTags.length > 0 ? (
+                        <div className="public-capability-pills">
+                          {visibleTags.map((tag) => (
+                            <span key={tag} className="public-capability-pill">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="public-app-card-actions">
+                        <button
+                          type="button"
+                          className="public-app-preview-btn"
+                          onClick={() => openInteractivePreview(app.id)}
+                        >
+                          <Play size={13} aria-hidden="true" />
+                          <span>{ecosystemCopy.previewAction}</span>
+                        </button>
+                        <PublicSiteLink
+                          to={withLocaleQuery(`/apps/${editorialSlugs[app.id]}`, locale)}
+                          className="public-app-detail-link"
+                        >
+                          <span>{copy.apps.itemCta}</span>
+                          <ArrowRight size={14} aria-hidden="true" />
+                        </PublicSiteLink>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              {visibleProducts.map((item) => (
+                <li className="public-app-card" key={item.app_id}>
+                  <PublicProduct item={item} locale={locale} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="public-apps-empty" role="status">
+              <p className="public-apps-empty-title">{ecosystemCopy.emptySearchTitle}</p>
+              <p className="public-apps-empty-body">{ecosystemCopy.emptySearchBody}</p>
+              <button
+                type="button"
+                className="story-button story-button-outline"
+                onClick={() => {
+                  setActiveFilter('all');
+                  setSearchQuery('');
+                }}
+              >
+                {ecosystemCopy.resetFiltersAction}
+              </button>
+            </div>
+          )}
+
+          {directory.state.next && activeFilter === 'all' && (
+            <button type="button" className="story-button" onClick={directory.more}>
+              {locale === 'zh' ? '更多应用' : 'More apps'}
+            </button>
+          )}
+
+          {isCollapsible ? (
+            <div className="public-apps-expand-bar">
+              <button
+                type="button"
+                className="public-apps-expand-btn"
+                data-state={isCollapsed ? 'collapsed' : 'expanded'}
+                aria-expanded={!isCollapsed}
+                onClick={toggleShowAllApps}
+              >
+                {isCollapsed ? (
+                  <>
+                    {expandPreviewIcons.length > 0 ? (
+                      <span className="public-apps-expand-icons" aria-hidden="true">
+                        {expandPreviewIcons.map((app) => (
+                          <img
+                            key={app.id}
+                            src={app.iconSrc}
+                            alt=""
+                            width={24}
+                            height={24}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ))}
+                      </span>
+                    ) : null}
+                    <span className="public-apps-expand-label">
+                      {ecosystemCopy.expandAllAction.replace('{total}', String(filteredApps.length))}
+                    </span>
+                    <span className="public-apps-expand-chevron" aria-hidden="true">
+                      <ChevronDown size={15} />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="public-apps-expand-label">
+                      {ecosystemCopy.collapseAction.replace('{count}', String(INITIAL_VISIBLE_APP_COUNT))}
+                    </span>
+                    <span className="public-apps-expand-chevron" aria-hidden="true">
+                      <ChevronUp size={15} />
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
-
-      <section className="public-page-section public-app-ecosystem-notes" aria-labelledby="app-provenance-heading">
-        <div className="story-container">
-          <header className="story-heading public-app-ecosystem-notes-heading">
-            <h2 id="app-provenance-heading">{ecosystemCopy.provenanceCalloutTitle}</h2>
-          </header>
-
-          <div className="public-provenance-banner">
-            <div className="public-provenance-item" data-origin="nimi-official">
-              <span className="public-app-badge" data-origin="nimi-official">
-                {ecosystemCopy.originBadge['nimi-official']} · {counts['nimi-official']}
-              </span>
-              <p>{ecosystemCopy.provenanceCalloutOfficial}</p>
-            </div>
-            <div className="public-provenance-item" data-origin="open-source-adapted">
-              <span className="public-app-badge" data-origin="open-source-adapted">
-                {ecosystemCopy.originBadge['open-source-adapted']} · {counts['open-source-adapted']}
-              </span>
-              <p>{ecosystemCopy.provenanceCalloutAdapted}</p>
-            </div>
-          </div>
-
-          <div className="public-posture-breakdown" aria-label={ecosystemCopy.availabilityBreakdownLabel}>
-            {ecosystemCopy.availabilityBreakdown.filter((tier) => postureCounts[tier.posture] > 0).map((tier) => (
-              <div key={tier.posture} className="public-posture-tier" data-posture={tier.posture}>
-                <div className="public-posture-tier-head">
-                  <span className="public-app-badge is-posture" data-posture={tier.posture}>
-                    {tier.title}
-                  </span>
-                  <strong>{postureCounts[tier.posture]}</strong>
-                </div>
-                <p>{tier.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <StoryIntegrations t={t} links={links} />
 
       <section id="create-your-own" className="public-page-section public-create-section">
         <div className="story-container">

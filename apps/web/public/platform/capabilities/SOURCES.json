@@ -1,0 +1,176 @@
+[
+  {
+    "file": "/platform/capabilities/faceswap-ref.webp",
+    "source": "Built-in image-generator: fictional studio reference headshot portrait",
+    "createdAt": "2026-11-19",
+    "sha256": "a1bb8c45b379407b50f324555e4a75c030e1f1acb861ad84c2bcc4aea19938ef"
+  },
+  {
+    "file": "/platform/capabilities/faceswap-result.webp",
+    "source": "Built-in image-generator edit: seamless local identity fusion of faceswap-ref onto faceswap-scene",
+    "createdAt": "2026-11-19",
+    "sha256": "1bf4ccfe399a898fee499046ec9029fadec08f994cff609e95f90844f1d1e14e"
+  },
+  {
+    "file": "/platform/capabilities/faceswap-scene.webp",
+    "source": "Built-in image-generator: golden-hour coastal train platform storyboard frame",
+    "createdAt": "2026-11-19",
+    "sha256": "cd663f0e2afbb8e4f19b655fa9f2d7e6ea71571a4882403303e57502d28fd726"
+  },
+  {
+    "file": "/platform/capabilities/image-generate-blue.webp",
+    "source": "Built-in image-generator: matte cobalt-blue ceramic mug on marble windowsill",
+    "createdAt": "2026-11-19",
+    "sha256": "dd3e827cc2770fac606eabcf7232071ad689e0a87d8ef25116b7e462e32d99e6"
+  },
+  {
+    "file": "/platform/capabilities/image-generate-orange.webp",
+    "source": "Built-in image-generator edit of image-generate-blue.webp: local mug recolor to warm terracotta-orange",
+    "createdAt": "2026-11-19",
+    "sha256": "47dadb6ddc82c7fa1aa40c9100959536301d1fa505ca16bc0ced45949e0f61ca"
+  },
+  {
+    "file": "/platform/capabilities/image-upscale-1x.webp",
+    "source": "Derived 1x downsampled & softened low-resolution pair from image-upscale-4k.webp",
+    "createdAt": "2026-11-19",
+    "sha256": "832239118e32e039cf52d50f0c5c4b70a7ff24cbd79f96c67f2765fbde05510c"
+  },
+  {
+    "file": "/platform/capabilities/image-upscale-4k.webp",
+    "source": "Built-in image-generator: macro stoneware teacup, woven linen, and dew fern leaf (4K reference)",
+    "createdAt": "2026-11-19",
+    "sha256": "292bb7cf0652578002b95ecd37a352187fe53bea52733b48d505e4188631ae84"
+  },
+  {
+    "file": "/platform/capabilities/music-generate-cue.mp3",
+    "source": "Synthesized 12s original cinematic stereo ambient-acoustic soundtrack cue (44.1 kHz)",
+    "createdAt": "2026-11-19",
+    "sha256": "13d4f43e0d91d7c30e23a5ab7ed232138de4c1273bf3a29efabe8fd7a6e06bf0"
+  },
+  {
+    "file": "/platform/capabilities/music-transcribe-midi.mp3",
+    "source": "Synthesized 8s crisp MIDI pluck playback of extracted notes & chords",
+    "createdAt": "2026-11-19",
+    "sha256": "521ec2cbac511e4c171c78183f89ee0f4ce427e9acabd3f1ec4d7c5df87514e2"
+  },
+  {
+    "file": "/platform/capabilities/music-transcribe-piano.mp3",
+    "source": "Synthesized 8s warm acoustic felt-piano recording matching piano-roll MIDI notes",
+    "createdAt": "2026-11-19",
+    "sha256": "d0d4e97d7bdf4533e161ecb6657b4d133fa857dcd415ecc7202b3c2bd182ea9a"
+  },
+  {
+    "file": "/platform/capabilities/separate-backing.mp3",
+    "source": "Synthesized 8s synchronized Rhodes electric piano & warm pad accompaniment stem",
+    "createdAt": "2026-11-19",
+    "sha256": "8b0edd140ee38aa35c2d95f618b24ca1332d065098f24e562d28d880028784fe"
+  },
+  {
+    "file": "/platform/capabilities/separate-bass.mp3",
+    "source": "Synthesized 8s synchronized warm bass stem (Cmaj9-Am9-Fmaj7-G6)",
+    "createdAt": "2026-11-19",
+    "sha256": "59325432ce83cc17fa282b25fb7932f26aca3cc996da554f8bbbcdebdd3aec7f"
+  },
+  {
+    "file": "/platform/capabilities/separate-drums.mp3",
+    "source": "Synthesized 8s synchronized acoustic brush drum stem (120 BPM)",
+    "createdAt": "2026-11-19",
+    "sha256": "7ba2d5b9abfcb3edecdfaeac110406482d717d45bcda06fb763255b93b63380e"
+  },
+  {
+    "file": "/platform/capabilities/separate-vocals.mp3",
+    "source": "Derived 8s isolated vocal stem from published demo/zhiyu/qingzhao-voice.mp3",
+    "createdAt": "2026-11-19",
+    "sha256": "33241abffb842a78863ae14f80a9e450e6b19be33de68b7eee8ae61bb9ac9757"
+  },
+  {
+    "file": "/platform/capabilities/text-annotate-train.webp",
+    "source": "Built-in image-generator: sunlit European train platform at 10:00 for subtitle clause demo",
+    "createdAt": "2026-11-19",
+    "sha256": "336449d1c51a9773675333d2ed7be5c4978bc353f17236762471bc643e384f0d"
+  },
+  {
+    "file": "/platform/capabilities/text-generate-mug.webp",
+    "source": "Built-in image-generator: bright orange ceramic mug on sunlit oak desk",
+    "createdAt": "2026-11-19",
+    "sha256": "755a1f9771ba375fefda0c3eda99825dcffd8b30690a319aaecd193fe41b6e1a"
+  },
+  {
+    "file": "/platform/capabilities/video-faceswap-driver.webp",
+    "source": "Built-in image-generator: sunlit studio webcam live driver frame",
+    "createdAt": "2026-11-19",
+    "sha256": "c8c5378383fd84175023a9f302f576faa0a268434db169980176ac8a827331b7"
+  },
+  {
+    "file": "/platform/capabilities/video-faceswap-live.webp",
+    "source": "Built-in image-generator edit: synced 720p live identity reenactment of video-faceswap-driver",
+    "createdAt": "2026-11-19",
+    "sha256": "dcdcb8db506dd52f29deae7ee3e5ebadfa6cf915f4958bd8be0f0b35174f4077"
+  },
+  {
+    "file": "/platform/capabilities/video-generate-boat.mp4",
+    "source": "Derived 5-second 30fps multi-layer fluid-ripple & buoyant boat motion loop via ffmpeg",
+    "createdAt": "2026-11-19",
+    "sha256": "9bf0686f4900c402f332c6c5258e1861cfa1aa83bdb08a17c8f8575b42739a0a"
+  },
+  {
+    "file": "/platform/capabilities/video-generate-boat.webp",
+    "source": "Built-in image-generator: red origami paper boat drifting on sunlit cerulean water",
+    "createdAt": "2026-11-19",
+    "sha256": "1df0082982ddacb0ad1652bc9e6b6ad6f6e72a18ceccb36725377097fec999a8"
+  },
+  {
+    "file": "/platform/capabilities/video-upscale-1x.webp",
+    "source": "Derived 1x downsampled & softened low-resolution pair from video-upscale-4k.webp",
+    "createdAt": "2026-11-19",
+    "sha256": "871f76cdfa6d2c16417ae93d222fc734d043e4c05acdadf9813fc68e887db2e8"
+  },
+  {
+    "file": "/platform/capabilities/video-upscale-4k.webp",
+    "source": "Built-in image-generator: sunlit coastal commuter train above turquoise bay (4K reference)",
+    "createdAt": "2026-11-19",
+    "sha256": "6d3572dc2748cd5692bc0b744f8573f080dae20bd83ec6cd795bbb63d76ae790"
+  },
+  {
+    "file": "/platform/capabilities/vision-locate-desk.webp",
+    "source": "Built-in image-generator: sunlit study desk flatlay with cobalt-blue ceramic mug",
+    "createdAt": "2026-11-19",
+    "sha256": "aad38d3cce288aaace02bd412c342d54867159ae28e8173f287b375a33805f62"
+  },
+  {
+    "file": "/platform/capabilities/voice-convert-0st.mp3",
+    "source": "Seed-VC F0-conditioned singing voice conversion (0 semitones, warm male target from LAION Singing Voice 1K C08 CC-BY-4.0) of voice-convert-orig.mp3, loudness-matched (-16 LUFS)",
+    "createdAt": "2026-11-19",
+    "sha256": "21130670edc1498e699b3e763d4da44fd37562283d975255cff4fbb638af223a"
+  },
+  {
+    "file": "/platform/capabilities/voice-convert-dn2.mp3",
+    "source": "Seed-VC F0-conditioned singing voice conversion (-2 semitones, tempo preserved, warm male target from LAION Singing Voice 1K C08 CC-BY-4.0) of voice-convert-orig.mp3, loudness-matched (-16 LUFS)",
+    "createdAt": "2026-11-19",
+    "sha256": "a162e422969c694044add6c0cb93dfd3eb4106a1597a5925d770a5087091d83c"
+  },
+  {
+    "file": "/platform/capabilities/voice-convert-orig.mp3",
+    "source": "Trimmed 7.19s dry singing vocal phrase from LAION Singing Voice 1K / LeVo2 C15 lead vocal (CC-BY-4.0, Attribution: LAION, Singing Voice 1K, generated with LeVo2), loudness-matched (-16 LUFS)",
+    "createdAt": "2026-11-19",
+    "sha256": "810439ef11711da9533a10c2c4d4a0a7f82aecdd3c8629bcb3473e906546827f"
+  },
+  {
+    "file": "/platform/capabilities/voice-convert-up2.mp3",
+    "source": "Formant-preserving +2 semitones key shift (Rubber Band, tempo preserved) of Seed-VC converted voice-convert-0st.mp3, loudness-matched (-16 LUFS)",
+    "createdAt": "2026-11-19",
+    "sha256": "64a429e69b4e95e7cde9694b8acf1953896b1e868bbc028d23e4642de1e7024c"
+  },
+  {
+    "file": "/platform/capabilities/voice-create-cloned.mp3",
+    "source": "Derived 3.9s second-sentence cloned-voice output clip (same speaker timbre) from published demo/zhiyu/xiake-voice.mp3",
+    "createdAt": "2026-11-19",
+    "sha256": "bb144f411994796fe4e07f5ef57c2e3d01924b1f7508df62473ab007fcd4cb54"
+  },
+  {
+    "file": "/platform/capabilities/voice-create-ref.mp3",
+    "source": "Derived 3.6s first-sentence reference vocal sample from published demo/zhiyu/xiake-voice.mp3",
+    "createdAt": "2026-11-19",
+    "sha256": "d07c3abe6c1104439843e03e0382489b5c2f998d498dbdffd90bcc7c5945f21e"
+  }
+]

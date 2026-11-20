@@ -48,7 +48,7 @@ export type PublicNavItem = {
  */
 export const PUBLIC_SITE_NAV_ITEMS: ReadonlyArray<PublicNavItem> = [
   { id: 'overview', path: '/', exact: true, label: { zh: '概览', en: 'Overview' } },
-  { id: 'home', path: '/home', label: { zh: 'Home 与伙伴', en: 'Home & Companions' } },
+  { id: 'home', path: '/home', label: { zh: '伙伴与世界', en: 'Companions & Worlds' } },
   { id: 'apps', path: '/apps', label: { zh: '应用生态', en: 'Apps' } },
   { id: 'platform', path: '/platform', label: { zh: '平台底座', en: 'Platform' } },
   { id: 'developers', path: '/developers', label: { zh: '开发者', en: 'Developers' } },
@@ -65,6 +65,7 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
   footerProductHeading: string;
   footerResourcesHeading: string;
   footerTrustHeading: string;
+  footerAccount: string;
   footerDownload: string;
   footerSigning: string;
   footerDocs: string;
@@ -93,6 +94,7 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
     footerProductHeading: '产品与架构',
     footerResourcesHeading: '开发者与社区',
     footerTrustHeading: '信任与条款',
+    footerAccount: '账号与主机管理',
     footerDownload: '下载与平台支持',
     footerSigning: '代码签名政策',
     footerDocs: '技术文档',
@@ -121,6 +123,7 @@ const SHELL_COPY: Readonly<Record<LandingLocale, {
     footerProductHeading: 'Product & Architecture',
     footerResourcesHeading: 'Developers & Community',
     footerTrustHeading: 'Trust & Legal',
+    footerAccount: 'Account & Host Center',
     footerDownload: 'Downloads & platforms',
     footerSigning: 'Code signing policy',
     footerDocs: 'Documentation',
@@ -398,6 +401,9 @@ export function PublicSiteFooter({
                 </li>
               ))}
               <li>
+                <PublicSiteLink to={withLocaleQuery('/account', locale)}>{copy.footerAccount}</PublicSiteLink>
+              </li>
+              <li>
                 <PublicSiteLink to={links.downloadUrl}>{copy.footerDownload}</PublicSiteLink>
               </li>
             </ul>
@@ -460,7 +466,14 @@ export function PublicSiteShell({
 }) {
   const copy = SHELL_COPY[locale];
   const links = useResolvedPublicLinks(locale);
-  useHashScroll(true);
+  const inRouter = useInRouterContext();
+  const location = inRouter ? useLocation() : { pathname: activePath ?? '/', hash: '' };
+  useHashScroll(true, location.hash);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || location.hash) return;
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.hash]);
 
   return (
     <div

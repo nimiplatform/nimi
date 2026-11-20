@@ -44,6 +44,7 @@ const ICON_SIZE_CLASS = {
 const DEMO_ACCESS_DOMAINS: Readonly<Record<string, readonly (readonly [string, string])[]>> = {
   'nimi.parentos': [['AI 能力调用', 'AI capability consumption'], ['应用活动', 'App activity']],
   'nimi.zhiyu': [['本地伙伴访问', 'Local companion access'], ['伙伴配置', 'Companion configuration'], ['应用活动', 'App activity']],
+  'nimi.utopia': [['洞天状态读取', 'Utopia habitat read'], ['洞天环境管理', 'Utopia habitat management'], ['本地伙伴访问', 'Local companion access'], ['AI 能力调用', 'AI capability consumption']],
 };
 
 /** Replica of the desktop AppArtworkIcon: real icon when shipped, gradient glyph tile otherwise. */

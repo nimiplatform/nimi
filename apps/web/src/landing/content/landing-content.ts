@@ -3,6 +3,7 @@ import type { HomeDemoContent } from './home-demo-content.js';
 import type { LandingLocale } from '../i18n/locale.js';
 import type { PreviewMessages } from '../i18n/preview-messages.js';
 import type { RemainingAppPreviewContent } from './landing-content.remaining-apps.js';
+import type { UtopiaPreviewContent } from './landing-content.utopia.js';
 import type { CanonicalTranscriptViewProps } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import type { JevSearchPreviewContent, JevUltrafastPreviewContent, MoneyPrinterPreviewContent, OpenwhisprPreviewContent, VideoLingoPreviewContent, VoiceStudioPreviewContent } from './landing-content.third-party.js';
 
@@ -1118,6 +1119,7 @@ export type FullHeroDemoAppPreview = {
   locale: LandingLocale;
   messages: PreviewMessages;
   zhiyu: HeroDemoZhiyuPreview;
+  utopia: UtopiaPreviewContent;
   shijing: HeroDemoShijingPreview;
   parentos: HeroDemoParentosPreview;
   storybook: HeroDemoStorybookPreview;
@@ -1135,6 +1137,7 @@ export type HeroDemoAppPreview = {
   locale: LandingLocale;
   messages: PreviewMessages;
   zhiyu: HeroDemoZhiyuPreview;
+  utopia?: UtopiaPreviewContent;
   shijing?: HeroDemoShijingPreview;
   parentos?: HeroDemoParentosPreview;
   storybook?: HeroDemoStorybookPreview;

@@ -1,10 +1,12 @@
-import { useState, type MouseEventHandler, type Ref } from 'react';
+import { useContext, useState, type MouseEvent, type Ref } from 'react';
 import { ArrowRight, ChevronRight, Cpu, Filter, Send } from 'lucide-react';
 import { Button } from '@nimiplatform/kit/ui';
 import type { HeroDemo, HeroDemoSurface } from '../content/landing-content.js';
 import type { DemoHomeMessage } from '../content/home-demo-content.js';
+import { DEFAULT_STORY_AGENT } from '../content/story-model.js';
 import { AppArtworkIcon } from './demo-apps.js';
 import { DemoPartnerAvatar, DemoSectionTitle, DemoServiceIcon, demoText } from './demo-home-ui.js';
+import { DemoSessionContext } from './hero-demo-context.js';
 
 export type DemoNavigate = (surface: HeroDemoSurface, target?: string) => void;
 export type DemoMessageProps = {
@@ -25,17 +27,28 @@ export function DemoHomeSurface({
   onReply,
   onOpenChat,
   openChatRef,
+  guideHighlightAppId,
+  onOpenApp,
 }: DemoMessageProps & {
   onReply: (agentId: string, text: string) => void;
-  onOpenChat: MouseEventHandler<HTMLButtonElement>;
+  onOpenChat: (event: MouseEvent<HTMLButtonElement>, agentId: string) => void;
   openChatRef?: Ref<HTMLButtonElement>;
+  guideHighlightAppId?: string;
+  onOpenApp?: (appId: string) => boolean;
 }) {
   const c = demo.home;
   const t = demoText(demo);
-  const [selectedId, setSelectedId] = useState(demo.chat.agents[0]!.id);
+  const session = useContext(DemoSessionContext);
+  const defaultAgentId =
+    demo.chat.agents.find((agent) => agent.id === DEFAULT_STORY_AGENT)?.id ?? demo.chat.agents[0]!.id;
+  const [selectedId, setSelectedId] = useState(defaultAgentId);
   const [draft, setDraft] = useState('');
   const [guide, setGuide] = useState(true);
-  const partner = demo.chat.agents.find((agent) => agent.id === selectedId)!;
+  const partner = demo.chat.agents.find((agent) => agent.id === selectedId) ?? demo.chat.agents[0]!;
+  const latestLocalMessage = session?.localMessages[partner.id]?.at(-1);
+  const latestSnippet =
+    latestLocalMessage?.text ?? partner.messages.at(-1)?.text ?? t('开始一段对话', 'Start a conversation');
+  const latestTime = latestLocalMessage ? t('刚刚', 'Just now') : '14:25';
   return (
     <div className="demo-home" data-demo-home>
       <div className="demo-home-grid">
@@ -66,9 +79,9 @@ export function DemoHomeSurface({
             <button type="button" onClick={() => onNavigate('chat', partner.id)}>
               <strong>
                 {partner.name}
-                <time>14:25</time>
+                <time>{latestTime}</time>
               </strong>
-              <span>{partner.messages.at(-1)?.text ?? t('开始一段对话', 'Start a conversation')}</span>
+              <span>{latestSnippet}</span>
             </button>
             <form
               onSubmit={(event) => {
@@ -93,7 +106,16 @@ export function DemoHomeSurface({
             <DemoSectionTitle title={c.myApps} action={c.allApps} onAction={() => onNavigate('apps')} />
             <div className="demo-home-apps">
               {demo.apps.items.slice(0, 6).map((app) => (
-                <button type="button" key={app.id} onClick={() => onNavigate('apps', app.id)}>
+                <button
+                  type="button"
+                  key={app.id}
+                  className={guideHighlightAppId === app.id ? 'is-guide-target' : undefined}
+                  data-hero-guide-target={app.id === 'nimi.zhiyu' ? 'open-zhiyu' : undefined}
+                  onClick={() => {
+                    if (onOpenApp?.(app.id)) return;
+                    onNavigate('apps', app.id);
+                  }}
+                >
                   <AppArtworkIcon item={app} size="lg" />
                   <span>{app.name}</span>
                 </button>
@@ -110,7 +132,13 @@ export function DemoHomeSurface({
               <>
                 <p className="demo-muted my-3">{c.startBody}</p>
                 <div className="demo-actions">
-                  <Button ref={openChatRef} className="demo-home-open-chat" tone="primary" size="sm" onClick={onOpenChat}>
+                  <Button
+                    ref={openChatRef}
+                    className="demo-home-open-chat"
+                    tone="primary"
+                    size="sm"
+                    onClick={(event) => onOpenChat(event, partner.id)}
+                  >
                     {c.openChat}
                     <ArrowRight size={14} />
                   </Button>

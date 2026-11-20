@@ -5,13 +5,17 @@ import {
   Blocks,
   Code2,
   Compass,
+  Laptop,
   Layers3,
+  Smartphone,
+  Globe,
 } from 'lucide-react';
 import type { HeroDemoSurface } from '../../content/landing-content.js';
 import { withLocaleQuery, type LandingLinks } from '../../config/landing-links.js';
 import { getStoryCopy, type StoryText } from '../../content/story-copy.js';
 import { DEFAULT_STORY_AGENT, storyAgent } from '../../content/story-model.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
+import { StoryCompanionShowcase } from './story-companion-showcase.js';
 import { StoryHome } from './story-home.js';
 import { StoryExperience } from './story-experience.js';
 import { StoryLink } from './story-shared.js';
@@ -31,13 +35,13 @@ export function StoryPage({
 }) {
   const copy = getStoryCopy(locale);
   const t: StoryText = (key) => copy[key];
-  const headline = /^(.*?)([.!?。！？])$/u.exec(t('hero.title'));
   const session = useHeroDemoSession();
   const site = useRef<HTMLDivElement>(null);
   const hero = useRef<HTMLElement>(null);
   const heroStage = useRef<HTMLDivElement>(null);
+  const [heroStageActive, setHeroStageActive] = useState(false);
   useStoryMotion(site);
-  useStoryHeroMotion(hero);
+  useStoryHeroMotion(hero, { onStageActiveChange: setHeroStageActive });
 
   const [selectedId, setSelectedId] = useState(DEFAULT_STORY_AGENT);
   const [expandedHome, setExpandedHome] = useState(false);
@@ -64,10 +68,10 @@ export function StoryPage({
   const featuredCompanions = session.demo.chat.agents.slice(0, 4);
   const featuredApps = [
     '/demo/zhiyu-icon.png',
+    '/demo/utopia-icon.png',
     '/demo/parentos-icon.png',
     '/demo/vane-icon.png',
     '/demo/videolingo-icon.png',
-    '/demo/shijing-icon.png',
   ] as const;
 
   const productPortals = [
@@ -75,7 +79,6 @@ export function StoryPage({
       id: 'home',
       href: withLocaleQuery('/home', locale),
       Icon: Compass,
-      badge: t('portals.homeBadge'),
       title: t('portals.homeTitle'),
       body: t('portals.homeBody'),
       action: t('portals.homeAction'),
@@ -99,7 +102,6 @@ export function StoryPage({
       id: 'apps',
       href: withLocaleQuery('/apps', locale),
       Icon: Blocks,
-      badge: t('portals.appsBadge'),
       title: t('portals.appsTitle'),
       body: t('portals.appsBody'),
       action: t('portals.appsAction'),
@@ -123,32 +125,23 @@ export function StoryPage({
       id: 'platform',
       href: withLocaleQuery('/platform', locale),
       Icon: Layers3,
-      badge: t('portals.platformBadge'),
       title: t('portals.platformTitle'),
       body: t('portals.platformBody'),
       action: t('portals.platformAction'),
-      visual: (
-        <div className="story-portal-visual story-portal-tags" aria-hidden="true">
-          <span>Runtime</span>
-          <span>Cognition</span>
-          <span>Realm</span>
-          <span>{locale === 'zh' ? '11 项能力' : '11 Modalities'}</span>
-        </div>
-      ),
+      visual: null,
     },
     {
       id: 'developers',
       href: withLocaleQuery('/developers', locale),
       Icon: Code2,
-      badge: t('portals.developersBadge'),
       title: t('portals.developersTitle'),
       body: t('portals.developersBody'),
       action: t('portals.developersAction'),
       visual: (
         <div className="story-portal-visual story-portal-tags is-mono" aria-hidden="true">
-          <span>@nimiplatform/sdk</span>
+          <span>SDK</span>
           <span>Vercel AI</span>
-          <span>Kit</span>
+          <span>Kit UI</span>
           <span>App Tools</span>
         </div>
       ),
@@ -175,22 +168,12 @@ export function StoryPage({
       <main id="main-content">
         <section ref={hero} className="story-hero" aria-labelledby="story-title">
           <div className="story-hero-copy">
-            <span className="story-hero-eyebrow">{t('hero.eyebrow')}</span>
-            <h1 id="story-title" aria-label={t('hero.title')}>
-              {headline ? (
-                <>
-                  {headline[1]}
-                  <span className="story-title-accent">{headline[2]}</span>
-                </>
-              ) : (
-                t('hero.title')
-              )}
-            </h1>
+            <h1 id="story-title">{t('hero.title')}</h1>
             <p className="story-hero-lead">{t('hero.lead')}</p>
             <div className="story-hero-actions">
-              <StoryLink href={links.downloadUrl} primary>
+              <PublicSiteLink className="story-button" to={links.downloadUrl}>
                 {t('common.download')}
-              </StoryLink>
+              </PublicSiteLink>
               <a
                 className="story-hero-continue"
                 href="#hero-demo"
@@ -218,17 +201,30 @@ export function StoryPage({
               expanded={expandedHero}
               onExpanded={setExpandedHero}
               layout="hero"
+              stageActive={heroStageActive}
               continuitySwitcher={{
                 partnerId: agent.id,
-                zhiyuWindowTitle: t('experience.continuityWindow'),
-                hint: t('hero.continuityHint'),
+                zhiyuWindowTitle: t('hero.zhiyuWindowTitle'),
+                ariaLabel: t('hero.continuityAriaLabel'),
                 quickSendLabel: t('hero.continuityQuickSend'),
+                viewSyncedLabel: t('hero.continuityViewSynced'),
                 sampleText: t('hero.continuitySampleText'),
                 sampleReply: t('hero.continuitySampleReply'),
                 tabZhiyu: t('hero.continuityTabZhiyu'),
                 tabHomeChat: t('hero.continuityTabHomeChat'),
                 tabHomeOverview: t('hero.continuityTabHomeOverview'),
                 formatSyncedBadge: (count) => t('hero.continuitySyncedBadge').replace('{count}', String(count)),
+                guide: {
+                  formatStepLabel: (step) => t('hero.guideStepLabel').replace('{step}', String(step)),
+                  skipLabel: t('hero.guideSkip'),
+                  step1Title: t('hero.guideStep1Title'),
+                  step1Action: t('hero.guideStep1Action'),
+                  step2Title: t('hero.guideStep2Title'),
+                  step2Action: t('hero.guideStep2Action'),
+                  step3Title: t('hero.guideStep3Title'),
+                  step3Action: t('hero.guideStep3Action'),
+                  doneText: t('hero.guideDoneText'),
+                },
               }}
               previewHeaderActions={
                 session.preview?.appId === 'nimi.zhiyu' && session.preview.screen === 'companion' ? (
@@ -254,6 +250,8 @@ export function StoryPage({
 
         <StoryExperience t={t} partnerId={agent.id} onHome={openHome} />
 
+        <StoryCompanionShowcase locale={locale} t={t} />
+
         <section
           id="home-demo"
           className="story-section story-runtime"
@@ -263,13 +261,27 @@ export function StoryPage({
           <header className="story-heading story-container">
             <h2 id="runtime-heading">{t('runtime.title')}</h2>
             <p>{t('runtime.description')}</p>
+            <div className="story-runtime-pills" aria-hidden="true">
+              <span className="is-live">
+                <Laptop size={14} />
+                {locale === 'zh' ? 'Mac & Windows 桌面端 · 现已开放' : 'Mac & Windows Desktop · Available Now'}
+              </span>
+              <span>
+                <Globe size={14} />
+                {locale === 'zh' ? '独立网页应用 · 授权直连' : 'Approved Web Apps · Direct Link'}
+              </span>
+              <span>
+                <Smartphone size={14} />
+                {locale === 'zh' ? '手机客户端 · 筹备中' : 'Mobile Apps · In Progress'}
+              </span>
+            </div>
           </header>
           <div className="story-home-stage">
             <StoryHome
               t={t}
               expanded={expandedHome}
               onExpanded={setExpandedHome}
-              staticWhenDocked
+              dockedSurface="home"
               disablePreviewModal={!expandedHome}
               extraWindowActions={
                 expandedHome && session.surface === 'chat' ? (
@@ -301,18 +313,15 @@ export function StoryPage({
         >
           <div className="story-container">
             <header className="story-heading story-portals-heading">
-              <span className="story-eyebrow">{t('portals.eyebrow')}</span>
               <h2 id="portals-heading">{t('portals.title')}</h2>
-              <p>{t('portals.body')}</p>
             </header>
             <div className="story-portals-grid">
-              {productPortals.map(({ id, href, Icon, badge, title, body, action, visual }) => (
+              {productPortals.map(({ id, href, Icon, title, body, action, visual }) => (
                 <PublicSiteLink key={id} to={href} className="story-portal-card" data-portal-id={id}>
                   <div className="story-portal-card-top">
                     <span className="story-portal-icon" aria-hidden="true">
                       <Icon size={20} />
                     </span>
-                    <span className="story-portal-badge">{badge}</span>
                   </div>
                   <h3>{title}</h3>
                   <p>{body}</p>
@@ -334,10 +343,6 @@ export function StoryPage({
               <StoryLink href={links.downloadUrl} primary>
                 {t('common.download')}
               </StoryLink>
-              <PublicSiteLink className="story-button story-button-outline" to={withLocaleQuery('/platform', locale)}>
-                <span>{t('portals.platformAction')}</span>
-                <ArrowRight size={16} aria-hidden="true" />
-              </PublicSiteLink>
             </div>
           </div>
         </section>

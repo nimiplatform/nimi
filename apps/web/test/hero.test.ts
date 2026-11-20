@@ -6,6 +6,7 @@ import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-ses
 import type { HeroDemo, HeroDemoSurface } from '../src/landing/content/landing-content.js';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroDemoView } from '../src/landing/components/hero-demo.js';
+import { HeroDemoStatic } from '../src/landing/components/hero-demo-static.js';
 import { DemoAppsSurface } from '../src/landing/components/demo-apps.js';
 import { DemoZhiyuPreview } from '../src/landing/components/demo-zhiyu-preview.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
@@ -96,4 +97,76 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   assert.ok(zhiyuHtml.includes('选择一位本地伙伴，开始对话'));
   assert.ok(zhiyuHtml.includes('data-zhiyu-side-panel-state="closed"'));
   assert.ok(!zhiyuHtml.includes('data-zhiyu-region="agent-panel"'));
+
+  const singleHeaderZhiyuHtml = renderAppPreview(
+    createElement(HeroDemoSessionProvider, {
+      demo,
+      children: createElement(DemoZhiyuPreview, {
+        content: zhiyu,
+        windowHeader: { title: '织羽 · 伙伴对话', iconSrc: '/demo/zhiyu-icon.png' },
+      }),
+    }),
+  );
+  assert.ok(singleHeaderZhiyuHtml.includes('class="hero-demo-titlebar demo-home-titlebar"'));
+  assert.ok(!singleHeaderZhiyuHtml.includes('class="demo-zhiyu-chrome"'));
+
+  const dockedHomeOverrideHtml = renderDemo(
+    demo,
+    'chat',
+    createElement(HeroDemoView, { surfaceOverride: 'home', expanded: true }),
+  );
+  assert.ok(dockedHomeOverrideHtml.includes(demo.home.greeting));
+  assert.ok(!dockedHomeOverrideHtml.includes('data-canonical-transcript-root'));
+});
+
+test('hero continuity switcher defaults to the Nimi Home overview surface', async () => {
+  const {
+    hero: { demo },
+  } = await loadLandingContent('zh');
+  const html = renderDemo(
+    demo,
+    'home',
+    createElement(HeroDemoView, {
+      expanded: true,
+      continuitySwitcher: {
+        partnerId: demo.chat.agents[0]!.id,
+        zhiyuWindowTitle: '织羽',
+        ariaLabel: '切换演示窗口',
+        quickSendLabel: '一键试发一句',
+        viewSyncedLabel: '已发送 · 切到 Nimi Home 看接续',
+        sampleText: '测试消息',
+        sampleReply: '测试回复',
+        tabZhiyu: '织羽 · 伴侣',
+        tabHomeChat: 'Nimi Home · 接着聊',
+        tabHomeOverview: 'Nimi Home · 总览',
+        formatSyncedBadge: (count) => `已同步 ${count} 条`,
+      },
+    }),
+  );
+  assert.ok(html.includes(demo.home.greeting));
+  assert.ok(html.includes('data-testid="hero-continuity-bar"'));
+  assert.match(
+    html,
+    /<button[^>]*class="story-continuity-tab is-active"[^>]*aria-pressed="true"[^>]*>[\s\S]*?Nimi Home · 总览<\/span><\/button>/,
+  );
+  assert.ok(!html.includes('data-demo-zhiyu-root="true"'));
+});
+
+test('explore initial surface renders the Worlds atlas and explore loading fallback', async () => {
+  for (const locale of ['zh', 'en'] as const) {
+    const {
+      hero: { demo },
+    } = await loadLandingContent(locale);
+    const liveHtml = renderDemo(demo, 'explore');
+    assert.ok(liveHtml.includes('demo-world-atlas'));
+    assert.ok(liveHtml.includes('demo-explore-tabs'));
+    assert.ok(!liveHtml.includes(demo.home.greeting));
+
+    const staticHtml = renderToStaticMarkup(
+      createElement(HeroDemoStatic, { demo, surface: 'explore', expanded: true }),
+    );
+    assert.ok(staticHtml.includes(demo.nav.explore));
+    assert.ok(staticHtml.includes(demo.home.explore));
+    assert.ok(!staticHtml.includes(demo.home.greeting));
+  }
 });

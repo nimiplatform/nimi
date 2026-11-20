@@ -17,7 +17,6 @@ export function StoryWorlds({ t, onOpenWorld, locale }: { locale: 'zh' | 'en'; t
   const selectIndex = (next: number) => { setIndex(wrapGalleryIndex(next, exploreWorlds.length)); setOffset(0); };
   const openWorld = () => onOpenWorld(world.id);
   return <section className="story-section story-worlds" id="worlds" aria-labelledby="worlds-heading" data-story-scene>
-    <img key={world.id} className="story-world-atmosphere" src={world.image} alt="" loading="lazy" />
     <div className="story-container"><StoryHeading t={t} section="worlds" /></div>
     <div className="story-world-reel" id="story-world-reel" ref={reel} data-dragging={drag.current?.active || undefined} tabIndex={0} role="region" aria-label={t('worlds.title')}
       onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); selectIndex(index + (e.key === 'ArrowLeft' ? -1 : 1)); reel.current?.focus({ preventScroll: true }); } if (e.key === 'Enter' && e.target === e.currentTarget) { e.preventDefault(); openWorld(); } }}

@@ -14,6 +14,7 @@ import { appPreviewMessagesZh } from '../src/landing/content/app-preview-message
 
 const previews = [
   ['zhiyu', 'DemoZhiyuPreview', 'zhiyu'],
+  ['utopia', 'DemoUtopiaPreview', 'utopia'],
   ['shijing', 'DemoShijingPreview', 'shijing'],
   ['parentos', 'DemoParentosPreview', 'parentos'],
   ['storybook', 'DemoStorybookPreview', 'storybook'],
@@ -38,7 +39,7 @@ const previews = [
   ['presenton', 'DemoPresentonPreview', 'remainingApps.presenton'],
 ] as const;
 
-test('all 23 previews render English UI and authored examples when the outer locale is English', async () => {
+test('all 24 previews render English UI and authored examples when the outer locale is English', async () => {
   const { demo } = (await loadLandingContent('en')).hero;
   const content = demo.appPreview;
   for (const [file, name, key] of previews) {

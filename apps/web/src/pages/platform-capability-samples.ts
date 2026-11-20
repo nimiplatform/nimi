@@ -1,123 +1,502 @@
-import type { AdmittedCapability } from '../landing/generated/index.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 
 export const PLATFORM_CAPABILITIES = {
-  text: ['text.generate', 'text.embed'],
-  visual: ['image.generate', 'video.generate', 'vision.locate', 'realtime.interact'],
-  audio: ['audio.synthesize', 'audio.transcribe', 'music.generate', 'voice.create', 'audio.separate'],
-} as const satisfies Record<string, readonly AdmittedCapability[]>;
+  text: ['text.generate', 'text.embed', 'text.decide', 'text.annotate'],
+  visual: [
+    'image.generate',
+    'image.upscale',
+    'image.face_swap',
+    'vision.locate',
+    'video.generate',
+    'video.upscale',
+    'video.face_swap',
+  ],
+  audio: [
+    'audio.synthesize',
+    'audio.transcribe',
+    'voice.create',
+    'audio.speaker.embed',
+    'audio.separate',
+    'audio.voice.convert',
+    'music.generate',
+    'music.transcribe',
+  ],
+  realtime: ['realtime.interact'],
+} as const;
 
 export type CapabilityGroup = keyof typeof PLATFORM_CAPABILITIES;
 export type CapabilityId = typeof PLATFORM_CAPABILITIES[CapabilityGroup][number];
 
 type Localized = Readonly<Record<LandingLocale, string>>;
 
-type CapabilitySample = Readonly<{
+export type CapabilityAppRef = Readonly<{
+  name: Localized;
+  icon: string;
+}>;
+
+export type CapabilitySample = Readonly<{
+  tagline: Localized;
+  diagramIn: Localized;
+  diagramOut: Localized;
+  sampleKind: 'lab' | 'runtime';
+  useCase?: Localized;
   input: Localized;
   result: Localized;
   excerpt?: { text: string; lang: LandingLocale };
   facts?: readonly { label: Localized; value: string }[];
   unavailableMedia?: 'image' | 'video' | 'audio';
+  usedApps: readonly CapabilityAppRef[];
 }>;
 
-// Curated scenario outputs from runtime/acceptance/model-matrix.yaml. Keep the
-// exact output language and omit the media player when the original is absent.
+const APP_ZHIYU: CapabilityAppRef = { name: { zh: '织羽', en: 'Zhiyu' }, icon: '/demo/zhiyu-icon.png' };
+const APP_VANE: CapabilityAppRef = { name: { zh: 'Vane', en: 'Vane' }, icon: '/demo/vane-icon.png' };
+const APP_VIDEOLINGO: CapabilityAppRef = { name: { zh: 'VideoLingo', en: 'VideoLingo' }, icon: '/demo/videolingo-icon.png' };
+const APP_VOICESTUDIO: CapabilityAppRef = { name: { zh: 'VoiceStudio', en: 'VoiceStudio' }, icon: '/demo/voicestudio-icon.png' };
+const APP_OVERTONE: CapabilityAppRef = { name: { zh: 'Overtone', en: 'Overtone' }, icon: '/demo/overtone-icon.png' };
+const APP_OPENMONTAGE: CapabilityAppRef = { name: { zh: 'OpenMontage', en: 'OpenMontage' }, icon: '/demo/openmontage-icon.png' };
+const APP_MONEYPRINTER: CapabilityAppRef = { name: { zh: 'MoneyPrinter', en: 'MoneyPrinter' }, icon: '/demo/moneyprinter-icon.png' };
+const APP_OPENWHISPR: CapabilityAppRef = { name: { zh: 'OpenWhispr', en: 'OpenWhispr' }, icon: '/demo/openwhispr-icon.png' };
+const APP_ODDBUREAU: CapabilityAppRef = { name: { zh: '奇物局', en: 'Odd Bureau' }, icon: '/demo/odd-bureau-icon.png' };
+const APP_PERSONA: CapabilityAppRef = { name: { zh: 'Persona Studio', en: 'Persona Studio' }, icon: '/demo/persona-studio-icon.png' };
+const APP_POLYAGENT: CapabilityAppRef = { name: { zh: 'PolyAgent', en: 'PolyAgent' }, icon: '/demo/polyagent-icon.png' };
+const APP_NOTEBOOK: CapabilityAppRef = { name: { zh: 'Open Notebook', en: 'Open Notebook' }, icon: '/demo/open-notebook-icon.png' };
+const APP_PARENTOS: CapabilityAppRef = { name: { zh: 'ParentOS', en: 'ParentOS' }, icon: '/demo/parentos-icon.png' };
+
 export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>> = {
-  // macos-20261110-chatgpt-plan-sol-jpeg
   'text.generate': {
-    input: { zh: '上传一张 JPEG，让模型用文字描述画面中的主要物体。', en: 'Upload a JPEG and ask the model to describe the main object.' },
-    result: { zh: '模型识别出了物体的颜色、材质和形状。', en: 'The model described the object’s color, material, and shape.' },
+    tagline: {
+      zh: '同时看懂图片、音视频与长文，自带深度推理、严格 JSON 输出与 64 路工具调用',
+      en: 'Reads images, audio, video, and text—with reasoning chains, strict JSON, and up to 64 tools',
+    },
+    diagramIn: { zh: '图片 / 音视频 / 提问', en: 'Photo / Media / Prompt' },
+    diagramOut: { zh: '流式回答与工具调用', en: 'Streamed Reply & JSON' },
+    sampleKind: 'lab',
+    input: {
+      zh: '拍一张桌面照片发给应用，让它直接看图描述杯子的材质与细节。',
+      en: 'Send a desk photo and ask for a natural description of the main object.',
+    },
+    result: {
+      zh: '准确认出橙色陶瓷马克杯的色彩、釉面质感与弧形杯把。',
+      en: 'Accurately identified the ceramic mug’s bright orange glaze and curved handle.',
+    },
     excerpt: { lang: 'en', text: 'The main object is a bright orange ceramic mug with a curved handle.' },
+    usedApps: [APP_ZHIYU, APP_VANE, APP_NOTEBOOK],
   },
-  // macos-20261111-installed-nomic-gguf
   'text.embed': {
-    input: { zh: '将 4 篇文档转成向量，再用一个独立查询按语义相似度排序。', en: 'Embed four documents and use a separate query to rank them by semantic similarity.' },
-    result: { zh: '关于本地 AI 隐私的文档排在首位。', en: 'The document about local AI privacy ranked first.' },
+    tagline: {
+      zh: '不靠死板关键词——把长年累月的笔记与对话变成秒级召回的「语义记忆」',
+      en: 'Turns years of notes and chats into instant semantic recall beyond keyword matching',
+    },
+    diagramIn: { zh: '4 篇日常笔记与提问', en: '4 Notes & Plain Query' },
+    diagramOut: { zh: '按意思精准排序结果', en: 'Ranked Semantic Match' },
+    sampleKind: 'lab',
+    input: {
+      zh: '导入 4 篇不同主题的资料，用一句大白话提问，找出意思最贴近的一篇。',
+      en: 'Index four documents and search in plain language to find the closest match.',
+    },
+    result: {
+      zh: '即使没有完全相同的字眼，探讨本地隐私的笔记依然以最高分排在第一。',
+      en: 'The note on local AI privacy ranked first even without exact keyword overlap.',
+    },
     facts: [
-      { label: { zh: '向量维度', en: 'Vector dimensions' }, value: '768' },
-      { label: { zh: '首位余弦相似度', en: 'Top cosine similarity' }, value: '0.7590' },
+      { label: { zh: '向量维度', en: 'Dimensions' }, value: '768' },
+      { label: { zh: '首位匹配分', en: 'Top match' }, value: '0.7590' },
     ],
+    usedApps: [APP_VANE, APP_NOTEBOOK, APP_ZHIYU],
   },
-  // windows-20261111-minimax-h3-image
+  'text.decide': {
+    tagline: {
+      zh: '面临多个选项时，不再靠长篇大论含糊建议——直接给出每个方案的推荐把握度，帮你一眼定夺',
+      en: 'When weighing multiple options, skip vague chat advice—get clear confidence scores across choices at a glance',
+    },
+    diagramIn: { zh: '当前场景 + 3 个备选', en: 'Scenario + 3 Options' },
+    diagramOut: { zh: '各选项把握度与首选', en: 'Confidence Scores & Top Pick' },
+    sampleKind: 'runtime',
+    useCase: {
+      zh: '适合需要“多选一”的判断场景：比如在隐私与速度之间挑执行方式、在多个工作流步骤里选最优排期，或帮游戏与效率应用做出稳定一致的选择。',
+      en: 'Ideal whenever an app needs a clear pick among defined choices—such as balancing privacy against speed, ordering multi-step tasks, or keeping game and workflow decisions consistent.',
+    },
+    input: {
+      zh: '给出当前场景与备选方案，让基座直接评估每个方案的推荐把握度。',
+      en: 'Provide the current scenario and candidate choices to score clear confidence weights.',
+    },
+    result: {
+      zh: '为三个选项给出合计 100% 的把握度评分，并自动锁定最优方案。',
+      en: 'Returns calibrated confidence scores summing to 100% and locks onto the top pick.',
+    },
+    usedApps: [APP_POLYAGENT],
+  },
+  'text.annotate': {
+    tagline: {
+      zh: '在本地离线拆解 8 种语言的词性、主谓结构与自然断句，专为双语字幕而生',
+      en: 'Offline 8-language phrasing, part-of-speech, and natural subtitle splitting',
+    },
+    diagramIn: { zh: '外语长句原稿', en: 'Long Spoken Passage' },
+    diagramOut: { zh: '词性结构与自然断句', en: 'Clean Subtitle Clauses' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '把一整段外语演讲长句交给本机引擎，在不联网的情况下拆出自然的字幕停顿点。',
+      en: 'Feed a long spoken passage to split natural subtitle clauses completely offline.',
+    },
+    result: {
+      zh: '一字不改原文，精准标出每个词的角色与断句位置，配音字幕不再断在半句话里。',
+      en: 'Marked exact word roles and clause breaks so translated subtitles flow naturally.',
+    },
+    facts: [
+      { label: { zh: '支持语种', en: 'Languages' }, value: '8 (zh/en/ja/de…)' },
+      { label: { zh: '单批处理', en: 'Batch capacity' }, value: '64 docs' },
+    ],
+    usedApps: [APP_VIDEOLINGO],
+  },
+
   'image.generate': {
-    input: { zh: '用文字生成窗边的蓝色陶瓷杯，再以生成的图为参考，把杯子改成橙色。', en: 'Generate a blue ceramic mug beside a window, then use that image as a reference to turn the mug orange.' },
-    result: { zh: 'Lab 保存了原图和编辑结果。改色后保留了杯把、构图和背景。', en: 'Lab saved the original and edited images. The edit retained the handle, framing, and background.' },
+    tagline: {
+      zh: '一句话画出高清配图，还能按原图构图精准改色、换局部细节',
+      en: 'Create crisp illustrations from text or restyle details while keeping your framing',
+    },
+    diagramIn: { zh: '文字描述 + 参考底图', en: 'Prompt + Reference' },
+    diagramOut: { zh: '1024px 高清成图', en: '1024px Crisp PNG' },
+    sampleKind: 'lab',
+    input: {
+      zh: '先画一只窗边的蓝色陶瓷杯，再以它为底图，只把杯身改成温暖的橙色。',
+      en: 'Generate a blue mug by a window, then turn only the mug orange using the first image.',
+    },
+    result: {
+      zh: '光影、窗景与杯把弧度完好保留，只有杯子自然换成了橙色。',
+      en: 'Window light, framing, and handle stayed intact while the mug cleanly turned orange.',
+    },
     facts: [
-      { label: { zh: '输出格式', en: 'Output format' }, value: 'PNG' },
-      { label: { zh: '图像尺寸', en: 'Image size' }, value: '1024 × 1024' },
+      { label: { zh: '分辨率', en: 'Resolution' }, value: '1024 × 1024' },
+      { label: { zh: '格式', en: 'Format' }, value: 'PNG' },
     ],
-    unavailableMedia: 'image',
+    usedApps: [APP_PERSONA, APP_OPENMONTAGE],
   },
-  // windows-20261111-hyperflow-and-sol
-  'video.generate': {
-    input: { zh: '以蓝色水面上的红色纸船为主题，分别从文字和参考图生成短片。', en: 'Generate a short clip of a red paper boat on blue water, using a text prompt and then a reference image.' },
-    result: { zh: '两段短片都呈现了蓝色水面上的红色纸船。', en: 'Both clips showed the red paper boat on blue water.' },
+  'image.upscale': {
+    tagline: {
+      zh: '用本机显卡把模糊老照片或生成草图一键放大 4 倍，重现发丝与材质纹理',
+      en: 'Restore blurry photos or drafts up to crisp 4K detail right on your own GPU',
+    },
+    diagramIn: { zh: '1024px 低清原图', en: '1024px Source Image' },
+    diagramOut: { zh: '4096px 4K 超清大图', en: '4096px 4K Output' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '选一张 1024 像素的图片，在本机直接开启 4 倍超清放大，全程不传云端。',
+      en: 'Pick a 1024 px image and run 4× super-resolution locally with zero cloud upload.',
+    },
+    result: {
+      zh: '构图与神态分毫不走样，边缘锯齿消失，直接输出 4096 × 4096 的 4K 大图。',
+      en: 'Rebuilt crisp surface textures at 4096 × 4096 while keeping original composition intact.',
+    },
     facts: [
-      { label: { zh: '输出格式', en: 'Output format' }, value: 'MP4' },
-      { label: { zh: '视频尺寸', en: 'Video dimensions' }, value: '512 × 288' },
-      { label: { zh: '时长', en: 'Duration' }, value: '0.95 s' },
+      { label: { zh: '放大倍率', en: 'Scale' }, value: '2× / 4×' },
+      { label: { zh: '最高画质', en: 'Max output' }, value: '4096 × 4096' },
     ],
-    unavailableMedia: 'video',
+    usedApps: [APP_PERSONA, APP_OPENMONTAGE],
   },
-  // macos-20261111-installed-locateanything-metal
+  'image.face_swap': {
+    tagline: {
+      zh: '照片全程锁在自己电脑里完成自然人像融合，绝不上传第三方换脸服务器',
+      en: 'Blend portrait likeness naturally on your own device—photos never touch external servers',
+    },
+    diagramIn: { zh: '参考人像 + 目标画面', en: 'Portrait + Scene' },
+    diagramOut: { zh: '本机自然融合新图', en: 'Local Blended PNG' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '提供一张人物参考照与一张海报分镜，在本机独立完成面部特征融合。',
+      en: 'Select a reference portrait and a storyboard frame for private, on-device face blending.',
+    },
+    result: {
+      zh: '贴合目标画面的光影角度生成新成片，同时原图完好无损、隐私零外泄。',
+      en: 'Matched scene lighting in a fresh PNG output without touching original files or the cloud.',
+    },
+    facts: [
+      { label: { zh: '运行位置', en: 'Runs on' }, value: '100% Local' },
+      { label: { zh: '输出格式', en: 'Format' }, value: 'PNG' },
+    ],
+    usedApps: [APP_PERSONA],
+  },
   'vision.locate': {
-    input: { zh: '在一张 512 × 512 的图片中定位蓝色陶瓷杯。', en: 'Locate a blue ceramic mug in a 512 × 512 image.' },
-    result: { zh: 'Lab 在原图上标出了一个点，落在杯身内。', en: 'Lab marked a point on the original image, inside the body of the mug.' },
+    tagline: {
+      zh: '用日常语言说一句「找蓝杯子」，立刻在画面里精准圈出它的坐标位置',
+      en: 'Say what you are looking for in plain words and pinpoint its exact spot on screen',
+    },
+    diagramIn: { zh: '画面 + 「蓝色陶瓷杯」', en: 'Image + Target Phrase' },
+    diagramOut: { zh: '精准坐标点 (0.50, 0.65)', en: 'Exact Target Coords' },
+    sampleKind: 'lab',
+    input: {
+      zh: '面对一张摆满杂物的桌面照片，直接让基座指出「蓝色陶瓷杯」在哪里。',
+      en: 'Ask Nimi to point out the blue ceramic mug inside a 512 × 512 photo.',
+    },
+    result: {
+      zh: '准星稳稳落在杯身正中央，让桌面交互与奇趣小游戏真正「长出眼睛」。',
+      en: 'Locked directly onto the mug body so apps and games can see what you point at.',
+    },
     facts: [
-      { label: { zh: '横向坐标（归一化）', en: 'Horizontal coordinate (normalized)' }, value: '0.501' },
-      { label: { zh: '纵向坐标（归一化）', en: 'Vertical coordinate (normalized)' }, value: '0.655' },
+      { label: { zh: '横向坐标', en: 'X position' }, value: '0.501' },
+      { label: { zh: '纵向坐标', en: 'Y position' }, value: '0.655' },
     ],
-    unavailableMedia: 'image',
+    usedApps: [APP_ODDBUREAU],
   },
-  // macos-20261110-openai-gpt-live-continuous
-  'realtime.interact': {
-    input: { zh: '在实时会话中连续送入一段英语录音，测试模型能否回答桌上有什么、火车何时出发。', en: 'Stream an English recording into a realtime session and ask what is on the table and when the train leaves.' },
-    result: { zh: '会话收到了转写和语音输出。以下是模型回答的原文。', en: 'The session returned transcripts and speech. This is the model’s recorded response.' },
-    excerpt: { lang: 'en', text: 'A green notebook is on the table, and the next train leaves at ten.' },
+  'video.generate': {
+    tagline: {
+      zh: '从一句话灵感或一张静态画稿出发，直接生成连贯生动的分镜视频',
+      en: 'Turn a single sentence or static illustration into fluid motion video clips',
+    },
+    diagramIn: { zh: '分镜提示词 / 参考画稿', en: 'Prompt / Keyframe' },
+    diagramOut: { zh: '连贯动态 MP4 镜头', en: 'Motion MP4 Clip' },
+    sampleKind: 'lab',
+    input: {
+      zh: '输入「蓝色水面上轻轻漂浮的红纸船」，或垫入一张参考图生成动态镜头。',
+      en: 'Prompt “a red paper boat drifting on blue water” from text or a reference frame.',
+    },
+    result: {
+      zh: '水波荡漾与纸船摇曳自然连贯，几秒钟就为剪辑台补齐空镜素材。',
+      en: 'Generated smooth water ripples and boat motion ready for storyboard timelines.',
+    },
+    facts: [
+      { label: { zh: '画面规格', en: 'Frame size' }, value: '512 × 288' },
+      { label: { zh: '封装格式', en: 'Format' }, value: 'MP4' },
+    ],
+    usedApps: [APP_OPENMONTAGE, APP_MONEYPRINTER],
   },
-  // macos-20261110-gemini-lite-sulafat
+  'video.upscale': {
+    tagline: {
+      zh: '逐帧修复低清视频至 4K 水准，画面不闪烁，原片配音与口型分秒不差',
+      en: 'Upscale low-res clips to crisp 4K without flicker while keeping audio perfectly synced',
+    },
+    diagramIn: { zh: '低清有声短片 MP4', en: 'Low-Res Clip + Audio' },
+    diagramOut: { zh: '无闪烁 4K 音画同步片', en: '4K Clip (Audio Sync)' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '拖入一段带原声的低分辨率短片，用本机显卡做跨帧一致的超清增强。',
+      en: 'Drop in a low-resolution video clip with audio for local temporal 4× enhancement.',
+    },
+    result: {
+      zh: '每一帧纹理清晰稳定、前后不跳闪，原有帧率与伴奏人声完整保留。',
+      en: 'Delivered flicker-free high-res frames with all 300 frames and original audio intact.',
+    },
+    facts: [
+      { label: { zh: '时序帧数', en: 'Verified clip' }, value: '300 frames' },
+      { label: { zh: '最高输出', en: 'Max scale' }, value: '4K · AAC Sync' },
+    ],
+    usedApps: [APP_OPENMONTAGE, APP_MONEYPRINTER],
+  },
+  'video.face_swap': {
+    tagline: {
+      zh: '既能离线渲染整支短片，也能驱动 720p 实时镜头——关掉窗口即刻清空不留痕',
+      en: 'Render full video clips or drive live 720p camera sessions—zero frames retained on close',
+    },
+    diagramIn: { zh: '角色人像 + 实时视频流', en: 'Portrait + Live Video' },
+    diagramOut: { zh: '720p 实时表情重演', en: '720p Live Reenactment' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '选定角色面孔，在整段视频成片或低延迟实时画面流中同步驱动表情重演。',
+      en: 'Bind a character portrait to reenact expressions across an MP4 clip or live 720p stream.',
+    },
+    result: {
+      zh: '转身、眨眼与说话口型自然贴合原声；实时会话一关立即释放内存，不留任何缓存帧。',
+      en: 'Kept natural expressions and audio sync, wiping live memory the instant a session ends.',
+    },
+    facts: [
+      { label: { zh: '实时规格', en: 'Live stream' }, value: '1280 × 720 RGB8' },
+      { label: { zh: '隐私清理', en: 'On close' }, value: '0 Cached Frames' },
+    ],
+    usedApps: [APP_OPENMONTAGE],
+  },
+
   'audio.synthesize': {
-    input: { zh: '使用 Sulafat 音色和舒缓语气朗读中文短句。', en: 'Read a short Chinese passage in a calm tone using the Sulafat voice.' },
-    result: { zh: 'Lab 播放了合成音频。转写结果如下。', en: 'Lab played the synthesized audio. This is the resulting transcript.' },
+    tagline: {
+      zh: '带呼吸感与情绪起伏的自然朗读，让伙伴回话、有声书与视频旁白不再像机器人',
+      en: 'Warm, expressive speech with natural breathing for companions, audiobooks, and dubbing',
+    },
+    diagramIn: { zh: '台词文本 + 语气设定', en: 'Script + Tone Prompt' },
+    diagramOut: { zh: '自然呼吸感人声 WAV', en: 'Expressive 24kHz WAV' },
+    sampleKind: 'lab',
+    input: {
+      zh: '挑一款温润声线，用舒缓平静的语气读出一段日常短句。',
+      en: 'Read a short Chinese line in a calm, warm tone.',
+    },
+    result: {
+      zh: '吐字轻重与停顿自然流畅，听感就像真人在耳边轻声交谈。',
+      en: 'Produced lifelike pacing and warmth ready for live playback or video voiceover.',
+    },
     excerpt: { lang: 'zh', text: '橙色的杯子放在窗边，下一班火车十点出发。' },
     facts: [
-      { label: { zh: '时长', en: 'Duration' }, value: '5.68 s' },
-      { label: { zh: '音频格式', en: 'Audio format' }, value: 'WAV · 24 kHz' },
+      { label: { zh: '示例时长', en: 'Duration' }, value: '5.68 s' },
+      { label: { zh: '采样率', en: 'Sample rate' }, value: '24 kHz WAV' },
     ],
-    unavailableMedia: 'audio',
+    usedApps: [APP_ZHIYU, APP_VOICESTUDIO, APP_VIDEOLINGO],
   },
-  // macos-20261111-installed-qwen3-asr
   'audio.transcribe': {
-    input: { zh: '上传一段 3.44 秒的英语 WAV 录音。', en: 'Upload a 3.44-second English WAV recording.' },
-    result: { zh: '模型识别出音频语言为英语，并返回了完整转写。', en: 'The model identified the language as English and returned the full transcript.' },
-    excerpt: { lang: 'en', text: 'A green notebook is on the table. The next train leaves at ten.' },
-  },
-  // macos-20261111-installed-lyria-clip
-  'music.generate': {
-    input: { zh: '用文字描述想生成的一段器乐。', en: 'Describe an instrumental piece in a text prompt.' },
-    result: { zh: 'Lab 生成并完整播放了一段立体声音乐。', en: 'Lab generated a stereo music clip and played it through to the end.' },
+    tagline: {
+      zh: '口语灵感、会议录音或外语视频，秒级转成带时间轴的干净文字稿',
+      en: 'Turn spoken ideas, meetings, and foreign videos into clean time-aligned transcripts',
+    },
+    diagramIn: { zh: '多语种口语录音 WAV', en: 'Spoken Audio Recording' },
+    diagramOut: { zh: '带时间轴精准文字稿', en: 'Time-Aligned Transcript' },
+    sampleKind: 'lab',
+    input: {
+      zh: '导入一段 10 秒口语语音，无需手动指定语种直接转写。',
+      en: 'Drop in a 10-second spoken voice note without manually picking the language.',
+    },
+    result: {
+      zh: '自动识别语种、切分时间轴并加上准确标点，连地名、数字与停顿都干净还原。',
+      en: 'Automatically detected the language, aligned timestamps, and restored punctuation, names, and numbers.',
+    },
     facts: [
-      { label: { zh: '时长', en: 'Duration' }, value: '30.77 s' },
-      { label: { zh: '音频格式', en: 'Audio format' }, value: 'WAV · 44.1 kHz' },
+      { label: { zh: '示例时长', en: 'Duration' }, value: '10.1 s' },
+      { label: { zh: '支持格式', en: 'Format' }, value: 'WAV / MP3' },
     ],
-    unavailableMedia: 'audio',
+    usedApps: [APP_OPENWHISPR, APP_VIDEOLINGO, APP_PARENTOS],
   },
-  // macos-20261110-qwen3-voice-design
   'voice.create': {
-    input: { zh: '用文字描述一种声音，再用创建出的声音朗读另一段文本。', en: 'Describe a voice in words, then use the created voice to read a new passage.' },
-    result: { zh: 'Lab 创建并复用了同一声音。以下是新音频的转写。', en: 'Lab created and reused the same voice. This is the transcript of the new audio.' },
+    tagline: {
+      zh: '用几句话形容你理想中的嗓音，或录几秒钟样本，捏出跨应用通用的专属声线',
+      en: 'Describe your dream voice in words or clone a short clip to reuse across apps',
+    },
+    diagramIn: { zh: '嗓音描述 / 短录音样本', en: 'Voice Prompt / Sample' },
+    diagramOut: { zh: '跨应用可复用专属音色', en: 'Reusable Custom Voice' },
+    sampleKind: 'lab',
+    input: {
+      zh: '用文字描绘「温暖清澈的青年旁白音」，再用捏出的新声音朗读台词。',
+      en: 'Describe a voice style in plain text, then read a fresh passage with that created voice.',
+    },
+    result: {
+      zh: '一次捏好即可保存复用——无论是角色伴侣还是视频配音都能保持同一把好声音。',
+      en: 'Saved a consistent custom voice ready for companions, stories, and dubbing.',
+    },
     excerpt: { lang: 'en', text: 'A green notebook is on the table. The next train leaves at 10.' },
-    facts: [{ label: { zh: '朗读时长', en: 'Speech duration' }, value: '3.44 s' }],
-    unavailableMedia: 'audio',
+    facts: [{ label: { zh: '试听时长', en: 'Clip length' }, value: '3.44 s' }],
+    usedApps: [APP_VOICESTUDIO, APP_ZHIYU, APP_VIDEOLINGO],
   },
-  // spleeter, scoped to the historical Windows Lab run
-  'audio.separate': {
-    input: { zh: '在 Lab 选择一段混合音频和处理范围，分别运行双轨和四轨分离。', en: 'Choose a time range in a mixed recording and run both two-track and four-track separation.' },
-    result: { zh: '两种模式都输出了等长的 WAV 音轨，保存后可在 Lab 重新打开。', en: 'Both modes produced equal-length WAV tracks that could be reopened in Lab.' },
+  'audio.speaker.embed': {
+    tagline: {
+      zh: '纯本机听声辨人——不用把家庭或会议录音传上云端，也能自动分清「刚才是谁说的」',
+      en: 'Recognize who is speaking in meetings or family clips locally—zero audio leaves your PC',
+    },
+    diagramIn: { zh: '多人会议 / 家庭录音', en: 'Multi-Speaker Audio' },
+    diagramOut: { zh: '本机说话人身份归档', en: 'Local Speaker Clusters' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '送入几秒钟的说话片段，在本机提取独一无二的声纹特征。',
+      en: 'Feed a short voice snippet to extract a private speaker signature on device.',
+    },
+    result: {
+      zh: '多人聊天或家庭记录自动按说话人归档，声纹受专属空间隔离保护。',
+      en: 'Cleanly grouped speakers in multi-person recordings under an isolated local space_id.',
+    },
     facts: [
-      { label: { zh: '输出轨数', en: 'Output tracks' }, value: '2 / 4' },
-      { label: { zh: '输出格式', en: 'Output format' }, value: 'WAV' },
+      { label: { zh: '隐私边界', en: 'Privacy' }, value: 'Local ONNX' },
+      { label: { zh: '空间保护', en: 'Isolation' }, value: 'space_id' },
     ],
-    unavailableMedia: 'audio',
+    usedApps: [APP_PARENTOS, APP_OPENWHISPR],
+  },
+  'audio.separate': {
+    tagline: {
+      zh: '把一首成品歌或嘈杂视频一键拆成干净的「纯人声、鼓点、贝斯与伴奏」四条独立音轨',
+      en: 'Split any mixed song or noisy video into isolated Vocals, Drums, Bass, and Backing stems',
+    },
+    diagramIn: { zh: '带配乐的混音歌曲/视频', en: 'Mixed Song / Video' },
+    diagramOut: { zh: '人声 · 鼓 · 贝斯 · 伴奏', en: '4 Isolated WAV Stems' },
+    sampleKind: 'lab',
+    input: {
+      zh: '导入一段带背景音乐的混音片段，一键提取纯干声与纯伴奏。',
+      en: 'Select a mixed recording to split clean vocal and accompaniment stems.',
+    },
+    result: {
+      zh: '译制配音时保留原片背景配乐只换人声，做音乐采样时直接拿到分轨素材。',
+      en: 'Kept rich background music intact for video dubbing or isolated stems for remixing.',
+    },
+    facts: [
+      { label: { zh: '分离轨数', en: 'Stems' }, value: '2 / 4' },
+      { label: { zh: '无损格式', en: 'Format' }, value: 'WAV' },
+    ],
+    usedApps: [APP_VIDEOLINGO, APP_OVERTONE],
+  },
+  'audio.voice.convert': {
+    tagline: {
+      zh: '保留原唱所有的咬字情感、颤音与节奏呼吸，只把嗓音无缝换成目标歌喉并自由升降调',
+      en: 'Keep every breath, melody, and emotion of a vocal performance while swapping singer timbre',
+    },
+    diagramIn: { zh: '清唱小样 + 目标歌喉', en: 'Dry Vocal + Target Voice' },
+    diagramOut: { zh: '保留唱腔的转换干声', en: 'Converted Singing Track' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '录一段自己的清唱小样，选定目标歌声音色并微调升降半音。',
+      en: 'Feed a dry singing vocal take, pick a target voice, and set optional semitone shift.',
+    },
+    result: {
+      zh: '唱腔律动完全是你自己的，出来的却是极具质感的理想歌喉。',
+      en: 'Delivered studio-ready converted vocals locked tightly to your original phrasing.',
+    },
+    facts: [
+      { label: { zh: '单曲时长', en: 'Max track' }, value: '600 s' },
+      { label: { zh: '音高微调', en: 'Key shift' }, value: '± Semitones' },
+    ],
+    usedApps: [APP_OVERTONE, APP_VOICESTUDIO],
+  },
+  'music.generate': {
+    tagline: {
+      zh: '写下画面氛围或情绪关键词，直接谱出立体声原创配乐，还能顺着前奏继续往下编',
+      en: 'Compose original stereo soundtracks from mood prompts or extend an existing melody',
+    },
+    diagramIn: { zh: '情绪氛围词 / 前奏片段', en: 'Mood Prompt / Intro' },
+    diagramOut: { zh: '立体声完整原创配乐', en: '44.1kHz Stereo Track' },
+    sampleKind: 'lab',
+    input: {
+      zh: '用一句话描述想要的电影感器乐氛围，直接生成立体声配乐。',
+      en: 'Describe the mood and instrumentation for an original stereo music cue.',
+    },
+    result: {
+      zh: '生成了层次饱满的 44.1kHz 立体声完整乐段，可直接铺进视频或继续编曲。',
+      en: 'Generated a full 30.77 s stereo track ready for timelines or further arrangement.',
+    },
+    facts: [
+      { label: { zh: '示例时长', en: 'Duration' }, value: '30.77 s' },
+      { label: { zh: '音质规格', en: 'Quality' }, value: '44.1 kHz Stereo' },
+    ],
+    usedApps: [APP_OVERTONE, APP_OPENMONTAGE],
+  },
+  'music.transcribe': {
+    tagline: {
+      zh: '听见好旋律不用手抄扒谱——随手哼唱或弹奏录音，自动变成可编辑的 MIDI 音符与和弦谱',
+      en: 'Hum a melody or play an instrument and instantly get editable MIDI notes, chords, and beats',
+    },
+    diagramIn: { zh: '哼唱 / 乐器弹奏录音', en: 'Hummed / Acoustic Clip' },
+    diagramOut: { zh: 'MIDI 音符 + ABC 和弦谱', en: 'Editable MIDI & Chords' },
+    sampleKind: 'runtime',
+    input: {
+      zh: '选一段吉他弹唱或钢琴录音，让本机引擎直接把旋律、节拍与和弦扒出来。',
+      en: 'Select an acoustic or vocal recording to extract notes, chords, and beat bars locally.',
+    },
+    result: {
+      zh: '瞬间生成可直接拖进编曲软件的 MIDI 乐谱、ABC 简谱与精准小节和弦轴。',
+      en: 'Exported ready-to-edit MIDI notes, ABC notation, and beat-aligned chord progressions.',
+    },
+    facts: [
+      { label: { zh: '导出乐谱', en: 'Exports' }, value: 'MIDI · ABC' },
+      { label: { zh: '支持曲长', en: 'Max length' }, value: '10 min' },
+    ],
+    usedApps: [APP_OVERTONE],
+  },
+
+  'realtime.interact': {
+    tagline: {
+      zh: '不用等「录完再发」——像打电话一样边听边聊、随时插话打断的毫秒级语音在场体验',
+      en: 'Talk naturally like a live phone call—interrupt anytime with millisecond voice-and-text response',
+    },
+    diagramIn: { zh: '连续开口 / 随时插话', en: 'Live Speech & Barge-In' },
+    diagramOut: { zh: '即时语音回应 + 实时字幕', en: 'Instant Voice + Captions' },
+    sampleKind: 'lab',
+    input: {
+      zh: '开启实时语音通话与伙伴自然对话，并在对方话音未落时随时点击插话打断。',
+      en: 'Start a live voice call with a companion and interrupt mid-sentence anytime without waiting.',
+    },
+    result: {
+      zh: '伙伴即时流式开口并同步浮现对应字幕；触发插话时立刻截断旧语音并切入新回应。',
+      en: 'The companion streams natural voice with time-aligned captions and cuts off immediately to pivot on barge-in.',
+    },
+    excerpt: { lang: 'zh', text: '借光，劳驾往旁边侧半步，别挡了照在方凳上的天光。' },
+    usedApps: [APP_ZHIYU],
   },
 };

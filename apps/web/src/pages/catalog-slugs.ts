@@ -1,6 +1,7 @@
 // Slugs for the bundled editorial fallback, taken from the initial Registry migration.
 export const editorialSlugs: Readonly<Record<string, string>> = {
   'nimi.zhiyu': 'zhiyu',
+  'nimi.utopia': 'utopia',
   'nimi.parentos': 'parentos',
   'nimi.overtone': 'overtone',
   'nimi.storybook': 'storybook',

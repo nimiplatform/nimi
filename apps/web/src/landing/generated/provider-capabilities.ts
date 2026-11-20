@@ -291,7 +291,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: false,
     endpointRequirement: "empty_string_only",
     inventoryMode: "static_source",
-    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
+    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "audio.voice.convert", "image.generate", "music.generate", "music.transcribe", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
     sources: ["K-LOCAL-001", "K-LOCAL-002", "K-MCAT-027"],
   },
   {
@@ -566,7 +566,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: [],
+    capabilities: ["text.decide"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

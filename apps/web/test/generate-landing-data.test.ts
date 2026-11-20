@@ -56,4 +56,13 @@ test('landing data generator treats local as an admitted capabilities-only provi
     /\| "world\.generate"/,
     'withdrawing the public claim must not delete the canonical contract vocabulary',
   );
+
+  const localModelCatalog = readFileSync(
+    new URL('src/landing/generated/local-model-catalog.ts', appRoot),
+    'utf8',
+  );
+  assert.match(localModelCatalog, /\* Source: runtime\/catalog\/providers\/local\.yaml/);
+  assert.doesNotMatch(localModelCatalog, /[A-Za-z]:\\/);
+  assert.match(localModelCatalog, /"vision\.locate": \[/);
+  assert.match(localModelCatalog, /LocateAnything 3B/);
 });

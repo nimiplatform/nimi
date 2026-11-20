@@ -23,10 +23,15 @@ const PROVIDER_CAPABILITIES_PATH = resolve(
   REPO_ROOT,
   'config/runtime-provider-capabilities.yaml',
 );
+const LOCAL_CATALOG_PATH = resolve(
+  REPO_ROOT,
+  'runtime/catalog/providers/local.yaml',
+);
 
 const GENERATED_DIR = resolve(APP_ROOT, 'src/landing/generated');
 const ADMITTED_PROVIDERS_OUT = resolve(GENERATED_DIR, 'admitted-providers.ts');
 const PROVIDER_CAPABILITIES_OUT = resolve(GENERATED_DIR, 'provider-capabilities.ts');
+const LOCAL_MODELS_OUT = resolve(GENERATED_DIR, 'local-model-catalog.ts');
 const INDEX_OUT = resolve(GENERATED_DIR, 'index.ts');
 const CLOUD_MODELS_OUT = resolve(GENERATED_DIR, 'cloud-model-catalog.ts');
 
@@ -66,7 +71,7 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
 // Canonical vocabulary may precede a verified public product slice. Keep the
 // contract type admitted while withholding provider-level supported claims
 // that the current release posture explicitly defers.
-const DEFERRED_PUBLIC_CAPABILITIES = new Set(['world.generate', 'text.decide', 'music.transcribe', 'audio.voice.convert']);
+const DEFERRED_PUBLIC_CAPABILITIES = new Set(['world.generate']);
 
 function failClose(message) {
   process.stderr.write(`generate-landing-data: ${message}\n`);
@@ -343,10 +348,175 @@ ${rows
   };
 }
 
-function generateIndexBarrel(catalogHash, capHash) {
+function formatLocalModelLabel(model, recipe, recipeModelCount) {
+  if (!model) {
+    if (recipe.recipe_id === 'insightface.image-face-swap.v1' || recipe.recipe_id === 'insightface.video-face-swap.v1') {
+      return 'InsightFace';
+    }
+    if (recipe.recipe_id === 'sherpa-speaker-encoder.v1') {
+      return 'Sherpa-ONNX Speaker Encoder';
+    }
+    return String(recipe.title ?? recipe.recipe_id)
+      .replace(/\s*\(weight terms unconfirmed\)/i, '')
+      .replace(/\s+(image|video)\s+face replacement$/i, '')
+      .replace(/\s+singing voice conversion$/i, '')
+      .replace(/\s+separation$/i, '')
+      .trim();
+  }
+
+  const id = model.model_id;
+  const spacyMatch = id.match(/^asset-nlp-spacy-(.+)-(\d+\.\d+\.\d+)$/);
+  if (spacyMatch) {
+    const pkg = spacyMatch[1].replace(/-/g, '_');
+    const lang = String(recipe.title ?? '').replace(/\s+(transformer\s+)?language analysis$/i, '');
+    return `spaCy ${pkg} (${lang})`;
+  }
+  if (id.startsWith('asset-decision-laya-')) {
+    return String(recipe.title ?? id).trim();
+  }
+  if (recipeModelCount > 1 && model.install?.repo) {
+    const repoName = model.install.repo.split('/').pop().replace(/-GGUF$/i, '');
+    if (/^gemma-4-/i.test(repoName)) {
+      return repoName.replace(/-/g, ' ').replace(/\bgemma\b/i, 'Gemma').replace(/\bit\b/i, 'IT');
+    }
+    if (/^grounding-dino-/i.test(repoName)) {
+      const size = repoName.slice('grounding-dino-'.length);
+      return `Grounding DINO ${size.charAt(0).toUpperCase()}${size.slice(1)}`;
+    }
+    return repoName;
+  }
+
+  return String(recipe.title ?? id)
+    .replace(/\s*\(Windows CUDA\)/i, '')
+    .replace(/\s*\(experimental\)/i, '')
+    .replace(/\s*\(non-commercial\)/i, '')
+    .replace(/\s+-\s+Built with Fish Audio/i, '')
+    .replace(/\s+-\s+Powered by KittenML/i, '')
+    .replace(/\s+audio\.cpp\s+(synthesis|transcription|reference voice|music generation)$/i, '')
+    .replace(/\s+(base\s+)?text generation$/i, '')
+    .replace(/\s+image and text$/i, '')
+    .replace(/\s+unified image, audio and video$/i, ' Unified')
+    .replace(/\s+text$/i, '')
+    .replace(/\s+generation and editing$/i, '')
+    .replace(/\s+generation$/i, '')
+    .replace(/\s+(image|video)\s+upscaling$/i, '')
+    .replace(/\s+silent video$/i, '')
+    .replace(/\s+video$/i, '')
+    .replace(/\s+image localization$/i, '')
+    .replace(/\s+speech synthesis$/i, '')
+    .replace(/\s+synthesis$/i, '')
+    .replace(/\s+Transformers transcription$/i, '')
+    .replace(/\s+transcription(\s+with.*)?$/i, '')
+    .replace(/\s+with word alignment$/i, '')
+    .replace(/\s+singing voice conversion$/i, '')
+    .replace(/\s+score-guided music$/i, '')
+    .replace(/\s+music$/i, '')
+    .replace(/\s+note estimates$/i, '')
+    .replace(/\s+CPU$/i, '')
+    .replace(/\s+reference voice$/i, '')
+    .replace(/^Qwen3 design and reference voice library$/i, 'Qwen3-TTS Base')
+    .replace(/^Qwen3 local voice clone$/i, 'Qwen3-TTS Base')
+    .replace(/^Qwen3 local voice design$/i, 'Qwen3-TTS VoiceDesign')
+    .replace(/^Qwen3 TTS CustomVoice$/i, 'Qwen3-TTS CustomVoice')
+    .replace(/^Qwen3 TTS Base$/i, 'Qwen3-TTS Base')
+    .replace(/^Qwen3 TTS VoiceDesign$/i, 'Qwen3-TTS VoiceDesign')
+    .replace(/^Qwen3 ASR$/i, 'Qwen3-ASR 0.6B')
+    .replace(/^llama\.cpp GGUF embeddings$/i, 'Nomic Embed Text v1.5')
+    .replace(/^Qwen3 last-token normalized embeddings$/i, 'Qwen3 Embedding 0.6B')
+    .replace(/^EmbeddingGemma 2 text retrieval$/i, 'EmbeddingGemma 2')
+    .replace(/^Whisper$/i, 'Whisper Large v3 Turbo')
+    .replace(/^LocateAnything$/i, 'LocateAnything 3B')
+    .trim();
+}
+
+function generateLocalModelCatalog(localYaml, localHash) {
+  if (localYaml.provider !== 'local' || !Array.isArray(localYaml.models) || !Array.isArray(localYaml.loadout_recipes)) {
+    failClose('local.yaml: expected provider="local" with models and loadout_recipes arrays');
+  }
+
+  const variantToModel = new Map();
+  for (const model of localYaml.models) {
+    for (const variant of model.variants ?? []) {
+      if (typeof variant.variant_id === 'string' && variant.variant_id) {
+        variantToModel.set(variant.variant_id, model);
+      }
+    }
+  }
+
+  const byCapability = new Map();
+  for (const recipe of localYaml.loadout_recipes) {
+    const capability = recipe.capability_contract;
+    if (typeof capability !== 'string' || !capability || DEFERRED_PUBLIC_CAPABILITIES.has(capability)) {
+      continue;
+    }
+    let entries = byCapability.get(capability);
+    if (!entries) {
+      entries = new Map();
+      byCapability.set(capability, entries);
+    }
+    const primarySlot = Array.isArray(recipe.slot_metadata) ? recipe.slot_metadata[0] : null;
+    const variantIds = Array.isArray(primarySlot?.recommended_variant_ids) ? primarySlot.recommended_variant_ids : [];
+    if (variantIds.length > 0) {
+      const recipeModels = [];
+      const seenInRecipe = new Set();
+      for (const variantId of variantIds) {
+        const model = variantToModel.get(variantId);
+        if (!model || seenInRecipe.has(model.model_id)) continue;
+        seenInRecipe.add(model.model_id);
+        recipeModels.push(model);
+      }
+      for (const model of recipeModels) {
+        const label = formatLocalModelLabel(model, recipe, recipeModels.length);
+        const dedupeKey = label.toLowerCase();
+        if (!entries.has(dedupeKey)) {
+          entries.set(dedupeKey, { id: model.model_id, label });
+        }
+      }
+    } else {
+      const label = formatLocalModelLabel(null, recipe, 0);
+      const dedupeKey = label.toLowerCase();
+      if (!entries.has(dedupeKey)) {
+        entries.set(dedupeKey, { id: recipe.recipe_id, label, byo: true });
+      }
+    }
+  }
+
+  const sortedCapabilities = [...byCapability.keys()].sort();
+  const header = formatHeader(LOCAL_CATALOG_PATH, localHash);
+  const lines = [
+    header,
+    '',
+    'export type LocalCapabilityModel = {',
+    '  id: string;',
+    '  label: string;',
+    '  byo?: boolean;',
+    '};',
+    '',
+    'export const LOCAL_MODEL_CATALOG: Readonly<Record<string, readonly LocalCapabilityModel[]>> = {',
+  ];
+  let totalModels = 0;
+  for (const capability of sortedCapabilities) {
+    const models = [...byCapability.get(capability).values()];
+    totalModels += models.length;
+    lines.push(`  ${quoteString(capability)}: [`);
+    for (const model of models) {
+      lines.push(`    ${JSON.stringify(model)},`);
+    }
+    lines.push('  ],');
+  }
+  lines.push('};', '');
+  return {
+    body: lines.join('\n'),
+    capabilityCount: sortedCapabilities.length,
+    modelCount: totalModels,
+  };
+}
+
+function generateIndexBarrel(catalogHash, capHash, localHash) {
   const header = formatHeaderMulti([
     { path: PROVIDER_CATALOG_PATH, sha256: catalogHash },
     { path: PROVIDER_CAPABILITIES_PATH, sha256: capHash },
+    { path: LOCAL_CATALOG_PATH, sha256: localHash },
   ]);
   return `${header}
 
@@ -366,6 +536,9 @@ export {
   ADMITTED_CAPABILITIES,
   PROVIDER_CAPABILITIES,
 } from './provider-capabilities.js';
+
+export type { LocalCapabilityModel } from './local-model-catalog.js';
+export { LOCAL_MODEL_CATALOG } from './local-model-catalog.js';
 `;
 }
 
@@ -428,19 +601,23 @@ function main() {
   process.stdout.write('generate-landing-data: reading admitted YAMLs...\n');
   const catalog = readSource(PROVIDER_CATALOG_PATH);
   const capabilities = readSource(PROVIDER_CAPABILITIES_PATH);
+  const localCatalog = readSource(LOCAL_CATALOG_PATH);
 
   process.stdout.write(`  provider-catalog.yaml      sha256=${catalog.sha256}\n`);
   process.stdout.write(`  provider-capabilities.yaml sha256=${capabilities.sha256}\n`);
+  process.stdout.write(`  local.yaml                 sha256=${localCatalog.sha256}\n`);
 
   const catalogResult = generateAdmittedProviders(catalog.parsed, catalog.sha256);
   const capResult = generateProviderCapabilities(capabilities.parsed, catalog.sha256, capabilities.sha256);
+  const localResult = generateLocalModelCatalog(localCatalog.parsed, localCatalog.sha256);
 
   applyJoinPolicy(catalogResult.providerNames, capResult.providerNames);
 
   const outputs = [
     [ADMITTED_PROVIDERS_OUT, catalogResult.body],
     [PROVIDER_CAPABILITIES_OUT, capResult.body],
-    [INDEX_OUT, generateIndexBarrel(catalog.sha256, capabilities.sha256)],
+    [LOCAL_MODELS_OUT, localResult.body],
+    [INDEX_OUT, generateIndexBarrel(catalog.sha256, capabilities.sha256, localCatalog.sha256)],
     [CLOUD_MODELS_OUT, generateCloudModelCatalog(capabilities.parsed)],
   ];
 
@@ -450,7 +627,13 @@ function main() {
   // happened to run a build and read `git status`.
   if (process.argv.includes('--check')) {
     const drifted = outputs
-      .filter(([target, body]) => readFileSync(target, 'utf8') !== body)
+      .filter(([target, body]) => {
+        try {
+          return readFileSync(target, 'utf8') !== body;
+        } catch {
+          return true;
+        }
+      })
       .map(([target]) => repoRelativePath(target));
     if (drifted.length > 0) {
       process.stderr.write(`generate-landing-data: generated artifact drift: ${drifted.join(', ')}\n`);
@@ -465,10 +648,12 @@ function main() {
 
   process.stdout.write(
     `generate-landing-data: wrote ${catalogResult.count} ADMITTED_PROVIDERS, ` +
-      `${capResult.count} PROVIDER_CAPABILITIES, ${capResult.capabilityCount} distinct capabilities\n`,
+      `${capResult.count} PROVIDER_CAPABILITIES, ${capResult.capabilityCount} distinct capabilities, ` +
+      `${localResult.modelCount} local models across ${localResult.capabilityCount} capabilities\n`,
   );
   process.stdout.write(`  -> ${repoRelativePath(ADMITTED_PROVIDERS_OUT)}\n`);
   process.stdout.write(`  -> ${repoRelativePath(PROVIDER_CAPABILITIES_OUT)}\n`);
+  process.stdout.write(`  -> ${repoRelativePath(LOCAL_MODELS_OUT)}\n`);
   process.stdout.write(`  -> ${repoRelativePath(INDEX_OUT)}\n`);
   process.stdout.write(`  -> ${repoRelativePath(CLOUD_MODELS_OUT)}\n`);
 }

@@ -6,6 +6,7 @@ import { sharedMessagesEn } from './app-preview-copy/shared.en.js';
 import { zhiyuMessagesZh } from './app-preview-copy/zhiyu.zh.js';
 import { zhiyuMessagesEn } from './app-preview-copy/zhiyu.en.js';
 import { createZhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { createUtopiaPreviewContent } from './landing-content.utopia.js';
 import type { HeroDemo, HeroDemoAppItem } from './landing-content.js';
 import type { LandingLocale } from '../i18n/locale.js';
 
@@ -23,7 +24,8 @@ const translateZh = createPreviewTranslate(coreMessagesZh);
 const translateEn = createPreviewTranslate(coreMessagesEn);
 
 const APP_ITEMS_ZH: ReadonlyArray<HeroDemoAppItem> = [
-  { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: '织羽', task: '与 Nimi 伙伴日常相处，延续对话与记忆，用你配置好的语音和形象互动。', tags: ['伙伴', '对话', '记忆'], updatedAt: '2026年9月17日', localDev: true },
+  { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: '织羽', task: '与 Nimi 伙伴日常相处，延续对话与记忆，体验已配置的语音和形象。', tags: ['伙伴', '对话', '记忆'], updatedAt: '2026年9月17日', localDev: true },
+  { id: 'nimi.utopia', iconSrc: '/demo/utopia-icon.png', name: 'NimiUtopia 洞天', task: '推门看望自治伙伴栖居的 2.5D 手绘洞天画卷，快拨天气潮汐、导入 .utopia 画卷包或递便签转织羽深聊。', tags: ['伙伴栖居', '手绘洞天', '文字生成'], updatedAt: '2026年11月20日', localDev: true },
   { id: 'nimi.parentos', name: 'ParentOS', task: '记录孩子的成长点滴与家庭日常，在本机建立私密的成长档案。', tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true, iconSrc: '/demo/parentos-icon.png' },
   { id: 'io.github.nimiplatform.jev-search', name: 'Jev Search', task: '用自然语言搜索全网信息，筛选感兴趣的来源，整理出清晰的参考链接。', tags: ['搜索', '结果排序'], updatedAt: '2026年10月12日', localDev: true, iconSrc: '/demo/jev-search-icon.png' },
   { id: 'io.github.nimiplatform.jev-ultrafast', name: 'Jev Ultrafast', task: '为浏览器设定目标，让它自主观察网页、做出决策并连续执行自动化操作。', tags: ['浏览器任务', '文字'], updatedAt: '2026年10月12日', localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
@@ -50,6 +52,7 @@ const APP_ITEMS_ZH: ReadonlyArray<HeroDemoAppItem> = [
 
 const APP_ITEMS_EN: ReadonlyArray<HeroDemoAppItem> = [
   { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: 'Zhiyu', task: 'Spend time with your Nimi companions, pick up past conversations with their existing memories, and use the voices and avatars you’ve set up.', tags: ['Companions', 'Conversations', 'Memory'], updatedAt: 'September 17, 2026', localDev: true },
+  { id: 'nimi.utopia', iconSrc: '/demo/utopia-icon.png', name: 'NimiUtopia', task: 'Drop in on your autonomous companions across 2.5D hand-drawn habitat scrolls, tune tides and weather, import .utopia packs, or hand off notes to Zhiyu.', tags: ['Companions', 'Habitat Scroll', 'Text Generation'], updatedAt: 'November 20, 2026', localDev: true },
   { id: 'nimi.parentos', name: 'ParentOS', task: 'Record your child’s milestones and everyday family life in a private journal on your device.', tags: ['Text Generation', 'Voice Transcription'], updatedAt: 'September 15, 2026', localDev: true, iconSrc: '/demo/parentos-icon.png' },
   { id: 'io.github.nimiplatform.jev-search', name: 'Jev Search', task: 'Search the web in plain language, filter for sources that interest you, and organize the links for reference.', tags: ['Search', 'Result Ranking'], updatedAt: 'October 12, 2026', localDev: true, iconSrc: '/demo/jev-search-icon.png' },
   { id: 'io.github.nimiplatform.jev-ultrafast', name: 'Jev Ultrafast', task: 'Set a goal and let your browser read the page, make decisions, and run multi-step workflows.', tags: ['Browser Automation', 'Text'], updatedAt: 'October 12, 2026', localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
@@ -136,6 +139,7 @@ export function createCoreHeroDemo(locale: LandingLocale): HeroDemo {
         locale: 'zh',
         messages: coreMessagesZh,
         zhiyu: createZhiyuPreviewContent(translateZh, 'zh'),
+        utopia: createUtopiaPreviewContent('zh'),
       },
     }
     : {
@@ -184,6 +188,7 @@ export function createCoreHeroDemo(locale: LandingLocale): HeroDemo {
         locale: 'en',
         messages: coreMessagesEn,
         zhiyu: createZhiyuPreviewContent(translateEn, 'en'),
+        utopia: createUtopiaPreviewContent('en'),
       },
     };
 

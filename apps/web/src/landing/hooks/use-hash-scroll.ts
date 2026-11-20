@@ -44,10 +44,12 @@ function scheduleCurrentHashScroll() {
   };
   const frameId = window.requestAnimationFrame(scroll);
   const timeoutId = window.setTimeout(scroll, 450);
+  const settleId = window.setTimeout(scroll, 950);
 
   return () => {
     window.cancelAnimationFrame(frameId);
     window.clearTimeout(timeoutId);
+    window.clearTimeout(settleId);
   };
 }
 

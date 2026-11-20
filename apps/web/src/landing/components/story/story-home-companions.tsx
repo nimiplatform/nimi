@@ -1,10 +1,21 @@
+import { useContext } from 'react';
 import { ArrowUp, BatteryFull, LockKeyhole, Plus, Send, Signal, Wifi } from 'lucide-react';
 import type { HeroDemo } from '../../content/landing-content.js';
 import { DEFAULT_STORY_AGENT } from '../../content/story-model.js';
+import { DemoSessionContext } from '../hero-demo-context.js';
 
 export function StoryHomeCompanions({ demo }: { demo: HeroDemo }) {
   const zhiyu = demo.appPreview.zhiyu;
   const partner = zhiyu.partners.find(candidate => candidate.id === DEFAULT_STORY_AGENT)!;
+  const session = useContext(DemoSessionContext);
+  const syncedTurns = (session?.localMessages[partner.id] ?? []).map((message) => ({
+    id: message.id,
+    role: message.role,
+    text: message.text,
+  }));
+  const visibleMessages = syncedTurns.length > 0
+    ? [...partner.messages, ...syncedTurns].slice(-2)
+    : partner.messages;
   return <div className="story-home-companions" aria-hidden="true">
     <div className="story-home-phone">
       <span className="story-home-phone-key story-home-phone-action" />
@@ -26,7 +37,7 @@ export function StoryHomeCompanions({ demo }: { demo: HeroDemo }) {
           <div><strong>{partner.name}</strong><small>Nimi</small></div>
         </header>
         <div className="story-home-phone-conversation">
-          {partner.messages.map(message => <p key={message.id} className={`story-home-phone-message is-${message.role}`}>
+          {visibleMessages.map(message => <p key={message.id} className={`story-home-phone-message is-${message.role}`}>
             {message.text}
           </p>)}
         </div>
@@ -51,7 +62,7 @@ export function StoryHomeCompanions({ demo }: { demo: HeroDemo }) {
           <div className="story-home-web-chat">
             <header className="story-home-web-header"><strong>{partner.name}</strong><span>{zhiyu.appName}</span></header>
             <div className="story-home-web-conversation">
-              {partner.messages.map(message => <p key={message.id} className={`story-home-web-message is-${message.role}`}>
+              {visibleMessages.map(message => <p key={message.id} className={`story-home-web-message is-${message.role}`}>
                 {message.text}
               </p>)}
             </div>

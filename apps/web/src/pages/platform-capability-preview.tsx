@@ -1,33 +1,67 @@
 import type { ReactNode } from 'react';
 import {
-  AudioLines, Captions, Clapperboard, Crosshair, FileText, Image, Mic, Music2, Radio, ScanText, Split,
+  AudioLines,
+  Captions,
+  Clapperboard,
+  Crosshair,
+  FileText,
+  Fingerprint,
+  GitBranch,
+  Image,
+  Languages,
+  ListMusic,
+  Maximize2,
+  Mic,
+  Music2,
+  Radio,
+  ScanFace,
+  ScanText,
+  Sparkles,
+  Split,
+  Video,
+  WandSparkles,
 } from 'lucide-react';
 import type { LandingLocale } from '../landing/i18n/locale.js';
+import { PlatformCapabilityAudioStage } from './platform-capability-audio-stages.js';
 import { CAPABILITY_SAMPLES, type CapabilityId } from './platform-capability-samples.js';
+import { PHASE1_RICH_CAPABILITIES, PlatformCapabilityRichStage } from './platform-capability-stages.js';
 
-const SAMPLE_ICONS = {
+export const SAMPLE_ICONS = {
   'text.generate': FileText,
   'text.embed': ScanText,
+  'text.decide': GitBranch,
+  'text.annotate': Languages,
   'image.generate': Image,
-  'video.generate': Clapperboard,
+  'image.upscale': Maximize2,
+  'image.face_swap': ScanFace,
   'vision.locate': Crosshair,
+  'video.generate': Clapperboard,
+  'video.upscale': Sparkles,
+  'video.face_swap': Video,
   'realtime.interact': Radio,
   'audio.synthesize': AudioLines,
   'audio.transcribe': Captions,
-  'music.generate': Music2,
   'voice.create': Mic,
+  'audio.speaker.embed': Fingerprint,
   'audio.separate': Split,
-} as const;
+  'audio.voice.convert': WandSparkles,
+  'music.generate': Music2,
+  'music.transcribe': ListMusic,
+} as const satisfies Record<CapabilityId, typeof FileText>;
 
 const SAMPLE_COPY = {
   zh: {
-    input: '测试输入',
-    output: '记录结果',
+    useCase: '适用场景',
+    input: '输入场景',
+    output: '实际效果',
+    usedByLabel: '生态代表应用',
     unavailable: { image: '原图未收录', video: '原始视频未收录', audio: '原始音频未收录' },
   },
   en: {
-    input: 'Test input',
-    output: 'Recorded result',
+    useCase: 'Where it helps',
+    input: 'What you do',
+    output: 'What happens',
+    usedByLabel: 'Used in Nimi Apps',
     unavailable: { image: 'Original image unavailable', video: 'Original video unavailable', audio: 'Original audio unavailable' },
   },
 } as const;
@@ -36,7 +70,6 @@ export function PlatformCapabilityPreview({
   capability,
   locale,
   title,
-  sourceLabel,
   headingId,
   routeCounts,
 }: {
@@ -50,55 +83,86 @@ export function PlatformCapabilityPreview({
   const sample = CAPABILITY_SAMPLES[capability];
   const Icon = SAMPLE_ICONS[capability];
   const copy = SAMPLE_COPY[locale];
-  const hasFooterMeta = Boolean(sample.facts?.length || sample.unavailableMedia);
+  const isPhase1VisualOrText = PHASE1_RICH_CAPABILITIES.has(capability);
 
   return (
-    <div className="public-capability-sample" data-sample={capability}>
-      <div className="public-capability-sample-input">
-        {title ? (
-          <header className="public-capability-sample-header">
-            <span className="public-capability-sample-icon" aria-hidden="true"><Icon size={18} /></span>
-            <div className="public-capability-sample-title">
-              <h3 id={headingId} aria-live="polite">{title}</h3>
-              {sourceLabel && <span>{sourceLabel}</span>}
-            </div>
-          </header>
-        ) : (
-          <span className="public-capability-sample-icon" aria-hidden="true"><Icon size={20} /></span>
-        )}
-        <div className="public-capability-sample-prompt">
-          <h4>{copy.input}</h4>
-          <p>{sample.input[locale]}</p>
+    <div className="platform-lab-stage is-rich-stage" data-sample={capability}>
+      {/* Top Toolbar: Capability Name, Contract Call, Engine Counts & Stepper */}
+      <header className="platform-lab-head">
+        <div className="platform-lab-title-group">
+          <span className="platform-sensory-stage-icon" aria-hidden="true"><Icon size={18} /></span>
+          {title && <h3 id={headingId} aria-live="polite">{title}</h3>}
+          <code className="platform-lab-code">{capability}()</code>
         </div>
         {routeCounts && (
-          <div className="public-capability-sample-footer">
-            {routeCounts}
+          <div className="platform-lab-head-controls">
+            <div className="platform-sensory-stage-routes">
+              {routeCounts}
+            </div>
           </div>
+        )}
+      </header>
+
+      {/* Upper Area: Full-Width Rich Interactive Showcase across all 20 Capabilities */}
+      <div className="platform-lab-hero-stage">
+        {isPhase1VisualOrText ? (
+          <PlatformCapabilityRichStage capability={capability} locale={locale} />
+        ) : (
+          <PlatformCapabilityAudioStage capability={capability} locale={locale} />
         )}
       </div>
-      <div className="public-capability-sample-result">
-        <div className="public-capability-sample-output">
-          <h4>{copy.output}</h4>
-          <p>{sample.result[locale]}</p>
-          {sample.excerpt && <blockquote lang={sample.excerpt.lang}>{sample.excerpt.text}</blockquote>}
-        </div>
-        {hasFooterMeta && (
-          <div className="public-capability-sample-meta">
-            {sample.facts && (
-              <dl className="public-capability-sample-facts">
-                {sample.facts.map(({ label, value }) => (
-                  <div key={label.en}>
-                    <dt>{label[locale]}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-            {sample.unavailableMedia && (
-              <p className="public-capability-sample-note">{copy.unavailable[sample.unavailableMedia]}</p>
-            )}
+
+      {/* Lower Area: Corresponding Human Explanation + Ecosystem Apps & Specs */}
+      <div className="platform-lab-explanation">
+        <p className="platform-sensory-stage-tagline">{sample.tagline[locale]}</p>
+
+        {sample.useCase ? (
+          <div className="platform-sensory-story-col platform-lab-usecase">
+            <h4>{copy.useCase}</h4>
+            <p>{sample.useCase[locale]}</p>
+          </div>
+        ) : (
+          <div className="platform-lab-story-grid">
+            <div className="platform-sensory-story-col">
+              <h4>{copy.input}</h4>
+              <p>{sample.input[locale]}</p>
+            </div>
+            <div className="platform-sensory-story-col is-output">
+              <h4>{copy.output}</h4>
+              <p>{sample.result[locale]}</p>
+              {sample.excerpt && capability !== 'text.generate' && capability !== 'realtime.interact' && (
+                <blockquote lang={sample.excerpt.lang}>{sample.excerpt.text}</blockquote>
+              )}
+            </div>
           </div>
         )}
+
+        <footer className="platform-sensory-stage-foot">
+          <div className="platform-sensory-apps">
+            <span>{copy.usedByLabel}</span>
+            <div className="platform-sensory-app-list">
+              {sample.usedApps.map((app) => (
+                <span key={app.name.en} className="platform-sensory-app-chip">
+                  <img src={app.icon} alt="" width={16} height={16} loading="lazy" />
+                  {app.name[locale]}
+                </span>
+              ))}
+            </div>
+          </div>
+          {sample.facts && (
+            <dl className="platform-sensory-facts">
+              {sample.facts.map((fact) => (
+                <div key={fact.label.en}>
+                  <dt>{fact.label[locale]}</dt>
+                  <dd>{fact.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {sample.unavailableMedia && (
+            <small className="platform-sensory-media-note">{copy.unavailable[sample.unavailableMedia]}</small>
+          )}
+        </footer>
       </div>
     </div>
   );

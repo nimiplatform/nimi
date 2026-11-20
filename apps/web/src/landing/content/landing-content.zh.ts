@@ -4,6 +4,7 @@ import { createRemainingAppPreviewContent } from './landing-content.remaining-ap
 import { appPreviewMessagesZh } from './app-preview-messages.zh.js';
 import type { LandingContent } from './landing-content.js';
 import { createZhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { createUtopiaPreviewContent } from './landing-content.utopia.js';
 import { createShijingPreviewContent } from './landing-content.shijing.js';
 import { createParentosPreviewContent } from './landing-content.parentos.js';
 import { createStorybookPreviewContent } from './landing-content.storybook.js';
@@ -42,6 +43,7 @@ export const landingContentZh: LandingContent = {
         messages: appPreviewMessagesZh,
         remainingApps: createRemainingAppPreviewContent(t),
         zhiyu: createZhiyuPreviewContent(t, 'zh'),
+        utopia: createUtopiaPreviewContent('zh'),
         shijing: createShijingPreviewContent(t),
         parentos: createParentosPreviewContent(t),
         storybook: createStorybookPreviewContent(t),

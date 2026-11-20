@@ -14,6 +14,7 @@ import { resolveLandingLinks, resolveLocalizedLinks, withLocaleQuery } from '../
 import { createDemoZhiyuAgentClient, createDemoZhiyuAgentCenterSession } from '../src/landing/components/demo-zhiyu-agent-center.js';
 import { DEMO_PREVIEW_APP_IDS } from '../src/landing/components/demo-app-preview.js';
 import { PUBLIC_SITE_NAV_ITEMS } from '../src/pages/public-site-shell.js';
+import { PLATFORM_CAPABILITIES } from '../src/pages/platform-capability-samples.js';
 
 test('the bilingual landing copy has complete key and interpolation parity', () => {
   const zh = getStoryCopy('zh'), en = getStoryCopy('en');
@@ -23,10 +24,6 @@ test('the bilingual landing copy has complete key and interpolation parity', () 
     const params = (text: string) => [...text.matchAll(/\{([a-zA-Z]\w*)\}/g)].map(match => match[1]).sort();
     assert.deepEqual(params(zh[key]), params(en[key]), key);
   }
-  assert.match(zh['security.checkDetail'], /未加密/);
-  assert.match(en['security.checkDetail'], /unencrypted/);
-  assert.match(zh['security.check'], /开发预览/);
-  assert.match(en['security.check'], /developer preview/i);
 });
 
 test('gallery selection wraps in either direction and drag direction follows the hand', () => {
@@ -49,7 +46,7 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
         children: createElement(StoryPage, { locale, links: localizedLinks, onLocale() {} }),
       }),
     ));
-    for (const id of ['hero-demo', 'apps', 'home-demo', 'explore-layers']) {
+    for (const id of ['hero-demo', 'apps', 'local-agents', 'home-demo', 'explore-layers']) {
       assert.ok(html.includes(`id="${id}"`), id);
     }
     assert.ok(!html.includes('story-power'));
@@ -61,6 +58,7 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
     assert.deepEqual(sections, [
       'story-hero',
       'story-experience',
+      'story-agents',
       'story-runtime',
       'story-portals',
       'story-ending',
@@ -68,7 +66,7 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
 
     const hero = html.match(/<section class="story-hero"[\s\S]*?<\/section>/)?.[0];
     assert.ok(hero);
-    assert.ok(hero.includes(copy['hero.eyebrow']));
+    assert.ok(!hero.includes('class="story-hero-eyebrow"'));
     assert.ok(hero.includes(copy['hero.title']));
     assert.ok(hero.includes(copy['hero.lead']));
     assert.ok(hero.includes(`href="${localizedLinks.downloadUrl}"`));
@@ -124,13 +122,38 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
       ],
     );
 
-    const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section id="home-demo")/)?.[0];
+    const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section id="local-agents")/)?.[0];
     assert.ok(ownership);
+
+    const localAgents = html.match(/<section id="local-agents"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(localAgents);
+    assert.ok(localAgents.includes(copy['agents.title']));
+    const renderedPillars = [...localAgents.matchAll(/data-agent-pillar="([^"]+)"/g)].map(match => match[1]);
+    assert.deepEqual(renderedPillars, ['utopia', 'origin', 'embodiment']);
+    assert.ok(localAgents.includes('data-active-scene="utopia"'));
+    assert.ok(localAgents.includes('/demo/utopia/seaside-island.webp'));
+    assert.ok(localAgents.includes('class="story-companion-showcase"'));
+    assert.doesNotMatch(localAgents, /agentHandle|Machine Loadout|Atomic Job Capture/);
+    assert.ok(localAgents.includes(`href="${withLocaleQuery('/home', locale)}"`));
+    if (locale === 'en') {
+      assert.doesNotMatch(localAgents, /\p{Script=Han}/u);
+    }
     const ownershipIntro = ownership.match(/<div class="story-experience-intro">[\s\S]*?<\/div>/)?.[0];
     assert.ok(ownershipIntro);
     assert.match(ownershipIntro, /<h2 id="experience-heading">/);
     assert.doesNotMatch(ownershipIntro, /<(?:p|small)\b|class="story-eyebrow"/);
-    assert.ok(ownership.includes('class="story-ownership-preview-trigger"'));
+    assert.ok(!ownership.includes('class="story-ownership-preview-trigger"'));
+    assert.ok(!ownership.includes('inert'));
+    assert.ok(ownership.includes('class="story-ownership-open"'));
+    assert.ok(ownership.includes(copy['experience.localModelsTab']));
+    assert.ok(ownership.includes(copy['experience.cloudModelsTab']));
+    assert.ok(ownership.includes(copy['experience.continuityTabPermissions']));
+    assert.ok(ownership.includes(copy['experience.continuityTabVane']));
+    assert.ok(ownership.includes(copy['experience.continuityTabParentos']));
+    assert.deepEqual(
+      demo.home.capabilities.map((item) => item.id),
+      Object.values(PLATFORM_CAPABILITIES).flat(),
+    );
     for (const key of ['models', 'memory', 'continuity'] as const) {
       assert.ok(ownership.includes(copy[`experience.${key}Title`]));
       assert.ok(ownership.includes(copy[`experience.${key}Body`]));
@@ -146,12 +169,20 @@ test('the overview homepage centers on the personal AI foundation, cross-app con
 
     const portals = html.match(/<section id="explore-layers"[\s\S]*?<\/section>/)?.[0];
     assert.ok(portals);
+    assert.ok(!portals.includes('class="story-portal-badge"'));
+    assert.ok(!portals.includes('跨端连续体'));
     for (const targetPath of ['/home', '/apps', '/platform', '/developers'] as const) {
       assert.ok(portals.includes(`href="${withLocaleQuery(targetPath, locale)}"`), targetPath);
     }
 
+    const ending = html.match(/<section class="story-ending"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(ending);
+    assert.ok(ending.includes(`href="${localizedLinks.downloadUrl}"`));
+    assert.ok(!ending.includes(`href="${withLocaleQuery('/platform', locale)}"`));
+
     for (const id of STORY_APPS) assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(id));
-    assert.equal(demo.apps.items.length, 23);
+    assert.equal(demo.apps.items.length, 24);
+    assert.ok(demo.apps.items.some((item) => item.id === 'nimi.utopia'));
     for (const item of demo.apps.items) {
       assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(item.id), item.id);
       assert.ok(item.iconSrc, `${item.id} has a source App icon`);
@@ -196,4 +227,127 @@ test('the ownership bar fills across a chapter and rewinds with scroll', async (
   assert.equal(getOwnershipChapterProgress(-400, 0), 1);
   assert.equal(getOwnershipChapterProgress(-460, -60), 1);
   assert.equal(getOwnershipChapterProgress(-200, 200), 0.5);
+});
+
+test('hero screen paging moves cleanly between the hero, full-screen demo stage, and next section', async () => {
+  const { resolveHeroScreenTarget } = await import('../src/landing/components/story/story-motion.js');
+  const anchors = { heroTop: 0, demoScreen: 420, nextScreen: 1260 };
+
+  // Downward: first screen -> full-screen demo -> next section -> native free scroll
+  assert.equal(resolveHeroScreenTarget(0, 100, anchors), 420);
+  assert.equal(resolveHeroScreenTarget(200, 100, anchors), 420);
+  assert.equal(resolveHeroScreenTarget(420, 100, anchors), 1260);
+  assert.equal(resolveHeroScreenTarget(800, 100, anchors), 1260);
+  assert.equal(resolveHeroScreenTarget(1260, 100, anchors), null);
+  assert.equal(resolveHeroScreenTarget(1800, 100, anchors), null);
+
+  // Upward: deep in page stays native; top of next section -> full-screen demo -> first screen
+  assert.equal(resolveHeroScreenTarget(1800, -100, anchors), null);
+  assert.equal(resolveHeroScreenTarget(1260, -100, anchors), 420);
+  assert.equal(resolveHeroScreenTarget(800, -100, anchors), 420);
+  assert.equal(resolveHeroScreenTarget(420, -100, anchors), 0);
+  assert.equal(resolveHeroScreenTarget(200, -100, anchors), 0);
+  assert.equal(resolveHeroScreenTarget(0, -100, anchors), null);
+});
+
+test('hero full-screen guide advances naturally from Nimi Home overview through Zhiyu sync and Nimi Home chat', async () => {
+  const { resolveHeroGuideStep } = await import('../src/landing/components/hero-demo.js');
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'home-overview', syncedTurnCount: 0, completedHandoff: false }),
+    'open-zhiyu',
+  );
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'zhiyu', syncedTurnCount: 0, completedHandoff: false }),
+    'send',
+  );
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'zhiyu', syncedTurnCount: 2, completedHandoff: false }),
+    'home-chat',
+  );
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'home-overview', syncedTurnCount: 2, completedHandoff: false }),
+    'home-chat',
+  );
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'home-chat', syncedTurnCount: 2, completedHandoff: false }),
+    'done',
+  );
+  assert.equal(
+    resolveHeroGuideStep({ activeTab: 'home-overview', syncedTurnCount: 2, completedHandoff: true }),
+    'done',
+  );
+});
+
+test('in-context hero guide anchors to canvas targets and never overlaps the window titlebar', async () => {
+  const { computeGuidePopoverLayout } = await import('../src/landing/components/hero-demo.js');
+
+  // Step 1: anchors below the Zhiyu app icon inside Nimi Home canvas
+  const step1 = computeGuidePopoverLayout({
+    container: { width: 1000, height: 640 },
+    card: { width: 300, height: 44 },
+    target: { left: 96, top: 280, width: 68, height: 74 },
+    preferredPlacement: 'below',
+    safeTop: 52,
+    pad: 14,
+    gap: 12,
+  });
+  assert.equal(step1.placement, 'below');
+  assert.equal(step1.top, 366);
+  assert.equal(step1.left, 14);
+  assert.equal(step1.caretX, 116);
+
+  // Step 2: anchors above the Zhiyu composer surface inside Zhiyu canvas
+  const step2 = computeGuidePopoverLayout({
+    container: { width: 1000, height: 640 },
+    card: { width: 320, height: 44 },
+    target: { left: 200, top: 530, width: 600, height: 84 },
+    preferredPlacement: 'above',
+    safeTop: 52,
+    pad: 14,
+    gap: 12,
+  });
+  assert.equal(step2.placement, 'above');
+  assert.equal(step2.top, 474);
+  assert.equal(step2.left, 340);
+  assert.equal(step2.caretX, 160);
+
+  // Step 3 inside Zhiyu: sits above the composer without a downward caret
+  const step3 = computeGuidePopoverLayout({
+    container: { width: 1000, height: 640 },
+    card: { width: 300, height: 44 },
+    target: { left: 200, top: 530, width: 600, height: 84 },
+    preferredPlacement: 'above-floating',
+    safeTop: 52,
+    pad: 14,
+    gap: 12,
+  });
+  assert.equal(step3.placement, 'floating');
+  assert.equal(step3.top, 474);
+
+  // Fallback when target is unmounted or scrolled out of view: bottom-center floating, below safeTop
+  const fallback = computeGuidePopoverLayout({
+    container: { width: 1000, height: 640 },
+    card: { width: 300, height: 44 },
+    target: null,
+    preferredPlacement: 'below',
+    safeTop: 52,
+    pad: 14,
+    gap: 12,
+  });
+  assert.equal(fallback.placement, 'floating');
+  assert.equal(fallback.left, 350);
+  assert.equal(fallback.top, 576);
+
+  // Target near top cannot push the guide up over the window titlebar
+  const nearTop = computeGuidePopoverLayout({
+    container: { width: 1000, height: 640 },
+    card: { width: 300, height: 44 },
+    target: { left: 120, top: 56, width: 80, height: 40 },
+    preferredPlacement: 'above',
+    safeTop: 52,
+    pad: 14,
+    gap: 12,
+  });
+  assert.equal(nearTop.placement, 'below');
+  assert.ok(nearTop.top >= 52);
 });

@@ -6,6 +6,7 @@ import type {
   ConversationReadPosition,
 } from '@nimiplatform/kit/features/chat/runtime';
 import { DemoZhiyuPartnerCard } from './demo-zhiyu-partner-card.js';
+import { DemoWindowHeader, type DemoWindowClose } from './demo-window-header.js';
 import { reduceZhiyuDemoNavigation } from '../content/zhiyu-demo-navigation.js';
 import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
@@ -446,8 +447,27 @@ function ComposerAgentCenterButton({
 /* Preview                                                                   */
 /* ------------------------------------------------------------------------ */
 
-export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPanel, guiding = false }: {
-  content: HeroDemoZhiyuPreview; initialPartnerId?: string | null; initialPanel?: AgentCenterSectionId; guiding?: boolean;
+export type DemoZhiyuWindowHeaderProps = {
+  title: string;
+  iconSrc?: string;
+  close?: DemoWindowClose;
+  children?: ReactNode;
+};
+
+export function DemoZhiyuPreview({
+  content,
+  initialPartnerId = null,
+  initialPanel,
+  guiding = false,
+  windowHeader,
+  hideWindowChrome = false,
+}: {
+  content: HeroDemoZhiyuPreview;
+  initialPartnerId?: string | null;
+  initialPanel?: AgentCenterSectionId;
+  guiding?: boolean;
+  windowHeader?: DemoZhiyuWindowHeaderProps;
+  hideWindowChrome?: boolean;
 }) {
   const { previewLang, t } = useAppPreviewLocale();
   const { copy } = content;
@@ -816,34 +836,54 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
       </div>
     ) : null;
 
+  const navButtons = (
+    <>
+      <button
+        type="button"
+        className={windowHeader ? 'demo-icon-button' : undefined}
+        aria-label={t('zhiyu.current.back')}
+        disabled={navigation.index === 0}
+        onClick={() => dispatch({ type: 'go', delta: -1 })}
+      >
+        <ArrowLeft size={17} />
+      </button>
+      <button
+        type="button"
+        className={windowHeader ? 'demo-icon-button' : undefined}
+        aria-label={t('zhiyu.current.forward')}
+        disabled={navigation.index === navigation.entries.length - 1}
+        onClick={() => dispatch({ type: 'go', delta: 1 })}
+      >
+        <ArrowRight size={17} />
+      </button>
+      <button
+        type="button"
+        className={windowHeader ? 'demo-icon-button' : undefined}
+        aria-label={t('zhiyu.current.toggleRail')}
+        aria-pressed={sidebarVisible}
+        onClick={() => setSidebarVisible(!sidebarVisible)}
+      >
+        <PanelLeft size={17} />
+      </button>
+    </>
+  );
+
   return (
     <div className="demo-zhiyu-preview" ref={previewRoot}>
-      <header className="demo-zhiyu-chrome">
-        <button
-          type="button"
-          aria-label={t('zhiyu.current.back')}
-          disabled={navigation.index === 0}
-          onClick={() => dispatch({ type: 'go', delta: -1 })}
+      {windowHeader ? (
+        <DemoWindowHeader
+          title={windowHeader.title}
+          iconSrc={windowHeader.iconSrc}
+          close={windowHeader.close}
+          navigation={navButtons}
         >
-          <ArrowLeft size={17} />
-        </button>
-        <button
-          type="button"
-          aria-label={t('zhiyu.current.forward')}
-          disabled={navigation.index === navigation.entries.length - 1}
-          onClick={() => dispatch({ type: 'go', delta: 1 })}
-        >
-          <ArrowRight size={17} />
-        </button>
-        <button
-          type="button"
-          aria-label={t('zhiyu.current.toggleRail')}
-          aria-pressed={sidebarVisible}
-          onClick={() => setSidebarVisible(!sidebarVisible)}
-        >
-          <PanelLeft size={17} />
-        </button>
-      </header>
+          {windowHeader.children}
+        </DemoWindowHeader>
+      ) : hideWindowChrome ? null : (
+        <header className="demo-zhiyu-chrome">
+          {navButtons}
+        </header>
+      )}
       <div
         className="nimi-ui-module--zhiyu h-full"
         data-demo-zhiyu-root="true"

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
 import { StoryPage } from './components/story/story-page.js';
@@ -10,13 +10,17 @@ import { usePublicDocumentMetadata, useResolvedPublicLinks } from '../pages/publ
 import { usePublicPageLocale } from '../pages/use-page-locale.js';
 
 export function App() {
-  const { hash } = useLocation();
+  const { pathname, hash } = useLocation();
   const [locale, setLocale] = usePublicPageLocale();
   const copy = getStoryCopy(locale);
   const demo = useMemo(() => createCoreHeroDemo(locale), [locale]);
   const links = useResolvedPublicLinks(locale);
 
   useHashScroll(true, hash);
+  useEffect(() => {
+    if (typeof window === 'undefined' || hash) return;
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
   usePublicDocumentMetadata(copy['hero.metaTitle'], copy['hero.metaDescription'], '/', locale);
 
   return (

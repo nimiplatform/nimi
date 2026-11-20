@@ -9,7 +9,8 @@ import {
 import { loadLandingContent, type FullHeroDemoAppPreview, type HeroDemo } from '../content/landing-content.js';
 import type { PreviewDestination, PreviewScreen } from '../content/demo-navigation.js';
 import { COURTYARD_PARTNER } from '../content/demo-tour.js';
-import { DemoWindowHeader } from './demo-window-header.js';
+import { DemoWindowHeader, type DemoWindowClose } from './demo-window-header.js';
+import type { DemoZhiyuWindowHeaderProps } from './demo-zhiyu-preview.js';
 import { AppPreviewLocaleProvider } from '../i18n/app-preview-locale.js';
 
 function loadBrowserCss(loader: () => Promise<unknown>): Promise<unknown> {
@@ -24,6 +25,13 @@ const DemoZhiyuPreview = lazy(async () => {
     import('./demo-zhiyu-preview.js'),
   ]);
   return { default: module.DemoZhiyuPreview };
+});
+const DemoUtopiaPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-utopia.css')),
+    import('./demo-utopia-preview.js'),
+  ]);
+  return { default: module.DemoUtopiaPreview };
 });
 const DemoShijingPreview = lazy(async () => {
   const [, module] = await Promise.all([
@@ -80,7 +88,8 @@ const DemoVoiceStudioPreview = lazy(async () => {
   return { default: module.DemoVoiceStudioPreview };
 });
 
-const loadRemainingCss = () => loadBrowserCss(() => import('../demo-remaining-apps.css'));
+const loadRemainingCss = () =>
+  Promise.all([loadThirdPartyCss(), loadBrowserCss(() => import('../demo-remaining-apps.css'))]);
 const DemoInscapePreview = lazy(async () => {
   const [, module] = await Promise.all([loadRemainingCss(), import('./demo-inscape-preview.js')]);
   return { default: module.DemoInscapePreview };
@@ -133,6 +142,7 @@ const DemoPresentonPreview = lazy(async () => {
 /** App ids with an interactive preview replica. */
 export const DEMO_PREVIEW_APP_IDS = [
   'nimi.zhiyu',
+  'nimi.utopia',
   'nimi.shijing',
   'nimi.parentos',
   'nimi.storybook',
@@ -169,6 +179,8 @@ function previewFor(
   view: PreviewScreen,
   guiding: boolean,
   partnerId = COURTYARD_PARTNER,
+  zhiyuHeader?: DemoZhiyuWindowHeaderProps,
+  chromeless = false,
 ): ReactNode | null {
   if (appId === 'nimi.zhiyu') {
     return (
@@ -177,8 +189,13 @@ function previewFor(
         guiding={guiding}
         initialPartnerId={view === 'companion' || view === 'memory' ? partnerId : null}
         initialPanel={view === 'memory' ? 'cognition' : undefined}
+        windowHeader={zhiyuHeader}
+        hideWindowChrome={chromeless}
       />
     );
+  }
+  if (appId === 'nimi.utopia') {
+    return <DemoUtopiaPreview content={preview.utopia} />;
   }
   if (!isFullAppPreview(preview)) {
     return null;
@@ -240,9 +257,10 @@ function previewFor(
 }
 
 /** The same App dialog is opened by a library launch and by the ecosystem directory. */
-export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption, headerActions, inline = false }: {
+export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption, headerActions, inline = false, chromeless = false }: {
   opened?: PreviewDestination;
   inline?: boolean;
+  chromeless?: boolean;
   guiding: boolean;
   apps: HeroDemo['apps'];
   preview: HeroDemo['appPreview'];
@@ -283,22 +301,38 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
       ? { ...hydrated, zhiyu: preview.zhiyu }
       : preview;
 
-  const isSupportedPreview = Boolean(app && PREVIEW_ID_SET.has(app.id));
-  const waitingForData = Boolean(needsHydration && (!hydrated || hydrated.locale !== preview.locale) && !hydrationError);
-  const replica = app && opened && !waitingForData
-    ? previewFor(app.id, activePreview, opened.screen, guiding, opened.partnerId)
-    : null;
-
   const dismiss = () => {
     if (typeof document !== 'undefined' && document.querySelector('[data-demo-nested-dialog]')) return;
     onClose();
   };
 
+  useEffect(() => {
+    if (!app || inline) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (document.querySelector('[data-demo-nested-dialog]')) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [app, inline, onClose]);
+
+  const closeControl: DemoWindowClose = { label: apps.closeLabel, onClose: dismiss };
+  const mergedZhiyuHeader: DemoZhiyuWindowHeaderProps | undefined =
+    app?.id === 'nimi.zhiyu' && !chromeless
+      ? { title: app.name, iconSrc: app.iconSrc, close: closeControl, children: inline ? undefined : headerActions }
+      : undefined;
+
+  const isSupportedPreview = Boolean(app && PREVIEW_ID_SET.has(app.id));
+  const waitingForData = Boolean(needsHydration && (!hydrated || hydrated.locale !== preview.locale) && !hydrationError);
+  const replica = app && opened && !waitingForData
+    ? previewFor(app.id, activePreview, opened.screen, guiding, opened.partnerId, mergedZhiyuHeader, chromeless)
+    : null;
+
   if (inline && app) {
-    return (
-      <section className="hero-demo-frame demo-embedded-app" aria-label={app.name} data-testid="demo-embedded-app">
-        <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
-        <div ref={onBody} className="demo-embedded-app-body" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
+    if (chromeless) {
+      return (
+        <div ref={onBody} className="demo-embedded-app-body h-full" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
           {waitingForData ? (
             <div className="tour-load-state" aria-busy="true">{app.name}</div>
           ) : (
@@ -309,9 +343,37 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
             </Suspense>
           )}
         </div>
+      );
+    }
+    const inlineFallbackHeader = mergedZhiyuHeader ? (
+      <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={closeControl} />
+    ) : null;
+    return (
+      <section className="hero-demo-frame demo-embedded-app" aria-label={app.name} data-testid="demo-embedded-app">
+        {!mergedZhiyuHeader && <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={closeControl} />}
+        <div ref={onBody} className="demo-embedded-app-body" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
+          {waitingForData ? (
+            <>
+              {inlineFallbackHeader}
+              <div className="tour-load-state" aria-busy="true">{app.name}</div>
+            </>
+          ) : (
+            <Suspense fallback={<>{inlineFallbackHeader}<div className="tour-load-state" aria-busy="true">{app.name}</div></>}>
+              <AppPreviewLocaleProvider key={activePreview.locale} locale={activePreview.locale} messages={activePreview.messages}>
+                {replica}
+              </AppPreviewLocaleProvider>
+            </Suspense>
+          )}
+        </div>
       </section>
     );
   }
+
+  const dialogFallbackHeader = mergedZhiyuHeader ? (
+    <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={closeControl}>
+      {headerActions}
+    </DemoWindowHeader>
+  ) : null;
 
   return (
     <Dialog
@@ -326,27 +388,35 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
         data-testid="demo-app-preview"
       >
         <DialogTitle className="sr-only">{app?.name ?? ''}</DialogTitle>
-        <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }}>
-          {headerActions}
-        </DemoWindowHeader>
+        {!mergedZhiyuHeader && (
+          <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={closeControl}>
+            {headerActions}
+          </DemoWindowHeader>
+        )}
         <DialogBody className="min-h-0 flex-1 p-0">
           {app && (
-            <div ref={onBody} className="h-full min-h-0" data-tour-surface="" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
+            <div ref={onBody} className="flex h-full min-h-0 flex-col" data-tour-surface="" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
               {waitingForData ? (
-                <div className="tour-load-state" aria-busy="true">{app.name}</div>
+                <>
+                  {dialogFallbackHeader}
+                  <div className="tour-load-state flex-1" aria-busy="true">{app.name}</div>
+                </>
               ) : replica ? (
-                <Suspense fallback={<div className="tour-load-state" aria-busy="true">{app.name}</div>}>
+                <Suspense fallback={<>{dialogFallbackHeader}<div className="tour-load-state flex-1" aria-busy="true">{app.name}</div></>}>
                   <AppPreviewLocaleProvider key={activePreview.locale} locale={activePreview.locale} messages={activePreview.messages}>
                     {replica}
                   </AppPreviewLocaleProvider>
                 </Suspense>
               ) : (
-                <div className="flex h-full items-center justify-center p-6">
-                  <EmptyState
-                    title={hydrationError || !isSupportedPreview ? apps.previewUnavailableTitle : app.name}
-                    description={apps.previewUnavailableBody}
-                  />
-                </div>
+                <>
+                  {dialogFallbackHeader}
+                  <div className="flex flex-1 items-center justify-center p-6">
+                    <EmptyState
+                      title={hydrationError || !isSupportedPreview ? apps.previewUnavailableTitle : app.name}
+                      description={apps.previewUnavailableBody}
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}
