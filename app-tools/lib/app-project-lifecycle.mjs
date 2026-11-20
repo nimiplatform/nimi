@@ -67,7 +67,7 @@ function planHostedWorkflow(targetDir) {
   const previous = file.previous?.toString('utf8').replaceAll('\r\n', '\n');
   // Apps initialized with the published rc.9 template can upgrade through normal sync.
   if (previous !== undefined && previous !== file.content &&
-      hashScaffoldContent(previous) !== 'c80010a26c4ed010807ec67e79083d04f8ed4345753e7d0bb12e3fe333c3f241')
+      hashScaffoldContent(previous) !== 'c80010a26c4ed010807ec67e79083d04f8ed4345753e7d0bb12e3fe333c3f241') // pragma: allowlist secret -- SHA-256 of the public rc.9 hosted workflow
     throw new Error('Unknown hosted Web workflow collision: ' + HOSTED_WEB_WORKFLOW_PATH);
   return file;
 }
