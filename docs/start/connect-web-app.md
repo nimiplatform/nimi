@@ -4,7 +4,7 @@
 
 A Web App lets you use your primary PC Runtime from a browser on the same machine or another device.
 
-Web scaffolding and tooling are available on the npm `pre` channel—App Tools `0.16.0-rc.9`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`). See [Install](/start/install) to align package versions and host requirements. Published `pre` packages let you create and run Web projects locally, but package availability alone is not end-to-end production sign-off.
+Web scaffolding and tooling are available on the npm `pre` channel—App Tools `0.16.0-rc.10`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`). See [Install](/start/install) to align package versions and host requirements. Published `pre` packages let you create and run Web projects locally, but package availability alone is not end-to-end production sign-off.
 
 ## 1. Prepare Your PC Runtime and Web Source
 
@@ -26,7 +26,7 @@ Finally, the browser must trust your site's TLS certificate (do not disable TLS 
 Scaffold a standalone Web project using App Tools from the `pre` channel:
 
 ```bash
-pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.9 nimi-app create \
+pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.10 nimi-app create \
   --dir my-web-app --profile standalone --platform web \
   --features studio-create --app-id com.example.studio --title "My Web App"
 ```
@@ -98,7 +98,7 @@ When you are ready to release, you have two paths:
 
 ### Release on nimi.xyz
 
-1. Choose the product’s permanent public slug. With published App Tools `0.16.0-rc.9`, complete the first `init` **before** adding `public_slug` to `nimi.app.yaml`. Then run `pnpm exec nimi-app sync` and commit the generated `.github/workflows/nimi-web-release.yml`.
+1. Choose the product’s permanent public slug and set `public_slug` in `nimi.app.yaml`. With App Tools `0.16.0-rc.10`, a new project's first `init` installs `.github/workflows/nimi-web-release.yml`. In an initialized project, run `pnpm exec nimi-app sync` and review and commit the managed workflow.
 2. Locally run `pnpm run build:release` (desktop + Web: `pnpm run build:web:release`) with `NIMI_WEB_VERSION=X.Y.Z` and `NIMI_WEB_ARCHIVE=nimi-web-X.Y.Z.zip`, using the actual release number. Check the root `index.html`, the source and version in `nimi-web-bundle.json`, and assets under `/_releases/X.Y.Z/`.
 3. Enable immutable GitHub Releases in the App repository and protect `web-v*` against updates and deletion. Push `web-vX.Y.Z` for the tested commit. Submit the exact release and its hosted source together following the [Registry instructions](https://github.com/nimiplatform/nimi-app-registry#remote-application-sources). This review supplies the production source registration. A development origin used for live calls has its own registration.
 4. After merge the platform verifies the release, makes its assets available and switches the active version. Open `https://nimi.ai/apps/<slug>` and launch `https://<slug>.nimi.xyz` there. The publisher needs no Cloudflare account or per-App DNS record.

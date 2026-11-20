@@ -4,7 +4,7 @@
 
 Android 12+ Apps connect to your primary PC Runtime through the Kit Capacitor container, using the same remote Runtime protocol as Web. Zhiyu (`apps/zhiyu`) is the reference implementation.
 
-To work with this path, install matching versions from the npm `pre` channel—App Tools `0.16.0-rc.9`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`)—alongside a compatible host. See [Install](/start/install) for setup details. Having these `pre` packages published lets you build and test locally, but it does not mean every Android or App Link path is end-to-end verified.
+To work with this path, install matching versions from the npm `pre` channel—App Tools `0.16.0-rc.10`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`)—alongside a compatible host. See [Install](/start/install) for setup details. Having these `pre` packages published lets you build and test locally, but it does not mean every Android or App Link path is end-to-end verified.
 
 There is currently no `create --platform mobile` scaffold and no App Tools APK or store publishing pipeline. Native project setup, signing, device access, and build tooling remain App-owned.
 

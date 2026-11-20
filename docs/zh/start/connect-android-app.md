@@ -4,7 +4,7 @@
 
 Android 12+ App 通过 Kit Capacitor 容器接入主 PC Runtime，底层与 Web 共用同一套远程 Runtime 协议，织羽（`apps/zhiyu`）是参考实现。
 
-使用这条路径时，请从 npm 的 `pre` 通道安装配套版本——App Tools `0.16.0-rc.9`、SDK `0.24.0-rc.10` 与 Kit `0.24.0-rc.16`（与 `latest` 区分），并搭配兼容版本的主机环境，详见[安装指南](/zh/start/install)。这些 `pre` 包已发布仅代表你可以本地构建与调试，不代表所有 Android 或 App Link 路径都已自动通过端到端验证。
+使用这条路径时，请从 npm 的 `pre` 通道安装配套版本——App Tools `0.16.0-rc.10`、SDK `0.24.0-rc.10` 与 Kit `0.24.0-rc.16`（与 `latest` 区分），并搭配兼容版本的主机环境，详见[安装指南](/zh/start/install)。这些 `pre` 包已发布仅代表你可以本地构建与调试，不代表所有 Android 或 App Link 路径都已自动通过端到端验证。
 
 目前没有 `create --platform mobile` 脚手架，也没有 App Tools APK 或应用商店发布流程。原生工程、签名、设备访问和构建工具仍由 App 自行维护。
 
