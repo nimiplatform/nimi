@@ -1,4 +1,12 @@
 {
+  "historyVersionMismatch": "This version of Home cannot open the chat database on this device. Keep the original database for recovery.",
+  "historyReadFailed": "Home could not read the conversation list on this device.",
+  "loadingHistory": "Loading conversations…",
+  "retryHistory": "Retry loading conversations",
+  "handoffSave": "Save selected conversation for Harness",
+  "handoffHint": "The local file includes the selected conversation’s messages and unsent text draft.",
+  "handoffSaved": "In Nimi Harness, open History and choose Open Home conversation, then select the saved file.",
+  "handoffUnavailable": "Choose a completed text conversation up to 1 MiB, without attachments or tool calls.",
   "avatarUnavailable": "Avatar unavailable",
   "contactsChoosePartner": "Choose a partner",
   "contactsChoosePartnerHint": "Select a partner to view their profile and settings.",

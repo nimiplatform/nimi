@@ -1,5 +1,7 @@
 import { ChatStreamStatus } from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { homeChatHandoff } from '../../../shared/chat-ai-handoff.js';
+import { saveHomeChatHandoff } from './chat-nimi-handoff.js';
 import { nimiComposerDraftRef, nimiComposerMemory } from './chat-nimi-composer-draft.js';
 import {
   useCallback,
@@ -13,7 +15,6 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '../../bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import { useTranslation } from 'react-i18next';
-import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
   hasAiConversationThread,
   resolveAiConversationActiveThreadId,
@@ -60,7 +61,7 @@ type UseAiConversationModeHostInput = {
 
 export function useAiConversationModeHost(
   input: UseAiConversationModeHostInput,
-): { host: DesktopConversationModeHost } {
+) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
@@ -390,5 +391,16 @@ export function useAiConversationModeHost(
     userDisplayName,
   });
 
-  return { host };
+  const saveForHarness = bundle && bundle.thread.id === activeThreadId && !visibleTurn && !bundleQuery.isError && !threadsQuery.isError ? () => {
+    if (navigation.getSnapshot().generation !== generation || composerMemory.getSnapshot().pending?.threadId === activeThreadId) return false;
+    const copy = homeChatHandoff(bundle, currentDraftTextRef.current);
+    if (!copy) return false;
+    return saveHomeChatHandoff(copy);
+  } : undefined;
+  const historyError = threadsQuery.isError
+    ? t(threadsQuery.error instanceof Error && threadsQuery.error.message.includes('CHAT_AI_SCHEMA_MISMATCH')
+      ? 'Chat.historyVersionMismatch' : 'Chat.historyReadFailed')
+    : null;
+  return { host, saveForHarness, historyError, loadingHistory: threadsQuery.isPending,
+    retryHistory: () => { void threadsQuery.refetch(); } };
 }

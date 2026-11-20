@@ -1,4 +1,12 @@
 {
+  "historyVersionMismatch": "此版本的 Home 无法打开设备上的聊天数据库。请保留原库，以便恢复历史。",
+  "historyReadFailed": "Home 无法读取此设备上的对话列表。",
+  "loadingHistory": "正在读取对话…",
+  "retryHistory": "重新读取对话",
+  "handoffSave": "将选中对话保存给 Harness",
+  "handoffHint": "本地文件包含所选对话的发言和未发送的文本草稿。",
+  "handoffSaved": "在 Nimi Harness 的 History 中选择 Open Home conversation，再选取刚保存的文件。",
+  "handoffUnavailable": "请选择不超过 1 MiB、发送已完成的纯文本对话；附件和工具调用不支持交接。",
   "avatarUnavailable": "形象不可用",
   "contactsChoosePartner": "选择伙伴",
   "contactsChoosePartnerHint": "选择伙伴可查看资料与设置。",

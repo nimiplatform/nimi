@@ -32,7 +32,7 @@ export function ChatNimiModeContent({
   const selectNimiThread = homeChat.selectNimiThread;
   const storeSelectedTargetId = homeChat.targetId;
 
-  const { host } = useAiConversationModeHost({
+  const { host, saveForHarness, historyError, loadingHistory, retryHistory } = useAiConversationModeHost({
     selection: nimiConversationSelection,
     lastSelectedThreadId: null,
     setSelection: selectNimiThread,
@@ -66,6 +66,10 @@ export function ChatNimiModeContent({
       settingsSheetSubtitle={host.settingsDrawerSubtitle || t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' })}
       afterShell={selectedTarget && threadListOpen ? (
         <ChatNimiThreadListSheet
+          saveForHarness={saveForHarness}
+          historyError={historyError}
+          loadingHistory={loadingHistory}
+          retryHistory={retryHistory}
           threads={threadSummaries}
           activeThreadId={host.activeThreadId}
           // Selecting a thread keeps the list open so people can hop between

@@ -88,6 +88,13 @@ export function useAiConversationHostActions(
 
   const handleCreateThread = useCallback(async () => {
     if (input.composerMemory.getSnapshot().pending) return;
+    try {
+      await persistDraftForThread(input.activeThreadId);
+    } catch (error) {
+      input.reportHostError(error);
+      return;
+    }
+    if (input.navigation.getSnapshot().generation !== input.composerMemory.generation) return;
     if (input.ephemeralThread) {
       input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
     }
@@ -102,7 +109,7 @@ export function useAiConversationHostActions(
     input.setEphemeralThread(thread);
     input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyBundle(thread));
     syncAiThreadSelectionState(thread.id);
-  }, [input, syncAiThreadSelectionState]);
+  }, [input, persistDraftForThread, syncAiThreadSelectionState]);
 
   const handleSelectThread = useCallback(async (threadId: string) => {
     if (!threadId || threadId === input.activeThreadId || input.composerMemory.getSnapshot().pending) return;

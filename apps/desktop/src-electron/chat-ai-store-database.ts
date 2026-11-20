@@ -72,7 +72,7 @@ export function createDesktopChatAiStoreSession() {
           if (schema !== current.schema || version !== current.version) close();
         }
         if (!current) {
-          const database = openDatabase(databasePath);
+          const database = openChatAiDatabase(databasePath);
           try {
             const opened = await lstat(databasePath, { bigint: true });
             current = { path: databasePath, identity: `${opened.dev}:${opened.ino}`, database,
@@ -275,7 +275,7 @@ function isExistingPathError(error: unknown): boolean {
   );
 }
 
-function openDatabase(databasePath: string): DatabaseSync {
+export function openChatAiDatabase(databasePath: string): DatabaseSync {
   const database = new DatabaseSync(databasePath);
   try {
     database.exec(`
@@ -527,6 +527,12 @@ function getThreadBundle(
   accountKey: string,
   contextOnly = false,
 ): ChatAiThreadBundle | null {
+  const transcript = readChatAiTranscript(database, threadId, contextOnly);
+  return transcript && { ...transcript, draft: getDraft(database, threadId, accountKey) };
+}
+
+/** Read persisted conversation messages independently of any account's unsent draft. */
+export function readChatAiTranscript(database: DatabaseSync, threadId: string, contextOnly = false): Omit<ChatAiThreadBundle, 'draft'> | null {
   const threadRow = database.prepare(`
     SELECT id, title, created_at_ms, updated_at_ms, last_message_at_ms
     FROM ai_threads
@@ -552,7 +558,7 @@ function getThreadBundle(
     WHERE thread_id = ?
     ORDER BY created_at_ms ASC, id ASC
   `).all(threadId).map(messageRecordFromRow);
-  return { thread, messages, draft: getDraft(database, threadId, accountKey) };
+  return { thread, messages };
 }
 
 function getMessageRecord(database: DatabaseSync, id: string): ChatAiMessageRecord | null {

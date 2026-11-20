@@ -46,6 +46,7 @@
     "noUncheckedIndexedAccess": true,
     "noPropertyAccessFromIndexSignature": false,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "resolveJsonModule": true,

@@ -108,7 +108,9 @@ for (const outcome of ['success', 'failure', 'lost commit response', ...(route =
       return result;
     }
     await navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: history.id } });
+    nimiComposerDraftRef(navigation, history.id, '').current = 'Unsent draft before opening another conversation';
     await actions().handleCreateThread();
+    assert.equal((await chatAiStoreClient.getDraft(history.id))?.text, 'Unsent draft before opening another conversation');
     const temporary = nimiComposerMemory(navigation).getSnapshot().ephemeralThread!;
     const retainedDraft = nimiComposerDraftRef(navigation, temporary.id, '');
     const temporaryText = route === 'direct switch with empty draft' ? '' : 'Keep this unsent temporary draft';

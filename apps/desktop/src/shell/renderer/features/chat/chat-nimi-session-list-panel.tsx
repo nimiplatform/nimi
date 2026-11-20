@@ -1,10 +1,15 @@
 import { AppCardSurface, cn, CompactAction, EmptyState } from '@nimiplatform/kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatNimiThreadListSheetProps = {
+  saveForHarness?: () => boolean;
+  historyError: string | null;
+  loadingHistory: boolean;
+  retryHistory: () => void;
   threads: readonly ConversationThreadSummary[];
   activeThreadId: string | null;
   onSelectThread: (threadId: string) => void;
@@ -59,6 +64,8 @@ function SessionThreadItem({
 
 export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
   const { t } = useTranslation();
+  const [notice, setNotice] = useState<{ id: string; text: string }>();
+  const selectedId = props.activeThreadId;
   const threadCount = props.threads.length;
   const subtitle = props.subtitle
     || (threadCount > 0
@@ -72,19 +79,28 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
       subtitle={subtitle}
       onClose={props.onClose}
       footer={(
-        <CompactAction
-          tone="primary"
-          fullWidth
-          onClick={props.onCreateThread}
-          disabled={!props.onCreateThread}
-          className="desktop-sidebar__row"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {t('Chat.newConversation', { defaultValue: 'New conversation' })}
-        </CompactAction>
+        <div className="grid gap-2">
+          {props.saveForHarness && selectedId && <div>
+            <CompactAction tone="neutral" fullWidth onClick={() => {
+              const saved = props.saveForHarness?.();
+              setNotice({ id: selectedId, text: saved ? t('Chat.handoffSaved') : t('Chat.handoffUnavailable') });
+            }}>{t('Chat.handoffSave')}</CompactAction>
+            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]" role="status">{notice?.id === selectedId ? notice.text : t('Chat.handoffHint')}</p>
+          </div>}
+          <CompactAction
+            tone="primary"
+            fullWidth
+            onClick={props.onCreateThread}
+            disabled={!props.onCreateThread}
+            className="desktop-sidebar__row"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            {t('Chat.newConversation', { defaultValue: 'New conversation' })}
+          </CompactAction>
+        </div>
       )}
     >
       {props.description ? (
@@ -92,7 +108,12 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
           <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{props.description}</p>
         </div>
       ) : null}
-      {props.threads.length === 0 ? (
+      {props.historyError && <div className="mx-4 my-4 grid gap-2" role="alert">
+        <p>{props.historyError}</p>
+        <CompactAction tone="neutral" onClick={props.retryHistory}>{t('Chat.retryHistory')}</CompactAction>
+      </div>}
+      {props.loadingHistory && !props.threads.length && <p className="mx-4 my-4" role="status">{t('Chat.loadingHistory')}</p>}
+      {props.threads.length === 0 && !props.historyError && !props.loadingHistory ? (
         <EmptyState
           className="mx-4 my-4"
           icon={(
