@@ -24,6 +24,7 @@ import {
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
+  hashScaffoldContent,
   managedAppReleaseWorkflowSource,
   renderAppBuildProfile,
   renderAppIdentityInput,
@@ -59,6 +60,16 @@ const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
 const HOSTED_WEB_WORKFLOW_PATH = '.github/workflows/nimi-web-release.yml';
 function hostedWorkflowSource() {
   return readFileSync(new URL('../templates/hosted-web-release.yml', import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+}
+
+function planHostedWorkflow(targetDir) {
+  const file = plannedFile(targetDir, HOSTED_WEB_WORKFLOW_PATH, hostedWorkflowSource());
+  const previous = file.previous?.toString('utf8').replaceAll('\r\n', '\n');
+  // Apps initialized with the published rc.9 template can upgrade through normal sync.
+  if (previous !== undefined && previous !== file.content &&
+      hashScaffoldContent(previous) !== 'c80010a26c4ed010807ec67e79083d04f8ed4345753e7d0bb12e3fe333c3f241')
+    throw new Error('Unknown hosted Web workflow collision: ' + HOSTED_WEB_WORKFLOW_PATH);
+  return file;
 }
 const APP_IDENTITY_PATH = '.nimi/config/app-identity.yaml';
 const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
@@ -1162,13 +1173,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
       previous: existsSync(workflowPath) ? readFileSync(workflowPath, 'utf8') : '',
     });
   }
-  if (descriptor.publicSlug) {
-    const hostedPath = path.join(targetDir, HOSTED_WEB_WORKFLOW_PATH);
-    const previous = existsSync(hostedPath) ? readFileSync(hostedPath, 'utf8') : null;
-    const template = hostedWorkflowSource();
-    if (previous !== null && previous.replaceAll('\r\n', '\n') !== template) throw new Error('Unknown hosted Web workflow collision: ' + HOSTED_WEB_WORKFLOW_PATH);
-    planned.push({ path: hostedPath, content: template, previous });
-  }
+  if (descriptor.publicSlug) planned.push(planHostedWorkflow(targetDir));
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
   return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination, toolchainUpdates, packageJson: files.packageJson };
@@ -1203,8 +1208,10 @@ function validateProjectPlan(targetDir, versions, planned, managed) {
 
 export function validateAppInitialization(targetDir, versions) {
   const effective = managedProjectVersions(targetDir, versions);
-  const current = assertProjectLifecycleCurrent(targetDir, effective, { managed: true });
+  const planned = readSubmittedManifest(targetDir).publicSlug ? [planHostedWorkflow(targetDir)] : [];
+  const current = assertProjectLifecycleCurrent(targetDir, effective, { managed: true, sources: planSources(targetDir, planned) });
   for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
+  return planned;
 }
 
 function ownershipHandoverMessage(handover) {
@@ -1403,7 +1410,7 @@ export function buildAppProject(cwd, options = {}, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const profile = readBuildProfile(targetDir);
   const selected = selectBuildOwner(profile, options.target);
-  if (options.production === true && profile.buildProfileRef === 'web-pnpm') throw new Error('Web release preflight is not implemented; build produces website files only.');
+  if (options.production === true && profile.buildProfileRef === 'web-pnpm') throw new Error('For a hosted Web release, use nimi-app check --production and your build:release script. Use nimi-app build for ordinary static output.');
   if (options.production === true) readAppInfo(targetDir, selected.target);
   const result = runOwnerCommand(targetDir, 'build', selected.command, options, runners);
   assertBuiltRuntimeEntry(targetDir, selected);

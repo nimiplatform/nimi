@@ -4,7 +4,7 @@
 
 Welcome to Nimi App development! With Nimi's developer tooling, you can quickly scaffold, build, and run modern desktop applications that combine host-managed access with local and cloud AI capabilities.
 
-This tutorial walks you through scaffolding a project with App Tools, configuring SDK and Kit dependencies, and running your app inside Desktop's supervised development environment.
+This tutorial starts a desktop App on the stable channel. If you plan to ship PC and Web together, use the published App Tools version in the [Web guide](/start/connect-web-app) for your desktop scaffold from day one. Keep one product ID and add its browser entry in the same repository. For an existing project, follow the [adoption guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md).
 
 ---
 
@@ -64,7 +64,6 @@ From your project root, run:
 pnpm install
 pnpm run init
 pnpm run check
-pnpm run test
 pnpm dev
 ```
 
@@ -79,16 +78,16 @@ pnpm dev
 
 ## 4. Build and Distribution Packaging
 
-When your application is tested and ready to package for distribution:
+Add a test for a real user task under `test/*.test.mjs` or configure your own test command, then run `pnpm run test`. Fill in the App summary, author and links, supply the PNG referenced by `metadata.icon`, write release notes and `NIMI_APP.md`, and set `package.json.license` to match the root `LICENSE`. Run `pnpm exec nimi-app check --production` to catch missing distribution inputs before compiling. Build and pack on the matching target:
 
 ```bash
 # macOS
-pnpm run app:build -- --target macos-aarch64
-pnpm run pack --target macos-aarch64 --production
+pnpm exec nimi-app build --target macos-aarch64 --production
+pnpm exec nimi-app pack --target macos-aarch64 --production
 
 # Windows
-pnpm run app:build -- --target windows-x86_64
-pnpm run pack --target windows-x86_64 --production
+pnpm exec nimi-app build --target windows-x86_64 --production
+pnpm exec nimi-app pack --target windows-x86_64 --production
 ```
 
 Running `pack --production` on the matching host verifies platform code signatures and system packaging prerequisites, outputting an archive ready for Local Import testing. Building a package only validates packaging prerequisites—you still need to import the archive to verify installation and end-to-end business flows. Publishing to the official Registry requires passing the platform's release preflight and audit process.
@@ -97,6 +96,8 @@ Running `pack --production` on the matching host verifies platform code signatur
 
 ## Next Steps
 
+- [Upgrade App Tools, SDK and Kit](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/upgrade-platform.md) — Select supported versions, preview managed changes and verify the App with its frozen lockfile.
+- [Publish a native package](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github) — Configure the protected release workflow and submit the exact native target for Catalog review.
 - [First AI Call](/sdk/first-ai-call) — Connect local and cloud models with just a few lines of code
 - [Enhance UI with Nimi Kit](/platform/kit/use-kit-in-app) — Build immersive, consistent user interfaces
 - [Configure AI Capability Intents](/sdk/ai-config-surface) — Give users complete control over routing and keys

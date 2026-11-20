@@ -28,7 +28,7 @@ Scaffold a standalone Web project using App Tools from the `pre` channel:
 ```bash
 pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.9 nimi-app create \
   --dir my-web-app --profile standalone --platform web \
-  --features studio-create --app-id com.example.web --title "My Web App"
+  --features studio-create --app-id com.example.studio --title "My Web App"
 ```
 
 Right now, `--features all` on Web resolves to the admitted `studio-create` slice: text generation, streaming chat, and embeddings.
@@ -53,6 +53,12 @@ pnpm exec nimi-app init --adopt --input ./nimi-adoption.json
 ```
 
 Keep your site's existing product entry, test/build commands, and account system intact. See [App Tools](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md) for how `web-pnpm` owns builds. Native projects can also declare an extra App-owned Web dev entry without altering their native build profile.
+
+### Add Web to an existing desktop App
+
+Keep the existing `app_id`, Electron entry and native build profile. Select a Web-capable App Tools, SDK and Kit combination from [Install](/start/install). Add `local_development.web` beside the Electron configuration and point its `command` at your browser dev script. Wire the browser renderer to Kit’s Web session, give it its own Vite entry and add `build:web:release` to run that build in `web-release` mode. In the Vite config, pass `release: mode === 'web-release'` to `nimiWebViteConfig` from `@nimiplatform/app-tools/web`. Keep product logic shared where it serves both clients. Expose model configuration and recovery from the browser itself.
+
+Run `pnpm exec nimi-app sync --dry-run --json`, inspect the changes, then run `pnpm exec nimi-app sync`, `pnpm exec nimi-app check` and `pnpm exec nimi-app dev --platform web`. Exercise both entries when shared behavior changes. To upgrade platform packages, follow the [existing-App upgrade guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/upgrade-platform.md).
 
 ## 3. Run Locally and Make a Real Call
 
@@ -89,6 +95,16 @@ When you are ready to release, you have two paths:
 
 - **Host on your own domain**: deploy with an admitted origin, trusted HTTPS, and bounded coordination routes.
 - **Platform-hosted candidate**: declare `public_slug` to generate an immutable hosted candidate. The release goes through a protected `web-v*` workflow and Registry review, and can go live once the platform verifies the approved source and bundle.
+
+### Release on nimi.xyz
+
+1. Choose the product’s permanent public slug. With published App Tools `0.16.0-rc.9`, complete the first `init` **before** adding `public_slug` to `nimi.app.yaml`. Then run `pnpm exec nimi-app sync` and commit the generated `.github/workflows/nimi-web-release.yml`.
+2. Locally run `pnpm run build:release` (desktop + Web: `pnpm run build:web:release`) with `NIMI_WEB_VERSION=X.Y.Z` and `NIMI_WEB_ARCHIVE=nimi-web-X.Y.Z.zip`, using the actual release number. Check the root `index.html`, the source and version in `nimi-web-bundle.json`, and assets under `/_releases/X.Y.Z/`.
+3. Enable immutable GitHub Releases in the App repository and protect `web-v*` against updates and deletion. Push `web-vX.Y.Z` for the tested commit. Submit the exact release and its hosted source together following the [Registry instructions](https://github.com/nimiplatform/nimi-app-registry#remote-application-sources). This review supplies the production source registration. A development origin used for live calls has its own registration.
+4. After merge the platform verifies the release, makes its assets available and switches the active version. Open `https://nimi.ai/apps/<slug>` and launch `https://<slug>.nimi.xyz` there. The publisher needs no Cloudflare account or per-App DNS record.
+5. Sign in and connect. In Home, open **Settings → Account Security → Remote access**, match the App and origin, and allow the source. Reconnect from the browser if the request timed out. For an App that saves results, perform one user task, disconnect, reconnect with the same account and primary PC, and read the result. A content update retains consent. Changes to the qualified source or its requested capabilities can require another confirmation.
+
+Web and native releases can advance independently. To roll Web back, a maintainer selects a retained, approved release compatible with current policy. For a storage change, verify that version can read data already written by the new version.
 
 ## Source Basis
 

@@ -4,7 +4,7 @@
 
 欢迎来到 Nimi App 开发世界！借助 Nimi 工具链，你可以快速构建现代化桌面应用，在受管宿主环境中安全调用本地与云端 AI 能力。
 
-本教程将带你使用 App Tools 脚手架初始化工程、配置 SDK 与 Kit 依赖，并在 Nimi Desktop 托管的开发环境中运行和调试应用。
+本页从稳定版工具开始创建桌面 App。如果产品同时面向 PC 和浏览器，建桌面工程时就选用[网页端指南](/zh/start/connect-web-app)列出的已发布版本，在同一个仓库、同一个产品 ID 下增加网页入口。已有业务工程可以直接走[存量 App 接入流程](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md)。
 
 ---
 
@@ -64,7 +64,6 @@ cd my-nimi-app
 pnpm install
 pnpm run init
 pnpm run check
-pnpm run test
 pnpm dev
 ```
 
@@ -79,16 +78,16 @@ pnpm dev
 
 ## 4. 构建与分发打包
 
-当应用完成测试、准备打包验证时，请在目标平台主机上执行对应命令：
+先在 `test/*.test.mjs` 加入一项实际业务测试，或配置工程已有的测试命令，再运行 `pnpm run test`。补齐应用摘要、作者和链接，提供 `metadata.icon` 指向的 PNG、版本说明和用户介绍 `NIMI_APP.md`。在 `package.json.license` 填写与根目录 `LICENSE` 一致的许可证标识。先运行 `pnpm exec nimi-app check --production` 检查分发资料，再在对应系统上构建并打包。
 
 ```bash
 # macOS
-pnpm run app:build -- --target macos-aarch64
-pnpm run pack --target macos-aarch64 --production
+pnpm exec nimi-app build --target macos-aarch64 --production
+pnpm exec nimi-app pack --target macos-aarch64 --production
 
 # Windows
-pnpm run app:build -- --target windows-x86_64
-pnpm run pack --target windows-x86_64 --production
+pnpm exec nimi-app build --target windows-x86_64 --production
+pnpm exec nimi-app pack --target windows-x86_64 --production
 ```
 
 `pack --production` 会校验构建产物的代码签名与运行前置条件，生成可用于本地导入（Local Import）测试的安装包。请注意，打包成功仅代表产物符合打包规范，实际安装体验与业务流程仍需在宿主环境中完成验收。若计划将应用上架至官方 Registry，还需通过完整的平台预检与审核流程。
@@ -97,6 +96,8 @@ pnpm run pack --target windows-x86_64 --production
 
 ## 接下来
 
+- [升级 App Tools、SDK 和 Kit](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/upgrade-platform.md)可查受支持的版本组合、受管文件变更预览及锁文件验证步骤。
+- 准备上架桌面端时，按[原生包发布指南](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github)配置标签保护，为实际发布的系统和架构提交审核。
 - [发起第一次 AI 调用](/zh/sdk/first-ai-call) — 几行代码连接本地模型与云端模型
 - [使用 Nimi Kit 丰富 UI 界面](/zh/platform/kit/use-kit-in-app) — 打造美观一致的沉浸式体验
 - [配置 AI 能力意图](/zh/sdk/ai-config-surface) — 让用户自主选择模型路由与密钥

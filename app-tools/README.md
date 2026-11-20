@@ -6,6 +6,8 @@ Use App Tools to create, test and ship native desktop and Web apps. Desktop apps
 
 Create a project, install its dependencies with your package manager and run `init`. For Web, fill in the registered origin, callback and client ID before initialization. Both carriers support `sync`, `check`, `dev`, `test` and `build`. Desktop projects use `pack` to prepare the built app for distribution.
 
+Choose one product `app_id` for all its carriers. For a new PC + Web product, bootstrap the desktop scaffold with the Web-capable App Tools version in the [Web guide](https://docs.nimi.ai/start/connect-web-app), then add the browser entry to the same project. Use that guide directly for a Web-only project. After installation, run the project-local CLI with `pnpm exec nimi-app`. The [upgrade guide](skills/nimi-app-lifecycle/references/upgrade-platform.md) covers existing Apps and changes to the SDK/Kit pair.
+
 | Command | Role |
 | :--- | :--- |
 | **`create`** | Scaffolds a standalone native desktop or Web project with a reverse-domain App ID, manifest declarations, and build workflows. |

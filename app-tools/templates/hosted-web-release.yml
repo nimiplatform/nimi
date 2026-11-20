@@ -85,4 +85,14 @@ jobs:
             fi
             gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
           fi
-          gh release verify-asset "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY"
+          for attempt in 1 2 3 4 5 6; do
+            if message=$(gh release verify-asset "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY" 2>&1); then
+              echo "$message"
+              break
+            fi
+            echo "$message" >&2
+            if [[ "$message" != *"no attestations found for tag $GITHUB_REF_NAME ("* || "$attempt" == 6 ]]; then
+              exit 1
+            fi
+            sleep 10
+          done

@@ -28,7 +28,7 @@ Web 项目的脚手架和工具链已发布在 npm 的 `pre` 通道——App Too
 ```bash
 pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.9 nimi-app create \
   --dir my-web-app --profile standalone --platform web \
-  --features studio-create --app-id com.example.web --title "My Web App"
+  --features studio-create --app-id com.example.studio --title "My Web App"
 ```
 
 目前 Web 端的 `--features all` 对应已接纳的 `studio-create` 能力切片：文本生成、流式聊天和向量计算。
@@ -53,6 +53,12 @@ pnpm exec nimi-app init --adopt --input ./nimi-adoption.json
 ```
 
 接入过程请保留网站原有的产品入口、测试与构建命令及账号体系；`web-pnpm` 的构建归属详见 [App Tools](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)。原生工程也可以额外声明 App 自有的 Web 开发入口，不会改动原有的原生构建配置。
+
+### 已有桌面 App 增加网页入口
+
+沿用桌面工程的 `app_id`、Electron 入口和原生构建配置。先按[安装指南](/zh/start/install)选好支持 Web 的 App Tools、SDK 和 Kit 组合。在 `local_development` 里为 `electron` 并列增加 `web`，让 `web.command` 指向网页开发脚本。浏览器入口使用 Kit 的 Web 会话；为它单独配置 Vite，并提供 `build:web:release` 脚本，以 `web-release` 模式构建。在 Vite 配置中调用 `@nimiplatform/app-tools/web` 的 `nimiWebViteConfig`，传入 `release: mode === 'web-release'`。两端可以共用业务逻辑。缺少模型配置时，用户应能在网页内找到设置并继续原来的任务。
+
+先执行 `pnpm exec nimi-app sync --dry-run --json` 核对变更，再运行 `pnpm exec nimi-app sync`、`pnpm exec nimi-app check`。使用 `pnpm exec nimi-app dev --platform web` 启动网页端。共用逻辑发生变化时，在两个入口各走一次受影响的任务。后续更换平台包，按[已有项目升级指南](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/upgrade-platform.md)更新并锁定依赖。
 
 ## 3. 本地运行并完成首次真实调用
 
@@ -89,6 +95,16 @@ Kit 的 `auth/app/web` 提供会话工厂，`auth/app` 提供 `NimiAppSessionPro
 
 - **独立域名部署**：自行托管在已准入的域名上，配置可信 HTTPS 与受限的协调路由。
 - **平台托管候选**：声明 `public_slug` 生成不可变托管候选，走受保护的 `web-v*` 发布流程并提交 Registry 审核。平台核实获准来源和构建产物后，候选版本才可上线。
+
+### 发布到 nimi.xyz
+
+1. 为产品选定长期使用的公开短名。使用已发布的 App Tools `0.16.0-rc.9` 时，先完成首次 `init`，再在 `nimi.app.yaml` 写入 `public_slug`。运行 `pnpm exec nimi-app sync`，提交生成的 `.github/workflows/nimi-web-release.yml`。
+2. 设置 `NIMI_WEB_VERSION=X.Y.Z` 和 `NIMI_WEB_ARCHIVE=nimi-web-X.Y.Z.zip`，其中版本替换为本次实际版本。网页工程运行 `pnpm run build:release`，双端工程运行 `pnpm run build:web:release`。打开 ZIP，核对根目录的 `index.html`、`nimi-web-bundle.json` 中的来源和版本，以及 `/_releases/X.Y.Z/` 下的资源。
+3. 在 App 自己的 GitHub 仓库启用不可变 Release，为 `web-v*` 配置禁止更新和删除的标签保护。从已测试的提交发布 `web-vX.Y.Z`，按 [Registry 说明](https://github.com/nimiplatform/nimi-app-registry#remote-application-sources)在同一 PR 提交托管来源和确切版本。此次审核一并完成正式网页来源登记。使用其他 HTTPS 地址联调真实 Runtime 时，该开发来源须单独准入。
+4. 合并后，平台核实版本、上传资源并切换线上指针。从 `https://nimi.ai/apps/<slug>` 点击网页入口，确认打开 `https://<slug>.nimi.xyz`。开发者无需 Cloudflare 账号，也无需逐个申请 DNS 记录。
+5. 网页登录后连接主 PC，在 Home 的 **Settings → Account Security → Remote access** 核对应用和来源，点击允许。等待超时可在网页重新连接。对会保存数据的 App，完成一次真实任务，退出后用同一账号连回同一主 PC，检查刚保存的结果。普通内容更新沿用原授权，来源或权限声明有实质变化时需要重新确认。
+
+桌面端和网页端可分别发版。回滚网页时，由维护者选回与当前策略兼容的已审核版本。涉及存档格式变化，应先验证旧版能够读取新版已写入的数据。
 
 ## Source Basis
 

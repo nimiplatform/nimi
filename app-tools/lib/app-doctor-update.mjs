@@ -716,7 +716,7 @@ function validateExistingSubmittedApp(targetDir) {
   };
 }
 
-export function initApp(cwd, options = {}, versions, runners = {}) {
+export function initApp(cwd, options = {}, versions, runners = {}, workflows = []) {
   const targetDir = resolveTargetDir(cwd, options);
   const intent = readIntent(targetDir);
   const currentManifest = readCurrentAppManifest(targetDir);
@@ -761,7 +761,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
       content = stringifyYaml(next, { lineWidth: 0 });
     }
     return plannedFile(targetDir, file.path, content);
-  }), ...planLifecycleGuidance(targetDir), ...snapshot.initFiles.map((file) => plannedFile(targetDir, file.path, file.content))];
+  }), ...workflows, ...planLifecycleGuidance(targetDir), ...snapshot.initFiles.map((file) => plannedFile(targetDir, file.path, file.content))];
   const preview = {
     ok: true, command: 'init', dir: targetDir, dryRun: options.dryRun === true,
     skillPath: LIFECYCLE_SKILL_PATH, changes: describeChanges(targetDir, planned), ownerSteps: lifecycleOwnerSteps(versions),

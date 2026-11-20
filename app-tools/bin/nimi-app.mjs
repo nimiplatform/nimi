@@ -197,12 +197,13 @@ function printUsage() {
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
       '',
-      'Publishing on GitHub:',
+      'Publishing a native package on GitHub:',
       '  Before the first release, configure NIMI_REPOSITORY_ADMIN_TOKEN with Administration: Read-only.',
       '  It checks tag protection and Release immutability; uploads use the built-in GitHub token.',
       '  The built-in token lacks the Administration permission needed for this settings check.',
       '  Local development does not need this credential. Setup:',
       '  https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github',
+      'Hosted Web: protect web-v* tags, enable immutable Releases, and submit the exact bundle to the Registry.',
       '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
@@ -406,18 +407,21 @@ try {
         dryRun,
       });
       break;
-    case 'check':
-      await checkApp(process.cwd(), {
+    case 'check': {
+      const result = await checkApp(process.cwd(), {
         dir,
         production,
         json,
       });
-      if (production && !json) {
-        process.stdout.write('[nimi-app] Local checks do not verify GitHub repository settings or secrets. Before tagging, configure NIMI_REPOSITORY_ADMIN_TOKEN (Administration: Read-only) to check tag protection and Release immutability:\n');
+      if (production && !json && result.platform === 'web') {
+        process.stdout.write('[nimi-app] Protect web-v* tags and enable immutable Releases in the App repository. Submit the exact Web bundle and hosted source for Registry review.\n');
+      } else if (production && !json) {
+        process.stdout.write('[nimi-app] Local checks do not verify GitHub repository settings or secrets. Before a native release, configure NIMI_REPOSITORY_ADMIN_TOKEN (Administration: Read-only) to check tag protection and Release immutability:\n');
         process.stdout.write('[nimi-app] Release uploads use the built-in GitHub token; it lacks the Administration permission needed for this settings check.\n');
         process.stdout.write('https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github\n');
       }
       break;
+    }
     case 'test':
       testApp(process.cwd(), { dir, json });
       break;

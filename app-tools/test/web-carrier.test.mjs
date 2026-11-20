@@ -1,6 +1,6 @@
 import { createNimiAppRecordStore } from '../../kit/dist/core/app-record-storage.js';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { stripTypeScriptTypes } from 'node:module';
@@ -9,7 +9,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { parse as yaml, stringify as stringifyYaml } from 'yaml';
 import { buildAppScaffoldSnapshot, buildAppScaffoldSnapshotFromIntent, hashScaffoldManagedContent } from '../lib/app-scaffold.mjs';
-import { appScaffoldVersions, resolveAppCreatePlan } from '../lib/index.mjs';
+import { appScaffoldVersions, initAppScaffold, resolveAppCreatePlan } from '../lib/index.mjs';
 import { readWebDevelopment, isWebCoordinationPath, nimiWebViteConfig, webOriginGuard } from '../lib/web-development.mjs';
 import { handleNimiWebCoordination } from '../lib/web-coordination.mjs';
 import { validateAppProjectInputs } from '../lib/app-doctor-update.mjs';
@@ -18,6 +18,30 @@ import { buildAppProject } from '../lib/app-project-lifecycle.mjs';
 const versions = appScaffoldVersions();
 const snapshot = () => buildAppScaffoldSnapshot({ profile: 'standalone', platform: 'web', versions,
   appId: 'unit.web', appTitle: 'Unit Web', features: ['studio-create'] });
+
+test('first init previews the hosted workflow and preserves a conflicting publisher file', (t) => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-web-init-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const file of snapshot().createFiles) {
+    const out = path.join(root, file.path);
+    mkdirSync(path.dirname(out), { recursive: true });
+    writeFileSync(out, file.content);
+  }
+  const file = path.join(root, 'nimi.app.yaml');
+  const manifest = yaml(readFileSync(file, 'utf8'));
+  manifest.public_slug = 'unit';
+  Object.assign(manifest.local_development.web, { origin: 'https://unit.example.test', redirect_uri: 'https://unit.example.test/', client_id: 'unit.web.dev' });
+  writeFileSync(file, stringifyYaml(manifest));
+  const workflow = '.github/workflows/nimi-web-release.yml';
+  const plan = initAppScaffold(root, { dryRun: true });
+  assert.ok(plan.changes.some(change => change.path === workflow && change.action === 'create'));
+  const target = path.join(root, workflow);
+  assert.equal(existsSync(target), false);
+  mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(target, 'publisher workflow');
+  assert.throws(() => initAppScaffold(root, { dryRun: true }), /workflow collision/);
+  assert.equal(readFileSync(target, 'utf8'), 'publisher workflow');
+});
 
 test('Web scaffold preserves selected feature closure without native shells or dependencies', () => {
   const output = snapshot();

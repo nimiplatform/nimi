@@ -199,8 +199,9 @@ function resolveCreateTopology() {
 
 export function initAppScaffold(cwd, options = {}) {
   if (options.adopt) return adoptAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
-  validateAppInitialization(path.resolve(cwd, options.dir || '.'), appScaffoldVersions());
-  return initApp(cwd, options, appScaffoldVersions(), appToolRunners());
+  const versions = appScaffoldVersions();
+  const workflows = validateAppInitialization(path.resolve(cwd, options.dir || '.'), versions);
+  return initApp(cwd, options, versions, appToolRunners(), workflows);
 }
 
 export function syncApp(cwd, options = {}) {
