@@ -37,6 +37,13 @@ test('one gateway stages immutable assets, switches and rolls back versions, and
             return Response.json({ test: 'realm' });
           },
         },
+        {
+          name: 'portal',
+          modules: true,
+          script: await readFile(path.join(here, '../web/public/_worker.js'), 'utf8'),
+          compatibilityDate: '2026-08-01',
+          serviceBindings: { APP_HOST: 'hosted-web' },
+        },
       ],
     }),
   );
@@ -137,6 +144,10 @@ test('one gateway stages immutable assets, switches and rolls back versions, and
   };
   await apply();
   for (const slug of ['alpha', 'beta']) await publishProduct(root, head, store, await row(slug), io);
+  const portal = await mf.getWorker('portal');
+  const directory = await portal.fetch('https://nimi.ai/.well-known/nimi-apps/alpha');
+  assert.equal(directory.status, 200);
+  assert.equal((await directory.json()).web.version, '1.0.0');
   assert.equal(
     (await (await get('https://catalog.internal/.well-known/nimi-apps/alpha')).json()).web.version,
     '1.0.0',
