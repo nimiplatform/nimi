@@ -14,7 +14,7 @@
 | [npm App Tools `0.14.0`](https://registry.npmjs.org/@nimiplatform%2fapp-tools/0.14.0) | 原生应用开发 CLI；该制品不包含 Web 导出或 `--platform` 入口。 |
 | [npm Vercel 适配器 `0.6.2`](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.6.2) | 已发布，声明依赖 SDK `^0.22.2`、AI SDK `^7.0.0` 与 provider `^4.0.0`。实际兼容性仍需在目标宿主组合中验证，不能仅凭依赖范围推定。 |
 
-上表列出公开 Beta 和 npm 稳定包。开发 Web 或 Android 客户端时，请使用支持远程接入的 Home 和 Runtime，并选用配套的预发布包。已发布的一组是 App Tools `0.16.0-rc.9`、SDK `0.24.0-rc.10` 和 Kit `0.24.0-rc.16`。创建工程后，沿用脚手架生成的版本组合并提交锁文件。需要测试尚未发布的源码改动时，再使用下文的完整归档。
+上表列出公开 Beta 和 npm 稳定包。开发 Web 或 Android 客户端时，请使用支持远程接入的 Home 和 Runtime，并选用配套的预发布包。已发布的一组是 App Tools `0.16.0-rc.10`、SDK `0.24.0-rc.10` 和 Kit `0.24.0-rc.16`。创建工程后，沿用脚手架生成的版本组合并提交锁文件。需要测试尚未发布的源码改动时，再使用下文的完整归档。
 
 ## 工具链与源码组合
 

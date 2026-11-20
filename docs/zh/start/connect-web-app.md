@@ -4,7 +4,7 @@
 
 通过 Web App，你可以在本机或其他设备的浏览器里直接使用绑定的主 PC Runtime。
 
-Web 项目的脚手架和工具链已发布在 npm 的 `pre` 通道——App Tools `0.16.0-rc.9`、SDK `0.24.0-rc.10` 和 Kit `0.24.0-rc.16`（与 `latest` 区分），具体版本搭配与主机要求见[安装指南](/zh/start/install)。这些 `pre` 包可供本地建项与联调，但包已发布并不等同于端到端产品路径自动通过验证。
+Web 项目的脚手架和工具链已发布在 npm 的 `pre` 通道——App Tools `0.16.0-rc.10`、SDK `0.24.0-rc.10` 和 Kit `0.24.0-rc.16`（与 `latest` 区分），具体版本搭配与主机要求见[安装指南](/zh/start/install)。这些 `pre` 包可供本地建项与联调，但包已发布并不等同于端到端产品路径自动通过验证。
 
 ## 1. 准备 PC Runtime 与网站来源
 
@@ -26,7 +26,7 @@ Web 项目的脚手架和工具链已发布在 npm 的 `pre` 通道——App Too
 使用 `pre` 通道的 App Tools 创建独立 Web 工程：
 
 ```bash
-pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.9 nimi-app create \
+pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.10 nimi-app create \
   --dir my-web-app --profile standalone --platform web \
   --features studio-create --app-id com.example.studio --title "My Web App"
 ```
@@ -98,7 +98,7 @@ Kit 的 `auth/app/web` 提供会话工厂，`auth/app` 提供 `NimiAppSessionPro
 
 ### 发布到 nimi.xyz
 
-1. 为产品选定长期使用的公开短名。使用已发布的 App Tools `0.16.0-rc.9` 时，先完成首次 `init`，再在 `nimi.app.yaml` 写入 `public_slug`。运行 `pnpm exec nimi-app sync`，提交生成的 `.github/workflows/nimi-web-release.yml`。
+1. 为产品选定长期使用的公开短名，在 `nimi.app.yaml` 填写 `public_slug`。使用 App Tools `0.16.0-rc.10` 新建项目时，首次 `init` 会生成 `.github/workflows/nimi-web-release.yml`。已初始化的项目运行 `pnpm exec nimi-app sync`，核对并提交更新后的工作流。
 2. 设置 `NIMI_WEB_VERSION=X.Y.Z` 和 `NIMI_WEB_ARCHIVE=nimi-web-X.Y.Z.zip`，其中版本替换为本次实际版本。网页工程运行 `pnpm run build:release`，双端工程运行 `pnpm run build:web:release`。打开 ZIP，核对根目录的 `index.html`、`nimi-web-bundle.json` 中的来源和版本，以及 `/_releases/X.Y.Z/` 下的资源。
 3. 在 App 自己的 GitHub 仓库启用不可变 Release，为 `web-v*` 配置禁止更新和删除的标签保护。从已测试的提交发布 `web-vX.Y.Z`，按 [Registry 说明](https://github.com/nimiplatform/nimi-app-registry#remote-application-sources)在同一 PR 提交托管来源和确切版本。此次审核一并完成正式网页来源登记。使用其他 HTTPS 地址联调真实 Runtime 时，该开发来源须单独准入。
 4. 合并后，平台核实版本、上传资源并切换线上指针。从 `https://nimi.ai/apps/<slug>` 点击网页入口，确认打开 `https://<slug>.nimi.xyz`。开发者无需 Cloudflare 账号，也无需逐个申请 DNS 记录。
