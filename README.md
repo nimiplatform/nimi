@@ -6,7 +6,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 
 [下载与发布状态](https://nimi.ai/download) · [官方网站](https://nimi.ai) · [开发文档](https://docs.nimi.ai) · [版本发布](https://github.com/nimiplatform/nimi/releases) · [Discord 社区](https://discord.gg/BQwHJvPn)
 
-> **当前发布（公开 Beta `nimi/v0.2.4`）**：该版本的安装包随附承载 Nimi Home 的 Desktop、Runtime、Avatar 及所需系统服务，支持 **macOS Apple Silicon**（`arm64`，macOS 13.0+）与 **Windows x86_64**（Windows 10 2004 / `10.0.19041`+）。Zhiyu 在此 Beta 发布后才加入源码的 [完整产品包](.nimi/spec/platform/product-lifecycle.authority.yaml)。请前往 [下载页面](https://nimi.ai/download) 或 [v0.2.4 发布页](https://github.com/nimiplatform/nimi/releases/tag/nimi/v0.2.4) 获取安装程序与发行元数据。该版本通过 `beta` 通道分发。使用 Nimi 需要注册 Nimi 账号并在浏览器中完成登录授权。
+> **当前发布（公开 Beta `nimi/v0.2.4`，通过 `beta` 通道分发）**：该版本安装包随附承载 Nimi Home 的 Desktop、Runtime、Avatar 及所需系统服务，支持 **macOS Apple Silicon**（`arm64`，macOS 13.0+）与 **Windows x86_64**（Windows 10 2004 / `10.0.19041`+）。请前往 [下载页面](https://nimi.ai/download) 或 [v0.2.4 发布页](https://github.com/nimiplatform/nimi/releases/tag/nimi/v0.2.4) 获取安装程序与发行元数据。使用 Nimi 需要注册 Nimi 账号并在浏览器中完成登录授权。注：Zhiyu 在此 Beta 发布后才加入源码的 [完整产品包](.nimi/spec/platform/product-lifecycle.authority.yaml)。
 
 ---
 
@@ -48,7 +48,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 
 ---
 
-获准的 Web 和 Android 来源在完成官方登录并经 Home 首次确认后，可在支持直连的网络中连接账号绑定的主 Runtime，消费设备无需另行安装 Runtime。目前这两类新增接入入口需要使用相互匹配的源码包；Android 本机开发、正式 App Link 分发与公网连通性需分别验证。见 [Web 接入](https://docs.nimi.ai/start/connect-web-app)与 [Android 接入](https://docs.nimi.ai/start/connect-android-app)。
+获准的 Web 和 Android 来源在完成官方登录并经 Home 首次确认后，可在支持直连的网络中连接账号绑定的主 Runtime，消费设备无需另行安装 Runtime。这两类接入需要兼容的主机，以及配套的 npm 预发布包或完整源码构建；Android 本机开发、正式 App Link 分发与公网连通性需分别验证。见 [Web 接入](https://docs.nimi.ai/start/connect-web-app)与 [Android 接入](https://docs.nimi.ai/start/connect-android-app)。
 
 ## 开发者起步
 
@@ -62,7 +62,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create --dir my-ai-app --profile standalone
 ```
 
-上述已发布的 CLI 适用于原生应用。当前接入 Web 或 Android 需使用完整且相互匹配的源码 SDK、Kit、App Tools 与 Runtime。制品选择与依赖组合见[开发环境准备](https://docs.nimi.ai/start/install)。
+上述已发布的 CLI 适用于原生应用。开发 Web 或 Android 客户端时，请选用配套的 SDK、Kit、App Tools 候选包及支持远程接入的 Runtime。制品选择与依赖组合见[开发环境准备](https://docs.nimi.ai/start/install)。
 
 推荐阅读：
 - [快速创建第一个 App 指南](https://docs.nimi.ai/start/create-an-app)

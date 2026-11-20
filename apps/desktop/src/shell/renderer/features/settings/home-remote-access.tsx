@@ -19,7 +19,7 @@ const copy = {
     disable: 'Disable remote access',
     connecting: 'Connecting to the account service…',
     listening: 'Recently online. Waiting for a direct connection.',
-    activationPending: 'Remote access is waiting for this primary binding to activate.',
+    activationPending: 'Remote access is waiting for this primary Runtime binding to activate.',
     unavailable: 'New connections are currently unavailable.',
     primary: 'Bind this PC as your primary Runtime before enabling access.',
     loading: 'Reading remote access status…',
@@ -51,7 +51,7 @@ const copy = {
     timeUnknown: 'Connection time unavailable',
     endConnection: 'End connection',
     ended: 'The selected connection has ended.',
-    connectionHint: 'Ending a connection interrupts its live requests, but keeps source access and other connections. Accepted background jobs follow their existing rules; the client may reconnect.',
+    connectionHint: 'Ending a connection interrupts its live requests without revoking source access or affecting other connections. Accepted background jobs follow their existing rules, and the client may reconnect.',
   },
   zh: {
     title: '远程接入',
@@ -61,7 +61,7 @@ const copy = {
     disable: '关闭远程接入',
     connecting: '正在连接账号服务…',
     listening: '最近在线，正在等待获准应用发起直连。',
-    activationPending: '远程接入正在等待此主绑定生效。',
+    activationPending: '远程接入正在等待主 Runtime 绑定生效。',
     unavailable: '当前无法建立新的连接。',
     primary: '需先将这台电脑设为主 Runtime，才能开启远程接入。',
     loading: '正在读取接入状态…',
@@ -93,7 +93,7 @@ const copy = {
     timeUnknown: '连接时间暂不可用',
     endConnection: '结束连接',
     ended: '已结束所选连接。',
-    connectionHint: '结束连接会中断这条连接上的实时请求，保留来源许可和其他连接。已受理的后台任务按原规则继续；客户端可重新连接。',
+    connectionHint: '结束连接会中断该连接上的实时请求，但不会撤销来源许可，也不影响其他连接。已受理的后台任务仍按原规则继续，客户端可重新连接。',
   },
 };
 
@@ -333,7 +333,7 @@ export function HomeRemoteAccess({
                   }}
                 />
                 <Button tone="secondary" size="sm" disabled={query.isFetching} onClick={() => void query.refetch()}>
-                  {zh ? '重试读取' : 'Retry'}
+                  {zh ? '重新加载' : 'Retry'}
                 </Button>
               </div>
             ) : null}
@@ -436,7 +436,7 @@ export function HomeRemoteAccess({
             {query.isError && sources.length > 0 ? (
               <div className="px-5 pt-4">
                 <InlineAlert tone="warning">
-                  {zh ? '以下为上次读取的记录。恢复连接后才能操作。' : 'Showing previously read records. Reconnect before making changes.'}
+                  {zh ? '以下为上次读取的记录。恢复连接后才能操作。' : 'Showing the last records we could load. Reconnect to make changes.'}
                 </InlineAlert>
               </div>
             ) : null}
@@ -529,7 +529,7 @@ export function HomeRemoteAccess({
                   <div className="flex size-12 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]">
                     <ShieldCheck size={22} aria-hidden="true" />
                   </div>
-                  <NimiText role="label">{zh ? '当前电脑未作为主 Runtime' : 'Primary Runtime required on this PC'}</NimiText>
+                  <NimiText role="label">{zh ? '当前电脑尚未设为主 Runtime' : 'This computer is not your primary Runtime'}</NimiText>
                   <NimiText role="helper" className="max-w-sm">
                     {zh
                       ? '将这台电脑设为主 Runtime 并开启远程接入后，请求连接的应用会显示在这里供你确认和管理。'
@@ -606,7 +606,7 @@ function RemoteSourceRow({
               ))}
             </ul>
           ) : (
-            <NimiText role="helper">{zh ? '未声明访问范围' : 'No declared access'}</NimiText>
+            <NimiText role="helper">{zh ? '未声明访问范围' : 'No access scope declared'}</NimiText>
           )}
           <NimiText role="helper">{c.unsupported}</NimiText>
         </div>

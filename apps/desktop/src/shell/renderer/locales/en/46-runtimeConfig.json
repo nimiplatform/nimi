@@ -621,7 +621,7 @@
       "textDecide": "Pick one of an app's options or judge whether a statement holds, with probabilities",
       "audioSeparate": "Separate vocals from background audio while preserving timing",
       "audioSpeakerEmbed": "Extract speaker vectors from short audio without inferring identity",
-      "imageUpscale": "Enlarge an owned image and save its complete PNG.",
+      "imageUpscale": "Upscale an image stored for this app and save the result as a PNG.",
       "videoUpscale": "Enlarge a complete MP4 while retaining frame timing and audio."
     },
     "required": "Required",
@@ -2630,7 +2630,7 @@
       "video-face-swap": "Apply face replacement to video in supported apps.",
       "vision-locate": "Locate objects or regions in images for visual tools.",
       "audio-speaker-embed": "Extract speaker vectors from short audio without inferring identity.",
-      "image-upscale": "Enlarge an owned image and save its complete PNG.",
+      "image-upscale": "Upscale an image stored for this app and save the result as a PNG.",
       "video-upscale": "Enlarge a complete MP4 while retaining frame timing and audio."
     },
     "downloadedModels": "Downloaded and configured models",
@@ -2975,7 +2975,7 @@
     "setupsTitle": "Overview",
     "backToCustomization": "Back to customization",
     "preparationUnknown": "Preparation details are unavailable. Try again shortly.",
-    "downloadSizeInReview": "See download size in review",
+    "downloadSizeInReview": "See download size before confirming",
     "downloadSizeUnknown": "Download size unknown",
     "noDirectDownload": "No direct download",
     "chooseImportedFiles": "Choose files on this device",
@@ -3321,9 +3321,9 @@
       "pendingEmpty": "No matching published to-dos.",
       "open": "View in source app",
       "opening": "Opening…",
-      "openFailed": "The source app or object could not be opened. Please try again.",
+      "openFailed": "Couldn’t open the source app or object. Try again.",
       "loadMore": "Load earlier activity",
-      "moreFailed": "Earlier activity could not be loaded. Try loading again.",
+      "moreFailed": "Couldn’t load earlier activity. Try again.",
       "sourceUnavailable": "Source unavailable"
     },
     "avatar": {
@@ -3347,7 +3347,7 @@
       "observedAt": "Observed {{time}}",
       "staleNotice": "Refresh failed; showing last observed state",
       "retryRefresh": "Refresh",
-      "openedApps": "NimiUtopia is not installed or registered yet. Opened Apps.",
+      "openedApps": "No launchable NimiUtopia entry was found. Opened Apps.",
       "chooseInApps": "Multiple NimiUtopia sources are available. Opened Apps so you can choose which one to launch.",
       "launchFailed": "Could not launch NimiUtopia. Check its status in Apps."
     }

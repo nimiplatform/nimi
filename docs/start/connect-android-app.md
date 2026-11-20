@@ -2,45 +2,69 @@
 
 # Connect an Existing Android App
 
-The current Android 12+ path uses the Kit Capacitor container and the same remote Runtime protocol as Web. Zhiyu is the reference App. Use the [matching source packages and host](/start/install); there is no `create --platform mobile` scaffold or App Tools APK/store publication path.
+Android 12+ Apps connect to your primary PC Runtime through the Kit Capacitor container, using the same remote Runtime protocol as Web. Zhiyu (`apps/zhiyu`) is the reference implementation.
 
-## Choose the Callback Carrier
+To work with this path, install matching versions from the npm `pre` channel—App Tools `0.16.0-rc.9`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`)—alongside a compatible host. See [Install](/start/install) for setup details. Having these `pre` packages published lets you build and test locally, but it does not mean every Android or App Link path is end-to-end verified.
 
-| Carrier | Prerequisites |
-| --- | --- |
-| Local `android-dev-scheme` | Debug installation, registered package and signing fingerprint, exact private-use callback, and a reviewed local Registry explicitly configured in non-production Realm |
-| Distributed `android-app-link` | Signed App, admitted package/certificate and HTTPS callback, publisher-controlled Digital Asset Links and an OS-verified App Link |
+There is currently no `create --platform mobile` scaffold and no App Tools APK or store publishing pipeline. Native project setup, signing, device access, and build tooling remain App-owned.
 
-The development Scheme is not a substitute for domain verification. Production Realm and the public Registry reject that development source kind; Kit never automatically falls back between carriers. Both use official system-browser login, PKCE/state checks and the same business permission owners.
+## Choose Your Realm and Callback Carrier
 
-## Prepare the App
+Ordinary Android debug builds default to the **official Realm** and an OS-verified **HTTPS App Link** using your actual debug package name and debug signing certificate—you do not need a release APK. You only use the local development Scheme when you explicitly target a local non-production Realm with `--realm local`.
 
-Use an existing native project with the required Capacitor App, Browser and NimiAppAccess plugins. Kit `auth/app/mobile` supplies `createMobileNimiAppSession`. Configure the exact admitted client and Realm in the factory and `plugins.NimiAppAccess`; set `loggingBehavior: 'none'` to prevent native bridge payload logging. The adapter validates installed package/signature and the selected callback carrier.
+| Mode | Callback carrier | What you need |
+| --- | --- | --- |
+| Default (including Android debug builds) | `android-app-link` | Admitted package name and signing certificate (debug or release), HTTPS callback, Digital Asset Links on your domain, and an OS-verified App Link |
+| Explicit `--realm local` | `android-dev-scheme` | Debug build, registered package name and signing fingerprint, exact private-use callback Scheme, and a non-production local Realm configured with a maintainer-reviewed local Registry |
 
-Declare a real App-owned `dev:android` script and `local_development.mobile.command: pnpm run dev:android` in `nimi.app.yaml`. `nimi-app dev --platform mobile` delegates that script. Desktop `--resume`, registration selectors and CDP flags do not apply. Native project setup, signing, device access and build tools remain App-owned.
+Keep two security boundaries in mind:
 
-## Run the Zhiyu Reference
+- `android-dev-scheme` does not verify domain ownership. The official production Realm and public Registry reject it, and Kit never falls back automatically between carriers.
+- Both carriers use the official system-browser sign-in flow, PKCE/state verification, and the same permission model.
 
-Prepare the JDK/Android SDK versions and signing configuration described in the [Zhiyu README](https://github.com/nimiplatform/nimi/blob/main/apps/zhiyu/README.md#android-本机开发). Start the configured Realm, official login site and Nimi Home. The PC must be the bound primary host, remote access must be enabled, and the Android source must be admitted and confirmed in Home.
+## Wire Up Your Android Project
 
-From `apps/zhiyu`:
+Start with an existing native Android project that includes the Capacitor `App`, `Browser`, and `NimiAppAccess` plugins.
+
+1. Import `createMobileNimiAppSession` from Kit's `auth/app/mobile`.
+2. Configure the exact same admitted client and Realm in both the session factory and `plugins.NimiAppAccess`.
+3. Set `loggingBehavior: 'none'` so the native bridge disables Capacitor bridge logging. The adapter checks the installed package name, signing certificate, and selected callback carrier at runtime.
+4. Add a real `dev:android` script in `package.json`, then declare `local_development.mobile.command: pnpm run dev:android` in `nimi.app.yaml`.
+
+Running `nimi-app dev --platform mobile` delegates directly to that script. Desktop options such as `--resume`, registration selectors, and CDP flags do not apply.
+
+## Run the Zhiyu Reference App
+
+Follow the [Zhiyu README](https://github.com/nimiplatform/nimi/blob/main/apps/zhiyu/README.md#android-普通开发与本地联调) to prepare the required JDK, Android SDK, and signing configuration.
+
+On an ordinary development machine, you do not need to run a local Realm. Just run your installed, compatible Nimi Home and primary PC Runtime: make sure the PC is bound as the primary host, remote access is enabled, and the Android source is admitted and confirmed in Home. (Only start a local Realm and local login site if you plan to pass `--realm local`.)
+
+From `apps/zhiyu`, run `pnpm dev:mobile`. It builds and syncs the Android project, then launches the app.
+
+For an explicitly configured local non-production Realm, set up the login and coordination ports on the authorized USB device before starting in local mode:
 
 ```bash
-pnpm build:mobile
-pnpm sync:android
-pnpm dev:mobile
+adb -d reverse tcp:3000 tcp:3000
+adb -d reverse tcp:3002 tcp:3002
+pnpm dev:mobile -- --realm local
 ```
 
-For local USB development only, an authorized device can use `adb -d reverse tcp:3000 tcp:3000` and `adb -d reverse tcp:3002 tcp:3002` for official login and coordination. AI and files still use the direct phone-to-PC peer connection, so those reverse ports do not prove that the business connection works.
+AI traffic and file transfers still travel over a direct phone-to-PC peer connection, so working reverse ports do not prove that the business connection works.
 
-Complete system-browser login and the callback on the actual device. Connect to the primary Runtime, open an existing partner and send a real message. The shared renderer displays the host's existing Conversation and memory; it does not create an Android-owned Agent. Native Desktop Avatar launch and native package placement remain unavailable.
+On your physical device, complete system-browser sign-in and the callback, connect to the primary Runtime, open an existing partner, and send a real message. The shared renderer shows the host's existing Conversation and memory without creating an Android-owned Agent. Native Desktop Avatar launch and native package placement remain unavailable on Android.
 
-## Lifecycle and Acceptance
+## Handle Lifecycle and Verify on a Real Device
 
-Backgrounding ends the old connection. Returning to the foreground rechecks identity before reconnecting an earlier active connection; it never replays a message or resumes the old stream. Losing the short login transaction or in-memory context can require a new sign-in. Signing out ends this App context, not the PC Home account.
+Mobile connections follow strict session boundaries:
 
-On the target device and source, verify login and callback, direct connection, an actual Conversation result, source pause or disconnect, and foreground/background transitions. Record the package and source revision, signature, Android version, host state, and network conditions. Passing typechecks, building an APK, or succeeding with the development Scheme does not establish distributed App Link acceptance. Keep untested App Link, production-source, and public-network paths `NOT-VERIFIED` until tested; iOS requires its own implemented adapter.
+- Moving the App to the background closes the active connection.
+- Returning to the foreground rechecks identity before rebuilding a previously active connection; it never replays messages or resumes an interrupted stream.
+- If the short-lived login transaction or in-memory context is lost, the user may need to sign in again.
+- Signing out clears only this App's session and leaves the PC Home account signed in.
 
+Before calling an integration ready, test it on the actual target device and source: sign-in and callback, direct peer connection, a real Conversation round-trip, source pause or disconnect, and background/foreground transitions. Keep notes on the package and source revision, signing certificate, Android version, host state, and network setup.
+
+Passing typechecks, building an APK, or succeeding with `android-dev-scheme` does not validate a real HTTPS App Link or public-network path. Keep any untested App Link, production-source, or public-network scenario marked `NOT-VERIFIED` until you run it end to end. iOS requires its own adapter implementation.
 ## Source Basis
 
 - [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)

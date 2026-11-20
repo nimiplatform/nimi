@@ -98,9 +98,9 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
 }>> = {
   zh: {
     metaTitle: '开发者中心与 SDK | Nimi',
-    metaDescription: '使用 @nimiplatform/sdk、Vercel AI Adapter、Kit 组件与 App Tools 构建轻量原生应用，或将现有开源项目适配接入 Nimi 底座。',
+    metaDescription: '使用 @nimiplatform/sdk、Vercel AI Adapter、Kit 组件与 App Tools 构建轻量原生应用，或将现有开源项目适配到 Nimi Runtime。',
     eyebrow: '开发者中心 · SDK、组件与开源适配',
-    title: '把算力与记忆交给底座，专注构建你的应用体验',
+    title: '把模型执行与记忆交给 Nimi，专注构建你的应用体验',
     lead: '无需在安装包里捆绑数 GB 的 Python/CUDA 推理环境，也无需让每位用户单独申请并粘贴 API Key——通过类型化 SDK 接入本地或云端多模态能力与跨应用伙伴上下文。',
     guideCta: '阅读应用开发指南',
     adaptationsCta: '查看 13 款开源适配案例',
@@ -156,12 +156,12 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
       },
     },
     adaptationBannerTitle: '想把现有的开源 AI 工具迁移到 Nimi？',
-    adaptationBannerBody: '先在应用生态页预览 Vane、Next AI Draw.io、OpenMontage、SillyTavern 等开源项目的适配效果，再对照创建指南在本地开发模式启动你的第一个工程。',
+    adaptationBannerBody: '先在应用生态页看看 Vane、Next AI Draw.io、OpenMontage、SillyTavern 等开源项目如何接入 Nimi，再对照创建指南，在本地开发模式下启动你的第一个项目。',
     adaptationBannerAction: '浏览应用生态与开源适配',
   },
   en: {
     metaTitle: 'Developers & SDK | Nimi',
-    metaDescription: 'Build lightweight native AI apps or adapt open-source projects onto Nimi with @nimiplatform/sdk, Vercel AI Adapter, Kit UI, and App Tools.',
+    metaDescription: 'Build lightweight native AI apps or adapt open-source projects for Nimi with @nimiplatform/sdk, Vercel AI SDK Adapter, Kit, and App Tools.',
     eyebrow: 'Developers · SDK, UI Kit & Open-Source Adaptation',
     title: 'Delegate compute and memory to the foundation. Build your craft.',
     lead: 'Ship AI apps without bundling multi-gigabyte Python/CUDA runtimes or asking every user to manage per-app API keys—consume local or cloud multimodal capabilities and companion continuity through typed contracts.',
@@ -178,7 +178,7 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
       },
       {
         title: 'Drop-in Vercel AI SDK 7 adaptation',
-        body: 'Keep streamText and caller-owned tool callbacks with @nimiplatform/sdk-adapter-vercel-ai—battle-tested across adaptations like Vane, SillyTavern, and OpenMontage.',
+        body: 'Keep streamText and caller-owned tool callbacks with @nimiplatform/sdk-adapter-vercel-ai, battle-tested in adaptations like Vane, SillyTavern, and OpenMontage.',
       },
       {
         title: 'Clean local dev & catalog contracts',
@@ -219,7 +219,7 @@ const DEVELOPERS_COPY: Readonly<Record<LandingLocale, {
       },
     },
     adaptationBannerTitle: 'Adapting an existing open-source AI project?',
-    adaptationBannerBody: 'Preview how Vane, Next AI Draw.io, OpenMontage, and SillyTavern connect to Nimi on the Apps page, then follow the quickstart guide in local developer mode.',
+    adaptationBannerBody: 'Preview how Vane, Next AI Draw.io, OpenMontage, and SillyTavern connect to Nimi on the Apps page, then follow the quickstart guide to run your first project in local developer mode.',
     adaptationBannerAction: 'Explore Apps & Open-Source Adaptations',
   },
 };

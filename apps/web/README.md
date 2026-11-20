@@ -25,7 +25,7 @@ The existing Cloudflare Pages project **`nimi`** (`nimi-6jb.pages.dev`) hosts bo
 | `https://admin.nimi.ai` | Existing ECS administration site |
 | `https://assets.nimi.ai` | Existing media Worker/R2 deployment |
 
-The official product introduction uses `/apps/<slug>`. The production Pages service binding `APP_HOST` reads published catalog summaries from the hosted Web service. The public Worker and release workflow live in `apps/hosted-web`. Unavailable live data preserves curated introductions and suppresses the Web action.
+Official product introductions use `/apps/<slug>`. The production Pages service binding `APP_HOST` reads published catalog summaries from the hosted Web service, whose public Worker and release workflow live in `apps/hosted-web`. If live data is unavailable, curated introductions are preserved and the Web action is suppressed.
 
 `public/_worker.js` performs host/path redirects and serves Pages assets. It preserves OAuth query parameters, never proxies Realm requests, sets no cookies and exposes no AI execution endpoint. Multi-page HTML files use Pages clean URLs; routes without static HTML use its SPA fallback. `_routes.json` keeps large static directories outside Functions, and `_headers` gives fingerprinted assets immutable caching. Account HTML is `no-store`. Preview documents deny cross-origin connections and form submissions and are not production Registry or CORS origins.
 

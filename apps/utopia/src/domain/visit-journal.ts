@@ -66,7 +66,7 @@ export const SHARED_STATE_LABELS: Readonly<Record<NimiUtopiaSharedState, string>
   completed: '同游留影',
   declined: '婉言谢绝',
   expired: '邀约随风散',
-  invalidated: '天色变化改期',
+  invalidated: '约定已失效',
   relocated: '随搬家暂别',
   relocated_partial: '旧居同游印记',
   missed: '擦肩错过',

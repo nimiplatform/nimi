@@ -73,7 +73,7 @@ function RuntimeManagerEntry() {
                 )}
                 <NimiText role="helper">
                   {entry.localOnly
-                    ? (zh ? '此入口仅限在这台电脑本机访问，其他设备无法通过此地址连接。' : 'This entry works only on this PC. Other devices cannot connect through this address.')
+                    ? (zh ? '此入口仅限在这台电脑上访问，其他设备无法通过此地址连接。' : 'This entry works only on this PC. Other devices cannot connect through this address.')
                     : (zh ? '使用同一个 Nimi 账号登录，并在 Nimi Home 确认首次接入请求。' : 'Sign in with the same Nimi account and confirm the first access request in Nimi Home.')}
                 </NimiText>
               </div>
@@ -103,7 +103,7 @@ function RuntimeManagerEntry() {
           ) : (
             <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
               <NimiText role="helper">
-                {zh ? '当前环境尚未配置可连接的 HTTPS 网页管理入口。' : 'This environment has no configured HTTPS web management entry.'}
+                {zh ? '当前环境尚未配置可连接的 HTTPS 网页管理入口。' : 'No HTTPS web management entry is configured for this environment.'}
               </NimiText>
             </div>
           )}

@@ -17,7 +17,7 @@ const copy = {
     none: 'No primary Runtime is bound yet. Bind this PC to enable remote access.',
     here: 'Approved remote applications connect to and use services on this PC.',
     other: 'Another Runtime is bound to your account. Remote applications do not connect to this PC.',
-    name: 'This PC name',
+    name: 'Name for this PC',
     bind: 'Bind this PC',
     switchHere: 'Use this PC instead',
     replace: 'Reinitialize on this PC',
@@ -31,7 +31,7 @@ const copy = {
   },
   zh: {
     title: '主 Runtime',
-    loading: '正在读取主设备绑定状态…',
+    loading: '正在读取主 Runtime 绑定状态…',
     none: '此账号尚未绑定主 Runtime。绑定这台电脑后即可开启远程接入。',
     here: '获准的远程应用将连接并使用这台电脑上的服务。',
     other: '此账号已绑定另一台主 Runtime，远程应用当前不会连接到这台电脑。',

@@ -6,11 +6,11 @@ In Nimi's local compute architecture, model weight files represent static assets
 
 ## Recommended Local Setup Workflow
 
-1. **Review Capabilities**: Browse supported capabilities and operational parameters in Nimi Home under "AI Capabilities".
-2. **Acquire Model Weights**: Use the selected model's setup flow to download missing weights or select existing verified files. Formats depend on the recipe and include GGUF and safetensors. Downloads verify the declared SHA-256 checksums.
-3. **Assemble a Loadout**: Bind every required component and review its workload-specific settings. Image and video models can require separate transformers, encoders and VAEs; a chat model's context-window settings do not apply to every capability.
-4. **Set Global Default**: Designate this Loadout as the machine default for that capability. This setting automatically applies to all apps routed to local execution.
-5. **Verify Inference**: Configure an app's AIConfig with Local intent and run an actual query to verify end-to-end performance.
+1. **Review Capabilities**: Browse supported capabilities and settings in Nimi Home under "AI Capabilities".
+2. **Acquire Model Weights**: Follow the model's setup flow to download missing weights or select existing verified files. Supported formats depend on the recipe (including GGUF and safetensors), and downloads verify declared SHA-256 checksums.
+3. **Assemble a Loadout**: Bind every required component and review its workload-specific settings. Image and video models may require separate transformers, encoders, and VAEs; chat settings such as context window do not apply to every capability.
+4. **Set Global Default**: Set this Loadout as the machine default for that capability so apps routed to local execution use it automatically.
+5. **Verify Inference**: Configure an app's AIConfig with Local intent and run an actual request to verify end-to-end execution.
 
 ## Local Image and Video Models
 
@@ -29,7 +29,7 @@ H3 Image can reuse a compatible installed H3 encoder. HyperFlow can reuse compat
 
 The 2026-11-11 Windows RTX 5090 development runs used H3 Image INT8 ConvRot, HyperFlow's pinned BennyDaBall combined INT8 conversion, RelayVSR/SeedVR2 INT8 ConvRot, and SDXL/ProMax F16. H3 text generation and one-reference editing, HyperFlow FL2VA and Ref2VA with Sol, all four upscale variants, and ControlNet Canny/Tile produced real outputs in native Lab. HyperFlow four/eight-step presets, the other six ControlNet types, other quantizations and installed distributions remain **NOT-VERIFIED**. These observations cover the tested samples, not general reconstruction or audio quality.
 
-On the Apple M4 Max development host, native Lab generated 1024×1024 ControlNet Canny and Tile PNGs. RelayVSR 2x and 4x produced the requested PNGs and preserved all 22 source frame timestamps and AAC packet contents in their MP4s. With the explicit Metal INT8 archive, Lab completed H3 Image text generation and one-reference editing at 1024×1024, and both six-step HyperFlow paths at 256×256 with five frames and stereo 32 kHz AAC. The tested HyperFlow combinations used FL2VA with the original H3 video VAE and Ref2VA with Sol-H3-VAE. SeedVR2 3B and 7B Sharp completed their small image and video samples and remain experimental. The exact jobs, engine packages and limits are recorded in the [acceptance matrix](https://github.com/nimiplatform/nimi/blob/main/runtime/acceptance/model-matrix.yaml).
+On the Apple M4 Max development host, native Lab generated 1024×1024 ControlNet Canny and Tile PNGs, and RelayVSR 2x and 4x produced the requested PNGs and MP4s while preserving all 22 source frame timestamps and AAC packet contents. With the explicit Metal INT8 archive, Lab completed H3 Image text-to-image generation and single-reference editing at 1024×1024, plus both six-step HyperFlow paths at 256×256 with five frames and stereo 32 kHz AAC (FL2VA with the original H3 video VAE, and Ref2VA with Sol-H3-VAE). SeedVR2 3B and 7B Sharp completed their small image and video samples and remain experimental. See the [acceptance matrix](https://github.com/nimiplatform/nimi/blob/main/runtime/acceptance/model-matrix.yaml) for the exact jobs, engine packages, and limits.
 
 Use [multimodal requests](/runtime/multimodal) for media limits and typed fields, and [the Lab walkthrough](/start/use-nimi-lab#try-local-image-and-video-models) for a first run. New source capabilities require matching SDK, Kit and Runtime builds; they are not a promise that a previously published package contains the same implementation.
 

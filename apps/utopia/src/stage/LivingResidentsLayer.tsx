@@ -601,7 +601,7 @@ export function LivingResidentsLayer(props: {
   };
 
   return (
-    <div className="utopia-living-residents-layer" aria-label="洞天伙伴动态行迹层">
+    <div className="utopia-living-residents-layer" aria-label="洞天伙伴动态">
       {slots.map((slot, index) => {
         const { resident, presence } = slot;
         const live = motionMapRef.current.get(resident.agentHandle);

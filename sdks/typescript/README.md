@@ -78,7 +78,7 @@ export async function answerWithTools(
 
 `image.upscale` and `video.upscale` accept an uploaded `sourceArtifactId`, `scale: 2 | 4` and optional `seed`. SDXL ControlNet Union extends `image.generate` with `controlImage`, while ordinary H3 image editing uses `referenceImageArtifactId`. Import the public `ImageControlType` enum from `@nimiplatform/sdk/runtime/wire-types`.
 
-The typechecked [media Job example](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/09-media-jobs.ts) uses the existing App client for AIConfig, upload, submission, observation, cancellation and artifact adoption. Follow the [English guide](https://github.com/nimiplatform/nimi/blob/main/docs/runtime/multimodal.md) or [中文指南](https://github.com/nimiplatform/nimi/blob/main/docs/zh/runtime/multimodal.md) for complete inputs and limits. Prepare models through Home and use matching source-built SDK, Kit and Runtime. These new recipes currently use Windows amd64 NVIDIA sd.cpp 1088; SeedVR2 is experimental. Native Lab observations do not establish remote or installed-distribution acceptance.
+The typechecked [media Job example](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/09-media-jobs.ts) uses the existing App client for AIConfig, upload, submission, observation, cancellation, and artifact adoption. See the [English guide](https://github.com/nimiplatform/nimi/blob/main/docs/runtime/multimodal.md) or [中文指南](https://github.com/nimiplatform/nimi/blob/main/docs/zh/runtime/multimodal.md) for complete inputs and limits. Prepare models through Home and use matching source-built SDK, Kit, and Runtime builds. These new recipes currently use Windows amd64 NVIDIA sd.cpp 1088; SeedVR2 is experimental. Native Lab observations do not establish remote or installed-distribution acceptance.
 
 ### Audio Transcription (`audio.transcribe`)
 Read completed speech-to-text results. Word timing is available only when the selected resource supports alignment:
@@ -242,7 +242,9 @@ The executable reference website lives at `examples/remote-runtime-web` in the r
 
 Licensed under [Apache-2.0](LICENSE).
 
-## Remote ecosystem clients (current source build)
+<a id="remote-ecosystem-clients-current-source-build"></a>
+
+## Remote ecosystem clients
 
 Use `@nimiplatform/sdk/realm/runtime-client` for `prepareRuntimeClientLogin` / `completeRuntimeClientLogin`, and `@nimiplatform/sdk/runtime/remote` for `connectRemoteRuntime`. They reuse the same SDK contracts while avoiding the broad native Host composition imports. A `RemoteRuntimeAppConnection` exposes the implemented ordinary-App operations; it is not a `NimiLocalAppClient` with simulated native proof. Platform peer adapters carry bytes only and cannot grant permissions.
 
@@ -252,4 +254,4 @@ Ordinary connections provide AI, own AIConfig, managed storage, LocalAgent opera
 
 When either side is remote, activity open/onOpenRequest routes only to a live source handler and never starts a PC app or a closed webpage. Remote asset writes stream incrementally within Runtime-issued input credits, while file size and quotas remain with the existing asset owner. Match the SDK and Runtime for this pre-launch protocol change. No Relay, upload resumption, or automatic business resubmission is supplied.
 
-Native Desktop still uses the verified Host-injected carrier described above. These additive remote subpaths require this source build until a matching SDK package is published. Shared protocol codecs remain in the bundle; narrow public entrypoints are not a claim of per-method codec splitting.
+Native Desktop uses the host-injected client described above. For remote clients, use SDK `0.24.0-rc.10` or a matching source build with a compatible host. Stable SDK `0.22.2` lacks these entrypoints. See [Environment Setup](../../docs/start/install.md) for compatible packages. The remote entrypoints still bundle shared protocol codecs.

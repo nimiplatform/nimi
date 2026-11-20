@@ -1081,7 +1081,7 @@ test('cli help projects the current registry lifecycle and honest workflow witho
   for (const content of [readme, starterReadme, starterAgents]) {
     assert.match(content, /NOT-VERIFIED/u);
   }
-  assert.match(readme, /Use Desktop-supervised Electron for App development and acceptance/u);
+  assert.match(readme, /Use Desktop-supervised Electron for native App development and acceptance/u);
   for (const content of [readme, starterReadme, starterAgents]) {
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }

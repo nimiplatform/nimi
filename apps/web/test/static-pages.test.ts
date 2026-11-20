@@ -40,7 +40,7 @@ test('apps page lists admitted apps as informational entries without install act
 
 test('a valid unfamiliar slug waits for the live directory before showing not found', () => {
   const html = renderRoute('/apps/definitely-not-an-app', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
-  assert.match(html, /Loading the app|正在读取应用介绍/);
+  assert.match(html, /Loading app details|正在读取应用介绍/);
   assert.doesNotMatch(html, /App not found|未找到这个应用/);
   const retired = renderRoute('/apps/nimi.parentos', '/apps/:slug', createElement(StaticPage, { kind: 'apps' }));
   assert.match(retired, /App not found|未找到这个应用/);

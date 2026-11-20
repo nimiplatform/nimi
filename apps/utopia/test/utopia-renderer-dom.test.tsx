@@ -540,7 +540,7 @@ test('Sample creator bundle (.utopia), Sanctuary Presence Dock, causal place unl
 
   // Stage renders embodied chibi sprites, scenic landmarks, interactive mini-map, and multi-scale camera controls
   assert.match(stageWithClosedPlaceHtml, /data-utopia-resident-sprite="agent-active"/);
-  assert.match(stageWithClosedPlaceHtml, /洞天风物观景地标/);
+  assert.match(stageWithClosedPlaceHtml, /aria-label="洞天风物地标"/);
   assert.match(stageWithClosedPlaceHtml, /海角红白灯塔/);
   assert.match(stageWithClosedPlaceHtml, /洞天舆图/);
   assert.match(stageWithClosedPlaceHtml, /全景/);

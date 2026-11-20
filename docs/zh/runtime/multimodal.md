@@ -22,7 +22,7 @@ Nimi 为图像与视频生成、超分辨率、语音、音乐及视觉推理提
 
 视频时间戳须从零开始递增。Runtime 会检查实际媒体、时间信息和解码后的输出大小；修改扩展名或 MIME 类型不能让不合规文件变得可用。超分模型会重建细节，不是逐像素保真的普通缩放。
 
-已通过的 Windows 组合使用 amd64 和 NVIDIA 加速。Apple Silicon 的实测结果与 INT8 ConvRot 限制见本地模型指南。RelayVSR 2x、4x 分别需要对应倍率的主模型与 VAE；SeedVR2 3B、7B Sharp 可选 2× 或 4×，仍属实验性支持。这两项能力目前没有 Cloud 实现。组件和平台要求见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
+已通过的 Windows 组合使用 amd64 和 NVIDIA 加速。RelayVSR 2x、4x 分别需要对应倍率的主模型与 VAE；SeedVR2 3B、7B Sharp 可选 2× 或 4×，仍属实验性支持。这两项能力目前没有 Cloud 实现。Apple Silicon 的实测结果、INT8 ConvRot 限制，以及完整组件和平台要求见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
 
 请按[开发环境安装](/zh/start/install)使用配套的源码构建 SDK、Kit 和 Runtime；包版本号相同不代表一定包含这些新增实现。下面的函数使用 App 已有的宿主客户端。提交前，将唯一的 `clientSubmissionId` 写入 App 存储，收到结果后保存 Job ID。若提交过程中无法获知结果，调用 `client.ai.scenarioJobs.lookupSubmission(clientSubmissionId)` 查询原请求，不要自动再提交一个任务。
 
@@ -48,7 +48,7 @@ ControlNet 请求不能同时携带普通参考图或蒙版。其他图像实现
 
 提交后持续查询原 Job，直到出现终态。观察失败不等于推理失败；失败、取消和超时任务都不能当成完整输出。停止轮询也不会停止推理：取消需要显式发送 Cancel，并查看后续任务状态。
 
-下面的示例把完整产物接收到 App 私有存储，避免一次性将大文件全部读入渲染进程。请传入新的 App 相对路径，例如包含 Job ID 的项目路径，并保存返回的资产元数据。若保存过程中丢失响应，应先检查该路径，再决定是否保存；不要覆盖已有项目文件或自动重新生成。随后可通过 `client.storage.assets.read` 或 Kit 提供的媒体预览使用该资产。
+下面的示例将完整产物保存到 App 私有存储，避免一次性将大文件全部读入渲染进程。请传入新的 App 相对路径，例如包含 Job ID 的项目路径，并保存返回的资产元数据。若保存过程中丢失响应，应先检查该路径，再决定是否保存；不要覆盖已有项目文件或自动重新生成。随后可通过 `client.storage.assets.read` 或 Kit 提供的媒体预览使用该资产。
 
 <<< ../../../examples/sdk/09-media-jobs.ts#result
 

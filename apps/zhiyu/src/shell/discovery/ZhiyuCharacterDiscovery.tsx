@@ -11,7 +11,7 @@ export const characterKey = (item: NimiAppCharacterSource) => `${item.sourceRef.
 function discoveryFailure(error: unknown, fallback: string) {
   const reason = extractNimiErrorFields(error).reasonCode;
   return ['LOCAL_APP_ACCESS_DENIED', 'LOCAL_APP_OPERATION_UNAVAILABLE', 'runtime-permission-denied'].includes(reason ?? '')
-    ? '当前客户端尚未获准发现角色和建立伙伴。请在 Nimi Home 检查应用接入；已有伙伴仍可继续交流。' : fallback;
+    ? '当前客户端尚未获得发现角色和建立伙伴关系的权限。请在 Nimi Home 检查应用接入；与已有伙伴交流仍取决于当前接入权限。' : fallback;
 }
 
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.character-discovery
@@ -67,7 +67,7 @@ export function ZhiyuCharacterDiscovery({ client, cache, inventoryKey, query, se
       if (current !== generation.current) return;
       if (page) { const updated = { ...page, items: page.items.map(value => characterKey(value) === characterKey(item) ? { ...value, existingPartner: result.partner } : value) }; cache.set(query, updated); setPage(updated); }
       onPartner(result.partner);
-    } catch (error) { if (current === generation.current) setError(discoveryFailure(error, '暂时无法进入伙伴对话。若伙伴已建立，会保留在联系人中的伙伴列表；请刷新后再试。')); }
+    } catch (error) { if (current === generation.current) setError(discoveryFailure(error, '暂时无法进入伙伴对话。如果已建立伙伴关系，对方会保留在联系人的伙伴列表中，请刷新后再试。')); }
     finally { if (current === generation.current) { pending.current = false; setConnecting(false); } }
   }
   return <section className="zhiyu-discovery" aria-label="发现角色">
@@ -85,7 +85,7 @@ export function ZhiyuCharacterDiscovery({ client, cache, inventoryKey, query, se
       {selected.topics.length > 0 && <div><h3>可以聊聊</h3><p>{selected.topics.join(' · ')}</p></div>}
       <div className="zhiyu-discovery__actions"><Button disabled={loading || connecting || (!selected.connectable && !selected.existingPartner)} onClick={() => void connect(selected)}>{connecting ? '正在进入…' : selected.existingPartner ? '继续聊天' : '成为伙伴并聊天'}</Button>
       {openWorld && <Button tone="secondary" disabled={connecting} trailingIcon={<ArrowUpRight size={16} />} onClick={() => void openWorld(selected.sourceRef.worldId).catch(() => setError('暂时无法在 Nimi Home 打开这个世界，请稍后再试。'))}>在 Home 查看世界</Button>}</div>
-      {!selected.connectable && !selected.existingPartner && <p role="status">这位角色目前无法成为伙伴。你仍可阅读介绍。</p>}
+      {!selected.connectable && !selected.existingPartner && <p role="status">这位角色目前无法成为伙伴，你仍可查看介绍。</p>}
     </div> : <>
       <form className="zhiyu-discovery__search" onSubmit={event => { event.preventDefault(); onSearch(input.trim()); }}><SearchField aria-label="搜索角色" placeholder="搜索角色或世界" maxLength={256} value={input} onChange={event => setInput(event.target.value)} onClear={() => { setInput(''); onSearch(''); }} clearLabel="清除搜索" /><Button tone="secondary" leadingIcon={<Search size={16} />} type="submit" disabled={loading}>搜索</Button></form>
       {selectedKey && page && <p role="status">这位角色已不在当前结果中，请重新选择。</p>}

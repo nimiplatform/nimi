@@ -48,11 +48,11 @@ export function DeterministicTunerPanel(props: {
       <section className="utopia-card-section" aria-labelledby="manual-params-heading">
         <div className="utopia-section-header">
           <h3 id="manual-params-heading">环境参数旋钮</h3>
-          <span className="utopia-muted-caption">即时确定性生效</span>
+          <span className="utopia-muted-caption">调节后即时生效</span>
         </div>
 
         {snapshot.habitat.parameters.length === 0 ? (
-          <p className="utopia-empty-hint">当前洞天未声明可调环境参数。</p>
+          <p className="utopia-empty-hint">当前洞天暂无可调环境参数。</p>
         ) : (
           <div className="utopia-param-groups">
             {snapshot.habitat.parameters.map((param) => {

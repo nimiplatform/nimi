@@ -9,8 +9,8 @@ Choose the entry for the device where your App runs. The current PC Runtime exec
 | Carrier | Guide | Current scope |
 | --- | --- | --- |
 | Desktop | [Create a native App](/start/create-an-app) | Desktop-supervised native Host with matching released or source packages |
-| Web | [Connect a website](/start/connect-web-app) | Source delivery: HTTPS source, official login, and direct primary Runtime access |
-| Android | [Connect an existing App](/start/connect-android-app) | Source delivery: Kit Capacitor; development Scheme and distributed App Link verified separately |
+| Web | [Connect a website](/start/connect-web-app) | HTTPS source, official login, and direct primary Runtime access |
+| Android | [Connect an existing App](/start/connect-android-app) | Kit Capacitor with separate verification for development Scheme and release App Link |
 
 ---
 

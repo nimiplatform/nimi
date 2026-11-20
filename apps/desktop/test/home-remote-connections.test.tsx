@@ -89,7 +89,7 @@ test('Home filters access sources, exposes approval scope and ends only the sele
     assert.equal(pause?.disabled, true);
     const disable = [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === 'Disable remote access');
     assert.equal(disable?.disabled, true);
-    assert.ok(document.body.textContent?.includes('Showing previously read records'));
+    assert.ok(document.body.textContent?.includes('Showing the last records we could load'));
     assert.equal(document.body.textContent?.includes('No sources have requested access yet.'), false);
     failRead = false;
     await act(async () => { await client.invalidateQueries({ queryKey: ['home-remote-access'] }); });

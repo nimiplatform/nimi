@@ -99,7 +99,7 @@ export function AIConfigRecordControls({snapshot, busy, language, onSelect, onEd
           <Button tone="ghost" disabled={busy} onClick={() => setEditing('delete')}>{text('Delete','删除')}</Button></>}
       </>}
       {editing && <div className="flex w-full items-center gap-2">
-        {editing === 'delete' ? <span>{text('Sessions using this configuration will need a new selection.', '引用此配置的会话需要重新选择。')}</span>
+        {editing === 'delete' ? <span>{text('Sessions using this configuration will need to select another one.', '使用此配置的会话需要重新选择配置。')}</span>
           : <label>{text('Configuration name','配置名称')} <input value={name} maxLength={128} onChange={e=>setName(e.currentTarget.value)} /></label>}
         <Button disabled={busy || (editing !== 'delete' && !name.trim())} onClick={() => {
           if (editing === 'create') void change({action:'create', name:name.trim()});

@@ -264,7 +264,7 @@
     "rowLicense": "许可：{{license}}",
     "directDownloadNote": "模型由这台设备直接从发布方下载，使用须遵守各自的许可条款。",
     "componentsDownloadKnown": "运行组件预计下载 {{size}}。",
-    "componentsDownloadUnknown": "需要下载运行组件，下载量未知。",
+    "componentsDownloadUnknown": "需要下载运行组件，下载大小未知。",
     "environmentUnavailable": "此方案在本机没有可用的受管运行环境，无法在这台设备上准备。不会下载任何内容，当前模型保持不变。",
     "noDirectDownloadHint": "这个模型暂无直接下载项。请在「高级设置」中选择本机已有的模型文件，或先导入模型文件。",
     "confirmLead": "确认后，Nimi 会自动完成上面的准备。完成后，{{model}} 将成为本机「{{capability}}」的当前模型。",
@@ -621,8 +621,8 @@
       "textDecide": "从应用提供的选项中挑选一项，或判断某个说法是否成立，并给出概率",
       "audioSeparate": "分离人声和背景音，保留原有时间轴",
       "audioSpeakerEmbed": "提取短音频的说话人特征向量，不推断身份",
-      "imageUpscale": "放大已有图像并保存完整 PNG。",
-      "videoUpscale": "放大完整 MP4，保留帧时间与音轨。"
+      "imageUpscale": "放大已保存到本应用的图像，并将结果保存为 PNG。",
+      "videoUpscale": "放大完整 MP4，保留帧时序与音轨。"
     },
     "required": "必需",
     "optional": "可选",
@@ -2630,8 +2630,8 @@
       "video-face-swap": "在支持的应用中对视频进行人脸替换。",
       "vision-locate": "为视觉工具定位图像中的对象或区域。",
       "audio-speaker-embed": "提取短音频的说话人特征向量，不推断身份。",
-      "image-upscale": "放大已有图像并保存完整 PNG。",
-      "video-upscale": "放大完整 MP4，保留帧时间与音轨。"
+      "image-upscale": "放大已保存到本应用的图像，并将结果保存为 PNG。",
+      "video-upscale": "放大完整 MP4，保留帧时序与音轨。"
     },
     "downloadedModels": "已下载并配置的模型",
     "customizeCurrent": "调整当前模型与参数",
@@ -2975,7 +2975,7 @@
     "setupsTitle": "总览",
     "backToCustomization": "返回自定义设置",
     "preparationUnknown": "暂时无法确认准备内容，请稍后重试。",
-    "downloadSizeInReview": "在确认前查看下载量",
+    "downloadSizeInReview": "在确认前查看下载大小",
     "downloadSizeUnknown": "下载量未知",
     "noDirectDownload": "暂无直接下载项",
     "chooseImportedFiles": "选择本机模型文件",
@@ -3316,21 +3316,21 @@
       "selectedSource": "所选来源",
       "loading": "正在读取应用活动…",
       "unavailable": "当前无法读取这位伙伴的应用活动。",
-      "incomplete": "还有较早的活动尚未读取。",
+      "incomplete": "还有更早的活动尚未加载。",
       "empty": "暂无符合条件的已发布活动。",
       "pendingEmpty": "暂无符合条件的已发布待办。",
       "open": "在来源应用中查看",
       "opening": "正在打开…",
       "openFailed": "来源应用或对象暂时无法打开，请稍后重试。",
       "loadMore": "加载更早的活动",
-      "moreFailed": "较早的活动读取失败，可以再次加载。",
+      "moreFailed": "更早的活动加载失败，可重新加载。",
       "sourceUnavailable": "来源暂不可用"
     },
     "avatar": {
       "open": "打开桌面形象",
       "configure": "设置桌面形象",
       "retry": "重试读取形象",
-      "opened": "已打开此伙伴的桌面形象。",
+      "opened": "已打开这位伙伴的桌面形象。",
       "notOpened": "未打开桌面形象，当前伙伴保持不变。",
       "failed": "桌面形象未能打开，请检查外观设置后重试。"
     },
@@ -3347,7 +3347,7 @@
       "observedAt": "观测于 {{time}}",
       "staleNotice": "刷新未成功，当前显示上次记录",
       "retryRefresh": "刷新",
-      "openedApps": "NimiUtopia 尚未在此设备运行或安装，已打开应用目录。",
+      "openedApps": "未找到可启动的 NimiUtopia，已打开应用页。",
       "chooseInApps": "检测到多个 NimiUtopia 启动来源，已打开应用页供你选择。",
       "launchFailed": "暂时无法启动 NimiUtopia，请前往应用页检查状态。"
     }

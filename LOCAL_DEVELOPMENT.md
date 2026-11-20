@@ -1,6 +1,6 @@
 # Nimi 本地开发指南 (Local Development)
 
-普通原生 App 开发默认用已安装 Nimi 和官方 Realm。修改 Home、Runtime、SDK 或 Kit 时，可以用公开仓库的源码 Runtime 连接官方 Realm。只有联调 Realm 服务或需要受控测试数据时才显式选 `local`。官方账号读写真实云端数据。这三条路径都先看机器上是否已有满足任务要求的 Home 和 Runtime。
+普通原生 App 开发默认使用已安装的 Nimi 连接官方 Realm；修改 Home、Runtime、SDK 或 Kit 时，可用公开仓库的源码 Runtime 对接官方 Realm；只有联调 Realm 服务或需要受控测试数据时，才显式选择 `local`。注意，官方账号会读写真实云端数据。无论走哪条路径，开始前都先确认本机是否已有满足当前任务的 Home 和 Runtime。
 
 [按任务选择入口](#开发路径与命令矩阵) · [判断能否复用](#先判断能否复用) · [切换对身份和数据的影响](#切换会影响什么)
 
@@ -68,7 +68,9 @@ pnpm doctor:dev -- --host source --realm official
 pnpm doctor:dev -- --host source --realm local
 ```
 
-对照 `Requested Runtime` 和 `Observed Runtime`。源码启动器和诊断比较同一组公开配置，包括 Realm 名称、API、Realtime、登录页地址和配置的环境 ID。运行中的 supervisor 会报告自己的选择。旧 local 进程缺少这些信息时，先问所属终端。服务端实际签发的环境 ID 与账号要在登录后核对。脚本可在 `--json` 输出中读取 `requested`、`observed` 和 `reuse.state`。HTTP 检查只表示请求地址可达，SDK/Kit 工作区产物只影响源码目标的检查。
+重点对照 `Requested Runtime` 和 `Observed Runtime`。源码启动器与诊断命令比对的是同一组公开配置，包括 Realm 名称、API、Realtime、登录页地址以及配置的环境 ID。运行中的 supervisor 会报告自己的选择；若旧的 local 进程缺少这些信息，先核对启动它的终端。服务端实际签发的环境 ID 与账号，则要在登录后核对。
+
+脚本可从 `--json` 输出中读取 `requested`、`observed` 和 `reuse.state`。另需注意：HTTP 检查只表示请求地址可达，SDK/Kit 工作区产物只影响源码目标的检查。
 
 | Runtime reuse | 下一步 |
 |---|---|
@@ -80,7 +82,7 @@ pnpm doctor:dev -- --host source --realm local
 
 源码启动示例是 `pnpm dev:desktop`（默认官方）和 `pnpm dev:desktop -- --realm local`。独立调试 Go 时可先运行 `pnpm dev:runtime`，两条命令选同一 Realm。只有 local 模式会检查 API、Realtime 和本地登录页，默认分别为 `127.0.0.1:3002`、`127.0.0.1:3003` 和 `localhost:3000`。可复用已有服务，或用 `NIMI_DEV_REALM_DIR` 指定提供 `dev:infra`、`dev:api` 和 `dev:realtime` 的工作区。各地址与环境 ID 的覆盖项见 [.env.example](.env.example)。
 
-Home 首次设置时选择数据目录并通过浏览器登录。原生 App 在自己的工程运行 `pnpm dev`，由活动 Home 监督启动。继续既有开发数据时，先运行 `pnpm dev -- --list-registrations`，再用本次列出的 `--resume <selector>`。同机已有匹配的源码 Home 时，普通 App 开发也可以直接复用它；安装包验证留给安装态任务。
+首次设置 Home 时，需选择数据目录并通过浏览器完成登录。原生 App 在各自工程中运行 `pnpm dev`，由当前活动的 Home 监督启动。需要继续使用既有开发数据时，先运行 `pnpm dev -- --list-registrations`，再用本次列出的 `--resume <selector>`。若本机已有匹配的源码 Home，普通 App 开发也可以直接复用；安装包验证留给安装态任务。
 
 ### 切换会影响什么
 

@@ -1,6 +1,6 @@
 # Nimi hosted Web apps
 
-The platform Worker serves reviewed static releases at `https://<slug>.nimi.xyz`. The public site uses its `APP_HOST` service binding to read `GET /.well-known/nimi-apps` and `GET /.well-known/nimi-apps/<slug>`. Registry chooses the production release. D1 holds the actual serving pointer. R2 keys include the product ID and the approved archive digest.
+The platform Worker serves reviewed static releases at `https://<slug>.nimi.xyz`. The public site uses its `APP_HOST` service binding to read `GET /.well-known/nimi-apps` and `GET /.well-known/nimi-apps/<slug>`. Registry selects the production release, D1 holds the active serving pointer, and R2 keys include both the product ID and the approved archive digest.
 
 ## Provision once
 

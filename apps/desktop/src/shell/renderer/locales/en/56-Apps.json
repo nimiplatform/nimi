@@ -91,7 +91,7 @@
     "readFailed": "The App Catalog could not be read right now. Try again later."
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
-  "focusFailed": "Couldn't show the App window. Try again.",
+  "focusFailed": "Couldn't show the app window. Try again.",
   "actionFailed": "This action didn't complete. You can try again later.",
   "installedAccess": {
     "ready": "Nimi Access ready",
@@ -334,7 +334,7 @@
       },
       "imageUpscale": {
         "label": "Image super-resolution",
-        "description": "Enlarge an owned image and save its complete PNG."
+        "description": "Upscale an image stored for this app and save the result as a PNG."
       },
       "videoUpscale": {
         "label": "Video super-resolution",
@@ -478,7 +478,7 @@
     },
     "agentAcquire": {
       "label": "Discover characters and add partners",
-      "description": "Browse public characters and establish or reuse partners for your account, without source authoring or partner deletion."
+      "description": "Browse public characters and add or reuse partners for your account. Does not include character authoring or partner deletion."
     },
     "agentConfigure": {
       "label": "Agent configuration",

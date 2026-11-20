@@ -12,7 +12,7 @@
 
 ## Web 开发
 
-需要 Node/pnpm、匹配的 SDK／Kit／App Tools 和已安装 Nimi。普通开发使用官方 Realm；在 `local_development.web` 填入实际获准的 HTTPS origin、回调和 client_id 后运行 `pnpm dev:web`。初始空值表示尚未配置，不能借用官方 manager 身份。主机 Home 需登录、启用远程接入并准备伙伴，网页设备不需安装 Runtime。显式本地联调使用以下 local 配置：
+开发前需准备 Node/pnpm、版本匹配的 SDK/Kit/App Tools 以及已安装的 Nimi。常规开发默认连接官方 Realm：在 `local_development.web` 中填入实际获准的 HTTPS origin、回调地址和 client_id，再运行 `pnpm dev:web`（初始空值表示尚未配置，不得借用官方 manager 身份）。主机上的 Nimi Home 需已登录、开启远程接入并准备好伙伴；浏览器所在设备无需安装 Runtime。如需显式本地联调，使用以下 local 配置：
 
 - App：`nimi.zhiyu`；客户端：`nimi.zhiyu.web.dev`。
 - 来源：`https://127.0.0.1:4472`；回调：同来源 `/`。
@@ -55,7 +55,7 @@ pnpm dev:desktop
 
 复制同一份织羽源码到独立目录，排除 `node_modules`、构建目录和本机 `.env*.local`；不要重新生成一个业务不同的样例。
 
-1. 将 `package.json` 中 SDK、Kit 和 App Tools 的 `workspace:*` 改成所选完整包的版本。当前候选组合为 SDK `0.23.0`、Kit `0.23.0`、App Tools `0.15.0`，通过本地归档安装。
+1. 将 `package.json` 中 SDK、Kit 和 App Tools 的 `workspace:*` 改成所选完整包的版本。可从 npm 安装 SDK `0.24.0-rc.10`、Kit `0.24.0-rc.16` 与 App Tools `0.16.0-rc.9`。
 2. 若使用本地源码包，在该目录的 `pnpm-workspace.yaml` 中通过 `overrides` 选定完整 `.tgz`，包括 Kit 需要的同版本 native optional 包。三者必须是兼容的目标组合；不得改成指向父仓源码目录的依赖。
 3. 执行 `pnpm install`，保留实际 lockfile。随后运行上面的类型检查、测试和 Web 构建；复制 TLS 示例并填写本机路径后，通过原已批准来源启动。
 4. 更新时先检查当前 Git 修改，再更换选定包／override，重新安装并按 package migration notes 修改应用调用。查看 diff，确认业务源码、App ID、来源、回调和用户自有修改未被覆盖，再运行受影响检查与真实业务。

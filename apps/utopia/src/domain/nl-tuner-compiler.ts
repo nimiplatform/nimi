@@ -328,7 +328,7 @@ export function validateAndCompileTunerResponse(
 
   const hasChanges = compiledChanges.length > 0 || Boolean(eventMutation);
   if (!hasChanges && !unsupportedNote) {
-    unsupportedNote = '当前洞天仅支持调拨已声明的天气／环境参数与即时风物，未能从该描述中匹配到可执行变更。';
+    unsupportedNote = '当前洞天仅支持调整已有的天气、环境参数与即时风物，未能从这段描述中匹配到可调整的内容。';
   }
 
   const commitIntent: Extract<NimiUtopiaUpdateIntent, { readonly kind: 'apply-tuning' }> | null = hasChanges

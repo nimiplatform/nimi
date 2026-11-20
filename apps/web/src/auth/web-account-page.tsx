@@ -56,7 +56,7 @@ function resolveAccountHref(search: string): string {
 
 function formatSessionError(error: unknown, fallback: string, isZh: boolean): string {
   if (error instanceof BrowserSessionRenewalBlockedError) return isZh
-    ? '无法自动续期，请重新登录后继续。已保存的数据保持不变。'
+    ? '登录状态无法自动续期，请重新登录后继续。已保存的数据保持不变。'
     : 'Automatic session renewal is unavailable. Sign in again to continue; your saved data is unchanged.';
   if (!(error instanceof Error) || !error.message.trim()) return fallback;
   const raw = error.message.trim();

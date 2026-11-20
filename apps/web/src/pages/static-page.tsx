@@ -87,7 +87,7 @@ const HOME_WORKSPACE_HIGHLIGHTS: Readonly<Record<LandingLocale, ReadonlyArray<{
     {
       Icon: Cpu,
       title: '本机模型与云服务统一配置',
-      body: '管理本机已准备好的模型，或按需填入自有云端凭证，供所有受权应用按模态调用。',
+      body: '管理本机已准备好的模型，或按需填入自有云端凭证，供已授权应用按模态调用。',
     },
     {
       Icon: ShieldCheck,
@@ -300,7 +300,7 @@ function AppsPageInner({
   if (slug && !selectedEcosystemEntry) {
     return (
       <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
-        {liveProduct ? <PublicProduct item={liveProduct} locale={locale} detail /> : directory.state.status === 'missing' || !/^[a-z0-9-]{1,63}$/.test(slug) ? <AppNotFound locale={locale} /> : <p className="story-container" role="status">{directory.state.status === 'unavailable' ? (locale === 'zh' ? '暂时无法读取应用目录。' : 'The app directory is unavailable.') : (locale === 'zh' ? '正在读取应用介绍…' : 'Loading the app…')}</p>}
+        {liveProduct ? <PublicProduct item={liveProduct} locale={locale} detail /> : directory.state.status === 'missing' || !/^[a-z0-9-]{1,63}$/.test(slug) ? <AppNotFound locale={locale} /> : <p className="story-container" role="status">{directory.state.status === 'unavailable' ? (locale === 'zh' ? '暂时无法读取应用目录。' : 'The app directory is unavailable.') : (locale === 'zh' ? '正在读取应用介绍…' : 'Loading app details…')}</p>}
       </PublicSiteShell>
     );
   }

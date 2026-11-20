@@ -22,9 +22,9 @@ When dispatching multimodal requests, use standard SDK client interfaces:
 
 Video timestamps must increase from a zero origin. Runtime checks the actual media, including timing and decoded output size; changing a filename or MIME label cannot make an unsupported file valid. Upscaling can reconstruct detail and is not a pixel-preserving resize.
 
-The verified Windows combinations use amd64 with NVIDIA acceleration. Check the Mac results and INT8 ConvRot limitation in Local models. RelayVSR 2x and 4x require their matching scale-specific transformer and VAE; SeedVR2 3B and 7B Sharp accept 2× or 4× and retain experimental status. Cloud execution is not implemented for these two capabilities. See [Local models](/runtime/local-models#local-image-and-video-models) for component and platform requirements.
+Verified Windows combinations use amd64 with NVIDIA acceleration. RelayVSR 2x and 4x require their matching scale-specific transformer and VAE; SeedVR2 3B and 7B Sharp accept 2× or 4× and remain experimental. Cloud execution is not implemented for either capability. See [Local models](/runtime/local-models#local-image-and-video-models) for component and platform requirements, Apple Silicon results, and the INT8 ConvRot limitation.
 
-Use the matching source-built SDK, Kit and Runtime described in [development setup](/start/install); a matching package version string alone does not establish that these additions are present. The following functions receive the App's existing host-bound client. Save a unique `clientSubmissionId` in App storage before submission and persist the returned Job ID. If submission observation is interrupted, use `client.ai.scenarioJobs.lookupSubmission(clientSubmissionId)` to recover the original request; do not submit another Job automatically.
+Use the matching source-built SDK, Kit, and Runtime described in [development setup](/start/install)—a matching package version string alone does not guarantee these additions are present. The following functions take the App's existing host-bound client. Before submitting, save a unique `clientSubmissionId` in App storage and persist the returned Job ID. If observing the submission response is interrupted, call `client.ai.scenarioJobs.lookupSubmission(clientSubmissionId)` to recover the original request instead of submitting another Job automatically.
 
 <<< ../../examples/sdk/09-media-jobs.ts#upscale
 
@@ -38,7 +38,7 @@ Select the SDXL ControlNet Union configuration in Home before using this example
 
 <<< ../../examples/sdk/09-media-jobs.ts#control
 
-MiniMax-H3-Image ordinary editing instead uses `referenceImageArtifactId` with one uploaded reference. It accepts no mask or negative prompt. To generate from text, submit `image-generate` with a prompt and omit the reference. The current recipe produces one image with a six-step Euler schedule and CFG 1; its default canvas is 1024×1024 with axes aligned to 32 pixels.
+For ordinary image editing, MiniMax-H3-Image uses `referenceImageArtifactId` with a single uploaded reference image and does not accept a mask or negative prompt. For text-to-image generation, submit `image-generate` with a prompt and omit the reference. The current recipe produces one image using a six-step Euler schedule and CFG 1, with a default 1024×1024 canvas and axes aligned to 32 pixels.
 
 <<< ../../examples/sdk/09-media-jobs.ts#reference
 
@@ -48,7 +48,7 @@ Do not combine an ordinary reference or mask with ControlNet input. Other image 
 
 After submission, query the original Job until it reaches a terminal state. An observation error is not a failed inference result. Failed, canceled and timed-out Jobs do not produce a completed output. Stopping polling does not cancel inference: send an explicit Cancel request and inspect the resulting Job state.
 
-This example adopts the complete result into App-private storage without buffering the entire output in the renderer. Pass a new App-relative destination, for example a project path containing the Job ID, and save the returned asset metadata. If adoption observation is lost, inspect that destination before another explicit save; do not overwrite an existing project file or regenerate the result automatically. Use `client.storage.assets.read` or the supported Kit media preview to consume the retained asset.
+This example adopts the completed result into App-private storage without buffering the entire output in the renderer. Pass a new App-relative destination—such as a project path containing the Job ID—and save the returned asset metadata. If the adoption response is lost, inspect that destination before trying another explicit save; do not overwrite an existing project file or regenerate the result automatically. Consume the retained asset with `client.storage.assets.read` or the supported Kit media preview.
 
 <<< ../../examples/sdk/09-media-jobs.ts#result
 

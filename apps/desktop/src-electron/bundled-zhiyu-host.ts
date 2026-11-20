@@ -160,7 +160,7 @@ export function createDesktopBundledZhiyuHost(input: {
     open,
     async openConversation(target: ZhiyuConversationOpenTarget) {
       await open();
-      if (!current || !input.canOpen()) throw new Error('Zhiyu opening is unavailable.');
+      if (!current || !input.canOpen()) throw new Error('Zhiyu cannot be opened right now.');
       await conversationDelivery.deliver(target);
       await focus();
     },

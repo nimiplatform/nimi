@@ -12,7 +12,7 @@ Choose the Runtime startup method that matches your environment:
 
 ### Source Home and Runtime
 
-For ordinary native App work, use a matching active Home, typically installed Nimi with official Realm. For platform development, run `pnpm doctor:dev -- --host source --realm official` from the Nimi root. Reuse the observed source host when it matches. When Home needs starting, run `pnpm dev:desktop`. Choose `--realm local` for Realm integration or controlled test data. Inspect errors in the owner's terminal and `.nimi/local/dev-services/`. See [Environment Setup](/start/install).
+For ordinary native App work, use a matching active Home—typically installed Nimi with official Realm. For platform development, run `pnpm doctor:dev -- --host source --realm official` from the Nimi root, and reuse the observed source host when it matches. If Home is not running, start it with `pnpm dev:desktop` (choose `--realm local` for Realm integration or controlled test data). Inspect errors in the owner's terminal and `.nimi/local/dev-services/`. See [Environment Setup](/start/install).
 
 Check Home connection and sign-in, the target App's Nimi Access, and an actual model call after configuration separately. A running process does not establish App admission or model readiness.
 

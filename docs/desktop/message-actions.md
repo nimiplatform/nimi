@@ -4,7 +4,7 @@ Agent Chat opens the Runtime-managed Conversation for your selected Agent. Commi
 
 ## Send Text or an Image
 
-Type a message and send it to start a turn. If the Agent's configured capabilities support image input, you can attach up to one image per turn. Use the file picker to attach the image.
+Type a message and send it to start a turn. If the Agent's configured capabilities support image input, you can attach up to one image per turn using the file picker.
 
 The composer does not upload PDF, Markdown, or source-code files as document attachments. To discuss a document or code snippet, paste the relevant text directly into your message.
 

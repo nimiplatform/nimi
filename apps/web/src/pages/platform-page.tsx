@@ -84,9 +84,9 @@ const PLATFORM_COPY: Readonly<Record<LandingLocale, {
   }>;
 }>> = {
   zh: {
-    metaTitle: '平台底座与架构 | Nimi',
-    metaDescription: '了解 Nimi 的 Runtime、Cognition、Realm 三域架构、11 项多模态能力路由矩阵、权限信任边界与跨终端拓扑。',
-    title: 'Nimi 平台底座',
+    metaTitle: '平台架构 | Nimi',
+    metaDescription: '了解 Nimi 的 Runtime、Cognition 和 Realm 如何分工，应用怎样调用多模态 AI、申请权限，以及设备之间如何直连。',
+    title: 'Nimi 平台',
     lead: 'Nimi 是可安装的开源个人 AI 平台。在自己的电脑上运行 AI，在授权的应用之间延续伙伴记忆。',
     downloadCta: '下载 Nimi Beta',
     sourceCta: '开源仓库',
@@ -156,8 +156,8 @@ const PLATFORM_COPY: Readonly<Record<LandingLocale, {
     ],
   },
   en: {
-    metaTitle: 'Platform Architecture & Foundation | Nimi',
-    metaDescription: 'Explore Nimi’s Runtime, Cognition, and Realm three-domain architecture, 11-capability multimodal matrix, trust boundaries, and cross-terminal topology.',
+    metaTitle: 'Platform Architecture | Nimi',
+    metaDescription: 'See how Runtime, Cognition, and Realm fit together, how apps use multimodal AI and request permissions, and how devices connect directly.',
     title: 'Nimi Platform',
     lead: 'Nimi is an open-source AI platform you install on your own computer. Run AI locally and carry companion memory across authorized apps.',
     downloadCta: 'Download Nimi Beta',
@@ -194,7 +194,7 @@ const PLATFORM_COPY: Readonly<Record<LandingLocale, {
     localColumn: 'Local engines',
     remoteColumn: 'Cloud connectors',
     costBoundaryTitle: 'Costs and data',
-    costBoundaryBody: 'Nimi is free. When you choose a cloud service, it receives the required inputs and context and charges according to its pricing. Third-party publishers set their own app prices.',
+    costBoundaryBody: 'Nimi is free. When you choose a cloud service, it receives the required inputs and context, and charges according to its own pricing. Third-party publishers set their own app prices.',
     trustTitle: 'Permissions and security',
     permissions: {
       title: 'App permissions',

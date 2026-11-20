@@ -1,6 +1,6 @@
 # Controls in an Agent Conversation
 
-The controls in the current conversation let you attach an image, dictate a draft, or play a particular reply. Each action depends on the active App session and the required Runtime capability; a local button state does not establish availability.
+The controls in the current conversation let you attach an image, dictate a draft, or play a reply. Each action depends on the active App session and the required Runtime capability; local button state alone does not guarantee availability.
 
 ## Current Controls
 

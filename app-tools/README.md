@@ -1,33 +1,27 @@
 # @nimiplatform/app-tools
 
-The official full-stack developer CLI and toolchain for building, testing, and packaging Nimi desktop applications.
-
-`@nimiplatform/app-tools` manages the entire application lifecycle—from project scaffolding and dependency synchronization to Desktop-supervised development, test orchestration, and deterministic `.nimiapp` distribution packaging.
-
----
+Use App Tools to create, test and ship native desktop and Web apps. Desktop apps run under Nimi Home during development and ship as `.nimiapp` bundles. Web apps run at their own HTTPS origin and build to static files. You can host those files yourself or submit a candidate for Nimi hosting.
 
 ## 1. The Application Lifecycle
 
-The CLI exposes an eight-command toolkit designed for rapid local iteration and secure production releases:
-
-```text
-create ➔ install ➔ init ➔ sync ➔ check ➔ dev / test / build ➔ pack
-```
+Create a project, install its dependencies with your package manager and run `init`. For Web, fill in the registered origin, callback and client ID before initialization. Both carriers support `sync`, `check`, `dev`, `test` and `build`. Desktop projects use `pack` to prepare the built app for distribution.
 
 | Command | Role |
 | :--- | :--- |
-| **`create`** | Scaffolds a standalone project with reverse-domain App ID, manifest declarations, and build workflows. |
-| **`init`** | Materializes managed files and lifecycle guidance after installation; fresh scaffolds also receive a scaffold lock. |
+| **`create`** | Scaffolds a standalone native desktop or Web project with a reverse-domain App ID, manifest declarations, and build workflows. |
+| **`init`** | Materializes managed files and lifecycle guidance after dependency installation. Fresh scaffolds also receive a scaffold lock. |
 | **`sync`** | Refreshes managed build configs, CI workflows, and glue code without touching your business logic. |
-| **`check`** | Validates scaffold, package constraints, and declared inputs. Run App-owned typechecks separately. |
-| **`dev`** | Launches your app in the official Desktop-supervised Electron shell with a protected session bridge. |
-| **`test`** | Executes the test suite declared in your `.nimi/config/build-profile.yaml`. |
-| **`build`** | Compiles production binaries and assets for target platforms (macOS / Windows). |
-| **`pack`** | Deterministically packages verified binaries and metadata into an immutable `.nimiapp` bundle. |
+| **`check`** | Validates the scaffold, package constraints, and declared inputs. Run app-owned typechecks separately. |
+| **`dev`** | Launches native desktop apps in the Desktop-supervised Electron shell with a protected session bridge, or starts a Web app's own HTTPS dev entrypoint. |
+| **`test`** | Executes the test suite declared in `.nimi/config/build-profile.yaml`. |
+| **`build`** | Compiles production binaries and assets for native desktop targets (macOS / Windows), or outputs static assets for Web apps. |
+| **`pack`** | Native desktop only. Deterministically packages verified binaries and metadata into an immutable `.nimiapp` bundle. |
 
 ---
 
-## 2. Quickstart: Creating a New App
+<a id="2-quickstart-creating-a-new-app"></a>
+
+## 2. Quickstart: Creating a Desktop App
 
 Run the interactive creator or pass parameters directly:
 
@@ -75,9 +69,9 @@ The supported native App host is Electron on Windows x64 and macOS arm64. Standa
 
 For ordinary native App work, use a matching **installed Nimi and official Realm**. Sign in, enable Developer Mode, and run `pnpm dev` in your App repository. This works with public packages and an official account. If a compatible source Home is already running against a Realm suitable for your task, use that Home and the same App command.
 
-When changing Runtime, SDK or Kit, source Nimi defaults to official Realm. Choose `--realm local` on the source Home launcher for Realm integration or controlled data. Native `nimi-app dev` discovers the active Home and inherits its target. From a Nimi checkout, `pnpm doctor:dev -- --host source --realm official` compares the requested and observed Runtime. Coordinate with other developers before switching a shared host. The switch ends live App sessions. Compatible versions can use the same model and engine files in sequence. See the [local development guide](https://github.com/nimiplatform/nimi/blob/main/LOCAL_DEVELOPMENT.md).
+When working on Runtime, SDK, or Kit changes, running Nimi from source defaults to the official Realm. Pass `--realm local` to the source Home launcher when you need Realm integration or controlled data. Native `nimi-app dev` discovers the active Home and inherits its target. From a Nimi checkout, run `pnpm doctor:dev -- --host source --realm official` to compare the requested and observed Runtime. Coordinate with other developers before switching a shared host, as switching ends live App sessions. Compatible versions can reuse the same model and engine files in sequence. See the [local development guide](https://github.com/nimiplatform/nimi/blob/main/LOCAL_DEVELOPMENT.md).
 
-Nimi Apps run inside a Desktop-supervised Electron shell. The host provides a protected session for SDK calls without exposing Nimi credentials to the App renderer (note that this session bridge does not create an OS-level sandbox for the entire application).
+Native App development uses a Desktop-supervised Electron shell. The host provides a protected session for SDK calls without exposing Nimi credentials to the App renderer (note that this session bridge does not create an OS-level sandbox for the entire application).
 
 <a id="continuing-an-existing-session"></a>
 
@@ -120,7 +114,7 @@ Before publishing publicly, verify the `.nimiapp` package on your own machine:
 
 Exercise the actual install, launch, and key user flows on each supported target. Passing tests or packaging alone is not enough—mark any path you have not run as `NOT-VERIFIED`.
 
-Use Desktop-supervised Electron for App development and acceptance.
+Use Desktop-supervised Electron for native App development and acceptance.
 
 ---
 
@@ -254,23 +248,27 @@ During release, the managed GitHub Actions workflow uploads this sidecar to the 
 
 Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
 
-## Web development (current source build)
+<a id="web-development-current-source-build"></a>
+
+## Web development
 
 The same CLI supports `create --platform web`, Web `init/sync/check/test/build`, existing-site `init --adopt`, and `dev --platform web`. `standalone` is still the repository topology. Web `--features all` currently resolves to `studio-create` (text, streaming chat and embeddings); other feature selections fail explicitly until their Web carrier is admitted. Mobile generation remains outside this command. For managed Web hosting, build a static release with the App's public slug and prepare it for separate human Registry admission.
 
-Use matching complete SDK, Kit and App Tools source archives until the new entries are published; a published package with the same numeric version may not contain this source iteration. No source-directory dependency links are required.
+Use a compatible host and matching prerelease packages for Web development. App Tools `0.16.0-rc.9` scaffolds the project with SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. For unpublished changes, use a matching set of complete source archives. See [Environment Setup](../docs/start/install.md).
 
 The current workbench uses account-owned prompt drafts with an asynchronous `promptDraft` projection and independent history record documents. For existing unreleased generated prototypes, update the App-owned AI Studio capability source together with the generated host adapters. `sync` intentionally preserves `src/capabilities` and does not migrate or overwrite that business source; running `check` alone is not a substitute for the project's typecheck/build after this source update.
 
-The generated `nimi.app.yaml` has `platform: web`. Its `local_development.web` uses official Realm and leaves `origin`, `redirect_uri` and `client_id` empty until you configure the exact source registered through the public Registry. Configure them before init/check/dev. Choose an HTTPS origin dedicated to this App; a generated port hash or different client id cannot isolate scripts on the same browser origin. Put browser-trusted `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` file paths in `.env.local`. Source review and first PC Home confirmation remain required and do not require a native package release. The CLI does not approve the source.
+The generated `nimi.app.yaml` has `platform: web`. Its `local_development.web` uses official Realm and leaves `origin`, `redirect_uri` and `client_id` empty until you configure the exact source registered through the public Registry. Configure them before init/check/dev. Choose an HTTPS origin dedicated to this App; a generated port hash or different client id cannot isolate scripts on the same browser origin. In `.env.local`, point `NIMI_WEB_TLS_KEY` to the HTTPS private key and `NIMI_WEB_TLS_CERT` to the matching certificate trusted by the browser. Source review and first PC Home confirmation remain required and do not require a native package release. The CLI does not approve the source.
 
-For local Realm integration, add `local_development.web.local` with that environment's exact source fields and use `nimi-app dev --platform web --realm local`. The App-owned `command` stays on `web`; source fields survive sync. Default official values come from the package's public Realm profile. A local profile is explicit and never a fallback from an unavailable official service.
+For local Realm integration, add `local_development.web.local` with that environment's exact source fields and run `nimi-app dev --platform web --realm local`. The App-owned `command` stays under `web`, and source fields survive sync. Official defaults come from the package's public Realm profile; a local profile is always explicit and never acts as a fallback when the official service is unavailable.
 
 `@nimiplatform/app-tools/web` exports the Node-only `nimiWebViteConfig` helper. Its development proxy only forwards scoped identity and SDP coordination routes and strips official cookies. AI, files, audio and results use the browser-to-PC connection. Built static files need a separately configured production origin and bounded coordination route; the Vite dev server is not production hosting.
 
-For a Nimi-hosted release declare `public_slug` in `nimi.app.yaml`, use the existing Web production build, and set `NIMI_WEB_VERSION` to the protected Web release version. App Tools generates the exact `https://<slug>.nimi.xyz` origin, root callback, public client identity, official account URL and Realm environment together with `nimi-web-bundle.json`. It places compiled assets under `/_releases/<version>/assets/`. Run `nimi-app sync` to install the managed `.github/workflows/nimi-web-release.yml`. The protected `web-v*` workflow uses `build:web:release` or `build:release` and sets `NIMI_WEB_ARCHIVE` so the same build writes the immutable candidate ZIP. Publish the static directory as a stored ZIP using `packHostedWeb(directory, outputFile)` from `@nimiplatform/app-tools/web/release`. App-authored Pages control files are excluded. Executable public assets should be imported into the build or explicitly referenced under their release path.
+For a Nimi-hosted release, declare `public_slug` in `nimi.app.yaml`, use your existing Web production build, and set `NIMI_WEB_VERSION` to the protected Web release version. App Tools generates `nimi-web-bundle.json` along with the exact `https://<slug>.nimi.xyz` origin, root callback, public client identity, official account URL, and Realm environment, placing compiled assets under `/_releases/<version>/assets/`.
 
-For an independently registered release build, use `pnpm build:release` in a generated Web App or pass `release: true` to `nimiWebViteConfig` from the App's build config. Set `NIMI_WEB_ORIGIN`, `NIMI_WEB_REDIRECT_URI`, `NIMI_WEB_CLIENT_ID`, `NIMI_WEB_REALM_ENVIRONMENT_ID`, and `NIMI_WEB_OFFICIAL_WEB_URL` to the deployment values. The build uses the App ID from `nimi.app.yaml` and the release inputs for its source and login. Serve the coordination allowlist defined by `isWebCoordinationPath` on that App origin, forwarding it to the matching Realm without cookies. Source admission and cookie isolation are deployment requirements.
+Run `nimi-app sync` to install the managed `.github/workflows/nimi-web-release.yml` workflow. The protected `web-v*` workflow uses `build:web:release` or `build:release` and sets `NIMI_WEB_ARCHIVE` so the same build writes the immutable candidate ZIP. To pack the static output directory as a stored ZIP directly, use `packHostedWeb(directory, outputFile)` from `@nimiplatform/app-tools/web/release`. App-authored Pages control files are excluded, and executable public assets should be imported into the build or explicitly referenced under their release path.
+
+For an independently registered release build, run `pnpm build:release` in a generated Web App or pass `release: true` to `nimiWebViteConfig` in your build config. Set `NIMI_WEB_ORIGIN`, `NIMI_WEB_REDIRECT_URI`, `NIMI_WEB_CLIENT_ID`, `NIMI_WEB_REALM_ENVIRONMENT_ID`, and `NIMI_WEB_OFFICIAL_WEB_URL` to your deployment values. The build reads the App ID from `nimi.app.yaml` and uses these release inputs for source identity and login. On that App origin, serve the coordination allowlist defined by `isWebCoordinationPath` and forward matching requests to the corresponding Realm without cookies. Source admission and cookie isolation remain deployment requirements.
 
 A Desktop project can also declare an App-owned `local_development.web` entry and use `dev --platform web`. Init/sync preserve it and check validates both entries. This does not change the project's managed platform, native feature selection or build profile: its Web renderer, tests and build remain App-owned. Update retained capability modules alongside the selected tool package when their generated Host interface changes; sync deliberately preserves those App-owned files.
 
@@ -278,10 +276,12 @@ For an existing website, keep its product entry and actual commands. Use a `web-
 
 Native-only guidance such as Electron installation, native signatures and `pack --production` above does not apply to the Web carrier. The initial generated test command typechecks the project; App business tests and real task acceptance belong to the application iteration.
 
-The current Web bootstrap uses Kit `auth/app/web` plus its shared Provider, account control and access gate. The old `core/remote-app-session` entry was removed in this unreleased hard cut. Existing App-owned Web entries must be updated explicitly with their selected SDK/Kit source package combination; sync does not take ownership of the application entry. Generated business callbacks retain their captured client; identity-only views use their own identity lifetime rather than a Runtime connection key.
+The current Web bootstrap uses Kit `auth/app/web` plus its shared Provider, account control and access gate. The old `core/remote-app-session` entry is no longer exported. Update existing App-owned Web entries to match the selected SDK and Kit packages; sync does not take ownership of the application entry. Generated business callbacks retain their captured client; identity-only views use their own identity lifetime rather than a Runtime connection key.
 
 ### Existing mobile development entry
 
 An existing App can add `local_development.mobile.command: pnpm run dev:android` to `nimi.app.yaml`, define that real App-owned script in `package.json`, and select it with `nimi-app dev --platform mobile`. Desktop shell, registration selectors and Desktop CDP flags do not apply. App Tools delegates the native command; it does not create a local Home session or native source qualification. The additional command survives supported init/sync updates as App-owned configuration.
 
-The initial reference is Zhiyu's Android Capacitor container using Kit `auth/app/mobile`. Ordinary debug development uses official Realm with a registered Android App Link, the actual debug package/signature and verified HTTPS association; it does not require a release APK. Its project and Android build/device tools remain prerequisites. `--realm local` explicitly enables the existing non-production `android-dev-scheme` path where the local source is admitted. Source admission and Home consent stay with their owners. This entry does not add mobile scaffolding, APK publication or store release. A child process exiting successfully is not Runtime acceptance. Node build configuration may consume `@nimiplatform/app-tools/development` to resolve the same selected Realm.
+The initial reference is Zhiyu's Android Capacitor container using Kit's `auth/app/mobile`. Ordinary debug development targets the official Realm with a registered Android App Link, the actual debug package/signature, and a verified HTTPS association—no release APK is required, though the project itself and Android build/device tools remain prerequisites. Passing `--realm local` explicitly enables the non-production `android-dev-scheme` path when that local source is admitted.
+
+Source admission and Home consent remain with their respective owners. This entry does not add mobile scaffolding, APK publishing, or store releases, and a child process exiting successfully does not constitute Runtime acceptance. Node build configs can use `@nimiplatform/app-tools/development` to resolve the same selected Realm.

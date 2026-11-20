@@ -9,8 +9,8 @@
 | 载体 | 指南 | 当前范围 |
 | --- | --- | --- |
 | Desktop | [创建原生 App](/zh/start/create-an-app) | 受 Desktop 监管的原生 Host；匹配的发布版或源码包 |
-| Web | [接入网站](/zh/start/connect-web-app) | 当前源码：HTTPS 来源、官方登录、主 Runtime 直连 |
-| Android | [接入已有 App](/zh/start/connect-android-app) | 当前源码：Kit Capacitor；开发 Scheme 与正式 App Link 分别验证 |
+| Web | [接入网站](/zh/start/connect-web-app) | HTTPS 来源、官方登录、主 Runtime 直连 |
+| Android | [接入已有 App](/zh/start/connect-android-app) | Kit Capacitor，开发 Scheme 与正式 App Link 分别验证 |
 
 ---
 

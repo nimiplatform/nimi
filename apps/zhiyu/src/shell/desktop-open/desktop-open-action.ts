@@ -121,7 +121,7 @@ function desktopOpenReasonCopy(reasonCode: string): string {
       return 'Nimi Home 正在加载，请稍后重试。';
     case 'desktop-open-host-unavailable':
     case 'renderer-standard-shell-host-unavailable':
-      return '当前环境无法自动打开 Nimi Home。请手动前往「聊天与联系人」的伙伴列表选择已有伙伴；发现新角色可使用织羽的「发现角色」。';
+      return '当前环境无法自动打开 Nimi Home。请手动前往「聊天与联系人」的伙伴列表选择已有伙伴；想认识新角色，可直接使用织羽的「发现角色」。';
     case 'desktop-open-bridge-auth-failed':
       return 'Nimi Home 连接校验失败，请重启 Nimi Home 后重试。';
     case 'desktop-open-intent-invalid':

@@ -75,7 +75,7 @@ export function WorldMiniMap(props: {
   }
 
   return (
-    <aside className="utopia-minimap-card" aria-label="洞天全域缩略舆图与地点速达">
+    <aside className="utopia-minimap-card" aria-label="洞天缩略舆图与场所跳转">
       <div className="utopia-minimap-head">
         <span className="utopia-minimap-title">
           <CompassRoseIcon size={12} />
@@ -207,7 +207,7 @@ export function WorldMiniMap(props: {
       </div>
 
       {/* Quick District / Place Jump Strip */}
-      <div className="utopia-minimap-place-strip" role="group" aria-label="场所快捷飞跃">
+      <div className="utopia-minimap-place-strip" role="group" aria-label="场所快捷跳转">
         {anchors.map((anchor) => {
           const isQuarter = anchor.targetId === 'personal-quarter';
           const isOpen = isQuarter ? true : openSet.has(anchor.targetId);

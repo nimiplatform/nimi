@@ -8,7 +8,7 @@ aside: false
 
 The Nimi SDK is the official boundary for applications integrating Runtime, Realm, AI inference, Agent collaboration, feature modules, and shared type definitions. The core implementation lives under `sdks/typescript` and is published as `@nimiplatform/sdk`.
 
-Choose the package and host combination in [Environment Setup](/start/install). Native App examples require matching SDK, Kit and Runtime artifacts; remote Web/Android entries require the current source delivery. The Vercel example uses published adapter `0.6.2` with AI SDK 7; see [Adapters](/sdk/adapters).
+Native and remote apps both need a compatible host. For Web or Android, use an SDK and Kit release with the remote entrypoints, such as SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. See [Environment Setup](/start/install) for matching packages. The [Vercel example](/sdk/adapters) uses stable adapter `0.6.2` with AI SDK 7.
 
 ## Quick Start: Building a Native Nimi App
 
@@ -67,8 +67,8 @@ The TypeScript SDK adopts a single foundation package design; third-party framew
 | `@nimiplatform/sdk/app` | Host-bound App client types, standard shell contracts, and typed operations |
 | `@nimiplatform/sdk/ai` | AI model interfaces and text model binding utilities |
 | `@nimiplatform/sdk/runtime` | Strongly-typed Runtime client for supported environments; strictly respects authorization boundaries |
-| `@nimiplatform/sdk/runtime/remote` | Current source: direct primary Runtime connection and remote client types |
-| `@nimiplatform/sdk/realm/runtime-client` | Current source: official source login, scoped identity and connection coordination |
+| `@nimiplatform/sdk/runtime/remote` | Direct primary Runtime connection and remote client types |
+| `@nimiplatform/sdk/realm/runtime-client` | Official source login, scoped identity and connection coordination |
 | `@nimiplatform/sdk/realm` | Standalone Realm client for independent scripts; Apps access Realm via their host-bound client |
 | `@nimiplatform/sdk/types` | Portable public interfaces, schema types, and SDK error models |
 | `@nimiplatform/sdk/contracts` | Open platform contract descriptors |
@@ -98,7 +98,7 @@ Applications should never craft raw gRPC calls or bypass SDK contracts to invoke
 
 ## Remote App Entries
 
-Web and Android connect through a bounded remote client rather than a native Host session. Current source exports are `@nimiplatform/sdk/runtime/remote` and `@nimiplatform/sdk/realm/runtime-client`, while shared product UI normally starts with Kit `auth/app/web` or `auth/app/mobile`. Choose your package combination in [Environment Setup](/start/install), then follow [Web](/start/connect-web-app), [Android](/start/connect-android-app), and [Runtime Client](/sdk/runtime-client).
+Web and Android connect through a bounded remote client rather than a native Host session. The remote SDK entrypoints are `@nimiplatform/sdk/runtime/remote` and `@nimiplatform/sdk/realm/runtime-client`, while shared product UI normally starts with Kit `auth/app/web` or `auth/app/mobile`. Choose your package combination in [Environment Setup](/start/install), then follow [Web](/start/connect-web-app), [Android](/start/connect-android-app), and [Runtime Client](/sdk/runtime-client).
 
 ## Source Basis
 

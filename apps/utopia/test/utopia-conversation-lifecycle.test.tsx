@@ -430,7 +430,7 @@ test('HorizonTopBar inline quick-dial confirmation and RelocationAndPackDrawer v
     const removeWithoutSnapBtn = Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === '移除');
     assert.ok(removeWithoutSnapBtn, 'Imported pack card must render 移除 button');
     assert.equal(removeWithoutSnapBtn.disabled, true, '移除 button must be disabled when snapshot is unavailable');
-    assert.equal(removeWithoutSnapBtn.getAttribute('title'), '连接住地并确认使用状态后方可移除本地包');
+    assert.equal(removeWithoutSnapBtn.getAttribute('title'), '需先连接住地并确认使用状态，才能移除本地包');
 
     // 3. RelocationAndPackDrawer visibly discloses UTC -> local timezone update and respects unchecking
     const originalDtf = Intl.DateTimeFormat;

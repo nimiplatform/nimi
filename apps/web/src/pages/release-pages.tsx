@@ -322,14 +322,14 @@ const ZH_COPY: PublicPageCopy = {
   download: {
     meta: {
       title: '下载 Nimi | 发布状态',
-      description: '查找 Nimi 安装包、系统要求与版本校验说明。',
+      description: '获取 Nimi 安装包，查看系统要求与版本校验说明。',
       canonical: 'https://nimi.ai/download',
     },
     title: '下载 Nimi',
     scope: `公开 Beta v${PUBLIC_BETA_VERSION}，适用于 Apple Silicon Mac 和 Windows x86_64。`,
-    windowsAction: '下载 Windows 安装包 (.exe)',
-    macosAction: '下载 macOS 安装包 (.pkg)',
-    releaseAction: '查看 GitHub Releases 校验元数据与资产',
+    windowsAction: '下载 Windows x86_64 安装包 (.exe)',
+    macosAction: '下载 Apple Silicon Mac 安装包 (.pkg)',
+    releaseAction: '在 GitHub Releases 查看发布文件与校验元数据',
     warning: 'Windows 安装提示：首次运行安装程序时若弹出“Windows 已保护你的电脑”，点击“更多信息 → 仍要运行”即可正常安装。Windows Beta 安装包尚无 Authenticode 签名。请勿为此安装开发根证书或关闭系统安全防护。',
     installationGuide: '安装说明与校验',
     desktop: {
@@ -641,8 +641,8 @@ const DOWNLOAD_ONBOARDING_STEPS: Readonly<Record<LandingLocale, {
 }>> = {
   zh: {
     recommendedBadge: '当前设备推荐',
-    mobileHint: '你当前正在手机或平板上浏览。Nimi Beta 需安装在桌面电脑上，你可以复制下载页链接发送到电脑打开。',
-    copyLinkLabel: '复制下载页链接到电脑',
+    mobileHint: '你正在手机或平板上浏览。Nimi Beta 需安装在 Mac 或 Windows 电脑上，可复制下载页链接并在电脑上打开。',
+    copyLinkLabel: '复制下载页链接',
     copiedLinkLabel: '下载页链接已复制',
     intelMacNote: 'macOS 安装包当前仅支持 Apple Silicon（M1/M2/M3/M4 芯片），暂未提供 Intel Mac 构建。',
     guideTitle: '三步完成安装与首次启动',

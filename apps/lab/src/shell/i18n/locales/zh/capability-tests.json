@@ -474,15 +474,15 @@
       "source": "源文件",
       "scale": "放大倍率",
       "seed": "种子",
-      "invalidInput": "请选择不超过 32 MiB 的受支持文件、2 或 4 倍放大，以及 0 到 2147483647 的种子。",
+      "invalidInput": "请选择不超过 32 MiB 的受支持源文件、2 或 4 倍放大倍率，并输入 0 到 2147483647 之间的种子。",
       "invalidOutput": "Runtime 返回了不符合契约的超分辨率产物。",
       "completed": "超分辨率处理已完成。",
-      "imageHint": "支持不超过 32 MiB 的 PNG 或 JPEG。输出单轴不超过 4096 像素，RelayVSR 需使用对应的 2x 或 4x 模型。",
-      "videoHint": "支持单路 H264 视频及可选 AAC 音轨的 MP4，不超过 32 MiB、10 秒和 300 帧。保留原始帧时间与音轨，输出 RGB 帧总量不超过 512 MiB。"
+      "imageHint": "支持不超过 32 MiB 的 PNG 或 JPEG。输出宽高均不超过 4096 像素，RelayVSR 需使用对应的 2x 或 4x 模型。",
+      "videoHint": "支持单路 H264 视频及可选 AAC 音轨的 MP4，不超过 32 MiB、10 秒和 300 帧。保留原始帧时间与音轨；解码后的输出 RGB 帧总大小不超过 512 MiB。"
     },
     "imageUpscale": {
       "label": "图像超分辨率",
-      "summary": "放大已有图像并保存完整 PNG。"
+      "summary": "放大已保存到本应用的图像，并将结果保存为 PNG。"
     },
     "videoUpscale": {
       "label": "视频超分辨率",

@@ -2,7 +2,7 @@
 
 # Runtime Client
 
-Choose a local native or remote App client. Current remote entries require the [source artifact combination](/start/install).
+Choose a local native or remote App client. For remote clients, choose a compatible SDK, Kit and host from [Environment Setup](/start/install).
 
 ## Local Native Client
 
@@ -26,12 +26,12 @@ This function saves one Local intent without changing the machine's model select
 
 <<< ../../examples/sdk/09-media-jobs.ts#configure
 
-The [multimodal guide](/runtime/multimodal) includes the same typechecked example's upload, submission, result-retention and cancellation functions:
+The [multimodal guide](/runtime/multimodal) includes the upload, submission, result-retention, and cancellation functions from the same typechecked example:
 
-- Upload via `client.ai.artifacts.upload`; pass the returned artifact ID rather than a host file path.
-- Submit `image-upscale` or `video-upscale` with `sourceArtifactId`, `scale: 2 | 4` and optional `seed`.
+- Upload via `client.ai.artifacts.upload`, and pass the returned artifact ID rather than a host file path.
+- Submit `image-upscale` or `video-upscale` with `sourceArtifactId`, `scale: 2 | 4`, and an optional `seed`.
 - Submit ControlNet through `image-generate` with `controlImage: { imageArtifactId, type, strength? }`. Ordinary H3 editing uses `referenceImageArtifactId` instead.
-- Save the submission ID before Submit and the Job ID after it returns. Recover uncertain submission with `lookupSubmission`, query status with `get`, explicitly `cancel` when requested, and adopt completed artifacts through `client.storage.assets.adoptArtifact`.
+- Save the submission ID before submitting, and save the Job ID after it returns. Recover an uncertain submission with `lookupSubmission`, query status with `get`, explicitly call `cancel` when requested, and adopt completed artifacts through `client.storage.assets.adoptArtifact`.
 
 The example's native Windows path does not establish remote Web/Android or installed-distribution acceptance. Supported models, media limits and exercised combinations are listed in [Local models](/runtime/local-models#local-image-and-video-models).
 

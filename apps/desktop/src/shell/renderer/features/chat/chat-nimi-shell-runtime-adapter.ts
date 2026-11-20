@@ -26,7 +26,7 @@ export function buildDesktopNimiTextCapabilityRequest(
   if (!prompt) throw new Error('Nimi Chat text input is required.');
   const encoder = new TextEncoder();
   let bytes = encoder.encode(prompt).length;
-  if (bytes > INPUT_BYTES) throw new Error('Nimi Chat input exceeds the text budget.');
+  if (bytes > INPUT_BYTES) throw new Error('Nimi Chat input is too long.');
   const history = input.history ?? [];
   const users = new Map(history.filter(item => item.role === 'user' && item.status === 'complete').map(item => [item.id, item]));
   const messages: NimiLocalAppTextTurnInput['messages'][number][] = [];

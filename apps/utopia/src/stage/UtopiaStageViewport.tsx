@@ -1149,12 +1149,12 @@ export function UtopiaStageViewport(props: {
             >
               −
             </button>
-            <span className="utopia-cam-zoom-readout" title="滚轮朝光标处无损缩放 · 拖拽漫游全域">{zoomPercent}%</span>
+            <span className="utopia-cam-zoom-readout" title="滚轮以光标为中心缩放 · 拖拽漫游全域">{zoomPercent}%</span>
             <button
               type="button"
               className="utopia-cam-btn"
               aria-label="放大画卷细节"
-              title="放大近看 4K 手绘街区与伙伴"
+              title="放大查看街区与伙伴"
               disabled={targetCamera.zoom >= MAX_STAGE_ZOOM - 0.03}
               onClick={() => applyCamera((p) => clampCamera(p.zoom + 0.22, p.panX * 1.15, p.panY * 1.15))}
             >

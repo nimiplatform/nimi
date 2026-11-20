@@ -1544,7 +1544,10 @@ export function createAppScaffold(input) {
   };
   if (!options.silent) {
     process.stdout.write(`[nimi-app] created ${profile} app scaffold at ${targetDir}\n`);
-    process.stdout.write('[nimi-app] next: pnpm install && pnpm run init\n');
+    const next = plan.resolvedInput.platform === 'web'
+      ? 'Run pnpm install, fill in your registered origin, redirect_uri and client_id in nimi.app.yaml, then run pnpm run init.'
+      : 'pnpm install && pnpm run init';
+    process.stdout.write(`[nimi-app] next: ${next}\n`);
   }
   return payload;
 }

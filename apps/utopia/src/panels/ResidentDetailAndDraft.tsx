@@ -212,7 +212,7 @@ function LazyMountedFormalConversation(props: {
 
     const failSessionSetup = (rawError?: string | null) => {
       if (!owner.active) return;
-      const message = rawError?.trim() || '暂时无法连接正式对话通道，请确认 Nimi Home 已登录。';
+      const message = rawError?.trim() || '暂时无法连接正式对话，请确认已登录 Nimi Home。';
       setMounted(null);
       setSendError(message);
       onDraftStateChange((current) => {
@@ -262,7 +262,7 @@ function LazyMountedFormalConversation(props: {
     if (!sendOperation) return;
     if (state?.status === 'failed' || state?.status === 'stale') {
       if (!mounted?.pending) {
-        const message = state.error?.trim() || '正式对话通道未就绪，草稿已保留，请重试连接。';
+        const message = state.error?.trim() || '正式对话尚未就绪，草稿已保留，请重试连接。';
         setSendError(message);
         onDraftStateChange((current) => {
           if (!current || current.agentHandle !== agentHandle || current.sendOperation !== sendOperation) {
@@ -344,7 +344,7 @@ function LazyMountedFormalConversation(props: {
               title={draftOverZhiyuLimit ? `当前便签已达 ${draftCharCount} 字，超过织羽交接上限（${MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字）` : undefined}
               onClick={onOpenInZhiyu}
             >
-              {handoffBusy ? '唤起织羽中…' : '去织羽深聊'}
+              {handoffBusy ? '正在打开织羽…' : '去织羽深聊'}
             </Button>
           )}
           <Button tone="ghost" size="sm" onClick={onClose}>
@@ -373,7 +373,7 @@ function LazyMountedFormalConversation(props: {
         {(state?.messages.length ?? 0) === 0 ? (
           <li className="utopia-empty-hint">
             {state?.status === 'ready'
-              ? '已递开门扉，留一句简短问候吧；长谈或语音图片可点「去织羽深聊」。'
+              ? '门扉已开，先留一句简短问候吧；想长谈或发语音、图片，可点「去织羽深聊」。'
               : sessionBroken
                 ? '暂未连接便签通道，可点击上方「重试连接」。'
                 : '正在连接门前便签通道…'}
@@ -410,7 +410,7 @@ function LazyMountedFormalConversation(props: {
         />
         {draftOverZhiyuLimit && (
           <p className="utopia-causal-note" role="alert">
-            当前草稿已达 {draftCharCount} 字，超过织羽交接上限（{MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字），请精简后再交接至织羽。
+            当前草稿已达 {draftCharCount} 字，超过带去织羽的字数上限（{MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字），请精简后再带去织羽。
           </p>
         )}
         <div className="utopia-draft-actions">
@@ -742,7 +742,7 @@ export function ResidentDetailAndDraft(props: {
   const handleOpenInZhiyu = () => {
     if (!draftState || !onOpenPartnerInZhiyu || zhiyuHandoffBusy) return;
     if (draftState.text.includes('\0')) {
-      setDraftError('门前便签包含不受支持的控制字符，草稿已保留，请整理后再交接至织羽。');
+      setDraftError('门前便签包含不支持的控制字符，草稿已保留，请整理后再带去织羽。');
       return;
     }
     if (draftOverZhiyuLimit) {
@@ -901,7 +901,7 @@ export function ResidentDetailAndDraft(props: {
                     type="button"
                     className="utopia-chibi-mini-btn"
                     disabled={!wardrobeReady}
-                    title={!wardrobeReady ? '正在读取受管衣柜，请稍候…' : undefined}
+                    title={!wardrobeReady ? '正在读取衣柜，请稍候…' : undefined}
                     aria-label={`随机更换 ${draftState.displayName} 的手绘小人形象`}
                     onClick={() => {
                       applyWardrobeChange(draftState.agentHandle, (cur) => randomizeChibiAppearance(cur));
@@ -912,7 +912,7 @@ export function ResidentDetailAndDraft(props: {
                   <button
                     type="button"
                     disabled={!wardrobeReady}
-                    title={!wardrobeReady ? '正在读取受管衣柜，请稍候…' : undefined}
+                    title={!wardrobeReady ? '正在读取衣柜，请稍候…' : undefined}
                     aria-expanded={wardrobeReady && wardrobeOpen}
                     className={`utopia-chibi-mini-btn is-customize ${wardrobeReady && wardrobeOpen ? 'is-open' : ''}`}
                     onClick={() => setWardrobeOpen((o) => !o)}
@@ -1022,7 +1022,7 @@ export function ResidentDetailAndDraft(props: {
               />
               {draftOverZhiyuLimit && (
                 <p className="utopia-causal-note" role="alert">
-                  当前草稿已达 {draftCharCount} 字，超过织羽交接上限（{MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字），请精简后再带去织羽。
+                  当前草稿已达 {draftCharCount} 字，超过带去织羽的字数上限（{MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字），请精简后再带去织羽。
                 </p>
               )}
               <div className="utopia-draft-actions">
@@ -1035,7 +1035,7 @@ export function ResidentDetailAndDraft(props: {
                     title={draftOverZhiyuLimit ? `当前便签已达 ${draftCharCount} 字，超过织羽交接上限（${MAX_UTOPIA_ZHIYU_DRAFT_CHARS} 字）` : undefined}
                     onClick={handleOpenInZhiyu}
                   >
-                    {zhiyuHandoffBusy ? '唤起织羽中…' : '去织羽深聊'}
+                    {zhiyuHandoffBusy ? '正在打开织羽…' : '去织羽深聊'}
                   </Button>
                 )}
                 <Button
@@ -1083,7 +1083,7 @@ export function ResidentDetailAndDraft(props: {
             <strong>街巷串门与相约小聚</strong>
             <p className="utopia-causal-note">
               {snapshot.publicParticipation
-                ? '闲暇时伙伴们会去茶座、庭院散步，遇上合拍的兴致也会自然相约小聚。'
+                ? '闲暇时伙伴们会去茶座、庭院走走，兴致相投时也会自然相约小聚。'
                 : '关闭后大家各自享受清静时光，暂时不去街巷串门，手头的相约也会自然收尾。'}
             </p>
           </div>

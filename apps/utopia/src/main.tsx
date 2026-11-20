@@ -184,7 +184,7 @@ function UtopiaApp() {
       if (!hasBoundSessionRef.current && isSessionUnboundStorageError(err)) {
         setPackIndexError(null);
       } else {
-        setPackIndexError(err instanceof Error ? err.message : '无法读取本地已导入洞天包索引');
+        setPackIndexError(err instanceof Error ? err.message : '无法读取本地已导入的洞天包索引');
       }
     }
     setPacks([...builtins, ...imported]);
@@ -323,7 +323,7 @@ function UtopiaApp() {
         setWardrobeReady(false);
         setActionAlert({
           tone: 'warning',
-          text: '暂时无法读取小人衣柜，已暂停换装编辑以保护已有伙伴装扮。',
+          text: '暂时无法读取小人衣柜，已暂停换装，避免影响伙伴现有的装扮。',
         });
       }
     })();
@@ -649,7 +649,7 @@ function UtopiaApp() {
               </div>
             ) : (
               <p className="utopia-loading-scroll-pill" role="status">
-                正在推门展开手绘洞天与伙伴行迹…
+                正在展开手绘洞天与伙伴行迹…
               </p>
             )}
           </main>
@@ -691,9 +691,9 @@ function UtopiaApp() {
             />
 
             {drawerVisible && activeDrawerTab && (
-              <aside className="utopia-floating-drawer" aria-label="洞天伴随手记卷轴">
+              <aside className="utopia-floating-drawer" aria-label="洞天手记卷轴">
                 <div className="utopia-drawer-top-strip">
-                  <nav className="utopia-tab-strip" role="tablist" aria-label="手记卷轴分页">
+                  <nav className="utopia-tab-strip" role="tablist" aria-label="手记卷轴标签页">
                     <button
                       type="button"
                       role="tab"

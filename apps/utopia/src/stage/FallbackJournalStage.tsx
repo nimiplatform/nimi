@@ -445,7 +445,7 @@ export function FallbackJournalStage(props: {
               <span>
                 {packFallbackReason === 'pack-index-error'
                   ? `画卷索引读取异常（${packFallbackDetail || '未能读取已导入洞天包列表'}），当前以通用手账忠实展示住地。`
-                  : '当前生效住地的摘要与本地同 ID 画卷包版本不同，已切换为通用风物手账以忠实呈现当前住地。'}
+                  : '当前住地与本地同 ID 画卷包版本不一致，已切换为通用风物手账如实呈现。'}
               </span>
               {onOpenPackLibrary && (
                 <button

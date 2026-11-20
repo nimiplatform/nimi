@@ -63,8 +63,8 @@ const LANDMARKS_BY_HABITAT: Readonly<Record<string, readonly WorldScenicLandmark
       summary: '矗立在西侧青草悬崖上的珊瑚红白灯塔，推开铜框圆窗能望见整片外海的浪线与归帆。',
       daypartNote: {
         morning: '晨雾散开时，塔尖风向标正迎着第一缕海风轻转。',
-        dusk: '暮色漫上海平线，塔顶透镜已点亮柔和的琥珀航标光束。',
-        night: '静夜潮声里，温暖航标光束正规律掠过浅湾水面。',
+        dusk: '暮色漫上海平线，塔顶透镜投出柔和的琥珀色航标光束。',
+        night: '静夜潮声里，温暖的航标光束正有规律地掠过浅湾水面。',
       },
     },
     {
@@ -105,7 +105,7 @@ const LANDMARKS_BY_HABITAT: Readonly<Record<string, readonly WorldScenicLandmark
       xPercent: 90,
       yPercent: 17,
       glyph: 'windmill',
-      summary: '北坡草甸上的白墙石砌木翼风车，借着终年不断的海风缓缓转动，坡下开满细白野雏菊。',
+      summary: '北坡草甸上白墙石砌的木翼风车，借着终年不断的海风缓缓转动，坡下开满细白野雏菊。',
     },
     {
       id: 'landmark:painted-skiff-cove',
@@ -184,7 +184,7 @@ const LANDMARKS_BY_HABITAT: Readonly<Record<string, readonly WorldScenicLandmark
       xPercent: 80,
       yPercent: 27,
       glyph: 'windmill',
-      summary: '静静仰望极夜星空的白色抛物面天线，接收着越洋破冰船问候与高纬度电离层脉冲回波。',
+      summary: '静静仰望极夜星空的白色抛物面天线，接收着越洋破冰船的问候与高纬度电离层脉冲回波。',
     },
   ],
   'nimi.builtin.cloud-bamboo-abode': [

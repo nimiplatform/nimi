@@ -15,7 +15,7 @@ export function createZhiyuConversationDelivery(emit: () => void) {
         const entry = { request, finish(opened: boolean) {
           if (pending !== entry) return;
           clearTimeout(timer); pending = null; emit();
-          if (opened) resolve(); else reject(new Error('Zhiyu did not reach the requested conversation.'));
+          if (opened) resolve(); else reject(new Error('Zhiyu did not confirm that the conversation opened.'));
         } };
         pending = entry;
         emit();

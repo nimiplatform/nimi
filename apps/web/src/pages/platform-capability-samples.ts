@@ -54,7 +54,7 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
     result: { zh: '两段短片都呈现了蓝色水面上的红色纸船。', en: 'Both clips showed the red paper boat on blue water.' },
     facts: [
       { label: { zh: '输出格式', en: 'Output format' }, value: 'MP4' },
-      { label: { zh: '视频尺寸', en: 'Video size' }, value: '512 × 288' },
+      { label: { zh: '视频尺寸', en: 'Video dimensions' }, value: '512 × 288' },
       { label: { zh: '时长', en: 'Duration' }, value: '0.95 s' },
     ],
     unavailableMedia: 'video',
@@ -78,7 +78,7 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
   // macos-20261110-gemini-lite-sulafat
   'audio.synthesize': {
     input: { zh: '使用 Sulafat 音色和舒缓语气朗读中文短句。', en: 'Read a short Chinese passage in a calm tone using the Sulafat voice.' },
-    result: { zh: 'Lab 播放了合成音频。转写后的原文如下。', en: 'Lab played the synthesized audio. This is the resulting transcript.' },
+    result: { zh: 'Lab 播放了合成音频。转写结果如下。', en: 'Lab played the synthesized audio. This is the resulting transcript.' },
     excerpt: { lang: 'zh', text: '橙色的杯子放在窗边，下一班火车十点出发。' },
     facts: [
       { label: { zh: '时长', en: 'Duration' }, value: '5.68 s' },
@@ -89,7 +89,7 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
   // macos-20261111-installed-qwen3-asr
   'audio.transcribe': {
     input: { zh: '上传一段 3.44 秒的英语 WAV 录音。', en: 'Upload a 3.44-second English WAV recording.' },
-    result: { zh: '模型识别出英语，并返回了完整转写。', en: 'The model identified the language as English and returned the full transcript.' },
+    result: { zh: '模型识别出音频语言为英语，并返回了完整转写。', en: 'The model identified the language as English and returned the full transcript.' },
     excerpt: { lang: 'en', text: 'A green notebook is on the table. The next train leaves at ten.' },
   },
   // macos-20261111-installed-lyria-clip

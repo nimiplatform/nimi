@@ -73,7 +73,7 @@ export function WorldSceneryLayer(props: {
   if (landmarks.length === 0) return null;
 
   return (
-    <div className="utopia-landmarks-layer" role="group" aria-label="洞天风物观景地标">
+    <div className="utopia-landmarks-layer" role="group" aria-label="洞天风物地标">
       {landmarks.map((landmark) => {
         const isSelected = selectedLandmarkId === landmark.id;
         const posStyle = projectPercent

@@ -27,7 +27,7 @@
       "denied": "当前会话拒绝更改住地设置。",
       "writeUnexpected": "只读会话意外更改了设置。",
       "readFailed": "暂时无法读取当前住地。",
-      "writeFailed": "设置请求失败，未收到权限拒绝结果。",
+      "writeFailed": "更改设置的请求失败，但未返回权限拒绝。",
       "places": "场所",
       "parameters": "环境参数",
       "activeEvents": "风物事件",

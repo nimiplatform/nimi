@@ -90,7 +90,7 @@ export function resolveResidentPresence(
     return {
       tone: 'conversing',
       statusBadge: '对话或协作中',
-      shortLocationOrState: '正在对话或应用协作中',
+      shortLocationOrState: '正在对话或参与应用协作',
       focusPlaceId: null,
     };
   }

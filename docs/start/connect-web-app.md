@@ -2,35 +2,61 @@
 
 # Connect a Web App to Your PC Runtime
 
-Use a browser on this PC or another device to consume your primary Runtime. The current Web entry requires the [source package combination](/start/install); the published App Tools `0.14.0` artifact does not contain `--platform web`.
+A Web App lets you use your primary PC Runtime from a browser on the same machine or another device.
 
-## Prepare the Host and Source
+Web scaffolding and tooling are available on the npm `pre` channel—App Tools `0.16.0-rc.9`, SDK `0.24.0-rc.10`, and Kit `0.24.0-rc.16` (separate from `latest`). See [Install](/start/install) to align package versions and host requirements. Published `pre` packages let you create and run Web projects locally, but package availability alone is not end-to-end production sign-off.
 
-Keep the primary PC Runtime running and sign in to Home. Bind the primary Runtime through the official account flow, enable remote access, and prepare the Local Loadout or Cloud Connector needed for your task.
+## 1. Prepare Your PC Runtime and Web Source
 
-Your website needs an admitted Registry client with the exact canonical App ID, client ID, HTTPS origin and same-origin callback. Have the maintainer admit the real source; creating a project does not approve it. The user confirms that source in Home on first use. Ordinary reconnection or changing browser does not add another device approval; a material source revision requires fresh confirmation.
+On an ordinary development machine, you can use your installed, compatible Nimi Home and primary PC Runtime against the official Realm—you do not need to run a local Realm.
 
-The browser must trust the website's TLS certificate, and the client and PC must be able to connect directly. There is no TURN/Relay fallback. Do not disable TLS checks to make a development source appear usable.
+Make sure your host is ready:
 
-## Create or Adopt the Website
+- Keep the primary PC Runtime running, signed in to Home, and bound through the official account flow.
+- Enable remote access and configure the Local Loadout or Cloud Connector your App needs.
 
-From a directory containing your selected complete source archives:
+Your website also needs an admitted client in the Registry with its exact canonical App ID, client ID, HTTPS origin, and same-origin callback. Scaffolding a project locally does not admit it; a maintainer must approve the real source. Users confirm the source in Home on first use—routine reconnections or switching browsers won't prompt again, though a material source revision requires fresh confirmation.
+
+Finally, the browser must trust your site's TLS certificate (do not disable TLS checks during development), and the browser and PC must be able to reach each other directly—there is no TURN/Relay fallback.
+
+## 2. Create a New Web App—or Adopt an Existing Site
+
+### Start from scratch
+
+Scaffold a standalone Web project using App Tools from the `pre` channel:
 
 ```bash
-pnpm dlx --package="file:$PWD/nimi-packages/nimiplatform-app-tools-0.15.0.tgz" nimi-app create \
+pnpm dlx --package=@nimiplatform/app-tools@0.16.0-rc.9 nimi-app create \
   --dir my-web-app --profile standalone --platform web \
   --features studio-create --app-id com.example.web --title "My Web App"
 ```
 
-Select the matching SDK, Kit and App Tools archives through the [standalone overrides](/start/install#source-package-archives), then run `pnpm install` and `pnpm run init` in the generated project. Current Web `--features all` resolves only to the admitted `studio-create` slice: text generation, streaming chat and embeddings.
+Right now, `--features all` on Web resolves to the admitted `studio-create` slice: text generation, streaming chat, and embeddings.
 
-In `nimi.app.yaml`, configure `local_development.web`: `origin`, `redirect_uri`, `client_id`, `realm_environment_id`, `realm_url`, `official_web_url` and the real App-owned `command`. These values must identify the admitted source and the same Realm environment as the PC. Set `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` in the App's `.env.local` to paths of the trusted certificate files.
+In `my-web-app`, run `pnpm install` to install the dependencies declared by the scaffold. Fill in the Web configuration before running `init`, `check`, or `dev`:
 
-Prepare the existing website's real `nimi.app.yaml` and `.nimi/config/build-profile.yaml` using `platform: web` and a `web-pnpm` build profile with actual test and build commands. If either file is absent, provide a `nimi-adoption.json` containing only the `manifest` and/or `build_profile` objects as described in the [existing-App adoption guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md). Omit `--input` when both files already exist.
+1. In `nimi.app.yaml`, populate `local_development.web` with your admitted `origin`, `redirect_uri`, `client_id`, `realm_environment_id`, `realm_url`, `official_web_url`, and your real App-owned `command`. These values must match the admitted source and the Realm your PC uses.
+2. In `.env.local`, set `NIMI_WEB_TLS_KEY` to the path of your HTTPS private key and `NIMI_WEB_TLS_CERT` to the matching certificate. Your browser must trust that certificate.
+3. Run `pnpm run init`.
 
-For an existing website, use the selected source tool's `init --adopt --input ./nimi-adoption.json --dry-run --json` to review managed changes, then apply the same adoption without `--dry-run`. Preserve the website's actual product entry, test/build commands and account system. See [App Tools](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md) for the `web-pnpm` build owner. A native project may instead declare an additional App-owned Web development entry; that does not convert its native build profile.
+### Adopt an existing website
 
-## Sign In and Make a Real Call
+Install the selected version of `@nimiplatform/app-tools` as a dev dependency in the website project before running the following commands from its root.
+
+Prepare a real `nimi.app.yaml` (`platform: web`, including your admitted `local_development.web` values) and `.nimi/config/build-profile.yaml` using the `web-pnpm` profile with your actual test and build commands. If either file does not exist yet, pass a `nimi-adoption.json` containing only the missing `manifest` and/or `build_profile` objects as documented in the [existing-App adoption guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md); omit `--input` when both files already exist.
+
+Preview managed changes first, then apply:
+
+```bash
+pnpm exec nimi-app init --adopt --input ./nimi-adoption.json --dry-run --json
+pnpm exec nimi-app init --adopt --input ./nimi-adoption.json
+```
+
+Keep your site's existing product entry, test/build commands, and account system intact. See [App Tools](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md) for how `web-pnpm` owns builds. Native projects can also declare an extra App-owned Web dev entry without altering their native build profile.
+
+## 3. Run Locally and Make a Real Call
+
+Once your admitted Web config is in place and `init` has succeeded, run the checks, build, and dev server:
 
 ```bash
 pnpm run check
@@ -39,17 +65,30 @@ pnpm run app:build
 pnpm dev
 ```
 
-After the development server starts, open its configured HTTPS address from the terminal in your browser. Use its Nimi sign-in control, complete the official browser flow, confirm the source in PC Home if needed, and connect to the primary Runtime. Sign-in can succeed while the PC is unavailable; report those states separately.
+Open the HTTPS URL printed in your terminal:
 
-In AI Studio, select and save the App's AIConfig, then submit a text request. Verify the actual returned text or stream and any owner error. App configuration selects intent; host model preparation remains a PC management task. [Runtime Client](/sdk/runtime-client) describes the typed operations.
+1. Click the Nimi sign-in control and finish the official browser auth flow.
+2. Confirm the source in PC Home if prompted, then connect to your primary Runtime. Keep in mind that signing in can succeed while the PC is unreachable—display those two states separately in your UI.
+3. In AI Studio, pick and save the App's `AIConfig`, submit a text request, and check the returned text, stream, or owner error. App config only expresses intent; model preparation stays a PC host task. See [Runtime Client](/sdk/runtime-client) for typed operations.
 
-Kit `auth/app/web` supplies the session factory, and `auth/app` supplies the Provider, AccountControl and AccessGate. Capture the connected scope's client and signal for each business action; scope loss unmounts the old view and prevents late writes. An optional website account association must follow the website's verified current user; Nimi-only login needs no parallel account system.
+## 4. Wire Auth, Scopes, and Disconnects
 
-## Disconnect, Jobs and Delivery
+Kit's `auth/app/web` provides the session factory, while `auth/app` provides `NimiAppSessionProvider`, `NimiAccountControl`, and `NimiAppAccessGate`:
 
-Closing the page or disconnecting ends active calls from the browser without stopping the PC Runtime. Interrupted streams do not resume, and uncertain `Submit` calls are not replayed automatically. Save a durable Job or submission identifier so you can query its actual state, using the supported `lookupSubmission` operation where the workflow provides it.
+- Capture the connected scope's `client` and `signal` for every action. When the scope is lost, unmount the stale view so late responses cannot overwrite UI state.
+- If your site links a Nimi session to its own account system, bind it strictly to the site's verified current user. If your App only uses Nimi sign-in, you do not need a parallel account system.
+- Closing the tab or disconnecting stops active browser calls without stopping the PC Runtime. Interrupted streams never resume automatically, and uncertain `Submit` calls are never replayed. Persist a durable Job or submission ID so you can query its real state—use `lookupSubmission` where your workflow supports it.
 
-The development server coordinates identity and connection signaling only; AI content, files, and results travel directly between the browser and the PC. A production website requires its own admitted origin, trusted HTTPS, and bounded coordination routes. A browser build produces static output. This Web carrier does not provide `pack`, automatic publication, or native package installation.
+## 5. Ship Your Web App
+
+For Runtime calls, your Web server coordinates sign-in and connection setup. AI content, files, and results travel directly between the browser and the PC.
+
+Building a Web App produces static assets. Running a build never publishes or deploys your site automatically, and Web does not use desktop `pack` or native package installation.
+
+When you are ready to release, you have two paths:
+
+- **Host on your own domain**: deploy with an admitted origin, trusted HTTPS, and bounded coordination routes.
+- **Platform-hosted candidate**: declare `public_slug` to generate an immutable hosted candidate. The release goes through a protected `web-v*` workflow and Registry review, and can go live once the platform verifies the approved source and bundle.
 
 ## Source Basis
 

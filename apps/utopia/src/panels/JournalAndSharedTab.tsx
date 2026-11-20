@@ -242,7 +242,7 @@ export function JournalAndSharedTab(props: {
                 {!snapshot.publicParticipation
                   ? '眼下大家都守着各自的清静时光；若想让伙伴们在茶座与庭院串门小聚，可在「伙伴」页开启邻里往来。'
                   : snapshot.residents.length <= 1
-                    ? '等更多伙伴搬进这座洞天，街巷与茶座间便会渐渐热闹起来，遇上合拍的兴致还会相约同游。'
+                    ? '等更多伙伴搬进这座洞天，街巷与茶座间便会渐渐热闹起来，兴致相投时还会相约同游。'
                     : (() => {
                         const firstTwo = snapshot.residents.slice(0, 2);
                         const p0 = resolveResidentPresence(firstTwo[0]!, snapshot);

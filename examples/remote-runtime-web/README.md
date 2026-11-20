@@ -4,7 +4,7 @@ A separate ecosystem website with real website passwords, verified per-user Nimi
 
 The reference defaults to loopback and can bind an explicitly selected LAN address for cross-device acceptance. It is not an internet-ready account service: there is no email recovery, deployment automation or general identity product. Website passwords use salted scrypt; website users and associations persist in SQLite, while website and Nimi sessions remain in process memory. A server restart requires signing in again. Nimi context tokens never enter the browser. Logout/unlink report failed Realm revocation and allow an explicit retry without reopening the old local context.
 
-For the complete source-package setup and first-call walkthrough, see [Connect a Web App](../../docs/start/connect-web-app.md). Because the published SDK `0.22.2` artifact does not yet include these remote entrypoints, use the complete source archive instead.
+This workspace example uses the local SDK build. For a standalone project, SDK `0.24.0-rc.10` includes the remote entrypoints. Stable SDK `0.22.2` does not. See [Connect a Web App](../../docs/start/connect-web-app.md) for compatible packages, host setup and a first call.
 
 ## Prerequisites
 

@@ -21,16 +21,16 @@ test('a conversation handoff completes only after the matching destination ackno
 test('supersession, closing and timeout reject undelivered work without a replay queue', async context => {
   context.mock.timers.enable({ apis: ['setTimeout'] });
   const delivery = createZhiyuConversationDelivery(() => {});
-  const first = assert.rejects(delivery.deliver({ conversationAnchorId: 'a' }), /did not reach/);
+  const first = assert.rejects(delivery.deliver({ conversationAnchorId: 'a' }), /did not confirm/);
   const oldRequest = delivery.read()!;
-  const second = assert.rejects(delivery.deliver({ conversationAnchorId: 'b' }), /did not reach/);
+  const second = assert.rejects(delivery.deliver({ conversationAnchorId: 'b' }), /did not confirm/);
   await first;
   delivery.acknowledge({ requestId: oldRequest.requestId, status: 'opened' });
   assert.equal(delivery.read()?.conversationAnchorId, 'b');
   delivery.close();
   await second;
   assert.equal(delivery.read(), null);
-  const timedOut = assert.rejects(delivery.deliver({ conversationAnchorId: 'c' }), /did not reach/);
+  const timedOut = assert.rejects(delivery.deliver({ conversationAnchorId: 'c' }), /did not confirm/);
   context.mock.timers.tick(30_000);
   await timedOut;
   assert.equal(delivery.read(), null);

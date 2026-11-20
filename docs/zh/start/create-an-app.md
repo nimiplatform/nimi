@@ -52,7 +52,7 @@ cd my-nimi-app
 
 按[环境准备](/zh/start/install)选择制品，并保留所选 App Tools 生成的依赖组合。使用源码工具归档时，必须同时选择完整、匹配的 SDK、Kit 和目标原生包，配置方式见[源码包归档](/zh/start/install#source-package-archives)。不要将新版源码工具与同数字版本的旧 npm 包混用。
 
-本页的公开包命令适用于原生 App。当前 Web 与 Android 的新增入口需要使用源码包交付；即使版本号相同，已发布的公开包也不包含这些新接口。
+上面的 `0.14.0` 示例适用于原生 App。开发 Web 或 Android 客户端时，请按[开发环境准备](/zh/start/install)选择配套的候选包和宿主。
 
 ---
 

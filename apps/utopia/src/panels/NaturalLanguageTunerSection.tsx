@@ -157,7 +157,7 @@ export function NaturalLanguageTunerSection(props: {
       }
     } catch (err) {
       if (previewGate.isCurrent(ticket, currentSnapshot.current)) {
-        setCompileError(err instanceof Error ? err.message : '自然语言调音解析失败，请稍后重试。');
+        setCompileError(err instanceof Error ? err.message : '未能解析这段风物描述，请稍后重试。');
       }
     } finally {
       if (previewGate.isCurrent(ticket, currentSnapshot.current)) setCompiling(false);
@@ -243,7 +243,7 @@ export function NaturalLanguageTunerSection(props: {
           />
           <div className="utopia-draft-actions">
             <span className="utopia-muted-caption">
-              {Array.from(prompt).length}/{MAX_NL_TUNER_INPUT_CHARS} · 预览确认后才写入
+              {Array.from(prompt).length}/{MAX_NL_TUNER_INPUT_CHARS} · 预览确认后才生效
             </span>
             <Button
               type="button"
@@ -252,7 +252,7 @@ export function NaturalLanguageTunerSection(props: {
               disabled={compiling || busy || !prompt.trim()}
               onClick={() => void handleGeneratePreview()}
             >
-              {compiling ? '正在推演预览…' : '生成变更预览'}
+              {compiling ? '正在生成预览…' : '生成变更预览'}
             </Button>
           </div>
         </div>
@@ -304,7 +304,7 @@ export function NaturalLanguageTunerSection(props: {
                   <strong>
                     {previewDraft.eventPreview.placeName
                       ? `指定场所「${previewDraft.eventPreview.placeName}」`
-                      : '全洞天范围'}
+                      : '全洞天'}
                   </strong>
                   ，持续 {formatDurationLabel(previewDraft.eventPreview.durationMinutes)} 后自动消散）
                 </span>

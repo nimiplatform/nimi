@@ -142,13 +142,13 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
     heroAvailability: '打开应用介绍，查看可用的 Web 或 PC 版本。PC 版可在 Nimi Home 的应用目录安装。',
     provenanceCalloutTitle: '两类来源，同一套个人 AI 底座',
     provenanceCalloutOfficial: 'Nimi 官方原生：由 Nimi 团队面向个人陪伴、创作与生活记录原生设计并发布。',
-    provenanceCalloutAdapted: '开源项目 · Nimi 适配：本为优秀的第三方开源项目（如 Vane、SillyTavern、OpenMontage 等），由 Nimi 完成 Fork 与底座适配，使其无需各自捆绑模型环境或重复填写 API Key 即可直接调用 Nimi 算力。',
+    provenanceCalloutAdapted: '开源项目 · Nimi 适配：源于成熟的第三方开源项目（如 Vane、SillyTavern、OpenMontage 等），由 Nimi 完成 Fork 与底座适配，无需各自捆绑模型环境或重复填写 API Key，即可直接复用统一的 Nimi Runtime。',
     availabilityBreakdownLabel: '当前应用的获取方式',
     availabilityBreakdown: [
       {
         posture: 'first-party-companion',
         title: '随桌面端内置',
-        body: '织羽（Zhiyu）随 Nimi 桌面安装包内置提供，安装后直接可用。',
+        body: '当前产品构建随附织羽，并随 Nimi 更新。公开 Beta v0.2.4 早于这项变更。',
       },
       {
         posture: 'catalog-admitted',
@@ -158,7 +158,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       {
         posture: 'interactive-preview',
         title: '交互预览 · 开发者适配',
-        body: '可在官网体验示例工作流。',
+        body: '可在浏览器中体验示例工作流。',
       },
     ],
     availabilityLabel: '当前获取方式',
@@ -175,7 +175,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
     },
     originDetail: {
       'nimi-official': 'Nimi 官方研发并维护的原生应用。',
-      'open-source-adapted': '源于社区开源项目，由 Nimi 完成 Fork 与 Runtime 能力底座适配。',
+      'open-source-adapted': '源于社区开源项目，由 Nimi 完成 Fork 并适配 Nimi Runtime。',
     },
     postureBadge: {
       'catalog-admitted': '桌面目录已上架',
@@ -183,7 +183,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       'interactive-preview': '交互预览 · 开发者适配',
     },
     postureDetail: {
-      'first-party-companion': '随 Nimi 桌面客户端安装包（macOS arm64 · Windows x86_64）内置提供，随主程序同步安装与更新；无需在应用目录中单独下载。',
+      'first-party-companion': '织羽已加入 macOS arm64 和 Windows x86_64 的产品构建，随 Nimi 安装和更新。公开 Beta v0.2.4 尚未随附织羽。',
       'catalog-admitted': '已有版本获准进入 Nimi 桌面目录。请在 Nimi Home 中查看当前可安装的版本及要求。',
       'interactive-preview': '可在浏览器中体验示例工作流。',
     },
@@ -198,7 +198,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
   },
   en: {
     eyebrow: 'App Ecosystem · First-Party & Open-Source Adaptations',
-    heroAvailability: 'Open an app’s introduction to see its available Web and PC versions. Install PC versions from the catalog in Nimi Home.',
+    heroAvailability: 'Open an app’s details to see available Web and desktop versions. Install desktop versions from the Nimi Home catalog.',
     provenanceCalloutTitle: 'Two origins, one personal AI foundation',
     provenanceCalloutOfficial: 'Nimi Official: Built and published natively by Nimi for companion continuity, creative studios, and personal records.',
     provenanceCalloutAdapted: 'Open-Source · Nimi Adapted: Established third-party open-source projects (such as Vane, SillyTavern, and OpenMontage) forked and adapted by Nimi so they consume your unified Nimi Runtime without bundling duplicate model stacks or per-app API keys.',
@@ -207,12 +207,12 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       {
         posture: 'first-party-companion',
         title: 'Bundled in Desktop',
-        body: 'Zhiyu ships directly inside the Nimi Desktop installer and updates alongside Nimi.',
+        body: 'Current product builds bundle Zhiyu and update it with Nimi. The public v0.2.4 Beta predates this change.',
       },
       {
         posture: 'catalog-admitted',
         title: 'In Desktop Catalog',
-        body: 'Check the Nimi Home catalog for a version for your device. See each app’s details for admitted platforms.',
+        body: 'Check the Nimi Home catalog for a version compatible with your device. See each app’s details for listed platforms.',
       },
       {
         posture: 'interactive-preview',
@@ -221,7 +221,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       },
     ],
     availabilityLabel: 'Current availability',
-    filterLabel: 'Filter by provenance and catalog status',
+    filterLabel: 'Filter by origin and catalog status',
     filters: {
       all: 'All apps',
       'nimi-official': 'Nimi Official',
@@ -234,7 +234,7 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
     },
     originDetail: {
       'nimi-official': 'First-party application designed and maintained by Nimi.',
-      'open-source-adapted': 'Third-party open-source project forked and adapted by Nimi onto the Nimi Runtime.',
+      'open-source-adapted': 'Third-party open-source project forked and adapted by Nimi for the Nimi Runtime.',
     },
     postureBadge: {
       'catalog-admitted': 'In Desktop Catalog',
@@ -242,13 +242,13 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       'interactive-preview': 'Interactive Preview · Dev Adaptation',
     },
     postureDetail: {
-      'first-party-companion': 'Bundled directly in the Nimi Desktop installer (macOS arm64 · Windows x86_64) and updated alongside Nimi; no separate catalog install needed.',
+      'first-party-companion': 'Current macOS arm64 and Windows x86_64 product builds install and update Zhiyu with Nimi. The public v0.2.4 Beta predates the bundled app.',
       'catalog-admitted': 'Versions have been admitted to the Nimi Desktop App Catalog. Check Nimi Home for current install options and requirements.',
       'interactive-preview': 'Explore a sample workflow in the browser.',
     },
     previewPlatformsValue: 'Browser interactive preview · Local developer mode',
     licenseBundledNote: 'MIT (bundled with Nimi)',
-    licensePreviewNote: 'Governed by upstream & repository open-source license',
+    licensePreviewNote: 'Subject to the upstream and repository open-source licenses',
     previewSourceNote: 'github.com/nimiplatform (adaptations & previews)',
     previewAction: 'Interactive preview',
     detailAction: 'View app',

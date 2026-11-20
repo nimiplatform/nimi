@@ -37,7 +37,7 @@ function validateConversationDraft(
     return {
       ok: false,
       reasonCode: 'draft-invalid-character',
-      message: '门前便签包含不受支持的控制字符，草稿已保留，请整理后再交接至织羽。',
+      message: '门前便签包含不支持的控制字符，草稿已保留，请整理后再转至织羽。',
     };
   }
   const trimmed = raw.trim();
@@ -59,14 +59,14 @@ function describeDesktopOpenRejection(reasonCode: string, target: 'home' | 'zhiy
   if (target === 'zhiyu') {
     switch (reasonCode) {
       case 'desktop-open-desktop-not-running':
-        return '请先启动 Nimi Home，才能唤起织羽继续深聊（当前门前草稿已保留）。';
+        return '请先启动 Nimi Home 才能唤起织羽继续深聊，门前草稿已保留。';
       case 'desktop-open-desktop-not-ready':
         return '织羽暂时未能打开该伙伴会话，门前草稿已为你保留，请稍后重试。';
       case 'desktop-open-bridge-auth-failed':
         return 'Nimi Home 连接校验未通过，门前草稿已保留，请重新打开 Nimi Home 后重试。';
       case 'desktop-open-intent-invalid':
       case 'desktop-open-target-unsupported':
-        return '当前 Nimi Home 版本不支持直接交接至织羽，请手动在织羽中打开该伙伴。';
+        return '当前 Nimi Home 版本不支持直接转至织羽，请手动在织羽中打开该伙伴。';
       case 'desktop-open-host-unavailable':
       case 'renderer-standard-shell-host-unavailable':
       default:
@@ -194,7 +194,7 @@ export async function openPartnerConversationInZhiyuFromUtopia(
       return Object.freeze({
         ok: false,
         reasonCode: 'conversation-anchor-unavailable',
-        message: '暂时无法定位这位伙伴的会话锚点，门前草稿已保留，请确认已在 Nimi Home 登录。',
+        message: '暂时无法找到这位伙伴的会话，门前草稿已保留，请确认已在 Nimi Home 登录。',
       });
     }
   }
@@ -202,7 +202,7 @@ export async function openPartnerConversationInZhiyuFromUtopia(
     return Object.freeze({
       ok: false,
       reasonCode: 'conversation-anchor-unavailable',
-      message: '暂时无法定位这位伙伴的会话锚点，门前草稿已保留，请确认已在 Nimi Home 登录。',
+      message: '暂时无法找到这位伙伴的会话，门前草稿已保留，请确认已在 Nimi Home 登录。',
     });
   }
   return runDesktopOpenRequest(

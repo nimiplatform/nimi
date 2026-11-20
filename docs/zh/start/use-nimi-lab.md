@@ -27,10 +27,10 @@ pnpm run test       # 运行单元测试与集成测试
 
 ## 实测本地图像与视频模型
 
-请使用同一工作区构建的 Desktop/Runtime、SDK、Kit 和 Lab，按上文的监管启动命令打开原生 Lab。Apple Silicon 的官方 sd.cpp 1088 包会在 CPU 上执行 INT8 ConvRot 算子。各组合的开发环境实测结果见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。这些模型路径在远程浏览器和安装版中仍为 **NOT-VERIFIED**。
+请使用同一工作区构建的 Desktop/Runtime、SDK、Kit 和 Lab，并按上文的托管启动命令打开原生 Lab。Apple Silicon 上的官方 sd.cpp 1088 包会在 CPU 上执行 INT8 ConvRot 算子。各组合在开发环境中的实测结果见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。这些模型路径在远程浏览器和安装版中仍为 **NOT-VERIFIED**。
 
-1. 在 Home 的 **AI 能力** 中选择 **图像生成**、**视频生成**、**图像超分辨率** 或 **视频超分辨率**。选好模型，下载缺少的组件，并选择可复用的本机兼容文件。等待准备完成，再将配置设为本机当前模型。文件下载完成不等于模型已就绪。
-2. 在 Lab 打开对应入口，把该能力的 AI 意图设为 **本地**，核对“下次运行”显示的模型。图像超分和视频超分各有独立的能力配置，切换其中一项不会替另一项选模型。
+1. 在 Home 的 **AI 能力** 中选择 **图像生成**、**视频生成**、**图像超分辨率** 或 **视频超分辨率**。选好模型后，下载缺失组件并选用可复用的本机兼容文件，等待准备完成，再将该配置设为本机当前模型。文件下载完成不等于模型已就绪。
+2. 在 Lab 中打开对应入口，将该能力的 AI 意图设为 **本地**，并核对“下次运行”显示的模型。图像超分和视频超分各自独立配置，切换其中一项不会影响另一项的模型选择。
 3. 打开 **参数**，按任务准备输入：
 
 | 任务 | 输入与操作 |
@@ -46,7 +46,7 @@ pnpm run test       # 运行单元测试与集成测试
 
 建议先用小图或短视频测试。超分输入最大 32 MiB；视频还须满足不超过 10 秒/300 帧、标称 24/25/30 FPS，以及最多一路 AAC 音轨。完整限制见[多模态指南](/zh/runtime/multimodal)。ControlNet 不会自动预处理控制图，重绘也不保证蒙版外像素保持不变。
 
-2026-11-11 的 Windows RTX 5090 原生开发环境已实际生成 H3 文生图/编辑、HyperFlow FL2VA 与搭配 Sol 的 Ref2VA、RelayVSR 2x/4x、SeedVR2 3B/7B Sharp 和 ControlNet Canny/Tile 结果。SeedVR2 仍属实验性支持；其余 ControlNet 类型、HyperFlow 四步/八步配置、其他平台和安装版仍为 **NOT-VERIFIED**，详见[模型支持范围](/zh/runtime/local-models#本地图像与视频模型)。
+2026-11-11 的 Windows RTX 5090 原生开发环境已实际生成 H3 文生图/编辑、HyperFlow FL2VA 与搭配 Sol 的 Ref2VA、RelayVSR 2x/4x、SeedVR2 3B/7B Sharp 和 ControlNet Canny/Tile 结果。SeedVR2 仍属实验性支持；其余 ControlNet 类型、HyperFlow 四步/八步配置、安装版及未列出的平台组合仍为 **NOT-VERIFIED**。Apple M4 Max 开发主机另有原生 Lab 的实测记录，详见[模型支持范围](/zh/runtime/local-models#本地图像与视频模型)。
 
 ## 关键代码与架构参考
 

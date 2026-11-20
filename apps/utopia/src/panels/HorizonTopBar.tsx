@@ -86,7 +86,7 @@ export function HorizonTopBar(props: {
   return (
     <header
       className={`utopia-horizon-bar ${hudHidden ? 'is-hud-hidden' : ''}`}
-      aria-label="洞天横楣状态栏"
+      aria-label="洞天顶部状态栏"
     >
       <div className="utopia-horizon-primary">
         {snapshot ? (
@@ -203,7 +203,7 @@ export function HorizonTopBar(props: {
             ))}
           </>
         ) : (
-          <span className="utopia-horizon-loading">正在推门展开手绘洞天画卷…</span>
+          <span className="utopia-horizon-loading">正在展开洞天画卷…</span>
         )}
       </div>
 
@@ -254,7 +254,7 @@ export function HorizonTopBar(props: {
             disabled={!hasAudioTrack || frozen}
             aria-pressed={!audioMuted}
             aria-label={audioMuted ? '开启洞天环境声景' : '静音洞天环境声景'}
-            title={hasAudioTrack ? (audioMuted ? '点击温和渐入环境声景' : '点击静音环境声景') : '当前视图无音频轨道'}
+            title={hasAudioTrack ? (audioMuted ? '点击开启环境声景' : '点击静音环境声景') : '当前视图无音频轨道'}
             onClick={onToggleAudioMute}
           >
             {audioMuted ? <VolumeMutedIcon size={14} /> : <VolumeOnIcon size={14} />}
@@ -284,7 +284,7 @@ export function HorizonTopBar(props: {
         </div>
 
         {onSelectDrawerTab ? (
-          <div className="utopia-ribbon-nav-group" role="group" aria-label="洞天手账与伙伴">
+          <div className="utopia-ribbon-nav-group" role="group" aria-label="手记、伙伴与营造">
             <button
               type="button"
               disabled={!snapshot}
@@ -330,12 +330,12 @@ export function HorizonTopBar(props: {
             <button
               type="button"
               className="utopia-toolbar-btn is-icon-toggle"
-              aria-label={sidebarCollapsed ? '展开伴随侧栏' : '收起伴随侧栏全幅赏景'}
-              title={sidebarCollapsed ? '展开伴随侧栏' : '收起伴随侧栏全幅赏景'}
+              aria-label={sidebarCollapsed ? '展开侧栏' : '收起侧栏，全幅赏景'}
+              title={sidebarCollapsed ? '展开侧栏' : '收起侧栏，全幅赏景'}
               onClick={onToggleSidebar}
             >
               {sidebarCollapsed ? <CollapseStageIcon size={14} /> : <ExpandStageIcon size={14} />}
-              <span>{sidebarCollapsed ? '伴随栏' : '全幅'}</span>
+              <span>{sidebarCollapsed ? '侧栏' : '全幅'}</span>
             </button>
           </>
         )}

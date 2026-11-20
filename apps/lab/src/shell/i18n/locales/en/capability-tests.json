@@ -13,16 +13,16 @@
       "invalidInput": "Choose a supported source file up to 32 MiB, a factor of 2 or 4, and a seed from 0 to 2147483647.",
       "invalidOutput": "Runtime returned an unexpected super-resolution artifact.",
       "completed": "Super-resolution completed.",
-      "imageHint": "PNG or JPEG up to 32 MiB. Output axes must not exceed 4096 pixels. RelayVSR requires its matching 2x or 4x model.",
-      "videoHint": "MP4 with one H264 video stream and optional AAC audio, up to 32 MiB, 10 seconds and 300 frames. Original frame timing and audio are preserved. Output decoded RGB frames must fit within 512 MiB."
+      "imageHint": "PNG or JPEG up to 32 MiB. Output width and height must not exceed 4096 pixels. RelayVSR requires the matching 2x or 4x model.",
+      "videoHint": "MP4 with one H264 video stream and optional AAC audio, up to 32 MiB, 10 seconds, and 300 frames. Original frame timing and audio are preserved. Decoded RGB output frames must fit within 512 MiB."
     },
     "imageUpscale": {
       "label": "Image super-resolution",
-      "summary": "Enlarge an owned image and save its complete PNG."
+      "summary": "Upscale an image stored for this app and save the result as a PNG."
     },
     "videoUpscale": {
       "label": "Video super-resolution",
-      "summary": "Enlarge a complete MP4 while retaining frame timing and audio."
+      "summary": "Upscale a complete MP4 while preserving frame timing and audio."
     },
     "common": {
       "stoppedBeforeSubmit": "Stopped before the request was submitted.",
@@ -480,7 +480,7 @@
       "bytes": "bytes",
       "passed": "The complete read-back matches the selected file.",
       "uploadConfirmed": "Runtime confirmed the write at this path.",
-      "uploadUnconfirmed": "The write was not confirmed. Copy the path, then reconnect, select the same file, and verify the existing path.",
+      "uploadUnconfirmed": "The write was not confirmed. Copy the path, reconnect, select the same file, and verify the existing file.",
       "readFailed": "Could not read back the complete file. Check the path and connection, then verify the existing file again.",
       "mismatch": "The saved file differs from the selected file. Check the path and the selected file.",
       "technicalDetails": "Technical details",

@@ -60,7 +60,7 @@
   "operations": "Allowed operations",
   "read": "Read",
   "sendManagedFile": "This operation sends one selected file to the provider.",
-  "receiveManagedFile": "This operation saves one file from the provider in the calling app.",
+  "receiveManagedFile": "This operation saves one file from the provider to the calling app.",
   "write": "May make changes",
   "apps": "Apps",
   "allowed": "The selected permissions have been saved.",

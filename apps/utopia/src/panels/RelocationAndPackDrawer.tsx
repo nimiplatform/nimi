@@ -137,7 +137,7 @@ export function RelocationAndPackDrawer(props: {
         setConfirmTargetPack(committed);
       }
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : '写入应用受管资产库失败。');
+      setImportError(err instanceof Error ? err.message : '保存到应用资产库失败。');
     } finally {
       setInspecting(false);
     }
@@ -220,7 +220,7 @@ export function RelocationAndPackDrawer(props: {
       title={confirmTargetPack ? `展卷迁居至「${confirmTargetPack.manifest.title}」` : '洞天画卷库与 .utopia 包导入'}
       description={
         confirmTargetPack
-          ? '账户同一时刻生效唯一洞天，全体自治伙伴将共同迁入新居所。'
+          ? '每个账户同一时间只能启用一座洞天，全体自治伙伴将一同迁入新居所。'
           : '选择官方手绘样板或导入纯声明式 .utopia 洞天包，更换伙伴日常栖居的洞天画卷。'
       }
     >
@@ -379,7 +379,7 @@ export function RelocationAndPackDrawer(props: {
 
           {packIndexError && (
             <InlineAlert tone="warning">
-              本地已导入洞天索引读取异常：{packIndexError}。官方内置样板仍可正常使用；请检查受管存储后重新加载。
+              无法读取已导入的本地洞天索引：{packIndexError}。官方内置样板仍可正常使用；请检查受管存储后重新加载。
             </InlineAlert>
           )}
 
@@ -396,9 +396,9 @@ export function RelocationAndPackDrawer(props: {
           )}
 
           {inspectedCandidate && (
-            <div className="utopia-nl-preview-card" role="region" aria-label="待导入洞天包检视结果">
+            <div className="utopia-nl-preview-card" role="region" aria-label="待导入洞天包校验结果">
               <div className="utopia-section-header">
-                <strong>通过安全检视：{inspectedCandidate.manifest.title}</strong>
+                <strong>已通过安全校验：{inspectedCandidate.manifest.title}</strong>
                 <StatusBadge tone="success">v{inspectedCandidate.manifest.version}</StatusBadge>
               </div>
               <p className="utopia-causal-note">
@@ -494,7 +494,7 @@ export function RelocationAndPackDrawer(props: {
                           tone="ghost"
                           size="sm"
                           disabled={drawerBusy || !snapshot || frozen}
-                          title={!snapshot || frozen ? '连接住地并确认使用状态后方可移除本地包' : undefined}
+                          title={!snapshot || frozen ? '需先连接住地并确认使用状态，才能移除本地包' : undefined}
                           onClick={() => void handleRemovePack(pack)}
                         >
                           {removingKey === `${pack.manifest.bundleId}@${pack.contentDigest}` ? '移除中…' : '移除'}

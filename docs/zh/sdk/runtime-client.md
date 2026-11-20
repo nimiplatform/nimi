@@ -2,7 +2,7 @@
 
 # Runtime 客户端
 
-本页分别介绍本机原生与远程 App 的客户端。当前远程入口需要[源码制品组合](/zh/start/install)。
+本页分别介绍本机原生与远程 App 的客户端。开发远程客户端时，请按[环境准备](/zh/start/install)选择配套的 SDK、Kit 和主机。
 
 ## 本机原生客户端
 
@@ -31,7 +31,7 @@ AI 生成请求仅需携带业务提示词内容与标准参数。持久化的 A
 - 使用 `client.ai.artifacts.upload` 上传输入，传递返回的产物 ID，不传主机文件路径。
 - 提交 `image-upscale` 或 `video-upscale`，字段为 `sourceArtifactId`、`scale: 2 | 4` 和可选 `seed`。
 - ControlNet 使用 `image-generate` 的 `controlImage: { imageArtifactId, type, strength? }`；普通 H3 编辑则使用 `referenceImageArtifactId`。
-- Submit 前保存提交标识，返回后保存 Job ID。提交结果不明确时用 `lookupSubmission` 查询原请求，通过 `get` 观察任务，在用户要求时显式 `cancel`，完成后用 `client.storage.assets.adoptArtifact` 保存产物。
+- 提交前保存提交标识，返回后保存 Job ID。提交结果不明确时用 `lookupSubmission` 查询原请求，通过 `get` 观察任务，在用户要求时显式 `cancel`，完成后用 `client.storage.assets.adoptArtifact` 保存产物。
 
 示例对应的原生 Windows 路径不代表远程 Web/Android 或安装版已通过验收。模型范围、媒体限制及已实测组合见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
 

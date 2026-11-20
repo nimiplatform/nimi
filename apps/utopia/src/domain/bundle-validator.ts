@@ -393,7 +393,7 @@ export function validateBundleManifestV1(raw: unknown): UtopiaBundleManifestV1 {
     || codePointCount(obj.title) > 16
     || SHORT_NOUN_FORBIDDEN_RE.test(obj.title)
   ) {
-    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 title 必须为 1..16 字短名词且不含句号感叹号。');
+    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 title 必须为 1 至 16 字的短名词，且不含句号或感叹号。');
   }
   if (
     typeof obj.subtitle !== 'string'
@@ -402,7 +402,7 @@ export function validateBundleManifestV1(raw: unknown): UtopiaBundleManifestV1 {
     || codePointCount(obj.subtitle) > 60
     || CONTROL_CHAR_RE.test(obj.subtitle)
   ) {
-    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 subtitle 须在 1..60 字以内。');
+    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 subtitle 长度须为 1 至 60 字。');
   }
   if (
     typeof obj.author !== 'string'
@@ -411,7 +411,7 @@ export function validateBundleManifestV1(raw: unknown): UtopiaBundleManifestV1 {
     || codePointCount(obj.author) > 32
     || CONTROL_CHAR_RE.test(obj.author)
   ) {
-    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 author 须在 1..32 字以内。');
+    fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 author 长度须为 1 至 32 字。');
   }
   if (typeof obj.previewAsset !== 'string' || !obj.previewAsset.startsWith('assets/')) {
     fail('INVALID_MANIFEST', '导入未通过：manifest.json 的 previewAsset 必须指向 assets/ 下的光栅封面图。');
@@ -538,7 +538,7 @@ export function validateDeclarativeStageV1(
   });
 
   if (!Array.isArray(obj.layers) || obj.layers.length < 1 || obj.layers.length > 16) {
-    fail('INVALID_STAGE', '导入未通过：stage.json 的 layers 须包含 1..16 个图层。');
+    fail('INVALID_STAGE', '导入未通过：stage.json 的 layers 须包含 1 至 16 个图层。');
   }
   const seenLayerIds = new Set<string>();
   const layers = Object.freeze(obj.layers.map((item, idx) => {
@@ -831,7 +831,7 @@ export async function inspectUtopiaArchiveFile(
   file: Pick<File, 'size' | 'arrayBuffer'>,
 ): Promise<ValidatedUtopiaBundle> {
   if (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > MAX_UTOPIA_ARCHIVE_BYTES) {
-    fail('ARCHIVE_SIZE_EXCEEDED', '导入未通过：压缩包必须非空且不超过 12 MiB。');
+    fail('ARCHIVE_SIZE_EXCEEDED', '导入未通过：压缩包不能为空，且不能超过 12 MiB。');
   }
   return parseAndValidateUtopiaZip(new Uint8Array(await file.arrayBuffer()));
 }
@@ -902,7 +902,7 @@ export async function parseAndValidateUtopiaZip(archiveBytes: Uint8Array): Promi
     }
     const unixMode = (externalAttr >>> 16) & 0o170000;
     if (unixMode === 0o120000) {
-      fail('FORBIDDEN_SYMLINK', '导入未通过：严禁包含符号链接条目。');
+      fail('FORBIDDEN_SYMLINK', '导入未通过：压缩包不能包含符号链接条目。');
     }
     if (cursor + 46 + nameLen + extraLen + commentLen > eocdOffset) {
       fail('ARCHIVE_CORRUPT', '导入未通过：ZIP 文件名字段越界。');
