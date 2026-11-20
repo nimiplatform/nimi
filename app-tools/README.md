@@ -256,7 +256,7 @@ Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
 
 The same CLI supports `create --platform web`, Web `init/sync/check/test/build`, existing-site `init --adopt`, and `dev --platform web`. `standalone` is still the repository topology. Web `--features all` currently resolves to `studio-create` (text, streaming chat and embeddings); other feature selections fail explicitly until their Web carrier is admitted. Mobile generation remains outside this command. For managed Web hosting, build a static release with the App's public slug and prepare it for separate human Registry admission.
 
-Use a compatible host and matching prerelease packages for Web development. App Tools `0.16.0-rc.9` scaffolds the project with SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. For unpublished changes, use a matching set of complete source archives. See [Environment Setup](../docs/start/install.md).
+Use a compatible host and matching prerelease packages for Web development. App Tools `0.16.0-rc.10` scaffolds the project with SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. For unpublished changes, use a matching set of complete source archives. See [Environment Setup](../docs/start/install.md).
 
 The current workbench uses account-owned prompt drafts with an asynchronous `promptDraft` projection and independent history record documents. For existing unreleased generated prototypes, update the App-owned AI Studio capability source together with the generated host adapters. `sync` intentionally preserves `src/capabilities` and does not migrate or overwrite that business source; running `check` alone is not a substitute for the project's typecheck/build after this source update.
 
