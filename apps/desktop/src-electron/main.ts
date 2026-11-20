@@ -132,7 +132,7 @@ import {
   NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES,
   NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
 } from './app-origin-protocol.js';
-import { SYSTEM_ENTRY_ACTION_EVENT, SYSTEM_ENTRY_HOME_COMMANDS, SYSTEM_ENTRY_VISIBILITY_EVENT, parseSystemEntryActionResult,
+import { HOME_FOCUS_APP_WINDOW, parseHomeAppFocusRequest, SYSTEM_ENTRY_ACTION_EVENT, SYSTEM_ENTRY_HOME_COMMANDS, SYSTEM_ENTRY_VISIBILITY_EVENT, parseSystemEntryActionResult,
   type SystemEntryAction, type SystemEntryActionContext, type SystemEntryActionDispatch,
 } from '../src/shell/shared/system-entry-types.js';
 import { createHumanChatNoticeRegistry } from './human-chat-notice-registry.js';
@@ -980,6 +980,27 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        // @nimi-authority: rule.nimi.desktop.shell-ui.r038
+        [HOME_FOCUS_APP_WINDOW]: async ({ payload, event }) => {
+          assertSystemEntryHomeRequest(payload, event, true);
+          const { source, generation } = parseHomeAppFocusRequest(payload.payload);
+          const authorize = async () => {
+            if (!systemEntryAdmission) throw new Error('system-entry-admission-required');
+            const assertAdmitted = await systemEntryAdmission.authorizeFocus(generation);
+            return () => {
+              assertSystemEntryHomeRequest(payload, event, true);
+              assertAdmitted();
+            };
+          };
+          if (source.kind === 'installed') {
+            if (!installedAppHost) throw new Error('installed-app-run-unavailable');
+            await installedAppHost.focusRunningSelector(Uint8Array.from(source.launchSelector), authorize);
+          } else {
+            if (!localDevelopmentHost) throw new Error('local-development-run-not-found');
+            await localDevelopmentHost.focusRunningRegistration(source.selector, authorize);
+          }
+          return { focused: true };
+        },
         [SYSTEM_ENTRY_HOME_COMMANDS.context]: async ({ payload, event }) => {
           assertSystemEntryHomeRequest(payload, event, false);
           if (!systemEntryHost) throw new Error('system-entry-unavailable');

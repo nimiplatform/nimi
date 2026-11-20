@@ -164,3 +164,23 @@ test('daily spend card preserves honest incomplete disclosure when cloud runs la
   assert.match(html, /Unpriced/);
   assert.doesNotMatch(html, /Local-only/);
 });
+
+test('incomplete records never establish zero daily cost, even if all observed attempts were local', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const local = makeSummary().groups[0]!;
+  for (const groups of [[], [local]]) {
+    const summary = makeSummary({
+      timeComplete: false, groups, estimates: [],
+      totals: { ...local.totals!, attemptCount: groups.length ? local.totals!.attemptCount : '0' },
+    });
+    const html = renderToStaticMarkup(<HomeDailySpendCardView ai={aiState(summary)} cloudConnectorCount={null}
+      onOpenDetails={() => {}} onOpenCloud={() => {}} />);
+    assert.match(html, /Cost estimate unavailable/);
+    assert.doesNotMatch(html, />0\.00</);
+  }
+  const html = renderToStaticMarkup(<HomeDailySpendCardView ai={aiState(makeSummary({ sourceComplete: false }))}
+    cloudConnectorCount={null} onOpenDetails={() => {}} onOpenCloud={() => {}} />);
+  assert.match(html, /Estimate for recorded, priced usage only/);
+  assert.match(html, /0\.42/);
+});

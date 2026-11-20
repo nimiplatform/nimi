@@ -1110,6 +1110,7 @@
       "localOnlyZero": "Local-only · zero API cost",
       "noCallsToday": "No AI executions today",
       "catalogEstimateHint": "Catalog price estimate",
+      "partialEstimateHint": "Estimate for recorded, priced usage only",
       "metricTotal": "Total",
       "metricLocal": "Local",
       "metricCloud": "Cloud",
@@ -1132,6 +1133,7 @@
       "remoteConnectedCount": "{{count}} remote clients connected",
       "remotePendingConfirm": "{{count}} access requests pending",
       "remoteOff": "Remote access off",
+      "remoteUnknown": "Remote access status unconfirmed",
       "manageConnections": "Connections",
       "storageAction": "Storage"
     },

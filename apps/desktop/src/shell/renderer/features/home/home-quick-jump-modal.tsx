@@ -21,7 +21,7 @@ import {
   UserRound,
   Wrench,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
@@ -104,7 +104,7 @@ export function buildHomeQuickJumpItems(input: {
     })),
   ];
 
-  const partnerItems: HomeQuickJumpItem[] = partners.slice(0, 12).map((partner) => ({
+  const partnerItems: HomeQuickJumpItem[] = partners.map((partner) => ({
     id: `partner:${partner.localAgentRef}`,
     group: 'partners' as const,
     label: partner.displayName,
@@ -233,7 +233,10 @@ export function filterHomeQuickJumpItems(
   query: string,
 ): HomeQuickJumpItem[] {
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return [...items];
+  if (!normalized) {
+    let shownPartners = 0;
+    return items.filter((item) => item.group !== 'partners' || ++shownPartners <= 12);
+  }
   return items.filter(
     (item) =>
       item.label.toLowerCase().includes(normalized)
@@ -255,6 +258,8 @@ export function HomeQuickJumpModal({
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const listId = useId();
+  const activeOption = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -265,6 +270,10 @@ export function HomeQuickJumpModal({
 
   const filtered = useMemo(() => filterHomeQuickJumpItems(items, query), [items, query]);
   const boundedIndex = filtered.length === 0 ? -1 : Math.min(activeIndex, filtered.length - 1);
+  const selectedItem = filtered[boundedIndex];
+  useLayoutEffect(() => {
+    if (open) activeOption.current?.scrollIntoView({ block: 'nearest' });
+  }, [open, selectedItem?.id]);
 
   const grouped = useMemo(() => {
     const order: readonly HomeQuickJumpGroup[] = ['apps', 'partners', 'capabilities', 'pages'];
@@ -287,14 +296,14 @@ export function HomeQuickJumpModal({
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       if (filtered.length > 0) {
-        setActiveIndex((prev) => (prev + 1) % filtered.length);
+        setActiveIndex((boundedIndex + 1) % filtered.length);
       }
       return;
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault();
       if (filtered.length > 0) {
-        setActiveIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+        setActiveIndex((boundedIndex - 1 + filtered.length) % filtered.length);
       }
       return;
     }
@@ -319,6 +328,11 @@ export function HomeQuickJumpModal({
       <div className="border-b border-[var(--nimi-border-subtle)] p-3">
         <SearchField
           autoFocus
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded
+          aria-controls={listId}
+          aria-activedescendant={selectedItem ? `${listId}-${selectedItem.id}` : undefined}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -336,44 +350,47 @@ export function HomeQuickJumpModal({
         />
       </div>
       <ScrollArea className="max-h-96" contentClassName="p-2">
+        <div id={listId} role="listbox" aria-label={t('runtimeConfig.overview.quickJump.title')} className="flex flex-col gap-3">
+          {grouped.map((section) => (
+            <div key={section.group} role="group" aria-labelledby={`${listId}-group-${section.group}`} className="flex flex-col gap-1">
+              <p id={`${listId}-group-${section.group}`} className="px-2.5 py-1 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+                {t(`runtimeConfig.overview.quickJump.groups.${section.group}`)}
+              </p>
+              {section.entries.map((item) => {
+                const selected = item === selectedItem;
+                return (
+                  <button
+                    key={item.id}
+                    id={`${listId}-${item.id}`}
+                    ref={selected ? activeOption : undefined}
+                    role="option"
+                    aria-selected={selected}
+                    tabIndex={-1}
+                    type="button"
+                    onPointerMove={() => { if (!selected) setActiveIndex(filtered.indexOf(item)); }}
+                    onClick={() => commitItem(item)}
+                    data-testid={`home-quick-jump-item:${item.id}`}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${
+                      selected
+                        ? 'bg-[var(--nimi-surface-active)] font-medium text-[var(--nimi-text-primary)]'
+                        : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-surface-panel)]'
+                    }`}
+                  >
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]">
+                      {item.icon}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
         {grouped.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[var(--nimi-text-secondary)]" data-testid="home-quick-jump-empty">
+          <p role="status" className="py-8 text-center text-sm text-[var(--nimi-text-secondary)]" data-testid="home-quick-jump-empty">
             {t('runtimeConfig.overview.quickJump.empty')}
           </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {grouped.map((section) => (
-              <div key={section.group} className="flex flex-col gap-1">
-                <p className="px-2.5 py-1 text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                  {t(`runtimeConfig.overview.quickJump.groups.${section.group}`)}
-                </p>
-                {section.entries.map((item) => {
-                  const index = filtered.indexOf(item);
-                  const selected = index === boundedIndex;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => commitItem(item)}
-                      data-testid={`home-quick-jump-item:${item.id}`}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${
-                        selected
-                          ? 'bg-[var(--nimi-surface-active)] font-medium text-[var(--nimi-text-primary)]'
-                          : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-surface-panel)]'
-                      }`}
-                    >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]">
-                        {item.icon}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
+        ) : null}
       </ScrollArea>
     </OverlayShell>
   );

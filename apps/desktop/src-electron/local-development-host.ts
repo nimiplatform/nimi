@@ -153,6 +153,7 @@ export type DesktopElectronLocalDevelopmentHost = {
   readonly startExactZhiyu: () => Promise<boolean>;
   /** Starts the exact Runtime-resolved registration; an active run is reused. */
   readonly startRegistrationHandle: (registrationHandle: string) => Promise<boolean>;
+  readonly focusRunningRegistration: (selector: string, authorize: () => Promise<() => void>) => Promise<unknown>;
   /** Stops every development run for a data-root handoff; runs are not restarted. */
   readonly quiesceDataRoot: () => Promise<void>;
   /** Whether any development run is starting or running. */
@@ -190,6 +191,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     resumeAfterFailedShutdown: () => host.resumeAfterFailedShutdown(),
     startExactZhiyu: () => host.startExactZhiyu(),
     startRegistrationHandle: (registrationHandle) => host.startRegistrationHandle(registrationHandle),
+    focusRunningRegistration: (selector, authorize) => host.focusRunningRegistration(selector, authorize),
     quiesceDataRoot: () => host.quiesceDataRoot(),
     hasActiveRuns: () => host.hasActiveRuns(),
   };
@@ -856,10 +858,15 @@ export class ElectronLocalDevelopmentHost {
     const { generation, requestId } = parseSystemEntryFocusContext({ generation: value.generation, requestId: value.requestId });
     if (!this.authorizeSystemEntryFocus) throw new Error('system-entry-admission-required');
     const selectorValue = selector(value.selector, 'dev-project');
+    return this.focusRunningRegistration(selectorValue, () =>
+      this.authorizeSystemEntryFocus!(generation, requestId, { kind: 'local-development', selector: selectorValue }));
+  }
+
+  async focusRunningRegistration(selectorValue: string, authorize: () => Promise<() => void>): Promise<ReturnType<typeof projectRun>> {
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
     const registration = (await this.control.listRegistrations()).find(row => row.registrationHandle === registrationHandle);
-    const assertCurrent = await this.authorizeSystemEntryFocus(generation, requestId, { kind: 'local-development', selector: selectorValue });
+    const assertCurrent = await authorize();
     if (this.closing || !registration || registration.project.shell !== 'electron'
       || this.registrationSelectors.get(selectorValue) !== registrationHandle) throw new Error('local-development-registration-not-found');
     const run = [...this.runs.values()].find(candidate => !candidate.stopped

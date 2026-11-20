@@ -13,6 +13,7 @@ test('a new Home reattaches and stops the same installed run after the previous 
   let running = true;
   const stopped: string[] = [];
   const ended: string[] = [];
+  const focused: string[] = [];
   const control = {
     async list() { return running ? [{ launchId: id, appId: 'ai.nimi.harness', launchSelector: selector }] : []; },
     async launch(): Promise<never> { throw new Error('reattaching must preserve the existing process'); },
@@ -20,7 +21,7 @@ test('a new Home reattaches and stops the same installed run after the previous 
     async access(handle: string) { assert.equal(handle, id); return { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: '' }; },
     async stop(handle: string) { stopped.push(handle); running = false; },
     async end(handle: string) { ended.push(handle); },
-    async focus() {}, async completeUninstall() {},
+    async focus(handle: string) { focused.push(handle); }, async completeUninstall() {},
   };
   const previous = createDesktopInstalledAppHost(control);
   assert.equal(await previous.hasActiveRuns(), true);
@@ -32,7 +33,12 @@ test('a new Home reattaches and stops the same installed run after the previous 
     assert.ok(view);
     assert.equal(view.state, 'running');
     assert.equal(view.accessAvailable, true);
+    const allowFocus = async () => () => {};
+    await reopened.focusRunningSelector(Buffer.from(selector), allowFocus);
+    assert.deepEqual(focused, [id]);
     await reopened.commandHandlers.installed_app_stop!({ payload: { payload: { launchSelector: [...Buffer.from(selector)] } } });
+    await assert.rejects(reopened.focusRunningSelector(Buffer.from(selector), allowFocus), /installed-app-run-unavailable/);
+    assert.deepEqual(focused, [id]);
     assert.deepEqual(stopped, [id]);
     assert.deepEqual(ended, [id]);
   } finally { await reopened.detach(); }

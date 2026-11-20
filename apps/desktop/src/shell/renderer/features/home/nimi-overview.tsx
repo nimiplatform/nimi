@@ -22,7 +22,7 @@ import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-c
 import { isDownloadTerminal } from '../runtime-config/runtime-config-model-center-utils.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import { openHomeSettings } from '../settings/settings-entry.js';
-import { useSystemEntryAI } from '../system-entry/system-entry-context.js';
+import { useSystemEntry } from '../system-entry/system-entry-context.js';
 import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
 import type { ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { HomeActiveWorkCard, type HomeActiveDownloadItem } from './home-active-work-card.js';
@@ -77,7 +77,8 @@ export function NimiOverview() {
   const i18n = useDesktopI18nResource();
   const sdk = useDesktopRendererSdk();
   const commands = useDesktopRendererCommands();
-  const ai = useSystemEntryAI();
+  const { ai, hostContext } = useSystemEntry();
+  const focusGeneration = hostContext?.state === 'ready' ? hostContext.generation : null;
 
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
@@ -418,6 +419,7 @@ export function NimiOverview() {
           {!inventory.isPending && !inventory.preparationPending && !isTextReady ? onboardingSection : null}
 
           <HomeActiveWorkCard
+            focusGeneration={focusGeneration}
             entries={entries}
             iconUrls={iconUrls}
             ai={ai}
@@ -428,6 +430,7 @@ export function NimiOverview() {
           />
 
           <HomeAppsWorkbench
+            focusGeneration={focusGeneration}
             key={`apps-dock:${messagesAccountKey ?? 'device'}`}
             accountKey={messagesAccountKey}
             entries={entries}

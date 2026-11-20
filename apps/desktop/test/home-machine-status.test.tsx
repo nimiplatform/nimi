@@ -248,3 +248,23 @@ test('host status card surfaces primary PC binding, connected remote clients, pe
   assert.match(html, /1 项接入待确认/);
   assert.match(html, /data-testid="home-host-storage"/);
 });
+
+test('Home reports remote access off only for an explicitly disabled matching host', async () => {
+  const { deriveHomeRemoteSummary, HomeHostStatusCardView } = await import('../src/shell/renderer/features/home/home-host-status-card.js');
+  const { RemoteAccessConnectionState } = await import('@nimiplatform/sdk/runtime/wire-types');
+  await initI18n();
+  await changeLocale('en');
+  const primaryData = { bindingId: 'current', thisRuntime: true };
+  const remoteData = { bindingId: 'current', enabled: false, connectionState: RemoteAccessConnectionState.DISABLED,
+    connectedPeers: 0, reasonCode: '', connections: [], sources: [] };
+  for (const [data, expected] of [
+    [undefined, 'Remote access status unconfirmed'],
+    [{ ...remoteData, bindingId: 'other' }, 'Remote access status unconfirmed'],
+    [remoteData, 'Remote access off'],
+  ] as const) {
+    const remote = deriveHomeRemoteSummary({ primarySuccess: true, primaryData, remoteData: data });
+    const html = renderToStaticMarkup(<HomeHostStatusCardView runtime="ready" resources={snapshotWith('normal')} remote={remote}
+      onOpenDiagnostics={() => {}} onOpenConnections={() => {}} onOpenStorage={() => {}} />);
+    assert.ok(html.includes(expected));
+  }
+});

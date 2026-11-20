@@ -15,6 +15,7 @@ export const SYSTEM_ENTRY_HOME_COMMANDS = Object.freeze({
   actionResult: 'system_entry_action_result',
 });
 export const SYSTEM_ENTRY_ACTION_EVENT = 'system-entry://action';
+export const HOME_FOCUS_APP_WINDOW = 'desktop_home_focus_app_window';
 export const SYSTEM_ENTRY_VISIBILITY_EVENT = 'system-entry://visibility';
 export const SYSTEM_ENTRY_HEARTBEAT_MS = 10_000;
 export const SYSTEM_ENTRY_ACTION_DISPATCH_MS = 14_000;
@@ -183,6 +184,11 @@ export function parseSystemEntryHeartbeat(value: unknown): { generation: string 
 export function parseSystemEntryFocusContext(value: unknown): { generation: string; requestId: string } {
   const item = record(value, ['generation', 'requestId']);
   return { generation: text(item.generation, 128), requestId: text(item.requestId, 128) };
+}
+
+export function parseHomeAppFocusRequest(value: unknown): { generation: string; source: SystemEntryFocusSource } {
+  const item = record(value, ['generation', 'source']);
+  return { generation: text(item.generation, 128), source: parseSystemEntryFocusSource(item.source) };
 }
 
 export function parseSystemEntryActionDispatch(value: unknown): SystemEntryActionDispatch {

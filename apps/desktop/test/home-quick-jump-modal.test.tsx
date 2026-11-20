@@ -48,7 +48,16 @@ test('quick jump builds read-only navigation items across apps, partners, capabi
   const items = buildHomeQuickJumpItems({
     t: i18n.t.bind(i18n),
     apps: [appEntry],
-    partners: [{ localAgentRef: 'agent:wenhe', runtimeSourceRef: 'src:1', ownerUserId: 'u1', displayName: '温荷', lifecycleState: 'ACTIVE', createdAtUnixMs: 1, updatedAtUnixMs: 1 }],
+    partners: Array.from({ length: 13 }, (_, index) => ({
+      localAgentRef: index === 12 ? 'agent:wenhe' : `agent:${index}`,
+      runtimeSourceRef: `src:${index}`,
+      ownerUserId: 'u1',
+      displayName: index === 12 ? '温荷' : `Partner ${index}`,
+      sourceKey: `source-${index}`,
+      sourceRef: {
+        kind: 'personaCharacter', id: `partner-${index}`, worldId: 'world', ownerAccountId: 'u1', sourceHash: 'a'.repeat(64),
+      },
+    })),
     actions: NOOP_ACTIONS,
   });
 
@@ -56,6 +65,8 @@ test('quick jump builds read-only navigation items across apps, partners, capabi
   assert.ok(items.some((item) => item.id === 'app:storybook'));
   assert.ok(items.some((item) => item.id === 'partner:agent:wenhe'));
   assert.ok(items.some((item) => item.id === 'page:ai-activity'));
+  assert.equal(filterHomeQuickJumpItems(items, '').filter((item) => item.group === 'partners').length, 12);
+  assert.deepEqual(filterHomeQuickJumpItems(items, '温荷').map((item) => item.id), ['partner:agent:wenhe']);
 
   const bySpend = filterHomeQuickJumpItems(items, '花销');
   assert.equal(bySpend.length, 1);

@@ -18,6 +18,7 @@ import {
 const zhiyuIcon = new URL('../../../../../../zhiyu/src/shell/assets/app-icon.png', import.meta.url).href;
 
 export type HomeAppsWorkbenchProps = {
+  focusGeneration: string | null;
   accountKey?: string | null;
   entries: readonly DesktopAppsEntry[];
   iconUrls: ReadonlyMap<string, string | null>;
@@ -31,6 +32,7 @@ export type HomeAppsWorkbenchProps = {
 // @nimi-authority: rule.nimi.desktop.shell-ui.r029
 // @nimi-authority: rule.nimi.desktop.shell-ui.r052
 export function HomeAppsWorkbench({
+  focusGeneration,
   accountKey = null,
   entries,
   iconUrls,
@@ -82,9 +84,9 @@ export function HomeAppsWorkbench({
   };
 
   const handleFocus = (entry: DesktopAppsEntry) => {
-    markOpened(entry.identity.appId);
     setFocusingKey(entry.identity.entryKey);
-    void focusRunningDesktopApp(entry)
+    void focusRunningDesktopApp(entry, focusGeneration)
+      .then(() => markOpened(entry.identity.appId))
       .catch(() => emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.overview.activeWork.focusFailed') }))
       .finally(() => setFocusingKey(null));
   };
@@ -173,7 +175,7 @@ export function HomeAppsWorkbench({
           }
 
           const { group, hasUpdate, disambiguator } = item;
-          const entry = group.primary;
+          const entry = group.entries.find((entry) => entry.run?.state === 'running') ?? group.primary;
           const running = group.running;
           const starting = group.starting;
           const active = group.active;

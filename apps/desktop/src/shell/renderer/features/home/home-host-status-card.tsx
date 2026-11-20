@@ -1,17 +1,14 @@
 import { AppCardSurface, Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import { RemoteSourceAccessState, type GetRemoteAccessStateResponse } from '@nimiplatform/sdk/runtime/wire-types';
-import { useQuery } from '@tanstack/react-query';
 import { HardDrive, Network, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import {
   useSystemResources,
   type SystemResourceSnapshot,
   type SystemResourceStatus,
 } from '../runtime-config/runtime-config-system-resources.js';
-import { useHomePrimaryRuntimeQuery } from '../settings/home-remote-access-query.js';
+import { useHomePrimaryRuntimeQuery, useHomeRemoteAccessQuery } from '../settings/home-remote-access-query.js';
 import { useSystemEntry } from '../system-entry/system-entry-context.js';
 import { HOME_RESOURCE_WARN_PERCENT, type HomeRuntimeState } from './home-machine-status.js';
 
@@ -19,7 +16,7 @@ const HOME_RESOURCE_POLL_MS = 15_000;
 
 export type HomeRemoteSummary = Readonly<{
   primaryState: 'this-pc' | 'unbound' | 'other-pc' | 'unknown';
-  remoteEnabled: boolean;
+  remoteEnabled: boolean | null;
   connectedClientCount: number;
   pendingConfirmCount: number;
 }>;
@@ -131,11 +128,13 @@ export function HomeHostStatusCardView({
         ? t('runtimeConfig.overview.hostStatus.primaryBoundOther')
         : t('runtimeConfig.overview.hostStatus.primaryUnknown');
 
-  const remoteText = remote.primaryState === 'this-pc' && remote.remoteEnabled
-    ? remote.connectedClientCount > 0
-      ? t('runtimeConfig.overview.hostStatus.remoteConnectedCount', { count: remote.connectedClientCount })
-      : t('runtimeConfig.overview.hostStatus.remoteListening')
-    : t('runtimeConfig.overview.hostStatus.remoteOff');
+  const remoteText = remote.remoteEnabled === null
+    ? t('runtimeConfig.overview.hostStatus.remoteUnknown')
+    : !remote.remoteEnabled
+      ? t('runtimeConfig.overview.hostStatus.remoteOff')
+      : remote.connectedClientCount > 0
+        ? t('runtimeConfig.overview.hostStatus.remoteConnectedCount', { count: remote.connectedClientCount })
+        : t('runtimeConfig.overview.hostStatus.remoteListening');
 
   return (
     <AppCardSurface
@@ -242,42 +241,27 @@ export function deriveHomeRemoteSummary(input: {
   remoteData: GetRemoteAccessStateResponse | undefined;
 }): HomeRemoteSummary {
   if (!input.primarySuccess || !input.primaryData) {
-    return { primaryState: 'unknown', remoteEnabled: false, connectedClientCount: 0, pendingConfirmCount: 0 };
+    return { primaryState: 'unknown', remoteEnabled: null, connectedClientCount: 0, pendingConfirmCount: 0 };
   }
   const primaryState = input.primaryData.thisRuntime
     ? 'this-pc'
     : input.primaryData.bindingId
       ? 'other-pc'
       : 'unbound';
-  const sameBinding = Boolean(
-    input.primaryData.thisRuntime
-      && input.primaryData.bindingId
-      && input.remoteData?.bindingId === input.primaryData.bindingId,
-  );
-  const remoteEnabled = Boolean(input.remoteData?.enabled && sameBinding);
-  const connectedClientCount = sameBinding ? (input.remoteData?.connections.length ?? 0) : 0;
-  const pendingConfirmCount = sameBinding
-    ? (input.remoteData?.sources.filter(
-        (source) => source.state === RemoteSourceAccessState.PENDING || source.state === RemoteSourceAccessState.CHANGED,
-      ).length ?? 0)
-    : 0;
+  const { bindingId, thisRuntime } = input.primaryData;
+  const remote = thisRuntime && bindingId && bindingId === input.remoteData?.bindingId ? input.remoteData : undefined;
+  const remoteEnabled = remote?.enabled ?? null;
+  const connectedClientCount = remote?.connections.length ?? 0;
+  const pendingConfirmCount = remote?.sources.filter(
+    (source) => source.state === RemoteSourceAccessState.PENDING || source.state === RemoteSourceAccessState.CHANGED,
+  ).length ?? 0;
   return { primaryState, remoteEnabled, connectedClientCount, pendingConfirmCount };
 }
 
 function VisibleHomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'resources' | 'remote'>) {
   const resources = useSystemResources(HOME_RESOURCE_POLL_MS);
-  const sdk = useDesktopRendererSdk();
-  const auth = useAppStore((state) => state.auth);
-  const account = String(auth.user?.id ?? '');
-  const realm = String(auth.user?.realmEnvironmentId ?? '');
   const primary = useHomePrimaryRuntimeQuery();
-  const remoteQuery = useQuery({
-    queryKey: ['home-remote-access', realm, account, auth.authorizationRevision],
-    enabled: auth.status === 'authenticated' && Boolean(account && realm),
-    staleTime: 15_000,
-    retry: false,
-    queryFn: () => sdk.accountProduct().remoteAccess.getRemoteAccessState({}),
-  });
+  const remoteQuery = useHomeRemoteAccessQuery();
   return (
     <HomeHostStatusCardView
       {...props}
@@ -285,7 +269,7 @@ function VisibleHomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'res
       remote={deriveHomeRemoteSummary({
         primarySuccess: primary.isSuccess,
         primaryData: primary.data,
-        remoteData: remoteQuery.data,
+        remoteData: remoteQuery.isSuccess ? remoteQuery.data : undefined,
       })}
     />
   );

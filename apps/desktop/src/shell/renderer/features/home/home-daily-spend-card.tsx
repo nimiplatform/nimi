@@ -164,18 +164,20 @@ export function HomeDailySpendCardView({
                   ))}
                 </div>
                 <p className="text-xs text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.overview.dailySpend.catalogEstimateHint')}
+                  {t(costIncomplete
+                    ? 'runtimeConfig.overview.dailySpend.partialEstimateHint'
+                    : 'runtimeConfig.overview.dailySpend.catalogEstimateHint')}
                   {projection.costs.length > 1 ? ` · ${t('runtimeConfig.systemEntry.separateCurrencies')}` : ''}
                 </p>
               </div>
-            ) : localOnly ? (
+            ) : localOnly && !costIncomplete ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-3xl font-bold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>
                 <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
                   {t('runtimeConfig.overview.dailySpend.localOnlyZero')}
                 </span>
               </div>
-            ) : projection.attempts === '0' ? (
+            ) : projection.attempts === '0' && !costIncomplete ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2.5">
                   <span className="text-3xl font-bold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>

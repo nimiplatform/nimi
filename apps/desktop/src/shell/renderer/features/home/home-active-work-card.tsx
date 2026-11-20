@@ -3,6 +3,7 @@ import { DesktopAIExecutionRoute, type DesktopAIExecution } from '@nimiplatform/
 import { Activity, Download, Layers3 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HOME_FOCUS_APP_WINDOW, type SystemEntryFocusSource } from '../../../shared/system-entry-types.js';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { formatBytes, formatTransferRate } from '../../components/download-format.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
@@ -33,28 +34,20 @@ export type HomeActiveWorkCardViewProps = {
   onOpenDownloads: () => void;
 };
 
-export async function focusRunningDesktopApp(entry: DesktopAppsEntry): Promise<void> {
-  if (entry.run?.state !== 'running') return;
-  const requestId = `home-focus-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+export async function focusRunningDesktopApp(entry: DesktopAppsEntry, generation: string | null): Promise<void> {
+  if (!generation || entry.run?.state !== 'running') throw new Error('home-app-focus-unavailable');
+  let source: SystemEntryFocusSource;
   if (entry.localDevelopment) {
-    const selector = entry.localDevelopment.selector;
-    await invokeChecked('local_development_registration_focus', { payload: { selector, requestId } }, (value) => {
-      if (!value || typeof value !== 'object' || (value as { state?: unknown }).state !== 'running') {
-        throw new Error('home-app-focus-failed');
-      }
-      return value;
-    });
-    return;
+    source = { kind: 'local-development', selector: entry.localDevelopment.selector };
+  } else if (entry.committedRelease) {
+    source = { kind: 'installed', launchSelector: [...entry.committedRelease.launchSelector] };
+  } else {
+    throw new Error('home-app-focus-unavailable');
   }
-  if (entry.committedRelease) {
-    const launchSelector = [...entry.committedRelease.launchSelector];
-    await invokeChecked('installed_app_focus', { payload: { launchSelector, requestId } }, (value) => {
-      if (!value || typeof value !== 'object' || (value as { state?: unknown }).state !== 'running') {
-        throw new Error('home-app-focus-failed');
-      }
-      return value;
-    });
-  }
+  await invokeChecked(HOME_FOCUS_APP_WINDOW, { payload: { generation, source } }, (value) => {
+    if (!value || typeof value !== 'object' || Object.keys(value).join('|') !== 'focused'
+      || !('focused' in value) || value.focused !== true) throw new Error('home-app-focus-failed');
+  });
 }
 
 export function activeExecutionsFromAI(ai: SystemEntryAIState | null): readonly DesktopAIExecution[] {
@@ -207,6 +200,7 @@ export function HomeActiveWorkCardView({
 
 export function HomeActiveWorkCard({
   entries,
+  focusGeneration,
   iconUrls,
   ai,
   downloads,
@@ -215,6 +209,7 @@ export function HomeActiveWorkCard({
   onOpenDownloads,
 }: {
   entries: readonly DesktopAppsEntry[];
+  focusGeneration: string | null;
   iconUrls: ReadonlyMap<string, string | null>;
   ai: SystemEntryAIState | null;
   downloads: readonly HomeActiveDownloadItem[];
@@ -225,12 +220,12 @@ export function HomeActiveWorkCard({
   const { t } = useTranslation();
   const [focusingKey, setFocusingKey] = useState<string | null>(null);
   const runningApps = groupAppsEntries(entries.filter((entry) => entry.run && isLocalDevelopmentRunActive(entry.run.state)))
-    .map((group) => group.primary);
+    .map((group) => group.entries.find((entry) => entry.run?.state === 'running') ?? group.primary);
   const executions = activeExecutionsFromAI(ai);
 
   const handleFocus = (entry: DesktopAppsEntry) => {
     setFocusingKey(entry.identity.entryKey);
-    void focusRunningDesktopApp(entry)
+    void focusRunningDesktopApp(entry, focusGeneration)
       .catch(() => emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.overview.activeWork.focusFailed') }))
       .finally(() => setFocusingKey(null));
   };

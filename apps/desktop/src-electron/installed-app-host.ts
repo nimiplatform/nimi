@@ -114,6 +114,18 @@ export function createDesktopInstalledAppHost(
     }
     return project(run);
   };
+  const focusRunningSelector = async (selector: Uint8Array, authorize: () => Promise<() => void>): Promise<InstalledAppRun> => {
+    const key = Buffer.from(selector).toString('base64');
+    const run = runs.get(key);
+    const id = run?.launchId;
+    if (!run || !id || run.pending) throw new Error('installed-app-run-unavailable');
+    const assertCurrent = await authorize();
+    if (closing || run.stopRequested || run.pending || run.launchId !== id || runs.get(key) !== run || run.view.state !== 'running') throw new Error('installed-app-run-unavailable');
+    assertCurrent();
+    await control.focus(id);
+    run.view = { ...run.view, reasonCode: undefined, message: '' };
+    return project(run);
+  };
   const invoke = async (command: typeof COMMANDS[number], payload: Readonly<Record<string, unknown>>): Promise<unknown> => {
     await attach();
     if (command === 'installed_app_runs_list') return Promise.all([...runs.values()].map(refresh));
@@ -238,11 +250,7 @@ export function createDesktopInstalledAppHost(
       if (!authorizeSystemEntryFocus) throw new Error('system-entry-admission-required');
       const focusContext = payload.payload as { generation: unknown; requestId: unknown };
       const { generation, requestId } = parseSystemEntryFocusContext({ generation: focusContext.generation, requestId: focusContext.requestId });
-      const assertCurrent = await authorizeSystemEntryFocus(generation, requestId, { kind: 'installed', launchSelector: [...selector] });
-      if (closing || run.stopRequested || run.pending || run.launchId !== id || runs.get(key) !== run || run.view.state !== 'running') throw new Error('installed-app-run-unavailable');
-      assertCurrent();
-      await control.focus(id);
-      run.view = { ...run.view, reasonCode: undefined, message: '' };
+      await focusRunningSelector(selector, () => authorizeSystemEntryFocus(generation, requestId, { kind: 'installed', launchSelector: [...selector] }));
       return refresh(run);
     }
     run.pending = true;
@@ -270,6 +278,10 @@ export function createDesktopInstalledAppHost(
       while ([...runs.values()].some(run => run.pending)) await new Promise(resolve => setTimeout(resolve, 25));
     },
     resume(): void { closing = false; startObserving(); },
+    async focusRunningSelector(selector: Uint8Array, authorize: () => Promise<() => void>): Promise<InstalledAppRun> {
+      await attach();
+      return focusRunningSelector(selector, authorize);
+    },
     quitImpact(): readonly string[] {
       return [...runs.values()]
         .filter(run => run.pending || run.launchQueued || (run.launchId && !run.exitState))

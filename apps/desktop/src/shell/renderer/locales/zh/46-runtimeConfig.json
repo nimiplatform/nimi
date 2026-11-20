@@ -1110,6 +1110,7 @@
       "localOnlyZero": "纯本地免计费运行",
       "noCallsToday": "今日暂无 AI 调用",
       "catalogEstimateHint": "按目录定价预估",
+      "partialEstimateHint": "仅含已记录且可计价的用量",
       "metricTotal": "总调用",
       "metricLocal": "本地免费",
       "metricCloud": "云端计费",
@@ -1132,6 +1133,7 @@
       "remoteConnectedCount": "{{count}} 台外部设备连接中",
       "remotePendingConfirm": "{{count}} 项接入待确认",
       "remoteOff": "远程直连未开启",
+      "remoteUnknown": "远程直连状态待确认",
       "manageConnections": "连接管理",
       "storageAction": "存储"
     },

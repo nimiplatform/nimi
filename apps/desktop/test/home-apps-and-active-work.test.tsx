@@ -5,7 +5,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { DesktopAIExecutionRoute, DesktopAIExecutionState } from '@nimiplatform/sdk/runtime/generated';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n/index.js';
 import { HomeAppsWorkbench } from '../src/shell/renderer/features/home/home-apps-workbench.js';
-import { HomeActiveWorkCardView } from '../src/shell/renderer/features/home/home-active-work-card.js';
+import { focusRunningDesktopApp, HomeActiveWorkCardView } from '../src/shell/renderer/features/home/home-active-work-card.js';
+import { HOME_FOCUS_APP_WINDOW, parseHomeAppFocusRequest } from '../src/shell/shared/system-entry-types.js';
 import {
   BUNDLED_ZHIYU_RECENT_KEY,
   buildHomeRecentAppsDock,
@@ -61,6 +62,7 @@ test('apps workbench unifies bundled Zhiyu, running apps with focus action, and 
 
   const html = renderToStaticMarkup(
     <HomeAppsWorkbench
+      focusGeneration="generation"
       entries={entries}
       iconUrls={new Map()}
       loading={false}
@@ -78,6 +80,43 @@ test('apps workbench unifies bundled Zhiyu, running apps with focus action, and 
   assert.match(html, /data-testid="home-apps-spotlight"/);
   assert.match(html, /data-testid="home-app-spotlight:parentos"/);
   assert.match(html, /data-testid="home-app-spotlight:overtone"/);
+});
+
+test('both Home focus requests match the native command contract and require a focus acknowledgement', async () => {
+  const globals = globalThis as Record<string, unknown>;
+  const previousBridge = Object.getOwnPropertyDescriptor(globals, '__NIMI_ELECTRON_RUNTIME__');
+  const previousWindow = Object.getOwnPropertyDescriptor(globals, 'window');
+  const requests: ReturnType<typeof parseHomeAppFocusRequest>[] = [];
+  let reply: unknown = { focused: true };
+  globals.window = { __NIMI_HTML_BOOT_ID__: 'home-focus-test' };
+  globals.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command: string, args: { payload: unknown }) => {
+    if (command === 'log_renderer_event') return {};
+    assert.equal(command, HOME_FOCUS_APP_WINDOW);
+    requests.push(parseHomeAppFocusRequest(args.payload));
+    return reply;
+  } };
+  try {
+    const running = makeEntry({ appId: 'demo', displayName: 'Demo',
+      run: { state: 'running', launchSelector: [17], accessAvailable: true, accessReasonCode: '', message: '' } });
+    const installed = { ...running, committedRelease: { launchSelector: Uint8Array.of(17) } } as DesktopAppsEntry;
+    const development = { ...running, localDevelopment: { selector: 'dev-project-demo' } } as DesktopAppsEntry;
+    await focusRunningDesktopApp(installed, 'current');
+    await focusRunningDesktopApp(development, 'current');
+    assert.deepEqual(requests, [
+      { generation: 'current', source: { kind: 'installed', launchSelector: [17] } },
+      { generation: 'current', source: { kind: 'local-development', selector: 'dev-project-demo' } },
+    ]);
+    await assert.rejects(focusRunningDesktopApp(installed, null), /focus-unavailable/);
+    await assert.rejects(focusRunningDesktopApp({ ...development, run: null }, 'current'), /focus-unavailable/);
+    assert.equal(requests.length, 2);
+    reply = { state: 'running' };
+    await assert.rejects(focusRunningDesktopApp(installed, 'current'), /focus-failed/);
+  } finally {
+    if (previousBridge) Object.defineProperty(globals, '__NIMI_ELECTRON_RUNTIME__', previousBridge);
+    else delete globals.__NIMI_ELECTRON_RUNTIME__;
+    if (previousWindow) Object.defineProperty(globals, 'window', previousWindow);
+    else delete globals.window;
+  }
 });
 
 test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps, and merges multi-source entries', async () => {
@@ -135,6 +174,7 @@ test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps
 
   const html = renderToStaticMarkup(
     <HomeAppsWorkbench
+      focusGeneration="generation"
       entries={manyInstalled}
       iconUrls={new Map()}
       loading={false}
