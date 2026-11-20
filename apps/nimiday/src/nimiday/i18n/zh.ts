@@ -36,7 +36,7 @@ export const zh = {
     actionHint: '建议操作',
     issues: {
       unavailable: { title: '暂时无法连接 Nimi', body: '请在 Nimi 桌面端检查运行服务，恢复后再重试。' },
-      untrusted: { title: '无法验证 Nimi 服务', body: '请在 Nimi 中检查服务状态，处理后重试。' },
+      untrusted: { title: '无法验证 Nimi 服务', body: '服务身份校验未通过，NimiDay 已停止连接。请在 Nimi 中检查服务状态并按提示处理，再返回这里重新检查。' },
       repair: { title: 'Nimi 服务需要修复', body: '请先在 Nimi 桌面端处理运行服务的修复提示，完成后再重新检查。' },
       session: { title: '需要重新连接 NimiDay', body: '当前应用会话已不可用。请在 Nimi 桌面端检查 NimiDay 的访问状态，必要时重新打开 NimiDay。' },
       access: { title: 'NimiDay 暂时无法访问服务', body: '请在 Nimi 桌面端检查 NimiDay 的访问授权，处理后再重新检查。' },

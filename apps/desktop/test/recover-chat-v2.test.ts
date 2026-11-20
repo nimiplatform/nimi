@@ -29,8 +29,9 @@ function seedV2(file: string) {
 test('recover a committed WAL snapshot; keep every sent row and leave unowned drafts only in the source', async t => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'nimi-chat-recovery-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
-  const input = path.join(dir, 'source #%?.db');
-  const snapshot = path.join(dir, 'standalone #%?.db');
+  const specialCharacters = process.platform === 'win32' ? '#%' : '#%?';
+  const input = path.join(dir, `source ${specialCharacters}.db`);
+  const snapshot = path.join(dir, `standalone ${specialCharacters}.db`);
   const output = path.join(dir, 'recovered.db');
   const source = seedV2(input);
   try {

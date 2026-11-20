@@ -305,7 +305,7 @@ export function HomeDailySpendCardView({
         <span className="flex min-w-0 items-center gap-1.5 truncate text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-connectors">
           <Cloud size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
           {cloudConnectorCount === null
-            ? t('runtimeConfig.nav.cloud')
+            ? t('runtimeConfig.nav.cloudServices')
             : cloudConnectorCount > 0
               ? t('runtimeConfig.overview.dailySpend.cloudConnectorsReady', { count: cloudConnectorCount })
               : t('runtimeConfig.overview.dailySpend.cloudConnectorsNone')}

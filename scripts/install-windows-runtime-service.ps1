@@ -55,6 +55,7 @@ $RuntimeStartupStages = @{
   42248 = 'local-app-listener'
   42249 = 'configuration'
   42250 = 'daemon'
+  42251 = 'instance-lock'
   42480 = 'shutdown-timeout'
 }
 

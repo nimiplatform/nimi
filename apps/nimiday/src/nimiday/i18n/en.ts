@@ -38,7 +38,7 @@ export const en: Copy = {
     actionHint: 'Suggested action',
     issues: {
       unavailable: { title: 'Unable to connect to Nimi', body: 'Open Nimi Desktop and check that its runtime service is running, then return here and try again.' },
-      untrusted: { title: 'Unable to verify the Nimi service', body: 'Check the service status in Nimi, resolve any issues, then try again.' },
+      untrusted: { title: 'Unable to verify the Nimi service', body: 'The service identity check failed, so NimiDay stopped connecting. Check the service status in Nimi and follow its guidance, then check again here.' },
       repair: { title: 'The Nimi service needs repair', body: 'Follow the runtime service repair guidance in Nimi Desktop, then check again here.' },
       session: { title: 'NimiDay needs to reconnect', body: 'This App session is no longer available. Check NimiDay’s access status in Nimi Desktop and reopen NimiDay if needed.' },
       access: { title: 'NimiDay cannot access the service', body: 'Review NimiDay’s access permissions in Nimi Desktop, then check again here.' },

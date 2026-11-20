@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -93,19 +94,80 @@ func TestWindowsJobHandleLossLeavesExitUnconfirmed(t *testing.T) {
 	}
 }
 
+func TestWindowsJobNaturalExitAndAccountingQueryFailure(t *testing.T) {
+	gate := filepath.Join(t.TempDir(), "exit")
+	command := exec.Command(os.Args[0], "-test.run=^TestWindowsJobTreeProbe$", "--", "wait-for-natural-exit", gate)
+	setSupervisorProcessGroup(command)
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer command.Process.Kill()
+	reaped := make(chan error, 1)
+	go func() { reaped <- command.Wait() }()
+	tree, err := bindSupervisorProcessLifecycle(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseSupervisorProcessLifecycle(tree)
+
+	// Keep a real handle to the same Job, but without JOB_OBJECT_QUERY.
+	const jobObjectTerminateAccess = 0x0008
+	var limited windows.Handle
+	self := windows.CurrentProcess()
+	if err := windows.DuplicateHandle(self, tree.job, self, &limited, jobObjectTerminateAccess, false, 0); err != nil {
+		t.Fatal(err)
+	}
+	defer windows.CloseHandle(limited)
+	withoutQuery := &supervisorProcessLifecycle{job: limited}
+	if exited, err := supervisorProcessLifecycleExited(withoutQuery); exited || !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		t.Fatalf("query with insufficient access: exited=%v err=%v", exited, err)
+	}
+	if exited, err := supervisorProcessLifecycleExited(tree); exited || err != nil {
+		t.Fatalf("process before natural exit: exited=%v err=%v", exited, err)
+	}
+	if err := os.WriteFile(gate, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-reaped:
+		if err != nil {
+			t.Fatalf("wait for natural process exit: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the process did not exit naturally")
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		exited, err := supervisorProcessLifecycleExited(tree)
+		if err != nil || time.Now().After(deadline) {
+			t.Fatalf("confirm natural process exit: exited=%v err=%v", exited, err)
+		}
+		if exited {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if exited, err := supervisorProcessLifecycleExited(withoutQuery); exited || !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		t.Fatalf("query failure after natural exit: exited=%v err=%v", exited, err)
+	}
+}
+
 func TestWindowsJobTreeProbe(t *testing.T) {
 	for i, arg := range os.Args {
 		switch {
-		case arg == "parent" && i+1 < len(os.Args):
+		case (arg == "parent" || arg == "wait-for-natural-exit") && i+1 < len(os.Args):
 			deadline := time.Now().Add(5 * time.Second)
 			for {
 				if _, err := os.Stat(os.Args[i+1]); err == nil {
 					break
 				}
 				if time.Now().After(deadline) {
-					t.Fatal("parent was not bound before the gate expired")
+					t.Fatal("the Job Object probe gate did not open")
 				}
 				time.Sleep(10 * time.Millisecond)
+			}
+			if arg == "wait-for-natural-exit" {
+				return
 			}
 			child := exec.Command(os.Args[0], "-test.run=^TestWindowsJobTreeProbe$", "--", "child")
 			if err := child.Start(); err != nil {
