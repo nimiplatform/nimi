@@ -45,6 +45,36 @@ func TestRemoteAssetWriteUsesOriginalStreamingOwner(t *testing.T) {
 	}
 }
 
+func TestRemoteAgentWorkUsesDeclaredAgentServiceOperations(t *testing.T) {
+	dispatcher := newRemoteDispatcher(nil, nil, nil)
+	dispatcher.register(nil, &runtimev1.RuntimeAgentService_ServiceDesc)
+	for method, expected := range map[string]localappop.Ingress{
+		protectedAgentWorkReferenceListMethod:    localappop.IngressAgentWorkReferenceList,
+		protectedAgentWorkStartMethod:            localappop.IngressAgentWorkStart,
+		protectedAgentWorkGetMethod:              localappop.IngressAgentWorkGet,
+		protectedAgentWorkStatusGetMethod:        localappop.IngressAgentWorkStatusGet,
+		protectedAgentWorkToolCallsListMethod:    localappop.IngressAgentWorkToolCallsList,
+		protectedAgentWorkToolResultSubmitMethod: localappop.IngressAgentWorkToolResultSubmit,
+		protectedAgentWorkCancelMethod:           localappop.IngressAgentWorkCancel,
+		protectedAgentWorkEventsSubscribeMethod:  localappop.IngressAgentWorkEventsSubscribe,
+	} {
+		t.Run(method, func(t *testing.T) {
+			rpc, registered := dispatcher.methods[method]
+			if !registered || !remoteAppMethodSupported(method) || remoteManagerMethodSupported(method) {
+				t.Fatal("unexpected ordinary App or manager carrier for registered method")
+			}
+			stream := method == protectedAgentWorkEventsSubscribeMethod
+			if (rpc.stream != nil) != stream || (stream && (!rpc.stream.ServerStreams || rpc.stream.ClientStreams)) {
+				t.Fatal("unexpected Agent Work RPC cardinality")
+			}
+			ingress, enabled := remoteAppIngress(method, rpc.input.New().Interface(), stream)
+			if !enabled || ingress != expected {
+				t.Fatalf("got ingress %v, owner enabled %v", ingress, enabled)
+			}
+		})
+	}
+}
+
 func TestRemoteIntegrationUsesOnlyExistingConsumerIngress(t *testing.T) {
 	methods := []struct {
 		name    string

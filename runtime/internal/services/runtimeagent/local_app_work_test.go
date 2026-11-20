@@ -217,6 +217,19 @@ func TestLocalAppWorkIsolatedSameAgentToolContinuationAndMemory(t *testing.T) {
 	if err := svc.SubscribeLocalAppAgentWorkEvents(&runtimev1.SubscribeLocalAppAgentWorkEventsRequest{AgentHandle: foreign.handle, ExecutionId: id}, foreignStream); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("foreign stream accepted: %v", err)
 	}
+	reconnected := f
+	reconnected.decision.SessionID[0]++
+	refs, err := svc.ListLocalAppAgentWorkReferences(reconnected.ctx(localappop.OperationAgentWorkReferenceList), &runtimev1.ListLocalAppAgentWorkReferencesRequest{})
+	if err != nil || len(refs.GetReferences()) != 1 {
+		t.Fatalf("list after reconnect: %v", err)
+	}
+	for _, handle := range []string{f.handle, refs.References[0].AgentHandle} {
+		request := submit(first)
+		request.AgentHandle = handle
+		if _, err := svc.SubmitLocalAppAgentWorkToolResult(reconnected.ctx(localappop.OperationAgentWorkToolResultSubmit), request); status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("a new session submitted to the old execution: %v", err)
+		}
+	}
 	if _, err := svc.SubmitLocalAppAgentWorkToolResult(f.ctx(localappop.OperationAgentWorkToolResultSubmit), submit(first)); err != nil {
 		t.Fatal(err)
 	}

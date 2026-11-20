@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## 0.24.0-rc.11 — Remote Agent work
+
+An ordinary App with an admitted `agent.work` declaration can use `scope.client.agentWork` to select an Agent, start bounded work, observe its execution, return App tool results and cancel. This requires a primary PC Runtime build that admits all eight Agent Work RPCs on its direct carrier. Earlier direct hosts return `LOCAL_APP_OPERATION_UNSUPPORTED`. After connection loss, read the App's saved results using the new scope and require an explicit new request before starting more work.
+
 ## Unreleased — Optional bounded media formats
 
 Realm image-set descriptors can include `boundedFamily` alongside their complete `families`. A responsive renderer can offer it for slots covered at the current pixel density. Consumers using only the complete families keep their previous selection.

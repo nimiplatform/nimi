@@ -10,11 +10,22 @@ export type NimiLocalAppAgentWorkRuntime = Pick<RuntimeTypedClient,
 export function createNimiLocalAppAgentWorkRuntimeClient(runtime: NimiLocalAppAgentWorkRuntime): NimiLocalAppAgentWorkClient {
   return createNimiLocalAppAgentWorkClient({
     listReferences: async () => (await runtime.listLocalAppAgentWorkReferences({})).references.map(value => ({ ...value, avatarUrl: value.avatarUrl ?? null })),
-    start: input => runtime.startLocalAppAgentWork({ ...input, work: { ...input.work, sources: [...input.work.sources], tools: [...input.work.tools] } }),
+    start: async input => {
+      const { executionId } = await runtime.startLocalAppAgentWork({
+        ...input, work: { ...input.work, sources: [...input.work.sources], tools: [...input.work.tools] },
+      });
+      return { executionId };
+    },
     get: async input => ({ execution: execution((await runtime.getLocalAppAgentWork(input)).execution) }),
     status: async input => { const value = await runtime.getLocalAppAgentWorkStatus(input); return { busy: value.busy, ownExecutionId: value.ownExecutionId ?? null }; },
-    listToolCalls: input => runtime.listLocalAppAgentWorkToolCalls(input),
-    submitToolResult: input => runtime.submitLocalAppAgentWorkToolResult(input),
+    listToolCalls: async input => {
+      const { calls } = await runtime.listLocalAppAgentWorkToolCalls(input);
+      return { calls: calls.map(call => ({ ...call })) };
+    },
+    submitToolResult: async input => {
+      const { callId } = await runtime.submitLocalAppAgentWorkToolResult(input);
+      return { callId };
+    },
     cancel: async input => ({ execution: execution((await runtime.cancelLocalAppAgentWork(input)).execution) }),
     subscribe: async input => {
       const controller = new AbortController();
@@ -35,7 +46,7 @@ function event(value: LocalAppAgentWorkEvent) {
   switch (value.event.oneofKind) {
     case 'snapshot': return { ...base, type: 'snapshot', execution: execution(value.event.snapshot) };
     case 'textDelta': return { ...base, type: 'text-delta', delta: value.event.textDelta };
-    case 'toolCall': return { ...base, type: 'tool-call', call: value.event.toolCall };
+    case 'toolCall': return { ...base, type: 'tool-call', call: { ...value.event.toolCall } };
     default: throw new Error('Runtime Agent work event is unsupported');
   }
 }

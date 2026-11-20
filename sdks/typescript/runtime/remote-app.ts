@@ -10,6 +10,7 @@ import { createNimiLocalAppAssetsClient, type NimiLocalAppAssetsClient } from '.
 import { createNimiLocalAppActivityClient, createNimiLocalAppActivityRuntimeShell } from '../core/app/local-app-runtime-platform-activity.js';
 import { isNimiLocalAppByteView } from '../core/app/local-app-bytes.js';
 import { createNimiLocalAppAgentReferencesRuntimeClient } from '../core/app/local-app-runtime-platform-agent-references.js';
+import { createNimiLocalAppAgentWorkRuntimeClient } from '../core/app/local-app-runtime-platform-direct-agent-work.js';
 import { createNimiLocalAppAgentIntroductionRuntimeClient } from '../core/app/local-app-agent-introduction.js';
 import { createNimiLocalAppConversationRuntimeClient } from '../core/app/local-app-runtime-platform-direct-conversation.js';
 import { createNimiLocalAppEmbodimentRuntimeClient } from '../core/app/local-app-runtime-platform-embodiment.js';
@@ -33,6 +34,7 @@ export function createRemoteRuntimeAppClients(runtime: RuntimeTypedClient, appId
     ai: Object.freeze({ ...ai, text: Object.freeze({ ...ai.text, ...candidate }) }),
     aiConfig: createNimiLocalAppAIConfigRuntimeClient({ appId, runtime }),
     storage: createRemoteRuntimeStorage(runtime),
+    agentWork: createNimiLocalAppAgentWorkRuntimeClient(runtime),
     agents: Object.freeze({ ...createNimiLocalAppAgentReferencesRuntimeClient(runtime), ...createNimiLocalAppAgentIntroductionRuntimeClient(runtime), ...createNimiAppCharacterDiscoveryRuntimeClient(runtime) }),
     conversation: createNimiLocalAppConversationRuntimeClient(runtime),
     embodiment: createNimiLocalAppEmbodimentRuntimeClient(runtime),

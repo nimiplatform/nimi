@@ -11,6 +11,8 @@ import { ErrorInfo, ReasonCode } from '../core-generated/runtime-protobuf/runtim
 import { createRemoteRuntimeAppClients } from './remote-app.js';
 import { WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse, ReadLocalAppAssetResponse } from '../core-generated/runtime-protobuf/runtime/v1/app.js';
 import { ListLocalAppAgentReferencesResponse } from '../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import * as Work from '../core-generated/runtime-protobuf/runtime/v1/agent_work.js';
+import type { NimiAppRuntimeClient } from '../core/app/portable-client.js';
 import { PutAppActivityRequest, PutAppActivityResponse, AppActivityRecord, AppActivityKind, AppActivitySourceKind, OpenAppActivityResponse, AppActivityOpenOutcome, AppActivityOpenReason, SubscribeAppActivityOpenRequestsResponse, CompleteAppActivityOpenRequestRequest, CompleteAppActivityOpenRequestResponse, AppActivityOpenCompletion } from '../core-generated/runtime-protobuf/runtime/v1/app_activity.js';
 
 class Channel implements RuntimeDataChannel {
@@ -25,6 +27,80 @@ class Channel implements RuntimeDataChannel {
   onOpen() { return () => undefined; } onBufferLow() { return () => undefined; }
   receive(frame: Partial<RemoteTransportFrame>) { const data = RemoteTransportFrame.toBinary(RemoteTransportFrame.create(frame)); for (const next of this.receivers) next(data); }
 }
+
+test('ordinary remote Agent Work projects all eight wire operations and ends observation separately from work', async () => {
+  const channel = new Channel();
+  const transport = new RuntimeDataChannelTransport(channel, () => true);
+  const app: NimiAppRuntimeClient = createRemoteRuntimeAppClients(new RuntimeTypedClient(new CoreClient({ transport })), 'nimi.test');
+  const work = app.agentWork;
+  async function request(name: string) {
+    await until(() => channel.sent.length !== 0);
+    const frame = channel.sent.shift()!;
+    assert.equal(frame.method, '/nimi.runtime.v1.RuntimeAgentService/' + name);
+    return frame;
+  }
+  function reply(frame: RemoteTransportFrame, payload: Uint8Array) {
+    channel.receive({ kind: Kind.RESPONSE, requestId: frame.requestId, chunkEnd: true, payload });
+  }
+  const references = work.listReferences();
+  const list = await request('ListLocalAppAgentWorkReferences');
+  reply(list, Work.ListLocalAppAgentWorkReferencesResponse.toBinary({ references: [{
+    agentHandle: 'agent_ref_' + 'a'.repeat(43), agentBinding: 'agent_binding_' + 'b'.repeat(43),
+    activityAgentRef: 'agr_test', displayName: 'Reviewer',
+  }] }));
+  const [{ agentHandle }] = await references;
+  const status = work.status({ agentHandle });
+  const statusFrame = await request('GetLocalAppAgentWorkStatus');
+  reply(statusFrame, Work.GetLocalAppAgentWorkStatusResponse.toBinary({ busy: false }));
+  assert.deepEqual(await status, { busy: false, ownExecutionId: null });
+
+  const start = work.start({ agentHandle, requestId: 'request', prompt: 'Review the source',
+    work: { workId: 'review', instructions: 'Record one finding', sources: [],
+      tools: [{ name: 'save', description: 'Save the finding', inputSchemaJson: '{"type":"object"}' }] } });
+  const startFrame = await request('StartLocalAppAgentWork');
+  assert.equal(Work.StartLocalAppAgentWorkRequest.fromBinary(startFrame.payload).work?.tools[0].name, 'save');
+  reply(startFrame, Work.StartLocalAppAgentWorkResponse.toBinary({ executionId: 'execution' }));
+  const scope = { agentHandle, ...(await start) };
+  const tool = { executionId: scope.executionId, callId: 'call', name: 'save', argumentsJson: '{}' };
+  const sub = await work.subscribe({ ...scope, afterSequence: '1' });
+  const iterator = sub[Symbol.asyncIterator]();
+  const next = iterator.next();
+  const stream = await request('SubscribeLocalAppAgentWorkEvents');
+  assert.deepEqual({ ...Work.SubscribeLocalAppAgentWorkEventsRequest.fromBinary(stream.payload) }, { ...scope, afterSequence: '1' });
+  channel.receive({ kind: Kind.STREAM_DATA, requestId: stream.requestId, chunkEnd: true,
+    payload: Work.LocalAppAgentWorkEvent.toBinary({ executionId: scope.executionId, sequence: '2', event: { oneofKind: 'toolCall', toolCall: tool } }) });
+  assert.deepEqual((await next).value, { executionId: scope.executionId, sequence: '2', type: 'tool-call', call: tool });
+  await sub.cancel();
+  await until(() => channel.sent.length > 0);
+  const cancelledStream = channel.sent.shift()!;
+  assert.equal(cancelledStream.kind, Kind.CANCEL);
+  assert.equal(cancelledStream.requestId, stream.requestId);
+
+  const calls = work.listToolCalls(scope);
+  reply(await request('ListLocalAppAgentWorkToolCalls'), Work.ListLocalAppAgentWorkToolCallsResponse.toBinary({ calls: [tool] }));
+  const [pending] = await calls;
+  const result = { ...scope, callId: pending.callId, resultJson: '{"saved":true}', isError: false };
+  const submission = work.submitToolResult(result);
+  const submit = await request('SubmitLocalAppAgentWorkToolResult');
+  assert.deepEqual({ ...Work.SubmitLocalAppAgentWorkToolResultRequest.fromBinary(submit.payload) }, result);
+  reply(submit, Work.SubmitLocalAppAgentWorkToolResultResponse.toBinary({ callId: pending.callId }));
+  assert.deepEqual(await submission, { callId: pending.callId });
+  const execution = Work.LocalAppAgentWorkExecution.create({ executionId: scope.executionId, workId: 'review',
+    state: Work.LocalAppAgentWorkState.SUCCEEDED, outputText: 'Saved', sequence: '3' });
+  const get = work.get(scope);
+  reply(await request('GetLocalAppAgentWork'), Work.GetLocalAppAgentWorkResponse.toBinary({ execution }));
+  assert.equal((await get).state, 'succeeded');
+  const cancel = work.cancel(scope);
+  reply(await request('CancelLocalAppAgentWork'), Work.CancelLocalAppAgentWorkResponse.toBinary({ execution }));
+  assert.equal((await cancel).state, 'succeeded');
+  const unsupported = assert.rejects(work.listReferences(), { reasonCode: 'LOCAL_APP_OPERATION_UNSUPPORTED' });
+  const oldHost = await request('ListLocalAppAgentWorkReferences');
+  channel.receive({ kind: Kind.ERROR, requestId: oldHost.requestId, chunkEnd: true, grpcCode: 12,
+    errorInfo: ErrorInfo.create({ reasonCode: ReasonCode.LOCAL_APP_OPERATION_UNSUPPORTED }) });
+  await unsupported;
+  assert.equal(channel.sent.length, 0);
+  transport.close();
+});
 
 test('remote activity publication uses the typed owner RPC and preserves denied publication', async () => {
   const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);

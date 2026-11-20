@@ -23,7 +23,7 @@
   ],
   "peerDependencies": {
     "@ai-sdk/provider": "^4.0.0",
-    "@nimiplatform/sdk": "^0.24.0-rc.10",
+    "@nimiplatform/sdk": "^0.24.0-rc.11",
     "ai": "^7.0.0"
   },
   "devDependencies": {

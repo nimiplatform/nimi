@@ -90,6 +90,9 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 			scope := localappkernel.RemoteAccessScope{RealmEnvironmentID: "realm-1", AccountID: "account-1", BindingID: "binding-1"}
 			input := localappkernel.RegisterRemoteInput{AppID: "nimi.test.remote", DisplayName: "Remote unit", RealmEnvironmentID: "realm-1", ClientID: "remote.unit",
 				Origin: "https://lab.example", RedirectURI: "https://lab.example/", Role: "app", SourceRevision: 1, RawDeclaration: []string{"runtime.consume", "agent.local"}}
+			if invalidation != "peer" {
+				input.RawDeclaration = append(input.RawDeclaration, "agent.work")
+			}
 			if err := kernel.RemoteAccess().ConfirmRegistration(ctx, scope, input); err != nil {
 				t.Fatal(err)
 			}
@@ -149,6 +152,26 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 			if _, err := service.AuthorizeLocalAppIngress(admitted, localappop.IngressAgentManagerSnapshotGet); err == nil {
 				t.Fatal("agent.local was promoted to agent.configure")
 			}
+			workCtx, workErr := service.AuthorizeLocalAppIngress(admitted, localappop.IngressAgentWorkStart)
+			if invalidation == "peer" {
+				if workErr == nil {
+					t.Fatal("agent.local granted undeclared Agent Work")
+				}
+			} else {
+				if workErr != nil {
+					t.Fatal(workErr)
+				}
+				peer.info.Deadline = peer.info.Deadline.Add(time.Minute)
+				renewed, err := service.AuthorizeLocalAppIngress(workCtx, localappop.IngressAgentWorkToolResultSubmit)
+				if err != nil {
+					t.Fatal(err)
+				}
+				workDecision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(renewed)
+				if !ok || workDecision.SessionID != peer.info.SessionID || workDecision.SessionInvalidated != peer.done ||
+					workDecision.RegisteredAppSubject != registration.RegisteredAppSubject || !workDecision.ExpiresAt.Equal(peer.info.Deadline) {
+					t.Fatal("renewal lost the admitted remote work scope")
+				}
+			}
 			if _, err := service.WriteLocalAppStorageJson(admitted, &runtimev1.WriteLocalAppStorageJsonRequest{RelativePath: "history.json", JsonValue: []byte(`{"result":"original"}`)}); err != nil {
 				t.Fatal(err)
 			}
@@ -207,6 +230,11 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 
 			if _, err = service.AuthorizeLocalAppIngress(admitted, localappop.IngressStorageJSONRead); err == nil {
 				t.Fatal("stale remote context revalidated")
+			}
+			if workCtx != nil {
+				if _, err := service.AuthorizeLocalAppIngress(workCtx, localappop.IngressAgentWorkToolResultSubmit); err == nil {
+					t.Fatal("invalidated remote work context admitted a late tool result")
+				}
 			}
 			if service.RemoteAppSubjectLive(ctx, registration.RegisteredAppSubject) {
 				t.Fatal("invalidated remote subject remained eligible for new Integration permission")
