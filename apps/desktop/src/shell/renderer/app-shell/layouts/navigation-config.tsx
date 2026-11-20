@@ -10,6 +10,7 @@ import {
   SHELL_CHROME_RAIL_ICON_SIZE,
   SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
   SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_CHROME_RAIL_SELECTED_BG_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
 import {
@@ -236,19 +237,16 @@ export function NavLink({
         className={`relative flex items-center overflow-hidden text-sm transition-colors duration-150 ${
           active
             ? 'font-semibold text-[var(--nimi-text-primary)]'
-            : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+            : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'
         } ${collapsed
           ? `mx-auto ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
           : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
-        } ${active
-          ? 'ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
-          : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
         }`}
       >
         {active ? (
           <motion.span
             layoutId="desktop-shell-active-nav-indicator"
-            className="absolute inset-0 rounded-[inherit] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)]"
+            className={`absolute inset-0 rounded-[inherit] ${SHELL_CHROME_RAIL_SELECTED_BG_CLASS}`}
             transition={desktopActiveIndicatorTransition(reducedMotion)}
             aria-hidden="true"
           />

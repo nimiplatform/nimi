@@ -9,6 +9,7 @@ import {
   SHELL_CHROME_RAIL_ICON_SIZE,
   SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
   SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_CHROME_RAIL_SELECTED_BG_CLASS,
   SHELL_PAGE_WIDTH_CLASS,
 } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useHomeDestination } from '../../app-shell/providers/app-store.js';
@@ -88,7 +89,7 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
           onClick={onOpen}
           className={`${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
             selected
-              ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+              ? SHELL_CHROME_RAIL_SELECTED_BG_CLASS
               : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
           } ${selected || active ? 'text-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)]' : ''}`}
         />

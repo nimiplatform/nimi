@@ -5,7 +5,7 @@ import { RealmHumanAvatar } from './realm-human-avatar.js';
 import { ChatPartnerAvatarCard } from './chat-partner-avatar-card.js';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import './chat-relationship-rail.css';
-import { ContactRound, History, PanelRightClose, Rotate3d, Settings2 } from 'lucide-react';
+import { ChevronsRight, ContactRound, History, Rotate3d, Settings2 } from 'lucide-react';
 import { AppCardSurface, IconButton, IconToggleAction, NimiTabs, ScrollArea } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -307,7 +307,7 @@ export function ContactsAvatarRail({
         )}
       </div>
 
-      {/* Persistent bottom-right Contacts hinge: icon itself morphs between ContactRound (closed) and PanelRightClose (open) */}
+      {/* Persistent bottom-right Contacts hinge: icon itself morphs between ContactRound (closed) and ChevronsRight (open) */}
       <div
         data-chat-rail-footer="true"
         className={`absolute bottom-3 right-3 z-20 flex w-[72px] flex-col items-center gap-1 border-t pb-1.5 pt-2.5 transition-colors duration-200 ${
@@ -328,25 +328,25 @@ export function ContactsAvatarRail({
                   initial={false}
                   animate={{
                     opacity: contactsOpen ? 0 : 1,
-                    scale: reducedMotion ? 1 : contactsOpen ? 0.55 : 1,
-                    rotate: reducedMotion ? 0 : contactsOpen ? 75 : 0,
+                    scale: reducedMotion ? 1 : contactsOpen ? 0.72 : 1,
+                    x: reducedMotion ? 0 : contactsOpen ? -4 : 0,
                   }}
                   transition={iconTransition}
                   className="col-start-1 row-start-1 grid place-items-center"
                 >
-                  <ContactRound size={21} />
+                  <ContactRound size={20} strokeWidth={1.75} />
                 </motion.span>
                 <motion.span
                   initial={false}
                   animate={{
                     opacity: contactsOpen ? 1 : 0,
-                    scale: reducedMotion ? 1 : contactsOpen ? 1 : 0.55,
-                    rotate: reducedMotion ? 0 : contactsOpen ? 0 : -75,
+                    scale: reducedMotion ? 1 : contactsOpen ? 1 : 0.72,
+                    x: reducedMotion ? 0 : contactsOpen ? 0 : -4,
                   }}
                   transition={iconTransition}
                   className="col-start-1 row-start-1 grid place-items-center"
                 >
-                  <PanelRightClose size={20} />
+                  <ChevronsRight size={20} strokeWidth={1.75} />
                 </motion.span>
               </span>
             )}

@@ -1,6 +1,6 @@
-import { Button } from '@nimiplatform/kit/ui';
+import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
 import { readStorageTextFrom, resolveBrowserStorage, writeStorageTextTo } from '@nimiplatform/kit/core/storage-json';
-import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CapabilityPreparationState } from '../runtime-config/runtime-capability-inventory.js';
@@ -18,47 +18,113 @@ export type HomeGettingStartedProps = {
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 export function HomeGettingStarted(props: HomeGettingStartedProps) {
   const { t } = useTranslation();
-  // A display preference only, never task completion or Runtime readiness.
-  // The parent keys this component by account so the preference cannot leak.
-  const storageKey = `nimi.home.getting-started.collapsed:${encodeURIComponent(props.accountKey)}`;
-  const [collapsed, setCollapsed] = useState(() => {
+  // Display-only dismissal preference for cold-start onboarding, scoped per account.
+  const storageKey = `nimi.home.getting-started.dismissed:${encodeURIComponent(props.accountKey)}`;
+  const [dismissed, setDismissed] = useState<boolean>(() => {
     const stored = readStorageTextFrom(resolveBrowserStorage('local'), storageKey);
     return stored.state === 'ready' && stored.value === 'true';
   });
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    writeStorageTextTo(resolveBrowserStorage('local'), storageKey, String(next));
+
+  // Cold-start onboarding only: once AI compute is ready or the user dismisses it,
+  // it retires completely and never occupies permanent Dashboard real estate.
+  if (props.textPreparation === 'ready' || dismissed) {
+    return null;
+  }
+
+  const dismiss = () => {
+    setDismissed(true);
+    writeStorageTextTo(resolveBrowserStorage('local'), storageKey, 'true');
   };
+
   return (
-    <section className="flex min-w-0 flex-col gap-3 border-t border-[var(--nimi-border-subtle)] px-1 pt-4" data-testid="home-first-run">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>
-        <Button tone="ghost" size="sm" aria-expanded={!collapsed} aria-controls="home-getting-started-steps" onClick={toggle}>
-          {t(collapsed ? 'runtimeConfig.overview.firstRunExpand' : 'runtimeConfig.overview.firstRunCollapse')}
-          {collapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}
-        </Button>
-      </div>
-      {!collapsed ? (
-        <div id="home-getting-started-steps" className="space-y-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <p className="min-w-0 flex-1 basis-64 text-sm text-[var(--nimi-text-secondary)]">
-              {t(`runtimeConfig.overview.firstRun.model.states.${props.textPreparation}`)}
+    <Surface
+      as="section"
+      tone="hero"
+      elevation="raised"
+      padding="none"
+      className="flex min-w-0 flex-col gap-4 rounded-2xl p-5"
+      data-testid="home-first-run"
+      data-ready="false"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]">
+            <Sparkles size={16} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+              {t('runtimeConfig.overview.firstRunTitle')}
+            </h2>
+            <p className="truncate text-xs text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.overview.firstRunSteps.coldStartHint')}
             </p>
-            <div className="flex flex-wrap gap-1">
-              <Button tone="ghost" size="sm" onClick={props.onOpenAI}>{t('runtimeConfig.overview.firstRun.model.action')}</Button>
-              <Button tone="ghost" size="sm" onClick={props.onOpenCloud}>{t('runtimeConfig.overview.firstRun.model.cloud')}</Button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button tone="primary" size="sm" onClick={props.onOpenChat}>
-              {t('runtimeConfig.overview.firstRun.chat.action')}<ArrowRight size={14} aria-hidden="true" />
-            </Button>
-            <Button tone="secondary" size="sm" onClick={props.onExplore}>{t('runtimeConfig.overview.firstRun.chat.partner')}</Button>
-            <Button tone="secondary" size="sm" onClick={props.onOpenApps}>{t('runtimeConfig.overview.firstRun.apps.action')}</Button>
           </div>
         </div>
-      ) : null}
-    </section>
+        <IconButton
+          tone="ghost"
+          size="sm"
+          aria-label={t('runtimeConfig.overview.firstRunDismiss')}
+          title={t('runtimeConfig.overview.firstRunDismiss')}
+          onClick={dismiss}
+          data-testid="home-first-run-dismiss"
+          className="size-8 shrink-0 rounded-full text-[var(--nimi-text-secondary)]"
+          icon={<X size={15} aria-hidden="true" />}
+        />
+      </div>
+
+      <div id="home-getting-started-steps" className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[11px] font-bold text-[var(--nimi-action-primary-text)]">
+                1
+              </span>
+              <p className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                {t('runtimeConfig.overview.firstRunSteps.step1Badge')}
+              </p>
+            </div>
+            <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+              {t(`runtimeConfig.overview.firstRun.model.states.${props.textPreparation}`)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="primary" size="sm" onClick={props.onOpenAI}>
+              {t('runtimeConfig.overview.firstRun.model.action')}
+            </Button>
+            <Button tone="secondary" size="sm" onClick={props.onOpenCloud}>
+              {t('runtimeConfig.overview.firstRun.model.cloud')}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] text-[11px] font-bold text-[var(--nimi-text-secondary)]">
+                2
+              </span>
+              <p className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                {t('runtimeConfig.overview.firstRunSteps.step2Badge')}
+              </p>
+            </div>
+            <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.overview.firstRun.chat.body')}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="secondary" size="sm" onClick={props.onOpenChat}>
+              {t('runtimeConfig.overview.firstRun.chat.action')}
+              <ArrowRight size={14} aria-hidden="true" />
+            </Button>
+            <Button tone="ghost" size="sm" onClick={props.onExplore}>
+              {t('runtimeConfig.overview.firstRun.chat.partner')}
+            </Button>
+            <Button tone="ghost" size="sm" onClick={props.onOpenApps}>
+              {t('runtimeConfig.overview.firstRun.apps.action')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Surface>
   );
 }

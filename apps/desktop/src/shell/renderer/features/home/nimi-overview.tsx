@@ -1,18 +1,19 @@
 import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations/integrations-panel.js';
-import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
+import { FieldTrigger, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUp, ChevronRight } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { ArrowRight, Search, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { formatBytes, formatTransferRate } from '../../components/download-format.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
+import { fetchLocalAgentList, localAgentListQueryKey } from '../agents/local-agent-list-model.js';
 import { hasAvailableCatalogUpdate } from '../apps/apps-card-actions.js';
-import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
-import { BundledZhiyuEntry } from '../apps/bundled-zhiyu-entry.js';
 import { appIconUrlsForEntries } from '../apps/apps-entry-groups.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from '../runtime-config/global-downloads-context.js';
@@ -20,19 +21,26 @@ import { capabilityPreparationState, useCapabilityInventory } from '../runtime-c
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import { isDownloadTerminal } from '../runtime-config/runtime-config-model-center-utils.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
-import { HomeAgentCard } from './home-agent-card.js';
-import { HomeGettingStarted } from './home-getting-started.js';
-import { HomeIntegrationsCard } from './home-integrations-card.js';
-import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
+import { openHomeSettings } from '../settings/settings-entry.js';
+import { useSystemEntryAI } from '../system-entry/system-entry-context.js';
+import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
 import type { ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
+import { HomeActiveWorkCard, type HomeActiveDownloadItem } from './home-active-work-card.js';
+import { HomeAgentCard } from './home-agent-card.js';
+import { HomeAppsWorkbench } from './home-apps-workbench.js';
+import { deriveHomeCapabilityMatrixItems, HomeCapabilityMatrixView } from './home-capability-matrix.js';
+import { HomeDailySpendCard } from './home-daily-spend-card.js';
+import { HomeGettingStarted } from './home-getting-started.js';
+import { HomeHostStatusCard } from './home-host-status-card.js';
+import { HomeIntegrationsCard } from './home-integrations-card.js';
+import { homeRuntimeState } from './home-machine-status.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageCenter } from './home-message-center.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages, type HomeSystemListing } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
-import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
-
-const HOME_APP_LIMIT = 8;
+import { buildHomeQuickJumpItems, HomeQuickJumpModal } from './home-quick-jump-modal.js';
+import { BUNDLED_ZHIYU_RECENT_KEY, recordHomeRecentAppOpen } from './home-recent-apps-model.js';
 
 function greetingKey(hour: number): string {
   if (hour < 5) return 'runtimeConfig.overview.greetingNight';
@@ -41,17 +49,15 @@ function greetingKey(hour: number): string {
   return 'runtimeConfig.overview.greetingEvening';
 }
 
-function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {action && onAction ? (
-        <Button tone="ghost" size="sm" onClick={onAction}>
-          {action}
-        </Button>
-      ) : null}
-    </div>
-  );
+function normalizedGreetingName(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'nimi user') return '';
+  return trimmed;
+}
+
+function isMacPlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /mac/i.test(navigator.platform || navigator.userAgent || '');
 }
 
 /** Holds one account's message consumption layer for both Home views. */
@@ -66,19 +72,29 @@ function HomeMessagesScope({ systemMessages, systemSources, children }: {
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 export function NimiOverview() {
-
   const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const i18n = useDesktopI18nResource();
   const sdk = useDesktopRendererSdk();
   const commands = useDesktopRendererCommands();
+  const ai = useSystemEntryAI();
 
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
   const destination = useHomeDestination();
-  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' && (destination.homeSection ?? 'overview') === 'overview' });
+  const isOverviewActive = destination.id === 'home' && (destination.homeSection ?? 'overview') === 'overview';
+  const inventory = useCapabilityInventory({ enabled: isOverviewActive });
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
+
+  const ownerUserId = String(authUser?.id || '').trim();
+  const agents = useQuery({
+    queryKey: localAgentListQueryKey(ownerUserId),
+    queryFn: () => fetchLocalAgentList(ownerUserId, sdk),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
+    staleTime: 30_000,
+  });
+
   const homeEntryDestination = destination.id === 'notification' ? 'center' : destination.homeSection ?? 'overview';
   const view = homeEntryDestination;
   const setView = (homeSection: 'overview' | 'integrations' | 'ai-activity') => void navigation.push({ id: 'home', homeSection });
@@ -87,6 +103,23 @@ export function NimiOverview() {
   const setCenterFilter = (messageFilter: HomeMessageFilter) => { void navigation.replace({ id: 'notification', messageFilter, messageSource: centerSource ?? undefined }); };
   const setCenterSource = (messageSource: string | null) => { void navigation.replace({ id: 'notification', messageFilter: centerFilter, messageSource: messageSource ?? undefined }); };
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
+  const [quickJumpOpen, setQuickJumpOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOverviewActive) {
+      setQuickJumpOpen(false);
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setQuickJumpOpen((current) => !current);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOverviewActive]);
+
   const openIntegrations = (intent?: IntegrationsPanelIntent) => {
     setIntegrationIntent(intent ?? null);
     void navigation.push({ id: 'home', homeSection: 'integrations' });
@@ -123,10 +156,15 @@ export function NimiOverview() {
     (task) => task.status === 'failed' || task.status === 'needs-attention',
   );
   const activeTransfers = downloads?.transfers.filter((item) => !isDownloadTerminal(item.state)) ?? [];
-  const displayName = authUser ? String(authUser.displayName || authUser.handle || '') : '';
-  // Messages belong to one account; a different account remounts their scope
-  // so the previous projection, subscriptions and display preferences are
-  // dropped. A token refresh keeps the same account and scope.
+  const activeDownloadItems: HomeActiveDownloadItem[] = activeTransfers.map((item) => ({
+    id: item.installSessionId,
+    title: item.sourceLabel || item.modelAssetId || item.installSessionId,
+    bytesReceived: item.bytesReceived + item.bytesReused,
+    bytesTotal: downloads?.transferStatus === 'ready' && item.bytesTotal ? item.bytesTotal : null,
+    speedBytesPerSec: item.speedBytesPerSec,
+  }));
+
+  const displayName = normalizedGreetingName(authUser ? String(authUser.displayName || authUser.handle || '') : '');
   const messagesAccountKey = (authStatus === 'authenticated' || authStatus === 'refresh-pending') && authUser?.id
     ? JSON.stringify([authUser.realmEnvironmentId, authUser.id])
     : null;
@@ -137,14 +175,25 @@ export function NimiOverview() {
     tasks: inventory.tasks,
     unavailable: inventory.isError,
   });
+  const effectiveTextState = inventory.isPending ? 'unknown' : textPreparation.state;
+  const isTextReady = effectiveTextState === 'ready' || prepared.length > 0;
+
+  const capabilityMatrixItems = useMemo(
+    () =>
+      deriveHomeCapabilityMatrixItems({
+        inventory: inventory.data,
+        tasks: inventory.tasks,
+        unavailable: inventory.isError,
+      }),
+    [inventory.data, inventory.tasks, inventory.isError],
+  );
+
   const openApp = (appId: string, entryKey: string) => {
+    recordHomeRecentAppOpen(messagesAccountKey, appId);
     void navigation.push({ id: 'apps', appId, appEntryKey: entryKey });
   };
-  // Publish the intent, then switch tabs so the runtime panel controller
-  // mounts and applies it (it is not mounted on Home).
   const openDiagnostics = (pane: RuntimeAdvancedDiagnosticsPane) => {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
-
   };
   const openChat = () => {
     void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
@@ -155,6 +204,46 @@ export function NimiOverview() {
   const openCenter = (filter: HomeMessageFilter) => {
     void navigation.push({ id: 'notification', messageFilter: filter });
   };
+  const openZhiyu = () => {
+    recordHomeRecentAppOpen(messagesAccountKey, BUNDLED_ZHIYU_RECENT_KEY);
+    void invokeChecked('bundled_zhiyu_open', {}, (value) => {
+      if (!value || typeof value !== 'object' || !('opened' in value) || value.opened !== true) {
+        throw new Error('bundled-zhiyu-open-invalid');
+      }
+      return value;
+    }).catch(() => emitFeedbackToast({ kind: 'error', message: t('Apps.bundled.openFailed') }));
+  };
+
+  const quickJumpItems = useMemo(
+    () =>
+      buildHomeQuickJumpItems({
+        t,
+        apps: entries,
+        partners: agents.data ?? [],
+        capabilities: inventory.capabilities,
+        actions: {
+          onOpenZhiyu: openZhiyu,
+          onOpenApp: openApp,
+          onOpenPartner: (localAgentRef) => void navigation.push({ id: 'contacts', partnerChat: { localAgentRef } }),
+          onOpenCapability: (capabilityContract) =>
+            void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract } }),
+          onOpenChat: openChat,
+          onOpenExplore: () => void navigation.push({ id: 'explore', exploreSearchKind: 'characters' }),
+          onOpenApps: () => void navigation.push({ id: 'apps' }),
+          onOpenModelLibrary: () => void navigation.push({ id: 'runtime', runtime: { page: 'modelLibrary' } }),
+          onOpenAIProfiles: () => void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', section: 'saved' } }),
+          onOpenCloud: () => void navigation.push({ id: 'cloud' }),
+          onOpenConnections: () => void navigation.push({ id: 'connections' }),
+          onOpenIntegrations: () => openIntegrations(),
+          onOpenDownloads: () => void navigation.push({ id: 'downloads' }),
+          onOpenAIActivity: () => setView('ai-activity'),
+          onOpenTroubleshooting: () => void openHomeSettings(navigation, 'troubleshooting'),
+          onOpenDataStorage: () => void openHomeSettings(navigation, 'data'),
+        },
+      }),
+    [t, entries, agents.data, inventory.capabilities, navigation],
+  );
+
   const systemSources: HomeSystemListing[] = [
     { kind: 'download', status: downloads?.transferStatus ?? 'unavailable', retry: downloads?.refresh },
     { kind: 'update', status: apps.updatesStatus, retry: apps.refreshUpdates },
@@ -183,7 +272,6 @@ export function NimiOverview() {
       app: null,
       open: () => {
         commands.runtimeConfigNavigation.openSetupTask(task.taskId);
-
       },
     })),
     ...updates.map((entry) => systemMessage({
@@ -197,6 +285,7 @@ export function NimiOverview() {
       open: () => openApp(entry.identity.appId, entry.identity.entryKey),
     })),
   ];
+
   const appArtworkForNotice: ExecutionNoticeAppArtworkResolver = (noticeDisplayName) => {
     const matches = entries.filter((entry) => entry.identity.displayName === noticeDisplayName);
     if (new Set(matches.map((entry) => entry.identity.appId)).size !== 1) return null;
@@ -214,134 +303,190 @@ export function NimiOverview() {
     onHide: messages.hide,
   });
 
-  const heading = (
-    <h1 className="min-w-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] lg:text-[28px]">
-      {displayName
-        ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
-        : t(greetingKey(now.getHours()))}
-    </h1>
-  );
-  // Capability readiness stays visible here (r015) now that the capability grid
-  // is gone; the segment doubles as the entry to AI capability management.
-  const status = (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 px-2 text-xs text-[var(--nimi-text-secondary)]" data-testid="home-status-line">
-      {inventory.isError ? (
-        <span>{t('runtimeConfig.capabilities.readFailed')}</span>
-      ) : inventory.isPending || inventory.preparationPending ? null : (
-        <button
-          type="button"
-          className="inline-flex min-h-9 items-center gap-0.5 rounded-md font-medium text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          onClick={() => navigation.push({ id: 'runtime' })}
-          data-testid="home-status-capabilities"
-        >
-          {t('runtimeConfig.overview.statusCapabilities', { count: prepared.length })}
-          <ChevronRight size={15} aria-hidden="true" />
-        </button>
-      )}
-      {downloads?.activeCount ? (
-        <>
-          <span className="text-[var(--nimi-text-muted)]">·</span>
-          <button
-            type="button"
-            className="min-h-9 rounded-md text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-            onClick={() => navigation.push({ id: 'downloads' })}
-          >
-            {t('runtimeConfig.overview.statusDownloading', { count: downloads.activeCount })}
-          </button>
-        </>
-      ) : null}
-      {health.isError ? (
-        <>
-          <span className="text-[var(--nimi-text-muted)]">·</span>
-          <button
-            type="button"
-            className="rounded-md text-[var(--nimi-status-warning)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-            onClick={() => openDiagnostics('services')}
-          >
-            {t('runtimeConfig.overview.runtimeUnavailable')}
-          </button>
-        </>
-      ) : null}
-      {!inventory.isError && inventory.isPending && !activeTransfers.length && !health.isError ? (
-        <span>{t('runtimeConfig.overview.runtimeChecking')}</span>
-      ) : null}
-    </div>
+  const appsUnavailable = Boolean(
+    apps.isError
+    || apps.data?.status === 'error'
+    || (apps.data?.status === 'loaded' && (apps.data.catalogStatus === 'unavailable' || apps.data.runtimeError)),
   );
 
+  const onboardingSection = messagesAccountKey ? (
+    <HomeGettingStarted
+      key={`onboarding:${messagesAccountKey}`}
+      accountKey={messagesAccountKey}
+      textPreparation={effectiveTextState}
+      onOpenAI={() => void navigation.push({ id: 'runtime' })}
+      onOpenCloud={() => void navigation.push({ id: 'cloud' })}
+      onOpenChat={openChat}
+      onExplore={() => void navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
+      onOpenApps={() => void navigation.push({ id: 'apps' })}
+    />
+  ) : null;
+
+  const shortcutText = t(
+    isMacPlatform()
+      ? 'runtimeConfig.overview.quickJump.shortcutMac'
+      : 'runtimeConfig.overview.quickJump.shortcutWin',
+  );
+
+  const runtimeState = homeRuntimeState(health);
+  const runtimeDotClass = runtimeState === 'ready'
+    ? 'bg-[var(--nimi-status-success)]'
+    : runtimeState === 'attention'
+      ? 'bg-[var(--nimi-status-warning)]'
+      : runtimeState === 'unavailable'
+        ? 'bg-[var(--nimi-status-danger)]'
+        : 'bg-[var(--nimi-text-muted)]';
+  const runtimeLabelKey = runtimeState === 'ready'
+    ? 'runtimeConfig.overview.runtimeReady'
+    : runtimeState === 'attention'
+      ? 'runtimeConfig.overview.runtimeNotReady'
+      : runtimeState === 'unavailable'
+        ? 'runtimeConfig.overview.runtimeUnavailable'
+        : 'runtimeConfig.overview.runtimeChecking';
+
   const renderOverview = (messages: HomeMessages | null) => (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-x-8">
-      <div className="flex min-w-0 flex-col gap-4">
-        <header className="flex min-h-11 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-1">
-          {heading}
-          <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="home-date">
-            {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
-          </p>
-        </header>
-        <HomeAgentCard />
-        {messagesAccountKey ? (
-          <HomeGettingStarted
-            key={messagesAccountKey}
+    <div className="flex min-w-0 flex-col gap-4" data-testid="home-overview-root">
+      <Surface
+        as="header"
+        tone="hero"
+        elevation="raised"
+        padding="none"
+        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl px-5 py-4"
+        data-testid="home-hero-header"
+      >
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="min-w-0 text-2xl font-bold leading-tight tracking-tight text-[var(--nimi-text-primary)]">
+              {displayName
+                ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
+                : t(greetingKey(now.getHours()))}
+            </h1>
+            <p className="text-xs font-medium text-[var(--nimi-text-secondary)]" data-testid="home-date">
+              {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openDiagnostics('services')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              <span className={`size-2 shrink-0 rounded-full ${runtimeDotClass}`} aria-hidden="true" />
+              <span>{t(runtimeLabelKey)}</span>
+            </button>
+
+            {!inventory.isPending && !inventory.isError ? (
+              <button
+                type="button"
+                onClick={() => void navigation.push({ id: 'runtime' })}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+              >
+                <Sparkles size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                <span>{t('runtimeConfig.overview.statusCapabilities', { count: prepared.length })}</span>
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={openChat}
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-3 py-1 text-xs font-semibold text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              <span>{t('runtimeConfig.overview.firstRun.chat.action')}</span>
+              <ArrowRight size={12} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <FieldTrigger
+          onClick={() => setQuickJumpOpen(true)}
+          data-testid="home-quick-jump-trigger"
+          className="w-full justify-between sm:w-80"
+        >
+          <span className="flex min-w-0 items-center gap-2 truncate text-xs text-[var(--nimi-text-secondary)]">
+            <Search size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+            <span className="truncate">{t('runtimeConfig.overview.quickJump.trigger')}</span>
+          </span>
+          <kbd className="shrink-0 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--nimi-text-secondary)]">
+            {shortcutText}
+          </kbd>
+        </FieldTrigger>
+      </Surface>
+
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_350px] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {!inventory.isPending && !inventory.preparationPending && !isTextReady ? onboardingSection : null}
+
+          <HomeActiveWorkCard
+            entries={entries}
+            iconUrls={iconUrls}
+            ai={ai}
+            downloads={activeDownloadItems}
+            onOpenApp={openApp}
+            onOpenActivity={() => setView('ai-activity')}
+            onOpenDownloads={() => void navigation.push({ id: 'downloads' })}
+          />
+
+          <HomeAppsWorkbench
+            key={`apps-dock:${messagesAccountKey ?? 'device'}`}
             accountKey={messagesAccountKey}
-            textPreparation={inventory.isPending ? 'unknown' : textPreparation.state}
-            onOpenAI={() => void navigation.push({ id: 'runtime' })}
+            entries={entries}
+            iconUrls={iconUrls}
+            loading={apps.isPending}
+            unavailable={appsUnavailable}
+            onOpenAllApps={() => void navigation.push({ id: 'apps' })}
+            onOpenApp={openApp}
+          />
+
+          <HomeAgentCard onOpenAssistantChat={openChat} />
+
+          <HomeCapabilityMatrixView
+            loading={inventory.isPending && !inventory.data}
+            failed={inventory.isError}
+            readyCount={prepared.length}
+            items={capabilityMatrixItems}
+            onSelectCapability={(capabilityContract) =>
+              void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract } })
+            }
+            onOpenProfiles={() =>
+              void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', section: 'saved' } })
+            }
             onOpenCloud={() => void navigation.push({ id: 'cloud' })}
-            onOpenChat={openChat}
-            onExplore={() => void navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
-            onOpenApps={() => void navigation.push({ id: 'apps' })}
+            onOpenAllCapabilities={() => void navigation.push({ id: 'runtime' })}
           />
-        ) : null}
-      </div>
-      <div className="flex min-w-0 flex-col gap-4">
-        {messages ? (
-          <HomeMessagesColumn
-            messages={messages}
-            context={cardContext(messages)}
-            appArtworkForNotice={appArtworkForNotice}
-            onViewAll={() => openCenter('all')}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <HomeDailySpendCard
+            onOpenDetails={() => setView('ai-activity')}
+            onOpenCloud={() => void navigation.push({ id: 'cloud' })}
           />
-        ) : null}
-        <section className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-apps">
-          <SectionHeader
-            title={t('runtimeConfig.overview.apps')}
-            action={t('runtimeConfig.overview.allApps')}
-            onAction={() => navigation.push({ id: 'apps' })}
+
+          <HomeHostStatusCard
+            runtime={runtimeState}
+            onOpenDiagnostics={openDiagnostics}
+            onOpenConnections={() => void navigation.push({ id: 'connections' })}
+            onOpenStorage={() => void openHomeSettings(navigation, 'data')}
           />
-          <BundledZhiyuEntry />
-          {apps.isError ||
-          apps.data?.status === 'error' ||
-          (apps.data?.status === 'loaded' &&
-            (apps.data.catalogStatus === 'unavailable' || apps.data.runtimeError)) ? (
-            <InlineAlert tone="warning">{t('runtimeConfig.overview.appsUnavailable')}</InlineAlert>
+
+          {messages ? (
+            <HomeMessagesColumn
+              messages={messages}
+              context={cardContext(messages)}
+              appArtworkForNotice={appArtworkForNotice}
+              onViewAll={() => openCenter('all')}
+            />
           ) : null}
-          {apps.isPending ? <LoadingSkeleton lines={2} label={t('Common.loading')} /> : null}
-          {unique.length ? (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-1">
-              {unique.slice(0, HOME_APP_LIMIT).map((entry) => {
-                const update = hasAvailableCatalogUpdate(entry);
-                return (
-                  <button
-                    key={entry.identity.appId}
-                    type="button"
-                    className="flex min-w-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                    onClick={() => openApp(entry.identity.appId, entry.identity.entryKey)}
-                    data-testid={`home-app:${entry.identity.appId}`}
-                  >
-                    <AppArtworkIcon appId={entry.identity.appId} displayName={entry.identity.displayName} iconUrl={iconUrls.get(entry.identity.appId) ?? null} size="xl" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{entry.identity.displayName}</span>
-                      {update ? <span className="flex items-center gap-1 text-xs text-[var(--nimi-action-primary-bg)]"><ArrowUp size={12} aria-hidden="true" />{t('runtimeConfig.overview.updateTag')}</span> : null}
-                    </span>
-                    <ChevronRight size={16} aria-hidden="true" />
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </section>
+
+          <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
+        </div>
       </div>
-      <div className="min-w-0 lg:col-span-2">
-        <HomeIntegrationsCard appIconUrls={iconUrls} onOpen={openIntegrations} />
-      </div>
+
+      <HomeQuickJumpModal
+        open={quickJumpOpen}
+        onClose={() => setQuickJumpOpen(false)}
+        items={quickJumpItems}
+      />
     </div>
   );
 
@@ -368,23 +513,13 @@ export function NimiOverview() {
           onOpenSettings={openMessageSettings}
         />
       ) : (
-        <>
-          <ScrollArea
-            className="min-h-0 flex-1"
-            viewportClassName="bg-transparent [&>div]:!block"
-            contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-6 pt-4 lg:pt-6`}
-          >
-            {renderOverview(messages)}
-          </ScrollArea>
-          <footer className={`${SHELL_PAGE_WIDTH_CLASS} z-20 shrink-0 pt-2`} data-testid="home-status-dock">
-            <HomeMachineStatus
-              runtime={homeRuntimeState(health)}
-              capabilities={status}
-              onOpenDiagnostics={openDiagnostics}
-              onOpenUsage={() => setView('ai-activity')}
-            />
-          </footer>
-        </>
+        <ScrollArea
+          className="min-h-0 flex-1"
+          viewportClassName="bg-transparent [&>div]:!block"
+          contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-6 pt-3 lg:pt-4`}
+        >
+          {renderOverview(messages)}
+        </ScrollArea>
       )}
     </div>
   );

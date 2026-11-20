@@ -1,24 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Plug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button } from '@nimiplatform/kit/ui';
 import type { NimiIntegrationManagement } from '@nimiplatform/sdk/app';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import type { IntegrationsPanelIntent } from '../integrations/integrations-panel.js';
-import { INTEGRATION_SERVICES, IntegrationServiceIcon, serviceLabel } from '../integrations/integration-workspace.js';
-import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
 /** App chips shown beside the authorization summary before a +N overflow. */
 const HOME_AUTHORIZED_APP_SLOTS = 3;
-// Tile geometry matches the Home apps row (w-[92px] + gap-1): only as many
-// tiles as fit one row are rendered, measured from the row itself; the rest
-// stay reachable through the more-services tile and the full panel.
-const HOME_INTEGRATION_TILE_WIDTH = 156;
-const HOME_INTEGRATION_TILE_GAP = 4;
-
-const serviceTileClass =
-  'flex w-[156px] grow items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
 
 type HomeAuthorizedApp = {
   readonly consumerRef: string;
@@ -27,8 +17,7 @@ type HomeAuthorizedApp = {
 };
 
 /** Unique apps holding at least one allowed operation, in Runtime's permission order. */
-function homeAuthorizedApps(snapshot: NimiIntegrationManagement, unavailableLabel: string): HomeAuthorizedApp[] {
-
+export function homeAuthorizedApps(snapshot: NimiIntegrationManagement, unavailableLabel: string): HomeAuthorizedApp[] {
   const seen = new Set<string>();
   const apps: HomeAuthorizedApp[] = [];
   for (const permission of snapshot.permissions) {
@@ -47,8 +36,8 @@ function homeAuthorizedApps(snapshot: NimiIntegrationManagement, unavailableLabe
   return apps;
 }
 
-// Home only projects Runtime-owned connections and permissions; management
-// itself stays in the full Integrations destination this card routes to.
+// Home only projects active Runtime-owned connections and permissions; when
+// neither exists, Home renders no disconnected service wall.
 export function HomeIntegrationsCard({
   appIconUrls,
   onOpen,
@@ -64,94 +53,61 @@ export function HomeIntegrationsCard({
     staleTime: 30_000,
   });
   const snapshot = management.data ?? null;
-  const services = INTEGRATION_SERVICES.filter((kind) => kind !== 'app');
-  const { ref: servicesRowRef, capacity: servicesRowCapacity } = useHomeRowCapacity({
-    tileWidth: HOME_INTEGRATION_TILE_WIDTH,
-    tileGap: HOME_INTEGRATION_TILE_GAP,
-    limit: services.length + 1,
-  });
-  // The last tile of the single row is always the more-services entry.
-  const shownServices = services.slice(0, Math.max(0, servicesRowCapacity - 1));
-  const connectionCount = (kind: string) =>
-    snapshot?.targets.filter((target) => target.kind === kind).length ?? 0;
-  const authorizedApps = snapshot ? homeAuthorizedApps(snapshot, t('Integrations.unavailableApp')) : [];
+  if (!snapshot) return null;
+
+  const activeConnectionCount = snapshot.targets.length;
+  const authorizedApps = homeAuthorizedApps(snapshot, t('Integrations.unavailableApp'));
+  if (activeConnectionCount === 0 && authorizedApps.length === 0) {
+    return null;
+  }
+
   const shownApps = authorizedApps.slice(0, HOME_AUTHORIZED_APP_SLOTS);
   const hiddenAppCount = authorizedApps.length - shownApps.length;
+
   return (
-    <section
-      className="flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
+    <AppCardSurface
+      kind="operational-solid"
+      className="flex min-w-0 flex-col gap-2.5 p-4 shadow-[var(--nimi-elevation-base)]"
       data-testid="home-integrations"
     >
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold">{t('Integrations.title')}</h2>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <Button
-            tone="ghost"
-            size="sm"
-            onClick={() => onOpen()}
-            data-testid="home-integrations-enter"
-          >
-            {t('Integrations.homeEnter')}
-          </Button>
-        </div>
-      </header>
-      <div ref={servicesRowRef} className="flex flex-wrap gap-1">
-        {shownServices.map((kind) => {
-          const count = connectionCount(kind);
-          return (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => onOpen({ service: kind })}
-              className={serviceTileClass}
-              data-testid={`home-integration-service:${kind}`}
-              title={serviceLabel(kind, t)}
-            >
-              <IntegrationServiceIcon kind={kind} />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="break-words text-sm font-medium">{serviceLabel(kind, t)}</span>
-                {snapshot ? (
-                  <span className="flex items-center gap-1 text-xs text-[var(--nimi-text-secondary)]">
-                    <span
-                      className={`size-1.5 rounded-full ${count ? 'bg-[var(--nimi-status-success)]' : 'bg-[var(--nimi-text-muted)]'}`}
-                      aria-hidden="true"
-                    />
-                    {count
-                      ? t('Integrations.homeConnectionCount', { count })
-                      : t('Integrations.homeNotConnected')}
-                  </span>
-                ) : null}
-              </span>
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => onOpen()}
-          className={`${serviceTileClass} text-[var(--nimi-text-secondary)]`}
-          data-testid="home-integrations-more-services"
-        >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)]">
-            <Plus size={16} aria-hidden="true" />
+      <header className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]">
+            <Plug size={15} aria-hidden="true" />
           </span>
-          <span className="text-xs">{t('Integrations.homeMoreServices')}</span>
-        </button>
-      </div>
-      {snapshot ? (
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold">{t('Integrations.title')}</h2>
+            <p className="truncate text-xs text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.overview.integrationsSummary.activeSummary', {
+                connections: activeConnectionCount,
+                apps: authorizedApps.length,
+              })}
+            </p>
+          </div>
+        </div>
+        <Button
+          tone="ghost"
+          size="sm"
+          onClick={() => onOpen()}
+          data-testid="home-integrations-enter"
+        >
+          {t('Integrations.homeEnter')}
+        </Button>
+      </header>
+
+      {authorizedApps.length > 0 ? (
         <footer
-          className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] pt-4"
+          className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-2.5"
           data-testid="home-integrations-authorized"
         >
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="flex items-center gap-1.5 text-[13px] font-medium">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">
               {t('Integrations.homeAuthorizedSummary', { count: authorizedApps.length })}
             </span>
             {shownApps.map((app) => (
               <span
                 key={app.consumerRef}
-                className="flex min-w-0 items-center gap-1.5 text-[13px] text-[var(--nimi-text-secondary)]"
+                className="flex min-w-0 items-center gap-1.5 text-xs text-[var(--nimi-text-primary)]"
               >
                 <AppArtworkIcon
                   appId={app.appId}
@@ -177,6 +133,6 @@ export function HomeIntegrationsCard({
           </Button>
         </footer>
       ) : null}
-    </section>
+    </AppCardSurface>
   );
 }

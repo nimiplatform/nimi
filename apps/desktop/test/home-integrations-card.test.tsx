@@ -10,6 +10,30 @@ import { initI18n, changeLocale } from '../src/shell/renderer/i18n/index.js';
 
 (globalThis as { React?: typeof React }).React = React;
 
+test('Home omits the integrations card completely when neither active connections nor app permissions exist', async () => {
+  await initI18n(); await changeLocale('en');
+  const client = new QueryClient();
+  client.setQueryData(['nimi-overview', 'integration-management'], {
+    targets: [],
+    calls: [],
+    consumers: [],
+    permissions: [{ consumerRef: 'empty', operations: [] }],
+  });
+  const bindings = { sdk: { appProduct: () => ({ integration: {} }) } } as unknown as DesktopCanonicalRendererBindings;
+  try {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <DesktopRendererBindingProvider bindings={bindings}>
+          <HomeIntegrationsCard appIconUrls={new Map()} onOpen={() => {}} />
+        </DesktopRendererBindingProvider>
+      </QueryClientProvider>,
+    );
+    assert.equal(html, '');
+  } finally {
+    client.clear();
+  }
+});
+
 test('Home counts authorized apps once across registrations while retaining historical consumers', async () => {
   await initI18n(); await changeLocale('en');
   const client = new QueryClient();

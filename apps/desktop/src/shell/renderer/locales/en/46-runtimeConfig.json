@@ -839,6 +839,7 @@
     "setupFailed": "{{capability}} · setup needs attention",
     "updateTag": "Update",
     "firstRunTitle": "Start a task",
+    "firstRunDismiss": "Dismiss guide",
     "firstRunCollapse": "Hide guidance",
     "firstRunExpand": "Show guidance",
     "firstRun": {
@@ -887,6 +888,9 @@
     "recentChats": {
       "title": "Recent chats",
       "openAll": "View all partners",
+      "openAssistantChat": "Nimi Chat",
+      "countTotal": "{{total}} total",
+      "countSliced": "Recent {{shown}} of {{total}}",
       "replyLabel": "Reply to {{name}}",
       "replyPlaceholder": "Reply to {{name}}…",
       "replySend": "Open chat with draft",
@@ -1037,7 +1041,112 @@
         "error": "Couldn't open this item. Try again."
       }
     },
-    "diskUnavailable": "Data disk unavailable"
+    "diskUnavailable": "Data disk unavailable",
+    "quickJump": {
+      "trigger": "Search apps, partners, AI capabilities…",
+      "shortcutMac": "⌘K",
+      "shortcutWin": "Ctrl+K",
+      "title": "Quick jump",
+      "description": "Navigate to apps, companions, AI capabilities, and settings",
+      "placeholder": "Type a name or keyword…",
+      "empty": "No matching destinations",
+      "groups": {
+        "apps": "Apps",
+        "partners": "AI companions",
+        "capabilities": "AI capabilities",
+        "pages": "Workspaces & settings"
+      },
+      "items": {
+        "modelLibrary": "Local model library",
+        "aiProfiles": "AI profiles",
+        "cloudServices": "Cloud services",
+        "connections": "Connections & remote access",
+        "integrations": "Integrations",
+        "downloads": "Downloads & setup",
+        "aiActivity": "Today's AI activity & spend",
+        "troubleshooting": "Troubleshooting & logs",
+        "dataStorage": "Data & storage"
+      }
+    },
+    "activeWork": {
+      "title": "Running & in progress",
+      "appRunning": "Running",
+      "appStarting": "Starting",
+      "focusWindow": "Focus",
+      "focusFailed": "Could not focus the app window. Try again.",
+      "aiRunning": "AI execution running",
+      "viewActivity": "View activity",
+      "viewDownloads": "View progress"
+    },
+    "appsWorkbench": {
+      "builtInBadge": "Built-in",
+      "devBadge": "Local dev",
+      "installedBadge": "Installed",
+      "installedVersion": "v{{version}}",
+      "recentCapSummary": "Recent {{shown}} of {{total}}",
+      "recentTotalSummary": "Recent · {{total}} apps",
+      "openAction": "Open",
+      "manageAction": "Manage",
+      "discoverTitle": "Featured catalog apps",
+      "discoverMore": "Browse catalog"
+    },
+    "capabilityMatrix": {
+      "title": "Core AI capabilities",
+      "readySummary": "{{count}} ready",
+      "profilesAction": "AI profiles",
+      "cloudAction": "Cloud",
+      "states": {
+        "ready": "Ready",
+        "preparing": "Preparing",
+        "attention": "Needs attention",
+        "unset": "Not set",
+        "unknown": "Unconfirmed"
+      },
+      "unsetHint": "Configure model"
+    },
+    "dailySpend": {
+      "title": "Today's spend & cloud usage",
+      "detailsAction": "Details",
+      "localOnlyZero": "Local-only · zero API cost",
+      "noCallsToday": "No AI executions today",
+      "catalogEstimateHint": "Catalog price estimate",
+      "metricTotal": "Total",
+      "metricLocal": "Local",
+      "metricCloud": "Cloud",
+      "splitSummary": "{{total}} total · {{local}} local / {{cloud}} cloud",
+      "splitTotalOnly": "{{total}} recorded executions today",
+      "topCloudTitle": "Cloud model spend",
+      "callsCount": "{{count}} runs",
+      "unpricedTag": "Unpriced",
+      "cloudConnectorsReady": "{{count}} cloud services connected",
+      "cloudConnectorsNone": "No cloud services connected",
+      "manageCloud": "Manage cloud"
+    },
+    "hostStatus": {
+      "title": "Host & remote access",
+      "primaryBoundHere": "Primary host: This PC",
+      "primaryUnbound": "Primary host not bound",
+      "primaryBoundOther": "Primary bound to another PC",
+      "primaryUnknown": "Primary host unconfirmed",
+      "remoteListening": "Remote access on",
+      "remoteConnectedCount": "{{count}} remote clients connected",
+      "remotePendingConfirm": "{{count}} access requests pending",
+      "remoteOff": "Remote access off",
+      "manageConnections": "Connections",
+      "storageAction": "Storage"
+    },
+    "firstRunSteps": {
+      "coldStartHint": "First-run setup guide · Automatically retires once AI is ready",
+      "step1Badge": "AI compute",
+      "step2Badge": "First experience"
+    },
+    "partnerActions": {
+      "manage": "Manage",
+      "startChat": "Start chat"
+    },
+    "integrationsSummary": {
+      "activeSummary": "{{connections}} active integrations · {{apps}} authorized apps"
+    }
   },
   "local": {
     "confirmModelInstall": "Install “{{name}}” ({{size}})? Existing files will be verified and reused; only missing files will be downloaded after you confirm.",
@@ -2583,7 +2692,7 @@
     "dataTab": "Data & Storage"
   },
   "capabilities": {
-    "title": "AI Capabilities",
+    "title": "Local AI Capabilities",
     "quickStart": "What would you like your AI to do?",
     "quickStartDescription": "Use a recommended setup or load one shared with you. Choose a capability to explore models or customize it.",
     "backHome": "Back to quick start",

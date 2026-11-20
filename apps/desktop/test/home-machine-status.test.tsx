@@ -216,3 +216,35 @@ test('Home hides its resource sampler and reads usage only from the shared provi
     }
   }
 });
+
+test('host status card surfaces primary PC binding, connected remote clients, pending confirmations, and high-disk storage shortcut', async () => {
+  const { HomeHostStatusCardView, deriveHomeRemoteSummary } = await import('../src/shell/renderer/features/home/home-host-status-card.js');
+  const { RemoteSourceAccessState } = await import('@nimiplatform/sdk/runtime/wire-types');
+  await initI18n();
+  await changeLocale('zh');
+  const remote = deriveHomeRemoteSummary({
+    primarySuccess: true,
+    primaryData: { bindingId: 'bind-1', thisRuntime: true },
+    remoteData: {
+      enabled: true,
+      bindingId: 'bind-1',
+      connections: [{ connectionId: 'c-1', clientId: 'web-1' }],
+      sources: [{ clientId: 'web-2', state: RemoteSourceAccessState.PENDING }],
+    } as never,
+  });
+  const html = renderToStaticMarkup(
+    <HomeHostStatusCardView
+      runtime="ready"
+      resources={snapshotWith('normal', { diskUsedBytes: 185 * GB })}
+      remote={remote}
+      onOpenDiagnostics={() => {}}
+      onOpenConnections={() => {}}
+      onOpenStorage={() => {}}
+    />,
+  );
+  assert.match(html, /data-testid="home-host-status"/);
+  assert.match(html, /主设备：本机/);
+  assert.match(html, /1 台外部设备连接中/);
+  assert.match(html, /1 项接入待确认/);
+  assert.match(html, /data-testid="home-host-storage"/);
+});

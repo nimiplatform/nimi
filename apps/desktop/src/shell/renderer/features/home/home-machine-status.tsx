@@ -97,6 +97,7 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
     ? t('runtimeConfig.systemEntry.estimateWithCurrency', { amount: usage.costs[0]!.estimate, currency: usage.costs[0]!.currency })
     : usage.costs.length > 1 ? t('runtimeConfig.systemEntry.currencyCount', { count: usage.costs.length })
       : isSystemEntryLocalOnlyUsage(usage) ? t('runtimeConfig.systemEntry.estimatedAmount', { amount: '0' })
+      : usage.attempts === '0' && !usage.partial ? null
       : t('runtimeConfig.systemEntry.costUnknown');
   return (
     <section

@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
-import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import nimiGrayLogo from '../../assets/logo-gray.png';
 import { useAppStoreApi, useHomeDestination, useHomeEntryKey, useHomeNavigation } from '../../app-shell/providers/app-store.js';
@@ -29,85 +28,50 @@ const EASE_STAGE = [0.05, 0.7, 0.1, 1] as const;
 
 function NimiLogoWatermark() {
   return (
-    <img
-      src={nimiGrayLogo}
-      alt=""
+    <span
       aria-hidden="true"
-      draggable={false}
-      className="pointer-events-none h-24 w-24 select-none object-contain opacity-20 contrast-75"
+      data-testid="contacts-watermark"
+      className="pointer-events-none block h-[72px] w-[72px] select-none bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)]"
+      style={{
+        WebkitMaskImage: `url("${nimiGrayLogo}")`,
+        maskImage: `url("${nimiGrayLogo}")`,
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+      }}
     />
   );
 }
 
 function ContactsEmptyStage({
-  side,
   contactsOpen,
   canShowRail,
   hasVisibleConversations,
   suppressZeroPrompt,
-  onOpenContacts,
 }: {
-  side: 'human' | 'companion';
   contactsOpen: boolean;
   canShowRail: boolean;
   hasVisibleConversations: boolean;
   suppressZeroPrompt: boolean;
-  onOpenContacts: () => void;
 }) {
-  const { t } = useTranslation();
-
-  if (contactsOpen) {
-    return (
-      <div
-        data-testid="contacts-empty-stage"
-        data-empty-stage-mode="contacts-open"
-        className="flex min-h-0 flex-1 select-none flex-col items-center justify-center gap-2.5 p-6 text-center"
-      >
-        <NimiLogoWatermark />
-        <p className="max-w-xs text-xs leading-5 text-[var(--nimi-text-muted)] opacity-75">
-          {t('Chat.contactsSelectPromptHint')}
-        </p>
-      </div>
-    );
-  }
-
-  if (!canShowRail || hasVisibleConversations || suppressZeroPrompt) {
-    const showConversationPill = canShowRail && hasVisibleConversations;
-    return (
-      <div
-        data-testid="contacts-empty-stage"
-        data-empty-stage-mode={showConversationPill ? 'has-conversations' : 'quiet'}
-        className="flex min-h-0 flex-1 select-none flex-col items-center justify-center gap-3 p-6 text-center"
-      >
-        <NimiLogoWatermark />
-        {showConversationPill ? (
-          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_8%,transparent)] px-3.5 py-1 text-xs leading-5 text-[var(--nimi-text-muted)]">
-            {t(side === 'companion' ? 'Chat.contactsPickRightPartnerHint' : 'Chat.contactsPickRightAvatarHint')}
-          </span>
-        ) : null}
-      </div>
-    );
-  }
+  const mode = contactsOpen
+    ? 'contacts-open'
+    : !canShowRail || suppressZeroPrompt
+      ? 'quiet'
+      : hasVisibleConversations
+        ? 'has-conversations'
+        : 'zero-conversations';
 
   return (
     <div
       data-testid="contacts-empty-stage"
-      data-empty-stage-mode="zero-conversations"
-      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+      data-empty-stage-mode={mode}
+      className="flex min-h-0 flex-1 select-none items-center justify-center p-6"
     >
       <NimiLogoWatermark />
-      <p className="max-w-xs text-sm leading-6 text-[var(--nimi-text-muted)]">
-        {t(side === 'companion' ? 'Chat.contactsEmptyPartnerConversationsHint' : 'Chat.contactsEmptyConversationsHint')}
-      </p>
-      <Button
-        size="sm"
-        tone="secondary"
-        className="rounded-full px-4 font-medium"
-        trailingIcon={<ArrowRight size={14} aria-hidden="true" />}
-        onClick={onOpenContacts}
-      >
-        {t('Chat.contactsOpenContactsAction')}
-      </Button>
     </div>
   );
 }
@@ -286,12 +250,10 @@ export function ContactsPage() {
             </div>
           ) : (
             <ContactsEmptyStage
-              side={side}
               contactsOpen={contactsOpen}
               canShowRail={canShowRail}
               hasVisibleConversations={visibleRailTargets.length > 0}
               suppressZeroPrompt={loadingSideTargets || sideTargetsFailed}
-              onOpenContacts={() => openContactsDrawer(side === 'companion' ? 'partners' : 'friends')}
             />
           )}
         </motion.div>

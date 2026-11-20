@@ -839,6 +839,7 @@
     "setupFailed": "{{capability}} · 设置需要处理",
     "updateTag": "有更新",
     "firstRunTitle": "开始一个任务",
+    "firstRunDismiss": "关闭引导",
     "firstRunCollapse": "收起指引",
     "firstRunExpand": "展开指引",
     "firstRun": {
@@ -887,6 +888,9 @@
     "recentChats": {
       "title": "最近对话",
       "openAll": "查看全部伙伴",
+      "openAssistantChat": "Nimi Chat",
+      "countTotal": "共 {{total}} 位",
+      "countSliced": "最近 {{shown}} / {{total}}",
       "replyLabel": "回复 {{name}}",
       "replyPlaceholder": "回复 {{name}}…",
       "replySend": "带草稿打开对话",
@@ -1037,7 +1041,112 @@
         "error": "未能打开这一项，请重试。"
       }
     },
-    "diskUnavailable": "数据磁盘不可用"
+    "diskUnavailable": "数据磁盘不可用",
+    "quickJump": {
+      "trigger": "搜索应用、伙伴、AI 能力…",
+      "shortcutMac": "⌘K",
+      "shortcutWin": "Ctrl+K",
+      "title": "快速跳转",
+      "description": "搜索并直达本机应用、AI 伙伴、能力配置与系统设置",
+      "placeholder": "输入名称或关键词搜索…",
+      "empty": "未找到匹配的目标页面",
+      "groups": {
+        "apps": "应用",
+        "partners": "AI 伙伴",
+        "capabilities": "AI 能力",
+        "pages": "工作区与系统设置"
+      },
+      "items": {
+        "modelLibrary": "本地模型库",
+        "aiProfiles": "AI 配置方案",
+        "cloudServices": "云服务连接",
+        "connections": "连接与远程接入",
+        "integrations": "外部服务集成",
+        "downloads": "全局下载与准备",
+        "aiActivity": "今日 AI 活动与花销明细",
+        "troubleshooting": "故障排查与日志导出",
+        "dataStorage": "数据与存储管理"
+      }
+    },
+    "activeWork": {
+      "title": "正在运行与准备",
+      "appRunning": "运行中",
+      "appStarting": "启动中",
+      "focusWindow": "聚焦窗口",
+      "focusFailed": "未能聚焦应用窗口，请稍后重试。",
+      "aiRunning": "AI 推理执行中",
+      "viewActivity": "查看活动",
+      "viewDownloads": "查看进度"
+    },
+    "appsWorkbench": {
+      "builtInBadge": "内置",
+      "devBadge": "本地开发",
+      "installedBadge": "已安装",
+      "installedVersion": "v{{version}}",
+      "recentCapSummary": "最近打开 {{shown}} / 共 {{total}} 款",
+      "recentTotalSummary": "最近使用 · 共 {{total}} 款",
+      "openAction": "打开",
+      "manageAction": "管理",
+      "discoverTitle": "精选目录应用",
+      "discoverMore": "浏览目录"
+    },
+    "capabilityMatrix": {
+      "title": "核心 AI 能力",
+      "readySummary": "{{count}} 项就绪",
+      "profilesAction": "配置方案",
+      "cloudAction": "云服务",
+      "states": {
+        "ready": "已就绪",
+        "preparing": "准备中",
+        "attention": "需处理",
+        "unset": "未设置",
+        "unknown": "待确认"
+      },
+      "unsetHint": "配置模型"
+    },
+    "dailySpend": {
+      "title": "今日花销与云端用量",
+      "detailsAction": "明细",
+      "localOnlyZero": "纯本地免计费运行",
+      "noCallsToday": "今日暂无 AI 调用",
+      "catalogEstimateHint": "按目录定价预估",
+      "metricTotal": "总调用",
+      "metricLocal": "本地免费",
+      "metricCloud": "云端计费",
+      "splitSummary": "共 {{total}} 次 · 本地 {{local}} / 云端 {{cloud}}",
+      "splitTotalOnly": "今日已记录 {{total}} 次执行",
+      "topCloudTitle": "云端模型花销明细",
+      "callsCount": "{{count}} 次",
+      "unpricedTag": "未计价",
+      "cloudConnectorsReady": "已接入 {{count}} 个云服务",
+      "cloudConnectorsNone": "尚未接入云服务",
+      "manageCloud": "管理云服务"
+    },
+    "hostStatus": {
+      "title": "本机宿主与远程接入",
+      "primaryBoundHere": "主设备：本机",
+      "primaryUnbound": "尚未绑定主设备",
+      "primaryBoundOther": "主设备已绑定其他电脑",
+      "primaryUnknown": "主设备状态待确认",
+      "remoteListening": "远程直连已开启",
+      "remoteConnectedCount": "{{count}} 台外部设备连接中",
+      "remotePendingConfirm": "{{count}} 项接入待确认",
+      "remoteOff": "远程直连未开启",
+      "manageConnections": "连接管理",
+      "storageAction": "存储"
+    },
+    "firstRunSteps": {
+      "coldStartHint": "首次启动快速向导 · AI 能力就绪后将自动收起",
+      "step1Badge": "准备 AI 算力",
+      "step2Badge": "开始体验"
+    },
+    "partnerActions": {
+      "manage": "管理与形象",
+      "startChat": "进入对话"
+    },
+    "integrationsSummary": {
+      "activeSummary": "{{connections}} 个活跃集成连接 · {{apps}} 个已授权应用"
+    }
   },
   "local": {
     "confirmModelInstall": "确认安装“{{name}}”？模型总大小：{{size}}。已有内容会先校验并复用，仅在确认后下载缺失文件。",
@@ -2583,7 +2692,7 @@
     "dataTab": "数据与存储"
   },
   "capabilities": {
-    "title": "AI 能力",
+    "title": "本地 AI 能力",
     "quickStart": "让 AI 帮你做什么？",
     "quickStartDescription": "采用推荐设置，或载入别人分享的配置。也可以选择一项能力，了解模型并深入定制。",
     "backHome": "返回快速开始",

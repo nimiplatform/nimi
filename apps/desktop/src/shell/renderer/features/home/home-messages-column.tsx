@@ -1,5 +1,5 @@
 import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
-import { ActionMenu, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { ActionMenu, AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -162,8 +162,14 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
     && messages.offHomeCount === 0 && pending.known && pending.count === 0
     && messages.preferences.state.status === 'ready' && !messages.preferences.saveFailed;
   return (
-    <aside className="group/messages min-w-0" aria-label={t('runtimeConfig.overview.messages.title')} data-testid="home-messages">
-      <div className="flex min-h-11 min-w-0 flex-wrap items-center gap-x-2 gap-y-1" data-testid="home-messages-toolbar">
+    <AppCardSurface
+      as="aside"
+      kind="operational-solid"
+      className="group/messages flex min-w-0 flex-col gap-2 px-4 py-3.5 shadow-[var(--nimi-elevation-base)]"
+      aria-label={t('runtimeConfig.overview.messages.title')}
+      data-testid="home-messages"
+    >
+      <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1" data-testid="home-messages-toolbar">
         <h2 className={`text-base font-semibold ${quiet ? 'sr-only group-has-[.home-message-notices:not(:empty)]/messages:not-sr-only' : ''}`}>{t('runtimeConfig.overview.messages.title')}</h2>
         {quiet ? (
           <span className="inline-flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)] group-has-[.home-message-notices:not(:empty)]/messages:hidden">
@@ -243,12 +249,12 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
             </p>
           ) : null}
           {loading ? (
-            <div className="rounded-[20px] px-3.5 py-3">
+            <div className="rounded-xl px-3.5 py-3">
               <LoadingSkeleton lines={2} label={t('Common.loading')} />
             </div>
           ) : null}
         </div>
       </ScrollArea>
-    </aside>
+    </AppCardSurface>
   );
 }

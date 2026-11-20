@@ -10,6 +10,8 @@ export const SHELL_CHROME_RAIL_WIDTH_CLASS = 'w-11';
 
 export const SHELL_CHROME_RAIL_ITEM_SIZE_CLASS = 'h-8 w-8';
 
+export const SHELL_CHROME_RAIL_SELECTED_BG_CLASS = 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)]';
+
 export const SHELL_CHROME_RAIL_ICON_SIZE = 18;
 
 export const SHELL_CHROME_RAIL_ICON_STROKE_WIDTH = 1.75;

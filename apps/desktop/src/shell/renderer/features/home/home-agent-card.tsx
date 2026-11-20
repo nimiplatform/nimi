@@ -2,11 +2,11 @@ import { unreadCompanionReplies } from './home-app-activity-model.js';
 import { homePartnerDraftKey } from './home-partner-draft.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Avatar, Button, IconButton, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Compass } from 'lucide-react';
-import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { ArrowRight, Compass, MessageSquare, MessagesSquare, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -15,32 +15,27 @@ import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } 
 import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 import { fetchHomeRecentChatPartners, withRecentChatUnread, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
 import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
-import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
 export type HomeAgentCardState = 'loading' | 'none' | 'unavailable' | 'ready';
 
-// Fixed tile geometry; the row measures itself and renders only as many
-// partner tiles as actually fit the card width (overflow goes to Chat).
-// The strip is a quick switcher, so it never lists more than a few partners.
-const HOME_PARTNER_TILE_WIDTH = 108;
-const HOME_PARTNER_TILE_GAP = 8;
-const HOME_PARTNER_TILE_LIMIT = 6;
+export const HOME_RECENT_CONVERSATIONS_LIMIT = 5;
+const PROMPT_KEYS = ['introduce', 'thinking', 'story'] as const;
 
 export type HomeAgentCardViewProps = {
   state: HomeAgentCardState;
   partners: readonly HomeRecentChatPartner[];
   partnersPending: boolean;
-  selectedId: string | null;
-  /** Measured row capacity; the view slices the strip to this many tiles. */
-  visibleCount: number;
-  stripRef: (node: HTMLDivElement | null) => void;
+  /** Maximum number of recent conversation rows rendered simultaneously (defaults to 5). */
+  visibleCount?: number;
   formatTime: (updatedAtMs: number) => string;
-  onSelectPartner: (id: string) => void;
-  /** Opens a conversation with an optional draft; this does not send it. */
-  draftText: string;
-  onDraftChange: (text: string) => void;
-  onOpenChat: (text: string) => void;
+  /** Optional per-partner unsent draft lookup; never sends automatically. */
+  draftByPartner?: Readonly<Record<string, string>>;
+  /** Preserved unsent draft fallback for single-partner tests. */
+  draftText?: string;
+  onOpenChatWithDraft: (partnerId: string, text: string) => void;
   onOpenPartner: (id: string) => void;
+  onManagePartner?: (id: string) => void;
+  onOpenAssistantChat?: () => void;
   onOpenAll: () => void;
   onExplore: () => void;
 };
@@ -50,18 +45,24 @@ function PartnerAvatar({ displayName, avatarUrl, media }: Pick<HomeRecentChatPar
   const asset = media?.assets.avatar ?? media?.assets.portrait ?? media?.assets.referenceImage ?? media?.assets.profileCover;
   const externalUrl = asset?.externalUrl ?? media?.external.avatarUrl ?? media?.external.portraitUrl
     ?? media?.external.referenceImageUrl ?? media?.external.profileCoverUrl ?? avatarUrl;
-  const purposes = asset?.delivery?.images.map(set => set.purpose) ?? [];
-  const purpose = (['avatar', 'card', 'detail', 'hero'] as const).find(value => purposes.includes(value)) ?? 'avatar';
+  const purposes = asset?.delivery?.images.map((set) => set.purpose) ?? [];
+  const purpose = (['avatar', 'card', 'detail', 'hero'] as const).find((value) => purposes.includes(value)) ?? 'avatar';
   return (
     <Avatar
       alt={displayName}
       size="md"
       tone="accent"
-      className="size-[34px] shrink-0 text-sm"
+      className="size-10 shrink-0 text-sm shadow-[var(--nimi-elevation-base)]"
       fallback={(
-        <MediaImage delivery={asset?.delivery} externalUrl={externalUrl} purpose={purpose} sizes="34px"
-          alt={displayName} className="flex h-full w-full items-center justify-center object-cover"
-          fallback={<span aria-hidden="true">{[...displayName.trim()][0] || '?'}</span>} />
+        <MediaImage
+          delivery={asset?.delivery}
+          externalUrl={externalUrl}
+          purpose={purpose}
+          sizes="40px"
+          alt={displayName}
+          className="flex h-full w-full items-center justify-center object-cover"
+          fallback={<span aria-hidden="true">{[...displayName.trim()][0] || '?'}</span>}
+        />
       )}
     />
   );
@@ -72,174 +73,269 @@ function RecentPartnerAvatar({ partner }: { partner: HomeRecentChatPartner }) {
     <span className="relative shrink-0">
       <PartnerAvatar displayName={partner.displayName} avatarUrl={partner.avatarUrl} media={partner.media} />
       {partner.hasUnread ? (
-        <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-surface-card)]" data-testid={`home-recent-chat-unread:${partner.localAgentRef}`} aria-hidden="true" />
+        <span
+          className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-surface-card)]"
+          data-testid={`home-recent-chat-unread:${partner.localAgentRef}`}
+          aria-hidden="true"
+        />
       ) : null}
     </span>
   );
 }
 
-function PartnerTile({ partner, selected, onSelect }: {
-  partner: HomeRecentChatPartner;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      data-testid={`home-recent-chat:${partner.localAgentRef}`}
-      className={`flex w-[108px] shrink-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors ${
-        selected
-          ? 'bg-[var(--nimi-surface-panel)] font-semibold'
-          : 'hover:bg-[var(--nimi-surface-panel)]'
-      }`}
-    >
-      <RecentPartnerAvatar partner={partner} />
-      <span className="truncate text-sm">{partner.displayName}</span>
-    </button>
-  );
+function hasConversationHistory(partner: HomeRecentChatPartner): boolean {
+  return Boolean(partner.lastMessageText || partner.conversationTitle || partner.updatedAtMs !== null);
 }
 
-/** One shallow container: recent message on the left, capsule reply on the right. */
-function MiniChatBar({ partner, showAvatar, formatTime, text, onDraftChange, onOpenChat, onOpenPartner }: {
+function PartnerConversationRow({
+  partner,
+  isPrimary,
+  showPrompts,
+  formatTime,
+  draftText,
+  onOpenChatWithDraft,
+  onOpenPartner,
+  onManagePartner,
+}: {
   partner: HomeRecentChatPartner;
-  showAvatar: boolean;
-  text: string;
-  onDraftChange: (text: string) => void;
+  isPrimary: boolean;
+  showPrompts: boolean;
   formatTime: (updatedAtMs: number) => string;
-  onOpenChat: (text: string) => void;
+  draftText: string;
+  onOpenChatWithDraft: (partnerId: string, text: string) => void;
   onOpenPartner: (id: string) => void;
+  onManagePartner?: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const hasDraft = text.trim().length > 0;
-  const openLabel = hasDraft ? t('runtimeConfig.overview.recentChats.replySend')
-    : t('runtimeConfig.overview.recentChats.openConversation', { name: partner.displayName });
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onOpenChat(hasDraft ? text : '');
+  const hasHistory = hasConversationHistory(partner);
+  const hasDraft = draftText.trim().length > 0;
+  const message = partner.lastMessageText
+    ?? partner.conversationTitle
+    ?? (partner.updatedAtMs !== null
+      ? t('runtimeConfig.overview.agentCard.continueChat')
+      : t(partner.previewUnavailable ? 'runtimeConfig.overview.recentChats.previewUnavailable' : 'runtimeConfig.overview.recentChats.noMessageYet'));
+
+  const handlePrimaryOpen = () => {
+    if (hasDraft) {
+      onOpenChatWithDraft(partner.localAgentRef, draftText);
+      return;
+    }
+    onOpenPartner(partner.localAgentRef);
   };
-  const message = partner.lastMessageText ?? partner.conversationTitle ?? (partner.updatedAtMs !== null
-    ? t('runtimeConfig.overview.agentCard.continueChat')
-    : t(partner.previewUnavailable ? 'runtimeConfig.overview.recentChats.previewUnavailable' : 'runtimeConfig.overview.recentChats.noMessageYet'));
+
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-xl bg-[var(--nimi-surface-panel)] p-3 sm:flex-row sm:items-center" data-testid="home-mini-chat">
-      <button
-        type="button"
-        onClick={() => onOpenPartner(partner.localAgentRef)}
-        aria-label={t('runtimeConfig.overview.recentChats.openConversation', { name: partner.displayName })}
-        aria-description={partner.hasUnread ? t('NotificationPanel.unread') : undefined}
-        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left"
-        data-testid="home-recent-chat-preview"
-      >
-        {showAvatar ? <RecentPartnerAvatar partner={partner} /> : null}
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="flex min-w-0 items-baseline justify-between gap-2">
-            <span className="truncate text-sm font-semibold" data-testid="home-agent-name">{partner.displayName}</span>
-            {partner.updatedAtMs !== null ? (
-              <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]" data-testid="home-recent-chat-time">{formatTime(partner.updatedAtMs)}</span>
-            ) : null}
+    <li
+      className="group/row flex min-w-0 flex-col gap-2 py-2.5 first:pt-0 last:pb-0"
+      data-testid={`home-recent-chat-row:${partner.localAgentRef}`}
+    >
+      <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--nimi-surface-card)]">
+        <button
+          type="button"
+          onClick={handlePrimaryOpen}
+          aria-label={t('runtimeConfig.overview.recentChats.openConversation', { name: partner.displayName })}
+          aria-description={partner.hasUnread ? t('NotificationPanel.unread') : undefined}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          data-testid={`home-recent-chat:${partner.localAgentRef}`}
+        >
+          <RecentPartnerAvatar partner={partner} />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5" data-testid={isPrimary ? 'home-recent-chat-preview' : undefined}>
+            <span className="flex min-w-0 items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]" data-testid={isPrimary ? 'home-agent-name' : undefined}>
+                  {partner.displayName}
+                </span>
+                {partner.hasUnread ? (
+                  <span className="shrink-0 rounded-full bg-[var(--nimi-status-info-soft-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--nimi-action-primary-bg)]">
+                    {t('NotificationPanel.unread')}
+                  </span>
+                ) : null}
+              </span>
+              {partner.updatedAtMs !== null ? (
+                <span className="shrink-0 text-xs tabular-nums text-[var(--nimi-text-muted)]" data-testid={isPrimary ? 'home-recent-chat-time' : undefined}>
+                  {formatTime(partner.updatedAtMs)}
+                </span>
+              ) : null}
+            </span>
+            <span
+              className={`truncate text-xs ${
+                partner.hasUnread ? 'font-medium text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-secondary)]'
+              }`}
+              data-testid={isPrimary ? 'home-recent-chat-message' : undefined}
+            >
+              {message}
+            </span>
           </span>
-          <span className="truncate text-sm text-[var(--nimi-text-secondary)]" data-testid="home-recent-chat-message">{message}</span>
-        </span>
-      </button>
-      <form onSubmit={submit} className="flex min-w-0 flex-1 items-center" data-testid="home-agent-composer">
-        <label htmlFor="home-agent-composer-input" className="sr-only">{t('runtimeConfig.overview.recentChats.replyLabel', { name: partner.displayName })}</label>
-        <span className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] pl-3.5 pr-1 focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)]">
-          <input
-            id="home-agent-composer-input"
-            value={text}
-            onChange={(event) => onDraftChange(event.target.value)}
-            placeholder={t('runtimeConfig.overview.recentChats.replyPlaceholder', { name: partner.displayName })}
-            className="min-w-0 flex-1 bg-transparent text-sm leading-6 text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
-          />
+        </button>
+
+        <div className="flex shrink-0 items-center gap-1">
+          {onManagePartner ? (
+            <IconButton
+              tone="ghost"
+              size="sm"
+              aria-label={`${partner.displayName} · ${t('runtimeConfig.overview.partnerActions.manage')}`}
+              title={t('runtimeConfig.overview.partnerActions.manage')}
+              onClick={() => onManagePartner(partner.localAgentRef)}
+              data-testid={isPrimary ? 'home-agent-manage' : `home-agent-manage:${partner.localAgentRef}`}
+              className="size-8 rounded-lg text-[var(--nimi-text-secondary)] opacity-70 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100"
+              icon={<SlidersHorizontal size={14} aria-hidden="true" />}
+            />
+          ) : null}
           <Button
-            type="submit"
-            tone="primary"
-            aria-label={openLabel}
-            title={openLabel}
-            className={`size-7 min-h-0 shrink-0 rounded-full !p-0${hasDraft ? '' : ' border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-surface-active)]'}`}
-            data-testid="home-agent-send"
+            tone={isPrimary && (partner.hasUnread || !hasHistory) ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={handlePrimaryOpen}
+            data-testid={isPrimary ? 'home-agent-open-chat' : `home-agent-open-chat:${partner.localAgentRef}`}
           >
-            <ArrowRight size={14} aria-hidden="true" />
+            {t(hasHistory ? 'runtimeConfig.overview.agentCard.continueChat' : 'runtimeConfig.overview.partnerActions.startChat')}
+            <ArrowRight size={13} aria-hidden="true" />
           </Button>
-        </span>
-      </form>
-    </div>
+        </div>
+      </div>
+
+      {showPrompts ? (
+        <div className="flex flex-wrap items-center gap-1.5 px-2 pt-0.5" data-testid="home-agent-prompts">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
+            <Sparkles size={12} aria-hidden="true" />
+            {t('runtimeConfig.overview.tryPrompts')}
+          </span>
+          {PROMPT_KEYS.map((promptKey) => {
+            const promptText = t(`runtimeConfig.overview.prompts.${promptKey}`);
+            return (
+              <button
+                key={promptKey}
+                type="button"
+                onClick={() => onOpenChatWithDraft(partner.localAgentRef, promptText)}
+                data-testid={`home-agent-prompt:${promptKey}`}
+                className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+              >
+                {promptText}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </li>
   );
 }
 
-/** Recent-chat composition; partner selection is local composition state, not Runtime agent state. */
-export function HomeAgentCardView({ state, partners, partnersPending, selectedId, visibleCount, stripRef, formatTime, onSelectPartner, draftText, onDraftChange, onOpenChat, onOpenPartner, onOpenAll, onExplore }: HomeAgentCardViewProps) {
+// @nimi-authority: rule.nimi.desktop.shell-ui.r029
+/** Multi-row recent conversations feed (shows up to 5 recent conversations simultaneously). */
+export function HomeAgentCardView({
+  state,
+  partners,
+  partnersPending,
+  visibleCount = HOME_RECENT_CONVERSATIONS_LIMIT,
+  formatTime,
+  draftByPartner,
+  draftText = '',
+  onOpenChatWithDraft,
+  onOpenPartner,
+  onManagePartner,
+  onOpenAssistantChat,
+  onOpenAll,
+  onExplore,
+}: HomeAgentCardViewProps) {
   const { t } = useTranslation();
   if (state === 'loading') {
     return (
-      <section className="flex min-h-[172px] flex-col justify-center gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-agent-card" data-state={state}>
-        <LoadingSkeleton lines={2} label={t('Common.loading')} />
-      </section>
+      <AppCardSurface kind="promoted-glass" className="flex min-h-32 flex-col justify-center gap-2.5 p-5" data-testid="home-agent-card" data-state={state}>
+        <LoadingSkeleton lines={3} label={t('Common.loading')} />
+      </AppCardSurface>
     );
   }
   if (state === 'unavailable') {
     return (
-      <section className="flex min-h-[120px] flex-col justify-center gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-agent-card" data-state={state}>
+      <AppCardSurface kind="promoted-glass" className="flex min-h-24 flex-col justify-center gap-2.5 p-5" data-testid="home-agent-card" data-state={state}>
         <p className="text-sm text-[var(--nimi-status-warning)]">{t('runtimeConfig.overview.agentCard.unavailable')}</p>
-      </section>
+      </AppCardSurface>
     );
   }
   if (state === 'none') {
     return (
-      <section className="flex min-h-[120px] flex-col justify-center gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-agent-card" data-state={state}>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">{t('runtimeConfig.overview.agentCard.none')}</p>
-          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.agentCard.noneBody')}</p>
+      <AppCardSurface kind="promoted-glass" className="flex min-h-28 flex-wrap items-center justify-between gap-3 p-5" data-testid="home-agent-card" data-state={state}>
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.overview.agentCard.none')}</p>
+          <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.agentCard.noneBody')}</p>
         </div>
-        <Button tone="primary" size="sm" className="self-start" onClick={onExplore} data-testid="home-agent-explore">
-          <Compass size={15} />{t('runtimeConfig.overview.agentCard.explore')}
-        </Button>
-      </section>
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenAssistantChat ? (
+            <Button tone="secondary" size="sm" onClick={onOpenAssistantChat}>
+              <MessageSquare size={14} aria-hidden="true" />
+              {t('runtimeConfig.overview.firstRun.chat.action')}
+            </Button>
+          ) : null}
+          <Button tone="primary" size="sm" onClick={onExplore} data-testid="home-agent-explore">
+            <Compass size={15} aria-hidden="true" />
+            {t('runtimeConfig.overview.agentCard.explore')}
+          </Button>
+        </div>
+      </AppCardSurface>
     );
   }
-  const visiblePartners = partners.slice(0, Math.max(1, visibleCount));
-  const selected = partners.find((partner) => partner.localAgentRef === selectedId) ?? null;
+
+  const limit = Math.max(1, Math.min(HOME_RECENT_CONVERSATIONS_LIMIT, visibleCount));
+  const visiblePartners = partners.slice(0, limit);
+  const anyHistory = visiblePartners.some(hasConversationHistory);
+
   return (
-    <section className="flex flex-col gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid="home-agent-card" data-state={state}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold" data-testid="home-recent-chats-title">{t('runtimeConfig.overview.recentChats.title')}</h2>
-        <Button tone="ghost" size="sm" onClick={onOpenAll} data-testid="home-recent-chats-open-all">
-          {t('runtimeConfig.overview.recentChats.openAll')}
-        </Button>
-      </div>
+    <AppCardSurface kind="promoted-glass" className="flex min-w-0 flex-col gap-3 p-5" data-testid="home-agent-card" data-state={state}>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-action-primary-bg)]">
+            <MessagesSquare size={16} aria-hidden="true" />
+          </span>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+            <h2 className="text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]" data-testid="home-recent-chats-title">
+              {t('runtimeConfig.overview.recentChats.title')}
+            </h2>
+            {!partnersPending && partners.length > 0 ? (
+              <span className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--nimi-text-secondary)]">
+                {partners.length > limit
+                  ? t('runtimeConfig.overview.recentChats.countSliced', { shown: visiblePartners.length, total: partners.length })
+                  : t('runtimeConfig.overview.recentChats.countTotal', { total: partners.length })}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1">
+          {onOpenAssistantChat ? (
+            <Button tone="ghost" size="sm" onClick={onOpenAssistantChat} data-testid="home-recent-chats-assistant">
+              <MessageSquare size={14} aria-hidden="true" />
+              {t('runtimeConfig.overview.recentChats.openAssistantChat')}
+            </Button>
+          ) : null}
+          <Button tone="ghost" size="sm" onClick={onOpenAll} data-testid="home-recent-chats-open-all">
+            {t('runtimeConfig.overview.recentChats.openAll')}
+          </Button>
+        </div>
+      </header>
+
       {partnersPending ? (
-        <LoadingSkeleton lines={2} label={t('Common.loading')} />
+        <LoadingSkeleton lines={3} label={t('Common.loading')} />
       ) : (
-        <>
-          {partners.length > 1 || !selected ? (
-            <div ref={stripRef} className="flex gap-2 overflow-hidden" data-testid="home-recent-chats-strip">
-              {visiblePartners.map((partner) => (
-                <PartnerTile
-                  key={partner.localAgentRef}
-                  partner={partner}
-                  selected={partner.localAgentRef === selectedId}
-                  onSelect={() => onSelectPartner(partner.localAgentRef)}
-                />
-              ))}
-            </div>
-          ) : null}
-          {selected ? (
-            <MiniChatBar
-              key={selected.localAgentRef}
-              partner={selected}
-              showAvatar={partners.length === 1}
-              text={draftText}
-              onDraftChange={onDraftChange}
-              formatTime={formatTime}
-              onOpenChat={onOpenChat}
-              onOpenPartner={onOpenPartner}
-            />
-          ) : null}
-        </>
+        <ul className="divide-y divide-[var(--nimi-border-subtle)]" data-testid="home-recent-chats-list">
+          {visiblePartners.map((partner, index) => {
+            const partnerHasHistory = hasConversationHistory(partner);
+            const showPrompts = !anyHistory && index === 0 && !partnerHasHistory && !partner.previewUnavailable;
+            const resolvedDraft = draftByPartner?.[partner.localAgentRef] ?? (index === 0 ? draftText : '');
+            return (
+              <PartnerConversationRow
+                key={partner.localAgentRef}
+                partner={partner}
+                isPrimary={index === 0}
+                showPrompts={showPrompts}
+                draftText={resolvedDraft}
+                formatTime={formatTime}
+                onOpenChatWithDraft={onOpenChatWithDraft}
+                onOpenPartner={onOpenPartner}
+                onManagePartner={onManagePartner}
+              />
+            );
+          })}
+        </ul>
       )}
-    </section>
+    </AppCardSurface>
   );
 }
 
@@ -249,8 +345,8 @@ function sameDay(left: Date, right: Date): boolean {
     && left.getDate() === right.getDate();
 }
 
-/** Live wrapper used by Home. Conversation truth comes from Runtime; the composer routes into the agent conversation with the text prefilled. */
-export function HomeAgentCard() {
+/** Live wrapper used by Home. Conversation truth comes from Runtime; prompt actions route into the agent conversation with text prefilled. */
+export function HomeAgentCard({ onOpenAssistantChat }: { onOpenAssistantChat?: () => void } = {}) {
   const activity = useHomeAppActivity();
   const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
@@ -260,10 +356,9 @@ export function HomeAgentCard() {
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
   const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
+  const homePartnerDrafts = useAppStore((state) => state.homePartnerDrafts);
   const enabled = authStatus === 'authenticated' && Boolean(ownerUserId);
-  const [selection, setSelection] = useState<{ ownerUserId: string; id: string } | null>(null);
 
-  // Shared key with Explore and Source Detail so the list is fetched once per session.
   const agents = useQuery({
     queryKey: localAgentListQueryKey(ownerUserId),
     queryFn: () => fetchLocalAgentList(ownerUserId, bindings.sdk),
@@ -281,35 +376,24 @@ export function HomeAgentCard() {
     enabled: enabled && agentList.length > 0,
     staleTime: 30_000,
   });
-  const partners: readonly HomeRecentChatPartner[] = recent.data ? withRecentChatUnread(recent.data, activity.recent.records) : (recent.isError
-    ? agentList.map((item) => ({
-      localAgentRef: item.localAgentRef,
-      displayName: item.displayName,
-      avatarUrl: null,
-      lastMessageText: null,
-      previewUnavailable: true,
-      conversationTitle: null,
-      updatedAtMs: null,
-      hasUnread: false,
-    }))
-    : []);
+  const partners: readonly HomeRecentChatPartner[] = recent.data
+    ? withRecentChatUnread(recent.data, activity.recent.records)
+    : recent.isError
+      ? agentList.map((item) => ({
+          localAgentRef: item.localAgentRef,
+          displayName: item.displayName,
+          avatarUrl: null,
+          lastMessageText: null,
+          previewUnavailable: true,
+          conversationTitle: null,
+          updatedAtMs: null,
+          hasUnread: false,
+        }))
+      : [];
   const partnersPending = enabled && agentList.length > 0 && recent.isPending;
-  const selected = partners.find((partner) => selection?.ownerUserId === ownerUserId && partner.localAgentRef === selection.id) ?? partners[0] ?? null;
-  // The Home shortcut keeps its own input across partner switches and management returns.
-  // It never consumes or rewrites the destination App's persistent draft.
-  const draftScope = selected ? JSON.stringify(['home', realmBaseUrl, selected.localAgentRef]) : '';
-  const draftKey = homePartnerDraftKey(ownerUserId, draftScope);
-  const draftText = useAppStore(state => draftKey ? state.homePartnerDrafts[draftKey] ?? '' : '');
-  const setHomePartnerDraft = useAppStore(state => state.setHomePartnerDraft);
-  const { ref: stripRef, capacity } = useHomeRowCapacity({
-    tileWidth: HOME_PARTNER_TILE_WIDTH,
-    tileGap: HOME_PARTNER_TILE_GAP,
-    limit: Math.max(1, Math.min(partners.length, HOME_PARTNER_TILE_LIMIT)),
-  });
-  // Artwork is optional and loads independently of conversation previews. Share
-  // the directory's account-scoped source cache, only for tiles that are visible.
+
   const artwork = useQueries({
-    queries: partners.slice(0, capacity).map((partner) => {
+    queries: partners.slice(0, HOME_RECENT_CONVERSATIONS_LIMIT).map((partner) => {
       const sourceRef = agentItemsByRef.get(partner.localAgentRef)?.sourceRef;
       return {
         queryKey: ['partner-current-source', ownerUserId, `${realmBaseUrl}:${authorizationRevision}`, partner.localAgentRef, sourceRef],
@@ -324,6 +408,17 @@ export function HomeAgentCard() {
     ...partner,
     media: artwork[index]?.data?.media,
   }));
+
+  const draftByPartner = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const partner of partners.slice(0, HOME_RECENT_CONVERSATIONS_LIMIT)) {
+      const scope = JSON.stringify(['home', realmBaseUrl, partner.localAgentRef]);
+      const key = homePartnerDraftKey(ownerUserId, scope);
+      const saved = key ? homePartnerDrafts[key] : undefined;
+      if (saved) map[partner.localAgentRef] = saved;
+    }
+    return map;
+  }, [partners, realmBaseUrl, ownerUserId, homePartnerDrafts]);
 
   const formatTime = useCallback((updatedAtMs: number): string => {
     const date = new Date(updatedAtMs);
@@ -345,15 +440,20 @@ export function HomeAgentCard() {
 
   const openConversation = useCallback(async (selectedItem: LocalAgentListItem | null | undefined, initialComposerText?: string) => {
     if (!selectedItem) return;
-    const activityRef = partners.find(partner => partner.localAgentRef === selectedItem.localAgentRef)?.activityAgentRef;
+    const activityRef = partners.find((partner) => partner.localAgentRef === selectedItem.localAgentRef)?.activityAgentRef;
     const reply = !initialComposerText && activityRef
-      ? unreadCompanionReplies(activity.recent.records).get(activityRef)?.find(record => record.key.startsWith('turn:'))
+      ? unreadCompanionReplies(activity.recent.records).get(activityRef)?.find((record) => record.key.startsWith('turn:'))
       : undefined;
-    await navigation.push({ id: 'contacts', partnerChat: {
-      localAgentRef: selectedItem.localAgentRef,
-      ...(reply ? { turnId: reply.key.slice('turn:'.length) } : {}),
-      ...(initialComposerText?.trim() ? { draft: { text: initialComposerText, source: JSON.stringify(['home', realmBaseUrl, selectedItem.localAgentRef]) } } : {}),
-    } });
+    await navigation.push({
+      id: 'contacts',
+      partnerChat: {
+        localAgentRef: selectedItem.localAgentRef,
+        ...(reply ? { turnId: reply.key.slice('turn:'.length) } : {}),
+        ...(initialComposerText?.trim()
+          ? { draft: { text: initialComposerText, source: JSON.stringify(['home', realmBaseUrl, selectedItem.localAgentRef]) } }
+          : {}),
+      },
+    });
   }, [navigation, realmBaseUrl, partners, activity.recent.records]);
 
   const state: HomeAgentCardState = !enabled || agents.isPending
@@ -369,16 +469,26 @@ export function HomeAgentCard() {
       state={state}
       partners={partnersWithArtwork}
       partnersPending={partnersPending}
-      selectedId={selected?.localAgentRef ?? null}
-      visibleCount={capacity}
-      stripRef={stripRef}
+      visibleCount={HOME_RECENT_CONVERSATIONS_LIMIT}
       formatTime={formatTime}
-      onSelectPartner={(id) => setSelection({ ownerUserId, id })}
-      draftText={draftText}
-      onDraftChange={text => setHomePartnerDraft(ownerUserId, draftScope, text)}
-      onOpenChat={(text) => void openConversation(selected ? agentItemsByRef.get(selected.localAgentRef) : null, text).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
-      onOpenPartner={(id) => void openConversation(agentItemsByRef.get(id)).catch(error => emitFeedbackToast({ kind: 'error', message: String(error) }))}
-      onOpenAll={() => { void navigation.push({ id: 'contacts', contactView: 'partners' }); }}
+      draftByPartner={draftByPartner}
+      onOpenChatWithDraft={(partnerId, text) =>
+        void openConversation(agentItemsByRef.get(partnerId), text).catch((error) =>
+          emitFeedbackToast({ kind: 'error', message: String(error) }),
+        )
+      }
+      onOpenPartner={(id) =>
+        void openConversation(agentItemsByRef.get(id)).catch((error) =>
+          emitFeedbackToast({ kind: 'error', message: String(error) }),
+        )
+      }
+      onManagePartner={(id) => {
+        void navigation.push({ id: 'contacts', contactView: 'partners', partner: { localAgentRef: id } });
+      }}
+      onOpenAssistantChat={onOpenAssistantChat}
+      onOpenAll={() => {
+        void navigation.push({ id: 'contacts', contactView: 'partners' });
+      }}
       onExplore={() => navigation.push({ id: 'explore', exploreSearchKind: 'characters' })}
     />
   );

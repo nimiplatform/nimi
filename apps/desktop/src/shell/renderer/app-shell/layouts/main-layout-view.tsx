@@ -6,7 +6,7 @@ import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js
 import { homeNavigationColumn } from '../providers/home-navigation.js';
 // @nimi-authority: rule.nimi.desktop.shell-ui.r023
 import { ExecutionNotificationPreferenceSync } from '../../features/home/execution-notices.js';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plug } from 'lucide-react';
 import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,7 @@ import {
   SHELL_CHROME_RAIL_ICON_SIZE,
   SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
   SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_CHROME_RAIL_SELECTED_BG_CLASS,
   SHELL_CHROME_RAIL_WIDTH_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
@@ -311,7 +312,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   transition={interactiveMotion.transition}
                   className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     homeRailActive
-                      ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                      ? SHELL_CHROME_RAIL_SELECTED_BG_CLASS
                       : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
                   }`}
                   aria-label={t('Navigation.home', { defaultValue: 'Home' })}
@@ -328,13 +329,17 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               <ScrollArea className="min-h-0 flex-1" viewportClassName="py-0">
                 <div className="flex flex-col gap-1">
                   {primaryCoreNavItems.map((item) => (
-                    <NavLink
-                      key={item.id}
-                      item={item}
-                      active={navigationColumn === item.id}
-                      collapsed
-                      onClick={() => props.onNav(item.id)}
-                    />
+                    <Fragment key={item.id}>
+                      {item.id === 'runtime' ? (
+                        <div role="separator" aria-hidden="true" className="mx-auto my-1 h-px w-5 bg-[var(--nimi-border-subtle)]" />
+                      ) : null}
+                      <NavLink
+                        item={item}
+                        active={navigationColumn === item.id}
+                        collapsed
+                        onClick={() => props.onNav(item.id)}
+                      />
+                    </Fragment>
                   ))}
                   {/* Integrations keeps its Home-owned destination below Cloud. */}
                   <NavLink
@@ -344,6 +349,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     testId="integrations-rail-entry"
                     onClick={() => navigation.push({ id: 'home', homeSection: 'integrations' })}
                   />
+                  {quickNavItems.length > 0 ? (
+                    <div role="separator" aria-hidden="true" className="mx-auto my-1 h-px w-5 bg-[var(--nimi-border-subtle)]" />
+                  ) : null}
                   {quickNavItems.map((item) => (
                     <NavLink
                       key={item.id}
@@ -373,7 +381,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   transition={interactiveMotion.transition}
                   className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     props.activeTab === 'notification'
-                      ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                      ? `${SHELL_CHROME_RAIL_SELECTED_BG_CLASS} text-[var(--nimi-action-primary-bg)]`
                       : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'
                   }`}
                   aria-label={t('Common.openNotifications')}
@@ -410,7 +418,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     transition={interactiveMotion.transition}
                     className={`flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center p-0 text-[var(--nimi-text-primary)] transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                       settingsMenuOpen
-                        ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+                        ? SHELL_CHROME_RAIL_SELECTED_BG_CLASS
                         : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
                     }`}
                     aria-label={t('Common.openAccountMenu')}
