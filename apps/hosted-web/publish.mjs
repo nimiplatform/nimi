@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { AwsClient } from 'aws4fetch';
 import { readNimiAppArchive } from '../../app-tools/lib/app-pack.mjs';
 
 const repository = 'nimiplatform/nimi-app-registry';
@@ -46,6 +47,7 @@ export function cloudflareStore(env) {
   const bucket = required(env, 'CLOUDFLARE_HOSTED_WEB_BUCKET'),
     token = required(env, 'CLOUDFLARE_HOSTED_WEB_API_TOKEN');
   const base = 'https://api.cloudflare.com/client/v4/accounts/' + encodeURIComponent(account);
+  let r2Signer;
   async function request(url, init) {
     const response = await fetch(url, {
       ...init,
@@ -79,14 +81,23 @@ export function cloudflareStore(env) {
       return result[0];
     },
     async put(key, bytes) {
-      await request(
-        base +
-          '/r2/buckets/' +
-          encodeURIComponent(bucket) +
-          '/objects/' +
-          key.split('/').map(encodeURIComponent).join('/'),
-        { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes },
-      );
+      if (!r2Signer) {
+        const identity = await request(base + '/tokens/verify', { method: 'GET' });
+        if (!identity?.id || identity.status !== 'active') throw new Error('Inactive R2 publisher token');
+        r2Signer = new AwsClient({
+          accessKeyId: identity.id,
+          secretAccessKey: createHash('sha256').update(token).digest('hex'),
+          region: 'auto',
+          service: 's3',
+        });
+      }
+      const objectPath = [bucket, ...key.split('/')].map(encodeURIComponent).join('/');
+      const signed = await r2Signer.sign('https://' + account + '.r2.cloudflarestorage.com/' + objectPath, {
+        method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes,
+      });
+      const response = await fetch(signed, { redirect: 'error' });
+      await response.body?.cancel();
+      if (!response.ok) throw new Error('R2 S3 upload failed: HTTP ' + response.status);
     },
   };
 }

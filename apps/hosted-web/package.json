@@ -8,5 +8,8 @@
   "devDependencies": {
     "esbuild": "0.28.2",
     "miniflare": "5.20260828.0-alpha"
+  },
+  "dependencies": {
+    "aws4fetch": "1.0.20"
   }
 }

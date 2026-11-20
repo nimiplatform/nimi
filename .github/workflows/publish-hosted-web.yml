@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - run: corepack enable && pnpm install --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools
+      - run: corepack enable && pnpm install --prod --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools --filter @nimiplatform/hosted-web
       - run: node apps/hosted-web/publish.mjs policy registry-checkout
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -57,7 +57,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - run: corepack enable && pnpm install --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools
+      - run: corepack enable && pnpm install --prod --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools --filter @nimiplatform/hosted-web
       - run: node apps/hosted-web/publish.mjs publish registry-checkout
         env:
           GITHUB_TOKEN: ${{ github.token }}
