@@ -44,7 +44,7 @@ jobs:
           CLOUDFLARE_HOSTED_WEB_API_TOKEN: ${{ secrets.CLOUDFLARE_HOSTED_WEB_API_TOKEN }}
   policy:
     needs: [migrate]
-    if: always() && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') && github.ref == 'refs/heads/main' && vars.HOSTED_WEB_ENABLED == 'true'
+    if: ${{ !cancelled() && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') && github.ref == 'refs/heads/main' && vars.HOSTED_WEB_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     environment: hosted-web-production
     concurrency:
@@ -74,7 +74,8 @@ jobs:
           CLOUDFLARE_HOSTED_WEB_BUCKET: ${{ vars.CLOUDFLARE_HOSTED_WEB_BUCKET }}
           CLOUDFLARE_HOSTED_WEB_API_TOKEN: ${{ secrets.CLOUDFLARE_HOSTED_WEB_API_TOKEN }}
   publish:
-    needs: policy
+    needs: [policy]
+    if: ${{ !cancelled() && needs.policy.result == 'success' }}
     runs-on: ubuntu-latest
     environment: hosted-web-production
     concurrency:
@@ -103,7 +104,8 @@ jobs:
           CLOUDFLARE_HOSTED_WEB_BUCKET: ${{ vars.CLOUDFLARE_HOSTED_WEB_BUCKET }}
           CLOUDFLARE_HOSTED_WEB_API_TOKEN: ${{ secrets.CLOUDFLARE_HOSTED_WEB_API_TOKEN }}
   storefront:
-    needs: policy
+    needs: [policy]
+    if: ${{ !cancelled() && needs.policy.result == 'success' }}
     runs-on: ubuntu-latest
     environment: hosted-web-production
     concurrency:
