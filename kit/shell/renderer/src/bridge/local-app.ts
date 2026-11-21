@@ -268,6 +268,7 @@ export type NimiLocalAppScenarioJobSpec =
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly timeoutMs?: number;
   readonly clientSubmissionId?: string;
+  readonly configRef?: string;
 };
 
 export type NimiLocalAppScenarioTimestamp = { readonly seconds: string; readonly nanos: number };
@@ -1090,10 +1091,15 @@ export function submitNimiLocalAppScenarioJob(
   if (clientSubmissionId !== undefined && (typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
     throw invalidInput(command, 'clientSubmissionId requires a bounded Job action id');
   }
+  const configRef = options.configRef;
+  if (configRef !== undefined && (typeof configRef !== 'string' || !/^(main|[0-9a-f]{32})$/.test(configRef))) {
+    throw invalidInput(command, 'configRef requires main or a 32-hex record ref');
+  }
   return invokeChecked(command, { payload: {
     spec: canonicalScenarioSpec(spec, command),
     timeoutMs: boundedSafeInteger(timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
     ...(clientSubmissionId !== undefined ? { clientSubmissionId } : {}),
+    ...(configRef !== undefined ? { configRef } : {}),
   } },
     (value) => parseScenarioJobSubmit(value, command)).then(result => {
       rememberNimiScenarioJobSubmission(result.job, refusalEpoch, startedAtMs);
@@ -4068,6 +4074,7 @@ function parseCloudTargetResource(value: unknown, command: string): void {
   assertProjectionKeys(resource, [
     'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
     'supportedFeatures', 'state', 'reasons',
+    ...(Object.hasOwn(resource, 'textBehaviors') ? ['textBehaviors'] : []),
     ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
     ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
     ...(Object.hasOwn(resource, 'speechInput') ? ['speechInput'] : []),
@@ -4091,6 +4098,10 @@ function parseCloudTargetResource(value: unknown, command: string): void {
     resource.providerModelTarget,
     `${command}: Cloud provider-model target is invalid`,
   );
+  if (Object.hasOwn(resource, 'textBehaviors')
+    && (!Array.isArray(resource.textBehaviors) || !resource.textBehaviors.every(validTextBehaviorProjection))) {
+    throw new Error(`${command}: Cloud target resource text behaviors are invalid`);
+  }
   if (!Array.isArray(resource.supportedFeatures) || !Array.isArray(resource.reasons)
     || !['ready', 'blocked'].includes(String(resource.state))) {
     throw new Error(`${command}: Cloud target resource is invalid`);

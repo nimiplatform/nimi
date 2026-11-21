@@ -163,6 +163,13 @@ pub(super) async fn submit_job(
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
     }
+    if !request.config_ref.is_empty() && request.config_ref != "main" {
+        if request.config_ref.len() != 32
+            || !request.config_ref.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+        {
+            return Err(invalid_payload());
+        }
+    }
     // Proto tag 9 remains a rejection slot: Runtime rejects every nonzero
     // legacy timeout before dispatch. Carry it unchanged, never as a Job deadline.
     #[allow(deprecated)]
@@ -170,6 +177,7 @@ pub(super) async fn submit_job(
         spec: Some(spec),
         timeout_ms: request.timeout_ms,
         client_submission_id: request.client_submission_id,
+        config_ref: request.config_ref,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
     let response = crate::grpc_limits::runtime_ai_client(channel)

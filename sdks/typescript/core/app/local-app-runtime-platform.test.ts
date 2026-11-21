@@ -312,6 +312,15 @@ test('music action identity survives the shell carrier and lookup never submits'
     await assert.rejects(client.ai.scenarioJobs.submit(spec, { timeoutMs } as never));
   }
   assert.equal(calls.length, 3);
+  const namedRef = 'a'.repeat(32);
+  await client.ai.scenarioJobs.submit(spec, { clientSubmissionId: 'song-action-2', configRef: namedRef });
+  assert.deepEqual((calls[3] as unknown[])[2], { clientSubmissionId: 'song-action-2', configRef: namedRef });
+  await client.ai.scenarioJobs.submit(spec, { configRef: 'main' });
+  assert.deepEqual((calls[4] as unknown[])[2], { configRef: 'main' });
+  for (const badRef of ['', 'default', 'A'.repeat(32), 'a'.repeat(31), '../main']) {
+    await assert.rejects(client.ai.scenarioJobs.submit(spec, { configRef: badRef }));
+  }
+  assert.equal(calls.length, 5);
 });
 
 test('image face replacement uses owned artifact Job input and rejects extra selectors', async () => {

@@ -1493,6 +1493,9 @@ message SubmitLocalAppScenarioJobRequest {
   // Different complete input conflicts; pure identity lookup never executes.
   // This field alone does not extend result retention.
   string client_submission_id = 16;
+  // Optional App-owned AIConfig record reference ("main" or 32-hex ref).
+  // Omission uses the App's Default AIConfig record.
+  string config_ref = 22;
   reserved 5, 6;
   reserved "voice_clone", "voice_design";
 }

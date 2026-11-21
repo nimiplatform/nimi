@@ -29,11 +29,12 @@ const (
 	maxLocalAppScenarioInlineAudioBytes  = 32 * 1024 * 1024
 )
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
 // SubmitLocalAppScenarioJob preserves the third-party Local App async Job
 // contract while delegating route composition, scheduling, Driver mapping,
 // metering, and execution to the Scenario Job owner. The App supplies a
-// closed-set Job spec only: no route, implementation, target, model,
-// tool, stream, or label field. Voice creation target model
+// closed-set Job spec and can reference one of its own AIConfig records.
+// Runtime derives the route, implementation, and target. Voice creation target model
 // identity is derived from the committed AIConfig intent, never from the App.
 func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.SubmitLocalAppScenarioJobRequest) (*runtimev1.SubmitLocalAppScenarioJobResponse, error) {
 	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
@@ -49,6 +50,12 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 	ownerSpec, scenarioType, err := validateLocalAppScenarioJobRequest(req)
 	if err != nil {
 		return nil, err
+	}
+	if req.GetConfigRef() != "" {
+		ctx, err = appTextSelectionContext(ctx, &runtimev1.AppTextConfigSelection{ConfigRef: req.GetConfigRef()})
+		if err != nil {
+			return nil, err
+		}
 	}
 	submission, err := captureLocalAppMusicSubmission(req)
 	if err != nil {

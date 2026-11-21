@@ -43,3 +43,48 @@ test('protected AIConfig accepts bounded music generation profiles without admit
   options = { kind: 'local-loadouts', options: [{ ...resource, musicInput: { generation: [{ ...profile, accountId: 'hidden' }] } }], truncated: false };
   await assert.rejects(client.listOptions(query));
 });
+
+test('protected AIConfig retains exact Cloud target textBehaviors for text.generate and rejects malformed or non-text entries', async () => {
+  const toolUse = {
+    supportedToolSpecKinds: ['function'],
+    supportedToolChoiceModes: ['auto', 'none', 'required', 'tool'],
+    supportsSingleCall: true,
+    supportsMultipleCalls: true,
+    supportsParallelCalls: true,
+    supportsSync: true,
+    supportsStream: true,
+    supportsToolOnlyResponse: true,
+    supportsToolResultRoundTrip: true,
+    supportsMixedTextAndToolCalls: true,
+  };
+  const textBehaviors = [
+    { kind: 'tool-use', implementationSupported: true, configurationState: 'configured', reasons: [], implementationToolUse: structuredClone(toolUse), configuredToolUse: structuredClone(toolUse) },
+    { kind: 'reasoning', implementationSupported: true, configurationState: 'configured', reasons: [] },
+    { kind: 'structured-output', implementationSupported: false, configurationState: 'unavailable', reasons: ['TEXT_BEHAVIOR_UNAVAILABLE'] },
+  ];
+  const target = {
+    connectorRef: 'connector-ds',
+    label: 'deepseek-v4-flash',
+    capabilityContract: 'text.generate',
+    implementation: { implementationId: 'deepseek', driverId: 'nimillm', driverDialect: 'deepseek' },
+    providerModelTarget: { provider: 'deepseek', providerModelId: 'deepseek-v4-flash', remoteModelCatalogId: 'cat-1' },
+    supportedFeatures: [],
+    state: 'ready',
+    reasons: [],
+    textBehaviors,
+  };
+  let result: unknown = { kind: 'cloud-targets', options: [target], truncated: false };
+  const client = createNimiLocalAppAIConfigClient({ get: async () => ({}), overwrite: async () => ({}), listOptions: async () => structuredClone(result) });
+  const query = { kind: 'cloud-targets' as const, capabilityContract: 'text.generate', connectorRef: 'connector-ds' };
+  const projected = await client.listOptions(query);
+  assert.equal(projected.kind, 'cloud-targets');
+  if (projected.kind === 'cloud-targets') assert.deepEqual(projected.options[0]?.textBehaviors, textBehaviors);
+
+  // Reject textBehaviors on non-text.generate capability.
+  result = { kind: 'cloud-targets', options: [{ ...target, capabilityContract: 'audio.transcribe' }], truncated: false };
+  await assert.rejects(client.listOptions({ kind: 'cloud-targets', capabilityContract: 'audio.transcribe', connectorRef: 'connector-ds' }));
+
+  // Reject malformed textBehaviors entry.
+  result = { kind: 'cloud-targets', options: [{ ...target, textBehaviors: [{ kind: 'bogus', implementationSupported: true, configurationState: 'configured', reasons: [] }] }], truncated: false };
+  await assert.rejects(client.listOptions(query));
+});

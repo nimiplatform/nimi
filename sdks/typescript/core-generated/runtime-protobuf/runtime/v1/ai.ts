@@ -3594,6 +3594,13 @@ export interface SubmitLocalAppScenarioJobRequest {
      * @generated from protobuf field: string client_submission_id = 16
      */
     clientSubmissionId: string;
+    /**
+     * Optional App-owned AIConfig record reference ("main" or 32-hex ref).
+     * Omission uses the App's Default AIConfig record.
+     *
+     * @generated from protobuf field: string config_ref = 22
+     */
+    configRef: string;
 }
 /**
  * Trimmed Job projection for Local App consumption: status, progress, typed
@@ -16325,7 +16332,8 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 20, name: "image_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec },
             { no: 21, name: "video_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 16, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 16, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "config_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobRequest>): SubmitLocalAppScenarioJobRequest {
@@ -16333,6 +16341,7 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         message.spec = { oneofKind: undefined };
         message.timeoutMs = 0;
         message.clientSubmissionId = "";
+        message.configRef = "";
         if (value !== undefined)
             reflectionMergePartial<SubmitLocalAppScenarioJobRequest>(this, message, value);
         return message;
@@ -16450,6 +16459,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                 case /* string client_submission_id */ 16:
                     message.clientSubmissionId = reader.string();
                     break;
+                case /* string config_ref */ 22:
+                    message.configRef = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -16519,6 +16531,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale = 21; */
         if (message.spec.oneofKind === "videoUpscale")
             MediaUpscaleScenarioSpec.internalBinaryWrite(message.spec.videoUpscale, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
+        /* string config_ref = 22; */
+        if (message.configRef !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.configRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

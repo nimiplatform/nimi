@@ -221,13 +221,22 @@ func (s *Service) projectCloudEffectiveSelection(
 		label = strings.TrimSpace(record.Provider)
 	}
 	selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
+	if err := requireCloudRequiredFeatures(requiredFeatures, binding); err != nil {
+		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+		selection.Reasons = []string{runtimev1.ReasonCode_AI_CONFIG_INVALID.String()}
+	}
+	targetReady := selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
+	var textBehaviors []*runtimev1.TextBehaviorCapabilityProjection
 	if capabilityContract == "text.generate" {
 		facts := textBehaviorAdapterResolutionFacts{
 			ImplementationID: implementation.GetImplementationId(), DriverID: implementation.GetDriverId(), DriverDialect: implementation.GetDriverDialect(),
 			CloudTarget: &textBehaviorCloudTarget{Provider: binding.Provider, ProviderModelID: binding.ProviderModelID},
 		}
-		selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
-		selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
+		if targetReady {
+			selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
+			selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
+		}
+		textBehaviors = projectCloudTextBehaviors(s.textBehaviorAdapters, facts, targetReady)
 	}
 	selection.Resource = &runtimev1.AIConfigEffectiveSelection_Cloud{Cloud: &runtimev1.AIConfigCloudResourceProjection{
 		Connector: &runtimev1.AIConfigCloudConnectorProjection{
@@ -237,21 +246,14 @@ func (s *Service) projectCloudEffectiveSelection(
 		Target: &runtimev1.AIConfigCloudTargetProjection{
 			ConnectorRef: cloud.GetConnectorRef(), Label: target["providerModelId"].GetStringValue(),
 			CapabilityContract: capabilityContract, Implementation: implementation,
-			ProviderModelTarget: providerTarget, State: runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY,
+			ProviderModelTarget: providerTarget, State: selection.State, Reasons: append([]string(nil), selection.Reasons...),
 			SupportedFeatures:   append([]string(nil), binding.Features...),
 			ReferenceAudioInput: connector.VoiceReferenceInputProjection(s.speechCatalog, accountNamespace, binding.Provider, binding.ProviderModelID, capabilityContract),
 			MusicInput:          capabilitydriver.CloudMusicInputCapabilities(binding.Provider, binding.ProviderModelID, capabilityContract),
+			TextBehaviors:       textBehaviors,
 		},
 	}}
-	if err := requireCloudRequiredFeatures(requiredFeatures, binding); err != nil {
-		selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
-		selection.Reasons = []string{runtimev1.ReasonCode_AI_CONFIG_INVALID.String()}
-		selection.GetCloud().GetTarget().State = selection.State
-		selection.GetCloud().GetTarget().Reasons = append([]string(nil), selection.Reasons...)
-		selection.TextReplay = nil
-		selection.ReasoningInput = nil
-	}
-	if capabilityContract == "text.generate" && selection.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY {
+	if capabilityContract == "text.generate" && targetReady {
 		metadata, err := s.speechCatalog.ResolveTextContextMetadataForSubject(accountNamespace, binding.Provider, binding.ProviderModelID)
 		if err == nil && metadata.ContextWindowTokens > 0 {
 			selection.RequestCapacityFloorTokens = proto.Uint64(metadata.ContextWindowTokens)
@@ -345,7 +347,7 @@ func (s *Service) ListAppAIConfigOptions(
 		}
 		projected := make([]*runtimev1.AIConfigCloudTargetProjection, 0, len(options))
 		for _, option := range options {
-			projected = append(projected, projectCloudTargetOption(option))
+			projected = append(projected, s.projectCloudTargetOption(option))
 		}
 		return &runtimev1.ListAppAIConfigOptionsResponse{
 			Result:    &runtimev1.ListAppAIConfigOptionsResponse_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptions{Options: projected}},
@@ -468,18 +470,33 @@ func projectCloudConnectorOption(option connector.AIConfigCloudConnectorOption) 
 	}
 }
 
-func projectCloudTargetOption(option connector.AIConfigCloudTargetOption) *runtimev1.AIConfigCloudTargetProjection {
+func (s *Service) projectCloudTargetOption(option connector.AIConfigCloudTargetOption) *runtimev1.AIConfigCloudTargetProjection {
 	implementation, _ := proto.Clone(option.Implementation).(*runtimev1.CapabilityImplementationIdentity)
 	target, _ := proto.Clone(option.ProviderTarget).(*structpb.Struct)
 	reasons := make([]string, 0, len(option.Reasons))
 	for _, reason := range option.Reasons {
 		reasons = append(reasons, reason.String())
 	}
+	var textBehaviors []*runtimev1.TextBehaviorCapabilityProjection
+	if option.Capability == "text.generate" && implementation != nil && target != nil {
+		fields := target.GetFields()
+		facts := textBehaviorAdapterResolutionFacts{
+			ImplementationID: implementation.GetImplementationId(),
+			DriverID:         implementation.GetDriverId(),
+			DriverDialect:    implementation.GetDriverDialect(),
+			CloudTarget: &textBehaviorCloudTarget{
+				Provider:        fields["provider"].GetStringValue(),
+				ProviderModelID: fields["providerModelId"].GetStringValue(),
+			},
+		}
+		textBehaviors = projectCloudTextBehaviors(s.textBehaviorAdapters, facts, option.State == runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY)
+	}
 	return &runtimev1.AIConfigCloudTargetProjection{
 		ConnectorRef: option.ConnectorRef, Label: option.Label, CapabilityContract: option.Capability,
 		Implementation: implementation, ProviderModelTarget: target,
 		SupportedFeatures: append([]string(nil), option.SupportedFeatures...), State: option.State, Reasons: reasons,
 		ReferenceAudioInput: option.ReferenceAudioInput,
+		TextBehaviors:       textBehaviors,
 	}
 }
 

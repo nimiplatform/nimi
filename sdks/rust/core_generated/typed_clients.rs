@@ -4849,6 +4849,7 @@ pub struct AIConfigCloudTargetProjection {
     pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
     pub music_input: Option<Box<MusicInputCapabilities>>,
     pub speech_input: Option<Box<SpeechInputCapabilities>>,
+    pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15749,6 +15750,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedScenarioSpec>>,
     pub image_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
     pub video_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
+    pub config_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

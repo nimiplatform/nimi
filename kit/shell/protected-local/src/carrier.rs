@@ -454,6 +454,7 @@ pub struct LocalAppScenarioSubmitRequest {
     pub spec: JsonValue,
     pub timeout_ms: i32,
     pub client_submission_id: String,
+    pub config_ref: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

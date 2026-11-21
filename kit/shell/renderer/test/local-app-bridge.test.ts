@@ -682,6 +682,94 @@ describe('renderer local-app standard-shell surface', () => {
     })).resolves.toEqual({ kind: 'local-loadouts', options: [option], truncated: false });
   });
 
+  it('accepts canonical Cloud Target textBehaviors on options and effective selections and rejects invalid projections', async () => {
+    const toolUse = {
+      supportedToolSpecKinds: ['function'],
+      supportedToolChoiceModes: ['auto', 'none', 'required', 'tool'],
+      supportsSingleCall: true,
+      supportsMultipleCalls: true,
+      supportsParallelCalls: true,
+      supportsSync: true,
+      supportsStream: true,
+      supportsToolOnlyResponse: true,
+      supportsToolResultRoundTrip: true,
+      supportsMixedTextAndToolCalls: true,
+    };
+    const target = {
+      connectorRef: 'connector-deepseek',
+      label: 'deepseek-flash',
+      capabilityContract: 'text.generate',
+      implementation: {
+        implementationId: 'deepseek',
+        driverId: 'nimillm',
+        driverDialect: 'deepseek',
+      },
+      providerModelTarget: { provider: 'deepseek', providerModelId: 'deepseek-flash' },
+      supportedFeatures: [],
+      textBehaviors: [
+        {
+          kind: 'tool-use',
+          implementationSupported: true,
+          configurationState: 'configured',
+          reasons: [],
+          implementationToolUse: structuredClone(toolUse),
+          configuredToolUse: structuredClone(toolUse),
+        },
+        {
+          kind: 'reasoning',
+          implementationSupported: true,
+          configurationState: 'configured',
+          reasons: [],
+          implementationToolUse: null,
+          configuredToolUse: null,
+        },
+      ],
+      state: 'ready',
+      reasons: [],
+    };
+    let result: unknown = { kind: 'cloud-targets', options: [target], truncated: false };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => structuredClone(result),
+      listen: () => () => {},
+    };
+
+    const client = createNimiLocalAppStandardShellSurface().aiConfig;
+    await expect(client.listOptions({
+      kind: 'cloud-targets',
+      capabilityContract: 'text.generate',
+      connectorRef: 'connector-deepseek',
+    })).resolves.toEqual(result);
+
+    result = {
+      config: null,
+      revision: '1',
+      effectiveSelections: [{
+        capabilityContract: 'text.generate',
+        state: 'ready',
+        reasons: [],
+        resource: {
+          oneofKind: 'cloud',
+          cloud: {
+            connector: { connectorRef: 'connector-deepseek', label: 'deepseek', provider: 'deepseek', state: 'ready', reasons: [] },
+            target,
+          },
+        },
+      }],
+    };
+    await expect(client.get()).resolves.toEqual(result);
+
+    result = {
+      kind: 'cloud-targets',
+      options: [{ ...target, textBehaviors: [{ kind: 'bogus' }] }],
+      truncated: false,
+    };
+    await expect(client.listOptions({
+      kind: 'cloud-targets',
+      capabilityContract: 'text.generate',
+      connectorRef: 'connector-deepseek',
+    })).rejects.toThrow('Cloud target resource text behaviors are invalid');
+  });
+
   it('carries App preset voice options without a capability or owner selector', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

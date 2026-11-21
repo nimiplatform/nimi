@@ -420,6 +420,7 @@ function projectCloudTargetOption(value: AIConfigCloudTargetProjection): NimiAIC
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
     ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
+    ...(value.textBehaviors?.length ? { textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors) } : {}),
     state,
     reasons: Object.freeze([...value.reasons]),
   });

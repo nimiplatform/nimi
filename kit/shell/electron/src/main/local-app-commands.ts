@@ -509,16 +509,26 @@ function validatePayload(
       };
     }
     case 'scenarioJobSubmit': {
-      assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
+      assertExactKeys(payload, [
+        'spec',
+        'timeoutMs',
+        ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : []),
+        ...(Object.hasOwn(payload, 'configRef') ? ['configRef'] : []),
+      ], command);
       validateScenarioSpec(payload.spec, command, false);
       const clientSubmissionId = payload.clientSubmissionId;
       if (clientSubmissionId !== undefined && (typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
         throw invalidPayload(command, 'invalid Job clientSubmissionId');
       }
+      const configRef = payload.configRef;
+      if (configRef !== undefined && (typeof configRef !== 'string' || !/^(main|[0-9a-f]{32})$/.test(configRef))) {
+        throw invalidPayload(command, 'invalid Job configRef');
+      }
       return {
         spec: payload.spec as NimiElectronLocalAppRecord[string],
         timeoutMs: boundedSafeInteger(payload.timeoutMs, 'timeoutMs', command, 0, 0),
         ...(clientSubmissionId !== undefined ? { clientSubmissionId } : {}),
+        ...(configRef !== undefined ? { configRef } : {}),
       };
     }
     case 'scenarioJobGet': {

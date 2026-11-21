@@ -607,6 +607,7 @@ pub async fn local_app_scenario_job_submit(
                 spec: input.spec,
                 timeout_ms,
                 client_submission_id: input.client_submission_id.unwrap_or_default(),
+                config_ref: input.config_ref.unwrap_or_default(),
             })
             .await
     })

@@ -12883,8 +12883,11 @@ type SubmitLocalAppScenarioJobRequest struct {
 	// Different complete input conflicts; pure identity lookup never executes.
 	// This field alone does not extend result retention.
 	ClientSubmissionId string `protobuf:"bytes,16,opt,name=client_submission_id,json=clientSubmissionId,proto3" json:"client_submission_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Optional App-owned AIConfig record reference ("main" or 32-hex ref).
+	// Omission uses the App's Default AIConfig record.
+	ConfigRef     string `protobuf:"bytes,22,opt,name=config_ref,json=configRef,proto3" json:"config_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubmitLocalAppScenarioJobRequest) Reset() {
@@ -13088,6 +13091,13 @@ func (x *SubmitLocalAppScenarioJobRequest) GetTimeoutMs() int32 {
 func (x *SubmitLocalAppScenarioJobRequest) GetClientSubmissionId() string {
 	if x != nil {
 		return x.ClientSubmissionId
+	}
+	return ""
+}
+
+func (x *SubmitLocalAppScenarioJobRequest) GetConfigRef() string {
+	if x != nil {
+		return x.ConfigRef
 	}
 	return ""
 }
@@ -19209,7 +19219,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x1cLocalAppWorldGenerateJobSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12C\n" +
-	"\x05image\x18\x03 \x01(\v2-.nimi.runtime.v1.WorldGenerateOwnedImageInputR\x05image\"\x87\r\n" +
+	"\x05image\x18\x03 \x01(\v2-.nimi.runtime.v1.WorldGenerateOwnedImageInputR\x05image\"\xa6\r\n" +
 	" SubmitLocalAppScenarioJobRequest\x12[\n" +
 	"\x0eimage_generate\x18\x01 \x01(\v22.nimi.runtime.v1.LocalAppImageGenerateScenarioSpecH\x00R\rimageGenerate\x12V\n" +
 	"\x0evideo_generate\x18\x02 \x01(\v2-.nimi.runtime.v1.LocalAppVideoGenerateJobSpecH\x00R\rvideoGenerate\x12_\n" +
@@ -19231,7 +19241,9 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\rvideo_upscale\x18\x15 \x01(\v2).nimi.runtime.v1.MediaUpscaleScenarioSpecH\x00R\fvideoUpscale\x12!\n" +
 	"\n" +
 	"timeout_ms\x18\t \x01(\x05B\x02\x18\x01R\ttimeoutMs\x120\n" +
-	"\x14client_submission_id\x18\x10 \x01(\tR\x12clientSubmissionIdB\x06\n" +
+	"\x14client_submission_id\x18\x10 \x01(\tR\x12clientSubmissionId\x12\x1d\n" +
+	"\n" +
+	"config_ref\x18\x16 \x01(\tR\tconfigRefB\x06\n" +
 	"\x04specJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\vvoice_cloneR\fvoice_design\"\xf6\f\n" +
 	"\x13LocalAppScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12B\n" +

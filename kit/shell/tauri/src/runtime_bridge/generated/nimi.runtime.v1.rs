@@ -4633,6 +4633,8 @@ pub struct AiConfigCloudTargetProjection {
     pub music_input: ::core::option::Option<MusicInputCapabilities>,
     #[prost(message, optional, tag = "11")]
     pub speech_input: ::core::option::Option<SpeechInputCapabilities>,
+    #[prost(message, repeated, tag = "12")]
+    pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudResourceProjection {
@@ -7516,6 +7518,10 @@ pub struct SubmitLocalAppScenarioJobRequest {
     /// This field alone does not extend result retention.
     #[prost(string, tag = "16")]
     pub client_submission_id: ::prost::alloc::string::String,
+    /// Optional App-owned AIConfig record reference ("main" or 32-hex ref).
+    /// Omission uses the App's Default AIConfig record.
+    #[prost(string, tag = "22")]
+    pub config_ref: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
         tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21"

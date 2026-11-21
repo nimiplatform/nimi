@@ -208,6 +208,7 @@ export type NimiAIConfigCloudTargetOption = {
   readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
   readonly musicInput?: NimiMusicInputCapabilities;
   readonly speechInput?: NimiSpeechInputCapabilities;
+  readonly textBehaviors?: readonly NimiTextBehaviorCapabilityProjection[];
   readonly connectorRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -543,6 +544,7 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
     ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
     ...(value.speechInput ? { speechInput: projectSpeechInputCapabilities(SpeechInputCapabilities.toJson(value.speechInput,{emitDefaultValues:true})) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
+    ...(value.textBehaviors?.length ? { textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });

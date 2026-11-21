@@ -341,12 +341,18 @@ function projectCloudTargetOption(value: unknown, index: number): void {
   }
   if (option && Object.hasOwn(option, 'referenceAudioInput')) projectVoiceReferenceInput(option.referenceAudioInput);
   if (option && Object.hasOwn(option,'speechInput')) { if(option.capabilityContract !== 'audio.synthesize') localAppProjectionError('speech input capability'); projectSpeechInputCapabilities(option.speechInput); }
+  if (option && Object.hasOwn(option, 'textBehaviors')) {
+    if (option.capabilityContract !== 'text.generate' || !Array.isArray(option.textBehaviors) || !option.textBehaviors.every(validTextBehaviorProjection)) {
+      localAppProjectionError(`App AIConfig Cloud target option ${index} textBehaviors`);
+    }
+  }
   assertExactProjectionKeys(option, [
     'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
     'supportedFeatures', 'state', 'reasons',
     ...(option && Object.hasOwn(option, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
     ...(option && Object.hasOwn(option, 'musicInput') ? ['musicInput'] : []),
     ...(option && Object.hasOwn(option,'speechInput') ? ['speechInput'] : []),
+    ...(option && Object.hasOwn(option, 'textBehaviors') ? ['textBehaviors'] : []),
   ], `App AIConfig Cloud target option ${index}`);
   projectionText(option.connectorRef, `App AIConfig Cloud target option ${index} connectorRef`);
   projectionText(option.label, `App AIConfig Cloud target option ${index} label`);

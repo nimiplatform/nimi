@@ -4359,18 +4359,19 @@ func (x *AIConfigCloudConnectorProjection) GetReasons() []string {
 }
 
 type AIConfigCloudTargetProjection struct {
-	state               protoimpl.MessageState            `protogen:"open.v1"`
-	ConnectorRef        string                            `protobuf:"bytes,1,opt,name=connector_ref,json=connectorRef,proto3" json:"connector_ref,omitempty"`
-	Label               string                            `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	CapabilityContract  string                            `protobuf:"bytes,3,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
-	Implementation      *CapabilityImplementationIdentity `protobuf:"bytes,4,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	ProviderModelTarget *structpb.Struct                  `protobuf:"bytes,5,opt,name=provider_model_target,json=providerModelTarget,proto3" json:"provider_model_target,omitempty"`
-	SupportedFeatures   []string                          `protobuf:"bytes,6,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
-	State               AIConfigEffectiveState            `protobuf:"varint,7,opt,name=state,proto3,enum=nimi.runtime.v1.AIConfigEffectiveState" json:"state,omitempty"`
-	Reasons             []string                          `protobuf:"bytes,8,rep,name=reasons,proto3" json:"reasons,omitempty"`
-	ReferenceAudioInput *VoiceReferenceInputCapabilities  `protobuf:"bytes,9,opt,name=reference_audio_input,json=referenceAudioInput,proto3" json:"reference_audio_input,omitempty"`
-	MusicInput          *MusicInputCapabilities           `protobuf:"bytes,10,opt,name=music_input,json=musicInput,proto3" json:"music_input,omitempty"`
-	SpeechInput         *SpeechInputCapabilities          `protobuf:"bytes,11,opt,name=speech_input,json=speechInput,proto3" json:"speech_input,omitempty"`
+	state               protoimpl.MessageState              `protogen:"open.v1"`
+	ConnectorRef        string                              `protobuf:"bytes,1,opt,name=connector_ref,json=connectorRef,proto3" json:"connector_ref,omitempty"`
+	Label               string                              `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	CapabilityContract  string                              `protobuf:"bytes,3,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Implementation      *CapabilityImplementationIdentity   `protobuf:"bytes,4,opt,name=implementation,proto3" json:"implementation,omitempty"`
+	ProviderModelTarget *structpb.Struct                    `protobuf:"bytes,5,opt,name=provider_model_target,json=providerModelTarget,proto3" json:"provider_model_target,omitempty"`
+	SupportedFeatures   []string                            `protobuf:"bytes,6,rep,name=supported_features,json=supportedFeatures,proto3" json:"supported_features,omitempty"`
+	State               AIConfigEffectiveState              `protobuf:"varint,7,opt,name=state,proto3,enum=nimi.runtime.v1.AIConfigEffectiveState" json:"state,omitempty"`
+	Reasons             []string                            `protobuf:"bytes,8,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	ReferenceAudioInput *VoiceReferenceInputCapabilities    `protobuf:"bytes,9,opt,name=reference_audio_input,json=referenceAudioInput,proto3" json:"reference_audio_input,omitempty"`
+	MusicInput          *MusicInputCapabilities             `protobuf:"bytes,10,opt,name=music_input,json=musicInput,proto3" json:"music_input,omitempty"`
+	SpeechInput         *SpeechInputCapabilities            `protobuf:"bytes,11,opt,name=speech_input,json=speechInput,proto3" json:"speech_input,omitempty"`
+	TextBehaviors       []*TextBehaviorCapabilityProjection `protobuf:"bytes,12,rep,name=text_behaviors,json=textBehaviors,proto3" json:"text_behaviors,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -4478,6 +4479,13 @@ func (x *AIConfigCloudTargetProjection) GetMusicInput() *MusicInputCapabilities 
 func (x *AIConfigCloudTargetProjection) GetSpeechInput() *SpeechInputCapabilities {
 	if x != nil {
 		return x.SpeechInput
+	}
+	return nil
+}
+
+func (x *AIConfigCloudTargetProjection) GetTextBehaviors() []*TextBehaviorCapabilityProjection {
+	if x != nil {
+		return x.TextBehaviors
 	}
 	return nil
 }
@@ -6696,7 +6704,7 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1a\n" +
 	"\bprovider\x18\x03 \x01(\tR\bprovider\x12=\n" +
 	"\x05state\x18\x04 \x01(\x0e2'.nimi.runtime.v1.AIConfigEffectiveStateR\x05state\x12\x18\n" +
-	"\areasons\x18\x05 \x03(\tR\areasons\"\xb8\x05\n" +
+	"\areasons\x18\x05 \x03(\tR\areasons\"\x92\x06\n" +
 	"\x1dAIConfigCloudTargetProjection\x12#\n" +
 	"\rconnector_ref\x18\x01 \x01(\tR\fconnectorRef\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12/\n" +
@@ -6710,7 +6718,8 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\vmusic_input\x18\n" +
 	" \x01(\v2'.nimi.runtime.v1.MusicInputCapabilitiesR\n" +
 	"musicInput\x12K\n" +
-	"\fspeech_input\x18\v \x01(\v2(.nimi.runtime.v1.SpeechInputCapabilitiesR\vspeechInput\"\xba\x01\n" +
+	"\fspeech_input\x18\v \x01(\v2(.nimi.runtime.v1.SpeechInputCapabilitiesR\vspeechInput\x12X\n" +
+	"\x0etext_behaviors\x18\f \x03(\v21.nimi.runtime.v1.TextBehaviorCapabilityProjectionR\rtextBehaviors\"\xba\x01\n" +
 	"\x1fAIConfigCloudResourceProjection\x12O\n" +
 	"\tconnector\x18\x01 \x01(\v21.nimi.runtime.v1.AIConfigCloudConnectorProjectionR\tconnector\x12F\n" +
 	"\x06target\x18\x02 \x01(\v2..nimi.runtime.v1.AIConfigCloudTargetProjectionR\x06target\"\xfa\x05\n" +
@@ -7113,47 +7122,48 @@ var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
 	51,  // 87: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
 	54,  // 88: nimi.runtime.v1.AIConfigCloudTargetProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
 	53,  // 89: nimi.runtime.v1.AIConfigCloudTargetProjection.speech_input:type_name -> nimi.runtime.v1.SpeechInputCapabilities
-	58,  // 90: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	59,  // 91: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	8,   // 92: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	57,  // 93: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	60,  // 94: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
-	64,  // 95: nimi.runtime.v1.AIConfigEffectiveSelection.text_replay:type_name -> nimi.runtime.v1.TextReplayCompatibility
-	62,  // 96: nimi.runtime.v1.AIConfigEffectiveSelection.reasoning_input:type_name -> nimi.runtime.v1.ReasoningInputCapabilities
-	9,   // 97: nimi.runtime.v1.TextReplayCarrierFormat.execution_modes:type_name -> nimi.runtime.v1.TextReplayExecutionMode
-	63,  // 98: nimi.runtime.v1.TextReplayCompatibility.accepted_carriers:type_name -> nimi.runtime.v1.TextReplayCarrierFormat
-	57,  // 99: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	58,  // 100: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	59,  // 101: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	72,  // 102: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
-	65,  // 103: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	67,  // 104: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	69,  // 105: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
-	71,  // 106: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
-	46,  // 107: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	66,  // 108: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	68,  // 109: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
-	70,  // 110: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
-	73,  // 111: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
-	46,  // 112: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	46,  // 113: nimi.runtime.v1.DesktopConnectorReference.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	79,  // 114: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.references:type_name -> nimi.runtime.v1.DesktopConnectorReference
-	95,  // 115: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.observed_at:type_name -> google.protobuf.Timestamp
-	76,  // 116: nimi.runtime.v1.AppAIConfigDirectory.records:type_name -> nimi.runtime.v1.AppAIConfigRecord
-	50,  // 117: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	61,  // 118: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
-	76,  // 119: nimi.runtime.v1.GetAppAIConfigResponse.record:type_name -> nimi.runtime.v1.AppAIConfigRecord
-	81,  // 120: nimi.runtime.v1.GetAppAIConfigResponse.directory:type_name -> nimi.runtime.v1.AppAIConfigDirectory
-	50,  // 121: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	83,  // 122: nimi.runtime.v1.OverwriteAppAIConfigRequest.record:type_name -> nimi.runtime.v1.AppAIConfigRecordEdit
-	76,  // 123: nimi.runtime.v1.OverwriteAppAIConfigResponse.record:type_name -> nimi.runtime.v1.AppAIConfigRecord
-	50,  // 124: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	92,  // 125: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	126, // [126:126] is the sub-list for method output_type
-	126, // [126:126] is the sub-list for method input_type
-	126, // [126:126] is the sub-list for extension type_name
-	126, // [126:126] is the sub-list for extension extendee
-	0,   // [0:126] is the sub-list for field type_name
+	12,  // 90: nimi.runtime.v1.AIConfigCloudTargetProjection.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
+	58,  // 91: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	59,  // 92: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	8,   // 93: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	57,  // 94: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	60,  // 95: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
+	64,  // 96: nimi.runtime.v1.AIConfigEffectiveSelection.text_replay:type_name -> nimi.runtime.v1.TextReplayCompatibility
+	62,  // 97: nimi.runtime.v1.AIConfigEffectiveSelection.reasoning_input:type_name -> nimi.runtime.v1.ReasoningInputCapabilities
+	9,   // 98: nimi.runtime.v1.TextReplayCarrierFormat.execution_modes:type_name -> nimi.runtime.v1.TextReplayExecutionMode
+	63,  // 99: nimi.runtime.v1.TextReplayCompatibility.accepted_carriers:type_name -> nimi.runtime.v1.TextReplayCarrierFormat
+	57,  // 100: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	58,  // 101: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	59,  // 102: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	72,  // 103: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
+	65,  // 104: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	67,  // 105: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	69,  // 106: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	71,  // 107: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+	46,  // 108: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	66,  // 109: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	68,  // 110: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
+	70,  // 111: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
+	73,  // 112: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+	46,  // 113: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	46,  // 114: nimi.runtime.v1.DesktopConnectorReference.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	79,  // 115: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.references:type_name -> nimi.runtime.v1.DesktopConnectorReference
+	95,  // 116: nimi.runtime.v1.ListDesktopConnectorReferencesResponse.observed_at:type_name -> google.protobuf.Timestamp
+	76,  // 117: nimi.runtime.v1.AppAIConfigDirectory.records:type_name -> nimi.runtime.v1.AppAIConfigRecord
+	50,  // 118: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	61,  // 119: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	76,  // 120: nimi.runtime.v1.GetAppAIConfigResponse.record:type_name -> nimi.runtime.v1.AppAIConfigRecord
+	81,  // 121: nimi.runtime.v1.GetAppAIConfigResponse.directory:type_name -> nimi.runtime.v1.AppAIConfigDirectory
+	50,  // 122: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	83,  // 123: nimi.runtime.v1.OverwriteAppAIConfigRequest.record:type_name -> nimi.runtime.v1.AppAIConfigRecordEdit
+	76,  // 124: nimi.runtime.v1.OverwriteAppAIConfigResponse.record:type_name -> nimi.runtime.v1.AppAIConfigRecord
+	50,  // 125: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	92,  // 126: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	127, // [127:127] is the sub-list for method output_type
+	127, // [127:127] is the sub-list for method input_type
+	127, // [127:127] is the sub-list for extension type_name
+	127, // [127:127] is the sub-list for extension extendee
+	0,   // [0:127] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }

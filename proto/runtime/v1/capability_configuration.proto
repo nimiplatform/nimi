@@ -569,6 +569,7 @@ message AIConfigCloudTargetProjection {
   VoiceReferenceInputCapabilities reference_audio_input = 9;
   MusicInputCapabilities music_input = 10;
   SpeechInputCapabilities speech_input = 11;
+  repeated TextBehaviorCapabilityProjection text_behaviors = 12;
 }
 
 message AIConfigCloudResourceProjection {

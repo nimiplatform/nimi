@@ -1404,6 +1404,10 @@ export interface AIConfigCloudTargetProjection {
      * @generated from protobuf field: nimi.runtime.v1.SpeechInputCapabilities speech_input = 11
      */
     speechInput?: SpeechInputCapabilities;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 12
+     */
+    textBehaviors: TextBehaviorCapabilityProjection[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudResourceProjection
@@ -6087,7 +6091,8 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
             { no: 8, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "reference_audio_input", kind: "message", T: () => VoiceReferenceInputCapabilities },
             { no: 10, name: "music_input", kind: "message", T: () => MusicInputCapabilities },
-            { no: 11, name: "speech_input", kind: "message", T: () => SpeechInputCapabilities }
+            { no: 11, name: "speech_input", kind: "message", T: () => SpeechInputCapabilities },
+            { no: 12, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection }
         ]);
     }
     create(value?: PartialMessage<AIConfigCloudTargetProjection>): AIConfigCloudTargetProjection {
@@ -6098,6 +6103,7 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
         message.supportedFeatures = [];
         message.state = 0;
         message.reasons = [];
+        message.textBehaviors = [];
         if (value !== undefined)
             reflectionMergePartial<AIConfigCloudTargetProjection>(this, message, value);
         return message;
@@ -6139,6 +6145,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
                     break;
                 case /* nimi.runtime.v1.SpeechInputCapabilities speech_input */ 11:
                     message.speechInput = SpeechInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.speechInput);
+                    break;
+                case /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors */ 12:
+                    message.textBehaviors.push(TextBehaviorCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6185,6 +6194,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
         /* nimi.runtime.v1.SpeechInputCapabilities speech_input = 11; */
         if (message.speechInput)
             SpeechInputCapabilities.internalBinaryWrite(message.speechInput, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 12; */
+        for (let i = 0; i < message.textBehaviors.length; i++)
+            TextBehaviorCapabilityProjection.internalBinaryWrite(message.textBehaviors[i], writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -340,9 +340,10 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     },
     scenarioJobSubmit: (record) => {
       if (record.timeoutMs !== undefined && record.timeoutMs !== 0) throw new NimiElectronLocalAppHostError('invalid-payload', false);
-      return ai.scenarioJobs.submit(record.spec as never,
-        { ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}) },
-      ) as Promise<NimiElectronLocalAppRecord>;
+      return ai.scenarioJobs.submit(record.spec as never, {
+        ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}),
+        ...(record.configRef !== undefined ? { configRef: exactFormalText(record.configRef) } : {}),
+      }) as Promise<NimiElectronLocalAppRecord>;
     },
     scenarioJobGet: (record) => {
       if (record.clientSubmissionId !== undefined) {

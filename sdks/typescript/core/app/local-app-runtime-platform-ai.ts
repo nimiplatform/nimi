@@ -270,8 +270,10 @@ export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppMusicTranscribeSpec
   | NimiLocalAppVoiceConvertSpec;
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly clientSubmissionId?: string;
+  readonly configRef?: string;
 };
 
 export type NimiLocalAppScenarioTimestamp = {
@@ -732,6 +734,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
           spec: runtimeLocalJobSpec(spec),
           timeoutMs: 0,
           clientSubmissionId: options.clientSubmissionId ?? '',
+          configRef: options.configRef ?? '',
         });
         return { job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')) };
       },
@@ -862,7 +865,9 @@ function validateVoiceAssetsListInput(
 
 export function createNimiLocalAppRuntimeScenarioJobClient(
   ai: Pick<NimiLocalAppAIConsumptionClient, 'scenarioJobs' | 'artifacts'>,
+  options?: { readonly configRef?: string },
 ): NimiProtectedLocalScenarioJobClient {
+  const boundConfigRef = options?.configRef !== undefined ? validateScenarioJobConfigRef(options.configRef) : undefined;
   const client: NimiProtectedLocalScenarioJobClient = {
     terminalVoiceAssetProjection: 'protected-local',
     async submitScenarioJob(request) {
@@ -870,7 +875,11 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
         invalidAIInput('Scenario Job business timeout is no longer supported');
       }
       const spec = localJobSpecFromRuntimeRequest(request);
-      const result = await ai.scenarioJobs.submit(spec, request.idempotencyKey ? { clientSubmissionId: validateClientSubmissionId(request.idempotencyKey) } : {});
+      const submitOptions: NimiLocalAppScenarioJobSubmitOptions = {
+        ...(request.idempotencyKey ? { clientSubmissionId: validateClientSubmissionId(request.idempotencyKey) } : {}),
+        ...(boundConfigRef !== undefined ? { configRef: boundConfigRef } : {}),
+      };
+      const result = await ai.scenarioJobs.submit(spec, submitOptions);
       return {
         job: runtimeJobFromLocal(result.job),
       };
@@ -1124,12 +1133,20 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
   return spec;
 }
 
+function validateScenarioJobConfigRef(value: unknown): string {
+  if (typeof value !== 'string' || !/^(main|[0-9a-f]{32})$/.test(value)) {
+    invalidAIInput('configRef is invalid');
+  }
+  return value;
+}
+
 function validateScenarioJobSubmitOptions(
   options: NimiLocalAppScenarioJobSubmitOptions,
 ): NimiLocalAppScenarioJobSubmitOptions {
-  assertExactKeys(options, ['clientSubmissionId'], 'Scenario Job submit options');
+  assertExactKeys(options, ['clientSubmissionId', 'configRef'], 'Scenario Job submit options');
   return Object.freeze({
     ...(options.clientSubmissionId !== undefined ? { clientSubmissionId: validateClientSubmissionId(options.clientSubmissionId) } : {}),
+    ...(options.configRef !== undefined ? { configRef: validateScenarioJobConfigRef(options.configRef) } : {}),
   });
 }
 

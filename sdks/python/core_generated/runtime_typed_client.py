@@ -324,6 +324,7 @@ class AIConfigCloudTargetProjection:
     reference_audio_input: VoiceReferenceInputCapabilities | None = None
     music_input: MusicInputCapabilities | None = None
     speech_input: SpeechInputCapabilities | None = None
+    text_behaviors: tuple[TextBehaviorCapabilityProjection, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AIConfigEffectiveSelection:
@@ -7690,6 +7691,7 @@ class SubmitLocalAppScenarioJobRequest:
     audio_speaker_embed: AudioSpeakerEmbedScenarioSpec | None = None
     image_upscale: MediaUpscaleScenarioSpec | None = None
     video_upscale: MediaUpscaleScenarioSpec | None = None
+    config_ref: str | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:

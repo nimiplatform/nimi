@@ -371,6 +371,18 @@ pub(super) fn project_cloud_target(
     if let Some(input) = reference_input {
         projected["referenceAudioInput"] = input;
     }
+    if !resource.text_behaviors.is_empty() {
+        if resource.capability_contract != "text.generate" {
+            return Err(untrusted());
+        }
+        projected["textBehaviors"] = JsonValue::Array(
+            resource
+                .text_behaviors
+                .into_iter()
+                .map(project_text_behavior)
+                .collect::<Result<Vec<_>, _>>()?,
+        );
+    }
     Ok(projected)
 }
 

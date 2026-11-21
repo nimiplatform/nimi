@@ -2487,17 +2487,18 @@ type AIConfigCloudTargetOptionsQuery struct {
 }
 
 type AIConfigCloudTargetProjection struct {
-	ConnectorRef        string                            `json:"connector_ref,omitempty"`
-	Label               string                            `json:"label,omitempty"`
-	CapabilityContract  string                            `json:"capability_contract,omitempty"`
-	Implementation      *CapabilityImplementationIdentity `json:"implementation,omitempty"`
-	ProviderModelTarget map[string]any                    `json:"provider_model_target,omitempty"`
-	SupportedFeatures   []string                          `json:"supported_features,omitempty"`
-	State               AIConfigEffectiveState            `json:"state,omitempty"`
-	Reasons             []string                          `json:"reasons,omitempty"`
-	ReferenceAudioInput *VoiceReferenceInputCapabilities  `json:"reference_audio_input,omitempty"`
-	MusicInput          *MusicInputCapabilities           `json:"music_input,omitempty"`
-	SpeechInput         *SpeechInputCapabilities          `json:"speech_input,omitempty"`
+	ConnectorRef        string                             `json:"connector_ref,omitempty"`
+	Label               string                             `json:"label,omitempty"`
+	CapabilityContract  string                             `json:"capability_contract,omitempty"`
+	Implementation      *CapabilityImplementationIdentity  `json:"implementation,omitempty"`
+	ProviderModelTarget map[string]any                     `json:"provider_model_target,omitempty"`
+	SupportedFeatures   []string                           `json:"supported_features,omitempty"`
+	State               AIConfigEffectiveState             `json:"state,omitempty"`
+	Reasons             []string                           `json:"reasons,omitempty"`
+	ReferenceAudioInput *VoiceReferenceInputCapabilities   `json:"reference_audio_input,omitempty"`
+	MusicInput          *MusicInputCapabilities            `json:"music_input,omitempty"`
+	SpeechInput         *SpeechInputCapabilities           `json:"speech_input,omitempty"`
+	TextBehaviors       []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
 }
 
 type AIConfigEffectiveSelection struct {
@@ -9814,6 +9815,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	AudioSpeakerEmbed  *AudioSpeakerEmbedScenarioSpec     `json:"audio_speaker_embed,omitempty"`
 	ImageUpscale       *MediaUpscaleScenarioSpec          `json:"image_upscale,omitempty"`
 	VideoUpscale       *MediaUpscaleScenarioSpec          `json:"video_upscale,omitempty"`
+	ConfigRef          string                             `json:"config_ref,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
