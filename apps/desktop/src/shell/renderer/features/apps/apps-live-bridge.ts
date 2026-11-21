@@ -10,11 +10,13 @@ import {
   listLocalDevelopmentRuns,
   readLocalDevelopmentProjectIcon,
   readLocalDevelopmentProjectReadme,
+  readLocalDevelopmentProjectStorefront,
   removeLocalDevelopmentRegistration,
   startLocalDevelopmentRegistration,
   stopLocalDevelopmentRun,
   type LocalDevelopmentProjectIcon,
   type LocalDevelopmentProjectReadme,
+  type LocalDevelopmentProjectStorefront,
   type LocalDevelopmentRegistration,
   type LocalDevelopmentRun,
 } from '../local-development/local-development-bridge.js';
@@ -29,6 +31,7 @@ export interface DesktopAppsLiveBridge {
   removeRegistration(selector: string): Promise<void>;
   readProjectReadme(selector: string): Promise<LocalDevelopmentProjectReadme>;
   readProjectIcon(selector: string): Promise<LocalDevelopmentProjectIcon>;
+  readProjectStorefront?(selector: string): Promise<LocalDevelopmentProjectStorefront | null>;
   listInstalledRuns?(): Promise<readonly InstalledAppRun[]>;
   launchInstalled?(selector: Uint8Array): Promise<InstalledAppRun>;
   stopInstalled?(selector: Uint8Array): Promise<void>;
@@ -43,6 +46,7 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
     removeRegistration: removeLocalDevelopmentRegistration,
     readProjectReadme: readLocalDevelopmentProjectReadme,
     readProjectIcon: readLocalDevelopmentProjectIcon,
+    readProjectStorefront: readLocalDevelopmentProjectStorefront,
     listInstalledRuns: listInstalledAppRuns,
     launchInstalled: launchInstalledApp,
     stopInstalled: stopInstalledApp,

@@ -779,5 +779,59 @@
     "preparing": "Preparing…",
     "chooseLocal": "Choose local model",
     "queued": "Queued"
+  },
+  "storefront": {
+    "origin": {
+      "nimi-official": "Nimi Native",
+      "open-source-adapted": "Open-Source Adapted",
+      "community": "Community App"
+    },
+    "category": {
+      "all": "All categories",
+      "companions-worlds": "Companions & Worlds",
+      "lifestyle": "Lifestyle & Personal",
+      "writing-notes": "Writing & Notes",
+      "design-diagrams": "Design & Diagrams",
+      "audio-music": "Audio & Music",
+      "video-media": "Video & Media",
+      "research-learning": "Research & Learning",
+      "productivity-automation": "Productivity & Automation",
+      "developer-tools": "Developer Tools"
+    },
+    "filter": {
+      "allOrigins": "All origins",
+      "allCapabilities": "All AI capabilities",
+      "discoverTitle": "Explore Apps",
+      "discoverEmpty": "No Apps match the selected filters.",
+      "clearFilters": "Clear filters"
+    },
+    "installWithSize": "Install · {{size}}",
+    "categoryLabel": "Category",
+    "downloadSizeLabel": "Local download size",
+    "platformLabel": "This platform",
+    "licenseLabel": "License",
+    "storageLabel": "Storage",
+    "upstreamLabel": "Upstream project",
+    "reviewDepthLabel": "Admission review tier",
+    "reviewDepth": {
+      "first-party": "First-party admission review",
+      "verified-partner": "Verified-partner admission review",
+      "community": "Community admission review"
+    },
+    "capabilitiesCardTitle": "AI capabilities used by this App",
+    "capabilitiesCardNote": "After installation, choose your local or cloud model routes in the AI Models tab.",
+    "capabilitiesManageAction": "Open AI Capabilities",
+    "highlightsTitle": "Highlights",
+    "releaseNotesTitle": "Release notes",
+    "galleryExpand": "Show screenshots ({{count}})",
+    "galleryCollapse": "Hide screenshots",
+    "galleryPrev": "Previous screenshot",
+    "galleryNext": "Next screenshot",
+    "galleryZoom": "Inspect full image",
+    "galleryClose": "Close lightbox",
+    "imageLoadFailed": "Preview image failed to load",
+    "imageRetry": "Retry",
+    "devPreviewBanner": "Local development preview: reads workspace copy and images directly. Final publishing is gated by nimi-app check.",
+    "devPreviewRefresh": "Refresh preview"
   }
 }

@@ -14756,6 +14756,96 @@ pub struct AppSafetyDeclaration {
         ::prost::alloc::string::String,
     >,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppProductUpstream {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppStorefrontHighlight {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppStorefrontLocale {
+    #[prost(string, tag = "1")]
+    pub locale: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub summary: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "5")]
+    pub highlights: ::prost::alloc::vec::Vec<AppStorefrontHighlight>,
+    #[prost(string, tag = "6")]
+    pub introduction_markdown: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppStorefrontImageRef {
+    #[prost(string, tag = "1")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub width: u32,
+    #[prost(uint32, tag = "3")]
+    pub height: u32,
+    #[prost(uint64, tag = "4")]
+    pub size: u64,
+    #[prost(string, tag = "5")]
+    pub sha256: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppStorefrontLocalizedImage {
+    #[prost(string, tag = "1")]
+    pub locale: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub image: ::core::option::Option<AppStorefrontImageRef>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppStorefrontCover {
+    #[prost(message, optional, tag = "1")]
+    pub default_image: ::core::option::Option<AppStorefrontImageRef>,
+    #[prost(message, repeated, tag = "2")]
+    pub locales: ::prost::alloc::vec::Vec<AppStorefrontLocalizedImage>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppStorefrontGalleryItem {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub default_image: ::core::option::Option<AppStorefrontImageRef>,
+    #[prost(message, repeated, tag = "4")]
+    pub locales: ::prost::alloc::vec::Vec<AppStorefrontLocalizedImage>,
+    #[prost(map = "string, string", tag = "5")]
+    pub caption: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppStorefrontMedia {
+    #[prost(message, optional, tag = "1")]
+    pub cover: ::core::option::Option<AppStorefrontCover>,
+    #[prost(message, repeated, tag = "2")]
+    pub gallery: ::prost::alloc::vec::Vec<AppStorefrontGalleryItem>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppStorefrontInfo {
+    #[prost(string, tag = "1")]
+    pub category: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub default_locale: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub locales: ::prost::alloc::vec::Vec<AppStorefrontLocale>,
+    #[prost(message, optional, tag = "4")]
+    pub media: ::core::option::Option<AppStorefrontMedia>,
+}
 /// Runtime projects one target from one immutable Registry snapshot. The
 /// selector is opaque to Desktop and is the only input accepted by install
 /// start; display fields never authorize a package mutation by themselves.
@@ -14826,6 +14916,14 @@ pub struct ApprovedAppCatalogTarget {
     /// Absent when the admitted release carries no declaration (undeclared).
     #[prost(message, optional, tag = "28")]
     pub safety_declaration: ::core::option::Option<AppSafetyDeclaration>,
+    /// Registry-reviewed product attribution projected from product.json into index.json.
+    #[prost(string, tag = "29")]
+    pub product_origin: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "30")]
+    pub product_upstream: ::core::option::Option<AppProductUpstream>,
+    /// Registry admission review depth tier (e.g. first-party, verified-partner, community).
+    #[prost(string, tag = "31")]
+    pub admission_trust_tier: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListApprovedAppCatalogTargetsRequest {}
@@ -14976,6 +15074,9 @@ pub struct AppPackageInfo {
     /// Absent when the information document carries no declaration (undeclared).
     #[prost(message, optional, tag = "19")]
     pub safety_declaration: ::core::option::Option<AppSafetyDeclaration>,
+    /// Absent when the information document carries no structured storefront extension.
+    #[prost(message, optional, tag = "20")]
+    pub storefront: ::core::option::Option<AppStorefrontInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppPackageInfoRequest {

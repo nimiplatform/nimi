@@ -4,7 +4,7 @@ import type { LandingLocale } from '../landing/i18n/locale.js';
 import { APP_CATALOG, type CatalogApp } from './informational-content.js';
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005e
-export type AppOrigin = 'nimi-official' | 'open-source-adapted';
+export type AppOrigin = 'nimi-official' | 'open-source-adapted' | 'community';
 
 export type AppAvailabilityPosture =
   | 'catalog-admitted'
@@ -111,7 +111,7 @@ export function getEcosystemApps(locale: LandingLocale): ReadonlyArray<Ecosystem
   });
 }
 
-export type EcosystemFilterId = 'all' | 'nimi-official' | 'open-source-adapted';
+export type EcosystemFilterId = 'all' | 'nimi-official' | 'open-source-adapted' | 'community';
 
 export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
   eyebrow: string;
@@ -182,18 +182,22 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       all: '全部',
       'nimi-official': 'Nimi 原生',
       'open-source-adapted': '开源适配',
+      community: '社区应用',
     },
     originBadge: {
       'nimi-official': 'Nimi 官方',
       'open-source-adapted': '开源项目 · Nimi 适配',
+      community: '社区应用',
     },
     originShortLabel: {
       'nimi-official': 'Nimi 原生',
       'open-source-adapted': '开源适配',
+      community: '社区应用',
     },
     originDetail: {
       'nimi-official': 'Nimi 官方研发并维护的原生应用。',
       'open-source-adapted': '源于社区开源项目，由 Nimi 完成 Fork 并适配 Nimi Runtime。',
+      community: '由社区开发者发布并经 Nimi App Registry 审核准入的应用。',
     },
     postureBadge: {
       'catalog-admitted': '桌面目录已上架',
@@ -254,18 +258,22 @@ export const APP_ECOSYSTEM_COPY: Readonly<Record<LandingLocale, {
       all: 'All',
       'nimi-official': 'Nimi Official',
       'open-source-adapted': 'Open-Source',
+      community: 'Community',
     },
     originBadge: {
       'nimi-official': 'Nimi Official',
       'open-source-adapted': 'Open-Source · Nimi Adapted',
+      community: 'Community App',
     },
     originShortLabel: {
       'nimi-official': 'Nimi Official',
       'open-source-adapted': 'Open-Source',
+      community: 'Community',
     },
     originDetail: {
       'nimi-official': 'First-party application designed and maintained by Nimi.',
       'open-source-adapted': 'Third-party open-source project forked and adapted by Nimi for the Nimi Runtime.',
+      community: 'Application published by a community developer and reviewed in the Nimi App Registry.',
     },
     postureBadge: {
       'catalog-admitted': 'In Desktop Catalog',

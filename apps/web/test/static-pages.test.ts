@@ -6,7 +6,7 @@ import test from 'node:test';
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { HOME_PAGE_INITIAL_DEMO, StaticPage } from '../src/pages/static-page.js';
+import { HOME_PAGE_INITIAL_DEMO, projectDirectoryApps, resolveAppsDetailDecision, StaticPage } from '../src/pages/static-page.js';
 import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { HeroDemoView } from '../src/landing/components/hero-demo.js';
 import { createCoreHeroDemo } from '../src/landing/content/core-hero-demo.js';
@@ -485,4 +485,215 @@ test('an external product without a demo shows the verified publisher and an eli
   assert.match(html,/href="https:\/\/notes\.nimi\.xyz\/"/);
   assert.doesNotMatch(html,/Nimi Adapted|interactive preview/i);
   assert.doesNotMatch(render({...item,web:null}),/Open in browser/);
+});
+
+test('PublicProduct renders Storefront media, highlights, platform sizes, and blocked suspension states', () => {
+  const published = {
+    app_id: 'nimi.shijing',
+    slug: 'shijing',
+    display_name: 'ShiJing',
+    publisher: 'nimiplatform',
+    repository: 'https://github.com/nimiplatform/nimiapp-shijing',
+    license: 'MIT',
+    summary: { zh: '时镜中文摘要', en: 'ShiJing English summary' },
+    origin: 'nimi-official' as const,
+    upstream: null,
+    pc_targets: ['windows-x86_64', 'macos-aarch64'],
+    pc_target_releases: {
+      'windows-x86_64': { version: '0.2.0', size: 18_874_368 },
+      'macos-aarch64': { version: '0.1.9', size: 15_728_640 },
+    },
+    displayed_version: '0.2.0',
+    capabilities: ['text.generate'],
+    blocked: false,
+    web: { url: 'https://shijing.nimi.xyz/', version: '0.2.0' },
+    has_storefront: true,
+    category: 'lifestyle',
+    default_locale: 'zh',
+    tags: { zh: ['命理', '本地隐私'], en: ['Bazi', 'Local-First'] },
+    icon_url: `/.well-known/nimi-apps/media/nimi.shijing/${'1'.repeat(64)}.png`,
+    cover_urls: {
+      default: `/.well-known/nimi-apps/media/nimi.shijing/${'a'.repeat(64)}.webp`,
+      locales: { en: `/.well-known/nimi-apps/media/nimi.shijing/${'b'.repeat(64)}.webp` },
+    },
+    detail_status: 'published' as const,
+    detail: {
+      version: '0.2.0',
+      display_name: '时镜',
+      summary: '时镜中文摘要',
+      readme_markdown: '# 时镜\n\n通过本地 AI 运行时进行多镜头推演。',
+      release_notes_markdown: '新增 Storefront 展示资源。',
+      license: { identifier: 'MIT', text: '' },
+      author: 'Nimi Team',
+      homepage_url: 'https://nimi.ai',
+      support_url: 'https://github.com/nimiplatform/nimiapp-shijing/issues',
+      app_access: ['text.generate'],
+      capability_contract_refs: ['text.generate'],
+      required_standardized_feature_refs: [],
+      storage_policy: { kind: 'nimi-mediated-default' },
+      safety_profile: null,
+      admission_trust_tier: 'reviewed',
+      icon_url: `/.well-known/nimi-apps/media/nimi.shijing/${'1'.repeat(64)}.png`,
+      storefront: {
+        category: 'lifestyle',
+        default_locale: 'zh',
+        locales: {
+          zh: {
+            tags: ['命理', '本地隐私'],
+            highlights: [{ title: '六镜视角', description: '从日镜到年镜多维观察节奏。' }],
+          },
+          en: {
+            display_name: 'ShiJing',
+            summary: 'ShiJing English summary',
+            tags: ['Bazi', 'Local-First'],
+            highlights: [{ title: 'Six Lenses', description: 'Inspect daily to yearly rhythms locally.' }],
+            introduction_markdown: '# ShiJing\n\nLocal-first temporal reflection powered by Nimi.',
+          },
+        },
+        media: {
+          cover: {
+            default: {
+              media_type: 'image/webp',
+              width: 1280,
+              height: 720,
+              size: 10000,
+              sha256: 'a'.repeat(64),
+              url: `/.well-known/nimi-apps/media/nimi.shijing/${'a'.repeat(64)}.webp`,
+            },
+            locales: {
+              en: {
+                media_type: 'image/webp',
+                width: 1280,
+                height: 720,
+                size: 10000,
+                sha256: 'b'.repeat(64),
+                url: `/.well-known/nimi-apps/media/nimi.shijing/${'b'.repeat(64)}.webp`,
+              },
+            },
+          },
+          gallery: [
+            {
+              id: 'overview',
+              kind: 'image',
+              default: {
+                media_type: 'image/webp',
+                width: 1280,
+                height: 720,
+                size: 12000,
+                sha256: 'c'.repeat(64),
+                url: `/.well-known/nimi-apps/media/nimi.shijing/${'c'.repeat(64)}.webp`,
+              },
+              caption: { zh: '日镜主视图', en: 'Daily Lens view' },
+            },
+          ],
+        },
+      },
+    },
+  };
+
+  const enHtml = renderRoute('/apps/shijing?lang=en', '/apps/:slug', createElement(PublicProduct, { item: published, locale: 'en', detail: true }));
+  assert.match(enHtml, /data-testid="web-storefront-gallery"/);
+  assert.match(enHtml, /Six Lenses/);
+  assert.match(enHtml, /Daily Lens view/);
+  assert.match(enHtml, /18\.0 MB/);
+  assert.match(enHtml, /15\.0 MB/);
+  assert.match(enHtml, /Local-first temporal reflection powered by Nimi/);
+  assert.match(enHtml, /https:\/\/shijing\.nimi\.xyz\//);
+
+  const blockedHtml = renderRoute(
+    '/apps/shijing?lang=en',
+    '/apps/:slug',
+    createElement(PublicProduct, { item: { ...published, blocked: true, detail_status: 'blocked', web: null, detail: null }, locale: 'en', detail: true }),
+  );
+  assert.match(blockedHtml, /data-testid="web-product-blocked"/);
+  assert.match(blockedHtml, /Distribution suspended/);
+  assert.doesNotMatch(blockedHtml, /web-storefront-gallery/);
+  assert.doesNotMatch(blockedHtml, /Open in browser/);
+});
+
+test('apps directory routing and list projection unify live states while preserving special non-native identities', () => {
+  const appsEn = getEcosystemApps('en');
+  const shijingEditorial = appsEn.find((a) => a.id === 'nimi.shijing')!;
+  const zhiyuEditorial = appsEn.find((a) => a.id === 'nimi.zhiyu')!;
+  const utopiaEditorial = appsEn.find((a) => a.id === 'nimi.utopia')!;
+
+  const legacyPublished = {
+    app_id: 'nimi.shijing',
+    slug: 'shijing',
+    display_name: '时镜',
+    publisher: 'nimiplatform',
+    repository: 'https://github.com/nimiplatform/nimiapp-shijing',
+    license: 'MIT',
+    summary: { zh: '新版直播摘要', en: 'Live updated summary token-xyz' },
+    origin: 'nimi-official' as const,
+    pc_targets: ['windows-x86_64'],
+    capabilities: ['text.generate'],
+    blocked: false,
+    web: null,
+    displayed_version: '0.1.10',
+    has_storefront: false,
+    tags: { en: ['live-tag-abc'], zh: ['实时标签'] },
+    detail_status: 'published' as const,
+    detail: null,
+  };
+
+  // Ordinary catalog app: published (even without storefront), pending, blocked, and live 404 all follow live catalog truth.
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'shijing', directoryStatus: 'ok', liveProduct: legacyPublished, selectedEcosystemEntry: shijingEditorial }),
+    'live-detail',
+  );
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'shijing', directoryStatus: 'ok', liveProduct: { ...legacyPublished, detail_status: 'pending' }, selectedEcosystemEntry: shijingEditorial }),
+    'live-detail',
+  );
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'shijing', directoryStatus: 'missing', liveProduct: undefined, selectedEcosystemEntry: shijingEditorial }),
+    'not-found',
+  );
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'shijing', directoryStatus: 'unavailable', liveProduct: undefined, selectedEcosystemEntry: shijingEditorial }),
+    'status-placeholder',
+  );
+  // Special identities (zhiyu first-party-companion, utopia interactive-preview) never turn into 404 or hide on missing/unavailable catalog rows.
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'zhiyu', directoryStatus: 'missing', liveProduct: undefined, selectedEcosystemEntry: zhiyuEditorial }),
+    'editorial',
+  );
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'zhiyu', directoryStatus: 'unavailable', liveProduct: undefined, selectedEcosystemEntry: zhiyuEditorial }),
+    'editorial',
+  );
+  assert.equal(
+    resolveAppsDetailDecision({ slug: 'utopia', directoryStatus: 'missing', liveProduct: undefined, selectedEcosystemEntry: utopiaEditorial }),
+    'editorial',
+  );
+
+  // Unified list projection merges live summary/tags for search/filter, respects community origin, avoids stale cover/tags when storefront is present, and omits hidden apps.
+  const projected = projectDirectoryApps(appsEn, [legacyPublished], true, false, 'en');
+  assert.equal(projected.mergedApps.some((a) => a.id === 'nimi.shijing'), true);
+  assert.equal(projected.mergedApps.some((a) => a.id === 'nimi.zhiyu'), true);
+  assert.equal(projected.mergedApps.some((a) => a.id === 'nimi.utopia'), true);
+  assert.equal(projected.mergedApps.some((a) => a.id === 'nimi.openmontage'), false);
+  const projectedShijing = projected.mergedApps.find((a) => a.id === 'nimi.shijing')!;
+  assert.equal(projectedShijing.description, 'Live updated summary token-xyz');
+  assert.deepEqual(projectedShijing.tags, ['live-tag-abc']);
+
+  const communityStorefrontWithoutMedia = projectDirectoryApps(
+    appsEn,
+    [{ ...legacyPublished, origin: 'community' as const, has_storefront: true, tags: {}, cover_urls: null }],
+    true,
+    false,
+    'en',
+  );
+  const communityEntry = communityStorefrontWithoutMedia.mergedApps.find((a) => a.id === 'nimi.shijing')!;
+  assert.equal(communityEntry.origin, 'community');
+  assert.deepEqual(communityEntry.tags, []);
+  assert.equal(communityEntry.previewImageSrc, '');
+
+  // Pure-PC product detail shows explicit Nimi Home install guidance when web is absent.
+  const pcOnlyHtml = renderToStaticMarkup(
+    createElement(MemoryRouter, null, createElement(PublicProduct, { item: legacyPublished, locale: 'en', detail: true })),
+  );
+  assert.match(pcOnlyHtml, /web-pc-install-guidance/);
+  assert.match(pcOnlyHtml, /Open Nimi Home on your computer/);
 });

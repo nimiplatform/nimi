@@ -78,6 +78,7 @@ const STAGE_COPY: Readonly<Record<LandingLocale, {
     originShort: {
       'nimi-official': 'Nimi 原生',
       'open-source-adapted': '开源适配',
+      community: '社区应用',
     },
   },
   en: {
@@ -106,6 +107,7 @@ const STAGE_COPY: Readonly<Record<LandingLocale, {
     originShort: {
       'nimi-official': 'Nimi Native',
       'open-source-adapted': 'Open-Source Adapted',
+      community: 'Community',
     },
   },
 };

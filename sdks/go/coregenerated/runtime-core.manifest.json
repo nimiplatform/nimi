@@ -8048,9 +8048,18 @@
       "AppMessageEvent",
       "AppPackageInfo",
       "AppPackageJob",
+      "AppProductUpstream",
       "AppSafetyDeclaration",
       "AppSafetyOutputDeclaration",
       "AppStorageProjection",
+      "AppStorefrontCover",
+      "AppStorefrontGalleryItem",
+      "AppStorefrontHighlight",
+      "AppStorefrontImageRef",
+      "AppStorefrontInfo",
+      "AppStorefrontLocale",
+      "AppStorefrontLocalizedImage",
+      "AppStorefrontMedia",
       "AppTextConfigCapture",
       "AppTextConfigSelection",
       "AppendInferenceAuditRequest",
@@ -13903,6 +13912,13 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "storefront",
+            "type": "AppStorefrontInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -14091,6 +14107,26 @@
             "repeated": false,
             "optional": false,
             "number": 26
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppProductUpstream",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -14320,6 +14356,27 @@
             "repeated": false,
             "optional": false,
             "number": 28
+          },
+          {
+            "name": "product_origin",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 29
+          },
+          {
+            "name": "product_upstream",
+            "type": "AppProductUpstream",
+            "repeated": false,
+            "optional": false,
+            "number": 30
+          },
+          {
+            "name": "admission_trust_tier",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 31
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -14541,6 +14598,251 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontCover",
+        "fields": [
+          {
+            "name": "default_image",
+            "type": "AppStorefrontImageRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "locales",
+            "type": "AppStorefrontLocalizedImage",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontGalleryItem",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "default_image",
+            "type": "AppStorefrontImageRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "locales",
+            "type": "AppStorefrontLocalizedImage",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "caption",
+            "type": "map",
+            "map_key_type": "string",
+            "map_value_type": "string",
+            "repeated": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontHighlight",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontImageRef",
+        "fields": [
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "width",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "height",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "size",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontInfo",
+        "fields": [
+          {
+            "name": "category",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "default_locale",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "locales",
+            "type": "AppStorefrontLocale",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "media",
+            "type": "AppStorefrontMedia",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontLocale",
+        "fields": [
+          {
+            "name": "locale",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "tags",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "highlights",
+            "type": "AppStorefrontHighlight",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "introduction_markdown",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontLocalizedImage",
+        "fields": [
+          {
+            "name": "locale",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "image",
+            "type": "AppStorefrontImageRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppStorefrontMedia",
+        "fields": [
+          {
+            "name": "cover",
+            "type": "AppStorefrontCover",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "gallery",
+            "type": "AppStorefrontGalleryItem",
+            "repeated": true,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"

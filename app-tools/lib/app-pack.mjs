@@ -25,7 +25,8 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { APP_INFO_DECLARATION_FIELDS, APP_INFO_MAX_BYTES, readAppInfo, validateAppInfo } from './app-info.mjs';
+import { APP_INFO_DECLARATION_FIELDS, APP_INFO_MAX_BYTES, readAppInfo, readAppStorefront, validateAppInfo } from './app-info.mjs';
+import { STOREFRONT_ARCHIVE_MAX_BYTES } from './storefront-media.mjs';
 import { observeWindowsExecutableFacts } from './windows-powershell.mjs';
 import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from './payload-links.mjs';
 import { observeMacOSExecutableFacts } from './macos-native.mjs';
@@ -536,6 +537,7 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
   const appId = targets[0].app_id;
   const version = targets[0].version;
   const seen = new Set();
+  const parsedInfos = [];
   for (const target of targets) {
     const metadataLabel = `${target.target_id || 'unknown'} target metadata`;
     if (target.format !== TARGET_METADATA_FORMAT || target.app_id !== appId || target.version !== version) throw new Error('Target metadata cannot be aggregated across App releases');
@@ -566,6 +568,7 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     if (infoBytes.length !== infoAsset.size || createHash('sha256').update(infoBytes).digest('hex') !== infoAsset.sha256 || !entries.get('app-info.json')?.bytes.equals(infoBytes)) throw new Error(`Target App info changed or differs from archive: ${target.target_id}`);
     const info = validateAppInfo(JSON.parse(infoBytes));
     if (info.app_id !== appId || info.version !== version || info.target_id !== target.target_id) throw new Error(`Target App info identity differs: ${target.target_id}`);
+    parsedInfos.push({ targetId: target.target_id, info });
     validatePayloadLinks(entries, target.os);
     const manifest = readPackageManifestFromArchive(entries, metadataLabel);
     if (manifest.format !== PACKAGE_FORMAT) throw new Error(`Target archive manifest format is invalid: ${target.asset_name}`);
@@ -580,8 +583,53 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
       throw new Error(`Target archive runtime_entry is missing or non-executable: ${runtimeEntry}`);
     }
   }
-  const candidate = { format: AGGREGATE_FORMAT, app_id: appId, version, targets: targets.sort((left, right) => compareText(left.target_id, right.target_id)) };
+  const firstInfo = parsedInfos[0].info;
+  for (const entry of parsedInfos.slice(1)) {
+    for (const field of ['display_name', 'summary', 'icon', 'readme_markdown', 'release_notes_markdown', 'safety_profile', 'storefront']) {
+      if (!sameCanonicalValue(entry.info[field], firstInfo[field])) {
+        throw new Error(`Target App info ${field} differs between ${parsedInfos[0].targetId} and ${entry.targetId}; one release shares one presentation`);
+      }
+    }
+  }
+  let storefrontMedia;
+  if (firstInfo.storefront?.media !== undefined) {
+    const repoManifest = readYaml(path.join(targetDir, 'nimi.app.yaml'), 'nimi.app.yaml');
+    const { storefront: repoStorefront, mediaEntries } = readAppStorefront(targetDir, repoManifest);
+    if (!sameCanonicalValue(repoStorefront?.media, firstInfo.storefront.media)) {
+      throw new Error('Repository storefront media changed after target packing; rebuild targets and aggregate from the same commit');
+    }
+    const archiveEntries = [...mediaEntries.entries()]
+      .sort(([left], [right]) => compareText(left, right))
+      .map(([name, bytes]) => ({ name, bytes, mode: 0o644 }));
+    const mediaArchive = writeNimiAppArchive(archiveEntries);
+    if (mediaArchive.length > STOREFRONT_ARCHIVE_MAX_BYTES) {
+      throw new Error(`Storefront media archive exceeds ${STOREFRONT_ARCHIVE_MAX_BYTES} bytes`);
+    }
+    const mediaAssetName = `${appId}-${version}-storefront-media.zip`;
+    const mediaArchivePath = path.join(outputDir, mediaAssetName);
+    writeAppArchiveFile(mediaArchivePath, mediaArchive);
+    storefrontMedia = {
+      asset_name: mediaAssetName,
+      size: mediaArchive.length,
+      sha256: hashAppArchive(mediaArchive),
+    };
+  }
+  const candidate = {
+    format: AGGREGATE_FORMAT,
+    app_id: appId,
+    version,
+    ...(storefrontMedia ? { storefront_media: storefrontMedia } : {}),
+    targets: targets.sort((left, right) => compareText(left.target_id, right.target_id)),
+  };
   const candidatePath = path.join(outputDir, `${appId}-${version}.candidate.json`);
   writeFileSync(candidatePath, canonicalJson(candidate));
-  return { ok: true, command: 'pack', aggregate: true, dir: targetDir, candidatePath, ...candidate };
+  return {
+    ok: true,
+    command: 'pack',
+    aggregate: true,
+    dir: targetDir,
+    candidatePath,
+    ...(storefrontMedia ? { storefrontMediaPath: path.join(outputDir, storefrontMedia.asset_name) } : {}),
+    ...candidate,
+  };
 }

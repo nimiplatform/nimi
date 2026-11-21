@@ -5,6 +5,11 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { AwsClient } from 'aws4fetch';
 import { readNimiAppArchive } from '../../app-tools/lib/app-pack.mjs';
+import { validateAppInfo } from '../../app-tools/lib/app-info.mjs';
+import { collectStorefrontImageRefs, storefrontMediaExtension } from '../../app-tools/lib/storefront-media.mjs';
+import { compareSemverDesc } from './semver.mjs';
+
+export { compareSemverDesc };
 
 const repository = 'nimiplatform/nimi-app-registry';
 const columns = [
@@ -17,14 +22,18 @@ const columns = [
   'summary_en',
   'summary_zh',
   'pc_targets',
+  'pc_target_versions_json',
   'capabilities',
   'visible',
   'blocked',
+  'origin',
+  'upstream_json',
   'client_id',
   'source_revision',
   'source_active',
   'policy_commit',
 ];
+const TARGET_BASELINE_ORDER = ['windows-x86_64', 'macos-aarch64'];
 const git = (root, ...args) =>
   execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', windowsHide: true, maxBuffer: 128 * 1024 * 1024 }).trim();
 function required(env, name) {
@@ -129,15 +138,27 @@ function nativeTargets(row) {
   return row?.visibility === 'public' ? Object.keys(row.latest_admitted_release_by_target).sort() : [];
 }
 
-export async function reconcilePolicies(root, sha, store, confirmHead = liveHead) {
+function nativeTargetVersions(row) {
+  if (row?.visibility !== 'public' || !row.latest_admitted_release_by_target) return {};
+  const out = {};
+  for (const targetId of Object.keys(row.latest_admitted_release_by_target).sort()) {
+    const descriptorId = row.latest_admitted_release_by_target[targetId]?.descriptor_id;
+    const at = typeof descriptorId === 'string' ? descriptorId.lastIndexOf('@') : -1;
+    const version = at > 0 ? descriptorId.slice(at + 1) : '';
+    if (version) out[targetId] = version;
+  }
+  return out;
+}
+
+export async function reconcilePolicies(root, sha, store, confirmHead = liveHead, { refreshAll = false } = {}) {
   const checkpoint = (await store.query('SELECT revision FROM registry_state WHERE singleton=1')).results[0]
     ?.revision;
   if ((await confirmHead()) !== sha) throw new Error('Registry checkout superseded');
   const index = await readJson(root, 'index.json');
   let ids;
-  if (!checkpoint) ids = await dir(root, 'products');
+  if (checkpoint) git(root, 'merge-base', '--is-ancestor', checkpoint, sha);
+  if (!checkpoint || refreshAll) ids = await dir(root, 'products');
   else {
-    git(root, 'merge-base', '--is-ancestor', checkpoint, sha);
     // Include intermediate changes that were reverted after a partially applied sync.
     const changes = git(
       root,
@@ -158,7 +179,12 @@ export async function reconcilePolicies(root, sha, store, confirmHead = liveHead
       for (const revision of revisions.split('\n').filter(Boolean)) {
         const next = revision === sha ? index.apps : JSON.parse(git(root, 'show', revision + ':index.json')).apps;
         for (const id of new Set([...Object.keys(prior), ...Object.keys(next)])) {
-          if (JSON.stringify(nativeTargets(prior[id])) !== JSON.stringify(nativeTargets(next[id]))) keys.add(id);
+          if (
+            JSON.stringify(nativeTargets(prior[id])) !== JSON.stringify(nativeTargets(next[id])) ||
+            JSON.stringify(nativeTargetVersions(prior[id])) !== JSON.stringify(nativeTargetVersions(next[id]))
+          ) {
+            keys.add(id);
+          }
         }
         prior = next;
       }
@@ -168,9 +194,10 @@ export async function reconcilePolicies(root, sha, store, confirmHead = liveHead
   for (const id of ids) {
     const { p, web } = await checkoutProduct(root, id);
     const previous = (await store.query('SELECT * FROM products WHERE app_id=?', id)).results[0];
-    if (previous?.policy_commit === sha) continue;
+    if (!refreshAll && previous?.policy_commit === sha) continue;
     if (previous) git(root, 'merge-base', '--is-ancestor', previous.policy_commit, sha);
     const targets = nativeTargets(index.apps[id]);
+    const targetVersions = nativeTargetVersions(index.apps[id]);
     const caps = web?.capability_contract_refs ?? [];
     const values = [
       p.slug,
@@ -182,15 +209,18 @@ export async function reconcilePolicies(root, sha, store, confirmHead = liveHead
       p.summary.en,
       p.summary.zh,
       JSON.stringify(targets),
+      JSON.stringify(targetVersions),
       JSON.stringify(caps),
       Number(p.visibility === 'public'),
       Number(p.kill_switch.active),
+      p.origin ?? null,
+      p.upstream ? JSON.stringify(p.upstream) : null,
       web?.client_id ?? null,
       web?.source_revision ?? null,
       Number(web?.status === 'active'),
       sha,
     ];
-    const newSource = previous && previous.source_revision !== web?.source_revision;
+    const newSource = previous && previous.source_revision !== (web?.source_revision ?? null);
     const update = columns
       .filter((c) => !['app_id', 'slug'].includes(c))
       .map((c) => c + '=excluded.' + c)
@@ -202,7 +232,9 @@ export async function reconcilePolicies(root, sha, store, confirmHead = liveHead
       values.map(() => '?').join(',') +
       ',?) ON CONFLICT(app_id) DO UPDATE SET ' +
       update +
-      ', pending=excluded.pending, ready=CASE WHEN ? THEN 0 ELSE products.ready END, active_version=CASE WHEN ? THEN NULL ELSE products.active_version END, active_digest=CASE WHEN ? THEN NULL ELSE products.active_digest END WHERE products.policy_commit=?';
+      // A same-revision migration may run while the asset publisher completes a pending upload.
+      ', pending=CASE WHEN products.policy_commit=excluded.policy_commit THEN products.pending ELSE excluded.pending END' +
+      ', ready=CASE WHEN ? THEN 0 ELSE products.ready END, active_version=CASE WHEN ? THEN NULL ELSE products.active_version END, active_digest=CASE WHEN ? THEN NULL ELSE products.active_digest END WHERE products.policy_commit=?';
     const pending = Number(
       Boolean(
         web?.stable_version &&
@@ -348,14 +380,319 @@ export async function publishProduct(
   if (!marked.meta.changes) throw new Error('Policy changed during public verification');
 }
 
+export async function migrateStorefrontSchema(root, sha, store, confirmHead = liveHead) {
+  if ((await confirmHead()) !== sha) throw new Error('Registry checkout superseded');
+  const { results } = await store.query('PRAGMA table_info(products)');
+  const existingCols = new Set((results || []).map((col) => col.name));
+  if (!existingCols.has('origin')) {
+    await store.query('ALTER TABLE products ADD COLUMN origin TEXT');
+  }
+  if (!existingCols.has('upstream_json')) {
+    await store.query('ALTER TABLE products ADD COLUMN upstream_json TEXT');
+  }
+  if (!existingCols.has('pc_target_versions_json')) {
+    await store.query("ALTER TABLE products ADD COLUMN pc_target_versions_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  await store.query(
+    'CREATE TABLE IF NOT EXISTS storefront_catalog (app_id TEXT PRIMARY KEY, primary_version TEXT NOT NULL, target_releases_json TEXT NOT NULL, capabilities_json TEXT NOT NULL DEFAULT \'[]\', has_storefront INTEGER NOT NULL DEFAULT 0, category TEXT, default_locale TEXT, summary_en TEXT NOT NULL, summary_zh TEXT NOT NULL, tags_json TEXT NOT NULL DEFAULT \'{}\', icon_asset TEXT, cover_assets_json TEXT, synced_commit TEXT NOT NULL, updated_at INTEGER NOT NULL)',
+  );
+  const { results: sfCols } = await store.query('PRAGMA table_info(storefront_catalog)');
+  const existingSfCols = new Set((sfCols || []).map((col) => col.name));
+  if (!existingSfCols.has('capabilities_json')) {
+    await store.query('ALTER TABLE storefront_catalog ADD COLUMN capabilities_json TEXT NOT NULL DEFAULT \'[]\'');
+  }
+  await reconcilePolicies(root, sha, store, confirmHead, { refreshAll: true });
+}
+
+function targetBaselineRank(targetId) {
+  const idx = TARGET_BASELINE_ORDER.indexOf(targetId);
+  return idx === -1 ? TARGET_BASELINE_ORDER.length : idx;
+}
+
+function selectBaselineTarget(targets) {
+  return [...targets].sort((left, right) => {
+    const diff = targetBaselineRank(left.target_id) - targetBaselineRank(right.target_id);
+    return diff !== 0 ? diff : left.target_id.localeCompare(right.target_id, 'en');
+  })[0];
+}
+
+function resolveStorefrontCardSummaries(info, product) {
+  if (!info.storefront) {
+    return { en: product.summary.en, zh: product.summary.zh };
+  }
+  const defaultLocale = info.storefront.default_locale;
+  const locales = info.storefront.locales || {};
+  const forLocale = (locale) => {
+    if (defaultLocale === locale) return info.summary;
+    return locales[locale]?.summary || info.summary;
+  };
+  return { en: forLocale('en'), zh: forLocale('zh') };
+}
+
+function resolveStorefrontTagsMap(info) {
+  if (!info.storefront?.locales) return {};
+  const out = {};
+  for (const [locale, entry] of Object.entries(info.storefront.locales)) {
+    if (Array.isArray(entry.tags) && entry.tags.length > 0) out[locale] = entry.tags;
+  }
+  return out;
+}
+
+function resolveCoverAssetsMap(info) {
+  const cover = info.storefront?.media?.cover;
+  if (!cover?.default) return null;
+  const fileOf = (ref) => `${ref.sha256}.${storefrontMediaExtension(ref.media_type)}`;
+  const out = { default: fileOf(cover.default) };
+  if (cover.locales && Object.keys(cover.locales).length > 0) {
+    out.locales = Object.fromEntries(
+      Object.entries(cover.locales).map(([locale, ref]) => [locale, fileOf(ref)]),
+    );
+  }
+  return out;
+}
+
+export async function syncStorefronts(
+  root,
+  sha,
+  store,
+  io = { head: liveHead, download: fetchBundle },
+) {
+  if ((await io.head()) !== sha) throw new Error('Registry checkout superseded');
+  const index = await readJson(root, 'index.json');
+  const appIds = Object.keys(index.apps || {}).sort();
+  let syncedApps = 0;
+  const failed = [];
+
+  for (const appId of appIds) {
+    try {
+      const indexRow = index.apps[appId];
+      if (indexRow?.visibility !== 'public') continue;
+      const { p } = await checkoutProduct(root, appId);
+      if (p.visibility !== 'public') continue;
+
+      const existing = (await store.query('SELECT * FROM storefront_catalog WHERE app_id=?', appId)).results[0];
+      if (existing?.synced_commit && existing.synced_commit !== sha) {
+        git(root, 'merge-base', '--is-ancestor', existing.synced_commit, sha);
+      }
+
+      const pointers = Object.entries(indexRow.latest_admitted_release_by_target || {}).sort(([a], [b]) =>
+        a.localeCompare(b, 'en'),
+      );
+      if (pointers.length === 0) continue;
+
+      const descriptorCache = new Map();
+      const targetReleases = {};
+      const versionsToDescriptors = new Map();
+
+      for (const [targetId, pointer] of pointers) {
+        if (!pointer?.path) continue;
+        let descriptor = descriptorCache.get(pointer.path);
+        if (!descriptor) {
+          descriptor = await readJson(root, pointer.path);
+          descriptorCache.set(pointer.path, descriptor);
+        }
+        const candidate = descriptor.candidate;
+        const target = candidate.targets.find((t) => t.target_id === targetId);
+        if (!target) throw new Error(`Descriptor ${pointer.path} is missing target ${targetId}`);
+        targetReleases[targetId] = {
+          version: candidate.version,
+          size: target.size,
+          os: target.os,
+          arch: target.arch,
+          app_info_sha256: target.app_info.sha256,
+          ...(candidate.storefront_media ? { storefront_media_sha256: candidate.storefront_media.sha256 } : {}),
+        };
+        if (!versionsToDescriptors.has(candidate.version)) {
+          versionsToDescriptors.set(candidate.version, { descriptor, targets: [] });
+        }
+        versionsToDescriptors.get(candidate.version).targets.push(target);
+      }
+
+      const activeVersions = [...versionsToDescriptors.keys()].sort(compareSemverDesc);
+      if (activeVersions.length === 0) continue;
+      const primaryVersion = activeVersions[0];
+      const targetReleasesJson = JSON.stringify(targetReleases);
+
+      const existingReleases = existing?.target_releases_json ? JSON.parse(existing.target_releases_json) : {};
+      if (existing?.synced_commit === sha && existing.target_releases_json === targetReleasesJson) {
+        continue;
+      }
+
+      const isVersionAlreadySynced = (version, appInfoSha, mediaSha) =>
+        Object.values(existingReleases).some(
+          (entry) =>
+            entry &&
+            entry.version === version &&
+            entry.app_info_sha256 === appInfoSha &&
+            (entry.storefront_media_sha256 ?? null) === (mediaSha ?? null),
+        );
+
+      let primaryCardMeta = null;
+
+      for (const version of activeVersions) {
+        const { descriptor, targets } = versionsToDescriptors.get(version);
+        const candidate = descriptor.candidate;
+        const baseline = selectBaselineTarget(targets);
+        const mediaAsset = candidate.storefront_media ?? null;
+        const alreadySynced = isVersionAlreadySynced(
+          version,
+          baseline.app_info.sha256,
+          mediaAsset?.sha256 ?? null,
+        );
+
+        if (alreadySynced && version !== primaryVersion) {
+          continue;
+        }
+        if (alreadySynced && version === primaryVersion && existing?.primary_version === primaryVersion) {
+          primaryCardMeta = {
+            capabilitiesJson: existing.capabilities_json ?? '[]',
+            hasStorefront: Boolean(existing.has_storefront),
+            category: existing.category ?? null,
+            defaultLocale: existing.default_locale ?? null,
+            summaryEn: existing.summary_en,
+            summaryZh: existing.summary_zh,
+            tagsJson: existing.tags_json ?? '{}',
+            iconAsset: existing.icon_asset ?? null,
+            coverAssetsJson: existing.cover_assets_json ?? null,
+          };
+          continue;
+        }
+
+        const infoBytes = await io.download(baseline.app_info.asset_url, baseline.app_info.size);
+        if (
+          infoBytes.length !== baseline.app_info.size ||
+          createHash('sha256').update(infoBytes).digest('hex') !== baseline.app_info.sha256
+        ) {
+          throw new Error(`App info digest mismatch for ${appId}@${version}`);
+        }
+        const info = validateAppInfo(JSON.parse(infoBytes.toString('utf8')));
+        if (info.app_id !== appId || info.version !== version) {
+          throw new Error(`App info identity mismatch for ${appId}@${version}`);
+        }
+
+        const iconBytes = Buffer.from(info.icon.data_base64, 'base64');
+        const iconSha = createHash('sha256').update(iconBytes).digest('hex');
+        const iconAsset = `${iconSha}.png`;
+        await store.put(`storefront-media/${appId}/${iconAsset}`, iconBytes);
+
+        if (mediaAsset) {
+          const zipBytes = await io.download(mediaAsset.asset_url, mediaAsset.size);
+          if (
+            zipBytes.length !== mediaAsset.size ||
+            createHash('sha256').update(zipBytes).digest('hex') !== mediaAsset.sha256
+          ) {
+            throw new Error(`Storefront media archive digest mismatch for ${appId}@${version}`);
+          }
+          const entries = readNimiAppArchive(zipBytes);
+          const expectedFiles = new Set(
+            collectStorefrontImageRefs(info.storefront?.media).map(
+              (ref) => `${ref.sha256}.${storefrontMediaExtension(ref.media_type)}`,
+            ),
+          );
+          if (entries.size !== expectedFiles.size) {
+            throw new Error(`Storefront media archive entry count mismatch for ${appId}@${version}`);
+          }
+          for (const [name, entry] of entries) {
+            if (entry.mode !== 0o644 || !expectedFiles.has(name)) {
+              throw new Error(`Unexpected storefront media archive entry ${name} for ${appId}@${version}`);
+            }
+            const actualSha = createHash('sha256').update(entry.bytes).digest('hex');
+            if (!name.startsWith(actualSha + '.')) {
+              throw new Error(`Storefront media entry ${name} SHA-256 mismatch for ${appId}@${version}`);
+            }
+            await store.put(`storefront-media/${appId}/${name}`, entry.bytes);
+          }
+        }
+
+        const immutableDoc = {
+          schema_version: 1,
+          app_id: appId,
+          version,
+          display_name: info.display_name,
+          summary: info.summary,
+          readme_markdown: info.readme_markdown,
+          release_notes_markdown: info.release_notes_markdown || '',
+          license: info.license,
+          author: info.author || '',
+          homepage_url: info.homepage_url || '',
+          support_url: info.support_url || '',
+          app_access: info.app_access,
+          capability_contract_refs: info.capability_contract_refs,
+          required_standardized_feature_refs: info.required_standardized_feature_refs,
+          storage_policy: info.storage_policy,
+          safety_profile: info.safety_profile ?? null,
+          admission_trust_tier: descriptor.admission?.trust_tier ?? null,
+          icon_asset: iconAsset,
+          ...(info.storefront ? { storefront: info.storefront } : {}),
+        };
+        await store.put(
+          `storefront-docs/${appId}/${version}.json`,
+          Buffer.from(JSON.stringify(immutableDoc), 'utf8'),
+        );
+
+        if (version === primaryVersion) {
+          const summaries = resolveStorefrontCardSummaries(info, p);
+          const coverAssets = resolveCoverAssetsMap(info);
+          primaryCardMeta = {
+            capabilitiesJson: JSON.stringify(info.capability_contract_refs || []),
+            hasStorefront: Boolean(info.storefront),
+            category: info.storefront?.category ?? null,
+            defaultLocale: info.storefront?.default_locale ?? null,
+            summaryEn: summaries.en,
+            summaryZh: summaries.zh,
+            tagsJson: JSON.stringify(resolveStorefrontTagsMap(info)),
+            iconAsset,
+            coverAssetsJson: coverAssets ? JSON.stringify(coverAssets) : null,
+          };
+        }
+      }
+
+      if (!primaryCardMeta) continue;
+      if ((await io.head()) !== sha) throw new Error('Registry checkout superseded during storefront sync');
+
+      const now = Date.now();
+      const result = await store.query(
+        'INSERT INTO storefront_catalog(app_id,primary_version,target_releases_json,capabilities_json,has_storefront,category,default_locale,summary_en,summary_zh,tags_json,icon_asset,cover_assets_json,synced_commit,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(app_id) DO UPDATE SET primary_version=excluded.primary_version,target_releases_json=excluded.target_releases_json,capabilities_json=excluded.capabilities_json,has_storefront=excluded.has_storefront,category=excluded.category,default_locale=excluded.default_locale,summary_en=excluded.summary_en,summary_zh=excluded.summary_zh,tags_json=excluded.tags_json,icon_asset=excluded.icon_asset,cover_assets_json=excluded.cover_assets_json,synced_commit=excluded.synced_commit,updated_at=excluded.updated_at WHERE storefront_catalog.synced_commit IS ?',
+        appId,
+        primaryVersion,
+        targetReleasesJson,
+        primaryCardMeta.capabilitiesJson,
+        Number(primaryCardMeta.hasStorefront),
+        primaryCardMeta.category,
+        primaryCardMeta.defaultLocale,
+        primaryCardMeta.summaryEn,
+        primaryCardMeta.summaryZh,
+        primaryCardMeta.tagsJson,
+        primaryCardMeta.iconAsset,
+        primaryCardMeta.coverAssetsJson,
+        sha,
+        now,
+        existing?.synced_commit ?? null,
+      );
+      if (result.meta?.changes === 0) throw new Error('Concurrent storefront_catalog update for ' + appId);
+      syncedApps += 1;
+    } catch (error) {
+      failed.push(`${appId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (failed.length > 0) {
+    throw new Error(`Storefront sync failed for ${failed.length} app(s): ${failed.join('; ')}`);
+  }
+  return { syncedApps };
+}
+
 async function main() {
   const [mode, target] = process.argv.slice(2);
-  if (!target || !['policy', 'publish'].includes(mode))
-    throw new Error('Expected policy|publish and a trusted Registry checkout');
+  if (!['migrate', 'policy', 'publish', 'storefront'].includes(mode))
+    throw new Error('Expected migrate|policy|publish|storefront and a trusted Registry checkout');
+  const store = cloudflareStore(process.env);
+  if (!target) throw new Error('Expected a trusted Registry checkout');
   const root = path.resolve(target),
     sha = git(root, 'rev-parse', 'HEAD');
-  const store = cloudflareStore(process.env);
+  if (mode === 'migrate') return migrateStorefrontSchema(root, sha, store);
   if (mode === 'policy') return reconcilePolicies(root, sha, store);
+  if (mode === 'storefront') return syncStorefronts(root, sha, store);
   let after = '',
     failed = false;
   for (;;) {

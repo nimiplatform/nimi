@@ -24,6 +24,7 @@ import {
   PackageOpen,
   Play,
   Plug,
+  RotateCw,
   Settings,
   ShieldCheck,
   ShieldQuestion,
@@ -48,6 +49,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   AppsAIConfigSection,
+  CAPABILITY_COPY_KEYS,
   appsAIConfigCapabilityContracts,
 } from './apps-ai-config-section.js';
 import { AppsPropertiesDialog, type AppsPropertiesRow, type AppsPropertiesSection } from './apps-properties-dialog.js';
@@ -67,6 +69,15 @@ import { appRunTransition, appRunVisualState, appSourceForEntry, installedFocusF
 import { AppArtworkIcon, AppPackageStatusLine, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
 import { AppsReadmeMarkdown, readmeExternalHref } from './apps-readme-markdown.js';
 import { AppsDistributionDocuments } from './apps-distribution-info.js';
+import { AppsMediaShowcase } from './apps-media-showcase.js';
+import { AppsHighlightsGrid } from './apps-highlights-grid.js';
+import {
+  formatPackageByteSize,
+  resolveEntryOrigin,
+  resolveLocalDevStorefrontView,
+  resolvePackageStorefrontView,
+} from './apps-storefront.js';
+import type { LocalDevelopmentProjectStorefront } from '../local-development/local-development-bridge.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 
@@ -88,7 +99,7 @@ const APP_ACCESS_COPY_KEYS = Object.freeze({
 type ProjectReadmeState =
   | { readonly status: 'loading' }
   | { readonly status: 'loaded'; readonly content: string | null; readonly truncated: boolean }
-  | { readonly status: 'error' };
+  | { readonly status: 'error'; readonly field?: string };
 
 const APP_ACCESS_FEATURE_ICON = Object.freeze({
   'realm.data': Database,
@@ -160,21 +171,43 @@ function LocalDevelopmentAppsDetailView({
 
   const liveBridge = useMemo(() => createDesktopAppsLiveBridge(), []);
   const [readme, setReadme] = useState<ProjectReadmeState>({ status: 'loading' });
+  const [devStorefront, setDevStorefront] = useState<LocalDevelopmentProjectStorefront | null>(null);
+  const [previewRevision, setPreviewRevision] = useState(0);
 
   useEffect(() => {
     let alive = true;
     setReadme({ status: 'loading' });
-    liveBridge.readProjectReadme(registration.selector)
-      .then((result) => {
-        if (alive) setReadme({ status: 'loaded', content: result.content, truncated: result.truncated });
-      })
-      .catch(() => {
-        if (alive) setReadme({ status: 'error' });
-      });
+    setDevStorefront(null);
+    void Promise.allSettled([
+      liveBridge.readProjectReadme(registration.selector),
+      liveBridge.readProjectStorefront?.(registration.selector),
+    ]).then(([intro, preview]) => {
+      if (!alive) return;
+      setDevStorefront(preview.status === 'fulfilled' ? preview.value ?? null : null);
+      setReadme(intro.status === 'fulfilled'
+        ? { status: 'loaded', content: intro.value.content, truncated: intro.value.truncated }
+        : { status: 'error' });
+    });
     return () => {
       alive = false;
     };
-  }, [liveBridge, registration.selector, registration.updatedAtUnixMs]);
+  }, [liveBridge, registration.selector, registration.updatedAtUnixMs, previewRevision]);
+
+  const devStorefrontView = useMemo(
+    () => resolveLocalDevStorefrontView(
+      entry,
+      i18n.language,
+      devStorefront,
+      readme.status === 'loaded' ? readme.content : null,
+    ),
+    [entry, i18n.language, devStorefront, readme],
+  );
+  let effectiveReadme = readme;
+  if (readme.status === 'loaded') {
+    effectiveReadme = devStorefrontView.introductionErrorField
+      ? { status: 'error', field: devStorefrontView.introductionErrorField }
+      : { ...readme, content: devStorefrontView.introductionMarkdown };
+  }
 
   useEffect(() => () => {
     if (copyResetTimerRef.current !== null) {
@@ -297,13 +330,13 @@ function LocalDevelopmentAppsDetailView({
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
                   <h1 data-testid="apps-detail-title" className="desktop-module-title">
-                    {identity.displayName}
+                    {devStorefrontView.displayName}
                   </h1>
                   {runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
                 </div>
-                {entry.summary ? (
+                {(devStorefrontView.summary ?? entry.summary) ? (
                   <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
-                    {entry.summary}
+                    {devStorefrontView.summary ?? entry.summary}
                   </p>
                 ) : null}
               </div>
@@ -373,20 +406,64 @@ function LocalDevelopmentAppsDetailView({
 
           {activeTab === 'overview' ? (
             <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack outline-none">
+              {devStorefrontView.hasStorefront ? (
+                <InlineAlert
+                  tone="info"
+                  data-testid="apps-dev-storefront-banner"
+                  action={(
+                    <Button
+                      tone="secondary"
+                      size="sm"
+                      data-testid="apps-dev-storefront-refresh"
+                      leadingIcon={<RotateCw className="h-3.5 w-3.5" aria-hidden="true" />}
+                      onClick={() => setPreviewRevision((n) => n + 1)}
+                    >
+                      {t('Apps.storefront.devPreviewRefresh')}
+                    </Button>
+                  )}
+                >
+                  {t('Apps.storefront.devPreviewBanner')}
+                </InlineAlert>
+              ) : null}
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
                 onRemoveSource={onRemoveSource}
                 actionsDisabled={actionsDisabled}
                 onOpenEntry={onOpenEntry}
-                readme={readme}
+                readme={effectiveReadme}
+                showcase={(
+                  <>
+                    <AppsMediaShowcase
+                      coverUrl={devStorefrontView.coverUrl}
+                      gallery={devStorefrontView.gallery}
+                      appName={devStorefrontView.displayName}
+                    />
+                    <AppsHighlightsGrid
+                      highlights={devStorefrontView.highlights}
+                      tags={devStorefrontView.tags}
+                    />
+                  </>
+                )}
                 about={(
-                  <AppsAboutSection
-                    entry={entry}
-                    developer={null}
-                    fact={{ label: t('Apps.detail.lastUpdated'), value: formatDate(registration.updatedAtUnixMs, i18n.language) }}
-                    fallbackSummary={t('Apps.detail.localSummary')}
-                    onOpenProperties={() => setPropertiesOpen(true)}
-                  />
+                  <>
+                    <AppsCapabilitiesCard
+                      capabilities={registration.capabilityContractRefs}
+                      onManageCapabilities={() => { void navigation.push({ id: 'runtime' }); }}
+                    />
+                    <AppsAboutSection
+                      entry={entry}
+                      displayName={devStorefrontView.displayName}
+                      developer={null}
+                      extraFacts={[
+                        ...(devStorefrontView.category
+                          ? [{ label: t('Apps.storefront.categoryLabel'), value: t(`Apps.storefront.category.${devStorefrontView.category}`) }]
+                          : []),
+                        { label: t('Apps.detail.lastUpdated'), value: formatDate(registration.updatedAtUnixMs, i18n.language) },
+                      ]}
+                      fallbackSummary={t('Apps.detail.localSummary')}
+                      onOpenProperties={() => setPropertiesOpen(true)}
+                    />
+                  </>
                 )}
               />
             </div>
@@ -457,7 +534,7 @@ function InstalledAppsDetailView({
   onAIConfigChanged,
   readPackageInfo,
 }: AppsDetailViewProps): ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useHomeNavigation();
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
@@ -469,6 +546,21 @@ function InstalledAppsDetailView({
   const copyResetTimerRef = useRef<number | null>(null);
   const aiModelsAvailable = appsAIConfigCapabilityContracts(release?.appAccess ?? []).length > 0;
   const activeTab = requestedSection === 'access' || requestedSection === 'ai-models' && aiModelsAvailable ? requestedSection : 'overview';
+
+  const storefrontView = useMemo(
+    () => resolvePackageStorefrontView(entry, i18n.language),
+    [entry, i18n.language],
+  );
+  const productOrigin = resolveEntryOrigin(entry);
+  const localDownloadSize = formatPackageByteSize(catalog?.assetSize);
+  const declaredCapabilities = entry.appInfo?.capabilityContractRefs ?? catalog?.capabilityContractRefs ?? [];
+  const storagePolicyKind = entry.appInfo?.storagePolicyKind ?? catalog?.storagePolicyKind ?? null;
+  const licenseIdentifier = entry.appInfo?.licenseIdentifier || catalog?.sourceLicenseSpdxExpression || null;
+  const reviewDepthTier = appSourceForEntry(entry) === 'verified'
+    && catalog?.admissionTrustTier
+    && (!release || release.version === catalog.version)
+    ? catalog.admissionTrustTier
+    : null;
 
   useEffect(() => () => {
     if (copyResetTimerRef.current !== null) {
@@ -506,13 +598,41 @@ function InstalledAppsDetailView({
   const readme: ProjectReadmeState = entry.appInfoError
     ? { status: 'error' }
     : entry.appInfo
-      ? { status: 'loaded', content: entry.appInfo.readmeMarkdown || null, truncated: false }
+      ? { status: 'loaded', content: storefrontView.introductionMarkdown || null, truncated: false }
       : { status: 'loading' };
   const aboutDeveloper = entry.appInfo?.author?.trim()
     || (catalog?.publisherGithubNamespace?.trim() ? `@${catalog.publisherGithubNamespace.trim()}` : null);
   const aboutLinks = [
-    ...(entry.appInfo?.homepageUrl ? [{ label: t('Apps.info.homepage'), url: entry.appInfo.homepageUrl }] : []),
-    ...(entry.appInfo?.supportUrl ? [{ label: t('Apps.info.support'), url: entry.appInfo.supportUrl }] : []),
+    ...(entry.appInfo?.homepageUrl ? [{ id: 'homepage', label: t('Apps.info.homepage'), url: entry.appInfo.homepageUrl }] : []),
+    ...(entry.appInfo?.supportUrl ? [{ id: 'support', label: t('Apps.info.support'), url: entry.appInfo.supportUrl }] : []),
+    ...(catalog?.sourceRepository ? [{ id: 'repository', label: t('Apps.catalog.sourceRepository'), url: catalog.sourceRepository }] : []),
+  ];
+  const aboutExtraFacts: readonly { readonly label: string; readonly value: string; readonly href?: string }[] = [
+    ...(storefrontView.category
+      ? [{ label: t('Apps.storefront.categoryLabel'), value: t(`Apps.storefront.category.${storefrontView.category}`) }]
+      : []),
+    ...(catalog?.productUpstream?.name
+      ? [{
+          label: t('Apps.storefront.upstreamLabel'),
+          value: catalog.productUpstream.name,
+          href: catalog.productUpstream.url || undefined,
+        }]
+      : []),
+    ...(localDownloadSize ? [{ label: t('Apps.storefront.downloadSizeLabel'), value: localDownloadSize }] : []),
+    ...(catalog ? [{ label: t('Apps.storefront.platformLabel'), value: `${catalog.os} / ${catalog.arch}` }] : []),
+    ...(licenseIdentifier ? [{ label: t('Apps.storefront.licenseLabel'), value: licenseIdentifier }] : []),
+    ...(storagePolicyKind
+      ? [{
+          label: t('Apps.storefront.storageLabel'),
+          value: t(storagePolicyKind === 'app-owned-os-storage' ? 'Apps.info.osStorage' : 'Apps.info.nimiStorage'),
+        }]
+      : []),
+    ...(reviewDepthTier
+      ? [{
+          label: t('Apps.storefront.reviewDepthLabel'),
+          value: t(`Apps.storefront.reviewDepth.${reviewDepthTier}`, { defaultValue: reviewDepthTier }),
+        }]
+      : []),
   ];
 
   const tabItems = [
@@ -672,12 +792,20 @@ function InstalledAppsDetailView({
                 className="desktop-module-header-icon"
               />
               <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
                   <h1 data-testid="apps-detail-title" className="desktop-module-title">
-                    {entry.identity.displayName}{appSourceForEntry(entry) === 'verified' ? (
+                    {storefrontView.displayName}{appSourceForEntry(entry) === 'verified' ? (
                       <AppSourceBadge source="verified" description={t('Apps.sourceBadge.verifiedDescription')} className="ml-1.5 mt-1 align-top" />
                     ) : null}
                   </h1>
+                  {productOrigin ? (
+                    <span
+                      data-testid="apps-detail-origin-badge"
+                      className="inline-flex items-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]"
+                    >
+                      {t(`Apps.storefront.origin.${productOrigin}`)}
+                    </span>
+                  ) : null}
                   {release && runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
                   {release ? (
                     <span className="text-sm text-[color:var(--nimi-text-secondary)]" data-testid="apps-installed-access">
@@ -685,9 +813,9 @@ function InstalledAppsDetailView({
                     </span>
                   ) : null}
                 </div>
-                {entry.summary ? (
+                {storefrontView.summary ? (
                   <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
-                    {entry.summary}
+                    {storefrontView.summary}
                   </p>
                 ) : null}
                 {appSourceForEntry(entry) !== 'verified' ? (
@@ -710,7 +838,9 @@ function InstalledAppsDetailView({
                   onClick={() => onAction('install')}
                 >
                   <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t('Apps.action.install')}
+                  {localDownloadSize
+                    ? t('Apps.storefront.installWithSize', { size: localDownloadSize })
+                    : t('Apps.action.install')}
                 </Button>
               ) : runTransition ? (
                 <>
@@ -780,12 +910,50 @@ function InstalledAppsDetailView({
                 actionsDisabled={actionsDisabled}
                 onOpenEntry={onOpenEntry}
                 readme={readme}
+                showcase={(
+                  <>
+                    <AppsMediaShowcase
+                      coverUrl={storefrontView.coverUrl}
+                      gallery={storefrontView.gallery}
+                      appName={storefrontView.displayName}
+                      collapsedByDefault={Boolean(release)}
+                    />
+                    <AppsHighlightsGrid
+                      highlights={storefrontView.highlights}
+                      tags={storefrontView.tags}
+                    />
+                  </>
+                )}
+                footer={entry.appInfo?.releaseNotesMarkdown ? (
+                  <details
+                    data-testid="apps-detail-release-notes"
+                    className="mt-6 rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-4"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--nimi-text-primary)]">
+                      {t('Apps.storefront.releaseNotesTitle')} · {entry.appInfo.version}
+                    </summary>
+                    <div className="mt-3">
+                      <AppsReadmeMarkdown content={entry.appInfo.releaseNotesMarkdown} />
+                    </div>
+                  </details>
+                ) : null}
                 about={(
                   <>
+                    <AppsCapabilitiesCard
+                      capabilities={declaredCapabilities}
+                      onManageCapabilities={() => {
+                        if (aiModelsAvailable) {
+                          void navigation.replace({ id: 'apps', appId: entry.identity.appId, appEntryKey: entry.identity.entryKey, appSection: 'ai-models' });
+                        } else {
+                          void navigation.push({ id: 'runtime' });
+                        }
+                      }}
+                    />
                     <AppsAboutSection
                       entry={entry}
+                      displayName={storefrontView.displayName}
                       developer={aboutDeveloper}
-                      fact={null}
+                      extraFacts={aboutExtraFacts}
                       links={aboutLinks}
                       onOpenProperties={() => setPropertiesOpen(true)}
                     />
@@ -986,27 +1154,78 @@ function AppSourcesBanner({ entries, onOpenEntry, onRemoveSource, actionsDisable
  * leaving the side of the page empty. Below that breakpoint the bands stack
  * in the original order.
  */
-function AppsOverviewTab({ sourceEntries, onOpenEntry, onRemoveSource, actionsDisabled, about, readme }: {
+function AppsOverviewTab({ sourceEntries, onOpenEntry, onRemoveSource, actionsDisabled, about, readme, showcase = null, footer = null }: {
   readonly sourceEntries: readonly DesktopAppsEntry[];
   readonly onOpenEntry: (entryKey: string) => void;
   readonly onRemoveSource?: (entryKey: string) => void;
   readonly actionsDisabled: boolean;
   readonly about: ReactNode;
   readonly readme: ProjectReadmeState;
+  readonly showcase?: ReactNode;
+  readonly footer?: ReactNode;
 }): ReactElement {
   const hasReadme = readme.status !== 'loaded' || Boolean(readme.content);
+  const hasMainContent = hasReadme || Boolean(showcase) || Boolean(footer);
   return (
     <>
       <AppSourcesBanner entries={sourceEntries} onOpenEntry={onOpenEntry} onRemoveSource={onRemoveSource} actionsDisabled={actionsDisabled} />
-      {hasReadme ? (
+      {hasMainContent ? (
         <div className="flex flex-col gap-7 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
           <div className="min-w-0 xl:order-2">{about}</div>
           <div className="min-w-0 xl:order-1">
+            {showcase}
             <AppsReadmeSection readme={readme} />
+            {footer}
           </div>
         </div>
       ) : about}
     </>
+  );
+}
+
+function AppsCapabilitiesCard({ capabilities, onManageCapabilities }: {
+  readonly capabilities: readonly string[];
+  readonly onManageCapabilities: () => void;
+}): ReactElement | null {
+  const { t } = useTranslation();
+  if (capabilities.length === 0) return null;
+  return (
+    <section
+      data-testid="apps-capabilities-card"
+      aria-label={t('Apps.storefront.capabilitiesCardTitle')}
+      className="mb-5 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
+    >
+      <h2 className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">
+        {t('Apps.storefront.capabilitiesCardTitle')}
+      </h2>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {capabilities.map((cap) => {
+          const copyKey = CAPABILITY_COPY_KEYS[cap];
+          return (
+            <span
+              key={cap}
+              title={cap}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-2.5 py-1 text-xs font-medium text-[color:var(--nimi-text-primary)]"
+            >
+              <Sparkles className="h-3 w-3 shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden="true" />
+              {copyKey ? t(copyKey.label) : cap}
+            </span>
+          );
+        })}
+      </div>
+      <p className="mt-2.5 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
+        {t('Apps.storefront.capabilitiesCardNote')}
+      </p>
+      <Button
+        tone="ghost"
+        size="sm"
+        className="-ml-2 mt-2"
+        onClick={onManageCapabilities}
+      >
+        {t('Apps.storefront.capabilitiesManageAction')}
+        <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+      </Button>
+    </section>
   );
 }
 
@@ -1015,33 +1234,35 @@ function AppsOverviewTab({ sourceEntries, onOpenEntry, onRemoveSource, actionsDi
  * facts strip. Deep diagnostics stay in the properties dialog behind
  * "more info".
  */
-function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, links = [], onOpenProperties }: {
+function AppsAboutSection({ entry, displayName, developer, extraFacts = [], fallbackSummary = null, links = [], onOpenProperties }: {
   readonly entry: DesktopAppsEntry;
+  readonly displayName?: string;
   readonly developer: string | null;
-  readonly fact: { readonly label: string; readonly value: string } | null;
+  readonly extraFacts?: readonly { readonly label: string; readonly value: string; readonly href?: string }[];
   readonly fallbackSummary?: string | null;
-  readonly links?: readonly { readonly label: string; readonly url: string }[];
+  readonly links?: readonly { readonly id: string; readonly label: string; readonly url: string }[];
   readonly onOpenProperties: () => void;
 }): ReactElement {
   const { t } = useTranslation();
   const { identity } = entry;
+  const resolvedName = displayName?.trim() || identity.displayName;
   const version = entry.localDevelopment
     ? null
     : entry.committedRelease?.version?.trim() || entry.catalogTarget?.version?.trim();
   // Catalog and package info expose no creation or publication dates.
   // A local installation commit is not the App's online update date.
-  const facts = [
+  const facts: readonly { readonly label: string; readonly value: string; readonly href?: string }[] = [
     ...(developer ? [{ label: t('Apps.detail.developer'), value: developer }] : []),
     ...(version ? [{ label: t('Apps.detail.catalogVersion'), value: version }] : []),
-    ...(fact ? [fact] : []),
+    ...extraFacts,
   ];
   return (
     <section
       data-testid="apps-about-section"
-      aria-label={t('Apps.detail.aboutAppTitle', { name: identity.displayName })}
+      aria-label={t('Apps.detail.aboutAppTitle', { name: resolvedName })}
     >
       <h2 className="desktop-module-section-title">
-        {t('Apps.detail.aboutAppTitle', { name: identity.displayName })}
+        {t('Apps.detail.aboutAppTitle', { name: resolvedName })}
       </h2>
       {entry.summary || !fallbackSummary ? null : (
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
@@ -1050,12 +1271,30 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
       )}
       <div className="mt-4 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-          {facts.map((item) => (
-            <div key={item.label} className="min-w-0">
-              <dt className="text-xs leading-4 text-[color:var(--nimi-text-muted)]">{item.label}</dt>
-              <dd className="mt-1 break-words text-sm font-medium leading-5 text-[color:var(--nimi-text-primary)]">{item.value}</dd>
-            </div>
-          ))}
+          {facts.map((item) => {
+            const safeHref = item.href ? readmeExternalHref(item.href) : null;
+            return (
+              <div key={item.label} className="min-w-0">
+                <dt className="text-xs leading-4 text-[color:var(--nimi-text-muted)]">{item.label}</dt>
+                <dd className="mt-1 break-words text-sm font-medium leading-5 text-[color:var(--nimi-text-primary)]">
+                  {safeHref ? (
+                    <a
+                      href={safeHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[var(--nimi-action-primary-bg)] underline decoration-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] underline-offset-2 hover:decoration-current"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        void openExternalUrl(safeHref).catch(() => undefined);
+                      }}
+                    >
+                      {item.value}
+                    </a>
+                  ) : item.value}
+                </dd>
+              </div>
+            );
+          })}
         </dl>
         <div className="mt-4 flex items-center">
           <Button
@@ -1076,7 +1315,7 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
             const href = readmeExternalHref(link.url);
             if (!href) return null;
             return (
-              <span key={link.url} className="flex items-center gap-2">
+              <span key={link.id} className="flex items-center gap-2">
                 {index > 0 ? <span aria-hidden="true" className="text-[color:var(--nimi-text-muted)]">·</span> : null}
                 <a
                   href={href}
@@ -1118,7 +1357,7 @@ function AppsReadmeSection({ readme }: { readonly readme: ProjectReadmeState }):
             <div className="h-4 w-2/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
           </div>
         ) : readme.status === 'error' ? (
-          <InlineAlert tone="warning" data-testid="apps-readme-error">{t('Apps.detail.readmeError')}</InlineAlert>
+          <InlineAlert tone="warning" data-testid="apps-readme-error">{t('Apps.detail.readmeError')}{readme.field && <> <code>{readme.field}</code></>}</InlineAlert>
         ) : readme.status === 'loaded' && readme.content ? (
           <div data-testid="apps-readme" className="max-w-3xl">
             {readme.truncated ? <InlineAlert tone="info" className="mb-3">{t('Apps.detail.readmeTruncated')}</InlineAlert> : null}

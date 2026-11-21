@@ -1,13 +1,50 @@
 name: Publish reviewed Web apps
 on:
   workflow_dispatch:
+    inputs:
+      run_migration:
+        description: Run idempotent D1 storefront schema migration once before deployment
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: '7,22,37,52 * * * *'
 permissions:
   contents: read
 jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_migration == true && github.ref == 'refs/heads/main' && vars.HOSTED_WEB_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: hosted-web-production
+    concurrency:
+      group: hosted-web-migrate
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          repository: nimiplatform/nimi-app-registry
+          ref: main
+          path: registry-checkout
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: corepack enable && pnpm install --prod --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools --filter @nimiplatform/hosted-web
+      - run: node apps/hosted-web/publish.mjs migrate registry-checkout
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_HOSTED_WEB_DATABASE_ID: ${{ vars.CLOUDFLARE_HOSTED_WEB_DATABASE_ID }}
+          CLOUDFLARE_HOSTED_WEB_BUCKET: ${{ vars.CLOUDFLARE_HOSTED_WEB_BUCKET }}
+          CLOUDFLARE_HOSTED_WEB_API_TOKEN: ${{ secrets.CLOUDFLARE_HOSTED_WEB_API_TOKEN }}
   policy:
-    if: github.ref == 'refs/heads/main' && vars.HOSTED_WEB_ENABLED == 'true'
+    needs: [migrate]
+    if: always() && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') && github.ref == 'refs/heads/main' && vars.HOSTED_WEB_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: hosted-web-production
     concurrency:
@@ -59,6 +96,36 @@ jobs:
           package-manager-cache: false
       - run: corepack enable && pnpm install --prod --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools --filter @nimiplatform/hosted-web
       - run: node apps/hosted-web/publish.mjs publish registry-checkout
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_HOSTED_WEB_DATABASE_ID: ${{ vars.CLOUDFLARE_HOSTED_WEB_DATABASE_ID }}
+          CLOUDFLARE_HOSTED_WEB_BUCKET: ${{ vars.CLOUDFLARE_HOSTED_WEB_BUCKET }}
+          CLOUDFLARE_HOSTED_WEB_API_TOKEN: ${{ secrets.CLOUDFLARE_HOSTED_WEB_API_TOKEN }}
+  storefront:
+    needs: policy
+    runs-on: ubuntu-latest
+    environment: hosted-web-production
+    concurrency:
+      group: hosted-web-storefront
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          repository: nimiplatform/nimi-app-registry
+          ref: main
+          path: registry-checkout
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: corepack enable && pnpm install --prod --frozen-lockfile --ignore-scripts --filter @nimiplatform/app-tools --filter @nimiplatform/hosted-web
+      - run: node apps/hosted-web/publish.mjs storefront registry-checkout
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

@@ -390,7 +390,20 @@ func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprove
 		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
 		PolicyRevision:                  target.KillSwitch.Revision,
 		SafetyDeclaration:               appSafetyDeclarationProjection(target.SafetyProfile),
+		ProductOrigin:                   target.Origin,
+		ProductUpstream:                 appProductUpstreamProjection(target.Upstream),
+		AdmissionTrustTier:              target.Admission.TrustTier,
 	}, nil
+}
+
+func appProductUpstreamProjection(upstream *publicappregistry.ProductUpstream) *runtimev1.AppProductUpstream {
+	if upstream == nil {
+		return nil
+	}
+	return &runtimev1.AppProductUpstream{
+		Name: upstream.Name,
+		Url:  upstream.URL,
+	}
 }
 
 // Projects the declaration as declared; nil stays nil (undeclared), never an

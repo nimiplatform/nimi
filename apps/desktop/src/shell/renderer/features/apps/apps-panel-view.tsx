@@ -58,8 +58,10 @@ import {
   sortAppsEntries,
 } from './apps-card-fields.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
+import { resolveEntryLocalizedName } from './apps-storefront.js';
 import { AppListRow } from './apps-list-row.js';
 import { AppsDetailView } from './apps-detail-view.js';
+import { AppsDiscoveryGrid } from './apps-storefront-cards.js';
 import { AppsInstallConfirmationDialog } from './apps-install-confirmation.js';
 import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
 import { useAppEntryMenu } from './apps-entry-menu.js';
@@ -318,6 +320,7 @@ export function AppsPanelView({
         ) : (
           <AppsHome
             projection={projection}
+            groups={groups}
             attentionEntries={attentionEntries}
             updateEntries={updateEntries}
             recentGroups={recentGroups}
@@ -600,8 +603,9 @@ const RailGroupRow = memo(function RailGroupRow({
   onAction,
   onKeyDown,
 }: RailGroupRowProps): ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const primary = group.primary;
+  const localizedDisplayName = resolveEntryLocalizedName(primary, i18n.language) || group.displayName;
   const visual = appRunVisualState(primary.run?.state ?? null);
   const transition = appRunTransition(visual, activeAction);
   // A not-yet-installed Catalog row keeps a muted, Steam-like look.
@@ -665,7 +669,7 @@ const RailGroupRow = memo(function RailGroupRow({
           >
             <AppArtworkIcon
               appId={group.appId}
-              displayName={group.displayName}
+              displayName={localizedDisplayName}
               iconUrl={group.iconUrl}
               size="xs"
               className={`desktop-sidebar__icon ${notInstalled ? 'opacity-60' : ''}`}
@@ -676,7 +680,7 @@ const RailGroupRow = memo(function RailGroupRow({
                 ? 'font-semibold text-[color:var(--nimi-text-primary)]'
                 : 'text-[color:var(--nimi-text-primary)]'
             }`}>
-              {group.displayName}
+              {localizedDisplayName}
             </span>
             {transition ? (
               <span data-rail-transition={transition} className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
@@ -737,6 +741,7 @@ const RailGroupRow = memo(function RailGroupRow({
 
 function AppsHome({
   projection,
+  groups,
   attentionEntries,
   updateEntries,
   recentGroups,
@@ -750,6 +755,7 @@ function AppsHome({
   sourceChoiceNotice,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
+  readonly groups: readonly DesktopAppGroup[];
   readonly attentionEntries: readonly DesktopAppsEntry[];
   readonly updateEntries: readonly DesktopAppsEntry[];
   readonly recentGroups: readonly DesktopAppGroup[];
@@ -788,6 +794,7 @@ function AppsHome({
 
       <AppsHomeBody
         projection={projection}
+        groups={groups}
         attentionEntries={attentionEntries}
         updateEntries={updateEntries}
         recentGroups={recentGroups}
@@ -804,6 +811,7 @@ function AppsHome({
 
 function AppsHomeBody({
   projection,
+  groups,
   attentionEntries,
   updateEntries,
   recentGroups,
@@ -815,6 +823,7 @@ function AppsHomeBody({
   onFocusRailSearch,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
+  readonly groups: readonly DesktopAppGroup[];
   readonly attentionEntries: readonly DesktopAppsEntry[];
   readonly updateEntries: readonly DesktopAppsEntry[];
   readonly recentGroups: readonly DesktopAppGroup[];
@@ -930,6 +939,8 @@ function AppsHomeBody({
           ))}
         </div>
       </Surface>
+
+      <AppsDiscoveryGrid groups={groups} actionDispatcherFor={actionDispatcherFor} />
 
       <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
     </div>

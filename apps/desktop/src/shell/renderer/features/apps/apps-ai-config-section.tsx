@@ -15,7 +15,7 @@ import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup
 
 export const APPS_AI_CONFIG_APP_ACCESS_DOMAIN = 'runtime.consume';
 
-const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
+export const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
   readonly label: string;
   readonly description: string;
 }>> = Object.freeze({

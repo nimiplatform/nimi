@@ -239,6 +239,49 @@ Keep repository setup, architecture, build/release commands and engineering acce
 
 Packaging copies its exact text into the existing `app-info.json` `readme_markdown` field. Installed and Catalog entries display their exact release snapshot; changing source documentation does not rewrite an immutable release.
 
+### Storefront Presentation (`metadata.storefront`)
+
+Apps may declare optional `metadata.storefront` in `nimi.app.yaml` to provide localized store copy, highlights, tags, a 16:9 cover image, and up to 6 static screenshots (WebP or PNG, static only, `<= 512 KiB` each; cover `800–2560 × 450–1600`, gallery `640–2560 × 360–1600`). Supported `category` values: `companions-worlds`, `lifestyle`, `writing-notes`, `design-diagrams`, `audio-music`, `video-media`, `research-learning`, `productivity-automation`, `developer-tools`.
+
+Non-default locales may override `display_name`, `summary`, and `introduction` (pointing to a repo-relative UTF-8 Markdown file up to `96 KiB`); the `default_locale` reuses top-level `display_name`, `metadata.summary`, and root `NIMI_APP.md` without duplicating them.
+
+```yaml
+metadata:
+  summary: 中文简介（默认语种来自顶层字段与 NIMI_APP.md）
+  icon: assets/app-artwork.png
+  storefront:
+    category: lifestyle
+    default_locale: zh
+    locales:
+      zh:
+        tags: [节律观察, 本地隐私]
+        highlights:
+          - title: 确定性排盘
+            description: 本地先算准客观盘面，再结合模型解读。
+      en:
+        display_name: ShiJing
+        summary: Deterministic personal rhythm companion.
+        introduction: NIMI_APP.en.md
+        tags: [Rhythm, Local-First]
+        highlights:
+          - title: Deterministic Engine
+            description: Computes local charts before layering AI reflection.
+    media:
+      cover:
+        path: assets/storefront/cover-zh.webp
+        locales:
+          en: assets/storefront/cover-en.webp
+      gallery:
+        - id: overview
+          kind: image
+          path: assets/storefront/overview-zh.webp
+          caption:
+            zh: 主视图总览
+            en: "Main workspace overview"
+```
+
+During `nimi-app pack --target`, App Tools validates every declared image and writes only image digests and dimensions into `app-info.json` (never embedding screenshots inside `.nimiapp`). During `nimi-app pack --aggregate`, App Tools checks cross-target display parity and packages all referenced images once into a deduplicated `<app_id>-<version>-storefront-media.zip` (`<= 8 MiB`) uploaded alongside the immutable GitHub Release.
+
 ### Package v2 Output & Sidecar Verification
 `pack` writes the `nimi.app-package/v2` format and emits the exact embedded `app-info.json` bytes as a sidecar file named `<app_id>-<version>-<target_id>.app-info.json` alongside the `.nimiapp` bundle and `.target.json`. Aggregate verification checks both files and confirms they match the embedded document byte-for-byte.
 
@@ -256,7 +299,7 @@ Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
 
 The same CLI supports `create --platform web`, Web `init/sync/check/test/build`, existing-site `init --adopt`, and `dev --platform web`. `standalone` is still the repository topology. Web `--features all` currently resolves to `studio-create` (text, streaming chat and embeddings); other feature selections fail explicitly until their Web carrier is admitted. Mobile generation remains outside this command. For managed Web hosting, build a static release with the App's public slug and prepare it for separate human Registry admission.
 
-Use a compatible host and matching prerelease packages for Web development. App Tools `0.16.0-rc.10` scaffolds the project with SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. For unpublished changes, use a matching set of complete source archives. See [Environment Setup](../docs/start/install.md).
+Use a compatible host and matching prerelease packages for Web development. App Tools `0.16.0-rc.12` scaffolds the project with SDK `0.24.0-rc.10` and Kit `0.24.0-rc.16`. For unpublished changes, use a matching set of complete source archives. See [Environment Setup](../docs/start/install.md).
 
 The current workbench uses account-owned prompt drafts with an asynchronous `promptDraft` projection and independent history record documents. For existing unreleased generated prototypes, update the App-owned AI Studio capability source together with the generated host adapters. `sync` intentionally preserves `src/capabilities` and does not migrate or overwrite that business source; running `check` alone is not a substitute for the project's typecheck/build after this source update.
 

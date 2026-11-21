@@ -1189,6 +1189,173 @@ export interface AppSafetyDeclaration {
     highImpactDecisionUses: string[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AppProductUpstream
+ */
+export interface AppProductUpstream {
+    /**
+     * @generated from protobuf field: string name = 1
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string url = 2
+     */
+    url: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontHighlight
+ */
+export interface AppStorefrontHighlight {
+    /**
+     * @generated from protobuf field: string title = 1
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string description = 2
+     */
+    description: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontLocale
+ */
+export interface AppStorefrontLocale {
+    /**
+     * @generated from protobuf field: string locale = 1
+     */
+    locale: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string summary = 3
+     */
+    summary: string;
+    /**
+     * @generated from protobuf field: repeated string tags = 4
+     */
+    tags: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppStorefrontHighlight highlights = 5
+     */
+    highlights: AppStorefrontHighlight[];
+    /**
+     * @generated from protobuf field: string introduction_markdown = 6
+     */
+    introductionMarkdown: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontImageRef
+ */
+export interface AppStorefrontImageRef {
+    /**
+     * @generated from protobuf field: string media_type = 1
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: uint32 width = 2
+     */
+    width: number;
+    /**
+     * @generated from protobuf field: uint32 height = 3
+     */
+    height: number;
+    /**
+     * @generated from protobuf field: uint64 size = 4
+     */
+    size: string;
+    /**
+     * @generated from protobuf field: string sha256 = 5
+     */
+    sha256: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontLocalizedImage
+ */
+export interface AppStorefrontLocalizedImage {
+    /**
+     * @generated from protobuf field: string locale = 1
+     */
+    locale: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontImageRef image = 2
+     */
+    image?: AppStorefrontImageRef;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontCover
+ */
+export interface AppStorefrontCover {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontImageRef default_image = 1
+     */
+    defaultImage?: AppStorefrontImageRef;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales = 2
+     */
+    locales: AppStorefrontLocalizedImage[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontGalleryItem
+ */
+export interface AppStorefrontGalleryItem {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string kind = 2
+     */
+    kind: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontImageRef default_image = 3
+     */
+    defaultImage?: AppStorefrontImageRef;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales = 4
+     */
+    locales: AppStorefrontLocalizedImage[];
+    /**
+     * @generated from protobuf field: map<string, string> caption = 5
+     */
+    caption: {
+        [key: string]: string;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontMedia
+ */
+export interface AppStorefrontMedia {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontCover cover = 1
+     */
+    cover?: AppStorefrontCover;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppStorefrontGalleryItem gallery = 2
+     */
+    gallery: AppStorefrontGalleryItem[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppStorefrontInfo
+ */
+export interface AppStorefrontInfo {
+    /**
+     * @generated from protobuf field: string category = 1
+     */
+    category: string;
+    /**
+     * @generated from protobuf field: string default_locale = 2
+     */
+    defaultLocale: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppStorefrontLocale locales = 3
+     */
+    locales: AppStorefrontLocale[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontMedia media = 4
+     */
+    media?: AppStorefrontMedia;
+}
+/**
  * Runtime projects one target from one immutable Registry snapshot. The
  * selector is opaque to Desktop and is the only input accepted by install
  * start; display fields never authorize a package mutation by themselves.
@@ -1310,6 +1477,22 @@ export interface ApprovedAppCatalogTarget {
      * @generated from protobuf field: nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 28
      */
     safetyDeclaration?: AppSafetyDeclaration;
+    /**
+     * Registry-reviewed product attribution projected from product.json into index.json.
+     *
+     * @generated from protobuf field: string product_origin = 29
+     */
+    productOrigin: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppProductUpstream product_upstream = 30
+     */
+    productUpstream?: AppProductUpstream;
+    /**
+     * Registry admission review depth tier (e.g. first-party, verified-partner, community).
+     *
+     * @generated from protobuf field: string admission_trust_tier = 31
+     */
+    admissionTrustTier: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
@@ -1586,6 +1769,12 @@ export interface AppPackageInfo {
      * @generated from protobuf field: nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 19
      */
     safetyDeclaration?: AppSafetyDeclaration;
+    /**
+     * Absent when the information document carries no structured storefront extension.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppStorefrontInfo storefront = 20
+     */
+    storefront?: AppStorefrontInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetAppPackageInfoRequest
@@ -5782,6 +5971,608 @@ class AppSafetyDeclaration$Type extends MessageType<AppSafetyDeclaration> {
  */
 export const AppSafetyDeclaration = new AppSafetyDeclaration$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppProductUpstream$Type extends MessageType<AppProductUpstream> {
+    constructor() {
+        super("nimi.runtime.v1.AppProductUpstream", [
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppProductUpstream>): AppProductUpstream {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.name = "";
+        message.url = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppProductUpstream>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppProductUpstream): AppProductUpstream {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string name */ 1:
+                    message.name = reader.string();
+                    break;
+                case /* string url */ 2:
+                    message.url = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppProductUpstream, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string name = 1; */
+        if (message.name !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.name);
+        /* string url = 2; */
+        if (message.url !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.url);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppProductUpstream
+ */
+export const AppProductUpstream = new AppProductUpstream$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontHighlight$Type extends MessageType<AppStorefrontHighlight> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontHighlight", [
+            { no: 1, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontHighlight>): AppStorefrontHighlight {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.title = "";
+        message.description = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontHighlight>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontHighlight): AppStorefrontHighlight {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string title */ 1:
+                    message.title = reader.string();
+                    break;
+                case /* string description */ 2:
+                    message.description = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontHighlight, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string title = 1; */
+        if (message.title !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.title);
+        /* string description = 2; */
+        if (message.description !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.description);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontHighlight
+ */
+export const AppStorefrontHighlight = new AppStorefrontHighlight$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontLocale$Type extends MessageType<AppStorefrontLocale> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontLocale", [
+            { no: 1, name: "locale", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "highlights", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppStorefrontHighlight },
+            { no: 6, name: "introduction_markdown", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontLocale>): AppStorefrontLocale {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.locale = "";
+        message.displayName = "";
+        message.summary = "";
+        message.tags = [];
+        message.highlights = [];
+        message.introductionMarkdown = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontLocale>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontLocale): AppStorefrontLocale {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string locale */ 1:
+                    message.locale = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* string summary */ 3:
+                    message.summary = reader.string();
+                    break;
+                case /* repeated string tags */ 4:
+                    message.tags.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.AppStorefrontHighlight highlights */ 5:
+                    message.highlights.push(AppStorefrontHighlight.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string introduction_markdown */ 6:
+                    message.introductionMarkdown = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontLocale, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string locale = 1; */
+        if (message.locale !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.locale);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* string summary = 3; */
+        if (message.summary !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.summary);
+        /* repeated string tags = 4; */
+        for (let i = 0; i < message.tags.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.tags[i]);
+        /* repeated nimi.runtime.v1.AppStorefrontHighlight highlights = 5; */
+        for (let i = 0; i < message.highlights.length; i++)
+            AppStorefrontHighlight.internalBinaryWrite(message.highlights[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* string introduction_markdown = 6; */
+        if (message.introductionMarkdown !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.introductionMarkdown);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontLocale
+ */
+export const AppStorefrontLocale = new AppStorefrontLocale$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontImageRef$Type extends MessageType<AppStorefrontImageRef> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontImageRef", [
+            { no: 1, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "width", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "height", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "size", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontImageRef>): AppStorefrontImageRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mediaType = "";
+        message.width = 0;
+        message.height = 0;
+        message.size = "0";
+        message.sha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontImageRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontImageRef): AppStorefrontImageRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string media_type */ 1:
+                    message.mediaType = reader.string();
+                    break;
+                case /* uint32 width */ 2:
+                    message.width = reader.uint32();
+                    break;
+                case /* uint32 height */ 3:
+                    message.height = reader.uint32();
+                    break;
+                case /* uint64 size */ 4:
+                    message.size = reader.uint64().toString();
+                    break;
+                case /* string sha256 */ 5:
+                    message.sha256 = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontImageRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string media_type = 1; */
+        if (message.mediaType !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mediaType);
+        /* uint32 width = 2; */
+        if (message.width !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.width);
+        /* uint32 height = 3; */
+        if (message.height !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.height);
+        /* uint64 size = 4; */
+        if (message.size !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.size);
+        /* string sha256 = 5; */
+        if (message.sha256 !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sha256);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontImageRef
+ */
+export const AppStorefrontImageRef = new AppStorefrontImageRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontLocalizedImage$Type extends MessageType<AppStorefrontLocalizedImage> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontLocalizedImage", [
+            { no: 1, name: "locale", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "image", kind: "message", T: () => AppStorefrontImageRef }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontLocalizedImage>): AppStorefrontLocalizedImage {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.locale = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontLocalizedImage>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontLocalizedImage): AppStorefrontLocalizedImage {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string locale */ 1:
+                    message.locale = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppStorefrontImageRef image */ 2:
+                    message.image = AppStorefrontImageRef.internalBinaryRead(reader, reader.uint32(), options, message.image);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontLocalizedImage, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string locale = 1; */
+        if (message.locale !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.locale);
+        /* nimi.runtime.v1.AppStorefrontImageRef image = 2; */
+        if (message.image)
+            AppStorefrontImageRef.internalBinaryWrite(message.image, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontLocalizedImage
+ */
+export const AppStorefrontLocalizedImage = new AppStorefrontLocalizedImage$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontCover$Type extends MessageType<AppStorefrontCover> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontCover", [
+            { no: 1, name: "default_image", kind: "message", T: () => AppStorefrontImageRef },
+            { no: 2, name: "locales", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppStorefrontLocalizedImage }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontCover>): AppStorefrontCover {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.locales = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontCover>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontCover): AppStorefrontCover {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppStorefrontImageRef default_image */ 1:
+                    message.defaultImage = AppStorefrontImageRef.internalBinaryRead(reader, reader.uint32(), options, message.defaultImage);
+                    break;
+                case /* repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales */ 2:
+                    message.locales.push(AppStorefrontLocalizedImage.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontCover, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppStorefrontImageRef default_image = 1; */
+        if (message.defaultImage)
+            AppStorefrontImageRef.internalBinaryWrite(message.defaultImage, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales = 2; */
+        for (let i = 0; i < message.locales.length; i++)
+            AppStorefrontLocalizedImage.internalBinaryWrite(message.locales[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontCover
+ */
+export const AppStorefrontCover = new AppStorefrontCover$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontGalleryItem$Type extends MessageType<AppStorefrontGalleryItem> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontGalleryItem", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "default_image", kind: "message", T: () => AppStorefrontImageRef },
+            { no: 4, name: "locales", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppStorefrontLocalizedImage },
+            { no: 5, name: "caption", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontGalleryItem>): AppStorefrontGalleryItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.kind = "";
+        message.locales = [];
+        message.caption = {};
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontGalleryItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontGalleryItem): AppStorefrontGalleryItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string kind */ 2:
+                    message.kind = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppStorefrontImageRef default_image */ 3:
+                    message.defaultImage = AppStorefrontImageRef.internalBinaryRead(reader, reader.uint32(), options, message.defaultImage);
+                    break;
+                case /* repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales */ 4:
+                    message.locales.push(AppStorefrontLocalizedImage.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* map<string, string> caption */ 5:
+                    this.binaryReadMap5(message.caption, reader, options);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    private binaryReadMap5(map: AppStorefrontGalleryItem["caption"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof AppStorefrontGalleryItem["caption"] | undefined, val: AppStorefrontGalleryItem["caption"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.AppStorefrontGalleryItem.caption");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
+    internalBinaryWrite(message: AppStorefrontGalleryItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string kind = 2; */
+        if (message.kind !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.kind);
+        /* nimi.runtime.v1.AppStorefrontImageRef default_image = 3; */
+        if (message.defaultImage)
+            AppStorefrontImageRef.internalBinaryWrite(message.defaultImage, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AppStorefrontLocalizedImage locales = 4; */
+        for (let i = 0; i < message.locales.length; i++)
+            AppStorefrontLocalizedImage.internalBinaryWrite(message.locales[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* map<string, string> caption = 5; */
+        for (let k of globalThis.Object.keys(message.caption))
+            writer.tag(5, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.caption[k]).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontGalleryItem
+ */
+export const AppStorefrontGalleryItem = new AppStorefrontGalleryItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontMedia$Type extends MessageType<AppStorefrontMedia> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontMedia", [
+            { no: 1, name: "cover", kind: "message", T: () => AppStorefrontCover },
+            { no: 2, name: "gallery", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppStorefrontGalleryItem }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontMedia>): AppStorefrontMedia {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.gallery = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontMedia>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontMedia): AppStorefrontMedia {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppStorefrontCover cover */ 1:
+                    message.cover = AppStorefrontCover.internalBinaryRead(reader, reader.uint32(), options, message.cover);
+                    break;
+                case /* repeated nimi.runtime.v1.AppStorefrontGalleryItem gallery */ 2:
+                    message.gallery.push(AppStorefrontGalleryItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontMedia, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppStorefrontCover cover = 1; */
+        if (message.cover)
+            AppStorefrontCover.internalBinaryWrite(message.cover, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AppStorefrontGalleryItem gallery = 2; */
+        for (let i = 0; i < message.gallery.length; i++)
+            AppStorefrontGalleryItem.internalBinaryWrite(message.gallery[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontMedia
+ */
+export const AppStorefrontMedia = new AppStorefrontMedia$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppStorefrontInfo$Type extends MessageType<AppStorefrontInfo> {
+    constructor() {
+        super("nimi.runtime.v1.AppStorefrontInfo", [
+            { no: 1, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "default_locale", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "locales", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppStorefrontLocale },
+            { no: 4, name: "media", kind: "message", T: () => AppStorefrontMedia }
+        ]);
+    }
+    create(value?: PartialMessage<AppStorefrontInfo>): AppStorefrontInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.category = "";
+        message.defaultLocale = "";
+        message.locales = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppStorefrontInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppStorefrontInfo): AppStorefrontInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string category */ 1:
+                    message.category = reader.string();
+                    break;
+                case /* string default_locale */ 2:
+                    message.defaultLocale = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.AppStorefrontLocale locales */ 3:
+                    message.locales.push(AppStorefrontLocale.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.AppStorefrontMedia media */ 4:
+                    message.media = AppStorefrontMedia.internalBinaryRead(reader, reader.uint32(), options, message.media);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppStorefrontInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string category = 1; */
+        if (message.category !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.category);
+        /* string default_locale = 2; */
+        if (message.defaultLocale !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.defaultLocale);
+        /* repeated nimi.runtime.v1.AppStorefrontLocale locales = 3; */
+        for (let i = 0; i < message.locales.length; i++)
+            AppStorefrontLocale.internalBinaryWrite(message.locales[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppStorefrontMedia media = 4; */
+        if (message.media)
+            AppStorefrontMedia.internalBinaryWrite(message.media, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppStorefrontInfo
+ */
+export const AppStorefrontInfo = new AppStorefrontInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget> {
     constructor() {
         super("nimi.runtime.v1.ApprovedAppCatalogTarget", [
@@ -5812,7 +6603,10 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
             { no: 25, name: "policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 26, name: "macos_notarization", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 27, name: "macos_developer_id_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 28, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration }
+            { no: 28, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration },
+            { no: 29, name: "product_origin", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 30, name: "product_upstream", kind: "message", T: () => AppProductUpstream },
+            { no: 31, name: "admission_trust_tier", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ApprovedAppCatalogTarget>): ApprovedAppCatalogTarget {
@@ -5841,6 +6635,8 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
         message.policyBlocked = false;
         message.policyRevision = "0";
         message.macosNotarization = "";
+        message.productOrigin = "";
+        message.admissionTrustTier = "";
         if (value !== undefined)
             reflectionMergePartial<ApprovedAppCatalogTarget>(this, message, value);
         return message;
@@ -5933,6 +6729,15 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
                     break;
                 case /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration */ 28:
                     message.safetyDeclaration = AppSafetyDeclaration.internalBinaryRead(reader, reader.uint32(), options, message.safetyDeclaration);
+                    break;
+                case /* string product_origin */ 29:
+                    message.productOrigin = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppProductUpstream product_upstream */ 30:
+                    message.productUpstream = AppProductUpstream.internalBinaryRead(reader, reader.uint32(), options, message.productUpstream);
+                    break;
+                case /* string admission_trust_tier */ 31:
+                    message.admissionTrustTier = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6030,6 +6835,15 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
         /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 28; */
         if (message.safetyDeclaration)
             AppSafetyDeclaration.internalBinaryWrite(message.safetyDeclaration, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
+        /* string product_origin = 29; */
+        if (message.productOrigin !== "")
+            writer.tag(29, WireType.LengthDelimited).string(message.productOrigin);
+        /* nimi.runtime.v1.AppProductUpstream product_upstream = 30; */
+        if (message.productUpstream)
+            AppProductUpstream.internalBinaryWrite(message.productUpstream, writer.tag(30, WireType.LengthDelimited).fork(), options).join();
+        /* string admission_trust_tier = 31; */
+        if (message.admissionTrustTier !== "")
+            writer.tag(31, WireType.LengthDelimited).string(message.admissionTrustTier);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6807,7 +7621,8 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
             { no: 16, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 17, name: "homepage_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "support_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 19, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration }
+            { no: 19, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration },
+            { no: 20, name: "storefront", kind: "message", T: () => AppStorefrontInfo }
         ]);
     }
     create(value?: PartialMessage<AppPackageInfo>): AppPackageInfo {
@@ -6896,6 +7711,9 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
                 case /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration */ 19:
                     message.safetyDeclaration = AppSafetyDeclaration.internalBinaryRead(reader, reader.uint32(), options, message.safetyDeclaration);
                     break;
+                case /* nimi.runtime.v1.AppStorefrontInfo storefront */ 20:
+                    message.storefront = AppStorefrontInfo.internalBinaryRead(reader, reader.uint32(), options, message.storefront);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6965,6 +7783,9 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
         /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 19; */
         if (message.safetyDeclaration)
             AppSafetyDeclaration.internalBinaryWrite(message.safetyDeclaration, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppStorefrontInfo storefront = 20; */
+        if (message.storefront)
+            AppStorefrontInfo.internalBinaryWrite(message.storefront, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

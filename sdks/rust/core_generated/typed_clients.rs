@@ -5837,6 +5837,7 @@ pub struct AppPackageInfo {
     pub homepage_url: Option<String>,
     pub support_url: Option<String>,
     pub safety_declaration: Option<Box<AppSafetyDeclaration>>,
+    pub storefront: Option<Box<AppStorefrontInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5867,6 +5868,12 @@ pub struct AppPackageJob {
     pub previous_version: Option<String>,
     pub target_os: Option<String>,
     pub target_arch: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppProductUpstream {
+    pub name: Option<String>,
+    pub url: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5908,6 +5915,66 @@ pub struct AppStorageProjection {
     pub storage_policy_ref: Option<String>,
     pub reason_code: Option<ReasonCode>,
     pub detail: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontCover {
+    pub default_image: Option<Box<AppStorefrontImageRef>>,
+    pub locales: Vec<Box<AppStorefrontLocalizedImage>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontGalleryItem {
+    pub id: Option<String>,
+    pub kind: Option<String>,
+    pub default_image: Option<Box<AppStorefrontImageRef>>,
+    pub locales: Vec<Box<AppStorefrontLocalizedImage>>,
+    pub caption: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontHighlight {
+    pub title: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontImageRef {
+    pub media_type: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub size: Option<u64>,
+    pub sha256: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontInfo {
+    pub category: Option<String>,
+    pub default_locale: Option<String>,
+    pub locales: Vec<Box<AppStorefrontLocale>>,
+    pub media: Option<Box<AppStorefrontMedia>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontLocale {
+    pub locale: Option<String>,
+    pub display_name: Option<String>,
+    pub summary: Option<String>,
+    pub tags: Vec<String>,
+    pub highlights: Vec<Box<AppStorefrontHighlight>>,
+    pub introduction_markdown: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontLocalizedImage {
+    pub locale: Option<String>,
+    pub image: Option<Box<AppStorefrontImageRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppStorefrontMedia {
+    pub cover: Option<Box<AppStorefrontCover>>,
+    pub gallery: Vec<Box<AppStorefrontGalleryItem>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6041,6 +6108,9 @@ pub struct ApprovedAppCatalogTarget {
     pub macos_notarization: Option<String>,
     pub macos_developer_id_subject: Option<String>,
     pub safety_declaration: Option<Box<AppSafetyDeclaration>>,
+    pub product_origin: Option<String>,
+    pub product_upstream: Option<Box<AppProductUpstream>>,
+    pub admission_trust_tier: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

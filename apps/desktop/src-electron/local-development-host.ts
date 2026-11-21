@@ -5,7 +5,7 @@ import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { lstat, open, readFile, readdir } from 'node:fs/promises';
+import { lstat, open, readFile, readdir, realpath } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -15,6 +15,7 @@ import {
   NIMI_APP_HOST_RESTART_EXIT_CODE,
   type NimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentRegistration,
+  type NimiElectronShellFileProtocolHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentPresencePublisher,
@@ -60,9 +61,11 @@ const COMMANDS = new Set([
   'local_development_run_stop',
   'local_development_project_readme',
   'local_development_project_icon',
+  'local_development_project_storefront',
 ]);
 const PROJECT_README_MAX_BYTES = 96 * 1024;
 const PROJECT_ICON_MAX_BYTES = 512 * 1024;
+const PROJECT_STOREFRONT_IMAGE_MAX_BYTES = 512 * 1024;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
@@ -169,6 +172,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void;
   readonly control?: NimiElectronLocalDevelopmentControl;
   readonly operationGate?: DesktopDataRootOperationGate;
+  readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;
 }): Promise<DesktopElectronLocalDevelopmentHost> {
   const host = new ElectronLocalDevelopmentHost(
     input.control ?? createNimiElectronLocalDevelopmentControl(),
@@ -177,6 +181,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     undefined,
     input.onExecutorChanged,
     input.authorizeSystemEntryFocus,
+    input.localAssetProtocolHost,
   );
   await host.start();
   return {
@@ -200,8 +205,10 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
 export class ElectronLocalDevelopmentHost {
   private readonly runs = new Map<string, RunContext>();
   private readonly registrationSelectors = new Map<string, string>();
+  private readonly storefrontAssetGrants = new Map<string, Set<string>>();
   private presentationRegistrations: ReturnType<NimiElectronLocalDevelopmentControl['listRegistrations']> | null = null;
   private readonly registrationRemovalSequences = new Map<string, number>();
+  private readonly removingRegistrationHandles = new Set<string>();
   private registrationIntentSequence = 0;
   private launcherStartQueue: Promise<unknown> = Promise.resolve();
   private server: Server | undefined;
@@ -221,6 +228,7 @@ export class ElectronLocalDevelopmentHost {
     private readonly launcherLeaseMs = LAUNCHER_LEASE_MS,
     private readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void,
     private readonly authorizeSystemEntryFocus?: SystemEntryFocusAuthorization,
+    private readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost,
   ) {
     this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
   }
@@ -266,6 +274,7 @@ export class ElectronLocalDevelopmentHost {
     if (command === 'local_development_registration_focus') return this.focusRegistration(exactPayload);
     if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
     if (command === 'local_development_project_icon') return this.readProjectIcon(exactPayload);
+    if (command === 'local_development_project_storefront') return this.readProjectStorefront(exactPayload);
     return this.stopRegistrationRun(exactPayload);
   }
 
@@ -385,6 +394,9 @@ export class ElectronLocalDevelopmentHost {
       await this.presencePublisher.shutdown();
     } catch (error) {
       failures.push(error);
+    }
+    for (const selectorValue of [...this.storefrontAssetGrants.keys()]) {
+      await this.revokeStorefrontAssetGrants(selectorValue);
     }
     if (failures.length > 0) throw new AggregateError(failures, 'local-development-supervisor-shutdown-failed');
   }
@@ -768,6 +780,243 @@ export class ElectronLocalDevelopmentHost {
     }
   }
 
+  private async revokeStorefrontAssetGrants(selectorValue: string, retain: ReadonlySet<string> = new Set()): Promise<void> {
+    const previous = this.storefrontAssetGrants.get(selectorValue);
+    if (!previous) return;
+    if (retain.size === 0) {
+      this.storefrontAssetGrants.delete(selectorValue);
+    } else {
+      this.storefrontAssetGrants.set(selectorValue, new Set(retain));
+    }
+    if (!this.localAssetProtocolHost) return;
+    for (const filePath of previous) {
+      if (retain.has(filePath)) continue;
+      let stillReferenced = false;
+      for (const [otherSelector, granted] of this.storefrontAssetGrants) {
+        if (otherSelector !== selectorValue && granted.has(filePath)) {
+          stillReferenced = true;
+          break;
+        }
+      }
+      if (!stillReferenced) {
+        await this.localAssetProtocolHost.unregisterReadableFile?.(filePath).catch(() => undefined);
+      }
+    }
+  }
+
+  private async grantProjectStorefrontImage(
+    projectRealRoot: string,
+    relativeValue: unknown,
+    nextGrants: Set<string>,
+  ): Promise<string | null> {
+    if (!this.localAssetProtocolHost) return null;
+    const relative = this.projectResourceName(relativeValue);
+    if (!relative || !/\.(?:webp|png)$/iu.test(relative)) return null;
+    const candidatePath = path.join(projectRealRoot, relative);
+    try {
+      const stat = await lstat(candidatePath);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0 || stat.size > PROJECT_STOREFRONT_IMAGE_MAX_BYTES) return null;
+      const realFile = await realpath(candidatePath);
+      const rel = path.relative(projectRealRoot, realFile);
+      if (!rel || rel.startsWith(`..${path.sep}`) || rel === '..' || path.isAbsolute(rel)) return null;
+      const canonical = await this.localAssetProtocolHost.registerReadableFile(realFile, 'external');
+      nextGrants.add(canonical);
+      return this.localAssetProtocolHost.resolveLocalAssetUrl(canonical);
+    } catch {
+      return null;
+    }
+  }
+
+  private async readProjectLocalizedMarkdown(projectRealRoot: string, relativeValue: unknown): Promise<string | null> {
+    const relative = this.projectResourceName(relativeValue);
+    if (!relative) return null;
+    const candidatePath = path.join(projectRealRoot, relative);
+    try {
+      const stat = await lstat(candidatePath);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0 || stat.size > PROJECT_README_MAX_BYTES) return null;
+      const realFile = await realpath(candidatePath);
+      const rel = path.relative(projectRealRoot, realFile);
+      if (!rel || rel.startsWith(`..${path.sep}`) || rel === '..' || path.isAbsolute(rel)) return null;
+      const bytes = await readFile(realFile);
+      const content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      return content.trim() && !content.includes('\0') ? content : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Loose developer-mode storefront preview using the existing local shell file protocol.
+  // Production validation remains owned by `nimi-app check` and `pack`.
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042c
+  private async readProjectStorefront(payload: Readonly<Record<string, unknown>>): Promise<{
+    readonly selector: string;
+    readonly storefront: {
+      readonly category: string;
+      readonly defaultLocale: string;
+      readonly locales: readonly {
+        readonly locale: string;
+        readonly displayName: string;
+        readonly summary: string;
+        readonly tags: readonly string[];
+        readonly highlights: readonly { readonly title: string; readonly description: string }[];
+        readonly introductionMarkdown?: string | null;
+      }[];
+      readonly cover: {
+        readonly defaultUrl: string | null;
+        readonly localeUrls: Readonly<Record<string, string>>;
+      } | null;
+      readonly gallery: readonly {
+        readonly id: string;
+        readonly defaultUrl: string | null;
+        readonly localeUrls: Readonly<Record<string, string>>;
+        readonly caption: Readonly<Record<string, string>>;
+      }[];
+    } | null;
+  }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const expectedHandle = this.registrationSelectors.get(selectorValue);
+    if (!expectedHandle || this.removingRegistrationHandles.has(expectedHandle)) {
+      throw new Error('local-development-registration-not-found');
+    }
+    const expectedRemovalSequence = this.registrationRemovalSequences.get(expectedHandle) ?? 0;
+    const isStillCurrent = (): boolean => (
+      !this.closing
+      && !this.removingRegistrationHandles.has(expectedHandle)
+      && this.registrationSelectors.get(selectorValue) === expectedHandle
+      && (this.registrationRemovalSequences.get(expectedHandle) ?? 0) === expectedRemovalSequence
+    );
+    const projectRoot = await this.registeredProjectRoot(selectorValue);
+    const projectRealRoot = await realpath(projectRoot);
+    const metadata = await this.projectMetadata(projectRoot);
+    const raw = metadata.storefront;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      if (isStillCurrent()) await this.revokeStorefrontAssetGrants(selectorValue);
+      return { selector: selectorValue, storefront: null };
+    }
+    const record = raw as Record<string, unknown>;
+    const category = typeof record.category === 'string' ? record.category.trim() : '';
+    const defaultLocale = typeof record.default_locale === 'string' && record.default_locale.trim()
+      ? record.default_locale.trim()
+      : 'en';
+    const nextGrants = new Set<string>();
+
+    const locales: {
+      readonly locale: string;
+      readonly displayName: string;
+      readonly summary: string;
+      readonly tags: readonly string[];
+      readonly highlights: readonly { readonly title: string; readonly description: string }[];
+      readonly introductionMarkdown?: string | null;
+    }[] = [];
+    if (record.locales && typeof record.locales === 'object' && !Array.isArray(record.locales)) {
+      for (const [locale, rawEntry] of Object.entries(record.locales as Record<string, unknown>)) {
+        if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) continue;
+        const entry = rawEntry as Record<string, unknown>;
+        const tags = Array.isArray(entry.tags)
+          ? entry.tags.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 5)
+          : [];
+        const highlights = Array.isArray(entry.highlights)
+          ? entry.highlights
+            .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+            .map((item) => ({
+              title: typeof item.title === 'string' ? item.title.trim() : '',
+              description: typeof item.description === 'string' ? item.description.trim() : '',
+            }))
+            .filter((item) => item.title.length > 0 && item.description.length > 0)
+            .slice(0, 4)
+          : [];
+        const introductionMarkdown = locale !== defaultLocale && entry.introduction !== undefined
+          ? await this.readProjectLocalizedMarkdown(projectRealRoot, entry.introduction)
+          : undefined;
+        locales.push({
+          locale,
+          displayName: locale !== defaultLocale && typeof entry.display_name === 'string' ? entry.display_name.trim() : '',
+          summary: locale !== defaultLocale && typeof entry.summary === 'string' ? entry.summary.trim() : '',
+          tags,
+          highlights,
+          introductionMarkdown,
+        });
+      }
+    }
+
+    let cover: { readonly defaultUrl: string | null; readonly localeUrls: Readonly<Record<string, string>> } | null = null;
+    const gallery: {
+      readonly id: string;
+      readonly defaultUrl: string | null;
+      readonly localeUrls: Readonly<Record<string, string>>;
+      readonly caption: Readonly<Record<string, string>>;
+    }[] = [];
+
+    if (record.media && typeof record.media === 'object' && !Array.isArray(record.media)) {
+      const media = record.media as Record<string, unknown>;
+      if (media.cover && typeof media.cover === 'object' && !Array.isArray(media.cover)) {
+        const rawCover = media.cover as Record<string, unknown>;
+        const defaultUrl = await this.grantProjectStorefrontImage(projectRealRoot, rawCover.path, nextGrants);
+        const localeUrls: Record<string, string> = {};
+        if (rawCover.locales && typeof rawCover.locales === 'object' && !Array.isArray(rawCover.locales)) {
+          for (const [locale, relPath] of Object.entries(rawCover.locales as Record<string, unknown>)) {
+            const url = await this.grantProjectStorefrontImage(projectRealRoot, relPath, nextGrants);
+            if (url) localeUrls[locale] = url;
+          }
+        }
+        if (defaultUrl || Object.keys(localeUrls).length > 0) {
+          cover = { defaultUrl, localeUrls };
+        }
+      }
+      if (Array.isArray(media.gallery)) {
+        for (const rawItem of media.gallery.slice(0, 6)) {
+          if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) continue;
+          const item = rawItem as Record<string, unknown>;
+          if (item.kind !== 'image' || typeof item.id !== 'string' || !item.id.trim()) continue;
+          const defaultUrl = await this.grantProjectStorefrontImage(projectRealRoot, item.path, nextGrants);
+          const localeUrls: Record<string, string> = {};
+          if (item.locales && typeof item.locales === 'object' && !Array.isArray(item.locales)) {
+            for (const [locale, relPath] of Object.entries(item.locales as Record<string, unknown>)) {
+              const url = await this.grantProjectStorefrontImage(projectRealRoot, relPath, nextGrants);
+              if (url) localeUrls[locale] = url;
+            }
+          }
+          const caption: Record<string, string> = {};
+          if (item.caption && typeof item.caption === 'object' && !Array.isArray(item.caption)) {
+            for (const [locale, captionText] of Object.entries(item.caption as Record<string, unknown>)) {
+              if (typeof captionText === 'string' && captionText.trim()) caption[locale] = captionText.trim();
+            }
+          }
+          if (defaultUrl || Object.keys(localeUrls).length > 0) {
+            gallery.push({ id: item.id.trim(), defaultUrl, localeUrls, caption });
+          }
+        }
+      }
+    }
+
+    if (!isStillCurrent()) {
+      if (this.localAssetProtocolHost) {
+        for (const filePath of nextGrants) {
+          let stillReferenced = false;
+          for (const [, granted] of this.storefrontAssetGrants) {
+            if (granted.has(filePath)) {
+              stillReferenced = true;
+              break;
+            }
+          }
+          if (!stillReferenced) {
+            await this.localAssetProtocolHost.unregisterReadableFile?.(filePath).catch(() => undefined);
+          }
+        }
+      }
+      throw new Error('local-development-registration-not-found');
+    }
+
+    await this.revokeStorefrontAssetGrants(selectorValue, nextGrants);
+    if (nextGrants.size > 0) this.storefrontAssetGrants.set(selectorValue, nextGrants);
+
+    return {
+      selector: selectorValue,
+      storefront: { category, defaultLocale, locales, cover, gallery },
+    };
+  }
+
   private async registeredProjectRoot(selectorValue: string): Promise<string> {
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
@@ -788,16 +1037,22 @@ export class ElectronLocalDevelopmentHost {
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
     this.registrationRemovalSequences.set(registrationHandle, ++this.registrationIntentSequence);
-    for (const run of this.runs.values()) {
-      const registrationOwnerHandle = run.registrationOwnerHandle ?? run.registrationHandle;
-      const cleanupPending = !run.stoppedCleanupComplete || Boolean(run.pendingEndRunRegistrationHandle);
-      if (registrationOwnerHandle === registrationHandle && (!run.stopped || cleanupPending)) {
-        await this.stopRun(run, 'registration-removed');
+    this.removingRegistrationHandles.add(registrationHandle);
+    try {
+      for (const run of this.runs.values()) {
+        const registrationOwnerHandle = run.registrationOwnerHandle ?? run.registrationHandle;
+        const cleanupPending = !run.stoppedCleanupComplete || Boolean(run.pendingEndRunRegistrationHandle);
+        if (registrationOwnerHandle === registrationHandle && (!run.stopped || cleanupPending)) {
+          await this.stopRun(run, 'registration-removed');
+        }
       }
+      await this.revokeStorefrontAssetGrants(selectorValue);
+      await this.control.removeRegistration(registrationHandle);
+      this.registrationSelectors.delete(selectorValue);
+      return { selector: selectorValue, removed: true };
+    } finally {
+      this.removingRegistrationHandles.delete(registrationHandle);
     }
-    await this.control.removeRegistration(registrationHandle);
-    this.registrationSelectors.delete(selectorValue);
-    return { selector: selectorValue, removed: true };
   }
 
   private async startRegistration(payload: Readonly<Record<string, unknown>>): Promise<ReturnType<typeof projectRun>> {

@@ -401,6 +401,11 @@ type Admission struct {
 	Review               Review              `json:"review"`
 }
 
+type ProductUpstream struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
 type ResolvedApprovedTarget struct {
 	Selector                        ApprovedTargetSelector
 	RegistryRevision                string
@@ -409,6 +414,8 @@ type ResolvedApprovedTarget struct {
 	DisplayName                     string
 	Version                         string
 	Visibility                      string
+	Origin                          string
+	Upstream                        *ProductUpstream
 	KillSwitch                      KillSwitch
 	Publisher                       Publisher
 	Source                          Source
@@ -436,6 +443,8 @@ type registryAppRow struct {
 	DisplayName                   string                       `json:"display_name"`
 	Visibility                    string                       `json:"visibility"`
 	AdmissionStatus               string                       `json:"admission_status"`
+	Origin                        string                       `json:"origin,omitempty"`
+	Upstream                      *ProductUpstream             `json:"upstream,omitempty"`
 	KillSwitch                    KillSwitch                   `json:"kill_switch"`
 	LatestAdmittedReleaseByTarget map[string]descriptorPointer `json:"latest_admitted_release_by_target"`
 }
@@ -466,8 +475,9 @@ type approvedCandidate struct {
 	Publisher                       Publisher      `json:"publisher"`
 	Source                          Source         `json:"source"`
 	Release                         Release        `json:"release"`
-	Aggregate                       aggregateAsset `json:"aggregate"`
-	Package                         Package        `json:"package"`
+	Aggregate                       aggregateAsset  `json:"aggregate"`
+	StorefrontMedia                 *aggregateAsset `json:"storefront_media,omitempty"`
+	Package                         Package         `json:"package"`
 	AppAccess                       []string       `json:"app_access"`
 	CapabilityContractRefs          []string       `json:"capability_contract_refs"`
 	RequiredStandardizedFeatureRefs []string       `json:"required_standardized_feature_refs"`
@@ -738,8 +748,9 @@ func resolvedApprovedTarget(selector ApprovedTargetSelector, descriptor approved
 	return ResolvedApprovedTarget{
 		Selector: selector, RegistryRevision: revision, DescriptorID: descriptor.DescriptorID,
 		AppID: candidate.AppID, DisplayName: candidate.DisplayName, Version: candidate.Version,
-		Visibility: row.Visibility, KillSwitch: cloneKillSwitch(row.KillSwitch),
-		Publisher: candidate.Publisher, Source: cloneSource(candidate.Source), Release: candidate.Release,
+		Visibility: row.Visibility, Origin: row.Origin, Upstream: cloneProductUpstream(row.Upstream),
+		KillSwitch: cloneKillSwitch(row.KillSwitch),
+		Publisher:  candidate.Publisher, Source: cloneSource(candidate.Source), Release: candidate.Release,
 		Package: candidate.Package, Admission: descriptor.Admission,
 		AppAccess:                       append([]string(nil), candidate.AppAccess...),
 		CapabilityContractRefs:          append([]string(nil), candidate.CapabilityContractRefs...),
@@ -748,6 +759,14 @@ func resolvedApprovedTarget(selector ApprovedTargetSelector, descriptor approved
 		RollbackMarker: candidate.RollbackMarker, Support: cloneSupport(candidate.Support), Target: cloneTarget(target),
 		SafetyProfile: appsafety.Clone(candidate.SafetyProfile),
 	}
+}
+
+func cloneProductUpstream(value *ProductUpstream) *ProductUpstream {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
 }
 
 func cloneKillSwitch(value KillSwitch) KillSwitch {

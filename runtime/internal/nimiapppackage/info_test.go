@@ -149,3 +149,73 @@ func TestDeclaredInformationMustMatchReviewedTargetAndPackagedDeclaration(t *tes
 		t.Fatalf("undeclared information and declaration still match: %v", err)
 	}
 }
+
+func TestAppInfoStorefrontValidationAndFailClosed(t *testing.T) {
+	validDigest := strings.Repeat("a", 64)
+	validStorefront := func() *AppInfoStorefront {
+		return &AppInfoStorefront{
+			Category:      "companions-worlds",
+			DefaultLocale: "zh",
+			Locales: map[string]AppInfoStorefrontLocale{
+				"zh": {
+					Tags:       []string{"节律观察", "六大透镜"},
+					Highlights: []AppInfoStorefrontHighlight{{Title: "确定性排盘", Description: "本地复现计算。"}},
+				},
+				"en": {
+					DisplayName:          "ShiJing",
+					Summary:              "Personal rhythm companion.",
+					Tags:                 []string{"Rhythm"},
+					Highlights:           []AppInfoStorefrontHighlight{{Title: "Deterministic Charts", Description: "Local calculation."}},
+					IntroductionMarkdown: "# ShiJing\n\nWelcome.",
+				},
+			},
+			Media: &AppInfoStorefrontMedia{
+				Cover: &AppInfoStorefrontCover{
+					Default: AppInfoStorefrontImageRef{MediaType: "image/webp", Width: 1280, Height: 720, Size: 65536, SHA256: validDigest},
+					Locales: map[string]AppInfoStorefrontImageRef{
+						"en": {MediaType: "image/png", Width: 1600, Height: 900, Size: 128000, SHA256: strings.Repeat("b", 64)},
+					},
+				},
+				Gallery: []AppInfoStorefrontGalleryItem{{
+					ID:      "day-lens",
+					Kind:    "image",
+					Default: AppInfoStorefrontImageRef{MediaType: "image/webp", Width: 1280, Height: 720, Size: 80000, SHA256: strings.Repeat("c", 64)},
+					Caption: map[string]string{"zh": "日镜", "en": "Day Lens"},
+				}},
+			},
+		}
+	}
+
+	info := testAppInfo(t)
+	info.Storefront = validStorefront()
+	parsed, err := ParseAppInfo(mustJSON(t, info))
+	if err != nil || parsed.Storefront == nil || parsed.Storefront.Category != "companions-worlds" {
+		t.Fatalf("valid storefront rejected: %+v %v", parsed.Storefront, err)
+	}
+
+	for name, mutate := range map[string]func(*AppInfoStorefront){
+		"unknown category":         func(sf *AppInfoStorefront) { sf.Category = "games" },
+		"default duplicates intro": func(sf *AppInfoStorefront) { l := sf.Locales["zh"]; l.IntroductionMarkdown = "dup"; sf.Locales["zh"] = l },
+		"cover too small":          func(sf *AppInfoStorefront) { sf.Media.Cover.Default.Width = 708; sf.Media.Cover.Default.Height = 357 },
+		"gallery too small":        func(sf *AppInfoStorefront) { sf.Media.Gallery[0].Default.Width = 600 },
+		"non-image gallery kind":   func(sf *AppInfoStorefront) { sf.Media.Gallery[0].Kind = "video" },
+		"unsupported media type":   func(sf *AppInfoStorefront) { sf.Media.Cover.Default.MediaType = "image/gif" },
+		"oversized image":          func(sf *AppInfoStorefront) { sf.Media.Cover.Default.Size = 512*1024 + 1 },
+		"bad sha256":               func(sf *AppInfoStorefront) { sf.Media.Cover.Default.SHA256 = "not-a-sha" },
+		"too many tags":            func(sf *AppInfoStorefront) { l := sf.Locales["zh"]; l.Tags = []string{"a", "b", "c", "d", "e", "f"}; sf.Locales["zh"] = l },
+		"duplicate tag":            func(sf *AppInfoStorefront) { l := sf.Locales["zh"]; l.Tags = []string{"a", "a"}; sf.Locales["zh"] = l },
+	} {
+		t.Run(name, func(t *testing.T) {
+			bad := testAppInfo(t)
+			bad.Storefront = validStorefront()
+			mutate(bad.Storefront)
+			if _, err := ParseAppInfo(mustJSON(t, bad)); !errors.Is(err, ErrInvalidPackage) {
+				t.Fatalf("invalid storefront (%s) accepted: %v", name, err)
+			}
+		})
+	}
+	unknownField := strings.Replace(string(mustJSON(t, info)), `"category":"companions-worlds"`, `"category":"companions-worlds","archive_sha256":"`+validDigest+`"`, 1)
+	if _, err := ParseAppInfo([]byte(unknownField)); !errors.Is(err, ErrInvalidPackage) {
+		t.Fatalf("unknown storefront field accepted: %v", err)
+	}
+}

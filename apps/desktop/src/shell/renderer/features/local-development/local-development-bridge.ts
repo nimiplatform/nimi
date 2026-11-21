@@ -102,6 +102,53 @@ function requireIconDataUrl(value: unknown): string | null {
   return value;
 }
 
+export type LocalDevelopmentProjectStorefrontHighlight = {
+  readonly title: string;
+  readonly description: string;
+};
+
+export type LocalDevelopmentProjectStorefrontLocale = {
+  readonly locale: string;
+  readonly displayName: string;
+  readonly summary: string;
+  readonly tags: readonly string[];
+  readonly highlights: readonly LocalDevelopmentProjectStorefrontHighlight[];
+  /** An omitted translation uses the default introduction. Null marks a failed read of a declared file. */
+  readonly introductionMarkdown?: string | null;
+};
+
+export type LocalDevelopmentProjectStorefrontGalleryItem = {
+  readonly id: string;
+  readonly defaultUrl: string | null;
+  readonly localeUrls: Readonly<Record<string, string>>;
+  readonly caption: Readonly<Record<string, string>>;
+};
+
+export type LocalDevelopmentProjectStorefront = {
+  readonly category: string;
+  readonly defaultLocale: string;
+  readonly locales: readonly LocalDevelopmentProjectStorefrontLocale[];
+  readonly cover: {
+    readonly defaultUrl: string | null;
+    readonly localeUrls: Readonly<Record<string, string>>;
+  } | null;
+  readonly gallery: readonly LocalDevelopmentProjectStorefrontGalleryItem[];
+};
+
+export async function readLocalDevelopmentProjectStorefront(
+  selector: string,
+): Promise<LocalDevelopmentProjectStorefront | null> {
+  const response = await invokeChecked(
+    'local_development_project_storefront',
+    { payload: { selector: requireSelector(selector) } },
+    (value) => value,
+  );
+  const record = exactRecord(response, ['selector', 'storefront']);
+  if (record.selector !== selector) throw new Error('Local development storefront response is invalid');
+  if (record.storefront === null) return null;
+  return record.storefront as LocalDevelopmentProjectStorefront;
+}
+
 export async function readLocalDevelopmentProjectReadme(
   selector: string,
 ): Promise<LocalDevelopmentProjectReadme> {

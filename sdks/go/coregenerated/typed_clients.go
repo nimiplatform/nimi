@@ -3255,6 +3255,7 @@ type AppPackageInfo struct {
 	HomepageUrl                     string                                `json:"homepage_url,omitempty"`
 	SupportUrl                      string                                `json:"support_url,omitempty"`
 	SafetyDeclaration               *AppSafetyDeclaration                 `json:"safety_declaration,omitempty"`
+	Storefront                      *AppStorefrontInfo                    `json:"storefront,omitempty"`
 }
 
 type AppPackageJob struct {
@@ -3284,6 +3285,11 @@ type AppPackageJob struct {
 	PreviousVersion    string                   `json:"previous_version,omitempty"`
 	TargetOs           string                   `json:"target_os,omitempty"`
 	TargetArch         string                   `json:"target_arch,omitempty"`
+}
+
+type AppProductUpstream struct {
+	Name string `json:"name,omitempty"`
+	Url  string `json:"url,omitempty"`
 }
 
 type AppSafetyDeclaration struct {
@@ -3322,6 +3328,58 @@ type AppStorageProjection struct {
 	StoragePolicyRef string          `json:"storage_policy_ref,omitempty"`
 	ReasonCode       ReasonCode      `json:"reason_code,omitempty"`
 	Detail           string          `json:"detail,omitempty"`
+}
+
+type AppStorefrontCover struct {
+	DefaultImage *AppStorefrontImageRef        `json:"default_image,omitempty"`
+	Locales      []AppStorefrontLocalizedImage `json:"locales,omitempty"`
+}
+
+type AppStorefrontGalleryItem struct {
+	Id           string                        `json:"id,omitempty"`
+	Kind         string                        `json:"kind,omitempty"`
+	DefaultImage *AppStorefrontImageRef        `json:"default_image,omitempty"`
+	Locales      []AppStorefrontLocalizedImage `json:"locales,omitempty"`
+	Caption      map[string]string             `json:"caption,omitempty"`
+}
+
+type AppStorefrontHighlight struct {
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type AppStorefrontImageRef struct {
+	MediaType string `json:"media_type,omitempty"`
+	Width     uint32 `json:"width,omitempty"`
+	Height    uint32 `json:"height,omitempty"`
+	Size      uint64 `json:"size,omitempty"`
+	Sha256    string `json:"sha256,omitempty"`
+}
+
+type AppStorefrontInfo struct {
+	Category      string                `json:"category,omitempty"`
+	DefaultLocale string                `json:"default_locale,omitempty"`
+	Locales       []AppStorefrontLocale `json:"locales,omitempty"`
+	Media         *AppStorefrontMedia   `json:"media,omitempty"`
+}
+
+type AppStorefrontLocale struct {
+	Locale               string                   `json:"locale,omitempty"`
+	DisplayName          string                   `json:"display_name,omitempty"`
+	Summary              string                   `json:"summary,omitempty"`
+	Tags                 []string                 `json:"tags,omitempty"`
+	Highlights           []AppStorefrontHighlight `json:"highlights,omitempty"`
+	IntroductionMarkdown string                   `json:"introduction_markdown,omitempty"`
+}
+
+type AppStorefrontLocalizedImage struct {
+	Locale string                 `json:"locale,omitempty"`
+	Image  *AppStorefrontImageRef `json:"image,omitempty"`
+}
+
+type AppStorefrontMedia struct {
+	Cover   *AppStorefrontCover        `json:"cover,omitempty"`
+	Gallery []AppStorefrontGalleryItem `json:"gallery,omitempty"`
 }
 
 type AppTextConfigCapture struct {
@@ -3441,6 +3499,9 @@ type ApprovedAppCatalogTarget struct {
 	MacosNotarization               string                                `json:"macos_notarization,omitempty"`
 	MacosDeveloperIdSubject         *string                               `json:"macos_developer_id_subject,omitempty"`
 	SafetyDeclaration               *AppSafetyDeclaration                 `json:"safety_declaration,omitempty"`
+	ProductOrigin                   string                                `json:"product_origin,omitempty"`
+	ProductUpstream                 *AppProductUpstream                   `json:"product_upstream,omitempty"`
+	AdmissionTrustTier              string                                `json:"admission_trust_tier,omitempty"`
 }
 
 type ArtifactChunk struct {

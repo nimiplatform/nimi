@@ -13,9 +13,12 @@ CREATE TABLE IF NOT EXISTS products (
   summary_en TEXT NOT NULL,
   summary_zh TEXT NOT NULL,
   pc_targets TEXT NOT NULL,
+  pc_target_versions_json TEXT NOT NULL DEFAULT '{}',
   capabilities TEXT NOT NULL,
   visible INTEGER NOT NULL,
   blocked INTEGER NOT NULL,
+  origin TEXT,
+  upstream_json TEXT,
   client_id TEXT,
   source_revision INTEGER,
   source_active INTEGER NOT NULL,
@@ -42,3 +45,19 @@ WHEN NEW.active_version IS NOT NULL AND (OLD.active_version IS NOT NEW.active_ve
     SELECT NEW.app_id,NEW.active_version,NEW.source_revision,NEW.active_digest
     WHERE NOT EXISTS (SELECT 1 FROM releases WHERE app_id=NEW.app_id AND version=NEW.active_version);
 END;
+CREATE TABLE IF NOT EXISTS storefront_catalog (
+  app_id TEXT PRIMARY KEY,
+  primary_version TEXT NOT NULL,
+  target_releases_json TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  has_storefront INTEGER NOT NULL DEFAULT 0,
+  category TEXT,
+  default_locale TEXT,
+  summary_en TEXT NOT NULL,
+  summary_zh TEXT NOT NULL,
+  tags_json TEXT NOT NULL DEFAULT '{}',
+  icon_asset TEXT,
+  cover_assets_json TEXT,
+  synced_commit TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

@@ -128,6 +128,9 @@ func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *
 	targets := []publicappregistry.ResolvedApprovedTarget{{
 		Selector: selector, RegistryRevision: revision, DescriptorID: descriptorID,
 		AppID: "publisher.example", DisplayName: "Example App", Version: "1.2.3", Visibility: "public",
+		Origin:     "open-source-adapted",
+		Upstream:   &publicappregistry.ProductUpstream{Name: "Example Upstream", URL: "https://github.com/upstream/example"},
+		Admission:  publicappregistry.Admission{TrustTier: "community"},
 		KillSwitch: publicappregistry.KillSwitch{Active: true, Reason: &policyReason, Revision: 4},
 		Publisher:  publicappregistry.Publisher{GitHubNamespace: "publisher", NamespaceKind: "organization", Assurance: "pseudonymous"},
 		Source: publicappregistry.Source{Repository: "https://github.com/publisher/example", License: publicappregistry.SourceLicense{
@@ -152,7 +155,9 @@ func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *
 	if string(projected.GetApprovedTargetSelector()) != selectorText || projected.GetObservedRegistryRevision() != revision ||
 		projected.GetDescriptorId() != descriptorID || projected.GetPublisherGithubNamespace() != "publisher" ||
 		projected.GetSourceLicenseSpdxExpression() != "MIT" || projected.GetWindowsCodeSigning() != "unsigned" ||
-		!projected.GetPolicyBlocked() || projected.GetPolicyReason() != policyReason || projected.GetPolicyRevision() != 4 {
+		!projected.GetPolicyBlocked() || projected.GetPolicyReason() != policyReason || projected.GetPolicyRevision() != 4 ||
+		projected.GetProductOrigin() != "open-source-adapted" || projected.GetProductUpstream().GetName() != "Example Upstream" ||
+		projected.GetProductUpstream().GetUrl() != "https://github.com/upstream/example" || projected.GetAdmissionTrustTier() != "community" {
 		t.Fatalf("Catalog target = %+v", projected)
 	}
 	targets[0].AppAccess[0] = "mutated"

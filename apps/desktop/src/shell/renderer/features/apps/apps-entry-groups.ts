@@ -107,6 +107,10 @@ export function filterAppGroups(
     || group.entries.some((entry) => (
       entry.identity.displayName.toLocaleLowerCase().includes(normalized)
       || entry.identity.appId.toLocaleLowerCase().includes(normalized)
+      || (entry.appInfo?.storefront?.locales ?? []).some((loc) => (
+        loc.displayName.toLocaleLowerCase().includes(normalized)
+        || loc.summary.toLocaleLowerCase().includes(normalized)
+      ))
     ))
   ));
 }

@@ -1087,6 +1087,7 @@ class AppPackageInfo:
     homepage_url: str | None = None
     support_url: str | None = None
     safety_declaration: AppSafetyDeclaration | None = None
+    storefront: AppStorefrontInfo | None = None
 
 @dataclass(frozen=True)
 class AppPackageJob:
@@ -1116,6 +1117,11 @@ class AppPackageJob:
     previous_version: str | None = None
     target_os: str | None = None
     target_arch: str | None = None
+
+@dataclass(frozen=True)
+class AppProductUpstream:
+    name: str | None = None
+    url: str | None = None
 
 @dataclass(frozen=True)
 class AppSafetyDeclaration:
@@ -1154,6 +1160,58 @@ class AppStorageProjection:
     storage_policy_ref: str | None = None
     reason_code: ReasonCode | None = None
     detail: str | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontCover:
+    default_image: AppStorefrontImageRef | None = None
+    locales: tuple[AppStorefrontLocalizedImage, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AppStorefrontGalleryItem:
+    id: str | None = None
+    kind: str | None = None
+    default_image: AppStorefrontImageRef | None = None
+    locales: tuple[AppStorefrontLocalizedImage, ...] = field(default_factory=tuple)
+    caption: Mapping[str, str] = field(default_factory=dict)
+
+@dataclass(frozen=True)
+class AppStorefrontHighlight:
+    title: str | None = None
+    description: str | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontImageRef:
+    media_type: str | None = None
+    width: int | None = None
+    height: int | None = None
+    size: int | None = None
+    sha256: str | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontInfo:
+    category: str | None = None
+    default_locale: str | None = None
+    locales: tuple[AppStorefrontLocale, ...] = field(default_factory=tuple)
+    media: AppStorefrontMedia | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontLocale:
+    locale: str | None = None
+    display_name: str | None = None
+    summary: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    highlights: tuple[AppStorefrontHighlight, ...] = field(default_factory=tuple)
+    introduction_markdown: str | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontLocalizedImage:
+    locale: str | None = None
+    image: AppStorefrontImageRef | None = None
+
+@dataclass(frozen=True)
+class AppStorefrontMedia:
+    cover: AppStorefrontCover | None = None
+    gallery: tuple[AppStorefrontGalleryItem, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AppTextConfigCapture:
@@ -1273,6 +1331,9 @@ class ApprovedAppCatalogTarget:
     macos_notarization: str | None = None
     macos_developer_id_subject: str | None = None
     safety_declaration: AppSafetyDeclaration | None = None
+    product_origin: str | None = None
+    product_upstream: AppProductUpstream | None = None
+    admission_trust_tier: str | None = None
 
 @dataclass(frozen=True)
 class ArtifactChunk:

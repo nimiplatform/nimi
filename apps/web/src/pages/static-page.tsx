@@ -286,6 +286,75 @@ function AppNotFound({ locale }: { locale: LandingLocale }) {
   );
 }
 
+export function resolveAppsDetailDecision(input: {
+  slug?: string;
+  directoryStatus: 'loading' | 'ok' | 'missing' | 'unavailable';
+  liveProduct?: import('./hosted-directory.js').Product;
+  selectedEcosystemEntry?: ReturnType<typeof getEcosystemApps>[number];
+}): 'list' | 'blocked' | 'live-detail' | 'not-found' | 'editorial' | 'status-placeholder' {
+  const { slug, directoryStatus, liveProduct, selectedEcosystemEntry } = input;
+  if (!slug) return 'list';
+  if (liveProduct?.blocked || liveProduct?.detail_status === 'blocked') return 'blocked';
+  const isSpecialNonNative =
+    selectedEcosystemEntry?.posture === 'first-party-companion'
+    || selectedEcosystemEntry?.posture === 'interactive-preview';
+  if (liveProduct && (liveProduct.detail_status === 'published' || liveProduct.detail_status === 'pending')) {
+    if (!isSpecialNonNative || liveProduct.detail?.storefront) return 'live-detail';
+  }
+  if (directoryStatus === 'missing' && !isSpecialNonNative) {
+    return 'not-found';
+  }
+  if (directoryStatus === 'unavailable' && !isSpecialNonNative) {
+    return 'status-placeholder';
+  }
+  if (selectedEcosystemEntry) return 'editorial';
+  if (liveProduct) return 'live-detail';
+  if (directoryStatus === 'missing' || !/^[a-z0-9-]{1,63}$/u.test(slug)) return 'not-found';
+  return 'status-placeholder';
+}
+
+export function projectDirectoryApps(
+  ecosystemApps: ReturnType<typeof getEcosystemApps>,
+  directoryProducts: readonly import('./hosted-directory.js').Product[],
+  directoryReady: boolean,
+  hasNextPage: boolean,
+  locale: LandingLocale,
+) {
+  const listedProducts = new Map(directoryProducts.map((item) => [item.app_id, item]));
+  const mergedApps = ecosystemApps
+    .filter((app) => {
+      if (directoryReady && !hasNextPage && app.posture === 'catalog-admitted' && !listedProducts.has(app.id)) {
+        return false;
+      }
+      return true;
+    })
+    .map((app) => {
+      const live = listedProducts.get(app.id);
+      if (!live) return { ...app, live: undefined };
+      const origin = live.origin ?? app.origin;
+      const tags = live.has_storefront
+        ? (live.tags?.[locale] ?? [])
+        : (live.tags?.[locale]?.length ? live.tags[locale] : app.tags);
+      const description = (live.has_storefront || live.displayed_version) && live.summary?.[locale]
+        ? live.summary[locale]
+        : app.description;
+      const liveCover = live.cover_urls?.locales?.[locale] ?? live.cover_urls?.default ?? '';
+      const previewImageSrc = live.has_storefront ? liveCover : (liveCover || app.previewImageSrc);
+      const iconSrc = live.icon_url ?? app.iconSrc;
+      return {
+        ...app,
+        origin,
+        tags,
+        description,
+        previewImageSrc,
+        iconSrc,
+        live,
+      };
+    });
+  const additionalProducts = directoryProducts.filter((item) => !ecosystemApps.some((app) => app.id === item.app_id));
+  return { mergedApps, additionalProducts };
+}
+
 function AppsPageInner({
   slug,
   locale,
@@ -314,19 +383,29 @@ function AppsPageInner({
   const selectedEcosystemEntry = slug ? ecosystemApps.find((entry) => editorialSlugs[entry.id] === slug) : undefined;
   const selectedApp = selectedEcosystemEntry?.catalog;
   const suspended = locale === 'zh' ? '已暂停发行' : 'Distribution suspended';
+  const detailDecision = resolveAppsDetailDecision({
+    slug,
+    directoryStatus: directory.state.status,
+    liveProduct,
+    selectedEcosystemEntry,
+  });
 
   usePublicDocumentMetadata(
     slug
-      ? selectedEcosystemEntry
-        ? `${selectedEcosystemEntry.name} | Nimi`
-        : `${liveProduct?.display_name ?? copy.apps.metaTitle} | Nimi`
+      ? detailDecision === 'live-detail' || detailDecision === 'blocked'
+        ? `${liveProduct?.display_name ?? selectedEcosystemEntry?.name ?? copy.apps.metaTitle} | Nimi`
+        : selectedEcosystemEntry && detailDecision === 'editorial'
+          ? `${selectedEcosystemEntry.name} | Nimi`
+          : `${copy.apps.metaTitle} | Nimi`
       : `${copy.apps.metaTitle} | Nimi`,
     slug
-      ? selectedEcosystemEntry
-        ? selectedEcosystemEntry.description
-        : liveProduct?.summary[locale] ?? copy.apps.notFoundBody
+      ? detailDecision === 'live-detail'
+        ? liveProduct?.summary[locale] ?? copy.apps.notFoundBody
+        : selectedEcosystemEntry && detailDecision === 'editorial'
+          ? selectedEcosystemEntry.description
+          : copy.apps.notFoundBody
       : copy.apps.intro,
-    slug && (selectedEcosystemEntry || liveProduct) ? `/apps/${slug}` : '/apps',
+    slug && detailDecision !== 'not-found' ? `/apps/${slug}` : '/apps',
     locale,
   );
 
@@ -338,10 +417,57 @@ function AppsPageInner({
     );
   };
 
-  if (slug && !selectedEcosystemEntry) {
+  if (detailDecision === 'blocked' && liveProduct) {
     return (
       <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
-        {liveProduct ? <PublicProduct item={liveProduct} locale={locale} detail /> : directory.state.status === 'missing' || !/^[a-z0-9-]{1,63}$/.test(slug) ? <AppNotFound locale={locale} /> : <p className="story-container" role="status">{directory.state.status === 'unavailable' ? (locale === 'zh' ? '暂时无法读取应用目录。' : 'The app directory is unavailable.') : (locale === 'zh' ? '正在读取应用介绍…' : 'Loading app details…')}</p>}
+        <section className="public-page-section">
+          <PublicProduct item={liveProduct} locale={locale} detail />
+        </section>
+      </PublicSiteShell>
+    );
+  }
+
+  if (detailDecision === 'live-detail' && liveProduct) {
+    return (
+      <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+        <section className="public-page-section">
+          <PublicProduct
+            item={liveProduct}
+            locale={locale}
+            detail
+            onOpenInteractivePreview={selectedEcosystemEntry ? () => openInteractivePreview(selectedEcosystemEntry.id) : undefined}
+            previewActionLabel={selectedEcosystemEntry ? ecosystemCopy.previewAction : undefined}
+          />
+        </section>
+        {selectedEcosystemEntry ? (
+          <DemoAppPreview
+            opened={session.preview}
+            guiding={Boolean(session.preview?.guided)}
+            apps={session.demo.apps}
+            preview={session.demo.appPreview}
+            onClose={session.closePreview}
+          />
+        ) : null}
+      </PublicSiteShell>
+    );
+  }
+
+  if (detailDecision === 'not-found') {
+    return (
+      <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+        <AppNotFound locale={locale} />
+      </PublicSiteShell>
+    );
+  }
+
+  if (detailDecision === 'status-placeholder') {
+    return (
+      <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+        <p className="story-container" role="status">
+          {directory.state.status === 'unavailable'
+            ? (locale === 'zh' ? '暂时无法读取应用目录。' : 'The app directory is unavailable.')
+            : (locale === 'zh' ? '正在读取应用介绍…' : 'Loading app details…')}
+        </p>
       </PublicSiteShell>
     );
   }
@@ -503,27 +629,42 @@ function AppsPageInner({
     );
   }
 
-  const additionalProducts = directory.state.products.filter((item) => !ecosystemApps.some((app) => app.id === item.app_id));
+  const { mergedApps, additionalProducts } = projectDirectoryApps(
+    ecosystemApps,
+    directory.state.products,
+    directory.state.status === 'ok',
+    Boolean(directory.state.next),
+    locale,
+  );
   const counts: Record<EcosystemFilterId, number> = {
-    all: ecosystemApps.length + additionalProducts.length,
-    'nimi-official': ecosystemApps.filter((app) => app.origin === 'nimi-official').length,
-    'open-source-adapted': ecosystemApps.filter((app) => app.origin === 'open-source-adapted').length,
+    all: mergedApps.length + additionalProducts.length,
+    'nimi-official': mergedApps.filter((app) => app.origin === 'nimi-official').length
+      + additionalProducts.filter((item) => item.origin === 'nimi-official').length,
+    'open-source-adapted': mergedApps.filter((app) => app.origin === 'open-source-adapted').length
+      + additionalProducts.filter((item) => item.origin === 'open-source-adapted').length,
+    community: mergedApps.filter((app) => app.origin === 'community').length
+      + additionalProducts.filter((item) => item.origin === 'community').length,
   };
   const postureCounts = {
-    'first-party-companion': ecosystemApps.filter((app) => app.posture === 'first-party-companion').length,
-    'catalog-admitted': ecosystemApps.filter((app) => app.posture === 'catalog-admitted').length,
-    'interactive-preview': ecosystemApps.filter((app) => app.posture === 'interactive-preview').length,
+    'first-party-companion': mergedApps.filter((app) => app.posture === 'first-party-companion').length,
+    'catalog-admitted': mergedApps.filter((app) => app.posture === 'catalog-admitted').length + additionalProducts.length,
+    'interactive-preview': mergedApps.filter((app) => app.posture === 'interactive-preview').length,
   };
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const visibleProducts = activeFilter === 'all' ? additionalProducts.filter((item) =>
-    `${item.display_name} ${item.summary[locale]} ${item.capabilities.join(' ')} ${item.app_id}`.toLowerCase().includes(normalizedQuery),
-  ) : [];
-  const listedProducts = new Map(directory.state.products.map((item) => [item.app_id, item]));
-  const filteredApps = ecosystemApps.filter((app) => {
+  const visibleProducts = additionalProducts.filter((item) => {
+    if (activeFilter !== 'all' && item.origin !== activeFilter) return false;
+    if (!normalizedQuery) return true;
+    const tagText = (item.tags?.[locale] ?? []).join(' ');
+    return `${item.display_name} ${item.summary[locale]} ${tagText} ${item.capabilities.join(' ')} ${item.app_id}`
+      .toLowerCase()
+      .includes(normalizedQuery);
+  });
+  const filteredApps = mergedApps.filter((app) => {
     if (activeFilter !== 'all' && app.origin !== activeFilter) return false;
     if (!normalizedQuery) return true;
-    const haystack = `${app.name} ${app.description} ${app.tags.join(' ')} ${app.id}`.toLowerCase();
+    const capText = (app.live?.capabilities ?? app.catalog?.capabilities ?? []).join(' ');
+    const haystack = `${app.name} ${app.description} ${app.tags.join(' ')} ${capText} ${app.id}`.toLowerCase();
     return haystack.includes(normalizedQuery);
   });
   const isCollapsible = activeFilter === 'all' && !normalizedQuery && filteredApps.length > INITIAL_VISIBLE_APP_COUNT;
@@ -594,7 +735,9 @@ function AppsPageInner({
 
           <div className="public-apps-toolbar">
             <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
-              {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
+              {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[])
+                .filter((filterId) => filterId !== 'community' || counts.community > 0)
+                .map((filterId) => (
                 <button
                   key={filterId}
                   type="button"
@@ -677,6 +820,7 @@ function AppsPageInner({
           {visibleApps.length > 0 || visibleProducts.length > 0 ? (
             <ul className="public-apps-grid" data-collapsed={isCollapsed ? 'true' : 'false'}>
               {visibleApps.map((app) => {
+                const live = app.live;
                 const isWindowsOnly = Boolean(
                   app.catalog
                   && app.catalog.platforms.length === 1
@@ -696,12 +840,18 @@ function AppsPageInner({
                       className="public-app-card-media"
                       aria-label={`${app.name} · ${copy.apps.itemCta}`}
                     >
-                      <img
-                        src={app.previewImageSrc}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                      />
+                      {app.previewImageSrc ? (
+                        <img
+                          src={app.previewImageSrc}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : app.iconSrc ? (
+                        <div className="flex h-full w-full items-center justify-center bg-black/[0.03]">
+                          <img src={app.iconSrc} alt="" width={56} height={56} loading="lazy" decoding="async" className="rounded-xl" />
+                        </div>
+                      ) : null}
                     </PublicSiteLink>
 
                     <div className="public-app-card-body">
@@ -712,7 +862,7 @@ function AppsPageInner({
                         <div className="public-app-card-title-group">
                           <h3>{app.name}</h3>
                           <div className="public-app-card-meta">
-                            {listedProducts.get(app.id)?.blocked && (
+                            {live?.blocked && (
                               <span className="public-app-card-meta-note">{suspended}</span>
                             )}
                             <span className="public-app-card-meta-origin" data-origin={app.origin}>

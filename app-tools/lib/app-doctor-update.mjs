@@ -2,7 +2,7 @@ import { isAppId } from './app-identifiers.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readMobileDevelopment } from './mobile-development.mjs';
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
-import { readAppIntroduction } from './app-info.mjs';
+import { readAppIntroduction, readAppStorefront } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { minVersion } from 'semver';
@@ -500,6 +500,7 @@ function assertProjectConfiguration(targetDir, parsedManifest = null, managed = 
     }
   }
   readAppIntroduction(targetDir, document);
+  readAppStorefront(targetDir, document);
   assertCarrierDevelopmentInputs(targetDir, document, readJsonFile(path.join(targetDir, 'package.json')), managed);
 }
 
@@ -623,6 +624,7 @@ function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, manage
 export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
   assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
   readAppIntroduction(targetDir, manifest);
+  readAppStorefront(targetDir, manifest);
   assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources);
   const findings = scanForbiddenPatterns(targetDir, manifest.profile, managed ? null : LOCAL_DEVELOPMENT_BYPASS_LABELS, plannedSources);
   if (findings.length) throw new Error(`Forbidden App source patterns: ${findings.join('; ')}`);

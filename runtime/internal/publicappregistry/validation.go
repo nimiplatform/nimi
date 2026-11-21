@@ -4,10 +4,43 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 )
+
+const maxStorefrontMediaBytes = int64(8 * 1024 * 1024)
+
+func validateProductOriginAndUpstream(origin string, upstream *ProductUpstream) error {
+	if origin != "" {
+		switch origin {
+		case "nimi-official", "open-source-adapted", "community":
+		default:
+			return ErrInvalidRegistrySnapshot
+		}
+	}
+	if origin == "open-source-adapted" && upstream == nil {
+		return ErrInvalidRegistrySnapshot
+	}
+	if upstream != nil {
+		if origin != "open-source-adapted" {
+			return ErrInvalidRegistrySnapshot
+		}
+		if !exactText(upstream.Name) || utf8.RuneCountInString(upstream.Name) > 120 || !validHTTPSURL(upstream.URL) {
+			return ErrInvalidRegistrySnapshot
+		}
+	}
+	return nil
+}
+
+func validHTTPSURL(raw string) bool {
+	if !exactText(raw) || utf8.RuneCountInString(raw) > 2048 {
+		return false
+	}
+	parsed, err := url.Parse(raw)
+	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil
+}
 
 func validateIndex(index registryIndexDocument) error {
 	if index.SchemaVersion != 1 || index.Apps == nil {
@@ -18,6 +51,9 @@ func validateIndex(index registryIndexDocument) error {
 			(row.Visibility != "public" && row.Visibility != "hidden") || row.AdmissionStatus != "approved" ||
 			len(row.LatestAdmittedReleaseByTarget) == 0 {
 			return fmt.Errorf("validate public App Registry index row %s: %w", appID, ErrInvalidRegistrySnapshot)
+		}
+		if err := validateProductOriginAndUpstream(row.Origin, row.Upstream); err != nil {
+			return fmt.Errorf("validate public App Registry origin %s: %w", appID, err)
 		}
 		if row.KillSwitch.Active {
 			if row.KillSwitch.Reason == nil || !exactText(*row.KillSwitch.Reason) {
@@ -109,6 +145,23 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 	targetIDs := make(map[string]struct{}, len(candidate.Targets))
 	assetIDs := map[int64]struct{}{candidate.Aggregate.AssetID: {}}
 	assetNames := map[string]struct{}{candidate.Aggregate.AssetName: {}}
+	if sm := candidate.StorefrontMedia; sm != nil {
+		expectedName := candidate.AppID + "-" + candidate.Version + "-storefront-media.zip"
+		if sm.AssetName != expectedName || sm.Size > maxStorefrontMediaBytes {
+			return fmt.Errorf("validate approved App storefront media: %w", ErrInvalidRegistrySnapshot)
+		}
+		if _, exists := assetIDs[sm.AssetID]; exists {
+			return fmt.Errorf("validate approved App storefront media asset id: %w", ErrInvalidRegistrySnapshot)
+		}
+		if _, exists := assetNames[sm.AssetName]; exists {
+			return fmt.Errorf("validate approved App storefront media asset name: %w", ErrInvalidRegistrySnapshot)
+		}
+		if err := validateAsset(sm.AssetID, sm.AssetName, sm.AssetURL, sm.Size, sm.SHA256, candidate.Source.Repository, candidate.Release.Tag); err != nil {
+			return fmt.Errorf("validate approved App storefront media: %w", err)
+		}
+		assetIDs[sm.AssetID] = struct{}{}
+		assetNames[sm.AssetName] = struct{}{}
+	}
 	for _, target := range candidate.Targets {
 		if _, exists := targetIDs[target.TargetID]; exists {
 			return fmt.Errorf("validate approved App targets: %w", ErrInvalidRegistrySnapshot)

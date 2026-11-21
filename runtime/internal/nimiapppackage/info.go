@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -46,6 +47,54 @@ type AppInfo struct {
 	// Optional publisher safety declaration; nil means undeclared. The same v1
 	// parser reads documents with and without it.
 	SafetyProfile *appsafety.Profile `json:"safety_profile,omitempty"`
+	// Optional structured Storefront metadata and static image-digest manifest.
+	Storefront *AppInfoStorefront `json:"storefront,omitempty"`
+}
+
+type AppInfoStorefrontHighlight struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+type AppInfoStorefrontLocale struct {
+	DisplayName          string                       `json:"display_name,omitempty"`
+	Summary              string                       `json:"summary,omitempty"`
+	Tags                 []string                     `json:"tags,omitempty"`
+	Highlights           []AppInfoStorefrontHighlight `json:"highlights,omitempty"`
+	IntroductionMarkdown string                       `json:"introduction_markdown,omitempty"`
+}
+
+type AppInfoStorefrontImageRef struct {
+	MediaType string `json:"media_type"`
+	Width     uint32 `json:"width"`
+	Height    uint32 `json:"height"`
+	Size      uint64 `json:"size"`
+	SHA256    string `json:"sha256"`
+}
+
+type AppInfoStorefrontCover struct {
+	Default AppInfoStorefrontImageRef            `json:"default"`
+	Locales map[string]AppInfoStorefrontImageRef `json:"locales,omitempty"`
+}
+
+type AppInfoStorefrontGalleryItem struct {
+	ID      string                               `json:"id"`
+	Kind    string                               `json:"kind"`
+	Default AppInfoStorefrontImageRef            `json:"default"`
+	Locales map[string]AppInfoStorefrontImageRef `json:"locales,omitempty"`
+	Caption map[string]string                    `json:"caption,omitempty"`
+}
+
+type AppInfoStorefrontMedia struct {
+	Cover   *AppInfoStorefrontCover        `json:"cover,omitempty"`
+	Gallery []AppInfoStorefrontGalleryItem `json:"gallery,omitempty"`
+}
+
+type AppInfoStorefront struct {
+	Category      string                             `json:"category"`
+	DefaultLocale string                             `json:"default_locale"`
+	Locales       map[string]AppInfoStorefrontLocale `json:"locales,omitempty"`
+	Media         *AppInfoStorefrontMedia            `json:"media,omitempty"`
 }
 
 type AppInfoIcon struct {
@@ -131,7 +180,157 @@ func ParseAppInfo(raw []byte) (AppInfo, error) {
 	if err := appsafety.Validate(info.SafetyProfile); err != nil {
 		return invalid(err.Error())
 	}
+	if err := validateAppInfoStorefront(info.Storefront); err != nil {
+		return invalid(err.Error())
+	}
 	return info, nil
+}
+
+var (
+	storefrontLocalePattern    = regexp.MustCompile(`^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$`)
+	storefrontGalleryIDPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`)
+	storefrontSHA256Pattern    = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	storefrontCategories       = map[string]struct{}{
+		"companions-worlds":       {},
+		"lifestyle":               {},
+		"writing-notes":           {},
+		"design-diagrams":         {},
+		"audio-music":             {},
+		"video-media":             {},
+		"research-learning":       {},
+		"productivity-automation": {},
+		"developer-tools":         {},
+	}
+)
+
+func validStorefrontLocale(value string) bool {
+	return len(value) <= 16 && storefrontLocalePattern.MatchString(value)
+}
+
+func validateStorefrontImageRef(ref AppInfoStorefrontImageRef, minW, maxW, minH, maxH uint32) error {
+	if ref.MediaType != "image/webp" && ref.MediaType != "image/png" {
+		return fmt.Errorf("storefront image media type")
+	}
+	if ref.Width < minW || ref.Width > maxW || ref.Height < minH || ref.Height > maxH {
+		return fmt.Errorf("storefront image dimensions")
+	}
+	if ref.Size == 0 || ref.Size > 512*1024 || !storefrontSHA256Pattern.MatchString(ref.SHA256) {
+		return fmt.Errorf("storefront image size or sha256")
+	}
+	return nil
+}
+
+func validateAppInfoStorefront(sf *AppInfoStorefront) error {
+	if sf == nil {
+		return nil
+	}
+	if _, ok := storefrontCategories[sf.Category]; !ok {
+		return fmt.Errorf("storefront category")
+	}
+	if !validStorefrontLocale(sf.DefaultLocale) {
+		return fmt.Errorf("storefront default_locale")
+	}
+	if len(sf.Locales) > 16 {
+		return fmt.Errorf("storefront locales count")
+	}
+	for locale, entry := range sf.Locales {
+		if !validStorefrontLocale(locale) {
+			return fmt.Errorf("storefront locale key")
+		}
+		if locale == sf.DefaultLocale {
+			if entry.DisplayName != "" || entry.Summary != "" || entry.IntroductionMarkdown != "" {
+				return fmt.Errorf("storefront default locale duplicates top-level fields")
+			}
+		} else {
+			if entry.DisplayName != "" && !infoText(entry.DisplayName, 120) {
+				return fmt.Errorf("storefront localized display_name")
+			}
+			if entry.Summary != "" && !infoText(entry.Summary, 280) {
+				return fmt.Errorf("storefront localized summary")
+			}
+			if entry.IntroductionMarkdown != "" && !infoDocument(entry.IntroductionMarkdown, 96*1024) {
+				return fmt.Errorf("storefront localized introduction_markdown")
+			}
+		}
+		if len(entry.Tags) > 5 {
+			return fmt.Errorf("storefront tags count")
+		}
+		seenTags := make(map[string]struct{}, len(entry.Tags))
+		for _, tag := range entry.Tags {
+			if !infoText(tag, 32) {
+				return fmt.Errorf("storefront tag")
+			}
+			if _, dup := seenTags[tag]; dup {
+				return fmt.Errorf("storefront duplicate tag")
+			}
+			seenTags[tag] = struct{}{}
+		}
+		if len(entry.Highlights) > 4 {
+			return fmt.Errorf("storefront highlights count")
+		}
+		for _, h := range entry.Highlights {
+			if !infoText(h.Title, 60) || !infoText(h.Description, 200) {
+				return fmt.Errorf("storefront highlight")
+			}
+		}
+	}
+	if sf.Media != nil {
+		if sf.Media.Cover == nil && len(sf.Media.Gallery) == 0 {
+			return fmt.Errorf("storefront media empty")
+		}
+		if sf.Media.Cover != nil {
+			if err := validateStorefrontImageRef(sf.Media.Cover.Default, 800, 2560, 450, 1600); err != nil {
+				return err
+			}
+			if len(sf.Media.Cover.Locales) > 15 {
+				return fmt.Errorf("storefront cover locales count")
+			}
+			for locale, ref := range sf.Media.Cover.Locales {
+				if !validStorefrontLocale(locale) || locale == sf.DefaultLocale {
+					return fmt.Errorf("storefront cover locale")
+				}
+				if err := validateStorefrontImageRef(ref, 800, 2560, 450, 1600); err != nil {
+					return err
+				}
+			}
+		}
+		if len(sf.Media.Gallery) > 6 {
+			return fmt.Errorf("storefront gallery count")
+		}
+		seenIDs := make(map[string]struct{}, len(sf.Media.Gallery))
+		for _, item := range sf.Media.Gallery {
+			if !storefrontGalleryIDPattern.MatchString(item.ID) || item.Kind != "image" {
+				return fmt.Errorf("storefront gallery item")
+			}
+			if _, dup := seenIDs[item.ID]; dup {
+				return fmt.Errorf("storefront duplicate gallery id")
+			}
+			seenIDs[item.ID] = struct{}{}
+			if err := validateStorefrontImageRef(item.Default, 640, 2560, 360, 1600); err != nil {
+				return err
+			}
+			if len(item.Locales) > 15 {
+				return fmt.Errorf("storefront gallery locales count")
+			}
+			for locale, ref := range item.Locales {
+				if !validStorefrontLocale(locale) || locale == sf.DefaultLocale {
+					return fmt.Errorf("storefront gallery locale")
+				}
+				if err := validateStorefrontImageRef(ref, 640, 2560, 360, 1600); err != nil {
+					return err
+				}
+			}
+			if len(item.Caption) > 16 {
+				return fmt.Errorf("storefront gallery caption count")
+			}
+			for locale, text := range item.Caption {
+				if !validStorefrontLocale(locale) || !infoText(text, 200) {
+					return fmt.Errorf("storefront gallery caption")
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func infoText(value string, max int) bool {

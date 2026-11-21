@@ -507,6 +507,63 @@ message AppSafetyDeclaration {
   repeated string high_impact_decision_uses = 14;
 }
 
+message AppProductUpstream {
+  string name = 1;
+  string url = 2;
+}
+
+message AppStorefrontHighlight {
+  string title = 1;
+  string description = 2;
+}
+
+message AppStorefrontLocale {
+  string locale = 1;
+  string display_name = 2;
+  string summary = 3;
+  repeated string tags = 4;
+  repeated AppStorefrontHighlight highlights = 5;
+  string introduction_markdown = 6;
+}
+
+message AppStorefrontImageRef {
+  string media_type = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  uint64 size = 4;
+  string sha256 = 5;
+}
+
+message AppStorefrontLocalizedImage {
+  string locale = 1;
+  AppStorefrontImageRef image = 2;
+}
+
+message AppStorefrontCover {
+  AppStorefrontImageRef default_image = 1;
+  repeated AppStorefrontLocalizedImage locales = 2;
+}
+
+message AppStorefrontGalleryItem {
+  string id = 1;
+  string kind = 2;
+  AppStorefrontImageRef default_image = 3;
+  repeated AppStorefrontLocalizedImage locales = 4;
+  map<string, string> caption = 5;
+}
+
+message AppStorefrontMedia {
+  AppStorefrontCover cover = 1;
+  repeated AppStorefrontGalleryItem gallery = 2;
+}
+
+message AppStorefrontInfo {
+  string category = 1;
+  string default_locale = 2;
+  repeated AppStorefrontLocale locales = 3;
+  AppStorefrontMedia media = 4;
+}
+
 // Runtime projects one target from one immutable Registry snapshot. The
 // selector is opaque to Desktop and is the only input accepted by install
 // start; display fields never authorize a package mutation by themselves.
@@ -540,6 +597,11 @@ message ApprovedAppCatalogTarget {
   optional string macos_developer_id_subject = 27;
   // Absent when the admitted release carries no declaration (undeclared).
   AppSafetyDeclaration safety_declaration = 28;
+  // Registry-reviewed product attribution projected from product.json into index.json.
+  string product_origin = 29;
+  AppProductUpstream product_upstream = 30;
+  // Registry admission review depth tier (e.g. first-party, verified-partner, community).
+  string admission_trust_tier = 31;
 }
 
 message ListApprovedAppCatalogTargetsRequest {}
@@ -632,6 +694,8 @@ message AppPackageInfo {
   string support_url = 18;
   // Absent when the information document carries no declaration (undeclared).
   AppSafetyDeclaration safety_declaration = 19;
+  // Absent when the information document carries no structured storefront extension.
+  AppStorefrontInfo storefront = 20;
 }
 
 message GetAppPackageInfoRequest {

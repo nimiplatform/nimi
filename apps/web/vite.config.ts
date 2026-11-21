@@ -135,6 +135,14 @@ export default defineConfig(({ mode }) => {
   loadRootEnv();
   const env = loadEnv(mode, import.meta.dirname, '');
   const realmProxyTarget = httpOrigin(env.NIMI_REALM_URL || process.env.NIMI_REALM_URL);
+  const catalogProxyTarget = httpOrigin(env.NIMI_CATALOG_URL || process.env.NIMI_CATALOG_URL) ?? 'https://nimi.ai';
+  const catalogProxy = {
+    '/.well-known/nimi-apps': {
+      target: catalogProxyTarget,
+      changeOrigin: true,
+      secure: !/^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/u.test(catalogProxyTarget),
+    },
+  };
   const publicEnv = resolveWebPublicEnv({ source: { ...process.env, ...env }, realmProxyTarget, mode });
   const sdkDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
   const tlsCert = String(env.NIMI_WEB_DEV_TLS_CERT || process.env.NIMI_WEB_DEV_TLS_CERT || '').trim();
@@ -158,12 +166,18 @@ export default defineConfig(({ mode }) => {
       host: '127.0.0.1',
       port: 3000,
       strictPort: true,
-      proxy: realmProxyTarget ? {
-        '/api': { target: realmProxyTarget, changeOrigin: true, secure: false },
-        '/health': { target: realmProxyTarget, changeOrigin: true, secure: false },
-        '/healthz': { target: realmProxyTarget, changeOrigin: true, secure: false },
-        '/readyz': { target: realmProxyTarget, changeOrigin: true, secure: false },
-      } : undefined,
+      proxy: {
+        ...catalogProxy,
+        ...(realmProxyTarget ? {
+          '/api': { target: realmProxyTarget, changeOrigin: true, secure: false },
+          '/health': { target: realmProxyTarget, changeOrigin: true, secure: false },
+          '/healthz': { target: realmProxyTarget, changeOrigin: true, secure: false },
+          '/readyz': { target: realmProxyTarget, changeOrigin: true, secure: false },
+        } : {}),
+      },
+    },
+    preview: {
+      proxy: catalogProxy,
     },
     build: {
       outDir: 'dist',

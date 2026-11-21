@@ -29,14 +29,33 @@ export default {
       });
     }
     if (url.pathname === '/.well-known/nimi-apps' || url.pathname.startsWith('/.well-known/nimi-apps/')) {
-      if (url.origin !== PORTAL_ORIGIN || !env.APP_HOST) return new Response(null, { status: 503, headers:{'Cache-Control':'no-store'} });
-      const target = new URL(url.pathname + url.search, 'https://catalog.internal');
-      const result = await env.APP_HOST.fetch(new Request(target, { method: 'GET', redirect: 'manual' }));
-      if (result.status >= 300 && result.status < 400) {
-        await result.body?.cancel();
-        return new Response(null, { status: 502, headers: { 'Cache-Control': 'no-store' } });
+      const forwardHeaders = new Headers();
+      if (url.pathname.startsWith('/.well-known/nimi-apps/media/')) {
+        const ifNoneMatch = request.headers.get('If-None-Match');
+        if (ifNoneMatch) forwardHeaders.set('If-None-Match', ifNoneMatch);
       }
-      return new Response(request.method === 'HEAD' ? null : result.body, {status:result.status,headers:result.headers});
+      if (env.APP_HOST) {
+        if (productionHost && url.origin !== PORTAL_ORIGIN) {
+          return new Response(null, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+        }
+        const target = new URL(url.pathname + url.search, 'https://catalog.internal');
+        const result = await env.APP_HOST.fetch(new Request(target, { method: request.method, headers: forwardHeaders, redirect: 'manual' }));
+        if (result.status >= 300 && result.status < 400 && result.status !== 304) {
+          await result.body?.cancel();
+          return new Response(null, { status: 502, headers: { 'Cache-Control': 'no-store' } });
+        }
+        return new Response(request.method === 'HEAD' || result.status === 304 ? null : result.body, { status: result.status, headers: result.headers });
+      }
+      if (!productionHost && env.PREVIEW_CATALOG_ORIGIN) {
+        const previewUpstream = new URL(url.pathname + url.search, env.PREVIEW_CATALOG_ORIGIN);
+        const result = await fetch(previewUpstream, { method: request.method, headers: forwardHeaders, redirect: 'manual' });
+        if (result.status >= 300 && result.status < 400 && result.status !== 304) {
+          await result.body?.cancel();
+          return new Response(null, { status: 502, headers: { 'Cache-Control': 'no-store' } });
+        }
+        return new Response(request.method === 'HEAD' || result.status === 304 ? null : result.body, { status: result.status, headers: result.headers });
+      }
+      return new Response(null, { status: 503, headers: { 'Cache-Control': 'no-store' } });
     }
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });

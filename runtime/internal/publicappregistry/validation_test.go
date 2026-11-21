@@ -64,3 +64,77 @@ func TestDescriptorCarriesOptionalSafetyDeclarationThroughOneParser(t *testing.T
 		t.Fatal("unknown declaration key must be rejected by the strict parser")
 	}
 }
+
+func TestIndexOriginUpstreamAndStorefrontMediaValidation(t *testing.T) {
+	baseRow := func(origin string, upstream *ProductUpstream) registryIndexDocument {
+		return registryIndexDocument{
+			SchemaVersion: 1,
+			Apps: map[string]registryAppRow{
+				"publisher.example-app": {
+					DisplayName:     "Example App",
+					Visibility:      "public",
+					AdmissionStatus: "approved",
+					Origin:          origin,
+					Upstream:        upstream,
+					LatestAdmittedReleaseByTarget: map[string]descriptorPointer{
+						"windows-x86_64": {
+							DescriptorID: "publisher.example-app@1.2.3",
+							Path:         "descriptors/publisher.example-app/1.2.3.json",
+						},
+					},
+				},
+			},
+		}
+	}
+
+	if err := validateIndex(baseRow("", nil)); err != nil {
+		t.Fatalf("legacy index row without origin must remain valid during bootstrap: %v", err)
+	}
+	if err := validateIndex(baseRow("nimi-official", nil)); err != nil {
+		t.Fatalf("nimi-official row rejected: %v", err)
+	}
+	if err := validateIndex(baseRow("open-source-adapted", &ProductUpstream{Name: "Upstream", URL: "https://github.com/org/repo"})); err != nil {
+		t.Fatalf("open-source-adapted row with upstream rejected: %v", err)
+	}
+	if err := validateIndex(baseRow("open-source-adapted", nil)); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("open-source-adapted without upstream accepted: %v", err)
+	}
+	if err := validateIndex(baseRow("nimi-official", &ProductUpstream{Name: "Upstream", URL: "https://github.com/org/repo"})); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("nimi-official with upstream accepted: %v", err)
+	}
+	if err := validateIndex(baseRow("invalid-origin", nil)); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("invalid origin accepted: %v", err)
+	}
+
+	doc := validDescriptorDocument()
+	doc.Candidate.StorefrontMedia = &aggregateAsset{
+		AssetID:   9999,
+		AssetName: "publisher.example-app-1.2.3-storefront-media.zip",
+		AssetURL:  "https://github.com/publisher/example-app/releases/download/v1.2.3/publisher.example-app-1.2.3-storefront-media.zip",
+		Size:      1024 * 1024,
+		SHA256:    strings.Repeat("d", 64),
+	}
+	target, err := validateDescriptor(doc, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "windows-x86_64")
+	if err != nil {
+		t.Fatalf("valid storefront_media rejected: %v", err)
+	}
+	row := registryAppRow{
+		Visibility: "public",
+		Origin:     "open-source-adapted",
+		Upstream:   &ProductUpstream{Name: "Upstream", URL: "https://github.com/org/repo"},
+	}
+	resolved := resolvedApprovedTarget(testSelector(t, doc.DescriptorID, target.TargetID, testRevisionA), doc, target, row, testRevisionA)
+	if resolved.Origin != "open-source-adapted" || resolved.Upstream == nil || resolved.Upstream.Name != "Upstream" {
+		t.Fatalf("resolved target lost origin/upstream: %+v", resolved)
+	}
+
+	doc.Candidate.StorefrontMedia.Size = 8*1024*1024 + 1
+	if _, err := validateDescriptor(doc, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "windows-x86_64"); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("oversized storefront_media accepted: %v", err)
+	}
+	doc.Candidate.StorefrontMedia.Size = 1024
+	doc.Candidate.StorefrontMedia.AssetName = "wrong-name.zip"
+	if _, err := validateDescriptor(doc, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "windows-x86_64"); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("wrong storefront_media asset name accepted: %v", err)
+	}
+}

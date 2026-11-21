@@ -30,6 +30,7 @@ import {
 } from './apps-card-visuals.js';
 import { useAppEntryMenu } from './apps-entry-menu.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+import { resolveEntryLocalizedName, resolveEntryLocalizedSummary } from './apps-storefront.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
 
@@ -177,8 +178,10 @@ export const AppListRow = memo(function AppListRow({
   readonly presentation?: 'default' | 'update' | 'attention';
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { identity, localDevelopment } = entry;
+  const localizedName = resolveEntryLocalizedName(entry, i18n.language);
+  const localizedSummary = resolveEntryLocalizedSummary(entry, i18n.language);
   const aiConfigSummary = aiConfigSummaryPresentation(entry, t);
   const source = appSourceForEntry(entry);
   const focusFailure = activeAction === 'launch' ? null : installedFocusFailure(entry.run);
@@ -213,7 +216,7 @@ export const AppListRow = memo(function AppListRow({
             className="min-w-0 truncate text-left text-sm font-semibold leading-5 text-[color:var(--nimi-text-primary)] outline-none after:absolute after:inset-0 after:content-[''] focus-visible:text-[var(--nimi-action-primary-bg)]"
             onClick={() => onAction('details')}
           >
-            {identity.displayName}
+            {localizedName}
           </button>
           {showSourceBadge || source !== 'local_development' ? (
             <AppSourceBadge source={source} variant="quiet" className="shrink-0" />
@@ -229,12 +232,12 @@ export const AppListRow = memo(function AppListRow({
             {t('Apps.update.newVersion', { version: entry.catalogTarget?.version })}
           </p>
         ) : null}
-        {entry.summary && presentation !== 'attention' ? (
+        {localizedSummary && presentation !== 'attention' ? (
           <p
             data-testid={`apps-entry-${identity.entryKey}-summary`}
             className="mt-0.5 truncate text-xs leading-4 text-[color:var(--nimi-text-muted)]"
           >
-            {entry.summary}
+            {localizedSummary}
           </p>
         ) : null}
         {/* A local-development row's status line is anchored by its run

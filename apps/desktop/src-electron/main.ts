@@ -557,6 +557,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       authorizeSystemEntryFocus,
       operationGate: appLaunchGate,
       onExecutorChanged: executionNotices.observe,
+      localAssetProtocolHost,
     });
     installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate, executionNotices.observe, authorizeSystemEntryFocus);
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({

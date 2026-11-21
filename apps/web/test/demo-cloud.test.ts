@@ -25,7 +25,10 @@ test('a sample configuration refers to a bundled model and an eligible consumer 
   assert.ok(ownerOptions(use.capability, (_zh, en) => en).some(owner => owner.id === use.owner));
   const unchecked = sample.connections.find(c => c.status === 'unchecked')!;
   assert.ok(modelsFor(unchecked.provider).length > 0);
-  assert.ok(!ownerOptions('audio.transcribe', (_zh, en) => en).some(owner => owner.id === 'nimi.desktop'));
+  const transcription = ownerOptions('audio.transcribe', (_zh, en) => en).map(owner => owner.id);
+  assert.ok(!transcription.includes('nimi.desktop'));
+  assert.ok(transcription.includes('nimi.parentos'));
+  assert.ok(!ownerOptions('image.generate', (_zh, en) => en).some(owner => owner.id === 'nimi.storybook'));
 });
 
 test('revisiting a cloud setup shows its saved model unless that consumer has a pending edit', async () => {

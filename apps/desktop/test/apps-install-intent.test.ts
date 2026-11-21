@@ -46,6 +46,8 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
     macosNotarization: 'not-applicable',
     policyBlocked: false,
     policyRevision: '0',
+    productOrigin: '',
+    admissionTrustTier: '',
     ...overrides,
   };
 }
