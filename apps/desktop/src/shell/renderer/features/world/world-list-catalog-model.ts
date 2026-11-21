@@ -2,40 +2,60 @@ import { isMainWorld, type WorldListItem } from './world-list-model';
 
 const WORLD_MEDIA_PLACEHOLDER = 'var(--nimi-surface-hero)';
 
+// Curated flagship r16 worlds for the Explore Hero carousel: alternating
+// genre, palette, and tone so first-time visitors see the breadth of Nimi Realm.
 export const WORLD_ATLAS_LEAD_WORLD_IDS = [
-  'cbdb-ming-lettered-networks-world', // 明代士人交游网络
-  'meridian-archipelago', // 行脉诸洲
-  'd10', // 春风得意行
-  'deepblue-observatories', // 深蓝群站
-  'emberware-court', // 瓷炭院
+  'tianting-outsourcing',  // 南天门外包部：西游后五百年 (myth-cyber comedy)
+  'changan-demon-ward',    // 长安十二坊：大理寺捉妖录 (Tang night mystery)
+  'neon-kowloon-sector9',  // 九龙雨夜：第九义体城寨 (cyberpunk rain mystery)
+  'z04',                   // 鲤灯夜游：星河渡水上夜市 (luminous canal fantasy/romance)
+  'pawprint-harbor-town',  // 爪印海港镇：全员毛绒自治 (cozy coastal everyday)
 ] as const;
 
-// These worlds were reviewed in their real detail pages for both populated
-// people catalogs and setting illustrations. This is editorial placement, not
-// a local copy of counts.
+// Opening discovery grid worlds verified in r16 with full cast, scenes, and voice.
 export const WORLD_DISCOVERY_OPENING_IDS = [
-  'thinink-plains', 'summerwell-village', 'prism-city-network', 'oneiric-littoral', 'living-echo-continent',
+  'shanhai-749-market',       // 山海 749：地下异兽收容夜市
+  'midnight-apex-circuit',    // 午夜湾岸：零点极速联赛
+  'honglou-brocade-mansion',  // 金陵春尽：大观园暗涌
+  'cloudvein-oceans',         // 云脉气海：万米浮空商团
+  'apocalypse-hotpot-bunker', // 零下六十度：满级地堡涮火锅
 ] as const;
 
-export const WORLD_DISCOVERY_DEFERRED_IDS = [
-  'cbdb-qing-scholar-gentry-world', 'cbdb-tang-literati-world', 'cbdb-northern-song-scholar-official-world',
-  'cbdb-southern-song-memory-world', 'cbdb-yuan-literati-academy-world',
-] as const;
+export const WORLD_DISCOVERY_DEFERRED_IDS: readonly string[] = [] as const;
 
 const WORLD_DISCOVERY_GRID_COLUMNS = 3;
 const WORLD_DISCOVERY_DEFERRED_FIRST_ROW = 21;
 const WORLD_DISCOVERY_DEFERRED_ROW_GAP = 5;
 
-// Reviewed cover sequence for discovery, not World facts. Alternate scenery,
-// palette and composition as well as topics: the four table-facing ensemble
-// covers (y01/y05/y02/y04) must not form another adjacent block.
+// Reviewed cover sequence across the r16 catalog so consecutive 3-column rows
+// alternate visual mood, era, and topic instead of clustering alphabetical IDs.
 const WORLD_DISCOVERY_ORDER: readonly string[] = [
-  'x05', 'z04', 'u06', // Snowfield, lantern market, sunlit coast.
-  'y01', 'z02', 'x06', // Mecha team, flooded cathedral, jazz bar.
-  'y06', 'u05', 'y05', // Palace rooftops, flying dragon, hotpot shelter.
-  'x03', 'y03', 'u04', // Neon truck, gala portrait, luminous ocean.
-  'y02', 'x04', 'x01', // Mountain sect, bathhouse gathering, street musician.
-  'z05', 'x02', 'y04', // Museum heist, masked auction, seaside supper.
+  'fengshen-bronze-ruins',    // Shang-Zhou bronze epic
+  'love-show-night-stall',    // Sunlit island romance/comedy
+  'global-death-exam',        // High-stakes future arena
+  'liaozhai-paper-village',   // Atmospheric folklore mystery
+  'junkyard-mecha-girl',      // Scrapyard mecha comedy/arena
+  'cwe-b01-u08',              // 1928 Sapphire Express mystery
+  'yokai-department-9f',      // Midnight supernatural department store
+  'song-frontier-squad',      // Northern Song time-travel frontier
+  'rainy-rental-alley',       // Warm rainy-season slice of life
+  'tower-livestream-arena',   // Tower livestream spectacle
+  'dayong-court-gossip',      // Imperial court mind-reading comedy
+  'frontier-cantina-belt',    // Asteroid-belt space cantina
+  'escort-of-ghost-road',     // Wilderness rules-horror caravan
+  'shanghai-88f-pitch',       // Modern Lujiazui 88F drama/comedy
+  'cwe-b02-u10',              // Slacker cultivation mountain
+  'x02',                      // Venetian masked falsetto auction
+  'eighteen-great-grandma',   // Rejuvenated great-grandma comedy
+  'di-fu-bureaucracy',        // Underworld reincarnation lottery
+  'u01',                      // Lingnan lion-dance arcade street
+  'astral-academy-district',  // Eccentric astral academy
+  'jianghu-debt-inn',         // Wuxia debt-ledger inn
+  'cwe-b06-u11',              // Holographic wasteland night stall
+  'cwe-b01-u07',              // Haunted grand hotel comedy
+  'x01',                      // Masked wrestler courtyard
+  'general-in-urban-village', // Ancient general in urban village
+  'z03',                      // Fog-strait lighthouse & whale-bone post
 ];
 
 function orderWorldDiscoveryPage(worlds: readonly WorldListItem[]): WorldListItem[] {

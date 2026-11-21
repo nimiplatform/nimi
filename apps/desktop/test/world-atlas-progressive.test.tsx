@@ -55,7 +55,7 @@ test('opening cards fill their final positions and the spotlight reveals its set
   }
   function OfflineSelection() {
     const selected = useWorldSummaryBatches({ data, realmBaseUrl, enabled: true, offline: true },
-      worldSummaryBatches(['newly-saved', 'summerwell-village']));
+      worldSummaryBatches(['newly-saved', WORLD_DISCOVERY_OPENING_IDS[1]]));
     return <span data-testid="offline-selection">{selected.worlds.map(world => world.name).join(',')}</span>;
   }
   const settle = async () => {
@@ -69,8 +69,10 @@ test('opening cards fill their final positions and the spotlight reveals its set
       families: [{ mimeType: 'image/png', sources: [{ url: `https://example.com/${purpose}-640.png`, width: 640, height: purpose === 'card' ? 264 : 427, mimeType: 'image/png' }] }],
     })),
   };
+  const openingSampleId = WORLD_DISCOVERY_OPENING_IDS[1];
+  const skippedLeadId = WORLD_ATLAS_LEAD_WORLD_IDS[3];
   const row = (id: string) => ({ id, name: id, summary: id, type: 'CREATOR', media: {}, stats: {}, time: { mode: 'static' },
-    bannerUrl: `https://example.com/${id}.png`, ...(id === 'summerwell-village' ? { bannerMedia: media } : {}) });
+    bannerUrl: `https://example.com/${id}.png`, ...(id === openingSampleId ? { bannerMedia: media } : {}) });
   const activeId = () => dom.window.document.querySelector('.world-atlas-hero[data-world-id]')?.getAttribute('data-world-id');
   const click = async (selector: string) => {
     await act(async () => { dom.window.document.querySelector<HTMLButtonElement>(selector)!.click(); });
@@ -82,10 +84,10 @@ test('opening cards fill their final positions and the spotlight reveals its set
     const slots = () => [...dom.window.document.querySelectorAll('.world-discovery-grid > *')].map(
       card => card.querySelector('h3')?.textContent ?? null,
     );
-    assert.deepEqual(slots(), Array(5).fill(null));
-    await act(async () => resolve(['summerwell-village', ...WORLD_ATLAS_LEAD_WORLD_IDS.filter(id => id !== 'deepblue-observatories')].map(row)));
+    assert.deepEqual(slots(), Array(WORLD_DISCOVERY_OPENING_IDS.length).fill(null));
+    await act(async () => resolve([openingSampleId, ...WORLD_ATLAS_LEAD_WORLD_IDS.filter(id => id !== skippedLeadId)].map(row)));
     await settle();
-    assert.deepEqual(slots(), ['summerwell-village']);
+    assert.deepEqual(slots(), [openingSampleId]);
     const cover = dom.window.document.querySelector('.world-discovery-card .world-atlas-image')!;
     await act(async () => coverVisibility.get(cover)!(false));
     assert.equal(cover.querySelector('img'), null, 'offscreen discovery covers wait for admission');
@@ -101,18 +103,18 @@ test('opening cards fill their final positions and the spotlight reveals its set
     await act(async () => coverVisibility.get(cover)!(true));
     assert.equal(cover.querySelector('img'), image);
     assert.equal(image.getAttribute('fetchpriority'), 'high');
-    assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
+    assert.equal(activeId(), WORLD_ATLAS_LEAD_WORLD_IDS[0]);
     await click('button[aria-label="Next world"]');
-    assert.equal(activeId(), 'meridian-archipelago');
+    assert.equal(activeId(), WORLD_ATLAS_LEAD_WORLD_IDS[1]);
     await click('button[aria-label="Previous world"]');
-    assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
+    assert.equal(activeId(), WORLD_ATLAS_LEAD_WORLD_IDS[0]);
     assert.equal(dom.window.document.querySelectorAll('.world-atlas-hero-dots button').length, 4);
     await click('button[aria-label="Previous world"]');
-    assert.equal(activeId(), 'emberware-court', 'previous wraps across available entries');
+    assert.equal(activeId(), WORLD_ATLAS_LEAD_WORLD_IDS[4], 'previous wraps across available entries');
     await click('button[aria-label="Next world"]');
-    assert.equal(activeId(), 'cbdb-ming-lettered-networks-world');
+    assert.equal(activeId(), WORLD_ATLAS_LEAD_WORLD_IDS[0]);
     await act(async () => root.render(<QueryClientProvider client={client}><OfflineSelection /></QueryClientProvider>));
-    assert.equal(dom.window.document.querySelector('[data-testid="offline-selection"]')?.textContent, 'summerwell-village');
+    assert.equal(dom.window.document.querySelector('[data-testid="offline-selection"]')?.textContent, openingSampleId);
     assert.equal(reads.length, 1, 'offline edits to the selection reuse accepted summaries without another read');
     assert.deepEqual(worldSummaryBatches(Array.from({ length: 201 }, (_, i) => String(i))).map(b => b.length), [40, 40, 40, 40, 40, 1]);
   } finally {

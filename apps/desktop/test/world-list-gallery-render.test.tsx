@@ -188,24 +188,30 @@ test('world gallery combines section tabs, count, search and partner discovery i
   assert.equal(header?.querySelector('.world-atlas-tools')?.lastElementChild?.textContent, '发现伙伴');
 });
 
-test('world layouts preserve reviewed copy while discovery cards show only the name', () => {
+test('world layouts preserve reviewed copy including taglines on discovery cards and hero CTA', () => {
   const reviewedWorld = {
     ...world,
     name: '拆了演武场赔不起，我和宿敌连夜组队抢奖金',
     tagline: '第18次约架拆了军校最豪华的演武场，背上五百万巨债的你和死对头姜燎被迫绑死组队，拉上毒舌改装师程野，开启一边打爆全国联赛抢奖金、一边抠门算账的疯狗夺冠路！',
+    topicIds: ['arena', 'comedy'],
   };
+  const topics = [
+    { id: 'arena', title: '热血竞技', titleEn: 'Arena' },
+    { id: 'comedy', title: '脑洞轻喜', titleEn: 'Comedy' },
+  ];
   for (const layout of [
-    <WorldAtlasHero worlds={[reviewedWorld]} />,
-    <WorldAlbumCard world={reviewedWorld} />,
+    <WorldAtlasHero worlds={[reviewedWorld]} topics={topics} />,
+    <WorldAlbumCard world={reviewedWorld} topics={topics} />,
+    <WorldDiscoveryCard world={reviewedWorld} topics={topics} />,
   ]) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}>{layout}</AppStoreProvider>)).window.document;
     assert.equal(document.querySelector('h2, h3')?.textContent, reviewedWorld.name);
     assert.deepEqual(Array.from(document.querySelectorAll('p')).map(node => node.textContent), [reviewedWorld.tagline]);
-    assert.ok(!document.body.textContent?.includes('80 位人物'));
+    assert.ok(document.body.textContent?.includes('热血竞技'));
+    assert.ok(document.body.textContent?.includes('80 位角色'));
   }
-  const discoveryDocument = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldDiscoveryCard world={reviewedWorld} /></AppStoreProvider>)).window.document;
-  assert.equal(discoveryDocument.querySelector('h3')?.textContent, reviewedWorld.name);
-  assert.equal(discoveryDocument.querySelector('p'), null);
+  const heroDocument = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldAtlasHero worlds={[reviewedWorld]} topics={topics} /></AppStoreProvider>)).window.document;
+  assert.ok(heroDocument.querySelector('[data-testid="world-atlas-hero-cta"]'), 'hero shows explicit entry CTA');
   const searchDocument = render({}, [world], '唐');
   assert.equal(searchDocument.querySelector('.world-album-caption p')?.textContent, world.description);
 });
@@ -264,7 +270,7 @@ test('discovery removes only spotlight worlds from exploration', () => {
   ];
   const document = render({}, worlds);
   assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), worlds.slice(0, 2).map(item => item.name));
-  assert.equal(document.querySelector('.world-discovery-grid p'), null);
+  assert.equal(document.querySelector('.world-discovery-grid p')?.textContent, world.description);
   assert.equal(document.querySelector('section[aria-label="为你精选的世界"]'), null);
   assert.ok(document.querySelector('section[aria-label="探索更多世界"]'));
 });
@@ -292,7 +298,7 @@ test('reviewed populated illustrated worlds lead the grid before paging and appe
       worlds={worlds} leadWorlds={[...leads].reverse()} paging={paging}
     /></AppStoreProvider>)).window.document;
     assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), [
-      'thinink-plains', 'summerwell-village', 'prism-city-network', 'oneiric-littoral', 'living-echo-continent', 'Catalog',
+      ...WORLD_DISCOVERY_OPENING_IDS, 'Catalog',
     ]);
     assert.equal(document.querySelectorAll('.world-atlas-hero-dots button').length, 5);
     assert.ok(document.body.textContent?.includes('137 个世界'));
@@ -318,13 +324,21 @@ test('available catalog covers render while spotlight reads are pending or faile
 });
 
 test('a ready lead renders independently of pending or failed catalog and other leads', () => {
+  const leadId = WORLD_ATLAS_LEAD_WORLD_IDS[1];
   for (const state of [{ loading: true, spotlightLoading: true }, { error: true, spotlightError: true }]) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
-      worlds={[]} leadWorlds={[{ ...world, id: 'meridian-archipelago', bannerUrl: 'https://example.com/ready.png' }]} paging={paging} {...state}
+      worlds={[]} leadWorlds={[{ ...world, id: leadId, bannerUrl: 'https://example.com/ready.png' }]} paging={paging} {...state}
     /></AppStoreProvider>)).window.document;
-    assert.equal(document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id'), 'meridian-archipelago');
+    assert.equal(document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id'), leadId);
     assert.equal(document.querySelector('.world-atlas-hero img')?.getAttribute('src'), 'https://example.com/ready.png');
   }
+});
+
+test('all 10 official world topics render distinct icons in the filter bar', async () => {
+  const { WORLD_TOPIC_ICONS } = await import('../src/shell/renderer/features/world/world-list.js');
+  const expectedIds = ['history', 'everyday', 'fantasy', 'future', 'ecology', 'journey', 'mystery', 'romance', 'comedy', 'arena'] as const;
+  const icons = expectedIds.map((id) => WORLD_TOPIC_ICONS[id]);
+  assert.equal(new Set(icons).size, expectedIds.length, 'each of the 10 topics has its own distinct icon');
 });
 
 test('an unavailable spotlight without usable covers keeps its retry and the catalog', () => {
