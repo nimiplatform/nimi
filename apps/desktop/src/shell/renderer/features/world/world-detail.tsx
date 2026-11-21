@@ -34,8 +34,6 @@ export function WorldDetail({ detail, onRetry, onBack, initialSubpage }: WorldDe
   const authStatus = useAppStore((state) => state.auth.status);
 
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
-  const readerOpenedHere = useRef(false);
-  useEffect(() => { readerOpenedHere.current = false; }, [world.id]);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const setFeedback = emitFeedbackToast;
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
@@ -81,14 +79,20 @@ export function WorldDetail({ detail, onRetry, onBack, initialSubpage }: WorldDe
     networkOffline: offlineTier !== 'L0',
     source: realmWorldData,
   });
-  const handleViewCharacter = async (character: WorldCharacter) => {
+  const savePeopleQuery = async () => {
     const position = navigation.getSnapshot().current.destination;
-    // Save the originating catalog query before leaving so Back returns to it.
-    if (position.id === 'world-detail' && position.worldId === world.id && position.search !== peopleQueryText) {
-      const saved = await navigation.replace({ ...position, search: peopleQueryText });
-      if (saved.status !== 'committed' && saved.status !== 'unchanged') return;
-    }
+    if (position.id !== 'world-detail' || position.worldId !== world.id) return false;
+    if ((position.search ?? '') === peopleQueryText) return true;
+    const saved = await navigation.replace({ ...position, search: peopleQueryText });
+    return saved.status === 'committed' || saved.status === 'unchanged';
+  };
+  const handleViewCharacter = async (character: WorldCharacter) => {
+    if (!await savePeopleQuery()) return;
     await navigation.push({ id: 'source-detail', sourceRef: character.sourceRef });
+  };
+  const openSubpage = async (worldSubpage: WorldDetailInitialSubpage) => {
+    if (!await savePeopleQuery()) return;
+    await navigation.push({ id: 'world-detail', worldId: world.id, worldSubpage, search: peopleQueryText });
   };
 
   const followed = useFollowedWorlds();
@@ -128,12 +132,10 @@ export function WorldDetail({ detail, onRetry, onBack, initialSubpage }: WorldDe
         publicAssetsIncomplete={detail.sections.publicAssets === 'error'}
         onRetryReading={onRetry}
         onBack={onBack}
-        onReadWorld={() => {
-          readerOpenedHere.current = true;
-          void navigation.push({ id: 'world-detail', worldId: world.id, worldSubpage: 'reader', search: peopleQueryText });
-        }}
+        onReadWorld={() => { void openSubpage('reader'); }}
+        onOpenRelationships={() => { void openSubpage('relationship-explorer'); }}
         onBackToWorld={() => {
-          if (readerOpenedHere.current && destination.worldSubpage === 'reader') void navigation.back();
+          if (destination.worldSubpage && navigation.getSnapshot().canGoBack) void navigation.back();
           else void navigation.replace({ id: 'world-detail', worldId: world.id, search: peopleQueryText });
         }}
         onViewCharacter={handleViewCharacter}

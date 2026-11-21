@@ -34,6 +34,7 @@ export type WorldDetailPageProps = {
   onRetryReading?: () => void;
   onBack?: () => void;
   onReadWorld?: () => void;
+  onOpenRelationships?: () => void;
   onBackToWorld?: () => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
@@ -89,13 +90,18 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     if (props.onReadWorld) props.onReadWorld();
     else setSubpage('reader');
   };
+  const openRelationships = () => {
+    overviewScrollTop.current = props.rootScrollViewportRef?.current?.scrollTop ?? 0;
+    if (props.onOpenRelationships) props.onOpenRelationships();
+    else setSubpage('relationship-explorer');
+  };
   let content;
   if (subpage === 'reader') {
     content = <WorldDetailReader key={props.world.id} world={props.world} semantic={props.semantic} history={props.history} loading={props.semanticLoading || props.historyLoading} incomplete={props.readingIncomplete} onRetry={props.onRetryReading} scrollViewportRef={props.rootScrollViewportRef} />;
   } else if (subpage === 'relationship-explorer') {
     content = <WorldRelationshipExplorer world={props.world} characters={props.peopleCharacters} catalog={props.peopleCatalog} onBack={backToWorld} onSelectCharacter={selectCharacter} onViewCharacter={viewCharacter} />;
   } else {
-    content = <WorldDetailDiscovery key={props.world.id} props={props} onViewCharacter={viewCharacter} onReadWorld={readWorld} />;
+    content = <WorldDetailDiscovery key={props.world.id} props={props} scenes={scenes} onViewCharacter={viewCharacter} onReadWorld={readWorld} onOpenRelationships={openRelationships} />;
   }
   return <>{content}{selectedCharacter ? <WorldCharacterQuickSheet character={selectedCharacter} onClose={() => setSelectedCharacter(null)} onViewCharacter={props.onViewCharacter} /> : null}</>;
 }

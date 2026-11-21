@@ -455,20 +455,28 @@ test('paper world detail formats ISO wall-clock world time labels before renderi
   assert.match(display ?? '', /2026/);
 });
 
-test('world discovery shows source profiles without repeating world settings or scenes', () => {
-  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(105, { hasMore: true })} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
+test('world discovery prioritizes people before compact setting and scenes, and renders inline voice previews', () => {
+  const voicedCharacters = characters.map((character, index) => (
+    index === 0 ? { ...character, voiceSampleUrl: 'https://assets-preview.nimi.ai/audio/sample-0.mp3' } : character
+  ));
+  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={voicedCharacters} peopleCharacters={voicedCharacters} peopleCatalog={readyPeopleCatalog(105, { hasMore: true })} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
   const document = new JSDOM(html).window.document;
+  const overview = document.querySelector('[data-testid="world-detail-overview"]')!;
   const people = document.querySelector('#world-detail-characters')!;
+  const story = document.querySelector('[data-testid="world-detail-story"]')!;
+  const scenes = document.querySelector('[data-testid="world-detail-scenes"]')!;
   assert.equal(document.querySelector('[data-testid="world-detail-about"]'), null);
   assert.ok(!document.body.textContent?.includes('文人交游体系'), 'world systems stay in the world setting reader');
   assert.ok(!document.body.textContent?.includes('交游关系必须来自公开资料。'), 'system rules are not repeated below the people gallery');
-  assert.equal(document.querySelector('[data-testid="world-detail-scenes"]'), null);
-  assert.equal(document.querySelector('[data-testid="world-scene-row"]'), null);
-  for (const scene of publicAssets.scenes) {
-    assert.ok(!document.body.textContent?.includes(scene.description), 'scene descriptions stay off the detail page');
-  }
-  assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, characters.length);
-  assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, characters.length);
+  // r011 semantic DOM order: overview -> people -> story -> scenes
+  assert.ok(Boolean(overview.compareDocumentPosition(people) & 4), 'people gallery appears after overview');
+  assert.ok(Boolean(people.compareDocumentPosition(story) & 4), 'compact world setting appears after people gallery');
+  assert.ok(Boolean(story.compareDocumentPosition(scenes) & 4), 'compact scenes appear after world setting');
+  assert.equal(scenes.querySelectorAll('[data-testid="world-scene-card"]').length, publicAssets.scenes.length);
+  assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, voicedCharacters.length);
+  assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, voicedCharacters.length);
+  assert.equal(people.querySelectorAll('[data-testid="character-voice-preview-button"]').length, 1, 'voiced characters expose inline voice preview');
+  assert.ok(people.querySelector('[data-testid="world-detail-open-relationships"]'), 'relationship explorer trigger is reachable');
   assert.ok(people.textContent?.includes('105 people'));
   assert.ok(!people.querySelector('[data-testid="world-detail-people-view-all"]'), 'every person is listed inline without a view-all page');
   assert.ok(people.querySelector('[data-testid="world-detail-people-load-more"]'), 'the inline catalog keeps cursor paging');
@@ -570,14 +578,14 @@ test('long descriptions remain full prose and system previews stay bounded', () 
   assert.deepEqual(entries.find((entry) => entry.section === 'systems')?.text, [system]);
 });
 
-test('the x01 world keeps its complete portrait banner inside a compact frame', () => {
-  const containedWorld = { ...world, id: 'x01', bannerUrl: 'https://example.test/world.png' };
-  const html = renderToStaticMarkup(<WorldDetailPage world={containedWorld} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} />);
+test('r16 x01 world uses standard full-width banner framing without legacy portrait letterboxing', () => {
+  const standardWorld = { ...world, id: 'x01', bannerUrl: 'https://example.test/world.png' };
+  const html = renderToStaticMarkup(<WorldDetailPage world={standardWorld} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} />);
   const document = new JSDOM(html).window.document;
   const banner = document.querySelector('[data-testid="world-detail-banner"]');
   const bannerFrame = document.querySelector('[data-testid="world-detail-banner-frame"]');
-  assert.ok(bannerFrame?.className.includes('aspect-[16/9]'), 'x01 uses the compact landscape frame');
-  assert.ok(banner?.className.includes('object-contain'), 'x01 shows the complete image without cropping');
+  assert.ok(!bannerFrame?.className.includes('aspect-[16/9]'), 'x01 uses standard banner framing');
+  assert.ok(!banner?.className.includes('object-contain'), 'x01 does not apply legacy portrait letterboxing');
 });
 
 test('world following remains a single secondary action and disappears when unavailable', () => {
