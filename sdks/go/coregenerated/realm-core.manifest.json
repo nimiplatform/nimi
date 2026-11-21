@@ -47965,6 +47965,21 @@
             }
           },
           {
+            "name": "role",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "sourceRef",
             "required": true,
             "schema": {
@@ -47985,6 +48000,21 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "voiceSampleUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {

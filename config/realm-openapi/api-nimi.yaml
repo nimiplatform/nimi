@@ -8748,9 +8748,15 @@ components:
           type: string
         relation:
           $ref: '#/components/schemas/WorldPublicViewerRelationDto'
+        role:
+          nullable: true
+          type: string
         sourceRef:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
         summary:
+          type: string
+        voiceSampleUrl:
+          nullable: true
           type: string
         worldName:
           type: string

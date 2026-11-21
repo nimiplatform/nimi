@@ -21240,8 +21240,10 @@ pub struct WorldPublicCharacterCatalogItemDto {
     pub display_name: String,
     pub id: String,
     pub relation: Box<WorldPublicViewerRelationDto>,
+    pub role: Option<String>,
     pub source_ref: Box<CharacterSourceRefV3Dto>,
     pub summary: String,
+    pub voice_sample_url: Option<String>,
     pub world_name: String,
 }
 

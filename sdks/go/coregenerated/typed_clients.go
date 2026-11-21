@@ -25346,14 +25346,16 @@ func (value *WorldPublicCharacterBiographyDto) UnmarshalJSON(data []byte) error 
 }
 
 type WorldPublicCharacterCatalogItemDto struct {
-	AvatarMedia *MediaDeliveryDto             `json:"avatarMedia"`
-	AvatarUrl   *string                       `json:"avatarUrl"`
-	DisplayName string                        `json:"displayName"`
-	Id          string                        `json:"id"`
-	Relation    *WorldPublicViewerRelationDto `json:"relation"`
-	SourceRef   *CharacterSourceRefV3Dto      `json:"sourceRef"`
-	Summary     string                        `json:"summary"`
-	WorldName   string                        `json:"worldName"`
+	AvatarMedia    *MediaDeliveryDto             `json:"avatarMedia"`
+	AvatarUrl      *string                       `json:"avatarUrl"`
+	DisplayName    string                        `json:"displayName"`
+	Id             string                        `json:"id"`
+	Relation       *WorldPublicViewerRelationDto `json:"relation"`
+	Role           *string                       `json:"role,omitempty"`
+	SourceRef      *CharacterSourceRefV3Dto      `json:"sourceRef"`
+	Summary        string                        `json:"summary"`
+	VoiceSampleUrl *string                       `json:"voiceSampleUrl,omitempty"`
+	WorldName      string                        `json:"worldName"`
 }
 
 func (value *WorldPublicCharacterCatalogItemDto) UnmarshalJSON(data []byte) error {

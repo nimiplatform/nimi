@@ -2952,6 +2952,8 @@ class WorldPublicCharacterCatalogItemDto:
     sourceRef: CharacterSourceRefV3Dto
     summary: str
     worldName: str
+    role: str | None = None
+    voiceSampleUrl: str | None = None
 
 @dataclass(frozen=True)
 class WorldPublicCharacterCatalogPageDto:
