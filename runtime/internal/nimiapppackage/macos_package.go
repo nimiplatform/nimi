@@ -1,7 +1,6 @@
 package nimiapppackage
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -113,6 +112,8 @@ type payloadLinkEntry struct {
 	symbolic bool
 }
 
+const maxMacOSSymlinkHops = 32
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
 func validatePayloadLinkTree(entries map[string]payloadLinkEntry, targetOS string) error {
 	directories := make(map[string]bool)
@@ -121,56 +122,120 @@ func validatePayloadLinkTree(entries map[string]payloadLinkEntry, targetOS strin
 			directories[parent] = true
 		}
 	}
-	var resolve func(string, map[string]bool) error
-	resolve = func(name string, visited map[string]bool) error {
-		parts := strings.Split(name, "/")
-		for count := 1; count <= len(parts); count++ {
-			prefix := strings.Join(parts[:count], "/")
-			entry, exists := entries[prefix]
-			if !exists || !entry.symbolic {
-				continue
-			}
-			if visited[prefix] {
-				return fmt.Errorf("cyclic bundle link %s: %w", prefix, ErrInvalidPackage)
-			}
-			if targetOS != "macos" || !strings.HasPrefix(prefix, "payload/") || entry.target == "" || !utf8.ValidString(entry.target) || path.IsAbs(entry.target) || strings.ContainsAny(entry.target, "\\\x00") {
-				return ErrInvalidPackage
-			}
-			destination := path.Join(append([]string{path.Dir(prefix), entry.target}, parts[count:]...)...)
-			if !strings.HasPrefix(destination, "payload/") {
-				return fmt.Errorf("bundle link escapes payload: %w", ErrInvalidPackage)
-			}
-			visited[prefix] = true
-			return resolve(destination, visited)
-		}
-		if _, exists := entries[name]; !exists && !directories[name] {
-			return fmt.Errorf("missing bundle link destination %s: %w", name, ErrInvalidPackage)
-		}
-		return nil
-	}
-	for name, entry := range entries {
+	for name := range entries {
 		if directories[name] {
 			return fmt.Errorf("bundle file/directory collision: %w", ErrInvalidPackage)
 		}
-		if entry.symbolic {
-			if err := resolve(name, make(map[string]bool)); err != nil {
-				return err
+	}
+
+	var resolveComponents func(base []string, rawTarget string, hops *int, active map[string]bool) ([]string, bool, error)
+	resolveComponents = func(base []string, rawTarget string, hops *int, active map[string]bool) ([]string, bool, error) {
+		if rawTarget == "" || !utf8.ValidString(rawTarget) || strings.HasPrefix(rawTarget, "/") || strings.ContainsAny(rawTarget, "\\\x00") {
+			return nil, false, ErrInvalidPackage
+		}
+		cur := append([]string(nil), base...)
+		trailingDir := strings.HasSuffix(rawTarget, "/")
+		parts := strings.Split(rawTarget, "/")
+		for index, part := range parts {
+			isLast := index == len(parts)-1
+			switch part {
+			case "":
+				if !directories[strings.Join(cur, "/")] {
+					return nil, false, fmt.Errorf("bundle link non-directory traversal: %w", ErrInvalidPackage)
+				}
+				continue
+			case ".":
+				if !directories[strings.Join(cur, "/")] {
+					return nil, false, fmt.Errorf("bundle link non-directory dot traversal: %w", ErrInvalidPackage)
+				}
+				if isLast {
+					trailingDir = true
+				}
+				continue
+			case "..":
+				if !directories[strings.Join(cur, "/")] {
+					return nil, false, fmt.Errorf("bundle link non-directory parent traversal: %w", ErrInvalidPackage)
+				}
+				if len(cur) <= 1 {
+					return nil, false, fmt.Errorf("bundle link escapes payload: %w", ErrInvalidPackage)
+				}
+				cur = cur[:len(cur)-1]
+				if isLast {
+					trailingDir = true
+				}
+				continue
+			default:
+				if !directories[strings.Join(cur, "/")] {
+					return nil, false, fmt.Errorf("bundle link traverses non-directory: %w", ErrInvalidPackage)
+				}
+				cur = append(cur, part)
+				joined := strings.Join(cur, "/")
+				if entry, exists := entries[joined]; exists && entry.symbolic {
+					if active[joined] {
+						return nil, false, fmt.Errorf("cyclic bundle link %s: %w", joined, ErrInvalidPackage)
+					}
+					*hops++
+					if *hops > maxMacOSSymlinkHops {
+						return nil, false, fmt.Errorf("excessive bundle link hops %s: %w", joined, ErrInvalidPackage)
+					}
+					active[joined] = true
+					resolved, resolvedDir, err := resolveComponents(cur[:len(cur)-1], entry.target, hops, active)
+					delete(active, joined)
+					if err != nil {
+						return nil, false, err
+					}
+					cur = resolved
+					if isLast && resolvedDir {
+						trailingDir = true
+					}
+				}
 			}
+		}
+		return cur, trailingDir, nil
+	}
+
+	for name, entry := range entries {
+		if !entry.symbolic {
+			continue
+		}
+		if targetOS != "macos" || !strings.HasPrefix(name, "payload/") {
+			return ErrInvalidPackage
+		}
+		parentParts := strings.Split(path.Dir(name), "/")
+		hops := 1
+		active := map[string]bool{name: true}
+		resolved, requireDir, err := resolveComponents(parentParts, entry.target, &hops, active)
+		if err != nil {
+			return err
+		}
+		if len(resolved) < 2 || resolved[0] != "payload" {
+			return fmt.Errorf("bundle link escapes payload: %w", ErrInvalidPackage)
+		}
+		finalPath := strings.Join(resolved, "/")
+		if requireDir {
+			if !directories[finalPath] {
+				return fmt.Errorf("missing bundle link directory destination %s: %w", finalPath, ErrInvalidPackage)
+			}
+		} else if _, exists := entries[finalPath]; !exists && !directories[finalPath] {
+			return fmt.Errorf("missing bundle link destination %s: %w", finalPath, ErrInvalidPackage)
 		}
 	}
 	return nil
 }
 
-func validateArchiveLinks(ctx context.Context, reader *zip.Reader, targetOS string) error {
-	entries := make(map[string]payloadLinkEntry, len(reader.File))
-	for _, entry := range reader.File {
-		value := payloadLinkEntry{symbolic: entry.Mode()&os.ModeSymlink != 0}
+func validateCanonicalArchiveLinks(ctx context.Context, archive *canonicalZipArchive, targetOS string) error {
+	entries := make(map[string]payloadLinkEntry, len(archive.entries))
+	for _, entry := range archive.entries {
+		value := payloadLinkEntry{symbolic: entry.Mode&os.ModeSymlink != 0}
 		if value.symbolic {
-			target, err := readControlEntry(ctx, entry, maxControlDocumentBytes)
+			if targetOS != "macos" {
+				return ErrInvalidPackage
+			}
+			target, err := readCanonicalSymlinkTarget(ctx, archive.ra, entry)
 			if err != nil {
 				return err
 			}
-			value.target = string(target)
+			value.target = target
 		}
 		entries[entry.Name] = value
 	}

@@ -1,7 +1,6 @@
 package nimiapppackage
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -144,7 +143,8 @@ func PayloadRootDigestRef(value [sha256.Size]byte) string {
 
 type inspectedArchive struct {
 	file       *os.File
-	reader     *zip.Reader
+	readerAt   io.ReaderAt
+	canonical  *canonicalZipArchive
 	inspection Inspection
 	names      []string
 }
@@ -152,7 +152,7 @@ type inspectedArchive struct {
 // Inspect verifies whole-archive integrity, the closed ZIP entry profile, and
 // the package manifest without creating a staging directory.
 func Inspect(ctx context.Context, archivePath string, expected Expected) (Inspection, error) {
-	archive, err := openAndInspect(ctx, archivePath, expected)
+	archive, err := openAndInspect(ctx, archivePath, expected, true)
 	if err != nil {
 		return Inspection{}, err
 	}
@@ -190,7 +190,10 @@ func ProbeRuntimeEntry(
 		}
 		return RuntimeEntryProbe{HostExecutableSHA256: materialized.HostExecutableSHA256}, nil
 	}
-	archive, err := openAndInspect(ctx, archivePath, expected)
+	// On Windows, verify full archive SHA-256, canonical ZIP32 layout, control
+	// files, budgets, and RuntimeEntry stream integrity without decompressing
+	// unrelated payload entries twice.
+	archive, err := openAndInspect(ctx, archivePath, expected, false)
 	if err != nil {
 		return RuntimeEntryProbe{}, err
 	}
@@ -216,8 +219,8 @@ func ProbeRuntimeEntry(
 			err = errors.Join(err, fmt.Errorf("remove nimiapp Runtime-entry probe root: %w", cleanupErr))
 		}
 	}()
-	entry := findArchiveEntry(archive.reader, expected.RuntimeEntry)
-	if entry == nil {
+	entry, found := archive.canonical.find(expected.RuntimeEntry)
+	if !found || entry.Mode&os.ModeSymlink != 0 {
 		return RuntimeEntryProbe{}, fmt.Errorf("locate nimiapp Runtime entry: %w", ErrPackageIntegrity)
 	}
 	probeRoot, err := ownerRoot.OpenRoot(probeChild)
@@ -225,26 +228,19 @@ func ProbeRuntimeEntry(
 		return RuntimeEntryProbe{}, fmt.Errorf("open nimiapp Runtime-entry probe root: %w", err)
 	}
 	probeName := filepath.Base(filepath.FromSlash(expected.RuntimeEntry))
-	input, err := entry.Open()
-	if err != nil {
-		_ = probeRoot.Close()
-		return RuntimeEntryProbe{}, fmt.Errorf("open nimiapp Runtime entry: %w", err)
-	}
 	output, err := probeRoot.OpenFile(probeName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		_ = input.Close()
 		_ = probeRoot.Close()
 		return RuntimeEntryProbe{}, fmt.Errorf("create nimiapp Runtime-entry probe: %w", err)
 	}
 	digest := sha256.New()
-	copyErr := copyWithContext(ctx, io.MultiWriter(output, digest), input, entry.UncompressedSize64)
+	copyErr := copyCanonicalEntry(ctx, archive.readerAt, entry, io.MultiWriter(output, digest), nil)
 	syncErr := output.Sync()
 	closeOutputErr := output.Close()
-	closeInputErr := input.Close()
 	closeRootErr := probeRoot.Close()
-	if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeInputErr != nil || closeRootErr != nil {
+	if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeRootErr != nil {
 		return RuntimeEntryProbe{}, fmt.Errorf("write nimiapp Runtime-entry probe: %w",
-			errors.Join(copyErr, syncErr, closeOutputErr, closeInputErr, closeRootErr))
+			errors.Join(copyErr, syncErr, closeOutputErr, closeRootErr))
 	}
 	var executableDigest [sha256.Size]byte
 	copy(executableDigest[:], digest.Sum(nil))
@@ -252,7 +248,7 @@ func ProbeRuntimeEntry(
 	if err := verifier.Verify(ctx, probePath, executableDigest); err != nil {
 		return RuntimeEntryProbe{}, fmt.Errorf("verify nimiapp Runtime-entry probe: %w", err)
 	}
-	observedDigest, err := digestOwnerRootFile(ctx, ownerRoot, filepath.Join(probeChild, probeName), entry.UncompressedSize64)
+	observedDigest, err := digestOwnerRootFile(ctx, ownerRoot, filepath.Join(probeChild, probeName), entry.UncompressedSize)
 	if err != nil || observedDigest != executableDigest {
 		return RuntimeEntryProbe{}, fmt.Errorf("reverify nimiapp Runtime-entry probe: %w", errors.Join(ErrPackageIntegrity, err))
 	}
@@ -270,7 +266,10 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 // validation and visibility to the verifier, but no crash-durable file flushes.
 // Installation staging retains durable writes through Materialize above.
 func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, stagingChild string, expected Expected, durable bool) (result Materialized, err error) {
-	archive, err := openAndInspect(ctx, archivePath, expected)
+	// Skip redundant pre-decompression of payload/*: the single UTF-8 sorted
+	// materialization loop below verifies CRC32, exact stream consumption, and
+	// tree/host SHA-256 directly on the exact verified bytes written to staging.
+	archive, err := openAndInspect(ctx, archivePath, expected, false)
 	if err != nil {
 		return Materialized{}, err
 	}
@@ -302,14 +301,38 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 	if err != nil {
 		return Materialized{}, fmt.Errorf("open nimiapp staging root: %w", err)
 	}
-	for _, entry := range archive.reader.File {
-		if entry.Mode()&os.ModeSymlink != 0 {
-			continue
-		}
+	tree := sha256.New()
+	_, _ = tree.Write([]byte(payloadDigestDomain))
+	if expected.OS == "macos" {
+		_, _ = tree.Write([]byte("macos\x00"))
+	}
+	var archiveHostDigest [sha256.Size]byte
+	hostHasher := sha256.New()
+	buffer := make([]byte, 128*1024)
+	for _, entry := range archive.canonical.entries {
 		if err := ctx.Err(); err != nil {
 			_ = root.Close()
 			return Materialized{}, err
 		}
+		if expected.OS == "macos" {
+			kind := byte(0)
+			if entry.Mode&os.ModeSymlink != 0 {
+				kind = 1
+			}
+			_, _ = tree.Write([]byte{kind})
+			var modeBytes [4]byte
+			permissions := uint32(entry.Mode.Perm())
+			if kind == 1 {
+				permissions = 0o777
+			}
+			binary.LittleEndian.PutUint32(modeBytes[:], permissions)
+			_, _ = tree.Write(modeBytes[:])
+		}
+		if entry.UncompressedSize > uint64(math.MaxInt64) {
+			_ = root.Close()
+			return Materialized{}, ErrPackageIntegrity
+		}
+		writeDigestHeader(tree, entry.Name, int64(entry.UncompressedSize))
 		name := filepath.FromSlash(entry.Name)
 		parent := filepath.Dir(name)
 		if parent != "." {
@@ -318,56 +341,55 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 				return Materialized{}, fmt.Errorf("create nimiapp staging directory: %w", err)
 			}
 		}
-		input, err := entry.Open()
-		if err != nil {
-			_ = root.Close()
-			return Materialized{}, fmt.Errorf("open nimiapp entry %s: %w", entry.Name, err)
+		if entry.Mode&os.ModeSymlink != 0 {
+			target, linkErr := readCanonicalSymlinkTarget(ctx, archive.readerAt, entry)
+			if linkErr == nil {
+				_, _ = tree.Write([]byte(target))
+				linkErr = root.Symlink(target, name)
+			}
+			if linkErr != nil {
+				_ = root.Close()
+				return Materialized{}, fmt.Errorf("materialize nimiapp bundle link: %w", linkErr)
+			}
+			continue
 		}
-		output, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, entry.Mode().Perm())
+		output, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, entry.Mode.Perm())
 		if err != nil {
-			_ = input.Close()
 			_ = root.Close()
 			return Materialized{}, fmt.Errorf("create nimiapp entry %s: %w", entry.Name, err)
 		}
-		copyErr := copyWithContext(ctx, output, input, entry.UncompressedSize64)
+		var sink io.Writer
+		if entry.Name == expected.RuntimeEntry {
+			sink = io.MultiWriter(output, tree, hostHasher)
+		} else {
+			sink = io.MultiWriter(output, tree)
+		}
+		copyErr := copyCanonicalEntry(ctx, archive.readerAt, entry, sink, buffer)
 		if (expected.OS == "macos" || runtime.GOOS == "darwin") && copyErr == nil {
-			copyErr = output.Chmod(entry.Mode().Perm())
+			copyErr = output.Chmod(entry.Mode.Perm())
 		}
 		var syncErr error
 		if durable {
 			syncErr = output.Sync()
 		}
 		closeOutputErr := output.Close()
-		closeInputErr := input.Close()
-		if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeInputErr != nil {
+		if copyErr != nil || syncErr != nil || closeOutputErr != nil {
 			_ = root.Close()
 			return Materialized{}, fmt.Errorf("materialize nimiapp entry %s: %w", entry.Name,
-				errors.Join(copyErr, syncErr, closeOutputErr, closeInputErr))
+				errors.Join(copyErr, syncErr, closeOutputErr))
 		}
-	}
-	for _, entry := range archive.reader.File {
-		if entry.Mode()&os.ModeSymlink == 0 {
-			continue
-		}
-		target, linkErr := readControlEntry(ctx, entry, maxControlDocumentBytes)
-		if linkErr == nil {
-			linkErr = makeStagingParents(root, filepath.Dir(filepath.FromSlash(entry.Name)), directoryMode)
-		}
-		if linkErr == nil {
-			linkErr = root.Symlink(string(target), filepath.FromSlash(entry.Name))
-		}
-		if linkErr != nil {
-			_ = root.Close()
-			return Materialized{}, fmt.Errorf("materialize nimiapp bundle link: %w", linkErr)
+		if entry.Name == expected.RuntimeEntry {
+			copy(archiveHostDigest[:], hostHasher.Sum(nil))
 		}
 	}
 	if err := root.Close(); err != nil {
 		return Materialized{}, fmt.Errorf("close nimiapp staging root: %w", err)
 	}
-	archiveTreeDigest, archiveHostDigest, err := digestArchiveRoot(ctx, archive.reader, expected.OS, expected.RuntimeEntry)
-	if err != nil {
-		return Materialized{}, err
+	if archiveHostDigest == ([sha256.Size]byte{}) {
+		return Materialized{}, fmt.Errorf("digest nimiapp Runtime entry: %w", ErrPackageIntegrity)
 	}
+	var archiveTreeDigest [sha256.Size]byte
+	copy(archiveTreeDigest[:], tree.Sum(nil))
 	digest, hostDigest, names, bytesTotal, err := digestMaterializedRoot(ctx, destination, expected.OS, expected.RuntimeEntry)
 	if err != nil {
 		return Materialized{}, err
@@ -415,20 +437,16 @@ func VerifyMaterialized(ctx context.Context, rootPath string, expected Expected,
 	}, nil
 }
 
-func openAndInspect(ctx context.Context, archivePath string, expected Expected) (*inspectedArchive, error) {
+func openAndInspect(ctx context.Context, archivePath string, expected Expected, verifyPayloadBytes bool) (*inspectedArchive, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("inspect nimiapp archive: %w", ErrInvalidPackage)
 	}
 	if err := validateExpected(expected); err != nil {
 		return nil, err
 	}
-	archivePath = filepath.Clean(strings.TrimSpace(archivePath))
-	if archivePath == "." || !filepath.IsAbs(archivePath) {
-		return nil, fmt.Errorf("open nimiapp archive: %w", ErrInvalidPackage)
-	}
-	file, err := os.Open(archivePath)
+	file, archiveSize, err := OpenArchiveReadOnly(archivePath)
 	if err != nil {
-		return nil, fmt.Errorf("open nimiapp archive: %w", err)
+		return nil, err
 	}
 	closeOnError := true
 	defer func() {
@@ -436,75 +454,81 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected) 
 			_ = file.Close()
 		}
 	}()
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() != expected.ArchiveSize {
+	if archiveSize != expected.ArchiveSize {
 		return nil, fmt.Errorf("verify nimiapp archive size: %w", ErrPackageIntegrity)
 	}
-	var reader *zip.Reader
-	if IsManagedWebTarget(expected) {
-		if info.Size() <= 0 || info.Size() > ManagedWebMaxArchiveBytes {
+	managedWeb := IsManagedWebTarget(expected)
+	if managedWeb {
+		if archiveSize <= 0 || archiveSize > ManagedWebMaxArchiveBytes {
 			return nil, fmt.Errorf("verify managed-web nimiapp archive size budget: %w", ErrInvalidPackage)
 		}
-		// Read the entire bounded managed-web archive once into immutable RAM so
+	} else if archiveSize <= 0 || archiveSize > NativeMaxArchiveBytes {
+		return nil, fmt.Errorf("verify native nimiapp archive size budget: %w", ErrInvalidPackage)
+	}
+	var ra io.ReaderAt
+	if managedWeb || archiveSize <= ManagedWebMaxArchiveBytes {
+		// Read bounded archives (<= 72 MiB) once into immutable RAM so
 		// archive SHA-256 verification, ZIP inspection, staging extraction, and
-		// digestArchiveRoot all consume the exact same bytes (closing Windows
-		// FILE_SHARE_WRITE mutation windows on shared-ACL data roots).
+		// digestArchiveRoot all consume the exact same bytes.
 		var buf bytes.Buffer
-		buf.Grow(int(info.Size()))
-		if err := copyWithContext(ctx, &buf, io.LimitReader(file, info.Size()+1), uint64(info.Size())); err != nil {
-			return nil, fmt.Errorf("read managed-web nimiapp archive: %w", err)
+		buf.Grow(int(archiveSize))
+		if err := copyWithContext(ctx, &buf, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
+			return nil, fmt.Errorf("read nimiapp archive: %w", err)
 		}
 		raw := buf.Bytes()
-		if int64(len(raw)) != info.Size() {
-			return nil, fmt.Errorf("verify managed-web nimiapp archive length: %w", ErrPackageIntegrity)
+		if int64(len(raw)) != archiveSize {
+			return nil, fmt.Errorf("verify nimiapp archive length: %w", ErrPackageIntegrity)
 		}
 		sum := sha256.Sum256(raw)
 		if hex.EncodeToString(sum[:]) != expected.ArchiveSHA256 {
 			return nil, fmt.Errorf("verify nimiapp archive SHA-256: %w", ErrPackageIntegrity)
 		}
-		reader, err = zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
-		if err != nil {
-			return nil, fmt.Errorf("open nimiapp ZIP: %w", errors.Join(ErrInvalidPackage, err))
-		}
+		ra = bytes.NewReader(raw)
 	} else {
 		digest := sha256.New()
-		if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
+		if err := copyWithContext(ctx, digest, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
 			return nil, fmt.Errorf("hash nimiapp archive: %w", err)
 		}
 		if hex.EncodeToString(digest.Sum(nil)) != expected.ArchiveSHA256 {
 			return nil, fmt.Errorf("verify nimiapp archive SHA-256: %w", ErrPackageIntegrity)
 		}
-		reader, err = zip.NewReader(file, info.Size())
-		if err != nil {
-			return nil, fmt.Errorf("open nimiapp ZIP: %w", errors.Join(ErrInvalidPackage, err))
-		}
+		ra = file
 	}
-	inspection, names, err := inspectReader(ctx, reader, expected)
+	canonical, err := parseCanonicalZip(ra, archiveSize)
+	if err != nil {
+		return nil, err
+	}
+	inspection, names, err := inspectCanonicalArchive(ctx, canonical, expected, verifyPayloadBytes)
 	if err != nil {
 		return nil, err
 	}
 	closeOnError = false
-	return &inspectedArchive{file: file, reader: reader, inspection: inspection, names: names}, nil
+	return &inspectedArchive{file: file, readerAt: ra, canonical: canonical, inspection: inspection, names: names}, nil
 }
 
-func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (Inspection, []string, error) {
-	if reader == nil || reader.Comment != "" || len(reader.File) == 0 || len(reader.File) > maxZip32Entries {
+func inspectCanonicalArchive(ctx context.Context, canonical *canonicalZipArchive, expected Expected, verifyPayloadBytes bool) (Inspection, []string, error) {
+	if canonical == nil || len(canonical.entries) == 0 || len(canonical.entries) > maxZip32Entries {
 		return Inspection{}, nil, fmt.Errorf("inspect nimiapp ZIP: %w", ErrInvalidPackage)
 	}
 	managedWeb := IsManagedWebTarget(expected)
-	if managedWeb && len(reader.File) > ManagedWebMaxReleaseEntries {
-		return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp entry budget: %w", ErrInvalidPackage)
+	if managedWeb {
+		if len(canonical.entries) > ManagedWebMaxReleaseEntries {
+			return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp entry budget: %w", ErrInvalidPackage)
+		}
+		if canonical.totalUncompressed > ManagedWebMaxReleaseBytes {
+			return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp release size budget: %w", ErrInvalidPackage)
+		}
 	}
-	seen := make(map[string]struct{}, len(reader.File))
-	collisions := make(map[string]string, len(reader.File))
-	pathRoles := make(map[string]entryPathRole, len(reader.File)*2)
-	names := make([]string, 0, len(reader.File))
-	var total uint64
-	var manifestEntry, licenseEntry, declarationEntry, infoEntry *zip.File
+	seen := make(map[string]struct{}, len(canonical.entries))
+	collisions := make(map[string]string, len(canonical.entries))
+	pathRoles := make(map[string]entryPathRole, len(canonical.entries)*2)
+	names := make([]string, 0, len(canonical.entries))
+	var manifestEntry, licenseEntry, declarationEntry, infoEntry *canonicalZipEntry
 	payloadFiles := 0
 	runtimeFound := false
-	for _, entry := range reader.File {
-		if err := validateZipEntry(entry, expected.OS); err != nil {
+	for index := range canonical.entries {
+		entry := &canonical.entries[index]
+		if err := validateCanonicalEntry(*entry, expected.OS); err != nil {
 			return Inspection{}, nil, err
 		}
 		if _, duplicate := seen[entry.Name]; duplicate {
@@ -519,20 +543,14 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 		if err := recordEntryPathRoles(pathRoles, entry.Name, expected.OS); err != nil {
 			return Inspection{}, nil, err
 		}
-		if managedWeb && len(pathRoles)-len(seen) > ManagedWebMaxReleaseEntries {
+		directoryCount := len(pathRoles) - len(seen)
+		if managedWeb && directoryCount > ManagedWebMaxReleaseEntries {
 			return Inspection{}, nil, fmt.Errorf("inspect managed-web directory count: %w", ErrInvalidPackage)
 		}
+		if !managedWeb && directoryCount > NativeMaxDirectories {
+			return Inspection{}, nil, fmt.Errorf("inspect native directory count: %w", ErrInvalidPackage)
+		}
 		names = append(names, entry.Name)
-		if math.MaxUint64-total < entry.UncompressedSize64 {
-			return Inspection{}, nil, fmt.Errorf("inspect nimiapp size overflow: %w", ErrInvalidPackage)
-		}
-		total += entry.UncompressedSize64
-		if total > uint64(expected.ArchiveSize) {
-			return Inspection{}, nil, fmt.Errorf("inspect nimiapp expanded size: %w", ErrInvalidPackage)
-		}
-		if managedWeb && total > ManagedWebMaxReleaseBytes {
-			return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp release size budget: %w", ErrInvalidPackage)
-		}
 		switch entry.Name {
 		case "app-info.json":
 			infoEntry = entry
@@ -550,7 +568,7 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 			if managedWeb {
 				requiredMode = 0o644
 			}
-			if !entry.Mode().IsRegular() || entry.Mode().Perm() != requiredMode {
+			if !entry.Mode.IsRegular() || entry.Mode.Perm() != requiredMode {
 				return Inspection{}, nil, fmt.Errorf("inspect nimiapp Runtime entry mode: %w", ErrInvalidPackage)
 			}
 			runtimeFound = true
@@ -559,26 +577,32 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	if infoEntry == nil || manifestEntry == nil || licenseEntry == nil || declarationEntry == nil || payloadFiles == 0 || !runtimeFound {
 		return Inspection{}, nil, fmt.Errorf("inspect nimiapp required entries: %w", ErrInvalidPackage)
 	}
-	if licenseEntry.UncompressedSize64 == 0 {
-		return Inspection{}, nil, fmt.Errorf("inspect nimiapp LICENSE: %w", ErrInvalidPackage)
+	infoRaw, err := readCanonicalControlEntry(ctx, canonical.ra, *infoEntry, MaxAppInfoBytes)
+	if err != nil {
+		return Inspection{}, nil, fmt.Errorf("verify nimiapp entry app-info.json: %w", err)
 	}
-	var manifestRaw, declarationRaw, infoRaw, licenseRaw []byte
-	for _, entry := range reader.File {
-		var err error
-		switch entry.Name {
-		case "app-info.json":
-			infoRaw, err = readControlEntry(ctx, entry, MaxAppInfoBytes)
-		case "LICENSE":
-			licenseRaw, err = readControlEntry(ctx, entry, 128*1024)
-		case "manifest.json":
-			manifestRaw, err = readControlEntry(ctx, entry, maxControlDocumentBytes)
-		case "nimi.app.yaml":
-			declarationRaw, err = readControlEntry(ctx, entry, maxControlDocumentBytes)
-		default:
-			err = verifyEntryBytes(ctx, entry)
-		}
-		if err != nil {
-			return Inspection{}, nil, fmt.Errorf("verify nimiapp entry %s: %w", entry.Name, errors.Join(ErrInvalidPackage, err))
+	licenseRaw, err := readCanonicalControlEntry(ctx, canonical.ra, *licenseEntry, MaxLicenseBytes)
+	if err != nil {
+		return Inspection{}, nil, fmt.Errorf("verify nimiapp entry LICENSE: %w", err)
+	}
+	manifestRaw, err := readCanonicalControlEntry(ctx, canonical.ra, *manifestEntry, maxControlDocumentBytes)
+	if err != nil {
+		return Inspection{}, nil, fmt.Errorf("verify nimiapp entry manifest.json: %w", err)
+	}
+	declarationRaw, err := readCanonicalControlEntry(ctx, canonical.ra, *declarationEntry, maxControlDocumentBytes)
+	if err != nil {
+		return Inspection{}, nil, fmt.Errorf("verify nimiapp entry nimi.app.yaml: %w", err)
+	}
+	if verifyPayloadBytes {
+		buffer := make([]byte, 128*1024)
+		for _, entry := range canonical.entries {
+			switch entry.Name {
+			case "app-info.json", "LICENSE", "manifest.json", "nimi.app.yaml":
+				continue
+			}
+			if err := copyCanonicalEntry(ctx, canonical.ra, entry, nil, buffer); err != nil {
+				return Inspection{}, nil, fmt.Errorf("verify nimiapp entry %s: %w", entry.Name, errors.Join(ErrInvalidPackage, err))
+			}
 		}
 	}
 	var manifest Manifest
@@ -591,7 +615,7 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	if err := validateManifest(manifest, expected); err != nil {
 		return Inspection{}, nil, err
 	}
-	if err := validateArchiveLinks(ctx, reader, expected.OS); err != nil {
+	if err := validateCanonicalArchiveLinks(ctx, canonical, expected.OS); err != nil {
 		return Inspection{}, nil, err
 	}
 	declaration, err := validateDeclaration(declarationRaw, expected)
@@ -611,8 +635,7 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	if err := validateAppInfoDeclaration(info, declarationRaw, licenseRaw); err != nil {
 		return Inspection{}, nil, err
 	}
-	sort.Strings(names)
-	return Inspection{AppInfo: info, AppInfoJSON: infoRaw, Manifest: manifest, Declaration: declaration, Files: len(names), UncompressedBytes: total}, names, nil
+	return Inspection{AppInfo: info, AppInfoJSON: infoRaw, Manifest: manifest, Declaration: declaration, Files: len(names), UncompressedBytes: canonical.totalUncompressed}, names, nil
 }
 
 type entryPathRole struct {
@@ -622,8 +645,8 @@ type entryPathRole struct {
 
 func recordEntryPathRoles(roles map[string]entryPathRole, name, targetOS string) error {
 	segments := strings.Split(name, "/")
-	if targetOS == "any" && len(segments)-1 > managedWebMaxDirectoryDepth {
-		return fmt.Errorf("inspect managed-web directory depth: %w", ErrInvalidPackage)
+	if len(segments)-1 > MaxArchiveDirectoryDepth {
+		return fmt.Errorf("inspect nimiapp directory depth: %w", ErrInvalidPackage)
 	}
 	for index := range segments {
 		prefix := strings.Join(segments[:index+1], "/")
@@ -640,31 +663,27 @@ func recordEntryPathRoles(roles map[string]entryPathRole, name, targetOS string)
 	return nil
 }
 
-func findArchiveEntry(reader *zip.Reader, name string) *zip.File {
-	if reader == nil {
-		return nil
-	}
-	for _, entry := range reader.File {
-		if entry.Name == name {
-			return entry
-		}
-	}
-	return nil
-}
-
-func validateZipEntry(entry *zip.File, targetOS string) error {
-	if entry == nil || entry.NonUTF8 || entry.Flags != canonicalZipFlags || entry.Method != zip.Store ||
-		entry.CreatorVersion != canonicalZipCreatorVersion || entry.ReaderVersion != canonicalZipReaderVersion ||
-		len(entry.Extra) != 0 || entry.Comment != "" || entry.CompressedSize64 != entry.UncompressedSize64 ||
-		entry.UncompressedSize64 > math.MaxUint32 || !validEntryMode(entry.Mode(), targetOS) {
-		return fmt.Errorf("inspect nimiapp entry header %q: %w", entry.Name, ErrInvalidPackage)
+func validateCanonicalEntry(entry canonicalZipEntry, targetOS string) error {
+	if !validEntryMode(entry.Mode, targetOS) {
+		return fmt.Errorf("inspect nimiapp entry mode %q: %w", entry.Name, ErrInvalidPackage)
 	}
 	if err := validateEntryName(entry.Name, targetOS); err != nil {
 		return err
 	}
-	if entry.Name == "app-info.json" || entry.Name == "LICENSE" || entry.Name == "manifest.json" || entry.Name == "nimi.app.yaml" {
-		if !entry.Mode().IsRegular() || entry.Mode().Perm() != 0o644 {
-			return fmt.Errorf("inspect nimiapp control entry mode %q: %w", entry.Name, ErrInvalidPackage)
+	switch entry.Name {
+	case "LICENSE":
+		if !entry.Mode.IsRegular() || entry.Mode.Perm() != 0o644 || entry.UncompressedSize == 0 || entry.UncompressedSize > uint64(MaxLicenseBytes) {
+			return fmt.Errorf("inspect nimiapp LICENSE entry: %w", ErrInvalidPackage)
+		}
+		return nil
+	case "app-info.json":
+		if !entry.Mode.IsRegular() || entry.Mode.Perm() != 0o644 || entry.UncompressedSize == 0 || entry.UncompressedSize > uint64(MaxAppInfoBytes) {
+			return fmt.Errorf("inspect nimiapp app-info.json entry: %w", ErrInvalidPackage)
+		}
+		return nil
+	case "manifest.json", "nimi.app.yaml":
+		if !entry.Mode.IsRegular() || entry.Mode.Perm() != 0o644 || entry.UncompressedSize == 0 || entry.UncompressedSize > uint64(maxControlDocumentBytes) {
+			return fmt.Errorf("inspect nimiapp control entry %q: %w", entry.Name, ErrInvalidPackage)
 		}
 		return nil
 	}
@@ -675,11 +694,14 @@ func validateZipEntry(entry *zip.File, targetOS string) error {
 }
 
 func validateEntryName(name, targetOS string) error {
-	if name == "" || !utf8.ValidString(name) || len([]byte(name)) > math.MaxUint16 || strings.HasPrefix(name, "/") ||
+	if name == "" || !utf8.ValidString(name) || len([]byte(name)) > MaxArchiveEntryNameBytes || strings.HasPrefix(name, "/") ||
 		strings.ContainsAny(name, "\\\x00") || path.Clean(name) != name {
 		return fmt.Errorf("inspect nimiapp entry path %q: %w", name, ErrInvalidPackage)
 	}
 	segments := strings.Split(name, "/")
+	if len(segments)-1 > MaxArchiveDirectoryDepth {
+		return fmt.Errorf("inspect nimiapp entry depth %q: %w", name, ErrInvalidPackage)
+	}
 	for _, segment := range segments {
 		if segment == "" || segment == "." || segment == ".." {
 			return fmt.Errorf("inspect nimiapp entry path %q: %w", name, ErrInvalidPackage)
@@ -854,34 +876,6 @@ func mappingContainsKey(node *yaml.Node, target string) bool {
 		}
 	}
 	return false
-}
-
-func readControlEntry(ctx context.Context, entry *zip.File, limit int64) ([]byte, error) {
-	if entry == nil || entry.UncompressedSize64 == 0 || entry.UncompressedSize64 > uint64(limit) {
-		return nil, ErrInvalidPackage
-	}
-	reader, err := entry.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = reader.Close() }()
-	var raw bytes.Buffer
-	raw.Grow(int(entry.UncompressedSize64))
-	err = copyWithContext(ctx, &raw, reader, entry.UncompressedSize64)
-	if err != nil || raw.Len() == 0 || int64(raw.Len()) > limit {
-		return nil, errors.Join(ErrInvalidPackage, err)
-	}
-	return raw.Bytes(), nil
-}
-
-func verifyEntryBytes(ctx context.Context, entry *zip.File) error {
-	reader, err := entry.Open()
-	if err != nil {
-		return err
-	}
-	copyErr := copyWithContext(ctx, io.Discard, reader, entry.UncompressedSize64)
-	closeErr := reader.Close()
-	return errors.Join(copyErr, closeErr)
 }
 
 func copyWithContext(ctx context.Context, destination io.Writer, source io.Reader, expected uint64) error {

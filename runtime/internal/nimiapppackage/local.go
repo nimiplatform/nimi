@@ -1,13 +1,11 @@
 package nimiapppackage
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -32,77 +30,72 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	if ctx == nil {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
-	file, err := os.Open(archivePath)
+	file, archiveSize, err := OpenArchiveReadOnly(archivePath)
 	if err != nil {
-		return LocalMetadata{}, fmt.Errorf("open selected App package: %w", err)
+		return LocalMetadata{}, err
 	}
 	defer func() { _ = file.Close() }()
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 {
+	if archiveSize <= 0 || archiveSize > NativeMaxArchiveBytes {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
 	var (
-		reader        *zip.Reader
-		archiveSHA256 string
-		archiveSize   = info.Size()
+		ra             io.ReaderAt
+		inMemoryReader *bytes.Reader
+		archiveSHA256  string
 	)
-	if info.Size() <= ManagedWebMaxArchiveBytes {
+	if archiveSize <= ManagedWebMaxArchiveBytes {
 		var buf bytes.Buffer
-		buf.Grow(int(info.Size()))
-		if err := copyWithContext(ctx, &buf, io.LimitReader(file, info.Size()+1), uint64(info.Size())); err != nil {
+		buf.Grow(int(archiveSize))
+		if err := copyWithContext(ctx, &buf, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
 			return LocalMetadata{}, err
 		}
 		raw := buf.Bytes()
-		if int64(len(raw)) != info.Size() {
+		if int64(len(raw)) != archiveSize {
 			return LocalMetadata{}, ErrPackageIntegrity
 		}
 		sum := sha256.Sum256(raw)
 		archiveSHA256 = hex.EncodeToString(sum[:])
-		reader, err = zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
-		if err != nil {
-			return LocalMetadata{}, fmt.Errorf("open local App archive: %w", ErrInvalidPackage)
-		}
+		inMemoryReader = bytes.NewReader(raw)
+		ra = inMemoryReader
 	} else {
-		reader, err = zip.NewReader(file, info.Size())
-		if err != nil {
-			return LocalMetadata{}, fmt.Errorf("open local App archive: %w", ErrInvalidPackage)
+		digest := sha256.New()
+		if err := copyWithContext(ctx, digest, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
+			return LocalMetadata{}, err
 		}
+		archiveSHA256 = hex.EncodeToString(digest.Sum(nil))
+		ra = file
 	}
-	var manifest, declaration []byte
-	for _, entry := range reader.File {
-		if entry.Name != "manifest.json" && entry.Name != "nimi.app.yaml" {
-			continue
-		}
-		if err := validateZipEntry(entry, targetOS); err != nil {
-			return LocalMetadata{}, err
-		}
-		raw, err := readControlEntry(ctx, entry, maxControlDocumentBytes)
-		if err != nil {
-			return LocalMetadata{}, err
-		}
-		if entry.Name == "manifest.json" {
-			manifest = raw
-		} else {
-			declaration = raw
-		}
+	canonical, err := parseCanonicalZip(ra, archiveSize)
+	if err != nil {
+		return LocalMetadata{}, err
+	}
+	manifestEntry, hasManifest := canonical.find("manifest.json")
+	declEntry, hasDecl := canonical.find("nimi.app.yaml")
+	if !hasManifest || !hasDecl ||
+		!manifestEntry.Mode.IsRegular() || manifestEntry.Mode.Perm() != 0o644 ||
+		!declEntry.Mode.IsRegular() || declEntry.Mode.Perm() != 0o644 {
+		return LocalMetadata{}, ErrInvalidPackage
+	}
+	manifest, err := readCanonicalControlEntry(ctx, ra, manifestEntry, maxControlDocumentBytes)
+	if err != nil {
+		return LocalMetadata{}, err
+	}
+	declaration, err := readCanonicalControlEntry(ctx, ra, declEntry, maxControlDocumentBytes)
+	if err != nil {
+		return LocalMetadata{}, err
 	}
 	metadata, err := localMetadata(manifest, declaration, targetOS, targetArch)
 	if err != nil {
 		return LocalMetadata{}, err
 	}
-	if IsManagedWebTarget(metadata.Expected) && archiveSHA256 == "" {
+	if IsManagedWebTarget(metadata.Expected) && (archiveSize > ManagedWebMaxArchiveBytes || inMemoryReader == nil) {
 		return LocalMetadata{}, ErrInvalidPackage
-	}
-	if archiveSHA256 == "" {
-		digest := sha256.New()
-		if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
-			return LocalMetadata{}, err
-		}
-		archiveSHA256 = hex.EncodeToString(digest.Sum(nil))
 	}
 	metadata.Expected.ArchiveSize = archiveSize
 	metadata.Expected.ArchiveSHA256 = archiveSHA256
-	inspection, _, err := inspectReader(ctx, reader, metadata.Expected)
+	// Preserve full payload CRC/stream verification on local preview so a
+	// corrupted archive never reaches user confirmation.
+	inspection, _, err := inspectCanonicalArchive(ctx, canonical, metadata.Expected, true)
 	if err != nil {
 		return LocalMetadata{}, err
 	}

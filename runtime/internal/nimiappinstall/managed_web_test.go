@@ -86,11 +86,11 @@ func buildManagedWebTestArchive(t *testing.T, version string) string {
 		data []byte
 	}{
 		{"LICENSE", []byte("MIT\n")},
+		{"app-info.json", appInfo},
 		{"manifest.json", manifest},
 		{"nimi.app.yaml", declaration},
-		{"app-info.json", appInfo},
-		{nimiapppackage.ManagedWebRuntimeEntry, []byte("<!doctype html><html><body>managed</body></html>")},
 		{"payload/assets/app.js", []byte("console.log('ok');\n")},
+		{nimiapppackage.ManagedWebRuntimeEntry, []byte("<!doctype html><html><body>managed</body></html>")},
 	}
 	var output bytes.Buffer
 	writer := zip.NewWriter(&output)

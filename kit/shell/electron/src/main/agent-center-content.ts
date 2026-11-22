@@ -17,7 +17,15 @@ export async function decodeImageDimensions(
 ): Promise<{ readonly width: number; readonly height: number } | undefined> {
   const expectedFormat = mime === 'image/png' ? 'png' : mime === 'image/jpeg' ? 'jpeg' : 'webp';
   if (!hasCompleteImageContainer(bytes, mime)) return undefined;
-  const { default: sharp } = await import('sharp');
+  let sharp: (typeof import('sharp'))['default'];
+  try {
+    ({ default: sharp } = await import('sharp'));
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException | null)?.code === 'ERR_MODULE_NOT_FOUND') {
+      throw new Error('Agent Center image decoding requires optional peer dependency "sharp" in this Host', { cause });
+    }
+    throw cause;
+  }
   try {
     const image = sharp(Buffer.from(bytes), {
       failOn: 'warning',

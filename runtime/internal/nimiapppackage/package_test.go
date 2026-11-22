@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -290,7 +291,8 @@ func TestInspectRejectsUnsafeOrNoncanonicalArchiveBeforeStaging(t *testing.T) {
 			entries[4].name = "payload/CON .txt"
 		}},
 		{name: "symlink type", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].mode = 0o120777 }},
-		{name: "compressed", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].method = zip.Deflate }},
+		{name: "unsupported compression method", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].method = 9 }},
+		{name: "deflate non shrinking", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].method = zip.Deflate }},
 		{name: "data descriptor", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].flags |= 0x0008 }},
 		{name: "extra field", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].extra = []byte{1, 2} }},
 		{name: "unexpected root", mutate: func(_ *testing.T, entries []archiveFixtureEntry) { entries[4].name = "unexpected.txt" }},
@@ -461,6 +463,15 @@ func canonicalFixtureEntry(name string, value []byte, permissions uint32) archiv
 }
 
 func writeArchiveFixture(t *testing.T, entries []archiveFixtureEntry) (string, Expected) {
+	t.Helper()
+	ordered := append([]archiveFixtureEntry(nil), entries...)
+	sort.Slice(ordered, func(left, right int) bool {
+		return ordered[left].name < ordered[right].name
+	})
+	return writeArchiveFixtureRaw(t, ordered)
+}
+
+func writeArchiveFixtureRaw(t *testing.T, entries []archiveFixtureEntry) (string, Expected) {
 	t.Helper()
 	var output bytes.Buffer
 	writer := zip.NewWriter(&output)

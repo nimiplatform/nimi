@@ -1,8 +1,11 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { lstat, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { writeNimiAppArchive } from './app-pack.mjs';
+import { MAX_ZIP32_ENTRIES, writeNimiAppArchive } from './app-pack.mjs';
 import { hostedWebIdentity } from './app-identifiers.mjs';
 import { resolveDevelopmentRealm } from './development-environment.mjs';
+
+const HOSTED_WEB_MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
+const HOSTED_WEB_MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
 
 const versionPattern =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
@@ -76,6 +79,7 @@ export async function packHostedWeb(directory, outputFile) {
   if (path.resolve(outputFile).startsWith(root + path.sep))
     throw new Error('Write the archive outside the static directory.');
   const entries = [];
+  let totalUncompressed = 0;
   async function collect(relative) {
     for (const item of await readdir(path.join(root, relative), { withFileTypes: true })) {
       const name = relative ? relative + '/' + item.name : item.name;
@@ -84,8 +88,25 @@ export async function packHostedWeb(directory, outputFile) {
       if (/^(?:\.git|\.env(?:\..*)?)(?:\/|$)/u.test(name))
         throw new Error('Private working files cannot be hosted: ' + name);
       if (item.isDirectory()) await collect(name);
-      else if (item.isFile()) entries.push({ name, bytes: await readFile(path.join(root, name)) });
-      else throw new Error('Unsupported file in hosted Web bundle: ' + name);
+      else if (item.isFile()) {
+        const fullPath = path.join(root, name);
+        const st = await lstat(fullPath);
+        if (!st.isFile() || st.isSymbolicLink()) {
+          throw new Error('Unsupported file in hosted Web bundle: ' + name);
+        }
+        if (entries.length >= MAX_ZIP32_ENTRIES) {
+          throw new Error(`Hosted Web bundle exceeds ${MAX_ZIP32_ENTRIES} entries.`);
+        }
+        totalUncompressed += st.size;
+        if (totalUncompressed > HOSTED_WEB_MAX_UNCOMPRESSED_BYTES) {
+          throw new Error(`Hosted Web bundle exceeds ${HOSTED_WEB_MAX_UNCOMPRESSED_BYTES} bytes uncompressed.`);
+        }
+        const bytes = await readFile(fullPath);
+        if (bytes.length !== st.size) {
+          throw new Error('Hosted Web bundle file changed during packaging: ' + name);
+        }
+        entries.push({ name, bytes });
+      } else throw new Error('Unsupported file in hosted Web bundle: ' + name);
     }
   }
   await collect('');
@@ -94,5 +115,10 @@ export async function packHostedWeb(directory, outputFile) {
     !entries.some((e) => e.name === 'nimi-web-bundle.json')
   )
     throw new Error('Missing hosted Web entry or release manifest.');
-  await writeFile(outputFile, writeNimiAppArchive(entries), { flag: 'wx' });
+  const archive = writeNimiAppArchive(entries, {
+    compress: true,
+    maxArchiveBytes: HOSTED_WEB_MAX_ARCHIVE_BYTES,
+    maxTotalUncompressedBytes: HOSTED_WEB_MAX_UNCOMPRESSED_BYTES,
+  });
+  await writeFile(outputFile, archive, { flag: 'wx' });
 }

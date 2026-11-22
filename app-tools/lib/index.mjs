@@ -221,12 +221,12 @@ export function buildApp(cwd, options = {}) {
   return buildAppProject(cwd, options, appToolRunners());
 }
 
-export function packApp(cwd, options = {}) {
+export async function packApp(cwd, options = {}) {
   const manifest = parseYaml(readFileSync(path.join(path.resolve(cwd, options.dir || '.'), 'nimi.app.yaml'), 'utf8'));
   if (manifest.platform === 'web') throw new Error('Web pack is not implemented; use the App-owned website build and deployment process.');
   return options.aggregate
-    ? aggregateAppTargetCandidates(cwd, options)
-    : packAppTarget(cwd, options);
+    ? await aggregateAppTargetCandidates(cwd, options)
+    : await packAppTarget(cwd, options);
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.scaffold-web-carrier

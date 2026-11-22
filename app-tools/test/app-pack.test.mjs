@@ -68,7 +68,7 @@ test('macOS absence never downgrades invalid or contradictory publisher identity
   assert.throws(() => inspectMacOSMachO(Buffer.from('not a Mach-O')), /Mach-O/u);
 });
 
-test('production macOS pack observes a real ad-hoc bundle and rejects tampering', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, () => {
+test('production macOS pack observes a real ad-hoc bundle and rejects tampering', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, async () => {
   const root = fixture();
   try {
     const bundle = path.join(root, 'build', 'macos', 'Example.app');
@@ -99,9 +99,9 @@ test('production macOS pack observes a real ad-hoc bundle and rejects tampering'
       '    runtime_entry: payload/Example.app/Contents/MacOS/example-app',
       '',
     ].join('\n'));
-    const packed = packAppTarget(root, { target: 'macos-aarch64', production: true });
+    const packed = await packAppTarget(root, { target: 'macos-aarch64', production: true });
     assert.ok(packed);
-    const aggregate = aggregateAppTargetCandidates(root);
+    const aggregate = await aggregateAppTargetCandidates(root);
     assert.ok(aggregate);
     writeFileSync(path.join(contents, 'Resources', 'resource.txt'), 'tampered');
     assert.throws(() => observeMacOSExecutableFacts(binary), /verification failed/u);
@@ -318,12 +318,12 @@ test('native trust classifier rejects every unsupported status, type, or signer 
   }
 });
 
-test('pack emits one deterministic target archive and canonical target metadata', () => {
+test('pack emits one deterministic target archive and canonical target metadata', async () => {
   const root = fixture();
   try {
-    const first = packAppTarget(root, { target: 'windows-x86_64' });
+    const first = await packAppTarget(root, { target: 'windows-x86_64' });
     const firstBytes = readFileSync(first.artifactPath);
-    const second = packAppTarget(root, { target: 'windows-x86_64' });
+    const second = await packAppTarget(root, { target: 'windows-x86_64' });
     const secondBytes = readFileSync(second.artifactPath);
     assert.deepEqual(secondBytes, firstBytes);
     assert.equal(second.sha256, first.sha256);
@@ -357,7 +357,7 @@ test('pack emits one deterministic target archive and canonical target metadata'
   }
 });
 
-test('production pack accepts a real unsigned asInvoker Windows PE and preserves exact facts', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack accepts a real unsigned asInvoker Windows PE and preserves exact facts', { skip: !WINDOWS_X86_64 }, async () => {
   const root = fixture();
   try {
     const executablePath = compileUnsignedWindowsPe(root);
@@ -369,7 +369,7 @@ test('production pack accepts a real unsigned asInvoker Windows PE and preserves
     });
     assert.deepEqual(observed.execution_profile, { requested_execution_level: 'asInvoker', ui_access: false });
 
-    const packed = packAppTarget(root, { target: 'windows-x86_64', production: true });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64', production: true });
     assert.deepEqual(packed.native_trust, {
       posture: 'production-unsigned',
       windows_authenticode: 'unsigned',
@@ -382,7 +382,7 @@ test('production pack accepts a real unsigned asInvoker Windows PE and preserves
     assert.deepEqual(manifest.execution_profile, packed.execution_profile);
     assert.deepEqual(metadata.native_trust, packed.native_trust);
     assert.deepEqual(metadata.execution_profile, packed.execution_profile);
-    const aggregate = aggregateAppTargetCandidates(root);
+    const aggregate = await aggregateAppTargetCandidates(root);
     assert.deepEqual(aggregate.targets[0].native_trust, packed.native_trust);
     assert.deepEqual(aggregate.targets[0].execution_profile, packed.execution_profile);
   } finally {
@@ -390,7 +390,7 @@ test('production pack accepts a real unsigned asInvoker Windows PE and preserves
   }
 });
 
-test('production pack binds windows-x86_64 to an AMD64 user-mode executable PE', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack binds windows-x86_64 to an AMD64 user-mode executable PE', { skip: !WINDOWS_X86_64 }, async () => {
   for (const [name, options, expected] of [
     ['x86 image', { platform: 'x86' }, /machine must be AMD64/u],
     ['DLL image', { target: 'library' }, /IMAGE_FILE_DLL/u],
@@ -404,7 +404,7 @@ test('production pack binds windows-x86_64 to an AMD64 user-mode executable PE',
         expected,
         name,
       );
-      assert.throws(
+      await assert.rejects(
         () => packAppTarget(root, { target: 'windows-x86_64', production: true }),
         expected,
         name,
@@ -416,7 +416,7 @@ test('production pack binds windows-x86_64 to an AMD64 user-mode executable PE',
   }
 });
 
-test('Windows activation context admits documented v2-v3 and default-uiAccess forms', { skip: !WINDOWS_X86_64 }, () => {
+test('Windows activation context admits documented v2-v3 and default-uiAccess forms', { skip: !WINDOWS_X86_64 }, async () => {
   for (const options of [
     { manifestStyle: 'v2-v3', uiAccess: 'missing' },
     { target: 'exe' },
@@ -428,14 +428,14 @@ test('Windows activation context admits documented v2-v3 and default-uiAccess fo
         requested_execution_level: 'asInvoker',
         ui_access: false,
       });
-      assert.equal(packAppTarget(root, { target: 'windows-x86_64', production: true }).target_id, 'windows-x86_64');
+      assert.equal((await packAppTarget(root, { target: 'windows-x86_64', production: true })).target_id, 'windows-x86_64');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   }
 });
 
-test('Windows activation context rejects malformed or contradictory manifests', { skip: !WINDOWS_X86_64 }, () => {
+test('Windows activation context rejects malformed or contradictory manifests', { skip: !WINDOWS_X86_64 }, async () => {
   for (const options of [
     { assemblyNamespace: 'urn:nimi:invalid-assembly' },
     { trustNamespace: 'urn:nimi:invalid-trust' },
@@ -447,7 +447,7 @@ test('Windows activation context rejects malformed or contradictory manifests', 
     const root = fixture();
     try {
       compileUnsignedWindowsPe(root, options);
-      assert.throws(
+      await assert.rejects(
         () => packAppTarget(root, { target: 'windows-x86_64', production: true }),
         /Windows executable profile verification failed/u,
       );
@@ -458,11 +458,11 @@ test('Windows activation context rejects malformed or contradictory manifests', 
   }
 });
 
-test('production pack preserves a real valid Windows signer', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack preserves a real valid Windows signer', { skip: !WINDOWS_X86_64 }, async () => {
   const root = fixture();
   try {
     const signed = copyRealSignedWindowsPe(root);
-    const packed = packAppTarget(root, { target: 'windows-x86_64', production: true });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64', production: true });
     assert.deepEqual(packed.native_trust, {
       posture: 'observed-valid-native-signature',
       windows_authenticode: 'valid',
@@ -474,7 +474,7 @@ test('production pack preserves a real valid Windows signer', { skip: !WINDOWS_X
   }
 });
 
-test('production pack rejects a machine-local catalog signature as publisher signing', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack rejects a machine-local catalog signature as publisher signing', { skip: !WINDOWS_X86_64 }, async () => {
   const root = fixture();
   try {
     const windowsRoot = process.env.SystemRoot || process.env.WINDIR;
@@ -484,7 +484,7 @@ test('production pack rejects a machine-local catalog signature as publisher sig
     assert.equal(observed.authenticode.status, 'Valid');
     assert.equal(observed.authenticode.signature_type, 'Catalog');
     writeFileSync(runtimeEntryPath(root), readFileSync(catalogSigned));
-    assert.throws(
+    await assert.rejects(
       () => packAppTarget(root, { target: 'windows-x86_64', production: true }),
       /status=Valid, type=Catalog/u,
     );
@@ -494,7 +494,7 @@ test('production pack rejects a machine-local catalog signature as publisher sig
   }
 });
 
-test('production pack fails closed after a real signed PE is tampered', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack fails closed after a real signed PE is tampered', { skip: !WINDOWS_X86_64 }, async () => {
   const root = fixture();
   try {
     copyRealSignedWindowsPe(root);
@@ -504,7 +504,7 @@ test('production pack fails closed after a real signed PE is tampered', { skip: 
     assert.notEqual(observed.authenticode.status, 'Valid');
     assert.notEqual(observed.authenticode.status, 'NotSigned');
     assert.equal(observed.authenticode.signature_type, 'Authenticode');
-    assert.throws(
+    await assert.rejects(
       () => packAppTarget(root, { target: 'windows-x86_64', production: true }),
       /Windows Authenticode verification failed/u,
     );
@@ -514,7 +514,7 @@ test('production pack fails closed after a real signed PE is tampered', { skip: 
   }
 });
 
-test('production pack rejects prohibited or absent Windows execution profiles', { skip: !WINDOWS_X86_64 }, () => {
+test('production pack rejects prohibited or absent Windows execution profiles', { skip: !WINDOWS_X86_64 }, async () => {
   for (const profile of [
     { level: 'highestAvailable' },
     { level: 'requireAdministrator' },
@@ -524,7 +524,7 @@ test('production pack rejects prohibited or absent Windows execution profiles', 
     const root = fixture();
     try {
       compileUnsignedWindowsPe(root, profile);
-      assert.throws(
+      await assert.rejects(
         () => packAppTarget(root, { target: 'windows-x86_64', production: true }),
         /Windows executable profile verification failed/u,
       );
@@ -535,11 +535,11 @@ test('production pack rejects prohibited or absent Windows execution profiles', 
   }
 });
 
-test('aggregate reopens the archive and rejects native or execution lineage drift', { skip: !WINDOWS_X86_64 }, () => {
+test('aggregate reopens the archive and rejects native or execution lineage drift', { skip: !WINDOWS_X86_64 }, async () => {
   const root = fixture();
   try {
     compileUnsignedWindowsPe(root);
-    const packed = packAppTarget(root, { target: 'windows-x86_64', production: true });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64', production: true });
     const originalMetadata = JSON.parse(readFileSync(packed.metadataPath, 'utf8'));
 
     const metadataNativeDrift = structuredClone(originalMetadata);
@@ -549,12 +549,12 @@ test('aggregate reopens the archive and rejects native or execution lineage drif
       certificate_subject: 'CN=Different Publisher',
     };
     writeFileSync(packed.metadataPath, `${JSON.stringify(metadataNativeDrift, null, 2)}\n`);
-    assert.throws(() => aggregateAppTargetCandidates(root), /does not match archive manifest native_trust/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /does not match archive manifest native_trust/u);
 
     const metadataProfileDrift = structuredClone(originalMetadata);
     metadataProfileDrift.execution_profile.ui_access = true;
     writeFileSync(packed.metadataPath, `${JSON.stringify(metadataProfileDrift, null, 2)}\n`);
-    assert.throws(() => aggregateAppTargetCandidates(root), /execution_profile must be exactly/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /execution_profile must be exactly/u);
 
     const archiveEntries = readNimiAppArchive(readFileSync(packed.artifactPath));
     const archiveManifest = JSON.parse(archiveEntries.get('manifest.json').bytes.toString('utf8'));
@@ -573,40 +573,40 @@ test('aggregate reopens the archive and rejects native or execution lineage drif
     metadataForChangedArchive.size = changedArchive.length;
     metadataForChangedArchive.sha256 = createHash('sha256').update(changedArchive).digest('hex');
     writeFileSync(packed.metadataPath, `${JSON.stringify(metadataForChangedArchive, null, 2)}\n`);
-    assert.throws(() => aggregateAppTargetCandidates(root), /does not match archive manifest native_trust/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /does not match archive manifest native_trust/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('pack fails when runtime entry is absent and never invents cross-target output', () => {
+test('pack fails when runtime entry is absent and never invents cross-target output', async () => {
   const root = fixture();
   try {
     const profilePath = path.join(root, '.nimi', 'config', 'build-profile.yaml');
     writeFileSync(profilePath, readFileSync(profilePath, 'utf8').replace('payload/example-app.exe', 'payload/missing.exe'));
-    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /runtime_entry is missing/u);
-    assert.throws(() => packAppTarget(root, { target: 'macos-aarch64' }), /Build profile does not declare target/u);
-    assert.throws(() => packAppTarget(root, { target: 'linux-x86_64' }), /Unsupported App package target/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'windows-x86_64' }), /runtime_entry is missing/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'macos-aarch64' }), /Build profile does not declare target/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'linux-x86_64' }), /Unsupported App package target/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('pack requires the App project license in the immutable archive', () => {
+test('pack requires the App project license in the immutable archive', async () => {
   const root = fixture();
   try {
     rmSync(path.join(root, 'LICENSE'));
-    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /LICENSE is missing/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'windows-x86_64' }), /LICENSE is missing/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('aggregate verifies final target bytes and creates one version candidate', () => {
+test('aggregate verifies final target bytes and creates one version candidate', async () => {
   const root = fixture();
   try {
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
-    const aggregate = aggregateAppTargetCandidates(root);
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
+    const aggregate = await aggregateAppTargetCandidates(root);
     assert.equal(aggregate.targets.length, 1);
     assert.equal(aggregate.targets[0].sha256, packed.sha256);
     const candidate = JSON.parse(readFileSync(aggregate.candidatePath, 'utf8'));
@@ -614,49 +614,49 @@ test('aggregate verifies final target bytes and creates one version candidate', 
     assert.deepEqual(candidate.targets.map((entry) => entry.target_id), ['windows-x86_64']);
 
     writeFileSync(packed.artifactPath, 'changed');
-    assert.throws(() => aggregateAppTargetCandidates(root), /changed after pack/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /changed after pack/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('Tauri primary profile rejects pack and aggregate even with a previous valid target', () => {
+test('Tauri primary profile rejects pack and aggregate even with a previous valid target', async () => {
   const root = fixture();
   try {
-    packAppTarget(root, { target: 'windows-x86_64' });
+    await packAppTarget(root, { target: 'windows-x86_64' });
     const profile = path.join(root, '.nimi/config/build-profile.yaml');
     writeFileSync(profile, readFileSync(profile, 'utf8').replace('electron-packager-pnpm-vite', 'tauri-pnpm-vite'));
-    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /tauri-pnpm-vite is unsupported/);
-    assert.throws(() => aggregateAppTargetCandidates(root), /tauri-pnpm-vite is unsupported/);
+    await assert.rejects(() => packAppTarget(root, { target: 'windows-x86_64' }), /tauri-pnpm-vite is unsupported/);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /tauri-pnpm-vite is unsupported/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('pack rejects unknown build profile refs and accepts both Electron profiles without a Tauri tree', () => {
+test('pack rejects unknown build profile refs and accepts both Electron profiles without a Tauri tree', async () => {
   const electronRoot = fixture();
   const appOwnedRoot = fixture({ buildProfileRef: 'electron-pnpm' });
   const tauriRoot = fixture({ buildProfileRef: 'tauri-pnpm-vite' });
   try {
     rmSync(path.join(electronRoot, 'src-tauri'), { recursive: true, force: true });
-    assert.equal(packAppTarget(electronRoot, { target: 'windows-x86_64' }).target_id, 'windows-x86_64');
+    assert.equal((await packAppTarget(electronRoot, { target: 'windows-x86_64' })).target_id, 'windows-x86_64');
     rmSync(path.join(appOwnedRoot, 'src-tauri'), { recursive: true, force: true });
-    const appOwnedPackage = packAppTarget(appOwnedRoot, { target: 'windows-x86_64' });
+    const appOwnedPackage = await packAppTarget(appOwnedRoot, { target: 'windows-x86_64' });
     assert.equal(appOwnedPackage.target_id, 'windows-x86_64');
-    assert.equal(aggregateAppTargetCandidates(appOwnedRoot).targets[0].sha256, appOwnedPackage.sha256);
+    assert.equal((await aggregateAppTargetCandidates(appOwnedRoot)).targets[0].sha256, appOwnedPackage.sha256);
 
     const electronProfilePath = path.join(electronRoot, '.nimi', 'config', 'build-profile.yaml');
     writeFileSync(electronProfilePath, readFileSync(electronProfilePath, 'utf8').replace(
       'electron-packager-pnpm-vite',
       'unknown-packager',
     ));
-    assert.throws(
+    await assert.rejects(
       () => packAppTarget(electronRoot, { target: 'windows-x86_64' }),
       /build_profile_ref is unsupported: unknown-packager/u,
     );
 
     rmSync(path.join(tauriRoot, 'src-tauri'), { recursive: true, force: true });
-    assert.throws(
+    await assert.rejects(
       () => packAppTarget(tauriRoot, { target: 'windows-x86_64' }),
       /tauri-pnpm-vite is unsupported/u,
     );
@@ -667,10 +667,10 @@ test('pack rejects unknown build profile refs and accepts both Electron profiles
   }
 });
 
-test('archive reader rejects changed bytes', () => {
+test('archive reader rejects changed bytes', async () => {
   const root = fixture();
   try {
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
     const bytes = readFileSync(packed.artifactPath);
     bytes[50] ^= 0xff;
     assert.throws(() => readNimiAppArchive(bytes), /digest mismatch|Invalid/u);
@@ -679,7 +679,7 @@ test('archive reader rejects changed bytes', () => {
   }
 });
 
-test('distribution info rejects missing author resources and blank or truncated icons', () => {
+test('distribution info rejects missing author resources and blank or truncated icons', async () => {
   const root = fixture();
   try {
     assert.equal(readAppInfo(root, 'windows-x86_64').display_name, 'Example App');
@@ -689,16 +689,16 @@ test('distribution info rejects missing author resources and blank or truncated 
     }
     assert.throws(() => validateAppIcon(readFileSync(path.join(root, 'icon.png')).subarray(0, 16)), /PNG/u);
     writeFileSync(path.join(root, 'RELEASE_NOTES.md'), '');
-    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /release_notes/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'windows-x86_64' }), /release_notes/u);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('aggregate rejects an information sidecar changed independently of its archive', () => {
+test('aggregate rejects an information sidecar changed independently of its archive', async () => {
   const root = fixture();
   try {
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
     writeFileSync(packed.appInfoPath, readFileSync(packed.appInfoPath).toString().replace('An example App', 'A different App'));
-    assert.throws(() => aggregateAppTargetCandidates(root), /App info changed/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /App info changed/u);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -720,23 +720,23 @@ test('missing declared resources and malformed URLs identify the author field', 
   }
 });
 
-test('aggregate identifies a missing App info sidecar', () => {
+test('aggregate identifies a missing App info sidecar', async () => {
   const root = fixture();
   try {
-    const result = packAppTarget(root, { target: 'windows-x86_64' });
+    const result = await packAppTarget(root, { target: 'windows-x86_64' });
     rmSync(result.appInfoPath);
-    assert.throws(() => aggregateAppTargetCandidates(root), /Target App info asset is missing: example.app-0.1.0-windows-x86_64.app-info.json/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /Target App info asset is missing: example.app-0.1.0-windows-x86_64.app-info.json/u);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('local distribution requires the introduction but omits optional release notes and preserves exact UTF-8 license bytes', () => {
+test('local distribution requires the introduction but omits optional release notes and preserves exact UTF-8 license bytes', async () => {
   const root = fixture();
   try {
     const manifest = path.join(root, 'nimi.app.yaml');
     writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  release_notes: RELEASE_NOTES.md\n', ''));
     const license = Buffer.from('\uFEFFExample App License\n');
     writeFileSync(path.join(root, 'LICENSE'), license);
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
     const info = JSON.parse(readFileSync(packed.appInfoPath, 'utf8'));
     assert.equal(info.readme_markdown, readFileSync(path.join(root, 'NIMI_APP.md'), 'utf8'));
     assert.equal(info.release_notes_markdown, '');
@@ -784,29 +784,29 @@ function declareSafetyProfile(root, yamlBlock = SAFETY_PROFILE_YAML) {
   writeFileSync(manifest, `${readFileSync(manifest, 'utf8')}${yamlBlock}`);
 }
 
-test('an undeclared safety_profile stays absent from info, declaration and sidecar rather than becoming an empty risk list', () => {
+test('an undeclared safety_profile stays absent from info, declaration and sidecar rather than becoming an empty risk list', async () => {
   const root = fixture();
   try {
     const info = readAppInfo(root, 'windows-x86_64');
     assert.equal(Object.hasOwn(info, 'safety_profile'), false);
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
     const entries = readNimiAppArchive(readFileSync(packed.artifactPath));
     assert.equal(Object.hasOwn(JSON.parse(entries.get('app-info.json').bytes.toString('utf8')), 'safety_profile'), false);
     assert.doesNotMatch(entries.get('nimi.app.yaml').bytes.toString('utf8'), /safety_profile/u);
-    assert.equal(aggregateAppTargetCandidates(root).targets.length, 1);
+    assert.equal((await aggregateAppTargetCandidates(root)).targets.length, 1);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('a declared safety_profile is projected one way into info, archive declaration and exact sidecar with tool-owned order', () => {
+test('a declared safety_profile is projected one way into info, archive declaration and exact sidecar with tool-owned order', async () => {
   const root = fixture();
   try {
-    const before = packAppTarget(root, { target: 'windows-x86_64' });
+    const before = await packAppTarget(root, { target: 'windows-x86_64' });
     declareSafetyProfile(root);
     const info = readAppInfo(root, 'windows-x86_64');
     assert.deepEqual(info.safety_profile.content_descriptors, ['sexual-content', 'violence'], 'vocabulary order, not author order');
     assert.deepEqual(info.safety_profile.ai.outputs.map((entry) => entry.modality), ['text', 'image']);
     assert.equal(info.safety_profile.ai.outputs[1].export_visible_marking, 'absent', 'absent marking is preserved as a fact');
-    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(root, { target: 'windows-x86_64' });
     assert.notEqual(packed.sha256, before.sha256);
     const entries = readNimiAppArchive(readFileSync(packed.artifactPath));
     const sidecar = JSON.parse(readFileSync(packed.appInfoPath, 'utf8'));
@@ -815,23 +815,23 @@ test('a declared safety_profile is projected one way into info, archive declarat
     const declaration = parseYaml(entries.get('nimi.app.yaml').bytes.toString('utf8'));
     assert.deepEqual(declaration.safety_profile, info.safety_profile);
     assert.deepEqual(Object.keys(declaration).sort(), ['app_access', 'app_id', 'capability_contract_refs', 'display_name', 'required_standardized_feature_refs', 'safety_profile', 'storage_policy', 'version']);
-    const aggregate = aggregateAppTargetCandidates(root);
+    const aggregate = await aggregateAppTargetCandidates(root);
     assert.equal(aggregate.targets[0].sha256, packed.sha256);
     // The business payload and every other App file are untouched by the declaration.
     assert.deepEqual(entries.get('payload/example-app.exe').bytes, Buffer.from([0, 1, 2, 3, 4]));
     // A hand-edited sidecar with a non-canonical or unknown declaration key is rejected at aggregate.
     const tampered = { ...sidecar, safety_profile: { ...sidecar.safety_profile, intended_audience: 'adult' } };
     writeFileSync(packed.appInfoPath, `${JSON.stringify(tampered, null, 2)}\n`);
-    assert.throws(() => aggregateAppTargetCandidates(root), /App info changed or differs from archive/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /App info changed or differs from archive/u);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('an invalid declaration names the field and does not block dev-only inputs, while unknown info keys are rejected', () => {
+test('an invalid declaration names the field and does not block dev-only inputs, while unknown info keys are rejected', async () => {
   const root = fixture();
   try {
     declareSafetyProfile(root, SAFETY_PROFILE_YAML.replace('intended_audience: general', 'intended_audience: everyone'));
     assert.throws(() => readAppInfo(root, 'windows-x86_64'), /safety_profile\.intended_audience must be one of children, general, teen, adult/u);
-    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /safety_profile\.intended_audience/u);
+    await assert.rejects(() => packAppTarget(root, { target: 'windows-x86_64' }), /safety_profile\.intended_audience/u);
     const manifest = path.join(root, 'nimi.app.yaml');
     writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('intended_audience: everyone', 'intended_audience: general').replace('  high_impact_decision_uses: []\n', '  high_impact_decision_uses: []\n  certified_safe: true\n'));
     assert.throws(() => readAppInfo(root, 'windows-x86_64'), /safety_profile\.certified_safe is not a supported safety_profile field/u);

@@ -10,7 +10,11 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 )
 
-const maxStorefrontMediaBytes = int64(8 * 1024 * 1024)
+const (
+	maxStorefrontMediaBytes   = int64(8 * 1024 * 1024)
+	maxManagedWebArchiveBytes = int64(72 * 1024 * 1024)
+	maxNativeArchiveBytes     = int64(2000 * 1024 * 1024)
+)
 
 func validateProductOriginAndUpstream(origin string, upstream *ProductUpstream) error {
 	if origin != "" {
@@ -204,12 +208,14 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 		if candidate.Package.RuntimeKind == "managed-web" {
 			if target.TargetID != ManagedWebTargetID || target.OS != "any" || target.Arch != "any" ||
 				target.RuntimeEntry != ManagedWebRuntimeEntry || target.ExecutionProfileRef != ManagedWebExecutionProfileRef ||
+				target.Size > maxManagedWebArchiveBytes ||
 				target.NativeTrust.WindowsCodeSigning != "not-applicable" || target.NativeTrust.MacOSNotarization != "not-applicable" ||
 				target.NativeTrust.SigningSubject != nil || target.NativeTrust.ObservedSubject != nil ||
 				target.NativeTrust.MacOSDeveloperIDSubject != nil || target.NativeTrust.EntitlementsRef != nil {
 				return fmt.Errorf("validate approved managed-web target %s: %w", target.TargetID, ErrInvalidRegistrySnapshot)
 			}
-		} else if target.TargetID == ManagedWebTargetID || target.OS == "any" || target.Arch == "any" || target.ExecutionProfileRef == ManagedWebExecutionProfileRef {
+		} else if target.TargetID == ManagedWebTargetID || target.OS == "any" || target.Arch == "any" ||
+			target.ExecutionProfileRef == ManagedWebExecutionProfileRef || target.Size > maxNativeArchiveBytes {
 			return fmt.Errorf("validate approved native target %s: %w", target.TargetID, ErrInvalidRegistrySnapshot)
 		}
 		if err := validateAsset(target.AssetID, target.AssetName, target.AssetURL, target.Size, target.SHA256, candidate.Source.Repository, candidate.Release.Tag); err != nil {

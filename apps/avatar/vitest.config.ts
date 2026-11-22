@@ -1,17 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
-import fs from 'node:fs';
 import {
   CUBISM_WEB_FRAMEWORK_CACHE_ROOT,
   ensureCubismFrameworkCache,
 } from './scripts/cubism-web-sdk-cache.js';
 
 const sdkVNextDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
-
-// Resolve the installed Kit dependency graph, never stale pnpm cache entries.
-function kitPackageRoot(packageName: string): string {
-  return fs.realpathSync(path.resolve(import.meta.dirname, '../../kit/node_modules', packageName));
-}
 
 export default defineConfig({
   plugins: [
@@ -34,14 +28,13 @@ export default defineConfig({
     hookTimeout: 15000,
   },
   resolve: {
-    dedupe: ['react', 'react-dom', 'scheduler', '@radix-ui/react-switch'],
+    dedupe: ['react', 'react-dom', 'scheduler'],
     alias: [
       { find: 'react/jsx-dev-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-dev-runtime.js') },
       { find: 'react/jsx-runtime', replacement: path.resolve(import.meta.dirname, 'node_modules/react/jsx-runtime.js') },
       { find: 'react-dom/client', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/client.js') },
       { find: 'react-dom', replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/index.js') },
       { find: 'react', replacement: path.resolve(import.meta.dirname, 'node_modules/react/index.js') },
-      { find: '@radix-ui/react-switch', replacement: kitPackageRoot('@radix-ui/react-switch') },
       { find: '@renderer', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer') },
       { find: '@framework', replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT },
       { find: '@live2d', replacement: path.resolve(import.meta.dirname, 'src/shell/renderer/live2d') },

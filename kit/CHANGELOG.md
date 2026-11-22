@@ -14,6 +14,11 @@ The protected Electron App Host now observes the end of its existing Runtime ses
 
 `capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
 
+## 0.24.0-rc.17
+
+- Moved `sharp` from Kit runtime dependencies to an optional peer dependency (`peerDependenciesMeta.sharp.optional = true`) so desktop Apps without image-processing needs do not inherit native `libvips` binaries; hosts that use `agentCenterOpenFileDialog` declare `sharp` directly.
+- Removed unused `zod` and `@radix-ui/react-switch` dependencies from Kit and added a static import boundary test for `@nimiplatform/kit/shell/electron`.
+
 ## 0.24.0-rc.16
 
 The default renderer bridge uses the injected host synchronously. Existing raw Tauri integrations can install the optional @tauri-apps/api peer and import installNimiShellRuntimeBridge from @nimiplatform/kit/shell/renderer/tauri. The supported native App host is Electron on Windows x64 and macOS arm64.

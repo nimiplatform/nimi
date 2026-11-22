@@ -1,7 +1,6 @@
 package nimiapppackage
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -10,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
@@ -176,16 +174,12 @@ func parseBoundedYAMLInt(node *yaml.Node, minValue, maxValue int) (int, bool) {
 }
 
 // digestArchiveRoot derives the exact PayloadRootSHA256 and HostExecutableSHA256
-// directly from the verified archive bytes using the identical framing and UTF-8
-// byte sort order as digestMaterializedRoot, closing staging-tree tampering.
-func digestArchiveRoot(ctx context.Context, reader *zip.Reader, targetOS, runtimeEntry string) ([sha256.Size]byte, [sha256.Size]byte, error) {
-	if reader == nil {
+// directly from the verified canonical ZIP entries using the identical framing
+// and UTF-8 byte sort order as digestMaterializedRoot, closing staging-tree tampering.
+func digestArchiveRoot(ctx context.Context, archive *canonicalZipArchive, targetOS, runtimeEntry string) ([sha256.Size]byte, [sha256.Size]byte, error) {
+	if archive == nil {
 		return [sha256.Size]byte{}, [sha256.Size]byte{}, ErrPackageIntegrity
 	}
-	entries := make([]*zip.File, len(reader.File))
-	copy(entries, reader.File)
-	sort.Slice(entries, func(left, right int) bool { return entries[left].Name < entries[right].Name })
-
 	tree := sha256.New()
 	_, _ = tree.Write([]byte(payloadDigestDomain))
 	if targetOS == "macos" {
@@ -194,39 +188,33 @@ func digestArchiveRoot(ctx context.Context, reader *zip.Reader, targetOS, runtim
 	var hostDigest [sha256.Size]byte
 	host := sha256.New()
 	buffer := make([]byte, 128*1024)
-	for _, entry := range entries {
+	for _, entry := range archive.entries {
 		if targetOS == "macos" {
 			kind := byte(0)
-			if entry.Mode()&os.ModeSymlink != 0 {
+			if entry.Mode&os.ModeSymlink != 0 {
 				kind = 1
 			}
 			_, _ = tree.Write([]byte{kind})
 			var mode [4]byte
-			permissions := uint32(entry.Mode().Perm())
+			permissions := uint32(entry.Mode.Perm())
 			if kind == 1 {
 				permissions = 0o777
 			}
 			binary.LittleEndian.PutUint32(mode[:], permissions)
 			_, _ = tree.Write(mode[:])
 		}
-		if entry.UncompressedSize64 > uint64(mathMaxInt64) {
+		if entry.UncompressedSize > uint64(mathMaxInt64) {
 			return [sha256.Size]byte{}, [sha256.Size]byte{}, ErrPackageIntegrity
 		}
-		writeDigestHeader(tree, entry.Name, int64(entry.UncompressedSize64))
-		input, err := entry.Open()
-		if err != nil {
-			return [sha256.Size]byte{}, [sha256.Size]byte{}, fmt.Errorf("open verified archive entry %s: %w", entry.Name, errors.Join(ErrPackageIntegrity, err))
-		}
+		writeDigestHeader(tree, entry.Name, int64(entry.UncompressedSize))
 		var destination io.Writer = tree
-		if entry.Name == runtimeEntry && entry.Mode()&os.ModeSymlink == 0 {
+		if entry.Name == runtimeEntry && entry.Mode&os.ModeSymlink == 0 {
 			destination = io.MultiWriter(tree, host)
 		}
-		copyErr := copyWithContextBuffer(ctx, destination, input, entry.UncompressedSize64, buffer)
-		closeErr := input.Close()
-		if copyErr != nil || closeErr != nil {
-			return [sha256.Size]byte{}, [sha256.Size]byte{}, fmt.Errorf("digest verified archive entry %s: %w", entry.Name, errors.Join(ErrPackageIntegrity, copyErr, closeErr))
+		if err := copyCanonicalEntry(ctx, archive.ra, entry, destination, buffer); err != nil {
+			return [sha256.Size]byte{}, [sha256.Size]byte{}, fmt.Errorf("digest verified archive entry %s: %w", entry.Name, errors.Join(ErrPackageIntegrity, err))
 		}
-		if entry.Name == runtimeEntry && entry.Mode()&os.ModeSymlink == 0 {
+		if entry.Name == runtimeEntry && entry.Mode&os.ModeSymlink == 0 {
 			copy(hostDigest[:], host.Sum(nil))
 		}
 	}

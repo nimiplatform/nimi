@@ -55,13 +55,12 @@ func (coordinator *Coordinator) PrepareLocalPackage(ctx context.Context, selecte
 	if err != nil {
 		return LocalPackagePreview{}, ErrUnsupportedInstallPlatform
 	}
-	input, err := os.Open(selectedPath)
+	input, inputSize, err := nimiapppackage.OpenArchiveReadOnly(selectedPath)
 	if err != nil {
 		return LocalPackagePreview{}, fmt.Errorf("read selected App package: %w", err)
 	}
 	defer func() { _ = input.Close() }()
-	info, err := input.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 {
+	if inputSize <= 0 || inputSize > nimiapppackage.NativeMaxArchiveBytes {
 		return LocalPackagePreview{}, nimiapppackage.ErrInvalidPackage
 	}
 	var random [24]byte
@@ -88,7 +87,10 @@ func (coordinator *Coordinator) PrepareLocalPackage(ctx context.Context, selecte
 	if err != nil {
 		return LocalPackagePreview{}, err
 	}
-	_, copyErr := io.CopyN(output, localContextReader{ctx: ctx, reader: input}, info.Size())
+	copied, copyErr := io.Copy(output, io.LimitReader(localContextReader{ctx: ctx, reader: input}, inputSize+1))
+	if copyErr == nil && copied != inputSize {
+		copyErr = nimiapppackage.ErrPackageIntegrity
+	}
 	syncErr := output.Sync()
 	closeErr := output.Close()
 	if err := errors.Join(copyErr, syncErr, closeErr); err != nil {

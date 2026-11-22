@@ -562,7 +562,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /const stagingParent = path\.join\(appRoot, '\.nimi', 'local', 'build'\)/);
     assert.match(electronProductionPackager, /mkdtemp\(path\.join\(stagingParent, 'electron-'\)\)/);
     assert.doesNotMatch(electronProductionPackager, /\btmpdir\(\)|from 'node:os'/);
-    assert.match(electronProductionPackager, /writeFile\(path\.join\(productionSourceRoot, 'pnpm-workspace\.yaml'\), stringifyYaml\(\{ packages: \['\.'\] \}\)\)/);
+    assert.doesNotMatch(electronProductionPackager, /pnpm install --prod|packages:\s*'external'|@grpc\/grpc-js/);
+    assert.match(electronProductionPackager, /createRequire as __nimiCreateRequire/);
+    assert.match(electronProductionPackager, /verifyNodeSyntax\(mainBundlePath\)/);
+    assert.match(electronProductionPackager, /assertCleanAppBundle\(resourcesRoot\)/);
+    assert.match(electronProductionPackager, /metafile: true/);
     assert.match(electronProductionPackager, /const productionSourceRoot = path\.join\(stagingRoot, 'app'\)/);
     assert.match(electronProductionPackager, /tmpdir: packagerTempRoot/);
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
@@ -576,11 +580,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
-    assert.match(electronProductionPackager, /pnpm install --prod --frozen-lockfile --ignore-scripts --node-linker=hoisted/);
     assert.match(electronProductionPackager, /dir: productionSourceRoot/);
     assert.match(electronProductionPackager, /prune: false/);
-    assert.match(electronProductionPackager, /delete productionManifest\.devDependencies/);
-    assert.match(electronProductionPackager, /await rm\(path\.join\(productionSourceRoot, 'pnpm-lock\.yaml'\)\)/);
+    assert.match(electronProductionPackager, /main: 'dist-electron\/main\.js'/);
+    assert.match(electronProductionPackager, /license: appPackage\.license/);
+    assert.match(electronProductionPackager, /author: appPackage\.author/);
     assert.match(electronProductionPackager, /await cp\(nativePackageRoot, nativeDestination/);
     assert.match(electronProductionPackager, /let packageCompleted = false/);
     assert.match(electronProductionPackager, /packageCompleted = true/);

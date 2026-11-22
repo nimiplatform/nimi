@@ -138,3 +138,29 @@ func TestIndexOriginUpstreamAndStorefrontMediaValidation(t *testing.T) {
 		t.Fatalf("wrong storefront_media asset name accepted: %v", err)
 	}
 }
+
+func TestDescriptorArchiveSizeBudgetsEnforced(t *testing.T) {
+	nativeOver := validDescriptorDocument()
+	nativeOver.Candidate.Targets[0].Size = maxNativeArchiveBytes + 1
+	if _, err := validateDescriptor(nativeOver, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "windows-x86_64"); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("native archive over 2000 MiB accepted: %v", err)
+	}
+	nativeExact := validDescriptorDocument()
+	nativeExact.Candidate.Targets[0].Size = maxNativeArchiveBytes
+	if _, err := validateDescriptor(nativeExact, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "windows-x86_64"); err != nil {
+		t.Fatalf("native archive at exact 2000 MiB rejected: %v", err)
+	}
+	managedOver := validDescriptorDocument()
+	managedOver.Candidate.Targets[0].TargetID = "desktop-universal"
+	managedOver.Candidate.Targets[0].OS = "any"
+	managedOver.Candidate.Targets[0].Arch = "any"
+	managedOver.Candidate.Targets[0].AssetName = "publisher.example-app-1.2.3-desktop-universal.nimiapp"
+	managedOver.Candidate.Targets[0].AssetURL = "https://github.com/publisher/example-app/releases/download/v1.2.3/publisher.example-app-1.2.3-desktop-universal.nimiapp"
+	managedOver.Candidate.Targets[0].RuntimeEntry = "payload/index.html"
+	managedOver.Candidate.Targets[0].ExecutionProfileRef = "nimi-managed-web-v1"
+	managedOver.Candidate.Targets[0].NativeTrust = NativeTrust{WindowsCodeSigning: "not-applicable", MacOSNotarization: "not-applicable"}
+	managedOver.Candidate.Targets[0].Size = maxManagedWebArchiveBytes + 1
+	if _, err := validateDescriptor(managedOver, "descriptors/publisher.example-app/1.2.3.json", "publisher.example-app", "desktop-universal"); !errors.Is(err, ErrInvalidRegistrySnapshot) {
+		t.Fatalf("managed-web archive over 72 MiB accepted: %v", err)
+	}
+}

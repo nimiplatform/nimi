@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 )
 
@@ -178,9 +179,13 @@ func (downloader *Downloader) downloadTarget(
 }
 
 func validateDownloadTarget(target publicappregistry.Target) error {
+	maxArchiveBytes := nimiapppackage.NativeMaxArchiveBytes
+	if target.OS == "any" || target.TargetID == nimiapppackage.ManagedWebTargetID || target.ExecutionProfileRef == nimiapppackage.ManagedWebExecutionProfileRef {
+		maxArchiveBytes = nimiapppackage.ManagedWebMaxArchiveBytes
+	}
 	parsed, err := url.Parse(target.AssetURL)
 	if err != nil || parsed.Scheme != "https" || parsed.Host != "github.com" || parsed.User != nil ||
-		parsed.RawQuery != "" || parsed.Fragment != "" || target.Size <= 0 || !lowerSHA256(target.SHA256) ||
+		parsed.RawQuery != "" || parsed.Fragment != "" || target.Size <= 0 || target.Size > maxArchiveBytes || !lowerSHA256(target.SHA256) ||
 		target.AssetName == "" || target.AssetName != strings.TrimSpace(target.AssetName) || strings.ContainsAny(target.AssetName, `/\`) {
 		return fmt.Errorf("validate public App download target: %w", errors.Join(ErrInvalidDownloadTarget, err))
 	}

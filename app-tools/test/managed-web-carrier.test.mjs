@@ -252,12 +252,12 @@ test('managed-web --features all keeps text-only agent-conversation, passes host
   }
 });
 
-test('managed-web pack is byte-identical across consecutive runs, emits 0o644 payload/index.html, preserves desktop.window, and enforces all SEC-4 red lines', () => {
+test('managed-web pack is byte-identical across consecutive runs, emits 0o644 payload/index.html, preserves desktop.window, and enforces all SEC-4 red lines', async () => {
   const root = createManagedWebPackFixture();
   try {
-    const first = packAppTarget(root, { target: 'desktop-universal', production: true });
+    const first = await packAppTarget(root, { target: 'desktop-universal', production: true });
     const firstBytes = readFileSync(first.artifactPath);
-    const second = packAppTarget(root, { target: 'desktop-universal', production: true });
+    const second = await packAppTarget(root, { target: 'desktop-universal', production: true });
     const secondBytes = readFileSync(second.artifactPath);
     assert.equal(first.sha256, second.sha256);
     assert.equal(Buffer.compare(firstBytes, secondBytes), 0, 'consecutive packs must produce identical bytes');
@@ -281,7 +281,7 @@ test('managed-web pack is byte-identical across consecutive runs, emits 0o644 pa
     assert.deepEqual(declaration.storage_policy, mediatedStorage);
     assert.equal(Object.hasOwn(appInfo, 'desktop'), false, 'app-info.json must remain unchanged');
 
-    const aggregate = aggregateAppTargetCandidates(root);
+    const aggregate = await aggregateAppTargetCandidates(root);
     assert.equal(aggregate.targets.length, 1);
     assert.equal(aggregate.targets[0].target_id, 'desktop-universal');
 
@@ -294,48 +294,50 @@ test('managed-web pack is byte-identical across consecutive runs, emits 0o644 pa
     targetMeta.size = tamperedArchive.length;
     targetMeta.sha256 = hashAppArchive(tamperedArchive);
     writeFileSync(first.metadataPath, JSON.stringify(targetMeta));
-    assert.throws(() => aggregateAppTargetCandidates(root), /missing or not 0644/u);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), /missing or not 0644/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('managed-web pack and aggregation enforce the snapshot directory budgets', (t) => {
+test('managed-web pack and aggregation enforce the snapshot directory budgets', async (t) => {
   const root = createManagedWebPackFixture();
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const deepest = path.join(root, 'dist', 'renderer', ...Array(63).fill('d'));
   mkdirSync(deepest, { recursive: true });
   writeFileSync(path.join(deepest, 'asset.txt'), 'boundary');
-  const packaged = packAppTarget(root, { target: 'desktop-universal' });
-  assert.equal(aggregateAppTargetCandidates(root).targets.length, 1);
+  const packaged = await packAppTarget(root, { target: 'desktop-universal' });
+  assert.equal((await aggregateAppTargetCandidates(root)).targets.length, 1);
 
   mkdirSync(path.join(deepest, 'extra'));
   writeFileSync(path.join(deepest, 'extra', 'asset.txt'), 'over depth');
-  assert.throws(() => packAppTarget(root, { target: 'desktop-universal' }), /directory depth exceeds 64/u);
+  await assert.rejects(() => packAppTarget(root, { target: 'desktop-universal' }), /directory depth exceeds 64/u);
 
   const entries = [...readNimiAppArchive(readFileSync(packaged.artifactPath))]
     .map(([name, entry]) => ({ name, ...entry }));
   const metadata = JSON.parse(readFileSync(packaged.metadataPath, 'utf8'));
-  function checkAggregate(extra, expectedError) {
+  async function checkAggregate(extra, expectedError) {
     const bytes = writeNimiAppArchive([...entries, ...extra]);
     writeFileSync(packaged.artifactPath, bytes);
     writeFileSync(packaged.metadataPath, JSON.stringify({ ...metadata, size: bytes.length, sha256: hashAppArchive(bytes) }));
-    assert.throws(() => aggregateAppTargetCandidates(root), expectedError);
+    await assert.rejects(() => aggregateAppTargetCandidates(root), expectedError);
   }
-  checkAggregate([{ name: `payload/${'d/'.repeat(64)}asset.txt`, mode: 0o644, bytes: Buffer.alloc(0) }],
-    /directory depth exceeds 64/u);
+  assert.throws(
+    () => writeNimiAppArchive([...entries, { name: `payload/${'d/'.repeat(64)}asset.txt`, mode: 0o644, bytes: Buffer.alloc(0) }]),
+    /directory depth exceeds 64/u,
+  );
   const wideTree = Array.from({ length: 160 }, (_, group) => ({
     name: `payload/group${group}/${'d/'.repeat(62)}asset.txt`, mode: 0o644, bytes: Buffer.alloc(0),
   }));
-  checkAggregate(wideTree, /exceeds 10000 directories/u);
+  await checkAggregate(wideTree, /exceeds 10000 directories/u);
 });
 
-test('managed-web pack rejects overlapping output directory, app-owned-os-storage, Windows reserved names, case-folding collisions, and >64 MiB payloads', () => {
+test('managed-web pack rejects overlapping output directory, app-owned-os-storage, Windows reserved names, case-folding collisions, and >64 MiB payloads', async () => {
   // Overlapping payload_path: dist contains dist/nimi-app
   const overlapRoot = createManagedWebPackFixture({ payloadPath: 'dist' });
   try {
     writeFileSync(path.join(overlapRoot, 'dist', 'index.html'), '<html></html>');
-    assert.throws(() => packAppTarget(overlapRoot, { target: 'desktop-universal' }), /must not overlap dist\/nimi-app/u);
+    await assert.rejects(() => packAppTarget(overlapRoot, { target: 'desktop-universal' }), /must not overlap dist\/nimi-app/u);
   } finally {
     rmSync(overlapRoot, { recursive: true, force: true });
   }
@@ -348,7 +350,7 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
     },
   });
   try {
-    assert.throws(() => packAppTarget(storageRoot, { target: 'desktop-universal' }), /nimi-mediated-default/u);
+    await assert.rejects(() => packAppTarget(storageRoot, { target: 'desktop-universal' }), /nimi-mediated-default/u);
   } finally {
     rmSync(storageRoot, { recursive: true, force: true });
   }
@@ -367,7 +369,7 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
   const badRoot = createManagedWebPackFixture();
   try {
     writeFileSync(path.join(badRoot, 'dist', 'renderer', 'CON.js'), 'bad');
-    assert.throws(() => packAppTarget(badRoot, { target: 'desktop-universal' }), /invalid Windows segment/u);
+    await assert.rejects(() => packAppTarget(badRoot, { target: 'desktop-universal' }), /invalid Windows segment/u);
   } finally {
     rmSync(badRoot, { recursive: true, force: true });
   }
@@ -377,7 +379,7 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
   try {
     writeFileSync(path.join(strasseRoot, 'dist', 'renderer', 'Straße.txt'), 'lower');
     writeFileSync(path.join(strasseRoot, 'dist', 'renderer', 'STRAẞE.txt'), 'upper');
-    assert.throws(() => packAppTarget(strasseRoot, { target: 'desktop-universal' }), /path collision/u);
+    await assert.rejects(() => packAppTarget(strasseRoot, { target: 'desktop-universal' }), /path collision/u);
   } finally {
     rmSync(strasseRoot, { recursive: true, force: true });
   }
@@ -389,7 +391,7 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
     writeFileSync(manifestPath, readFileSync(manifestPath, 'utf8').replace('version: 0.1.12', 'version: 0.1.12-01'));
     const pkgPath = path.join(badSemverRoot, 'package.json');
     writeFileSync(pkgPath, readFileSync(pkgPath, 'utf8').replace('"0.1.12"', '"0.1.12-01"'));
-    assert.throws(() => packAppTarget(badSemverRoot, { target: 'desktop-universal' }), /exact and lockstep/u);
+    await assert.rejects(() => packAppTarget(badSemverRoot, { target: 'desktop-universal' }), /exact and lockstep/u);
   } finally {
     rmSync(badSemverRoot, { recursive: true, force: true });
   }
@@ -398,7 +400,7 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
   const hugeRoot = createManagedWebPackFixture();
   try {
     writeFileSync(path.join(hugeRoot, 'dist', 'renderer', 'huge.bin'), Buffer.alloc(64 * 1024 * 1024 + 1));
-    assert.throws(() => packAppTarget(hugeRoot, { target: 'desktop-universal' }), /exceeds 67108864 bytes/u);
+    await assert.rejects(() => packAppTarget(hugeRoot, { target: 'desktop-universal' }), /exceeds 67108864 bytes/u);
   } finally {
     rmSync(hugeRoot, { recursive: true, force: true });
   }

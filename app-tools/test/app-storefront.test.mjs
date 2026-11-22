@@ -93,7 +93,7 @@ test('authoring rejects a scalar tag without converting it to characters', () =>
   assert.throws(() => readAppStorefront('.', { metadata }), /storefront.locales.zh.tags/);
 });
 
-test('packAppTarget and aggregateAppTargetCandidates produce storefront-media.zip outside .nimiapp without archive digest in app-info', () => {
+test('packAppTarget and aggregateAppTargetCandidates produce storefront-media.zip outside .nimiapp without archive digest in app-info', async () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'nimi-storefront-pack-'));
   try {
     mkdirSync(path.join(dir, 'assets/storefront'), { recursive: true });
@@ -186,12 +186,12 @@ test('packAppTarget and aggregateAppTargetCandidates produce storefront-media.zi
       storefront: { ...info.storefront, media: { ...info.storefront.media, archive_sha256: 'a'.repeat(64) } },
     }), /unsupported field: archive_sha256/);
 
-    const packed = packAppTarget(dir, { target: 'windows-x86_64' });
+    const packed = await packAppTarget(dir, { target: 'windows-x86_64' });
     const appEntries = readNimiAppArchive(readFileSync(packed.artifactPath));
     assert.equal([...appEntries.keys()].some((k) => k.includes('storefront')), false);
     assert.equal(existsSync(path.join(dir, 'dist/nimi-app/nimi.shijing-0.2.0-storefront-media.zip')), false);
 
-    const aggregated = aggregateAppTargetCandidates(dir);
+    const aggregated = await aggregateAppTargetCandidates(dir);
     assert.ok(aggregated.storefront_media);
     assert.equal(aggregated.storefront_media.asset_name, 'nimi.shijing-0.2.0-storefront-media.zip');
     const zipBytes = readFileSync(aggregated.storefrontMediaPath);
@@ -205,7 +205,7 @@ test('packAppTarget and aggregateAppTargetCandidates produce storefront-media.zi
 
     // Mutating repo storefront image after target packing must fail aggregate.
     writeFileSync(path.join(dir, 'assets/storefront/cover-en.webp'), makeVp8LWebp(1440, 810));
-    assert.throws(() => aggregateAppTargetCandidates(dir), /changed after target packing/);
+    await assert.rejects(() => aggregateAppTargetCandidates(dir), /changed after target packing/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -438,7 +438,7 @@ try {
     case 'pack':
       if (aggregate && (target || production)) throw new Error('--aggregate cannot be combined with --target or --production');
       {
-        const result = packApp(process.cwd(), { dir, target, aggregate, production });
+        const result = await packApp(process.cwd(), { dir, target, aggregate, production });
         if (json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
         else process.stdout.write(`[nimi-app] pack ${aggregate ? 'aggregate' : target} completed\n`);
       }

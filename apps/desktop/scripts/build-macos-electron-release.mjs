@@ -421,7 +421,7 @@ async function packageElectronApplication(input) {
 }
 
 async function stageSharpRuntime(sourceRoot) {
-  const sharpRoot = await realpath(path.join(repoRoot, 'kit', 'node_modules', 'sharp'));
+  const sharpRoot = await realpath(path.join(desktopRoot, 'node_modules', 'sharp'));
   const sharpNodeModules = path.dirname(sharpRoot);
   const packages = [
     ['sharp', sharpRoot],

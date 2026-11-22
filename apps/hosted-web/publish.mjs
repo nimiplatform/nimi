@@ -34,6 +34,10 @@ const columns = [
   'policy_commit',
 ];
 const TARGET_BASELINE_ORDER = ['windows-x86_64', 'macos-aarch64'];
+const HOSTED_WEB_MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
+const HOSTED_WEB_MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
+const APP_INFO_MAX_BYTES = 1024 * 1024;
+const STOREFRONT_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
 const git = (root, ...args) =>
   execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', windowsHide: true, maxBuffer: 128 * 1024 * 1024 }).trim();
 function required(env, name) {
@@ -312,11 +316,17 @@ export async function publishProduct(
   if (history && (history.digest !== release.sha256 || history.source_revision !== release.source_revision))
     throw new Error('Retained release differs from approved descriptor');
   if (!history) {
+    if (!Number.isSafeInteger(release.size) || release.size <= 0 || release.size > HOSTED_WEB_MAX_ARCHIVE_BYTES) {
+      throw new Error('Web release archive size exceeds budget');
+    }
     const url = p.repository + '/releases/download/web-v' + v + '/nimi-web-' + v + '.zip';
     const bytes = await io.download(url, release.size);
     if (bytes.length !== release.size || createHash('sha256').update(bytes).digest('hex') !== release.sha256)
       throw new Error('Web release digest mismatch');
-    const entries = readNimiAppArchive(bytes);
+    const entries = readNimiAppArchive(bytes, {
+      maxArchiveBytes: HOSTED_WEB_MAX_ARCHIVE_BYTES,
+      maxTotalUncompressedBytes: HOSTED_WEB_MAX_UNCOMPRESSED_BYTES,
+    });
     const info = JSON.parse(entries.get('nimi-web-bundle.json')?.bytes.toString('utf8') ?? 'null');
     if (
       info?.app_id !== row.app_id ||
@@ -558,6 +568,13 @@ export async function syncStorefronts(
           continue;
         }
 
+        if (
+          !Number.isSafeInteger(baseline.app_info.size) ||
+          baseline.app_info.size <= 0 ||
+          baseline.app_info.size > APP_INFO_MAX_BYTES
+        ) {
+          throw new Error(`App info size exceeds budget for ${appId}@${version}`);
+        }
         const infoBytes = await io.download(baseline.app_info.asset_url, baseline.app_info.size);
         if (
           infoBytes.length !== baseline.app_info.size ||
@@ -576,6 +593,13 @@ export async function syncStorefronts(
         await store.put(`storefront-media/${appId}/${iconAsset}`, iconBytes);
 
         if (mediaAsset) {
+          if (
+            !Number.isSafeInteger(mediaAsset.size) ||
+            mediaAsset.size <= 0 ||
+            mediaAsset.size > STOREFRONT_MEDIA_MAX_BYTES
+          ) {
+            throw new Error(`Storefront media archive size exceeds budget for ${appId}@${version}`);
+          }
           const zipBytes = await io.download(mediaAsset.asset_url, mediaAsset.size);
           if (
             zipBytes.length !== mediaAsset.size ||
@@ -583,7 +607,10 @@ export async function syncStorefronts(
           ) {
             throw new Error(`Storefront media archive digest mismatch for ${appId}@${version}`);
           }
-          const entries = readNimiAppArchive(zipBytes);
+          const entries = readNimiAppArchive(zipBytes, {
+            maxArchiveBytes: STOREFRONT_MEDIA_MAX_BYTES,
+            maxTotalUncompressedBytes: STOREFRONT_MEDIA_MAX_BYTES,
+          });
           const expectedFiles = new Set(
             collectStorefrontImageRefs(info.storefront?.media).map(
               (ref) => `${ref.sha256}.${storefrontMediaExtension(ref.media_type)}`,
