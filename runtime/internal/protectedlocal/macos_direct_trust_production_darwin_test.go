@@ -2,7 +2,27 @@
 
 package protectedlocal
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
+
+// The signing build supplies the real, stapled Host before packaging it.
+// codesign and spctl do not exercise the Runtime's Security.framework call.
+func TestMacOSNotarizedManagedWebCarrierSeal(t *testing.T) {
+	bundle := os.Getenv("NIMI_TEST_NOTARIZED_LOCAL_APP_HOST")
+	if bundle == "" {
+		t.Skip("requires the notarized macOS release candidate")
+	}
+	policy, err := macOSLocalAppHostCodePolicy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyMacOSOuterBundleSeal(bundle, policy.directRequirement, policy.teamID,
+		policy.signingIdentifier, policy.requireTrustedAnchor, policy.requireNotarization, policy.requireAdHoc); err != nil {
+		t.Fatalf("verify notarized Host with Runtime policy: %v", err)
+	}
+}
 
 func TestMacOSProductionCodePolicyKeepsTeamAnchorAndNotarization(t *testing.T) {
 	originalTeamID := MacOSTeamID

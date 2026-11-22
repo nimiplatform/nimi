@@ -188,6 +188,15 @@ try {
     for (const [role, executable] of Object.entries(rolePaths)) {
       verifySignedMacOSCode(executable, productionSigningIdentifier(role), release.teamId);
     }
+    runReleaseCommand('go', [
+      'test', '-count=1', '-run', '^TestMacOSNotarizedManagedWebCarrierSeal$',
+      '-ldflags', `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSTeamID=${release.teamId}`,
+      './internal/protectedlocal',
+    ], {
+      cwd: path.join(repoRoot, 'runtime'),
+      env: { ...process.env, GOOS: 'darwin', GOARCH: 'arm64', CGO_ENABLED: '1', NIMI_TEST_NOTARIZED_LOCAL_APP_HOST: embeddedLocalHost },
+      inherit: true,
+    });
     const pkgPath = await buildSignedInstaller({
       candidateRoot,
       desktopApp,

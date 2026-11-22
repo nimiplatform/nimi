@@ -409,10 +409,11 @@ static int nimi_macos_verify_outer_bundle(const char *expected_path,
         return status == errSecSuccess ? EACCES : (int)status;
     }
     CFErrorRef error = NULL;
-    SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckGatekeeperArchitectures |
+    // The production requirement checks the Apple anchor, Team ID and Developer ID leaf.
+    // SecStaticCodeCheckValidityWithErrors rejects kSecCSCheckTrustedAnchors.
+    const SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckGatekeeperArchitectures |
         kSecCSCheckNestedCode | kSecCSRestrictSymlinks | kSecCSRestrictToAppLike |
         kSecCSConsiderExpiration;
-    if (require_trusted_anchor) validation_flags |= kSecCSCheckTrustedAnchors;
     status = SecStaticCodeCheckValidityWithErrors(code, validation_flags, requirement, &error);
     if (error != NULL) {
         CFRelease(error);
