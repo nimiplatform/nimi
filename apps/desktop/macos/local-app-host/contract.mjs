@@ -31,6 +31,16 @@ export function resolveMacOSLocalAppHostLaunch(input) {
   const argv = Array.isArray(input?.argv) ? input.argv.map(exactText) : fail();
   if (argv.length < 2) fail();
   if (argv.some(isForbiddenChromiumArgument)) fail();
+  const rest = argv.slice(1);
+  const hasNativeMain = rest.some((arg) => arg.startsWith('--nimi-local-app-main='));
+  const hasManagedDev = rest.includes('--nimi-managed-web-dev');
+  const hasManagedInstalled = rest.includes('--nimi-managed-web-app');
+  const modeCount = Number(hasNativeMain) + Number(hasManagedDev) + Number(hasManagedInstalled);
+  if (modeCount !== 1) fail();
+
+  const cdpPort = optionalCdpPort(argv);
+  if (hasManagedInstalled && cdpPort !== undefined) fail();
+
   const executable = canonicalFile(exactAbsolute(input?.executable));
   const allowLeadingScript = input?.allowLeadingScriptArgument === true;
   if (!allowLeadingScript) {
@@ -43,13 +53,6 @@ export function resolveMacOSLocalAppHostLaunch(input) {
   }
   const workingDirectory = canonicalDirectory(exactAbsolute(input?.workingDirectory));
   const hostProfileDirectory = exactAbsolute(input?.hostProfileDirectory);
-
-  const rest = argv.slice(1);
-  const hasNativeMain = rest.some((arg) => arg.startsWith('--nimi-local-app-main='));
-  const hasManagedDev = rest.includes('--nimi-managed-web-dev');
-  const hasManagedInstalled = rest.includes('--nimi-managed-web-app');
-  const modeCount = Number(hasNativeMain) + Number(hasManagedDev) + Number(hasManagedInstalled);
-  if (modeCount !== 1) fail();
 
   // Mode C: managed-web installed (never permits dev/CDP/--nimi-local-app-main).
   if (hasManagedInstalled) {
@@ -74,7 +77,6 @@ export function resolveMacOSLocalAppHostLaunch(input) {
 
   // Mode B: managed-web local development (never permits third-party import).
   if (hasManagedDev) {
-    const cdpPort = optionalCdpPort(argv);
     const args = [];
     let sawScript = false;
     for (const arg of rest) {
@@ -101,7 +103,6 @@ export function resolveMacOSLocalAppHostLaunch(input) {
   }
 
   // Mode A: existing native macOS local development.
-  const cdpPort = optionalCdpPort(argv);
   if (argv.length !== (cdpPort === undefined ? 4 : 6)) fail();
   const userDataArgument = exactArgument(argv, '--user-data-dir');
   const mainArgument = exactArgument(argv, '--nimi-local-app-main');
