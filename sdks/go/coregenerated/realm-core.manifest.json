@@ -13138,6 +13138,21 @@
             "max_length": null,
             "pattern": null
           }
+        },
+        {
+          "name": "topicId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
         }
       ],
       "path_parameters": [],
@@ -13189,6 +13204,21 @@
         },
         {
           "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "topicId",
           "in": "query",
           "required": false,
           "schema": {

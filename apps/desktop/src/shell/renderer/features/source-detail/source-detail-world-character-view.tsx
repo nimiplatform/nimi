@@ -294,10 +294,10 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
             {bannerMedia || bannerUrl ? <MediaImage delivery={bannerMedia} externalUrl={bannerUrl} purpose="hero"
               sizes="auto, 1360px" loading="eager" fetchPriority="high" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_20%]" /> : null}
             {source.worldId && source.worldName ? <button type="button" data-testid="world-character-world-pill" onClick={props.onOpenWorld}
-              className="absolute right-6 top-6 z-10 inline-flex max-w-[min(360px,60%)] items-center gap-1.5 rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-3.5 py-2 shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
-              <span className="shrink-0 text-xs text-[var(--nimi-text-secondary)]">{t('SourceDetail.worldCharacter.worldPill')}</span>
-              <span className="min-w-0 truncate text-xs font-semibold text-[var(--nimi-text-primary)]">{source.worldName}</span>
-              <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)]" />
+              className="absolute right-6 top-6 z-10 inline-flex max-w-[min(360px,60%)] items-center gap-1.5 rounded-full border border-white/25 bg-black/72 px-3.5 py-2 text-white shadow-[var(--nimi-elevation-raised)] transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
+              <span className="shrink-0 text-xs text-white/80">{t('SourceDetail.worldCharacter.worldPill')}</span>
+              <span className="min-w-0 truncate text-xs font-semibold text-white">{source.worldName}</span>
+              <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0 text-white/80" />
             </button> : null}
           </div>
 

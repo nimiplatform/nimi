@@ -204,6 +204,8 @@
     "noMatch": "No worlds match that filter."
   },
   "topics": "Topic",
+  "selectedWorld": "Selected world",
+  "anyTopic": "All topics",
   "allTopics": "All worlds",
   "retryTopics": "Retry loading topics",
   "noTopicWorlds": "No public worlds in this topic yet"

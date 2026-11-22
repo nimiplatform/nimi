@@ -158,13 +158,41 @@ export function buildRelationshipClueItems(
   return items;
 }
 
+function mergePeopleByTarget(items: readonly RelationshipClueItem[], t: ReturnType<typeof useTranslation>['t']) {
+  const groups = new Map<string | RelationshipClueItem, RelationshipClueItem[]>();
+  for (const item of items) {
+    const key = item.targetId ?? item;
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  return Array.from(groups.values(), group => {
+    const primary = group.reduce((best, item) => item.titlePriority > best.titlePriority ? item : best);
+    const labelsFor = (rows: readonly RelationshipClueItem[]) =>
+      uniqueStrings(rows.map(item => item.type && relationKindLabel(item.type, t)));
+    const kindLabels = labelsFor(group);
+    const summaries = uniqueStrings(group.map(item => item.summary)).filter(summary => summary !== primary.title);
+    const details = uniqueStrings(group.flatMap(item => item.details))
+      .filter(detail => detail !== primary.title && !kindLabels.includes(detail) && !summaries.includes(detail));
+    const descriptions = summaries.map(summary => {
+      if (summaries.length === 1 || kindLabels.length < 2) return summary;
+      const labels = labelsFor(group.filter(item => item.summary === summary));
+      return [...labels, summary].join(' · ');
+    });
+    return { ...primary, kindLabels, summary: descriptions[0], details: [...descriptions.slice(1), ...details] };
+  });
+}
+
 export function WorldCharacterRelationshipCluesSection({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const items = buildRelationshipClueItems(source, t).filter(item => item.group === 'people');
+  const items = mergePeopleByTarget(
+    buildRelationshipClueItems(source, t).filter(item => item.group === 'people'),
+    t,
+  );
   return <CharacterRelationships key={source.id} items={items} />;
 }
 
-function CharacterRelationships({ items }: { items: RelationshipClueItem[] }) {
+function CharacterRelationships({ items }: { items: ReturnType<typeof mergePeopleByTarget> }) {
   const { t } = useTranslation();
   const listId = useId();
   const [expanded, setExpanded] = useState(false);
@@ -176,14 +204,13 @@ function CharacterRelationships({ items }: { items: RelationshipClueItem[] }) {
     </h2>
     <ul id={listId} data-testid="world-character-relationship-list" role="list" className="mt-3 divide-y divide-[var(--nimi-border-subtle)]">
       {visibleItems.map(item => {
-        const kind = item.type ? relationKindLabel(item.type, t) : null;
         return <li key={item.id} data-testid={`world-character-relationship-clue-${item.type ?? 'untyped'}`}>
           <details className="group">
             <summary className="flex cursor-pointer list-none items-start gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                   <p className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</p>
-                  {kind && kind !== item.title ? <p className="rounded-md bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-1.5 py-0.5 text-xs text-[var(--nimi-text-secondary)]">{kind}</p> : null}
+                  {item.kindLabels.filter(kind => kind !== item.title).map(kind => <p key={kind} className="rounded-md bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-1.5 py-0.5 text-xs text-[var(--nimi-text-secondary)]">{kind}</p>)}
                 </div>
                 {item.summary ? <p className="mt-1 line-clamp-1 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--nimi-text-secondary)] group-open:line-clamp-none">{item.summary}</p> : null}
               </div>

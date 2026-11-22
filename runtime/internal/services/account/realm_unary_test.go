@@ -485,3 +485,29 @@ func TestInvokeRealmUnaryFriendRequestByHandleKeepsProfileReadSeparate(t *testin
 		}
 	}
 }
+
+func TestInvokeRealmUnaryListCharacterCatalogForwardsTopicId(t *testing.T) {
+	var observedQuery string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/world/character-sources/catalog" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		observedQuery = r.URL.RawQuery
+		w.Header().Set("content-type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[],"nextCursor":null,"hasMore":false,"totalCount":0}`))
+	}))
+	defer server.Close()
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
+		Caller:      realmDesktopShellCaller(),
+		MethodId:    "WorldPublicController_listCharacterCatalog",
+		RequestJson: `{"path":{},"query":{"topicId":"comedy","limit":100}}`,
+	})
+	if err != nil || !response.GetAccepted() {
+		t.Fatalf("listCharacterCatalog with topicId failed: response=%+v error=%v", response, err)
+	}
+	if observedQuery != "limit=100&topicId=comedy" && observedQuery != "topicId=comedy&limit=100" {
+		t.Fatalf("unexpected forwarded query: %q", observedQuery)
+	}
+}

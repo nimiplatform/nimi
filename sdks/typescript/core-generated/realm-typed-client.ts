@@ -6154,6 +6154,7 @@ export interface RealmWorldPublicControllerListCharacterCatalogOperationRequest 
     readonly limit?: number;
     readonly q?: string;
     readonly cursor?: string;
+    readonly topicId?: string;
   };
   readonly headers?: {
 

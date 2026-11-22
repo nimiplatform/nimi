@@ -30045,6 +30045,7 @@ type RealmWorldPublicControllerListCharacterCatalogOperationQuery struct {
 	Limit   float64 `json:"limit,omitempty"`
 	Q       string  `json:"q,omitempty"`
 	Cursor  string  `json:"cursor,omitempty"`
+	TopicId string  `json:"topicId,omitempty"`
 }
 
 type RealmWorldPublicControllerListCharacterCatalogOperationHeaders struct {

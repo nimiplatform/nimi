@@ -12,7 +12,7 @@
 .world-atlas button { cursor: pointer; }
 .world-atlas button:disabled { cursor: default; opacity: .35; }
 .world-atlas button:focus-visible { outline: 2px solid var(--nimi-primary, #2584ed); outline-offset: 4px; }
-.world-atlas-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 22px 16px; }
+.world-atlas-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; width: 100%; max-width: 1480px; margin-inline: auto; padding: 20px 22px 16px; }
 .world-atlas-header-combined { min-height: 64px; padding-block: 8px; }
 .world-atlas-title { display: flex; align-items: center; gap: 20px; min-width: 0; }
 .world-atlas h1, .world-atlas-hero h2, .world-atlas-section-heading h2 { font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', SimSun, serif; font-weight: 700; }

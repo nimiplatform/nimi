@@ -535,3 +535,40 @@ test('world character source detail renders dossier sections without exposing ra
   assert.doesNotMatch(visibleMarkup, /Posts/);
   assert.doesNotMatch(visibleMarkup, /Likes/);
 });
+
+test('WorldCharacterRelationshipCluesSection merges duplicate people rows targeting the same character', () => {
+  const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+  source.relationshipTargets['char-luhuier'] = { kind: 'person', name: '炉灰儿', isCharacter: true };
+  source.relationshipClues = [{
+    id: 'rel-world-1',
+    type: 'colleague',
+    label: '同僚',
+    targetEntityId: 'char-luhuier',
+    targetLabel: '炉灰儿',
+    summary: '在八卦炉外包工位一起加班的搭档。',
+    details: [],
+  }];
+  source.characterProfile = {
+    ...source.characterProfile,
+    relationshipNotes: [{
+      id: 'rel-note-1',
+      type: 'ally',
+      targetRef: 'char-luhuier',
+      summary: '彼此留着工伤索赔证据备份。',
+    }, {
+      id: 'rel-note-2',
+      type: 'acquaintance',
+      targetRef: 'char-luhuier',
+      summary: '在八卦炉外包工位一起加班的搭档。',
+    }],
+  };
+  const markup = renderToStaticMarkup(React.createElement(WorldCharacterRelationshipCluesSection, { source }));
+  assert.equal((markup.match(/<li /g) ?? []).length, 1, 'same person target merges into a single relationship row');
+  assert.match(markup, /炉灰儿/);
+  assert.equal(markup.match(/在八卦炉外包工位一起加班的搭档/g)?.length, 1);
+  for (const type of ['colleague', 'ally', 'acquaintance']) {
+    const label = i18n.t(`SourceDetail.worldCharacter.relationshipKind.${type}`);
+    assert.ok(markup.includes(`>${label}</p>`), `missing relationship label ${type}`);
+  }
+  assert.match(markup, /彼此留着工伤索赔证据备份/);
+});

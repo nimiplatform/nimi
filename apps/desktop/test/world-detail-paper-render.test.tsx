@@ -476,7 +476,7 @@ test('world discovery prioritizes people before compact setting and scenes, and 
   assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, voicedCharacters.length);
   assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, voicedCharacters.length);
   assert.equal(people.querySelectorAll('[data-testid="character-voice-preview-button"]').length, 1, 'voiced characters expose inline voice preview');
-  assert.ok(people.querySelector('[data-testid="world-detail-open-relationships"]'), 'relationship explorer trigger is reachable');
+  assert.equal(people.querySelector('[data-testid="world-detail-open-relationships"]'), null, 'hollow relationship explorer trigger is hidden');
   assert.ok(people.textContent?.includes('105 people'));
   assert.ok(!people.querySelector('[data-testid="world-detail-people-view-all"]'), 'every person is listed inline without a view-all page');
   assert.ok(people.querySelector('[data-testid="world-detail-people-load-more"]'), 'the inline catalog keeps cursor paging');
@@ -497,6 +497,53 @@ test('world discovery presents people with identity metadata and a short biograp
 
   assert.equal(card.querySelector('[data-testid="world-person-meta"]')?.textContent, '三十岁上下 | 退役特种工程兵');
   assert.equal(card.querySelector('[data-testid="world-person-bio"]')?.textContent, galleryCharacters[0].bio);
+});
+
+test('world discovery replaces placeholder 进入时刻 with world era and prioritizes role over verbose age, in the people gallery', () => {
+  const verboseCharacters = [{
+    ...characters[0],
+    ageDescription: '约二十多岁的青年男妖（实际妖龄不可考）',
+    role: '合同审核员',
+    faction: '天庭外包办',
+  }];
+  const placeholderTimeWorld = {
+    ...world,
+    era: '西游记取经后第五百年',
+    time: { mode: 'static' as const, label: '进入时刻' },
+  };
+  const html = renderToStaticMarkup(
+    <WorldDetailPage
+      world={placeholderTimeWorld}
+      characters={verboseCharacters}
+      peopleCharacters={verboseCharacters}
+      peopleCatalog={readyPeopleCatalog(verboseCharacters.length)}
+      history={history}
+      semantic={semantic}
+      audits={[]}
+      publicAssets={publicAssets}
+      onViewCharacter={() => {}}
+    />,
+  );
+  const document = new JSDOM(html).window.document;
+  assert.equal(document.querySelector('[data-testid="world-detail-meta-line"]')?.textContent, '西游记取经后第五百年');
+  assert.equal(document.querySelector('[data-testid="world-person-meta"]')?.textContent, '合同审核员 | 天庭外包办');
+});
+
+test('world story renders CJK emphasis while preserving literal Markdown and code', async () => {
+  const { WorldStoryMarkdown } = await import('../src/shell/renderer/features/world/world-story-markdown.js');
+  const content = [
+    '在**“第一句”**里，与**「第二句」**。', '',
+    '转义 \\*\\*“保持原样”\\*\\*。', '',
+    '`**“行内代码”**` 和 `跨行', '**「代码」**`。', '',
+    '    **“缩进代码”**', '',
+    '````markdown', '```', '**“围栏代码”**', '````',
+  ].join('\n');
+  const document = new JSDOM(renderToStaticMarkup(<WorldStoryMarkdown content={content} />)).window.document;
+  assert.deepEqual([...document.querySelectorAll('strong')].map(el => el.textContent), ['“第一句”', '「第二句」']);
+  assert.ok(document.body.textContent?.includes('**“保持原样”**'));
+  assert.deepEqual([...document.querySelectorAll('code')].map(el => el.textContent), [
+    '**“行内代码”**', '跨行 **「代码」**', '**“缩进代码”**\n', '```\n**“围栏代码”**\n',
+  ]);
 });
 
 test('world discovery uses full-size artwork from the avatar slot when detail renditions are issued', () => {

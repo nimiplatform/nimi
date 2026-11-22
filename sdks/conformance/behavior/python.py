@@ -43,6 +43,8 @@ class FakeTransport:
             if request.body.get("query", {}).get("handle") == "realm-malformed":
                 return {}
             return FIXTURES["cases"]["realm_unary"]["response"]
+        if request.method_id == "WorldPublicController_listCharacterCatalog":
+            return {"items": [], "totalCount": 0, "hasMore": False, "nextCursor": None}
         if request.method_id == "getMyTiers":
             return self.tier_response
         error = RuntimeError(f"unexpected unary {request.method_id}")
@@ -109,6 +111,18 @@ async def main():
     assert realm_call.timeout_ms == FIXTURES["cases"]["timeout_ms"]
     assert realm_call.metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
     assert realm_call.metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
+
+    catalog_query = realm_typed.RealmWorldPublicControllerListCharacterCatalogOperationQuery
+    legacy_args = ("world-42", 20, "alice", "page-2")
+    legacy_query = dict(zip(("worldId", "limit", "q", "cursor"), legacy_args))
+    for extra in ({}, {"topicId": "comedy"}):
+        await typed_realm.world_public_controller_list_character_catalog(
+            realm_typed.RealmWorldPublicControllerListCharacterCatalogOperationRequest(
+                path=realm_typed.RealmWorldPublicControllerListCharacterCatalogOperationPath(),
+                query=catalog_query(*legacy_args, **extra),
+            )
+        )
+        assert transport.unary_calls[-1].body["query"] == {**legacy_query, **extra}
 
     tiers_request = realm_typed.RealmGetMyTiersOperationRequest(
         path=realm_typed.RealmGetMyTiersOperationPath(),

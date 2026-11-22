@@ -1,5 +1,6 @@
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type {} from 'remark-parse';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { worldTitlePhrases } from './world-title-phrases.js';
 
@@ -74,6 +75,15 @@ function remarkWorldStory(options: { excerpt: boolean; title?: string }) {
   };
 }
 
+// Let the inline Markdown parser recognize emphasis next to CJK quotation marks.
+// Escapes, code, link destinations and source offsets retain their normal syntax.
+const worldStorySyntax: NonNullable<Options['remarkPlugins']> = [remarkGfm, function remarkCjkEmphasis() {
+  const data = this.data();
+  (data.micromarkExtensions ??= []).push({
+    attentionMarkers: { null: Array.from('“”「」『』《》（）【】', mark => mark.charCodeAt(0)) },
+  });
+}];
+
 export function WorldStoryMarkdown({ content, excerpt = false, title }: {
   content: string;
   excerpt?: boolean;
@@ -101,7 +111,7 @@ export function WorldStoryMarkdown({ content, excerpt = false, title }: {
           : 'text-base @min-[1120px]:text-[17px]')}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, [remarkWorldStory, { excerpt, title }]]}
+        remarkPlugins={[...worldStorySyntax, [remarkWorldStory, { excerpt, title }]]}
         components={{
           // Story media is rendered from its issued public media records;
           // prose must not silently load arbitrary remote or relative images.

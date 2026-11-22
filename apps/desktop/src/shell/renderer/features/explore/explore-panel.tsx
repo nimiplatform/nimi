@@ -1,19 +1,20 @@
 import { useState, useEffect, useEffectEvent, useMemo, useRef, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { MediaAvatar } from '@nimiplatform/kit/features/media';
+import { MediaImage } from '@nimiplatform/kit/features/media';
 import { Button, EmptyState, InlineAlert, LoadingSkeleton, NimiText, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
-import { UsersRound } from 'lucide-react';
+import { Compass, Grid2X2, UsersRound } from 'lucide-react';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { ExploreSectionNav, type ExploreSectionId } from './explore-section-nav.js';
 import { useExploreCatalogQuery } from './explore-catalog-query.js';
 import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
-import { readCharacterCatalog } from './character-catalog-data.js';
+import { interleaveCharactersByWorld, readCharacterCatalog } from './character-catalog-data.js';
 import { CharacterVoicePreviewButton, stopCharacterVoicePreview } from './character-voice-preview.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
-import { WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
+import { WORLD_TOPIC_ICONS, WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
+import type { WorldAtlasTopic } from '../world/world-atlas.js';
 import { useWorldAtlasLeadWorlds } from '../world/world-atlas-data.js';
 import { selectWorldCatalogWorlds } from '../world/world-list-catalog-model.js';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
@@ -30,7 +31,13 @@ export function ExplorePanel(props: {
   const characters = destination.exploreSearchKind === 'characters';
   const handleSectionSelect = (section: ExploreSectionId) => {
     if (characters) {
-      void navigation.push({ ...destination, exploreSection: section, exploreSearchKind: undefined, exploreWorldId: undefined });
+      void navigation.push({
+        ...destination,
+        exploreSection: section,
+        exploreSearchKind: undefined,
+        exploreWorldId: undefined,
+        exploreTopicId: undefined,
+      });
       return;
     }
     props.onSectionChange(section);
@@ -42,14 +49,14 @@ export function ExplorePanel(props: {
     className="shrink-0"
     aria-pressed={characters}
     onClick={() => {
-      void navigation.push({ ...destination, exploreSearchKind: characters ? undefined : 'characters', exploreWorldId: undefined });
+      void navigation.push({ ...destination, exploreSearchKind: characters ? undefined : 'characters', exploreWorldId: undefined, exploreTopicId: undefined });
     }}
   >
     <UsersRound size={17} />{t('runtimeConfig.partners.discoverPartners')}
   </Button>;
   return <div data-testid="panel:explore" className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 pt-2">
-    {props.activeSection === 'worlds' && !characters ? null : <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-1">
-      <div className="flex items-center gap-4">
+    {props.activeSection === 'worlds' && !characters ? null : <header className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-3 px-5 pt-1">
+      <div className="flex items-center gap-7">
         {sectionNav}
         {partnerAction}
       </div>
@@ -100,7 +107,7 @@ function WorldDiscovery({ headerLeading, headerTrailing }: { headerLeading: Reac
 }
 
 function CharacterDiscovery() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const destination = useHomeDestination();
   const navigation = useHomeNavigation();
@@ -114,31 +121,55 @@ function CharacterDiscovery() {
   const queryText = destination.search ?? '';
   const query = useSearch(queryText);
   const selectedWorldId = destination.exploreWorldId ?? '';
+  const selectedTopicId = destination.exploreTopicId ?? '';
   const tooLong = [...query].length > 100;
+  const diversifyAcrossWorlds = !query && !selectedWorldId;
 
   useEffect(() => () => { stopCharacterVoicePreview(); }, []);
 
-  const worldOptionsQuery = useQuery({
-    queryKey: ['explore-character-world-options', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl],
-    queryFn: async () => {
-      const page = await realmWorldData.loadWorldCatalogPage({ limit: 50 });
-      return page.items
-        .map((item) => ({ id: String(item.id ?? ''), name: String(item.name ?? '') }))
-        .filter((item) => item.id && item.name);
-    },
+  const topicsQuery = useQuery({
+    queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl],
+    queryFn: () => realmWorldData.loadWorldTopics(),
     enabled: bootstrapReady && !offline,
     staleTime: 60_000,
   });
 
+  const worldFilters = { topicId: selectedTopicId || undefined };
+  const worldCatalog = useExploreCatalogQuery({
+    queryKey: worldCatalogQueryKey(realmBaseUrl, '', worldFilters),
+    loadPage: cursor => fetchWorldCatalogPage(realmWorldData, '', cursor, worldFilters),
+    enabled: bootstrapReady && !offline,
+    networkOffline: offline,
+    staleTime: 30_000,
+  });
+
   const catalog = useExploreCatalogQuery({
-    queryKey: ['explore-characters', realmBaseUrl, accountId, query, selectedWorldId],
-    loadPage: cursor => readCharacterCatalog(bindings.sdk, query, cursor ?? undefined, selectedWorldId || undefined),
+    queryKey: ['explore-characters', realmBaseUrl, accountId, query, selectedWorldId, selectedTopicId],
+    loadPage: cursor => readCharacterCatalog(
+      bindings.sdk,
+      query,
+      cursor ?? undefined,
+      selectedWorldId || undefined,
+      {
+        topicId: selectedTopicId || undefined,
+        limit: diversifyAcrossWorlds ? 100 : 24,
+      },
+    ),
     enabled: bootstrapReady && !tooLong,
     networkOffline: offline,
   });
-  const items = catalog.query.data?.pages.flatMap(page => page.items) ?? [];
+  const items = useMemo(() => {
+    const pages = catalog.query.data?.pages ?? [];
+    if (!diversifyAcrossWorlds) {
+      return pages.flatMap(page => page.items);
+    }
+    return pages.flatMap(page => interleaveCharactersByWorld(page.items));
+  }, [catalog.query.data, diversifyAcrossWorlds]);
   const totalCount = catalog.query.data?.pages[0]?.totalCount ?? 0;
-  const viewport = useHomeListPosition(JSON.stringify(['characters', realmBaseUrl, accountId, query, selectedWorldId]), !catalog.initialLoading);
+  const viewport = useHomeListPosition(
+    JSON.stringify(['characters', realmBaseUrl, accountId, query, selectedWorldId, selectedTopicId]),
+    !catalog.initialLoading,
+  );
   const loadMore = useEffectEvent(() => { void catalog.query.fetchNextPage(); });
 
   useEffect(() => {
@@ -156,11 +187,23 @@ function CharacterDiscovery() {
     observer.observe(sentinel);
     return () => { requested = true; observer.disconnect(); };
   }, [viewport, catalog.initialLoading, catalog.initialUnavailable, catalog.offline, catalog.query.hasNextPage,
-    catalog.query.isFetchingNextPage, catalog.query.isFetchNextPageError, items.length, query, selectedWorldId]);
+    catalog.query.isFetchingNextPage, catalog.query.isFetchNextPageError, items.length, query, selectedWorldId, selectedTopicId]);
 
-  const worldOptions = worldOptionsQuery.data ?? [];
+  const topics = topicsQuery.data ?? [];
+  const worldOptions = worldCatalog.query.data?.pages.flatMap(page => page.items) ?? [];
+  const selectedWorld = worldOptions.find(world => world.id === selectedWorldId);
+  const topicTitle = (topic: WorldAtlasTopic) => (i18n.language.startsWith('zh') ? topic.title : topic.titleEn);
 
-  return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1200px] space-y-5 p-5">
+  const handleTopicChange = (topicId: string) => {
+    void navigation.replace({
+      ...destination,
+      exploreTopicId: topicId || undefined,
+      exploreWorldId: !topicId || topicId === selectedTopicId || selectedWorld?.topicIds?.includes(topicId)
+        ? destination.exploreWorldId : undefined,
+    });
+  };
+
+  return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1480px] space-y-5 px-5 pb-8 pt-2">
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-baseline gap-3">
         <h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.findCharacters')}</h1>
@@ -169,7 +212,7 @@ function CharacterDiscovery() {
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {worldOptions.length > 0 ? (
+        {worldOptions.length > 0 || selectedWorldId ? (
           <select
             aria-label={t('World.title')}
             data-testid="explore-character-world-filter"
@@ -178,16 +221,76 @@ function CharacterDiscovery() {
             className="h-9 max-w-[240px] rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3.5 text-sm text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           >
             <option value="">{t('World.allTopics')}</option>
+            {selectedWorldId && !selectedWorld ? (
+              <option value={selectedWorldId}>{items[0]?.worldName || t('World.selectedWorld')}</option>
+            ) : null}
             {worldOptions.map((option) => (
               <option key={option.id} value={option.id}>{option.name}</option>
             ))}
           </select>
         ) : null}
-        <SearchField ref={searchInputRef} aria-label={t('runtimeConfig.partners.characterSearch')} placeholder={t('runtimeConfig.partners.characterSearch')} value={queryText}
-          maxLength={100} onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }}
-          onClear={() => { void navigation.replace({ ...destination, search: '' }); }} clearLabel={t('Common.clear')} />
+        {worldCatalog.initialUnavailable || worldCatalog.query.isFetchNextPageError ? (
+          <InlineAlert tone="warning" action={worldCatalog.offline ? undefined : <Button size="sm" onClick={() => {
+            if (worldCatalog.query.isFetchNextPageError) void worldCatalog.query.fetchNextPage();
+            else void worldCatalog.query.refetch();
+          }}>{t('Common.retry')}</Button>}>
+            {t(worldCatalog.query.isFetchNextPageError ? 'World.atlas.loadMoreError' : 'World.loadError')}
+          </InlineAlert>
+        ) : worldCatalog.query.hasNextPage ? (
+          <Button size="sm" tone="secondary" disabled={worldCatalog.offline || worldCatalog.query.isFetchingNextPage}
+            loading={worldCatalog.query.isFetchingNextPage} onClick={() => { void worldCatalog.query.fetchNextPage(); }}>
+            {t('World.atlas.loadMore')}
+          </Button>
+        ) : null}
+        <SearchField
+          ref={searchInputRef}
+          className="w-full sm:w-72"
+          aria-label={t('runtimeConfig.partners.characterSearch')}
+          placeholder={t('runtimeConfig.partners.characterSearch')}
+          value={queryText}
+          maxLength={100}
+          onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }}
+          onClear={() => { void navigation.replace({ ...destination, search: '' }); }}
+          clearLabel={t('Common.clear')}
+        />
       </div>
     </header>
+    {topics.length > 0 ? (
+      <nav className="flex flex-wrap gap-2" aria-label={t('World.topics')} data-testid="explore-character-topic-filters">
+        <button
+          type="button"
+          aria-pressed={!selectedTopicId}
+          onClick={() => handleTopicChange('')}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+            !selectedTopicId
+              ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-canvas)] shadow-sm'
+              : 'bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+          }`}
+        >
+          <Grid2X2 size={15} />{t('World.anyTopic')}
+        </button>
+        {topics.map((topic) => {
+          const Icon = WORLD_TOPIC_ICONS[topic.id as keyof typeof WORLD_TOPIC_ICONS] ?? Compass;
+          const active = selectedTopicId === topic.id;
+          return (
+            <button
+              key={topic.id}
+              type="button"
+              data-topic-id={topic.id}
+              aria-pressed={active}
+              onClick={() => handleTopicChange(topic.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+                active
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-canvas)] shadow-sm'
+                  : 'bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+              }`}
+            >
+              <Icon size={15} />{topicTitle(topic)}
+            </button>
+          );
+        })}
+      </nav>
+    ) : null}
     {tooLong ? <InlineAlert tone="warning">{t('runtimeConfig.partners.searchLimit')}</InlineAlert>
       : catalog.initialLoading ? <LoadingSkeleton lines={5} />
         : catalog.initialUnavailable ? <InlineAlert tone="warning" action={<Button onClick={() => { void catalog.query.refetch(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.charactersUnavailable')}</InlineAlert>
@@ -204,7 +307,17 @@ function CharacterDiscovery() {
                     className="flex flex-1 items-start gap-4 p-5 text-left focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                     onClick={() => { stopCharacterVoicePreview(); void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}
                   >
-                    <MediaAvatar alt={item.name} size="lg" delivery={item.avatarMedia} externalUrl={item.avatarUrl} fallback={item.name.slice(0, 1)} />
+                    <span className="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-lg font-semibold text-[var(--nimi-text-secondary)]">
+                      <MediaImage
+                        delivery={item.avatarMedia}
+                        externalUrl={item.avatarUrl}
+                        purpose="avatar"
+                        sizes="80px"
+                        alt={item.name}
+                        className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                        fallback={item.name.slice(0, 1)}
+                      />
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block break-words text-[16px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{item.name}</span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
@@ -215,8 +328,8 @@ function CharacterDiscovery() {
                     </span>
                   </button>
                   {item.voiceSampleUrl ? (
-                    <div className="flex justify-end px-4 pb-3 pt-0">
-                      <CharacterVoicePreviewButton src={item.voiceSampleUrl} characterName={item.name} />
+                    <div className="flex justify-end px-4 pb-3.5 pt-0">
+                      <CharacterVoicePreviewButton src={item.voiceSampleUrl} characterName={item.name} variant="surface" />
                     </div>
                   ) : null}
                 </article>

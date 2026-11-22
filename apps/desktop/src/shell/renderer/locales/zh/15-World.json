@@ -204,6 +204,8 @@
     "noMatch": "没有匹配的世界。"
   },
   "topics": "专题",
+  "selectedWorld": "已选世界",
+  "anyTopic": "全部专题",
   "allTopics": "全部世界",
   "retryTopics": "专题加载失败，重试",
   "noTopicWorlds": "此专题暂无公开世界"

@@ -1,7 +1,7 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Bookmark, BookOpen, MapPin, Network, UsersRound } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpen, MapPin, UsersRound } from 'lucide-react';
 import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
 import type { WorldDetailPageProps } from './world-detail-template.js';
 import type { WorldCharacter, WorldPeopleCatalogState, WorldSceneItem } from './world-detail-types.js';
@@ -15,21 +15,19 @@ import { worldTimeDisplay } from './world-detail-paper-model.js';
 import { formatLocaleDateTime } from '../../i18n/index.js';
 import { CharacterVoicePreviewButton, stopCharacterVoicePreview } from '../explore/character-voice-preview.js';
 
-// The people section shows the Realm people catalog inline: portraits in a five-per-row
+// The people section shows the Realm people catalog inline: portraits in a four-per-row
 // grid with server-side search and cursor paging, so every person of the world is
 // reachable here without a separate archive page.
-const PEOPLE_GALLERY_GRID = 'grid grid-cols-2 gap-5 @min-[640px]:grid-cols-3 @min-[1120px]:grid-cols-5';
+const PEOPLE_GALLERY_GRID = 'grid grid-cols-2 gap-5 @min-[640px]:grid-cols-3 @min-[1120px]:grid-cols-4';
 
-function WorldPeopleGallery({ characters, catalog, loading, onView, onOpenRelationships }: {
+function WorldPeopleGallery({ characters, catalog, loading, onView }: {
   characters: readonly WorldCharacter[];
   catalog: WorldPeopleCatalogState;
   loading?: boolean;
   onView: (character: WorldCharacter) => void;
-  onOpenRelationships?: () => void;
 }) {
   const { t } = useTranslation();
   const showSearch = catalog.query.trim().length > 0 || catalog.totalCount > 5;
-  const showRelationships = Boolean(onOpenRelationships && (catalog.totalCount > 0 || characters.length > 0));
   return (
     <section id="world-detail-characters" data-testid="world-detail-characters" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -37,16 +35,9 @@ function WorldPeopleGallery({ characters, catalog, loading, onView, onOpenRelati
           <NimiText role="section-title">{t('WorldDetail.discovery.people')}</NimiText>
           {catalog.status === 'ready' ? <NimiText role="caption">{t('WorldDetail.discovery.peopleCount', { count: catalog.totalCount })}</NimiText> : null}
         </div>
-        <div className="flex max-w-full flex-wrap items-center gap-2">
-          {showRelationships ? (
-            <Button tone="secondary" size="sm" leadingIcon={<Network size={15} />} onClick={onOpenRelationships} data-testid="world-detail-open-relationships">
-              {t('World.atlas.preview.metrics.networkCompact')}
-            </Button>
-          ) : null}
-          {showSearch ? <SearchField value={catalog.query} onChange={(event) => catalog.onQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') catalog.onQueryChange(''); }}
-            onClear={() => catalog.onQueryChange('')} clearLabel={t('World.clearSearch')}
-            placeholder={t('WorldDetail.discovery.searchPeople')} aria-label={t('WorldDetail.discovery.searchPeople')} className="w-full sm:w-64" /> : null}
-        </div>
+        {showSearch ? <SearchField value={catalog.query} onChange={(event) => catalog.onQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') catalog.onQueryChange(''); }}
+          onClear={() => catalog.onQueryChange('')} clearLabel={t('World.clearSearch')}
+          placeholder={t('WorldDetail.discovery.searchPeople')} aria-label={t('WorldDetail.discovery.searchPeople')} className="w-full sm:w-64" /> : null}
       </div>
       {catalog.status === 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : null}
       {loading && !characters.length && catalog.status === 'loading' ? <LoadingSkeleton lines={3} label={t('WorldDetail.charactersLoading')} /> : catalog.status !== 'ready' && catalog.status !== 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : characters.length ? (
@@ -56,9 +47,14 @@ function WorldPeopleGallery({ characters, catalog, loading, onView, onOpenRelati
             const delivery = character.mediaAssets?.portrait?.delivery ?? character.avatarMedia;
             // Gallery artwork needs display-sized renditions, even when authored in the avatar slot.
             const imagePurpose = delivery?.images.some((set) => set.purpose === 'detail') ? 'detail' : 'avatar';
-            const identity = [character.ageDescription, character.role, character.faction]
-              .map((value) => value?.trim())
-              .filter((value): value is string => Boolean(value));
+            const age = character.ageDescription?.trim() || '';
+            const role = character.role?.trim() || '';
+            const faction = character.faction?.trim() || '';
+            const identity = [
+              age && (age.length <= 10 || (!role && !faction)) ? age : '',
+              role,
+              faction,
+            ].filter((value): value is string => Boolean(value));
             const bio = character.bio.trim();
             const voiceUrl = character.voiceSampleUrl || character.mediaAssets?.voiceSample?.delivery?.previewUrl || null;
             return (
@@ -74,7 +70,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView, onOpenRelati
                     aria-label={t('WorldDetail.discovery.viewNamedCharacter', { name: character.name })}
                     className="flex w-full min-w-0 flex-col items-start text-left focus-visible:rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
-                    <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className="h-auto w-full rounded-[12px] bg-[var(--nimi-surface-panel)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5" />
+                    <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className="block h-auto w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5" />
                     <div className="relative z-10 -mt-2 w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_97%,transparent)] p-3.5 transition-colors duration-200 group-hover:bg-[var(--nimi-surface-panel)]">
                       <div className="flex w-full items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -137,12 +133,11 @@ function WorldScenesDiscovery({ scenes }: { scenes: readonly WorldSceneItem[] })
 // @nimi-authority: rule.nimi.desktop.shell-ui.r011
 // @nimi-authority: rule.nimi.desktop.shell-ui.r012
 // @nimi-authority: rule.nimi.desktop.shell-ui.r013
-export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onReadWorld, onOpenRelationships }: {
+export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onReadWorld }: {
   props: WorldDetailPageProps;
   scenes?: readonly WorldSceneItem[];
   onReadWorld: () => void;
   onViewCharacter: (character: WorldCharacter) => void;
-  onOpenRelationships?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [bannerFailed, setBannerFailed] = useState(false);
@@ -155,8 +150,9 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
   const summary = worldSummary(world);
   const summaryLead = summary ? worldSummaryLead(summary) : null;
   const settings = worldReadingEntries(world, props.semantic, props.history).filter((entry) => entry.section !== 'description');
-  const timeLabel = worldTimeDisplay(world.time, formatLocaleDateTime);
-  const metaLine = timeLabel || world.era;
+  const rawTimeLabel = worldTimeDisplay(world.time, formatLocaleDateTime)?.trim() || null;
+  const timeLabel = rawTimeLabel && rawTimeLabel !== '进入时刻' ? rawTimeLabel : null;
+  const metaLine = timeLabel || world.era?.trim() || null;
   const heroCaption = [world.motto, world.tagline]
     .map((value) => value?.trim() ?? '')
     .find((value) => value && value !== summary.trim()) || null;
@@ -203,14 +199,18 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
           ) : null}
         </div>
         {showBanner ? (
-          <div className="relative order-1 @min-[1120px]:order-2" data-testid="world-detail-banner-frame">
-            <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="high" alt="" className="h-auto w-full rounded-[14px]" onUnavailable={() => setBannerFailed(true)} data-testid="world-detail-banner" />
+          <div className="relative order-1 overflow-hidden rounded-[14px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] @min-[1120px]:order-2" data-testid="world-detail-banner-frame">
+            <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="high" alt="" className="block h-auto w-full rounded-[14px]" onUnavailable={() => setBannerFailed(true)} data-testid="world-detail-banner" />
             {followButton}
-            {heroCaption ? <NimiText as="span" role="caption" className="absolute right-3 bottom-3 line-clamp-1 max-w-[70%] text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]" title={heroCaption}>{heroCaption}</NimiText> : null}
+            {heroCaption ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-end bg-gradient-to-t from-black/65 via-black/25 to-transparent px-4 pb-3 pt-10">
+                <NimiText as="span" role="caption" className="line-clamp-1 max-w-[75%] text-right text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.65)]" title={heroCaption}>{heroCaption}</NimiText>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
-      <WorldPeopleGallery characters={props.peopleCharacters} catalog={props.peopleCatalog} loading={props.charactersLoading} onView={onViewCharacter} onOpenRelationships={onOpenRelationships} />
+      <WorldPeopleGallery characters={props.peopleCharacters} catalog={props.peopleCatalog} loading={props.charactersLoading} onView={onViewCharacter} />
       <WorldDetailStory key={world.id} worldName={world.name} story={story} showExcerpt={showExcerpt} hasReading={hasReading} illustrations={illustrations} onReadWorld={onReadWorld} />
       <WorldScenesDiscovery scenes={scenes} />
       {props.readingIncomplete ? <EmptyState title={t('WorldDetail.discovery.readingIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}

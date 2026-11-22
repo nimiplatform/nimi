@@ -7489,6 +7489,7 @@ class RealmWorldPublicControllerListCharacterCatalogOperationQuery:
     limit: float | None = None
     q: str | None = None
     cursor: str | None = None
+    topicId: str | None = None
 
 
 @dataclass(frozen=True)

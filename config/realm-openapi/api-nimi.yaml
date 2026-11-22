@@ -14990,6 +14990,14 @@ paths:
           required: false
           schema:
             type: string
+        - description: >-
+            Optionally limit results to characters whose public World includes
+            this active topic ID.
+          in: query
+          name: topicId
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           content:
@@ -15000,7 +15008,7 @@ paths:
         '400':
           description: >-
             CATALOG_CURSOR_INVALID, CATALOG_CURSOR_SCOPE_MISMATCH,
-            CATALOG_LIMIT_INVALID or CATALOG_QUERY_INVALID
+            CATALOG_LIMIT_INVALID, CATALOG_QUERY_INVALID or WORLD_TOPIC_INVALID
       summary: Search public PersonaCharacters and WorldCharacters across public worlds
       tags:
         - World

@@ -4,7 +4,11 @@ import {
   stopCharacterVoicePreview,
   toggleCharacterVoicePreview,
 } from '../src/shell/renderer/features/explore/character-voice-preview.js';
-import { readCharacterCatalog } from '../src/shell/renderer/features/explore/character-catalog-data.js';
+import {
+  interleaveCharactersByWorld,
+  readCharacterCatalog,
+  type CharacterCatalogItem,
+} from '../src/shell/renderer/features/explore/character-catalog-data.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 
 test('singleton voice preview switches cleanly between characters without overlapping playback', () => {
@@ -94,4 +98,38 @@ test('readCharacterCatalog forwards worldId filter and projects role and voiceSa
   assert.equal(page.items.length, 1);
   assert.equal(page.items[0]!.role, '戏精法务维权客');
   assert.equal(page.items[0]!.voiceSampleUrl, 'https://assets-preview.nimi.ai/audio/voice.mp3');
+
+  await readCharacterCatalog(sdk, '', undefined, undefined, { topicId: 'comedy', limit: 100 });
+  assert.deepEqual(queries[1], { topicId: 'comedy', limit: 100 });
+});
+
+test('interleaveCharactersByWorld distributes characters across worlds round-robin while preserving per-world order', () => {
+  const makeItem = (worldId: string, id: string): CharacterCatalogItem => ({
+    sourceRef: {
+      kind: 'worldCharacter',
+      id,
+      worldId,
+      worldEntityRef: { kind: 'worldEntity', worldId, entityId: `ent-${id}` },
+      sourceHash: 'a'.repeat(64),
+    },
+    name: id,
+    summary: '',
+    role: null,
+    avatarUrl: null,
+    avatarMedia: null,
+    voiceSampleUrl: null,
+    worldName: worldId,
+  });
+  const input = [
+    makeItem('w1', 'w1-a'),
+    makeItem('w1', 'w1-b'),
+    makeItem('w1', 'w1-c'),
+    makeItem('w2', 'w2-a'),
+    makeItem('w2', 'w2-b'),
+    makeItem('w3', 'w3-a'),
+  ];
+  assert.deepEqual(
+    interleaveCharactersByWorld(input).map((item) => item.name),
+    ['w1-a', 'w2-a', 'w3-a', 'w1-b', 'w2-b', 'w1-c'],
+  );
 });

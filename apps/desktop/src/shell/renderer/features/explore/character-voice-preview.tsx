@@ -96,10 +96,12 @@ export function useCharacterVoicePreviewPlaying(src: string | null | undefined):
 export function CharacterVoicePreviewButton({
   src,
   characterName,
+  variant = 'overlay',
   className = '',
 }: {
   src: string;
   characterName: string;
+  variant?: 'overlay' | 'surface';
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -107,6 +109,13 @@ export function CharacterVoicePreviewButton({
   const label = playing
     ? t('SourceDetail.worldCharacter.voicePause', { defaultValue: 'Pause voice' })
     : `${t('SourceDetail.worldCharacter.voicePlay', { defaultValue: 'Play voice' })} · ${characterName}`;
+  const toneClass = variant === 'surface'
+    ? (playing
+      ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+      : 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-panel))] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,var(--nimi-surface-panel))]')
+    : (playing
+      ? 'border-white/20 bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-sm'
+      : 'border-white/20 bg-black/70 text-white shadow-sm hover:bg-black/85');
 
   return (
     <button
@@ -121,11 +130,7 @@ export function CharacterVoicePreviewButton({
         toggleCharacterVoicePreview(src);
       }}
       className={
-        `inline-flex h-8 items-center gap-1.5 rounded-full border border-white/20 px-2.5 text-xs font-semibold shadow-sm backdrop-blur-md transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
-          playing
-            ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-            : 'bg-black/55 text-white hover:bg-black/75'
-        } ${className}`
+        `inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${toneClass} ${className}`
       }
     >
       {playing ? (
