@@ -160,9 +160,14 @@ invalid for processing or that a Runtime AI capability is unavailable.
 For standard chrome, create `createNimiElectronAppChromeHost` in main with the
 App metadata, exact renderer URLs, and injected Electron `app`/`Menu` adapters.
 Pass it as `chromeHost` to the App bridge (or Home's standard shell host), then
-call `bindWindow(window)` on each actual BrowserWindow before loading it. Spread
-`createNimiElectronAppChromeWindowOptions()` into the App's existing window
-options; keep security and lifecycle options App-owned. The binding requires the
+call `bindWindow(window)` on each actual BrowserWindow before loading it. For a
+hidden title bar, spread `createNimiElectronAppChromeWindowOptions()` into the
+window options. For a native title bar, pass `titleBarStyle: 'native'` to the
+chrome Host and keep the platform frame. Both styles support Kit commands.
+Renderer URL matching includes the query and ignores the fragment. The managed-web
+carrier enables `allowEntryQueryRouting` for its query-free entry document so an
+App can use query parameters for navigation. An entry declared with a query
+still requires that exact query. The binding requires the
 exact WebContents/mainFrame objects and current document. Real destruction,
 document navigation, Host session invalidation, and unregister revoke it; a
 cancelled close or hide does not. Close/quit call the App's existing lifecycle.

@@ -3,7 +3,7 @@ import { NIMI_APP_COMMAND_IDS, NIMI_APP_COMMAND_LABELS, normalizeNimiAppShortcut
 import { NIMI_CHROME_COMMAND_EVENT, NIMI_CHROME_STATE_EVENT, NIMI_CHROME_NATIVE_COMMANDS, type NimiChromeCommandState, type NimiChromeLocale, type NimiChromeNativeCommand, type NimiChromeShortcut, type NimiChromeState } from '@nimiplatform/kit/shell/capabilities';
 import { rendererOriginFromUrl } from './diagnostics.js';
 import { NimiElectronShellHostError, type NimiElectronIpcMainInvokeEvent } from './types.js';
-import type { NimiElectronStandardMenuRole } from './app-menu.js';
+import { createNimiElectronStandardApplicationMenuTemplate, type NimiElectronStandardMenuRole } from './app-menu.js';
 
 type Listener = (...args: unknown[]) => void;
 type Emitter = { on(event: string, listener: Listener): unknown; removeListener(event: string, listener: Listener): unknown };
@@ -37,6 +37,9 @@ export type NimiElectronChromeAppCommand = {
 export type NimiElectronAppChromeHostInput = {
   readonly metadata: NimiAppMetadata;
   readonly allowedRendererUrls: readonly string[];
+  /** Allow query routing on a declared entry URL that has no query of its own. */
+  readonly allowEntryQueryRouting?: boolean;
+  readonly titleBarStyle?: 'hidden' | 'native';
   readonly platform?: NodeJS.Platform;
   readonly app: { quit(): void };
   readonly menu: {
@@ -67,7 +70,7 @@ export function createNimiElectronAppChromeWindowOptions(platform: NodeJS.Platfo
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-app-chrome-host
 export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHostInput): NimiElectronAppChromeHost {
   const platform = input.platform ?? process.platform;
-  const urls = new Set(input.allowedRendererUrls.map(documentUrl));
+  const urls = new Set(input.allowedRendererUrls.map(url => documentUrl(url)));
   const origins = new Set([...urls].map(rendererOriginFromUrl));
   if (!urls.size || !input.metadata.name || !input.metadata.version) throw chromeError('invalid-payload', 'chrome-host-declaration-invalid');
   const appCommands = input.appCommands ?? [];
@@ -97,7 +100,7 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
   let focused: WindowBinding | undefined;
   const state = (binding: WindowBinding): NimiChromeState => ({
     generation: binding.generation!, menuPlacement: platform === 'darwin' ? 'system' : 'window',
-    windowDrag: platform === 'darwin' || platform === 'win32',
+    windowDrag: input.titleBarStyle !== 'native' && (platform === 'darwin' || platform === 'win32'),
     // Actual caption exclusion comes from Chromium's titlebar-area geometry,
     // including native scale/RTL/fullscreen changes; no per-App fixed inset.
     geometry: { left: 0, right: 0, height: 40 },
@@ -131,6 +134,11 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
   const projectMenu = () => {
     if (platform !== 'darwin') { input.menu.setApplicationMenu(null); return; }
     const binding = focused;
+    if (input.titleBarStyle === 'native' && !binding?.generation) {
+      const menu = createNimiElectronStandardApplicationMenuTemplate({ appName: input.metadata.name, platform });
+      input.menu.setApplicationMenu(input.menu.buildFromTemplate(menu));
+      return;
+    }
     const locale = binding?.locale ?? 'en';
     const label = (id: typeof NIMI_APP_COMMAND_IDS[number]) => NIMI_APP_COMMAND_LABELS[id][locale === 'zh' ? 1 : 0];
     const item = (id: string, title: string): NimiElectronChromeMenuItem => {
@@ -186,7 +194,8 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
       throw chromeError('forbidden-renderer-access', 'chrome-exact-main-frame-required');
     }
     const url = documentUrl(event.senderFrame?.url ?? '');
-    if (!urls.has(url) || !origins.has(rendererOriginFromUrl(url)) || documentUrl(binding.window.webContents.getURL()) !== url) {
+    const allowed = urls.has(url) || (input.allowEntryQueryRouting === true && urls.has(documentUrl(url, true)));
+    if (!allowed || !origins.has(rendererOriginFromUrl(url)) || documentUrl(binding.window.webContents.getURL()) !== url) {
       throw chromeError('forbidden-renderer-access', 'chrome-renderer-location-rejected');
     }
     return binding;
@@ -272,16 +281,11 @@ function exact(value: Readonly<Record<string, unknown>>, fields: readonly string
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== fields.length || Object.keys(value).some(key => !fields.includes(key))) throw chromeError('invalid-payload', 'chrome-extra-or-missing-field');
 }
 function localeValue(value: unknown): NimiChromeLocale { if (value !== 'en' && value !== 'zh') throw chromeError('invalid-payload', 'chrome-locale-invalid'); return value; }
-function documentUrl(url: string) {
+function documentUrl(url: string, omitQuery = false) {
   try {
     const parsed = new URL(url);
     parsed.hash = '';
-    if (
-      parsed.protocol === 'nimi-app:'
-      || ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.pathname === '/')
-    ) {
-      parsed.search = '';
-    }
+    if (omitQuery) parsed.search = '';
     return parsed.toString();
   } catch {
     throw chromeError('forbidden-renderer-access', 'chrome-renderer-location-invalid');

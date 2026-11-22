@@ -135,6 +135,28 @@ export function evaluateManagedWebExternalOpenRequest(input: {
   return safeUrl;
 }
 
+/** At most one native confirmation per window. Its answer belongs to that window's lifetime. */
+export function createManagedWebExternalOpener(input: {
+  readonly signal: AbortSignal;
+  readonly confirm: (url: string) => Promise<boolean>;
+  readonly open: (url: string) => Promise<void>;
+}) {
+  let pending = false;
+  return async (request: Parameters<typeof evaluateManagedWebExternalOpenRequest>[0]): Promise<void> => {
+    if (pending || input.signal.aborted) return;
+    const url = evaluateManagedWebExternalOpenRequest(request);
+    if (!url) return;
+    pending = true;
+    try {
+      if (await input.confirm(url) && !input.signal.aborted) {
+        await input.open(url);
+      }
+    } finally {
+      pending = false;
+    }
+  };
+}
+
 export type ManagedWebUnloadDialogCopy = {
   readonly title: string;
   readonly message: string;
@@ -169,6 +191,7 @@ export type ManagedWebLifecycleControllerDeps<Win extends object> = {
   readonly cancelCooldownMs?: number;
   readonly getWindows: () => readonly Win[];
   readonly isWindowDestroyed: (win: Win) => boolean;
+  readonly closeWindow: (win: Win) => void;
   readonly destroyWindow: (win: Win) => void;
   readonly createWindow: (onConstructed: () => void) => Promise<void>;
   readonly confirmUnload: (win: Win, signal: AbortSignal) => Promise<boolean>;
@@ -314,7 +337,6 @@ export function createManagedWebLifecycleController<Win extends object>(
 
     handleSigterm(): void {
       if (forceQuitting) return;
-      quitting = true;
       forceQuitting = true;
       pendingQuitIntent = false;
       pendingSessionReset = false;
@@ -324,15 +346,14 @@ export function createManagedWebLifecycleController<Win extends object>(
     },
 
     handleWillPreventUnload(win: Win, preventDefault: () => void): void {
-      if (forceQuitting || quitting || bypassUnloadWindows.has(win)) {
-        closingWindows.delete(win);
+      const hadClose = closingWindows.delete(win);
+      if (forceQuitting || quitting || (hadClose && bypassUnloadWindows.delete(win))) {
         pendingQuitIntent = false;
         preventDefault();
         return;
       }
       // Consume intent immediately on every entry so cooldown/duplicate early
       // returns never leak stale close/quit flags onto later reloads.
-      const hadClose = closingWindows.delete(win);
       const hadQuit = pendingQuitIntent;
       pendingQuitIntent = false;
 
@@ -369,12 +390,12 @@ export function createManagedWebLifecycleController<Win extends object>(
             return;
           }
           if (discard) {
-            bypassUnloadWindows.add(win);
             if (shouldQuit) {
               forceQuitting = true;
               deps.quitApp();
             } else {
-              deps.destroyWindow(win);
+              bypassUnloadWindows.add(win);
+              deps.closeWindow(win);
             }
           } else {
             lastCancelAt = now();

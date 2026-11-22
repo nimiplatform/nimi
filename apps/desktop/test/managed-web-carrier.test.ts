@@ -19,6 +19,7 @@ import {
 } from '../src-electron/managed-web-snapshot.js';
 import {
   buildManagedWebUnloadDialogCopy,
+  createManagedWebExternalOpener,
   createManagedWebLifecycleController,
   createRollingWindowRateLimiter,
   evaluateManagedWebExternalOpenRequest,
@@ -365,12 +366,52 @@ test('SEC-6: evaluateManagedWebExternalOpenRequest enforces focus, visibility, d
   assert.equal(call(), 'https://nimi.ai/guide');
 });
 
+test('external handoff requires consent to the exact URL from the live window', async () => {
+  const lifetime = new AbortController();
+  const prompts: string[] = [];
+  const opened: string[] = [];
+  let answer!: (approved: boolean) => void;
+  const open = createManagedWebExternalOpener({
+    signal: lifetime.signal,
+    confirm: (url) => {
+      prompts.push(url);
+      return new Promise(resolve => { answer = resolve; });
+    },
+    open: async (url) => { opened.push(url); },
+  });
+  const request = {
+    url: 'https://nimi.ai/docs', disposition: 'foreground-tab', hasPostBody: false,
+    windowDestroyed: false, windowVisible: true, windowFocused: true,
+    rateLimiter: createRollingWindowRateLimiter({ minIntervalMs: 0 }),
+  };
+  await open({ ...request, windowFocused: false });
+  const cancelled = open(request);
+  await open({ ...request, url: 'https://nimi.ai/other' });
+  assert.deepEqual(prompts, [request.url]);
+  assert.deepEqual(opened, []);
+  answer(false);
+  await cancelled;
+  assert.deepEqual(opened, []);
+
+  const approved = open(request);
+  answer(true);
+  await approved;
+  assert.deepEqual(opened, [request.url]);
+
+  const stale = open(request);
+  lifetime.abort();
+  answer(true);
+  await stale;
+  assert.deepEqual(opened, [request.url]);
+});
+
 test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS blocking, cooldown consumption, Cmd+Q upgrade, immediate account revocation, and SIGTERM', async () => {
   type FakeWin = { id: number; destroyed: boolean };
   let clock = 1_000;
   let nextWinId = 1;
   const windows: FakeWin[] = [];
   let quitCount = 0;
+  const closeRequests: FakeWin[] = [];
   let unregistered = 0;
   let chromeDisposed = 0;
   const pendingConfirms: Array<{
@@ -386,6 +427,7 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
     cancelCooldownMs: 300,
     getWindows: () => windows.filter((w) => !w.destroyed),
     isWindowDestroyed: (w) => w.destroyed,
+    closeWindow: (win) => { closeRequests.push(win); },
     destroyWindow: (w) => {
       if (w.destroyed) return;
       w.destroyed = true;
@@ -451,6 +493,21 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
   controller.handleWillPreventUnload(win2, () => { prevented = true; });
   assert.equal(pendingConfirms.length, 0); // reload still blocked!
 
+  const dirtyWindow: FakeWin = { id: nextWinId++, destroyed: false };
+  controller.markWindowClose(dirtyWindow);
+  controller.handleWillPreventUnload(dirtyWindow, () => assert.fail('close must await consent'));
+  pendingConfirms.shift()!.resolve(true);
+  await Promise.resolve();
+  assert.deepEqual(closeRequests, [dirtyWindow]);
+  assert.equal(dirtyWindow.destroyed, false);
+  controller.markWindowClose(dirtyWindow);
+  let allowedClose = false;
+  controller.handleWillPreventUnload(dirtyWindow, () => { allowedClose = true; });
+  assert.equal(allowedClose, true);
+  controller.handleWillPreventUnload(dirtyWindow, () => assert.fail('consent must be consumed'));
+  assert.equal(pendingConfirms.length, 0);
+  controller.markWindowClosed(dirtyWindow);
+
   // 3. Close dialog open -> concurrent Cmd+Q upgrades intent -> Discard quits app cleanly.
   controller.markWindowClose(win2);
   controller.handleWillPreventUnload(win2, () => { prevented = true; });
@@ -474,6 +531,7 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
     now: () => clock,
     getWindows: () => windows2.filter((w) => !w.destroyed),
     isWindowDestroyed: (w) => w.destroyed,
+    closeWindow: () => assert.fail('revocation must destroy the window'),
     destroyWindow: (w) => {
       if (w.destroyed) return;
       w.destroyed = true;
@@ -535,6 +593,11 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
   let termPrevented = false;
   ctrl2.handleWillPreventUnload(wC, () => { termPrevented = true; });
   assert.equal(termPrevented, true);
+  ctrl2.markWillQuit();
+  ctrl2.markWillQuit();
+  assert.equal(unreg2, 1);
+  assert.equal(disp2, 1);
+  assert.equal(windows2.length, 3);
 
   // 6. will-quit unregisters bridge cleanly without triggering respawn even though unregisterBridge calls handleSessionInvalidated.
   const windows3: FakeWin[] = [];
@@ -545,6 +608,7 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
     platform: 'win32',
     getWindows: () => windows3.filter((w) => !w.destroyed),
     isWindowDestroyed: (w) => w.destroyed,
+    closeWindow: () => assert.fail('cleanup must not request a normal close'),
     destroyWindow: (w) => { w.destroyed = true; },
     createWindow: async (onConstructed) => { created3 += 1; onConstructed(); },
     confirmUnload: async () => false,
@@ -559,6 +623,4 @@ test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS block
   assert.equal(created3, 0);
   assert.equal(unregistered, 0);
   assert.equal(chromeDisposed, 0);
-  assert.equal(unreg2, 0);
-  assert.equal(disp2, 0);
 });

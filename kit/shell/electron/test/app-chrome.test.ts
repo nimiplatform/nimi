@@ -24,10 +24,10 @@ class Window extends EventEmitter {
   setMenu(_menu: null) {} setMenuBarVisibility(value: boolean) { this.menuVisible = value; }
 }
 const event = (window: Window) => ({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
-const fixture = (platform: 'win32' | 'darwin' = 'win32') => {
+const fixture = (platform: 'win32' | 'darwin' = 'win32', titleBarStyle?: 'native' | 'hidden') => {
   let menu: NimiElectronChromeMenuItem[] = []; let quits = 0;
   const events: [string, unknown][] = [];
-  const host = createNimiElectronAppChromeHost({ metadata: { name: 'App', version: '1' }, platform,
+  const host = createNimiElectronAppChromeHost({ metadata: { name: 'App', version: '1' }, platform, titleBarStyle,
     allowedRendererUrls: [url], app: { quit() { quits++; } },
     menu: { buildFromTemplate(value) { menu = value; return {}; }, setApplicationMenu() {} },
   });
@@ -130,6 +130,20 @@ describe('exact native chrome binding', () => {
     expect(f.window.webContents.factor).toBe(1.2); expect(other.webContents.factor).toBe(1);
     const projection = f.bind(); expect(projection).not.toHaveProperty('presentation'); expect(projection).not.toHaveProperty('platform');
   });
+  it.each(['win32', 'darwin'] as const)('binds Kit commands inside a native frame on %s', (platform) => {
+    const f = fixture(platform, 'native');
+    const menuLabels = () => f.menu.map(item => item.label);
+    if (platform === 'darwin') expect(menuLabels()).toEqual(['App', 'Edit']);
+    const state = f.bind();
+    expect(state.windowDrag).toBe(false);
+    expect(state.menuPlacement).toBe(platform === 'darwin' ? 'system' : 'window');
+    if (platform === 'darwin') expect(menuLabels()).toContain('File');
+    f.host.invoke('chromeCommand', { generation: state.generation, command: 'zoom-in' }, event(f.window), f.send);
+    expect(f.window.contents.factor).toBe(1.2);
+    f.host.invoke('chromeUnbind', { generation: state.generation }, event(f.window), f.send);
+    if (platform === 'darwin') expect(menuLabels()).toEqual(['App', 'Edit']);
+    f.host.dispose();
+  });
   it('keeps macOS system Edit roles callback-free, stops hidden accelerators and honors IME suppression', () => {
     const f = fixture('darwin'); const generation = f.bind().generation;
     f.host.invoke('chromeStateSet', states(generation, false), event(f.window), f.send);
@@ -157,6 +171,7 @@ describe('exact native chrome binding', () => {
       metadata: { name: 'SharedCarrier', version: '1' },
       platform: 'darwin',
       allowedRendererUrls: ['nimi-app://nimi.odd-bureau/index.html'],
+      allowEntryQueryRouting: true,
       app: { quit() {} },
       menu: { buildFromTemplate(value) { menu = value; return {}; }, setApplicationMenu() {} },
       appCommands: [{ id: 'app.nimi-account', menu: 'file', labels: { en: 'Nimi account', zh: 'Nimi 账号' }, defaultVisible: false }],
@@ -193,13 +208,14 @@ describe('exact native chrome binding', () => {
     expect(fileAccount().visible).toBe(false);
     host.dispose();
   });
-  it('strips query on nimi-app and root http(s) documents while preserving exact path, host, and credentials', () => {
+  it('allows query routing on opted-in entries while preserving exact path, host, and credentials', () => {
     const events: [string, unknown][] = [];
     const send = (name: string, value: unknown) => events.push([name, value]);
     const devHost = createNimiElectronAppChromeHost({
       metadata: { name: 'DevApp', version: '1' },
       platform: 'win32',
       allowedRendererUrls: ['http://127.0.0.1:1485/', 'nimi-app://nimi.shijing/index.html'],
+      allowEntryQueryRouting: true,
       app: { quit() {} },
       menu: { buildFromTemplate: () => ({}), setApplicationMenu: () => {} },
     });
@@ -221,5 +237,28 @@ describe('exact native chrome binding', () => {
     win.contents.mainFrame.url = 'http://user:pass@127.0.0.1:1485/?tab=1';
     expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
     devHost.dispose();
+  });
+  it.each([false, true])('preserves explicit entry queries with query routing set to %s', (allowEntryQueryRouting) => {
+    const entry = 'https://app.invalid/?view=editor';
+    const plain = 'nimi-app://app/index.html';
+    const host = createNimiElectronAppChromeHost({
+      metadata: { name: 'App', version: '1' }, allowedRendererUrls: [entry, plain],
+      ...(allowEntryQueryRouting ? { allowEntryQueryRouting } : {}),
+      app: { quit() {} }, menu: { buildFromTemplate: () => ({}), setApplicationMenu() {} },
+    });
+    const win = new Window();
+    host.bindWindow(win);
+    const bind = (location: string) => {
+      win.contents.mainFrame.url = location;
+      return host.invoke('chromeBind', { locale: 'en' }, event(win), () => {});
+    };
+    expect(bind(entry + '#section')).toHaveProperty('generation');
+    expect(() => bind('https://app.invalid/')).toThrow('location-rejected');
+    expect(() => bind('https://app.invalid/?view=other')).toThrow('location-rejected');
+    if (allowEntryQueryRouting) expect(bind(plain + '?tab=1')).toHaveProperty('generation');
+    else expect(() => bind(plain + '?tab=1')).toThrow('location-rejected');
+    win.contents.getURL = () => plain + '?tab=2';
+    expect(() => bind(plain)).toThrow('location-rejected');
+    host.dispose();
   });
 });

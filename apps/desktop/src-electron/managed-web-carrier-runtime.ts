@@ -15,11 +15,9 @@ import {
   configureNimiElectronAppHostProfile,
   createNimiElectronAppChromeHost,
   createNimiElectronAppChromeWindowOptions,
-  createNimiElectronStandardApplicationMenuTemplate,
   isAllowedElectronRendererUrl,
   NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION,
   registerNimiElectronAppBridge,
-  type NimiElectronAppChromeHost,
   type RegisteredNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
@@ -28,9 +26,9 @@ import {
 } from './app-origin-protocol.js';
 import {
   buildManagedWebUnloadDialogCopy,
+  createManagedWebExternalOpener,
   createManagedWebLifecycleController,
   createRollingWindowRateLimiter,
-  evaluateManagedWebExternalOpenRequest,
 } from './managed-web-carrier-policy.js';
 import {
   createManagedWebProtocolHandler,
@@ -107,32 +105,20 @@ export function startManagedWebCarrier(input: {
   ]);
 
   const allowedRendererUrls = [entryUrl];
-  const chromeHost: NimiElectronAppChromeHost | undefined = windowConfig.titleBarStyle === 'hidden'
-    ? createNimiElectronAppChromeHost({
-      metadata: { name: displayName, version },
-      allowedRendererUrls,
-      app,
-      appCommands: [{
-        id: 'app.nimi-account',
-        menu: 'file',
-        labels: { en: 'Nimi account', zh: 'Nimi 账号' },
-        defaultVisible: false,
-      }],
-      menu: Menu,
-    })
-    : undefined;
-
-  if (!chromeHost) {
-    if (process.platform === 'darwin') {
-      Menu.setApplicationMenu(
-        Menu.buildFromTemplate(
-          createNimiElectronStandardApplicationMenuTemplate({ appName: displayName }) as Electron.MenuItemConstructorOptions[],
-        ),
-      );
-    } else {
-      Menu.setApplicationMenu(null);
-    }
-  }
+  const chromeHost = createNimiElectronAppChromeHost({
+    metadata: { name: displayName, version },
+    allowedRendererUrls,
+    allowEntryQueryRouting: true,
+    titleBarStyle: windowConfig.titleBarStyle,
+    app,
+    appCommands: [{
+      id: 'app.nimi-account',
+      menu: 'file',
+      labels: { en: 'Nimi account', zh: 'Nimi 账号' },
+      defaultVisible: false,
+    }],
+    menu: Menu,
+  });
 
   let mainWindow: BrowserWindow | undefined;
   let bridge: RegisteredNimiElectronAppBridge | undefined;
@@ -167,17 +153,14 @@ export function startManagedWebCarrier(input: {
     lifecycle.markWindowCreated();
     onConstructed?.();
 
-    if (chromeHost) {
-      chromeHost.bindWindow(win);
-    } else if (process.platform !== 'darwin') {
-      win.setMenu(null);
-      win.setMenuBarVisibility(false);
-    }
+    chromeHost.bindWindow(win);
+    const windowLifetime = new AbortController();
 
     win.on('close', () => {
       lifecycle.markWindowClose(win);
     });
     win.on('closed', () => {
+      windowLifetime.abort();
       lifecycle.markWindowClosed(win);
       if (mainWindow === win) {
         mainWindow = undefined;
@@ -188,8 +171,28 @@ export function startManagedWebCarrier(input: {
         event.preventDefault();
       });
     });
+    const requestExternalOpen = createManagedWebExternalOpener({
+      signal: windowLifetime.signal,
+      confirm: async (url) => {
+        const chinese = app.getLocale().toLowerCase().startsWith('zh');
+        const site = new URL(url).origin;
+        const result = await dialog.showMessageBox(win, {
+          type: 'question',
+          title: displayName,
+          message: chinese ? `在默认浏览器中打开 ${site}？` : `Open ${site} in your default browser?`,
+          detail: url,
+          buttons: chinese ? ['取消', '打开链接'] : ['Cancel', 'Open link'],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true,
+          signal: windowLifetime.signal,
+        });
+        return result.response === 1 && !win.isDestroyed();
+      },
+      open: (url) => shell.openExternal(url),
+    });
     win.webContents.setWindowOpenHandler((details) => {
-      const safeUrl = evaluateManagedWebExternalOpenRequest({
+      void requestExternalOpen({
         url: details.url,
         disposition: details.disposition,
         hasPostBody: Boolean(details.postBody),
@@ -197,14 +200,11 @@ export function startManagedWebCarrier(input: {
         windowVisible: !win.isDestroyed() && win.isVisible(),
         windowFocused: !win.isDestroyed() && win.isFocused(),
         rateLimiter: externalLinkLimiter,
+      }).catch((error) => {
+        process.stderr.write(
+          `[managed-web-carrier] external open failed: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
       });
-      if (safeUrl) {
-        void shell.openExternal(safeUrl).catch((error) => {
-          process.stderr.write(
-            `[managed-web-carrier] external open failed: ${error instanceof Error ? error.message : String(error)}\n`,
-          );
-        });
-      }
       return { action: 'deny' };
     });
 
@@ -237,6 +237,7 @@ export function startManagedWebCarrier(input: {
     platform: process.platform,
     getWindows: () => BrowserWindow.getAllWindows(),
     isWindowDestroyed: (win) => win.isDestroyed(),
+    closeWindow: (win) => win.close(),
     destroyWindow: (win) => {
       win.destroy();
     },
@@ -269,7 +270,7 @@ export function startManagedWebCarrier(input: {
       bridge = undefined;
     },
     disposeChromeHost: () => {
-      chromeHost?.dispose();
+      chromeHost.dispose();
     },
     onResetError: (error) => {
       process.stderr.write(
@@ -302,7 +303,7 @@ export function startManagedWebCarrier(input: {
       protocol.handle(NIMI_DESKTOP_APP_PROTOCOL_SCHEME, createManagedWebProtocolHandler(snapshot));
     }
     bridge = registerNimiElectronAppBridge({
-      ...(chromeHost ? { chromeHost } : {}),
+      chromeHost,
       appId,
       allowedRendererUrls,
       assetMediaPlatform: {

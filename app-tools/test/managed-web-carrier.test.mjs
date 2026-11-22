@@ -276,6 +276,9 @@ test('managed-web pack is byte-identical across consecutive runs, emits 0o644 pa
       window: { width: 1320, height: 900, min_width: 390, min_height: 620, title_bar_style: 'hidden' },
     });
     const appInfo = JSON.parse(entries.get('app-info.json').bytes.toString('utf8'));
+    const mediatedStorage = { kind: 'nimi-mediated-default', os_storage_disclosure: null };
+    assert.deepEqual(appInfo.storage_policy, mediatedStorage);
+    assert.deepEqual(declaration.storage_policy, mediatedStorage);
     assert.equal(Object.hasOwn(appInfo, 'desktop'), false, 'app-info.json must remain unchanged');
 
     const aggregate = aggregateAppTargetCandidates(root);

@@ -1207,7 +1207,7 @@ units:
     kind: rule
     title: P-NAPP-028 OS storage disclosure invariant
     modality: must
-    statement: app-owned-os-storage carries a non-empty reviewer-visible and user-visible os_storage_disclosure whose entries contain typed path_pattern, purpose, and expected_size_band, while nimi-mediated-default carries no such field and the disjoint shapes use os_storage_disclosure_missing for either symmetric violation.
+    statement: For app-owned-os-storage, author input and published projections carry a non-empty reviewer-visible and user-visible os_storage_disclosure whose entries contain typed path_pattern, purpose, and expected_size_band. For nimi-mediated-default, author input omits os_storage_disclosure and the app-info, archive declaration, and Registry projections serialize it as null. A disclosure that violates the required shape for its posture and representation fails admission with os_storage_disclosure_missing.
     condition: Whenever storage posture and disclosure are validated.
     failure: Fail admission closed with os_storage_disclosure_missing.
     relations:
