@@ -32,6 +32,7 @@ export type NimiElectronChromeAppCommand = {
   readonly id: string; readonly menu: NimiAppMenu;
   readonly labels: Readonly<Record<NimiChromeLocale, string>>;
   readonly shortcut?: string; readonly macShortcut?: string;
+  readonly defaultVisible?: boolean;
 };
 export type NimiElectronAppChromeHostInput = {
   readonly metadata: NimiAppMetadata;
@@ -70,16 +71,19 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
   const origins = new Set([...urls].map(rendererOriginFromUrl));
   if (!urls.size || !input.metadata.name || !input.metadata.version) throw chromeError('invalid-payload', 'chrome-host-declaration-invalid');
   const appCommands = input.appCommands ?? [];
+  const appCommandsById = new Map<string, NimiElectronChromeAppCommand>();
   const ids = new Set<string>(NIMI_APP_COMMAND_IDS);
   const shortcutKeys = new Set<string>();
   const shortcuts = nativeShortcuts(platform);
   for (const item of shortcuts) shortcutKeys.add(normalizeNimiAppShortcut(item.keys));
   for (const command of appCommands) {
     if (!/^[a-z][a-z0-9.-]{0,95}$/.test(command.id) || command.id.startsWith('nimi.') || ids.has(command.id)
-      || !['file', 'edit', 'view', 'help'].includes(command.menu) || !command.labels.en || !command.labels.zh) {
+      || !['file', 'edit', 'view', 'help'].includes(command.menu) || !command.labels.en || !command.labels.zh
+      || (command.defaultVisible !== undefined && typeof command.defaultVisible !== 'boolean')) {
       throw chromeError('invalid-payload', 'chrome-command-declaration-invalid');
     }
     ids.add(command.id);
+    appCommandsById.set(command.id, command);
     const keys = platform === 'darwin' ? command.macShortcut ?? command.shortcut : command.shortcut;
     if (keys) {
       const normalized = normalizeNimiAppShortcut(keys);
@@ -138,12 +142,14 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
         click: () => { if (!disposed) input.app.quit(); },
       };
       const projected = binding?.states.get(id);
+      const declaredAppCommand = appCommandsById.get(id);
+      const defaultVisible = declaredAppCommand?.defaultVisible ?? !isOptional(id);
       const generation = binding?.generation;
       const shortcut = shortcuts.find(s => s.commandId === id);
       const native = nativeCommandFor(id);
       return {
         id, label: title, type: id === 'nimi.sidebar.toggle' || id === 'nimi.view.fullscreen' ? 'checkbox' : 'normal',
-        enabled: Boolean(binding?.generation && projected?.enabled), visible: projected?.visible ?? !isOptional(id), checked: projected?.checked ?? false,
+        enabled: Boolean(binding?.generation && projected?.enabled), visible: projected?.visible ?? defaultVisible, checked: projected?.checked ?? false,
         accelerator: shortcut?.keys.replace(/Cmd/g, 'Command').replace(/Ctrl/g, 'Control'),
         acceleratorWorksWhenHidden: false,
         click: () => {
@@ -266,7 +272,21 @@ function exact(value: Readonly<Record<string, unknown>>, fields: readonly string
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== fields.length || Object.keys(value).some(key => !fields.includes(key))) throw chromeError('invalid-payload', 'chrome-extra-or-missing-field');
 }
 function localeValue(value: unknown): NimiChromeLocale { if (value !== 'en' && value !== 'zh') throw chromeError('invalid-payload', 'chrome-locale-invalid'); return value; }
-function documentUrl(url: string) { try { const parsed = new URL(url); parsed.hash = ''; return parsed.toString(); } catch { throw chromeError('forbidden-renderer-access', 'chrome-renderer-location-invalid'); } }
+function documentUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    if (
+      parsed.protocol === 'nimi-app:'
+      || ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.pathname === '/')
+    ) {
+      parsed.search = '';
+    }
+    return parsed.toString();
+  } catch {
+    throw chromeError('forbidden-renderer-access', 'chrome-renderer-location-invalid');
+  }
+}
 function chromeError(code: 'invalid-payload' | 'forbidden-renderer-access' | 'session-invalid', reasonCode: string) { return new NimiElectronShellHostError({ code, message: reasonCode, reasonCode, actionHint: 'rebind_current_registered_window_chrome' }); }
 function isOptional(id: string) { return id.startsWith('nimi.navigation.') || id === 'nimi.sidebar.toggle'; }
 function menuFor(id: string): NimiAppMenu { return id.includes('.edit.') ? 'edit' : id.includes('.file.') ? 'file' : id.includes('.help.') ? 'help' : 'view'; }

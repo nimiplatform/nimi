@@ -2,25 +2,36 @@ import process from 'node:process';
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   nativeImage,
   protocol,
   session,
+  shell,
   webContents,
 } from 'electron';
 import {
   configureNimiElectronAppHostProfile,
   createNimiElectronAppChromeHost,
   createNimiElectronAppChromeWindowOptions,
+  createNimiElectronStandardApplicationMenuTemplate,
   isAllowedElectronRendererUrl,
   NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION,
   registerNimiElectronAppBridge,
+  type NimiElectronAppChromeHost,
+  type RegisteredNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   NIMI_DESKTOP_APP_PROTOCOL_PRIVILEGES,
   NIMI_DESKTOP_APP_PROTOCOL_SCHEME,
 } from './app-origin-protocol.js';
+import {
+  buildManagedWebUnloadDialogCopy,
+  createManagedWebLifecycleController,
+  createRollingWindowRateLimiter,
+  evaluateManagedWebExternalOpenRequest,
+} from './managed-web-carrier-policy.js';
 import {
   createManagedWebProtocolHandler,
   isAllowedManagedWebNavigationUrl,
@@ -77,6 +88,12 @@ export function startManagedWebCarrier(input: {
   }
 
   app.setName(displayName);
+  if (process.platform === 'darwin') {
+    app.setAboutPanelOptions({
+      applicationName: displayName,
+      applicationVersion: version,
+    });
+  }
   if (process.platform === 'win32') {
     app.setAppUserModelId(`ai.nimi.apps.${appId}${input.launch.mode === 'dev' ? '.dev' : ''}`);
   }
@@ -90,23 +107,43 @@ export function startManagedWebCarrier(input: {
   ]);
 
   const allowedRendererUrls = [entryUrl];
-  const chromeHost = createNimiElectronAppChromeHost({
-    metadata: { name: displayName, version },
-    allowedRendererUrls,
-    app,
-    menu: Menu,
-  });
+  const chromeHost: NimiElectronAppChromeHost | undefined = windowConfig.titleBarStyle === 'hidden'
+    ? createNimiElectronAppChromeHost({
+      metadata: { name: displayName, version },
+      allowedRendererUrls,
+      app,
+      appCommands: [{
+        id: 'app.nimi-account',
+        menu: 'file',
+        labels: { en: 'Nimi account', zh: 'Nimi 账号' },
+        defaultVisible: false,
+      }],
+      menu: Menu,
+    })
+    : undefined;
+
+  if (!chromeHost) {
+    if (process.platform === 'darwin') {
+      Menu.setApplicationMenu(
+        Menu.buildFromTemplate(
+          createNimiElectronStandardApplicationMenuTemplate({ appName: displayName }) as Electron.MenuItemConstructorOptions[],
+        ),
+      );
+    } else {
+      Menu.setApplicationMenu(null);
+    }
+  }
 
   let mainWindow: BrowserWindow | undefined;
-  let resettingRenderer = false;
-  let quitting = false;
-  let scopeReset: Promise<void> | undefined;
+  let bridge: RegisteredNimiElectronAppBridge | undefined;
+  const externalLinkLimiter = createRollingWindowRateLimiter();
 
   const iconImage = iconPngBytes ? nativeImage.createFromBuffer(iconPngBytes) : undefined;
   const validIcon = iconImage && !iconImage.isEmpty() ? iconImage : undefined;
 
-  const createMainWindow = async (): Promise<BrowserWindow> => {
-    const chromeOptions = windowConfig.titleBarStyle === 'hidden'
+  const createMainWindow = async (onConstructed?: () => void): Promise<BrowserWindow> => {
+    const isHiddenChrome = windowConfig.titleBarStyle === 'hidden';
+    const chromeOptions = isHiddenChrome
       ? createNimiElectronAppChromeWindowOptions()
       : {};
     const win = new BrowserWindow({
@@ -117,7 +154,7 @@ export function startManagedWebCarrier(input: {
       minHeight: windowConfig.minHeight,
       ...(validIcon ? { icon: validIcon } : {}),
       title: displayName,
-      autoHideMenuBar: true,
+      autoHideMenuBar: isHiddenChrome,
       webPreferences: {
         preload: input.preloadPath,
         contextIsolation: true,
@@ -127,13 +164,50 @@ export function startManagedWebCarrier(input: {
       },
     });
     mainWindow = win;
-    chromeHost.bindWindow(win);
+    lifecycle.markWindowCreated();
+    onConstructed?.();
+
+    if (chromeHost) {
+      chromeHost.bindWindow(win);
+    } else if (process.platform !== 'darwin') {
+      win.setMenu(null);
+      win.setMenuBarVisibility(false);
+    }
+
+    win.on('close', () => {
+      lifecycle.markWindowClose(win);
+    });
     win.on('closed', () => {
+      lifecycle.markWindowClosed(win);
       if (mainWindow === win) {
         mainWindow = undefined;
       }
     });
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-prevent-unload', (event) => {
+      lifecycle.handleWillPreventUnload(win, () => {
+        event.preventDefault();
+      });
+    });
+    win.webContents.setWindowOpenHandler((details) => {
+      const safeUrl = evaluateManagedWebExternalOpenRequest({
+        url: details.url,
+        disposition: details.disposition,
+        hasPostBody: Boolean(details.postBody),
+        windowDestroyed: win.isDestroyed(),
+        windowVisible: !win.isDestroyed() && win.isVisible(),
+        windowFocused: !win.isDestroyed() && win.isFocused(),
+        rateLimiter: externalLinkLimiter,
+      });
+      if (safeUrl) {
+        void shell.openExternal(safeUrl).catch((error) => {
+          process.stderr.write(
+            `[managed-web-carrier] external open failed: ${error instanceof Error ? error.message : String(error)}\n`,
+          );
+        });
+      }
+      return { action: 'deny' };
+    });
+
     const isAllowedTopLevelUrl = (targetUrl: string): boolean => (
       input.launch.mode === 'installed'
         ? isAllowedManagedWebNavigationUrl(targetUrl, entryUrl)
@@ -149,35 +223,74 @@ export function startManagedWebCarrier(input: {
         event.preventDefault();
       }
     });
-    await win.loadURL(entryUrl);
+    try {
+      await win.loadURL(entryUrl);
+    } catch (error) {
+      if (!win.isDestroyed()) {
+        throw error;
+      }
+    }
     return win;
   };
 
-  const resetAccountScopedRenderer = (): void => {
-    if (quitting || scopeReset || !BrowserWindow.getAllWindows().length) return;
-    resettingRenderer = true;
-    for (const win of BrowserWindow.getAllWindows()) win.destroy();
-    scopeReset = createMainWindow()
-      .then(() => undefined)
-      .catch((error) => {
-        process.stderr.write(`[managed-web-carrier] session reset failed: ${error instanceof Error ? error.message : String(error)}\n`);
-      })
-      .finally(() => {
-        scopeReset = undefined;
-        resettingRenderer = false;
+  const lifecycle = createManagedWebLifecycleController<BrowserWindow>({
+    platform: process.platform,
+    getWindows: () => BrowserWindow.getAllWindows(),
+    isWindowDestroyed: (win) => win.isDestroyed(),
+    destroyWindow: (win) => {
+      win.destroy();
+    },
+    createWindow: async (onConstructed) => {
+      await createMainWindow(onConstructed);
+    },
+    confirmUnload: async (win, signal) => {
+      if (signal.aborted || win.isDestroyed()) {
+        return false;
+      }
+      const copy = buildManagedWebUnloadDialogCopy(displayName, app.getLocale());
+      const result = await dialog.showMessageBox(win, {
+        type: 'warning',
+        title: copy.title,
+        message: copy.message,
+        detail: copy.detail,
+        buttons: [...copy.buttons],
+        defaultId: copy.defaultId,
+        cancelId: copy.cancelId,
+        noLink: copy.noLink,
+        signal,
       });
-  };
+      return !signal.aborted && result.response === 1;
+    },
+    quitApp: () => {
+      app.quit();
+    },
+    unregisterBridge: () => {
+      bridge?.unregister();
+      bridge = undefined;
+    },
+    disposeChromeHost: () => {
+      chromeHost?.dispose();
+    },
+    onResetError: (error) => {
+      process.stderr.write(
+        `[managed-web-carrier] session reset failed: ${error instanceof Error ? error.message : String(error)}\n`,
+      );
+    },
+  });
 
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin' && !resettingRenderer) {
+    if (lifecycle.shouldQuitOnWindowAllClosed()) {
       app.quit();
     }
   });
   app.on('before-quit', () => {
-    quitting = true;
+    lifecycle.markBeforeQuit();
   });
   app.on('will-quit', () => {
-    chromeHost.dispose();
+    lifecycle.markWillQuit();
+  });
+  process.on('SIGTERM', () => {
+    lifecycle.handleSigterm();
   });
 
   void app.whenReady().then(async () => {
@@ -188,8 +301,8 @@ export function startManagedWebCarrier(input: {
     if (snapshot) {
       protocol.handle(NIMI_DESKTOP_APP_PROTOCOL_SCHEME, createManagedWebProtocolHandler(snapshot));
     }
-    registerNimiElectronAppBridge({
-      chromeHost,
+    bridge = registerNimiElectronAppBridge({
+      ...(chromeHost ? { chromeHost } : {}),
       appId,
       allowedRendererUrls,
       assetMediaPlatform: {
@@ -198,12 +311,18 @@ export function startManagedWebCarrier(input: {
         webContents,
       },
       ipcMain,
-      onSessionInvalidated: resetAccountScopedRenderer,
+      onSessionInvalidated: () => {
+        lifecycle.handleSessionInvalidated();
+      },
     });
     await createMainWindow();
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0 && !resettingRenderer) {
-        void createMainWindow();
+      if (BrowserWindow.getAllWindows().length === 0 && lifecycle.shouldCreateOnActivate()) {
+        void createMainWindow().catch((error) => {
+          process.stderr.write(
+            `[managed-web-carrier] activate window failed: ${error instanceof Error ? error.message : String(error)}\n`,
+          );
+        });
       }
     });
   }).catch((error) => {

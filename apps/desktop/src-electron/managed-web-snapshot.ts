@@ -488,6 +488,8 @@ export function managedWebContentType(relativePath: string): string {
       return 'video/webm';
     case '.txt':
       return 'text/plain; charset=utf-8';
+    case '.md':
+      return 'text/markdown; charset=utf-8';
     case '.xml':
       return 'application/xml; charset=utf-8';
     default:

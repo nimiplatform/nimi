@@ -10,12 +10,20 @@ import {
   createManagedWebProtocolHandler,
   isAllowedManagedWebNavigationUrl,
   loadVerifiedManagedWebSnapshot,
+  managedWebContentType,
   MANAGED_WEB_CONTENT_SECURITY_POLICY,
   MANAGED_WEB_PAYLOAD_DIGEST_DOMAIN,
   parseDesktopWindowConfig,
   parseHttpRange,
   parseManagedWebCarrierArguments,
 } from '../src-electron/managed-web-snapshot.js';
+import {
+  buildManagedWebUnloadDialogCopy,
+  createManagedWebLifecycleController,
+  createRollingWindowRateLimiter,
+  evaluateManagedWebExternalOpenRequest,
+  parseManagedWebExternalUrl,
+} from '../src-electron/managed-web-carrier-policy.js';
 import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local-development-host-arguments.js';
 
 function createValidManagedWebReleaseDir(): {
@@ -258,4 +266,299 @@ test('parseManagedWebCarrierArguments enforces mutually exclusive Mode B and Mod
     '--nimi-managed-web-dev',
     '--nimi-dev-renderer-url=http://127.0.0.1:5173',
   ]);
+});
+
+test('H5: managedWebContentType maps markdown assets to text/markdown; charset=utf-8', () => {
+  assert.equal(managedWebContentType('stories/README.md'), 'text/markdown; charset=utf-8');
+});
+
+test('SEC-6: parseManagedWebExternalUrl rejects non-HTTPS, credentials, raw IPs, local domains, and malformed inputs', () => {
+  assert.equal(parseManagedWebExternalUrl('https://nimi.ai/docs?ref=storybook#sec'), 'https://nimi.ai/docs?ref=storybook#sec');
+  assert.equal(parseManagedWebExternalUrl('https://github.com./nimiplatform/nimi'), 'https://github.com./nimiplatform/nimi');
+
+  const rejected = [
+    '',
+    ' https://nimi.ai/',
+    'https://nimi.ai/ ',
+    'https://nimi.ai/\npath',
+    'https://nimi.ai/\tpath',
+    `https://nimi.ai/${'a'.repeat(2050)}`,
+    'http://nimi.ai/',
+    'file:///C:/Windows/System32/calc.exe',
+    'javascript:alert(1)',
+    'data:text/html,<h1>x</h1>',
+    'nimi-app://nimi.storybook/index.html',
+    'https://user:pass@nimi.ai/',
+    'https://user@nimi.ai/',
+    'https://localhost/',
+    'https://localhost./',
+    'https://localhost../',
+    'https://sub.localhost/',
+    'https://printer.local/',
+    'https://metadata.google.internal/',
+    'https://home.arpa/',
+    'https://corp.home.arpa/',
+    'https://foo.invalid/',
+    'https://foo.test/',
+    'https://router/',
+    'https://127.0.0.1/',
+    'https://127.0.0.1./',
+    'https://127.0.0.2/',
+    'https://2130706433/',
+    'https://0x7f000001/',
+    'https://0177.0.0.1/',
+    'https://10.0.0.1/',
+    'https://172.16.0.1/',
+    'https://192.168.1.1/',
+    'https://169.254.169.254/',
+    'https://198.18.0.1/',
+    'https://8.8.8.8/',
+    'https://[::1]/',
+    'https://[::]/',
+    'https://[::ffff:127.0.0.1]/',
+    'https://[::ffff:0:127.0.0.1]/',
+    'https://[::7f00:1]/',
+    'https://[64:ff9b::127.0.0.1]/',
+    'https://[fe80::1]/',
+    'https://[2606:4700:4700::1111]/',
+    'https://a..b.com/',
+  ];
+  for (const url of rejected) {
+    assert.equal(parseManagedWebExternalUrl(url), undefined, `expected rejection for ${JSON.stringify(url)}`);
+  }
+});
+
+test('SEC-6: evaluateManagedWebExternalOpenRequest enforces focus, visibility, disposition whitelist, postBody, and rolling 10s limit', () => {
+  let clock = 10_000;
+  const limiter = createRollingWindowRateLimiter({ maxEvents: 3, windowMs: 10_000, minIntervalMs: 500, now: () => clock });
+  const call = (overrides: Partial<Parameters<typeof evaluateManagedWebExternalOpenRequest>[0]> = {}) =>
+    evaluateManagedWebExternalOpenRequest({
+      url: 'https://nimi.ai/guide',
+      disposition: 'foreground-tab',
+      hasPostBody: false,
+      windowDestroyed: false,
+      windowVisible: true,
+      windowFocused: true,
+      rateLimiter: limiter,
+      ...overrides,
+    });
+
+  // Unfocused, invisible, destroyed, postBody, or non-whitelisted disposition are denied without consuming quota.
+  assert.equal(call({ windowFocused: false }), undefined);
+  assert.equal(call({ windowVisible: false }), undefined);
+  assert.equal(call({ windowDestroyed: true }), undefined);
+  assert.equal(call({ hasPostBody: true }), undefined);
+  assert.equal(call({ disposition: 'other' }), undefined);
+  assert.equal(call({ disposition: 'default' }), undefined);
+
+  // Rolling 10s window: 3 events allowed with >= 500ms spacing.
+  assert.equal(call(), 'https://nimi.ai/guide');
+  clock += 200;
+  assert.equal(call(), undefined); // < 500ms min interval
+  clock += 400; // t = 10_600
+  assert.equal(call({ disposition: 'new-window' }), 'https://nimi.ai/guide');
+  clock += 600; // t = 11_200
+  assert.equal(call({ disposition: 'background-tab' }), 'https://nimi.ai/guide');
+  clock += 1_000; // t = 12_200 (3 events still inside [2_200, 12_200])
+  assert.equal(call(), undefined);
+  clock = 20_000; // first event at 10_000 expired cleanly
+  assert.equal(call(), 'https://nimi.ai/guide');
+});
+
+test('SEC-7: managed-web lifecycle handles unload confirmation, reload DoS blocking, cooldown consumption, Cmd+Q upgrade, immediate account revocation, and SIGTERM', async () => {
+  type FakeWin = { id: number; destroyed: boolean };
+  let clock = 1_000;
+  let nextWinId = 1;
+  const windows: FakeWin[] = [];
+  let quitCount = 0;
+  let unregistered = 0;
+  let chromeDisposed = 0;
+  const pendingConfirms: Array<{
+    win: FakeWin;
+    signal: AbortSignal;
+    resolve: (discard: boolean) => void;
+  }> = [];
+  const pendingLoadResolvers: Array<() => void> = [];
+
+  const controller = createManagedWebLifecycleController<FakeWin>({
+    platform: 'darwin',
+    now: () => clock,
+    cancelCooldownMs: 300,
+    getWindows: () => windows.filter((w) => !w.destroyed),
+    isWindowDestroyed: (w) => w.destroyed,
+    destroyWindow: (w) => {
+      if (w.destroyed) return;
+      w.destroyed = true;
+      controller.markWindowClosed(w);
+    },
+    createWindow: async (onConstructed) => {
+      const win: FakeWin = { id: nextWinId++, destroyed: false };
+      windows.push(win);
+      controller.markWindowCreated();
+      onConstructed();
+      await new Promise<void>((resolve) => {
+        pendingLoadResolvers.push(resolve);
+      });
+    },
+    confirmUnload: (win, signal) =>
+      new Promise<boolean>((resolve) => {
+        pendingConfirms.push({ win, signal, resolve });
+      }),
+    quitApp: () => {
+      quitCount += 1;
+    },
+    unregisterBridge: () => {
+      unregistered += 1;
+    },
+    disposeChromeHost: () => {
+      chromeDisposed += 1;
+    },
+  });
+
+  // Bilingual copy sanity check
+  assert.equal(buildManagedWebUnloadDialogCopy('Studio', 'zh-CN').buttons[1], '放弃并离开');
+  assert.equal(buildManagedWebUnloadDialogCopy('Studio', 'en-US').buttons[1], 'Discard and leave');
+
+  // 1. Clean close on macOS then new window -> reload does NOT trigger unload dialog.
+  const win1: FakeWin = { id: nextWinId++, destroyed: false };
+  windows.push(win1);
+  controller.markWindowClose(win1);
+  win1.destroyed = true;
+  controller.markWindowClosed(win1);
+
+  const win2: FakeWin = { id: nextWinId++, destroyed: false };
+  windows.push(win2);
+  controller.markWindowCreated();
+  let prevented = false;
+  controller.handleWillPreventUnload(win2, () => { prevented = true; });
+  assert.equal(prevented, false);
+  assert.equal(pendingConfirms.length, 0);
+
+  // 2. Real close -> cancel -> immediate retry within 300ms cooldown consumes intent -> reload after cooldown does NOT pop dialog.
+  controller.markWindowClose(win2);
+  controller.handleWillPreventUnload(win2, () => { prevented = true; });
+  assert.equal(pendingConfirms.length, 1);
+  pendingConfirms.shift()!.resolve(false);
+  await Promise.resolve();
+  assert.equal(win2.destroyed, false);
+
+  clock += 100;
+  controller.markWindowClose(win2);
+  controller.handleWillPreventUnload(win2, () => { prevented = true; });
+  assert.equal(pendingConfirms.length, 0); // blocked by cooldown, and closingWindows consumed!
+
+  clock += 400; // past cooldown
+  controller.handleWillPreventUnload(win2, () => { prevented = true; });
+  assert.equal(pendingConfirms.length, 0); // reload still blocked!
+
+  // 3. Close dialog open -> concurrent Cmd+Q upgrades intent -> Discard quits app cleanly.
+  controller.markWindowClose(win2);
+  controller.handleWillPreventUnload(win2, () => { prevented = true; });
+  assert.equal(pendingConfirms.length, 1);
+  controller.markBeforeQuit();
+  pendingConfirms.shift()!.resolve(true);
+  await Promise.resolve();
+  assert.equal(quitCount, 1);
+  assert.equal(win2.destroyed, false);
+
+  // 4. Fresh controller: Cmd+Q dialog open -> account switch IMMEDIATELY aborts dialog & destroys old window, clears quit intent, and second invalidation mid-load IMMEDIATELY destroys replacement window!
+  const windows2: FakeWin[] = [];
+  const confirms2: typeof pendingConfirms = [];
+  const loads2: Array<() => void> = [];
+  let quits2 = 0;
+  let unreg2 = 0;
+  let disp2 = 0;
+  let wid2 = 1;
+  const ctrl2 = createManagedWebLifecycleController<FakeWin>({
+    platform: 'win32',
+    now: () => clock,
+    getWindows: () => windows2.filter((w) => !w.destroyed),
+    isWindowDestroyed: (w) => w.destroyed,
+    destroyWindow: (w) => {
+      if (w.destroyed) return;
+      w.destroyed = true;
+      ctrl2.markWindowClosed(w);
+    },
+    createWindow: async (onConstructed) => {
+      const w: FakeWin = { id: wid2++, destroyed: false };
+      windows2.push(w);
+      ctrl2.markWindowCreated();
+      onConstructed();
+      await new Promise<void>((resolve) => { loads2.push(resolve); });
+    },
+    confirmUnload: (w, signal) => new Promise<boolean>((resolve) => { confirms2.push({ win: w, signal, resolve }); }),
+    quitApp: () => { quits2 += 1; },
+    unregisterBridge: () => { unreg2 += 1; ctrl2.handleSessionInvalidated(); },
+    disposeChromeHost: () => { disp2 += 1; },
+  });
+
+  const wA: FakeWin = { id: wid2++, destroyed: false };
+  windows2.push(wA);
+  ctrl2.markBeforeQuit();
+  ctrl2.markWindowClose(wA);
+  ctrl2.handleWillPreventUnload(wA, () => {});
+  assert.equal(confirms2.length, 1);
+  const firstConfirm = confirms2.shift()!;
+
+  // Account switch fires while Cmd+Q modal is open -> immediate abort & destroy, replacement wB constructed synchronously!
+  ctrl2.handleSessionInvalidated();
+  assert.equal(firstConfirm.signal.aborted, true);
+  assert.equal(wA.destroyed, true);
+  assert.equal(windows2.length, 2);
+  const wB = windows2[1]!;
+  assert.equal(wB.destroyed, false);
+  // Closing replacement window manually on Windows would quit (resettingRenderer already cleared after construction).
+  assert.equal(ctrl2.shouldQuitOnWindowAllClosed(), true);
+
+  // Stale dialog resolving later is a complete no-op.
+  firstConfirm.resolve(true);
+  await Promise.resolve();
+  assert.equal(quits2, 0);
+
+  // 2nd invalidation arrives while wB is still awaiting loadURL -> wB destroyed IMMEDIATELY, wC created after load settles!
+  ctrl2.handleSessionInvalidated();
+  assert.equal(wB.destroyed, true);
+  assert.equal(windows2.length, 2); // creation coalesced until load settles
+  loads2.shift()!();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(windows2.length, 3);
+  const wC = windows2[2]!;
+  assert.equal(wC.destroyed, false);
+  // New window reload does NOT inherit stale Cmd+Q quit intent!
+  ctrl2.handleWillPreventUnload(wC, () => {});
+  assert.equal(confirms2.length, 0);
+
+  // 5. SIGTERM enters terminal state immediately, destroys live window without modal, and quits.
+  ctrl2.handleSigterm();
+  assert.equal(wC.destroyed, true);
+  assert.equal(quits2, 1);
+  let termPrevented = false;
+  ctrl2.handleWillPreventUnload(wC, () => { termPrevented = true; });
+  assert.equal(termPrevented, true);
+
+  // 6. will-quit unregisters bridge cleanly without triggering respawn even though unregisterBridge calls handleSessionInvalidated.
+  const windows3: FakeWin[] = [];
+  let unreg3 = 0;
+  let disp3 = 0;
+  let created3 = 0;
+  const ctrl3 = createManagedWebLifecycleController<FakeWin>({
+    platform: 'win32',
+    getWindows: () => windows3.filter((w) => !w.destroyed),
+    isWindowDestroyed: (w) => w.destroyed,
+    destroyWindow: (w) => { w.destroyed = true; },
+    createWindow: async (onConstructed) => { created3 += 1; onConstructed(); },
+    confirmUnload: async () => false,
+    quitApp: () => {},
+    unregisterBridge: () => { unreg3 += 1; ctrl3.handleSessionInvalidated(); },
+    disposeChromeHost: () => { disp3 += 1; },
+  });
+  windows3.push({ id: 1, destroyed: false });
+  ctrl3.markWillQuit();
+  assert.equal(unreg3, 1);
+  assert.equal(disp3, 1);
+  assert.equal(created3, 0);
+  assert.equal(unregistered, 0);
+  assert.equal(chromeDisposed, 0);
+  assert.equal(unreg2, 0);
+  assert.equal(disp2, 0);
 });

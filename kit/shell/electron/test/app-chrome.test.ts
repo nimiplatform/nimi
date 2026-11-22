@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
 import { createNimiElectronAppChromeHost, type NimiElectronChromeMenuItem } from '../src/main/app-chrome.js';
 import type { NimiChromeState } from '@nimiplatform/kit/shell/capabilities';
+import { NIMI_CHROME_COMMAND_EVENT } from '@nimiplatform/kit/shell/capabilities';
 
 const url = 'https://app.invalid/index.html';
 class Contents extends EventEmitter {
@@ -139,5 +140,86 @@ describe('exact native chrome binding', () => {
     fold.click!(); expect(f.events).toEqual([]);
     f.window.webContents.emit('before-input-event', {}, { isComposing: true });
     expect(f.window.webContents.ignored).toBe(true);
+  });
+  it('hides defaultVisible=false app commands until projected, activates when projected, and rejects invalid defaultVisible', () => {
+    expect(() => createNimiElectronAppChromeHost({
+      metadata: { name: 'App', version: '1' },
+      platform: 'darwin',
+      allowedRendererUrls: [url],
+      app: { quit() {} },
+      menu: { buildFromTemplate: () => ({}), setApplicationMenu: () => {} },
+      appCommands: [{ id: 'app.nimi-account', menu: 'file', labels: { en: 'Nimi account', zh: 'Nimi 账号' }, defaultVisible: 'no' as unknown as boolean }],
+    })).toThrow('chrome-command-declaration-invalid');
+
+    let menu: NimiElectronChromeMenuItem[] = [];
+    const events: [string, unknown][] = [];
+    const host = createNimiElectronAppChromeHost({
+      metadata: { name: 'SharedCarrier', version: '1' },
+      platform: 'darwin',
+      allowedRendererUrls: ['nimi-app://nimi.odd-bureau/index.html'],
+      app: { quit() {} },
+      menu: { buildFromTemplate(value) { menu = value; return {}; }, setApplicationMenu() {} },
+      appCommands: [{ id: 'app.nimi-account', menu: 'file', labels: { en: 'Nimi account', zh: 'Nimi 账号' }, defaultVisible: false }],
+    });
+    const win = new Window();
+    win.contents.mainFrame.url = 'nimi-app://nimi.odd-bureau/index.html?tab=play#room';
+    host.bindWindow(win);
+    const send = (name: string, value: unknown) => events.push([name, value]);
+    const fileAccount = () => menu.find(item => item.label === 'File')!.submenu!.find(item => item.id === 'app.nimi-account')!;
+
+    // Before bind and when omitted by apps like shijing, the command stays hidden.
+    expect(fileAccount().visible).toBe(false);
+    expect(fileAccount().enabled).toBe(false);
+    const generation = (host.invoke('chromeBind', { locale: 'en' }, event(win), send) as NimiChromeState).generation;
+    host.invoke('chromeStateSet', states(generation, true), event(win), send);
+    expect(fileAccount().visible).toBe(false);
+    fileAccount().click!();
+    expect(events).toEqual([]);
+
+    // When projected by odd-bureau / default-starter, it becomes visible and dispatches.
+    host.invoke('chromeStateSet', {
+      generation,
+      locale: 'en',
+      commands: [{ id: 'app.nimi-account', enabled: true, visible: true, checked: false }],
+      suppressMenuShortcuts: false,
+    }, event(win), send);
+    expect(fileAccount().visible).toBe(true);
+    expect(fileAccount().enabled).toBe(true);
+    fileAccount().click!();
+    expect(events).toEqual([[NIMI_CHROME_COMMAND_EVENT, { generation, commandId: 'app.nimi-account' }]]);
+
+    // Unbind hides it again.
+    host.invoke('chromeUnbind', { generation }, event(win), send);
+    expect(fileAccount().visible).toBe(false);
+    host.dispose();
+  });
+  it('strips query on nimi-app and root http(s) documents while preserving exact path, host, and credentials', () => {
+    const events: [string, unknown][] = [];
+    const send = (name: string, value: unknown) => events.push([name, value]);
+    const devHost = createNimiElectronAppChromeHost({
+      metadata: { name: 'DevApp', version: '1' },
+      platform: 'win32',
+      allowedRendererUrls: ['http://127.0.0.1:1485/', 'nimi-app://nimi.shijing/index.html'],
+      app: { quit() {} },
+      menu: { buildFromTemplate: () => ({}), setApplicationMenu: () => {} },
+    });
+    const win = new Window();
+    devHost.bindWindow(win);
+
+    win.contents.mainFrame.url = 'http://127.0.0.1:1485/?tab=1#hash';
+    expect((devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send) as NimiChromeState).generation).toBeTruthy();
+
+    win.contents.mainFrame.url = 'nimi-app://nimi.shijing/index.html?view=chart#top';
+    expect((devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send) as NimiChromeState).generation).toBeTruthy();
+
+    win.contents.mainFrame.url = 'http://127.0.0.1:1485/other?tab=1';
+    expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
+
+    win.contents.mainFrame.url = 'nimi-app://nimi.shijing/other.html?view=chart';
+    expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
+
+    win.contents.mainFrame.url = 'http://user:pass@127.0.0.1:1485/?tab=1';
+    expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
+    devHost.dispose();
   });
 });
