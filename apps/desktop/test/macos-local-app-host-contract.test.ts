@@ -3,6 +3,7 @@ import { chmod, mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   MACOS_LOCAL_APP_HOST_EXECUTABLE,
@@ -18,6 +19,8 @@ test('installed Host failure diagnostics identify the phase without copying App 
   const bounded = describeMacOSLocalAppHostFailure({ name: 'TypeError', stack: 'private message\n at load (/private/account/module.js:12:4)' }, 'app-import', 6, false);
   assert.ok(bounded.endsWith('error=TypeError boundary=unclassified location=module.js:12:4'));
   assert.ok(!bounded.includes('/private/') && !bounded.includes('private message'));
+  assert.match(describeMacOSLocalAppHostFailure(new Error('managed-web-payload-digest-mismatch'), 'managed-web-carrier', 3, false),
+    /boundary=managed-web-payload-digest-mismatch/u);
 });
 
 test('macOS local-app host accepts only the exact supervised production launch shape', {
@@ -56,6 +59,21 @@ test('macOS local-app host accepts only the exact supervised production launch s
     assert.equal(resolved.mainEntry, mainEntry);
     assert.equal(resolved.userDataDirectory, profile);
     assert.equal(resolved.rendererOrigin, 'http://127.0.0.1:1472');
+
+    const sourceEntry = fileURLToPath(new URL('../macos/local-app-host/main.mjs', import.meta.url));
+    const otherEntry = path.join(project, 'main.mjs');
+    await writeFile(otherEntry, 'export {};\n');
+    for (const modeArguments of [
+      [`--user-data-dir=${profile}`, '--nimi-managed-web-dev', '--nimi-dev-renderer-url=http://127.0.0.1:1472'],
+      ['--nimi-managed-web-app', `--nimi-payload-digest=sha256:${'a'.repeat(64)}`],
+    ]) {
+      const sourceLaunch = (entry: string[]) => resolveMacOSLocalAppHostLaunch({
+        ...launchInput, allowLeadingScriptArgument: true, argv: [executable, ...entry, ...modeArguments],
+      });
+      assert.ok(sourceLaunch([sourceEntry]).mode.startsWith('managed-web-'));
+      assert.throws(() => sourceLaunch([otherEntry]), /local-app-host-launch-untrusted/u);
+      assert.throws(() => sourceLaunch([]), /local-app-host-launch-untrusted/u);
+    }
 
     const cdpResolved = resolveMacOSLocalAppHostLaunch({
       ...launchInput,

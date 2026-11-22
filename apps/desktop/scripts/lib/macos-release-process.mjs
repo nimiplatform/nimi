@@ -6,12 +6,18 @@ import { stageReleaseTree } from './release-source-maps.mjs';
 
 // Called while the existing workspace build lock is held. Packaging and
 // signing subsequently read only this transaction's built inputs.
-export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot, debugRoot }) {
+export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot, supervisorPath, debugRoot }) {
   const desktopSource = path.join(sourceRoot, 'desktop-app');
   const nativeSource = path.join(sourceRoot, 'native-carrier');
+  const hostBuild = path.join(sourceRoot, 'local-app-host-build');
   await Promise.all(['dist-electron', 'avatar', 'zhiyu'].map(name => mkdir(path.join(desktopSource, name), { recursive: true })));
   await mkdir(nativeSource, { recursive: true });
+  await mkdir(hostBuild, { recursive: true });
   await Promise.all([
+    cp(supervisorPath, path.join(sourceRoot, 'nimi-app-supervisor')),
+    ...['managed-web-carrier-runtime.js', 'managed-web-preload.cjs'].map(name => (
+      cp(path.join(desktopRoot, 'dist-electron', name), path.join(hostBuild, name))
+    )),
     stageReleaseTree(path.join(desktopRoot, 'dist'), path.join(desktopSource, 'dist'), path.join(debugRoot, 'dist')),
     stageReleaseTree(path.join(avatarRoot, 'dist'), path.join(desktopSource, 'avatar', 'dist'), path.join(debugRoot, 'avatar', 'dist')),
     stageReleaseTree(path.join(zhiyuRoot, 'dist'), path.join(desktopSource, 'zhiyu', 'dist'), path.join(debugRoot, 'zhiyu', 'dist')),

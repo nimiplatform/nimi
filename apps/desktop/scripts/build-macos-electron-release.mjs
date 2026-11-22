@@ -131,7 +131,7 @@ try {
   await stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment);
   const supervisorPath = path.join(desktopApp, 'Contents/Helpers/nimi-app-supervisor');
   await mkdir(path.dirname(supervisorPath), {recursive:true});
-  await cp(path.resolve(desktopRoot, '../../kit/shell/protected-local-node/target/release/nimi-app-supervisor'), supervisorPath);
+  await cp(path.join(sourceRoot, 'nimi-app-supervisor'), supervisorPath);
   await chmod(supervisorPath, 0o755);
   const debugPath = await preserveReleaseSourceMaps({ transactionRoot, localRoot, sourceRevision, target: 'macos-arm64' });
   process.stdout.write(`Private source maps (not release assets): ${debugPath}\n`);
@@ -280,6 +280,7 @@ async function buildReleaseInputs({
     zhiyuRoot,
     debugRoot: path.join(transactionRoot, 'source-maps'),
     nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
+    supervisorPath: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'target', 'release', 'nimi-app-supervisor'),
   });
   const desktopSource = path.join(sourceRoot, 'desktop-app');
   if (!localDevelopmentBuild) await buildMacOSProductUpdater(path.join(sourceRoot, 'product-updater'), releaseInput?.realmBaseURL);
@@ -321,7 +322,6 @@ async function packageLocalAppHost(input) {
   const source = path.join(input.sourceRoot, 'local-app-host');
   const buildStage = path.join(input.sourceRoot, 'local-app-host-build');
   await mkdir(source, { recursive: true });
-  await mkdir(buildStage, { recursive: true });
   const contractSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'contract.mjs'), 'utf8');
   const productionPathLiteral = "'/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host'";
   const expectedOccurrenceCount = contractSource.split(productionPathLiteral).length - 1;
@@ -335,7 +335,7 @@ async function packageLocalAppHost(input) {
   const mainSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), 'utf8');
   const rewrittenMain = mainSource.replace(
     "'../../dist-electron/managed-web-carrier-runtime.js'",
-    JSON.stringify(path.join(desktopRoot, 'dist-electron', 'managed-web-carrier-runtime.js')),
+    "'./managed-web-carrier-runtime.js'",
   );
   const entryStage = path.join(buildStage, 'main.mjs');
   await writeFile(entryStage, rewrittenMain, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
@@ -352,7 +352,7 @@ async function packageLocalAppHost(input) {
   });
   await runReleaseCommand(process.execPath, ['--check', packagedMainPath], { cwd: source });
   await cp(
-    path.join(desktopRoot, 'dist-electron', 'managed-web-preload.cjs'),
+    path.join(buildStage, 'managed-web-preload.cjs'),
     path.join(source, 'managed-web-preload.cjs'),
     { errorOnExist: true, force: false },
   );

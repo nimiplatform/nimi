@@ -18,6 +18,8 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
       [desktopRoot, 'dist/index.html', 'desktop-app/dist/index.html'],
       [desktopRoot, 'assets/icon.icns', 'desktop-app/assets/icon.icns'],
       [desktopRoot, 'dist-electron/main.js', 'desktop-app/dist-electron/main.js'],
+      [desktopRoot, 'dist-electron/managed-web-carrier-runtime.js', 'local-app-host-build/managed-web-carrier-runtime.js'],
+      [desktopRoot, 'dist-electron/managed-web-preload.cjs', 'local-app-host-build/managed-web-preload.cjs'],
       [desktopRoot, 'dist-electron/chat-ai-store-worker.js', 'desktop-app/dist-electron/chat-ai-store-worker.js'],
       [desktopRoot, 'dist-electron/preload.cjs', 'desktop-app/dist-electron/preload.cjs'],
       [desktopRoot, 'dist-electron/system-entry-preload.cjs', 'desktop-app/dist-electron/system-entry-preload.cjs'],
@@ -30,13 +32,18 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
       [nativeRoot, 'index.cjs', 'native-carrier/index.cjs'],
       [nativeRoot, 'nimi_shell_protected_local.node', 'native-carrier/nimi_shell_protected_local.node'],
       [nativeRoot, 'package.json', 'native-carrier/package.json'],
+      [directory, 'target/release/nimi-app-supervisor', 'nimi-app-supervisor'],
     ];
     for (const [root, relative] of files) {
       const file = path.join(root, relative);
       mkdirSync(path.dirname(file), { recursive: true });
       writeFileSync(file, `first-build:${relative}`);
     }
-    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot, debugRoot: path.join(directory, 'debug') });
+    await stageMacOSBuiltInputs({
+      sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot,
+      supervisorPath: path.join(directory, 'target/release/nimi-app-supervisor'),
+      debugRoot: path.join(directory, 'debug'),
+    });
     for (const [root, relative] of files) writeFileSync(path.join(root, relative), `next-build:${relative}`);
     for (const [, relative, staged] of files) {
       assert.equal(readFileSync(path.join(sourceRoot, staged), 'utf8'), `first-build:${relative}`);

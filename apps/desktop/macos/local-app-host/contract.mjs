@@ -1,7 +1,7 @@
 import { lstatSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { URL } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 
 export const MACOS_LOCAL_APP_HOST_EXECUTABLE = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
 const SHA256_REF_PATTERN = /^sha256:[0-9a-f]{64}$/u;
@@ -19,7 +19,8 @@ export function describeMacOSLocalAppHostFailure(error, stage, argumentCount, re
   const count = Number.isSafeInteger(argumentCount) && argumentCount >= 0 && argumentCount <= 16 ? argumentCount : 'invalid';
   const names = new Set(['Error', 'TypeError', 'SyntaxError', 'ReferenceError', 'NimiElectronShellHostError']);
   const name = names.has(error?.name) ? error.name : 'Error';
-  const boundary = error?.message === 'protected-carrier-required' ? 'protected-carrier-required' : 'unclassified';
+  const boundary = ['protected-carrier-required', 'managed-web-payload-digest-mismatch'].includes(error?.message)
+    ? error.message : 'unclassified';
   const frame = typeof error?.stack === 'string'
     ? error.stack.split('\n').slice(1).map(line => line.match(/\/([a-zA-Z0-9_.-]+\.[cm]?js):(\d+):(\d+)/u)).find(Boolean)
     : undefined;
@@ -48,20 +49,20 @@ export function resolveMacOSLocalAppHostLaunch(input) {
       ? MACOS_LOCAL_APP_HOST_EXECUTABLE
       : canonicalFile(exactAbsolute(input.contractTestExpectedExecutable));
     if (executable !== expectedExecutable || argv[0] !== executable) fail();
-  } else if (argv[0] !== executable) {
-    fail();
+  } else {
+    if (argv[0] !== executable || hasNativeMain) fail();
+    const scriptArguments = rest.filter(arg => !arg.startsWith('-'));
+    const sourceEntry = fileURLToPath(new URL('./main.mjs', import.meta.url));
+    if (scriptArguments.length !== 1 || scriptArguments[0] !== sourceEntry) fail();
+    canonicalFile(sourceEntry);
+    rest.splice(rest.indexOf(sourceEntry), 1);
   }
   const workingDirectory = canonicalDirectory(exactAbsolute(input?.workingDirectory));
   const hostProfileDirectory = exactAbsolute(input?.hostProfileDirectory);
 
   // Mode C: managed-web installed (never permits dev/CDP/--nimi-local-app-main).
   if (hasManagedInstalled) {
-    const args = [...rest];
-    if (allowLeadingScript && args.length > 0 && !args[0].startsWith('-')) {
-      if (path.basename(args[0]) !== 'main.mjs') fail();
-      canonicalFile(exactAbsolute(args[0]));
-      args.shift();
-    }
+    const args = rest;
     if (args.length !== 2 || args[0] !== '--nimi-managed-web-app' || !args[1].startsWith('--nimi-payload-digest=')) {
       fail();
     }
@@ -77,16 +78,7 @@ export function resolveMacOSLocalAppHostLaunch(input) {
 
   // Mode B: managed-web local development (never permits third-party import).
   if (hasManagedDev) {
-    const args = [];
-    let sawScript = false;
-    for (const arg of rest) {
-      if (allowLeadingScript && !sawScript && !arg.startsWith('-') && path.basename(arg) === 'main.mjs') {
-        canonicalFile(exactAbsolute(arg));
-        sawScript = true;
-        continue;
-      }
-      args.push(arg);
-    }
+    const args = rest;
     if (args.length !== (cdpPort === undefined ? 3 : 5)) fail();
     if (args.filter((arg) => arg === '--nimi-managed-web-dev').length !== 1) fail();
     const userDataArgument = exactArgument(args, '--user-data-dir');
