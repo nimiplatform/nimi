@@ -52,7 +52,7 @@ impl SupervisedDevelopmentProcess {
         profile: &PreparedHostProfile,
     ) -> Result<Self, NimiHostError> {
         let executable = canonical_fixed_host(executable)?;
-        Self::create(&executable, arguments, working_directory, profile, false)
+        Self::create(&executable, arguments, working_directory, profile, false, false)
     }
 
     pub(crate) fn create_verified_installed(
@@ -65,7 +65,20 @@ impl SupervisedDevelopmentProcess {
         if canonical != executable || !canonical.is_file() || !arguments.is_empty() {
             return Err(untrusted());
         }
-        Self::create(&canonical, arguments, working_directory, profile, true)
+        Self::create(&canonical, arguments, working_directory, profile, true, false)
+    }
+
+    pub(crate) fn create_verified_managed_web(
+        executable: &Path,
+        arguments: &[String],
+        working_directory: &Path,
+        profile: &PreparedHostProfile,
+    ) -> Result<Self, NimiHostError> {
+        let canonical = std::fs::canonicalize(executable).map_err(|_| untrusted())?;
+        if canonical != executable || !canonical.is_file() || arguments.is_empty() {
+            return Err(untrusted());
+        }
+        Self::create(&canonical, arguments, working_directory, profile, true, true)
     }
 
     fn create(
@@ -74,6 +87,7 @@ impl SupervisedDevelopmentProcess {
         working_directory: &Path,
         profile: &PreparedHostProfile,
         installed: bool,
+        managed_web_carrier: bool,
     ) -> Result<Self, NimiHostError> {
         let working_directory = canonical_working_directory(working_directory)?;
         let argument_bytes = arguments.iter().try_fold(0usize, |total, value| {
@@ -98,7 +112,7 @@ impl SupervisedDevelopmentProcess {
             .collect::<Vec<_>>();
         argv.push(std::ptr::null_mut());
         let environment_values = sanitized_environment()?;
-        let environment_values = if installed {
+        let environment_values = if installed && !managed_web_carrier {
             installed_app_environment(environment_values)
         } else {
             environment_values

@@ -14,14 +14,14 @@ import {
   syncApp,
   testApp,
 } from '../lib/index.mjs';
-import { APP_SCAFFOLD_MODULE_REGISTRY } from '../lib/app-scaffold-capabilities.mjs';
+import { APP_SCAFFOLD_MANAGED_WEB_FEATURE_IDS, APP_SCAFFOLD_MODULE_REGISTRY } from '../lib/app-scaffold-capabilities.mjs';
 import { LIFECYCLE_SKILL_PATH } from '../lib/app-lifecycle-guidance.mjs';
 import { createInterface } from 'node:readline/promises';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
-    dir: '', profile: '', platform: '', appId: '', version: '', title: '', packageName: '', author: '',
+    dir: '', profile: '', platform: '', carrier: '', appId: '', version: '', title: '', packageName: '', author: '',
     features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', newRegistration: false, target: '', aggregate: false, production: false, json: false,
     adopt: false, dryRun: false, input: '', realm: '',
   };
@@ -88,6 +88,10 @@ function parseArgs(argv) {
     }
     if (rest[index] === '--platform') {
       index = readValue(index, '--platform', 'platform');
+      continue;
+    }
+    if (rest[index] === '--carrier') {
+      index = readValue(index, '--carrier', 'carrier');
       continue;
     }
     if (rest[index] === '--features') {
@@ -157,7 +161,7 @@ function parseArgs(argv) {
 
 function assertCommandOptions(command, providedOptions) {
   const allowed = {
-    create: new Set(['dir', 'profile', 'platform', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
+    create: new Set(['dir', 'profile', 'platform', 'carrier', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
     init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
     sync: new Set(['dir', 'json', 'dryRun']),
     check: new Set(['dir', 'json', 'production']),
@@ -188,7 +192,7 @@ function printUsage() {
       'Nimi App developer tools',
       '',
       'Usage:',
-      '  nimi-app create [--dir path] [--profile standalone] [--platform desktop|web] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
+      '  nimi-app create [--dir path] [--profile standalone] [--platform desktop|web] [--carrier managed-web|native] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--production] [--json]',
@@ -207,6 +211,7 @@ function printUsage() {
       '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
+      `  Managed desktop features (--carrier managed-web, default): ${APP_SCAFFOLD_MANAGED_WEB_FEATURE_IDS.join(', ') || '(none)'}`,
       `  Web features: ${featureList(admitted.filter(entry => entry.carriers.includes('web')))}`,
       `  Candidate features (not public-selectable): ${featureList(candidates)}`,
       `  Internal modules (dependency-only): ${internalList}`,
@@ -324,6 +329,7 @@ try {
     dir,
     profile,
     platform,
+    carrier,
     appId,
     version,
     title,
@@ -366,6 +372,7 @@ try {
           dir,
           profile,
           platform,
+          carrier,
           appId,
           version,
           title,

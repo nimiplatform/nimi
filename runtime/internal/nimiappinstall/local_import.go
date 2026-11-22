@@ -99,12 +99,14 @@ func (coordinator *Coordinator) PrepareLocalPackage(ctx context.Context, selecte
 	if err != nil {
 		return LocalPackagePreview{}, err
 	}
-	verifier, err := nativeVerifierForExpected(metadata.Expected)
-	if err != nil {
-		return LocalPackagePreview{}, err
-	}
-	if _, err := nimiapppackage.ProbeRuntimeEntry(ctx, archivePath, root, "native-probe", metadata.Expected, verifier); err != nil {
-		return LocalPackagePreview{}, err
+	if !nimiapppackage.IsManagedWebTarget(metadata.Expected) {
+		verifier, err := nativeVerifierForExpected(metadata.Expected)
+		if err != nil {
+			return LocalPackagePreview{}, err
+		}
+		if _, err := nimiapppackage.ProbeRuntimeEntry(ctx, archivePath, root, "native-probe", metadata.Expected, verifier); err != nil {
+			return LocalPackagePreview{}, err
+		}
 	}
 	preview := LocalPackagePreview{Selector: selector, Metadata: metadata, ExpiresAt: time.Now().UTC().Add(localCandidateLifetime)}
 	coordinator.workersMu.Lock()

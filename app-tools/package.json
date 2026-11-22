@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.16.0-rc.12",
+  "version": "0.16.0-rc.13",
   "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
@@ -19,7 +19,7 @@
   },
   "nimiScaffoldVersions": {
     "sdkVersion": "^0.24.0-rc.10",
-    "appToolsVersion": "^0.16.0-rc.12",
+    "appToolsVersion": "^0.16.0-rc.13",
     "nimicodingVersion": "0.7.0",
     "aiSdkVersion": "^7.0.171",
     "kitVersion": "^0.24.0-rc.16",
@@ -68,7 +68,7 @@
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
     "test:large-archive": "node --test test/app-pack-large.test.mjs",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-storefront.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs test/web-carrier.test.mjs test/hosted-web-release.test.mjs test/mobile-development.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-storefront.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs test/managed-web-carrier.test.mjs test/web-carrier.test.mjs test/hosted-web-release.test.mjs test/mobile-development.test.mjs"
   },
   "files": [
     "bin",

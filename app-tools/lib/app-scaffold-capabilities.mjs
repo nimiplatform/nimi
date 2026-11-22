@@ -13,6 +13,7 @@ function frozenModule(definition) {
   return Object.freeze({
     ...definition,
     carriers: Object.freeze([...(definition.carriers || ['desktop'])]),
+    desktopCarriers: Object.freeze([...(definition.desktopCarriers || ['managed-web', 'native'])]),
     requires: Object.freeze([...(definition.requires || [])]),
     sourceMappings: Object.freeze([...(definition.sourceMappings || [])]),
     appAccessItems: Object.freeze([...(definition.appAccessItems || [])]),
@@ -177,6 +178,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   }),
   'agent-conversation': frozenModule({
     id: 'agent-conversation',
+    desktopCarriers: ['managed-web', 'native'],
     kind: 'feature',
     lifecycle: 'admitted',
     order: 60,
@@ -201,6 +203,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   }),
   'agent-realtime': frozenModule({
     id: 'agent-realtime',
+    desktopCarriers: ['native'],
     kind: 'feature',
     lifecycle: 'admitted',
     order: 70,
@@ -677,5 +680,30 @@ export function resolveWebAppScaffoldFeatures(selection, resolver = resolveAppSc
     : selection;
   const resolution = resolver(selected);
   for (const module of resolution.modules) if (!module.carriers.includes('web')) throw new Error(`Feature ${module.id} has no admitted Web carrier.`);
+  return resolution;
+}
+
+export const APP_SCAFFOLD_MANAGED_WEB_FEATURE_IDS = Object.freeze(
+  registryEntries(APP_SCAFFOLD_MODULE_REGISTRY)
+    .filter(([, entry]) => entry.kind === 'feature' && entry.lifecycle === 'admitted' && entry.desktopCarriers.includes('managed-web'))
+    .map(([id]) => id),
+);
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
+export function resolveDesktopAppScaffoldFeatures(selection, carrier = 'managed-web', resolver = resolveAppScaffoldFeatures) {
+  if (carrier !== 'managed-web' && carrier !== 'native') {
+    throw new Error(`Unsupported desktop App carrier: ${String(carrier)}`);
+  }
+  if (carrier === 'native') {
+    return resolver(selection);
+  }
+  const isAll = selection === 'all' || (Array.isArray(selection) && selection.length === 1 && selection[0] === 'all');
+  const selected = isAll ? [...APP_SCAFFOLD_MANAGED_WEB_FEATURE_IDS] : selection;
+  const resolution = resolver(selected);
+  for (const module of resolution.modules) {
+    if (!module.desktopCarriers.includes('managed-web')) {
+      throw new Error(`Feature ${module.id} requires the native desktop carrier (OS microphone or custom host mechanics); rerun with --carrier native.`);
+    }
+  }
   return resolution;
 }

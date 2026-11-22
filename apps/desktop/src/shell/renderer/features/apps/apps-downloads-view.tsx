@@ -232,14 +232,14 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       <div id={`app-download-details-${id}`} hidden={!expanded} role="region" aria-labelledby={`app-download-heading-${id}`}
         data-testid={expanded ? 'apps-download-detail' : undefined} className="border-t border-[var(--nimi-border-subtle)] pt-3">
         {expanded ? <dl className="grid gap-x-6 gap-y-3 break-words text-xs leading-5 text-[var(--nimi-text-secondary)] sm:grid-cols-2">
-          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.target')}</dt><dd>{job.targetOs} · {job.targetArch} · {job.targetVersion}</dd></div>
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.target')}</dt><dd>{job.targetOs === 'any' ? t('Apps.catalog.managedWebPlatform') : `${job.targetOs} · ${job.targetArch}`} · {job.targetVersion}</dd></div>
           <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.catalog.asset')}</dt><dd>{job.bytesTotal ? formatBytes(Number(job.bytesTotal)) : t('Apps.downloads.bytesUnknown')}</dd></div>
           {catalog ? <><div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.catalog.publisher')}</dt><dd>@{catalog.publisherGithubNamespace}</dd></div>
             <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.source')}</dt><dd className="break-all"><a href={catalog.sourceRepository} className="underline underline-offset-2" onClick={(event) => {
               event.preventDefault(); setSourceError('');
               void openExternalUrl(catalog.sourceRepository).catch((error: unknown) => setSourceError(error instanceof Error ? error.message : String(error)));
             }}>{catalog.sourceRepository}</a></dd></div>
-            <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.nativePosture')}</dt><dd>{catalog.os === 'macos' ? catalog.macosNotarization : catalog.windowsCodeSigning}{catalog.observedSigningSubject ? ` · ${catalog.observedSigningSubject}` : ''}</dd></div></> : null}
+            <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.nativePosture')}</dt><dd>{catalog.os === 'any' ? t('Apps.catalog.managedWebPosture') : (catalog.os === 'macos' ? catalog.macosNotarization : catalog.windowsCodeSigning)}{catalog.observedSigningSubject ? ` · ${catalog.observedSigningSubject}` : ''}</dd></div></> : null}
           {job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.source')}</dt><dd>{t('Apps.localImport.localSource')}</dd></div> : null}
           <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('LocalDevelopment.field.app')}</dt><dd className="break-all">{job.appId}</dd></div>
           <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.jobId')}</dt><dd className="break-all">{id}</dd></div>

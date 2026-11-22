@@ -17,6 +17,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -282,7 +283,7 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 		return Materialized{}, err
 	}
 	directoryMode := os.FileMode(0o700)
-	if expected.OS == "macos" {
+	if expected.OS == "macos" || runtime.GOOS == "darwin" {
 		directoryMode = 0o755
 	}
 	if err := ownerRoot.Mkdir(stagingChild, 0o700); err != nil {
@@ -329,7 +330,7 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 			return Materialized{}, fmt.Errorf("create nimiapp entry %s: %w", entry.Name, err)
 		}
 		copyErr := copyWithContext(ctx, output, input, entry.UncompressedSize64)
-		if expected.OS == "macos" && copyErr == nil {
+		if (expected.OS == "macos" || runtime.GOOS == "darwin") && copyErr == nil {
 			copyErr = output.Chmod(entry.Mode().Perm())
 		}
 		var syncErr error
@@ -363,11 +364,16 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 	if err := root.Close(); err != nil {
 		return Materialized{}, fmt.Errorf("close nimiapp staging root: %w", err)
 	}
+	archiveTreeDigest, archiveHostDigest, err := digestArchiveRoot(ctx, archive.reader, expected.OS, expected.RuntimeEntry)
+	if err != nil {
+		return Materialized{}, err
+	}
 	digest, hostDigest, names, bytesTotal, err := digestMaterializedRoot(ctx, destination, expected.OS, expected.RuntimeEntry)
 	if err != nil {
 		return Materialized{}, err
 	}
-	if !equalStrings(names, archive.names) || bytesTotal != archive.inspection.UncompressedBytes {
+	if !equalStrings(names, archive.names) || bytesTotal != archive.inspection.UncompressedBytes ||
+		digest != archiveTreeDigest || hostDigest != archiveHostDigest {
 		return Materialized{}, fmt.Errorf("verify nimiapp staged tree: %w", ErrPackageIntegrity)
 	}
 	created = false
@@ -434,16 +440,44 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected) 
 	if err != nil || !info.Mode().IsRegular() || info.Size() != expected.ArchiveSize {
 		return nil, fmt.Errorf("verify nimiapp archive size: %w", ErrPackageIntegrity)
 	}
-	digest := sha256.New()
-	if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
-		return nil, fmt.Errorf("hash nimiapp archive: %w", err)
-	}
-	if hex.EncodeToString(digest.Sum(nil)) != expected.ArchiveSHA256 {
-		return nil, fmt.Errorf("verify nimiapp archive SHA-256: %w", ErrPackageIntegrity)
-	}
-	reader, err := zip.NewReader(file, info.Size())
-	if err != nil {
-		return nil, fmt.Errorf("open nimiapp ZIP: %w", errors.Join(ErrInvalidPackage, err))
+	var reader *zip.Reader
+	if IsManagedWebTarget(expected) {
+		if info.Size() <= 0 || info.Size() > ManagedWebMaxArchiveBytes {
+			return nil, fmt.Errorf("verify managed-web nimiapp archive size budget: %w", ErrInvalidPackage)
+		}
+		// Read the entire bounded managed-web archive once into immutable RAM so
+		// archive SHA-256 verification, ZIP inspection, staging extraction, and
+		// digestArchiveRoot all consume the exact same bytes (closing Windows
+		// FILE_SHARE_WRITE mutation windows on shared-ACL data roots).
+		var buf bytes.Buffer
+		buf.Grow(int(info.Size()))
+		if err := copyWithContext(ctx, &buf, io.LimitReader(file, info.Size()+1), uint64(info.Size())); err != nil {
+			return nil, fmt.Errorf("read managed-web nimiapp archive: %w", err)
+		}
+		raw := buf.Bytes()
+		if int64(len(raw)) != info.Size() {
+			return nil, fmt.Errorf("verify managed-web nimiapp archive length: %w", ErrPackageIntegrity)
+		}
+		sum := sha256.Sum256(raw)
+		if hex.EncodeToString(sum[:]) != expected.ArchiveSHA256 {
+			return nil, fmt.Errorf("verify nimiapp archive SHA-256: %w", ErrPackageIntegrity)
+		}
+		reader, err = zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
+		if err != nil {
+			return nil, fmt.Errorf("open nimiapp ZIP: %w", errors.Join(ErrInvalidPackage, err))
+		}
+	} else {
+		digest := sha256.New()
+		if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
+			return nil, fmt.Errorf("hash nimiapp archive: %w", err)
+		}
+		if hex.EncodeToString(digest.Sum(nil)) != expected.ArchiveSHA256 {
+			return nil, fmt.Errorf("verify nimiapp archive SHA-256: %w", ErrPackageIntegrity)
+		}
+		reader, err = zip.NewReader(file, info.Size())
+		if err != nil {
+			return nil, fmt.Errorf("open nimiapp ZIP: %w", errors.Join(ErrInvalidPackage, err))
+		}
 	}
 	inspection, names, err := inspectReader(ctx, reader, expected)
 	if err != nil {
@@ -456,6 +490,10 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected) 
 func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (Inspection, []string, error) {
 	if reader == nil || reader.Comment != "" || len(reader.File) == 0 || len(reader.File) > maxZip32Entries {
 		return Inspection{}, nil, fmt.Errorf("inspect nimiapp ZIP: %w", ErrInvalidPackage)
+	}
+	managedWeb := IsManagedWebTarget(expected)
+	if managedWeb && len(reader.File) > ManagedWebMaxReleaseEntries {
+		return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp entry budget: %w", ErrInvalidPackage)
 	}
 	seen := make(map[string]struct{}, len(reader.File))
 	collisions := make(map[string]string, len(reader.File))
@@ -481,6 +519,9 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 		if err := recordEntryPathRoles(pathRoles, entry.Name, expected.OS); err != nil {
 			return Inspection{}, nil, err
 		}
+		if managedWeb && len(pathRoles)-len(seen) > ManagedWebMaxReleaseEntries {
+			return Inspection{}, nil, fmt.Errorf("inspect managed-web directory count: %w", ErrInvalidPackage)
+		}
 		names = append(names, entry.Name)
 		if math.MaxUint64-total < entry.UncompressedSize64 {
 			return Inspection{}, nil, fmt.Errorf("inspect nimiapp size overflow: %w", ErrInvalidPackage)
@@ -488,6 +529,9 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 		total += entry.UncompressedSize64
 		if total > uint64(expected.ArchiveSize) {
 			return Inspection{}, nil, fmt.Errorf("inspect nimiapp expanded size: %w", ErrInvalidPackage)
+		}
+		if managedWeb && total > ManagedWebMaxReleaseBytes {
+			return Inspection{}, nil, fmt.Errorf("inspect managed-web nimiapp release size budget: %w", ErrInvalidPackage)
 		}
 		switch entry.Name {
 		case "app-info.json":
@@ -502,7 +546,11 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 			payloadFiles++
 		}
 		if entry.Name == expected.RuntimeEntry {
-			if !entry.Mode().IsRegular() || entry.Mode().Perm() != 0o755 {
+			requiredMode := os.FileMode(0o755)
+			if managedWeb {
+				requiredMode = 0o644
+			}
+			if !entry.Mode().IsRegular() || entry.Mode().Perm() != requiredMode {
 				return Inspection{}, nil, fmt.Errorf("inspect nimiapp Runtime entry mode: %w", ErrInvalidPackage)
 			}
 			runtimeFound = true
@@ -554,6 +602,9 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	if err != nil {
 		return Inspection{}, nil, err
 	}
+	if managedWeb && info.StoragePolicy.Kind != "nimi-mediated-default" {
+		return Inspection{}, nil, fmt.Errorf("inspect managed-web storage policy: %w", ErrInvalidPackage)
+	}
 	if err := ValidateAppInfoSelection(info, infoRaw, expected); err != nil {
 		return Inspection{}, nil, err
 	}
@@ -571,6 +622,9 @@ type entryPathRole struct {
 
 func recordEntryPathRoles(roles map[string]entryPathRole, name, targetOS string) error {
 	segments := strings.Split(name, "/")
+	if targetOS == "any" && len(segments)-1 > managedWebMaxDirectoryDepth {
+		return fmt.Errorf("inspect managed-web directory depth: %w", ErrInvalidPackage)
+	}
 	for index := range segments {
 		prefix := strings.Join(segments[:index+1], "/")
 		key := targetPathCollisionKey(prefix, targetOS)
@@ -635,7 +689,7 @@ func validateEntryName(name, targetOS string) error {
 				return fmt.Errorf("inspect nimiapp entry path %q: %w", name, ErrInvalidPackage)
 			}
 		}
-		if targetOS == "windows" && !validWindowsSegment(segment) {
+		if (targetOS == "windows" || targetOS == "any") && !validWindowsSegment(segment) {
 			return fmt.Errorf("inspect Windows nimiapp entry path %q: %w", name, ErrInvalidPackage)
 		}
 	}
@@ -663,7 +717,7 @@ func windowsDeviceNumber(value string) bool {
 
 func targetPathCollisionKey(name, targetOS string) string {
 	normalized := norm.NFC.String(name)
-	if targetOS == "windows" {
+	if targetOS == "windows" || targetOS == "any" {
 		return cases.Fold().String(normalized)
 	}
 	return normalized
@@ -689,6 +743,9 @@ func validateExpectedTarget(expected Expected) error {
 	}
 	if expected.OS == "macos" {
 		return validateMacOSExpected(expected)
+	}
+	if expected.OS == "any" {
+		return validateManagedWebExpected(expected)
 	}
 	if expected.OS != "windows" || expected.Arch != "x86_64" || expected.ExecutionProfileRef != windowsExecutionProfileRef {
 		return ErrUnsupportedTarget
@@ -717,6 +774,9 @@ func validateManifest(manifest Manifest, expected Expected) error {
 	}
 	if expected.OS == "macos" {
 		return validateMacOSManifest(manifest, expected)
+	}
+	if expected.OS == "any" {
+		return validateManagedWebManifest(manifest)
 	}
 	if manifest.ExecutionProfile.RequestedExecutionLevel != "asInvoker" || manifest.ExecutionProfile.UIAccess == nil || *manifest.ExecutionProfile.UIAccess {
 		return ErrPackageIntegrity
@@ -764,6 +824,9 @@ func validateDeclaration(raw []byte, expected Expected) (Declaration, error) {
 		if key.Value == "local_development" && mappingContainsKey(root.Content[index+1], "runtime_scoped_binding_requests") {
 			return Declaration{}, fmt.Errorf("decode legacy nimiapp Runtime bindings: %w", ErrInvalidPackage)
 		}
+	}
+	if err := validateDeclarationDesktopWindow(root); err != nil {
+		return Declaration{}, err
 	}
 	type declarationDocument struct {
 		AppID     *string   `yaml:"app_id"`

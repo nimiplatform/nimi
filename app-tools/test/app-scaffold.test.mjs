@@ -176,6 +176,7 @@ function scaffold(profile, options = {}) {
     options: {
       dir: target,
       profile,
+      carrier: options.carrier,
       appId: options.appId || 'acme.widget',
       title: options.title || 'Acme Widget',
       packageName: options.packageName || 'acme-widget',
@@ -205,9 +206,10 @@ function scaffold(profile, options = {}) {
   };
 }
 
-function candidateSnapshot(features) {
+function candidateSnapshot(features, carrier = 'native') {
   return buildAppScaffoldCandidateSnapshot({
     profile: 'standalone',
+    carrier,
     versions,
     appId: 'candidate.target',
     appTitle: 'Candidate Target',
@@ -389,6 +391,7 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
 
   const snapshot = buildAppScaffoldSnapshot({
     profile: 'standalone',
+    carrier: 'native',
     versions,
     appId: 'acme.prerelease',
     appTitle: 'Acme Prerelease',
@@ -409,7 +412,7 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
 });
 
 test('standalone scaffold creates a generic starter with rewritten identity', async () => {
-  const generated = scaffold('standalone');
+  const generated = scaffold('standalone', { carrier: 'native' });
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.name, 'acme-widget');
@@ -948,7 +951,7 @@ test('app id rejects lossy underscore identity', () => {
 });
 
 test('generated package.json scripts reference only commands and existing local scripts', () => {
-  const generated = scaffold('standalone');
+  const generated = scaffold('standalone', { carrier: 'native' });
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.deepEqual(packageJson.pnpm?.onlyBuiltDependencies, ['electron', 'esbuild', 'protobufjs']);
@@ -1020,7 +1023,7 @@ test('standalone scaffold always uses public dependency declarations', () => {
 });
 
 test('cli standalone scaffold uses current public dependency version sources', () => {
-  const generated = cliScaffold('standalone');
+  const generated = cliScaffold('standalone', ['--carrier', 'native']);
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
@@ -1113,7 +1116,7 @@ test('cli standalone scaffold expands all to the admitted ordered set', () => {
   const target = path.join(tempRoot, 'app');
   try {
     const result = runNimiApp([
-      'create', '--dir', target, '--profile', 'standalone', '--features', 'all',
+      'create', '--dir', target, '--profile', 'standalone', '--carrier', 'native', '--features', 'all',
     ], tempRoot);
     assert.equal(result.status, 0, result.stderr);
     const intent = JSON.parse(readFileSync(path.join(target, SCAFFOLD_INTENT_PATH), 'utf8'));
@@ -1584,6 +1587,7 @@ test('create accepts public post-admission output that exactly matches candidate
   for (const [index, features] of selections.entries()) {
     const input = {
       profile: 'standalone',
+      carrier: 'native',
       versions,
       appId: `post-admission-${index}`,
       appTitle: `Post Admission ${index}`,
@@ -2342,7 +2346,7 @@ test('sync rejects an empty or invalid declaration before refreshing managed fil
 });
 
 test('check fails closed on managed drift and sync preserves app-owned product code', () => {
-  const generated = cliScaffold('standalone');
+  const generated = cliScaffold('standalone', ['--carrier', 'native']);
   try {
     let result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
@@ -3167,7 +3171,7 @@ test('Desktop sync preserves and validates an App-owned Web entry without changi
 });
 
 test('generated Host destroys old renderer state on invalidation before creating a fresh renderer', async () => {
-  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.scope', appTitle: 'Scope App', packageName: 'scope-app' });
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', carrier: 'native', versions, appId: 'acme.scope', appTitle: 'Scope App', packageName: 'scope-app' });
   let source = stripTypeScriptTypes(snapshot.filesByPath.get('src-electron/main.ts').content, { mode: 'strip' });
   source = source.replace(/^import .+ from '[^']+';$/gm, '')
     .replace("await import('@nimiplatform/kit/shell/electron/main')", 'kitMain')

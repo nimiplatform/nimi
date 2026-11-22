@@ -78,6 +78,7 @@ function control(overrides: Partial<NimiElectronLocalDevelopmentControl> = {}): 
 
 function plan(): ElectronLocalDevelopmentPlan {
   return {
+    carrier: 'native',
     appId: 'example.local-app',
     displayName: 'Example Local App',
     aiConfigAllowedRoutes: ['local', 'cloud'],

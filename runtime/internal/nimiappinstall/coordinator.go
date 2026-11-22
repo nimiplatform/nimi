@@ -79,10 +79,32 @@ type Coordinator struct {
 	downloadJob     string
 	registry        registryResolver
 	downloader      targetDownloader
+	carrierResolver protectedlocal.ManagedWebCarrierResolver
 	kernel          *localappkernel.Kernel
 	lifecycle       *localappkernel.PackageLifecycleStore
 	packagesRoot    *os.Root
 	packagesPath    string
+}
+
+func (coordinator *Coordinator) SetManagedWebCarrierResolver(resolver protectedlocal.ManagedWebCarrierResolver) {
+	if coordinator == nil {
+		return
+	}
+	coordinator.launchMu.Lock()
+	coordinator.carrierResolver = resolver
+	coordinator.launchMu.Unlock()
+}
+
+func (coordinator *Coordinator) resolveManagedWebCarrier(ctx context.Context) (protectedlocal.ManagedWebCarrier, error) {
+	if coordinator != nil {
+		coordinator.launchMu.Lock()
+		resolver := coordinator.carrierResolver
+		coordinator.launchMu.Unlock()
+		if resolver != nil {
+			return resolver.ResolveManagedWebCarrier(ctx)
+		}
+	}
+	return protectedlocal.ResolveManagedWebCarrier(ctx)
 }
 
 type InstallResult struct {
@@ -452,15 +474,26 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		}
 		previous = &registration
 	}
-	nativeVerifier, err := nativeVerifierForExpected(packageExpected)
-	if err != nil {
-		_ = jobRoot.Close()
-		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
-	}
-	probe, err := nimiapppackage.ProbeRuntimeEntry(ctx, archivePath, jobRoot, "native-probe", packageExpected, nativeVerifier)
-	closeJobRootErr := jobRoot.Close()
-	if err != nil || closeJobRootErr != nil {
-		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(err, closeJobRootErr), false)
+	managedWeb := nimiapppackage.IsManagedWebTarget(packageExpected)
+	var probe nimiapppackage.RuntimeEntryProbe
+	if managedWeb {
+		_, inspectErr := nimiapppackage.Inspect(ctx, archivePath, packageExpected)
+		closeJobRootErr := jobRoot.Close()
+		if inspectErr != nil || closeJobRootErr != nil {
+			return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(inspectErr, closeJobRootErr), false)
+		}
+	} else {
+		nativeVerifier, err := nativeVerifierForExpected(packageExpected)
+		if err != nil {
+			_ = jobRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+		}
+		var probeErr error
+		probe, probeErr = nimiapppackage.ProbeRuntimeEntry(ctx, archivePath, jobRoot, "native-probe", packageExpected, nativeVerifier)
+		closeJobRootErr := jobRoot.Close()
+		if probeErr != nil || closeJobRootErr != nil {
+			return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(probeErr, closeJobRootErr), false)
+		}
 	}
 	advanced, err := coordinator.advanceInstall(ctx, job, localappkernel.PackageJobStaging, uint64(packageExpected.ArchiveSize))
 	if err != nil {
@@ -477,7 +510,7 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(ErrInstallStaging, err), false)
 	}
-	if materialized.HostExecutableSHA256 != probe.HostExecutableSHA256 {
+	if !managedWeb && materialized.HostExecutableSHA256 != probe.HostExecutableSHA256 {
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job,
 			fmt.Errorf("match observed and staged Runtime entry: %w", nimiapppackage.ErrPackageIntegrity), false)
@@ -554,12 +587,25 @@ func validateResolvedInstallTarget(resolved publicappregistry.ResolvedApprovedTa
 		return "", ErrUnsupportedInstallPlatform
 	}
 	selectorText, err := resolved.Selector.Encode()
+	managedWeb := resolved.Package.RuntimeKind == "managed-web"
+	validRuntimeKind := resolved.Package.RuntimeKind == "native" || managedWeb
+	targetCompatible := false
+	if managedWeb {
+		targetCompatible = resolved.Target.TargetID == publicappregistry.ManagedWebTargetID &&
+			resolved.Target.OS == "any" && resolved.Target.Arch == "any" &&
+			resolved.Target.RuntimeEntry == publicappregistry.ManagedWebRuntimeEntry &&
+			resolved.Target.ExecutionProfileRef == publicappregistry.ManagedWebExecutionProfileRef &&
+			resolved.StoragePolicy.Kind == "nimi-mediated-default" &&
+			publicappregistry.TargetCompatibleWithPlatform(resolved.Target, expectedOS, expectedArch)
+	} else {
+		targetCompatible = resolved.Target.OS == expectedOS && resolved.Target.Arch == expectedArch
+	}
 	if err != nil || resolved.Selector.DescriptorID() != resolved.DescriptorID ||
 		resolved.Selector.TargetID() != resolved.Target.TargetID ||
 		resolved.Selector.ObservedRegistryCommit() != resolved.RegistryRevision || resolved.KillSwitch.Active ||
 		resolved.Visibility != "public" || resolved.AppID == "" || resolved.DisplayName == "" || resolved.Version == "" ||
-		resolved.Package.Kind != "nimiapp" || resolved.Package.RuntimeKind != "native" || resolved.Package.RegistrationMode != "app-managed" ||
-		resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
+		resolved.Package.Kind != "nimiapp" || !validRuntimeKind || resolved.Package.RegistrationMode != "app-managed" ||
+		!targetCompatible {
 		return "", fmt.Errorf("validate approved public App install target: %w", errors.Join(ErrInstallTarget, err))
 	}
 	return selectorText, nil

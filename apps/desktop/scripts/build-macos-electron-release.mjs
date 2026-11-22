@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { sign } from '@electron/osx-sign';
 import { packager } from '@electron/packager';
 import { listPackage } from '@electron/asar';
+import { build as esbuild } from 'esbuild';
 import { assertNoCompilerSourceMaps, assertReleaseDebugSeparation, preserveReleaseSourceMaps, stageReleaseTree } from './lib/release-source-maps.mjs';
 
 import { flipElectronFuses, HOME_MACOS_FUSES, requireElectronFuses } from '../../../scripts/lib/electron-fuses.mjs';
@@ -318,13 +319,9 @@ async function packageDesktop(input) {
 
 async function packageLocalAppHost(input) {
   const source = path.join(input.sourceRoot, 'local-app-host');
+  const buildStage = path.join(input.sourceRoot, 'local-app-host-build');
   await mkdir(source, { recursive: true });
-  const mainSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), 'utf8');
-  await writeFile(
-    path.join(source, 'main.mjs'),
-    mainSource,
-    { encoding: 'utf8', flag: 'wx', mode: 0o644 },
-  );
+  await mkdir(buildStage, { recursive: true });
   const contractSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'contract.mjs'), 'utf8');
   const productionPathLiteral = "'/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host'";
   const expectedOccurrenceCount = contractSource.split(productionPathLiteral).length - 1;
@@ -334,7 +331,31 @@ async function packageLocalAppHost(input) {
   const packagedContract = input.localDevelopment
     ? contractSource.replace(productionPathLiteral, JSON.stringify(MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostPath))
     : contractSource;
-  await writeFile(path.join(source, 'contract.mjs'), packagedContract, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
+  await writeFile(path.join(buildStage, 'contract.mjs'), packagedContract, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
+  const mainSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), 'utf8');
+  const rewrittenMain = mainSource.replace(
+    "'../../dist-electron/managed-web-carrier-runtime.js'",
+    JSON.stringify(path.join(desktopRoot, 'dist-electron', 'managed-web-carrier-runtime.js')),
+  );
+  const entryStage = path.join(buildStage, 'main.mjs');
+  await writeFile(entryStage, rewrittenMain, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
+  const packagedMainPath = path.join(source, 'main.mjs');
+  await esbuild({
+    entryPoints: [entryStage],
+    outfile: packagedMainPath,
+    bundle: true,
+    platform: 'node',
+    target: 'node22',
+    format: 'esm',
+    external: ['electron', 'original-fs', 'sharp', '@nimiplatform/kit-protected-local-darwin-arm64'],
+    logLevel: 'silent',
+  });
+  await runReleaseCommand(process.execPath, ['--check', packagedMainPath], { cwd: source });
+  await cp(
+    path.join(desktopRoot, 'dist-electron', 'managed-web-preload.cjs'),
+    path.join(source, 'managed-web-preload.cjs'),
+    { errorOnExist: true, force: false },
+  );
   await writeManifest(path.join(source, 'package.json'), {
     main: 'main.mjs',
     name: 'nimi-local-app-host',

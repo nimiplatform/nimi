@@ -45,6 +45,57 @@ await build({
 });
 
 await build({
+  entryPoints: [path.join(appRoot, 'src-electron/entry.ts')],
+  outfile: path.join(appRoot, 'dist-electron/entry.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  external: ['electron', './main.js', './managed-web-carrier.js'],
+  logLevel: 'silent',
+});
+
+await build({
+  entryPoints: [path.join(appRoot, 'src-electron/managed-web-carrier.ts')],
+  outfile: path.join(appRoot, 'dist-electron/managed-web-carrier.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  packages: releaseBuild ? undefined : 'external',
+  external: releaseBuild
+    ? ['electron', 'original-fs', 'sharp', '@nimiplatform/kit-protected-local-darwin-arm64', '@nimiplatform/kit-protected-local-win32-x64']
+    : ['electron', 'original-fs', '@nimiplatform/*', 'yaml'],
+  define: {
+    __NIMI_ELECTRON_DEVELOPMENT_BUILD__: JSON.stringify(!releaseBuild),
+  },
+  banner: releaseBuild ? {
+    js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",
+  } : undefined,
+  logLevel: 'silent',
+});
+
+await build({
+  entryPoints: [path.join(appRoot, 'src-electron/managed-web-carrier-runtime.ts')],
+  outfile: path.join(appRoot, 'dist-electron/managed-web-carrier-runtime.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  packages: releaseBuild ? undefined : 'external',
+  external: releaseBuild
+    ? ['electron', 'original-fs', 'sharp', '@nimiplatform/kit-protected-local-darwin-arm64', '@nimiplatform/kit-protected-local-win32-x64']
+    : ['electron', 'original-fs', '@nimiplatform/*', 'yaml'],
+  define: {
+    __NIMI_ELECTRON_DEVELOPMENT_BUILD__: JSON.stringify(!releaseBuild),
+  },
+  banner: releaseBuild ? {
+    js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",
+  } : undefined,
+  logLevel: 'silent',
+});
+
+await build({
   entryPoints: [path.join(appRoot, 'src-electron/chat-ai-store-worker.ts')],
   outfile: path.join(appRoot, 'dist-electron/chat-ai-store-worker.js'),
   bundle: true,

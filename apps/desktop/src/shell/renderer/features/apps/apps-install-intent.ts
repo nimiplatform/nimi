@@ -13,7 +13,7 @@ export interface AppsInstallIntentSnapshot {
   readonly version: string;
   readonly assetName: string;
   readonly assetSize: string;
-  readonly os: 'windows' | 'macos';
+  readonly os: 'windows' | 'macos' | 'any';
   readonly windowsCodeSigning: 'signed' | 'unsigned' | 'not-applicable';
   readonly macosNotarization: 'notarized' | 'absent' | 'not-applicable';
   readonly observedSigningSubject: string | null;
@@ -116,17 +116,38 @@ export function createAppsInstallIntentController(input: {
 }
 
 export function snapshotAppsInstallIntent(target: ApprovedAppCatalogTarget): AppsInstallIntentSnapshot {
-  const windows = target.os === 'windows' && target.arch === 'x86_64' && target.targetId === 'windows-x86_64';
-  const macos = target.os === 'macos' && target.arch === 'arm64' && target.targetId === 'macos-aarch64';
-  if (!windows && !macos) {
+  const windows = target.os === 'windows'
+    && target.arch === 'x86_64'
+    && target.targetId === 'windows-x86_64'
+    && target.executionProfileRef === 'windows-user-mode-as-invoker-v1';
+  const macos = target.os === 'macos'
+    && target.arch === 'arm64'
+    && target.targetId === 'macos-aarch64'
+    && target.executionProfileRef === 'macos-user-mode-same-session-v1';
+  const managedWeb = target.os === 'any'
+    && target.arch === 'any'
+    && target.targetId === 'desktop-universal'
+    && target.executionProfileRef === 'nimi-managed-web-v1';
+  if (!windows && !macos && !managedWeb) {
     throw new Error(`Unsupported App Catalog target: ${target.targetId}`);
+  }
+  if (managedWeb && (
+    target.windowsCodeSigning !== 'not-applicable'
+    || target.macosNotarization !== 'not-applicable'
+    || Boolean(target.observedSigningSubject?.trim())
+    || Boolean(target.macosDeveloperIdSubject?.trim())
+  )) {
+    throw new Error('Contradictory managed-web posture');
   }
   if (windows && target.windowsCodeSigning !== 'signed' && target.windowsCodeSigning !== 'unsigned') {
     throw new Error(`Unsupported Windows native posture: ${target.windowsCodeSigning}`);
   }
   if (
-    windows && ((target.windowsCodeSigning === 'signed' && !target.observedSigningSubject?.trim())
-    || (target.windowsCodeSigning === 'unsigned' && Boolean(target.observedSigningSubject?.trim()))
+    windows && (
+      target.macosNotarization !== 'not-applicable'
+      || Boolean(target.macosDeveloperIdSubject?.trim())
+      || (target.windowsCodeSigning === 'signed' && !target.observedSigningSubject?.trim())
+      || (target.windowsCodeSigning === 'unsigned' && Boolean(target.observedSigningSubject?.trim()))
     )
   ) {
     throw new Error('Contradictory Windows native posture');
@@ -161,10 +182,10 @@ export function snapshotAppsInstallIntent(target: ApprovedAppCatalogTarget): App
     version: target.version,
     assetName: target.assetName,
     assetSize: target.assetSize,
-    os: macos ? 'macos' : 'windows',
-    windowsCodeSigning: macos ? 'not-applicable' : target.windowsCodeSigning as 'signed' | 'unsigned',
+    os: managedWeb ? 'any' : macos ? 'macos' : 'windows',
+    windowsCodeSigning: (managedWeb || macos) ? 'not-applicable' : target.windowsCodeSigning as 'signed' | 'unsigned',
     macosNotarization: macos ? target.macosNotarization as 'absent' | 'notarized' : 'not-applicable',
-    observedSigningSubject: target.observedSigningSubject ?? null,
+    observedSigningSubject: managedWeb ? null : target.observedSigningSubject ?? null,
     safetyDeclaration: target.safetyDeclaration ?? null,
   };
 }

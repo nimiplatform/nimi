@@ -1,4 +1,5 @@
 import { assertDesktopHostSupport } from './app-host-support.mjs';
+import { validateManifestDesktop } from './desktop-window.mjs';
 import { isAppId } from './app-identifiers.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-009b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
@@ -35,14 +36,103 @@ const PACKAGE_FORMAT = 'nimi.app-package/v2';
 const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
 const AGGREGATE_FORMAT = 'nimi.app-release-candidate/v1';
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
+const MANAGED_WEB_BUILD_PROFILE_REF = 'managed-web-pnpm-vite';
+const MANAGED_WEB_EXECUTION_PROFILE_REF = 'nimi-managed-web-v1';
+const MANAGED_WEB_RUNTIME_ENTRY = 'payload/index.html';
+const MANAGED_WEB_MAX_RELEASE_BYTES = 64 * 1024 * 1024;
+const MANAGED_WEB_MAX_RELEASE_ENTRIES = 10_000;
+const MANAGED_WEB_MAX_DIRECTORY_DEPTH = 64;
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
 const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
 const OUTPUT_DIR = 'dist/nimi-app';
-const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
+const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const TARGETS = Object.freeze({
   'windows-x86_64': Object.freeze({ os: 'windows', arch: 'x86_64' }),
   'macos-aarch64': Object.freeze({ os: 'macos', arch: 'arm64' }),
+  'desktop-universal': Object.freeze({ os: 'any', arch: 'any' }),
 });
+const WINDOWS_RESERVED_BASES = new Set(['CON', 'PRN', 'AUX', 'NUL', 'CLOCK$', 'CONIN$', 'CONOUT$']);
+
+function validWindowsSegment(segment) {
+  if (/[<>:"|?*]/u.test(segment) || segment.endsWith('.') || segment.endsWith(' ')) {
+    return false;
+  }
+  const base = segment.split('.', 1)[0].replace(/ +$/u, '').toUpperCase();
+  if (WINDOWS_RESERVED_BASES.has(base)) return false;
+  if (/^(?:COM|LPT)(?:[1-9]|¹|²|³)$/u.test(base)) return false;
+  return true;
+}
+
+function unicodeCaseFold(input) {
+  let out = '';
+  for (const ch of input.normalize('NFC')) {
+    const cp = ch.codePointAt(0);
+    if (cp === 0x0131) out += '\u0131';
+    else if (cp === 0x1e9e) out += 'ss';
+    else if (cp >= 0x13f8 && cp <= 0x13fd) out += String.fromCodePoint(cp - 8);
+    else if (cp >= 0xab70 && cp <= 0xabbf) out += String.fromCodePoint(cp - 0x97d0);
+    else out += ch.toUpperCase().toLowerCase();
+  }
+  return out;
+}
+
+function targetPathCollisionKey(name, targetOS) {
+  const normalized = name.normalize('NFC');
+  if (targetOS === 'windows' || targetOS === 'any') {
+    return unicodeCaseFold(normalized);
+  }
+  return normalized;
+}
+
+function validateCrossPlatformArchiveEntries(entries, targetOS) {
+  const roles = new Map();
+  let fileCount = 0;
+  for (const entry of entries) {
+    const name = entry.name;
+    const segments = name.split('/');
+    if (targetOS === 'any' && segments.length - 1 > MANAGED_WEB_MAX_DIRECTORY_DEPTH) {
+      throw new Error(`Managed-web directory depth exceeds ${MANAGED_WEB_MAX_DIRECTORY_DEPTH}: ${name}`);
+    }
+    for (const segment of segments) {
+      for (const ch of segment) {
+        const code = ch.codePointAt(0);
+        if (code < 0x20 || code === 0x7f) {
+          throw new Error(`Archive entry path contains control character: ${name}`);
+        }
+      }
+      if ((targetOS === 'windows' || targetOS === 'any') && !validWindowsSegment(segment)) {
+        throw new Error(`Archive entry path uses invalid Windows segment: ${name}`);
+      }
+    }
+    for (let index = 0; index < segments.length; index += 1) {
+      const prefix = segments.slice(0, index + 1).join('/');
+      const key = targetPathCollisionKey(prefix, targetOS);
+      const isFile = index === segments.length - 1;
+      const previous = roles.get(key);
+      if (previous) {
+        if (previous.spelling !== prefix || previous.file || isFile) {
+          throw new Error(`Archive entry path collision on ${targetOS}: ${previous.spelling} and ${prefix}`);
+        }
+      } else {
+        roles.set(key, { spelling: prefix, file: isFile });
+      }
+    }
+    fileCount++;
+    if (targetOS === 'any' && roles.size - fileCount > MANAGED_WEB_MAX_RELEASE_ENTRIES) {
+      throw new Error(`Managed-web package exceeds ${MANAGED_WEB_MAX_RELEASE_ENTRIES} directories`);
+    }
+  }
+}
+
+function pathsOverlapOrEqual(left, right) {
+  const a = path.resolve(left);
+  const b = path.resolve(right);
+  const cmpA = process.platform === 'win32' ? a.toLowerCase() : a;
+  const cmpB = process.platform === 'win32' ? b.toLowerCase() : b;
+  return cmpA === cmpB
+    || cmpA.startsWith(`${cmpB}${path.sep}`)
+    || cmpB.startsWith(`${cmpA}${path.sep}`);
+}
 
 function compareText(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -275,7 +365,16 @@ export function readNimiAppArchive(bytes) {
     const commentLength = archive.readUInt16LE(cursor + 32);
     const localOffset = archive.readUInt32LE(cursor + 42);
     const unixMode = archive.readUInt32LE(cursor + 38) >>> 16;
-    const mode = (unixMode & 0o170000) === 0o120000 ? unixMode : unixMode & 0o777;
+    const fileType = unixMode & 0o170000;
+    const specialBits = unixMode & 0o7000;
+    let mode;
+    if (unixMode === SYMBOLIC_LINK_MODE) {
+      mode = SYMBOLIC_LINK_MODE;
+    } else if ((fileType === 0o100000 || fileType === 0) && specialBits === 0) {
+      mode = unixMode & 0o777;
+    } else {
+      throw new Error('Unsupported nimiapp ZIP entry mode');
+    }
     if (method !== 0 || extraLength !== 0 || commentLength !== 0) throw new Error('Unsupported nimiapp ZIP entry encoding');
     if (mode !== 0o644 && mode !== 0o755 && mode !== SYMBOLIC_LINK_MODE) throw new Error('Unsupported nimiapp ZIP entry mode');
     const name = zipEntryName(archive.subarray(cursor + 46, cursor + 46 + nameLength).toString('utf8'));
@@ -301,7 +400,7 @@ export function readNimiAppArchive(bytes) {
 function readNativePackProfile(targetDir) {
   const profile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
   assertDesktopHostSupport(profile.build_profile_ref);
-  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF].includes(profile.build_profile_ref)) {
+  if (![MANAGED_WEB_BUILD_PROFILE_REF, ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF].includes(profile.build_profile_ref)) {
     throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(profile.build_profile_ref)}`);
   }
   return profile;
@@ -311,6 +410,13 @@ function readPackInputs(targetDir, targetId) {
   const buildProfile = readNativePackProfile(targetDir);
   const target = TARGETS[targetId];
   if (!target) throw new Error(`Unsupported App package target: ${targetId}`);
+  const isManagedWeb = buildProfile.build_profile_ref === MANAGED_WEB_BUILD_PROFILE_REF;
+  if (isManagedWeb && targetId !== 'desktop-universal') {
+    throw new Error(`managed-web-pnpm-vite only supports target desktop-universal, got: ${targetId}`);
+  }
+  if (!isManagedWeb && targetId === 'desktop-universal') {
+    throw new Error(`Target desktop-universal requires build_profile_ref ${MANAGED_WEB_BUILD_PROFILE_REF}`);
+  }
   const packageJson = readJson(path.join(targetDir, 'package.json'), 'package.json');
   const licensePath = path.join(targetDir, 'LICENSE');
   if (!existsSync(licensePath)) throw new Error('App package LICENSE is missing');
@@ -320,7 +426,11 @@ function readPackInputs(targetDir, targetId) {
   }
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readYaml(manifestPath, 'nimi.app.yaml');
+  const desktop = validateManifestDesktop(manifest.desktop, 'nimi.app.yaml desktop');
   const appInfo = readAppInfo(targetDir, targetId);
+  if (isManagedWeb && appInfo.storage_policy?.kind !== 'nimi-mediated-default') {
+    throw new Error('managed-web packages require storage_policy.kind: nimi-mediated-default');
+  }
   const appId = String(manifest.app_id || '');
   const version = String(packageJson.version || '');
   if (!isAppId(appId)) throw new Error('nimi.app.yaml app_id must be canonical and dotted');
@@ -331,15 +441,22 @@ function readPackInputs(targetDir, targetId) {
   if (!configured || typeof configured !== 'object' || Array.isArray(configured)) throw new Error(`Build profile does not declare target: ${targetId}`);
   if (configured.os !== target.os || configured.arch !== target.arch) throw new Error(`Build profile target identity mismatch: ${targetId}`);
   const payload = resolveInside(targetDir, configured.payload_path, `targets.${targetId}.payload_path`);
+  const outputDir = path.join(targetDir, OUTPUT_DIR);
+  if (pathsOverlapOrEqual(payload.resolved, outputDir)) {
+    throw new Error(`Pack payload_path (${payload.normalized}) must not overlap ${OUTPUT_DIR}; emit build output to a sibling directory such as dist/renderer`);
+  }
   if (!existsSync(payload.resolved)) throw new Error(`Built target payload is missing: ${payload.normalized}`);
   const runtimeEntry = canonicalRelative(configured.runtime_entry, `targets.${targetId}.runtime_entry`);
   if (!runtimeEntry.startsWith('payload/')) throw new Error('runtime_entry must resolve inside the packaged payload');
+  if (isManagedWeb && runtimeEntry !== MANAGED_WEB_RUNTIME_ENTRY) {
+    throw new Error(`managed-web runtime_entry must be ${MANAGED_WEB_RUNTIME_ENTRY}`);
+  }
   const payloadStat = lstatSync(payload.resolved);
   const runtimeRelative = runtimeEntry.slice('payload/'.length);
   const runtimeHostPath = payloadStat.isFile()
     ? payload.resolved
     : resolveInside(payload.resolved, runtimeRelative, `targets.${targetId}.runtime_entry`).resolved;
-  return { target, targetId, targetDir, packageJson, licensePath, manifestPath, appInfo, appId, version, payloadPath: payload.resolved, runtimeEntry, runtimeHostPath };
+  return { buildProfile, desktop, target, targetId, targetDir, packageJson, licensePath, manifestPath, appInfo, appId, version, payloadPath: payload.resolved, runtimeEntry, runtimeHostPath };
 }
 
 export function classifyWindowsNativeTrustObservation(observation) {
@@ -383,6 +500,17 @@ function observeProductionWindowsFacts(input, archivedRuntimeEntryBytes) {
 }
 
 function resolveTargetFacts(input, production, archivedRuntimeEntryBytes) {
+  if (input.target.os === 'any') {
+    return {
+      nativeTrust: {
+        posture: 'nimi-managed-carrier',
+        certificate_subject: null,
+      },
+      executionProfile: {
+        launch_mode: MANAGED_WEB_EXECUTION_PROFILE_REF,
+      },
+    };
+  }
   if (!production) {
     return {
       nativeTrust: { posture: 'development-unsigned' },
@@ -400,6 +528,25 @@ function resolveTargetFacts(input, production, archivedRuntimeEntryBytes) {
 function validateNativeExecutionFacts(nativeTrust, executionProfile, label, os) {
   if (!nativeTrust || typeof nativeTrust !== 'object' || Array.isArray(nativeTrust)) {
     throw new Error(`${label} native_trust must be an object`);
+  }
+  if (os === 'any') {
+    if (
+      !executionProfile
+      || typeof executionProfile !== 'object'
+      || Array.isArray(executionProfile)
+      || Object.keys(executionProfile).join(',') !== 'launch_mode'
+      || executionProfile.launch_mode !== MANAGED_WEB_EXECUTION_PROFILE_REF
+    ) {
+      throw new Error(`${label} managed-web execution_profile must use ${MANAGED_WEB_EXECUTION_PROFILE_REF}`);
+    }
+    if (
+      Object.keys(nativeTrust).sort().join(',') !== 'certificate_subject,posture'
+      || nativeTrust.posture !== 'nimi-managed-carrier'
+      || nativeTrust.certificate_subject !== null
+    ) {
+      throw new Error(`${label} managed-web native_trust posture is inconsistent`);
+    }
+    return;
   }
   if (nativeTrust.posture === 'development-unsigned') {
     if (executionProfile !== null || Object.keys(nativeTrust).length !== 1) {
@@ -466,10 +613,14 @@ export function packAppTarget(cwd, options = {}) {
   const targetId = String(options.target || '').trim();
   if (!targetId) throw new Error('nimi-app pack requires --target');
   const input = readPackInputs(targetDir, targetId);
+  const isManagedWeb = input.target.os === 'any';
   const payloadEntries = collectPayload(input.payloadPath, input.target.os).map((entry) => {
     const name = `payload/${entry.relative.replaceAll('\\', '/')}`;
     if (name === input.runtimeEntry && entry.mode === SYMBOLIC_LINK_MODE) throw new Error('Runtime entry must be a direct regular file');
-    return { name, bytes: entry.bytes, mode: name === input.runtimeEntry ? 0o755 : entry.mode };
+    const mode = isManagedWeb
+      ? 0o644
+      : name === input.runtimeEntry ? 0o755 : entry.mode;
+    return { name, bytes: entry.bytes, mode };
   });
   validatePayloadLinks(new Map(payloadEntries.map((entry) => [entry.name, entry])), input.target.os);
   const runtimeEntry = payloadEntries.find((entry) => entry.name === input.runtimeEntry);
@@ -490,14 +641,28 @@ export function packAppTarget(cwd, options = {}) {
   if (infoBytes.length > APP_INFO_MAX_BYTES) throw new Error('App info exceeds 1 MiB');
   // An undeclared safety_profile stays absent from the declaration copy; it is
   // never serialized as an empty or default declaration.
-  const declaration = Object.fromEntries(APP_INFO_DECLARATION_FIELDS.filter((key) => input.appInfo[key] !== undefined).map((key) => [key, input.appInfo[key]]));
-  const archive = writeNimiAppArchive([
+  const declaration = {
+    ...Object.fromEntries(APP_INFO_DECLARATION_FIELDS.filter((key) => input.appInfo[key] !== undefined).map((key) => [key, input.appInfo[key]])),
+    ...(input.desktop !== undefined ? { desktop: input.desktop } : {}),
+  };
+  const archiveEntries = [
     { name: 'LICENSE', bytes: readFileSync(input.licensePath), mode: 0o644 },
-    { name: 'manifest.json', bytes: canonicalJson(packageManifest), mode: 0o644 },
-    { name: 'nimi.app.yaml', bytes: stringifyYaml(declaration), mode: 0o644 },
+    { name: 'manifest.json', bytes: Buffer.from(canonicalJson(packageManifest)), mode: 0o644 },
+    { name: 'nimi.app.yaml', bytes: Buffer.from(stringifyYaml(declaration)), mode: 0o644 },
     { name: 'app-info.json', bytes: infoBytes, mode: 0o644 },
     ...payloadEntries,
-  ]);
+  ];
+  validateCrossPlatformArchiveEntries(archiveEntries, input.target.os);
+  if (isManagedWeb) {
+    if (archiveEntries.length > MANAGED_WEB_MAX_RELEASE_ENTRIES) {
+      throw new Error(`managed-web package exceeds ${MANAGED_WEB_MAX_RELEASE_ENTRIES} entries (${archiveEntries.length})`);
+    }
+    const totalUncompressedBytes = archiveEntries.reduce((sum, entry) => sum + entry.bytes.length, 0);
+    if (totalUncompressedBytes > MANAGED_WEB_MAX_RELEASE_BYTES) {
+      throw new Error(`managed-web package exceeds ${MANAGED_WEB_MAX_RELEASE_BYTES} bytes uncompressed (${totalUncompressedBytes})`);
+    }
+  }
+  const archive = writeNimiAppArchive(archiveEntries);
   const sha256 = hashAppArchive(archive);
   const outputDir = path.join(targetDir, OUTPUT_DIR);
   mkdirSync(outputDir, { recursive: true });
@@ -528,7 +693,8 @@ export function packAppTarget(cwd, options = {}) {
 
 export function aggregateAppTargetCandidates(cwd, options = {}) {
   const targetDir = path.resolve(cwd, String(options.dir || '').trim() || '.');
-  readNativePackProfile(targetDir);
+  const buildProfile = readNativePackProfile(targetDir);
+  const isManagedWebProfile = buildProfile.build_profile_ref === MANAGED_WEB_BUILD_PROFILE_REF;
   const outputDir = path.join(targetDir, OUTPUT_DIR);
   if (!existsSync(outputDir)) throw new Error('No target metadata exists to aggregate');
   const files = readdirSync(outputDir).filter((name) => name.endsWith('.target.json')).sort();
@@ -543,6 +709,12 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     if (target.format !== TARGET_METADATA_FORMAT || target.app_id !== appId || target.version !== version) throw new Error('Target metadata cannot be aggregated across App releases');
     if (seen.has(target.target_id)) throw new Error(`Duplicate target metadata: ${target.target_id}`);
     seen.add(target.target_id);
+    if (isManagedWebProfile && target.target_id !== 'desktop-universal') {
+      throw new Error(`managed-web-pnpm-vite cannot aggregate non-universal target: ${target.target_id}`);
+    }
+    if (!isManagedWebProfile && target.target_id === 'desktop-universal') {
+      throw new Error(`Native build profile cannot aggregate desktop-universal target`);
+    }
     const expectedTarget = TARGETS[target.target_id];
     if (!expectedTarget || target.os !== expectedTarget.os || target.arch !== expectedTarget.arch) {
       throw new Error(`Target metadata identity is invalid: ${target.target_id}`);
@@ -554,6 +726,9 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     }
     const runtimeEntry = canonicalRelative(target.runtime_entry, `${metadataLabel}.runtime_entry`);
     if (!runtimeEntry.startsWith('payload/')) throw new Error(`Target runtime_entry must resolve inside payload: ${runtimeEntry}`);
+    if (target.os === 'any' && runtimeEntry !== MANAGED_WEB_RUNTIME_ENTRY) {
+      throw new Error(`Target managed-web runtime_entry must be ${MANAGED_WEB_RUNTIME_ENTRY}: ${runtimeEntry}`);
+    }
     validateNativeExecutionFacts(target.native_trust, target.execution_profile, metadataLabel, target.os);
     const artifactPath = path.join(outputDir, assetName);
     if (!existsSync(artifactPath)) throw new Error(`Target artifact is missing: ${target.asset_name}`);
@@ -568,8 +743,18 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     if (infoBytes.length !== infoAsset.size || createHash('sha256').update(infoBytes).digest('hex') !== infoAsset.sha256 || !entries.get('app-info.json')?.bytes.equals(infoBytes)) throw new Error(`Target App info changed or differs from archive: ${target.target_id}`);
     const info = validateAppInfo(JSON.parse(infoBytes));
     if (info.app_id !== appId || info.version !== version || info.target_id !== target.target_id) throw new Error(`Target App info identity differs: ${target.target_id}`);
+    if (target.os === 'any' && info.storage_policy?.kind !== 'nimi-mediated-default') {
+      throw new Error(`Target managed-web package must use nimi-mediated-default storage: ${target.target_id}`);
+    }
     parsedInfos.push({ targetId: target.target_id, info });
     validatePayloadLinks(entries, target.os);
+    validateCrossPlatformArchiveEntries([...entries.entries()].map(([name, entry]) => ({ name, bytes: entry.bytes, mode: entry.mode })), target.os);
+    const declarationEntry = entries.get('nimi.app.yaml');
+    if (declarationEntry) {
+      const declarationYamlText = declarationEntry.bytes.toString('utf8');
+      const archivedDeclaration = parseYaml(declarationYamlText);
+      validateManifestDesktop(archivedDeclaration?.desktop, `${target.asset_name} nimi.app.yaml desktop`, declarationYamlText);
+    }
     const manifest = readPackageManifestFromArchive(entries, metadataLabel);
     if (manifest.format !== PACKAGE_FORMAT) throw new Error(`Target archive manifest format is invalid: ${target.asset_name}`);
     for (const field of ['app_id', 'version', 'target_id', 'os', 'arch', 'runtime_entry', 'native_trust', 'execution_profile']) {
@@ -579,7 +764,19 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     }
     validateNativeExecutionFacts(manifest.native_trust, manifest.execution_profile, `${target.asset_name} archive manifest`, target.os);
     const runtimeEntryArchive = entries.get(runtimeEntry);
-    if (!runtimeEntryArchive || runtimeEntryArchive.mode !== 0o755) {
+    if (target.os === 'any') {
+      if (!runtimeEntryArchive || runtimeEntryArchive.mode !== 0o644) {
+        throw new Error(`Target managed-web archive runtime_entry is missing or not 0644: ${runtimeEntry}`);
+      }
+      if (entries.size > MANAGED_WEB_MAX_RELEASE_ENTRIES) {
+        throw new Error(`Target managed-web archive exceeds ${MANAGED_WEB_MAX_RELEASE_ENTRIES} entries: ${target.asset_name}`);
+      }
+      let totalUncompressedBytes = 0;
+      for (const entry of entries.values()) totalUncompressedBytes += entry.bytes.length;
+      if (totalUncompressedBytes > MANAGED_WEB_MAX_RELEASE_BYTES) {
+        throw new Error(`Target managed-web archive exceeds ${MANAGED_WEB_MAX_RELEASE_BYTES} bytes uncompressed: ${target.asset_name}`);
+      }
+    } else if (!runtimeEntryArchive || runtimeEntryArchive.mode !== 0o755) {
       throw new Error(`Target archive runtime_entry is missing or non-executable: ${runtimeEntry}`);
     }
   }

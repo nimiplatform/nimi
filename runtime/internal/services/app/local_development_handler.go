@@ -184,7 +184,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 	if err != nil {
 		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, "host-storage", err)
 	}
-	hostExecutable, err := localDevelopmentHostExecutable(project)
+	hostExecutable, err := s.resolveLocalDevelopmentHostExecutable(ctx, project)
 	if err != nil {
 		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "host-executable", err)
 	}

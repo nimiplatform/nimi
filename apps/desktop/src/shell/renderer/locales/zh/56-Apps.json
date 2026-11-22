@@ -86,6 +86,8 @@
     "macosNotarized": "已通过 Apple 公证",
     "macosNotarizationAbsent": "未经 Apple 公证",
     "macosNotarizationUnknown": "Apple 公证状态未知",
+    "managedWebPosture": "由 Nimi 受管桌面容器运行（无需独立原生宿主）",
+    "managedWebPlatform": "macOS · Windows（Nimi 受管容器）",
     "policyRevision": "Registry 策略修订",
     "rowAbsent": "当前目录已不再列出此应用，已安装的副本保持不变。",
     "readFailed": "现在无法读取应用目录，请稍后再试。"

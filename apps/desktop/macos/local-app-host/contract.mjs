@@ -4,6 +4,7 @@ import process from 'node:process';
 import { URL } from 'node:url';
 
 export const MACOS_LOCAL_APP_HOST_EXECUTABLE = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
+const SHA256_REF_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 export function describeMacOSLocalAppHostFailure(error, stage, argumentCount, ready) {
   const knownCodes = new Set([
@@ -14,7 +15,7 @@ export function describeMacOSLocalAppHostFailure(error, stage, argumentCount, re
   ]);
   const candidate = error?.reasonCode ?? error?.code;
   const code = knownCodes.has(candidate) ? candidate : 'unclassified';
-  const phase = stage === 'app-import' ? stage : 'launch-contract';
+  const phase = stage === 'app-import' || stage === 'managed-web-carrier' ? stage : 'launch-contract';
   const count = Number.isSafeInteger(argumentCount) && argumentCount >= 0 && argumentCount <= 16 ? argumentCount : 'invalid';
   const names = new Set(['Error', 'TypeError', 'SyntaxError', 'ReferenceError', 'NimiElectronShellHostError']);
   const name = names.has(error?.name) ? error.name : 'Error';
@@ -28,19 +29,83 @@ export function describeMacOSLocalAppHostFailure(error, stage, argumentCount, re
 
 export function resolveMacOSLocalAppHostLaunch(input) {
   const argv = Array.isArray(input?.argv) ? input.argv.map(exactText) : fail();
-  const cdpPort = optionalCdpPort(argv);
-  if (argv.length !== (cdpPort === undefined ? 4 : 6)) fail();
+  if (argv.length < 2) fail();
+  if (argv.some(isForbiddenChromiumArgument)) fail();
   const executable = canonicalFile(exactAbsolute(input?.executable));
-  const expectedExecutable = input?.contractTestExpectedExecutable === undefined
-    ? MACOS_LOCAL_APP_HOST_EXECUTABLE
-    : canonicalFile(exactAbsolute(input.contractTestExpectedExecutable));
-  if (executable !== expectedExecutable || argv[0] !== executable) fail();
+  const allowLeadingScript = input?.allowLeadingScriptArgument === true;
+  if (!allowLeadingScript) {
+    const expectedExecutable = input?.contractTestExpectedExecutable === undefined
+      ? MACOS_LOCAL_APP_HOST_EXECUTABLE
+      : canonicalFile(exactAbsolute(input.contractTestExpectedExecutable));
+    if (executable !== expectedExecutable || argv[0] !== executable) fail();
+  } else if (argv[0] !== executable) {
+    fail();
+  }
   const workingDirectory = canonicalDirectory(exactAbsolute(input?.workingDirectory));
   const hostProfileDirectory = exactAbsolute(input?.hostProfileDirectory);
+
+  const rest = argv.slice(1);
+  const hasNativeMain = rest.some((arg) => arg.startsWith('--nimi-local-app-main='));
+  const hasManagedDev = rest.includes('--nimi-managed-web-dev');
+  const hasManagedInstalled = rest.includes('--nimi-managed-web-app');
+  const modeCount = Number(hasNativeMain) + Number(hasManagedDev) + Number(hasManagedInstalled);
+  if (modeCount !== 1) fail();
+
+  // Mode C: managed-web installed (never permits dev/CDP/--nimi-local-app-main).
+  if (hasManagedInstalled) {
+    const args = [...rest];
+    if (allowLeadingScript && args.length > 0 && !args[0].startsWith('-')) {
+      if (path.basename(args[0]) !== 'main.mjs') fail();
+      canonicalFile(exactAbsolute(args[0]));
+      args.shift();
+    }
+    if (args.length !== 2 || args[0] !== '--nimi-managed-web-app' || !args[1].startsWith('--nimi-payload-digest=')) {
+      fail();
+    }
+    const payloadDigest = exactText(args[1].slice('--nimi-payload-digest='.length));
+    if (!SHA256_REF_PATTERN.test(payloadDigest)) fail();
+    canonicalHostProfileDirectory(hostProfileDirectory, input?.uid);
+    return Object.freeze({
+      mode: 'managed-web-installed',
+      payloadDigest,
+      workingDirectory,
+    });
+  }
+
+  // Mode B: managed-web local development (never permits third-party import).
+  if (hasManagedDev) {
+    const cdpPort = optionalCdpPort(argv);
+    const args = [];
+    let sawScript = false;
+    for (const arg of rest) {
+      if (allowLeadingScript && !sawScript && !arg.startsWith('-') && path.basename(arg) === 'main.mjs') {
+        canonicalFile(exactAbsolute(arg));
+        sawScript = true;
+        continue;
+      }
+      args.push(arg);
+    }
+    if (args.length !== (cdpPort === undefined ? 3 : 5)) fail();
+    if (args.filter((arg) => arg === '--nimi-managed-web-dev').length !== 1) fail();
+    const userDataArgument = exactArgument(args, '--user-data-dir');
+    const rendererArgument = exactArgument(args, '--nimi-dev-renderer-url');
+    const userDataDirectory = canonicalHostProfileUserDataDirectory(userDataArgument, hostProfileDirectory, input?.uid);
+    const rendererOrigin = exactLoopbackOrigin(rendererArgument);
+    return Object.freeze({
+      mode: 'managed-web-dev',
+      rendererOrigin,
+      userDataDirectory,
+      workingDirectory,
+      ...(cdpPort === undefined ? {} : { cdpPort }),
+    });
+  }
+
+  // Mode A: existing native macOS local development.
+  const cdpPort = optionalCdpPort(argv);
+  if (argv.length !== (cdpPort === undefined ? 4 : 6)) fail();
   const userDataArgument = exactArgument(argv, '--user-data-dir');
   const mainArgument = exactArgument(argv, '--nimi-local-app-main');
   const rendererArgument = exactArgument(argv, '--nimi-dev-renderer-url');
-  if (argv.some(isForbiddenChromiumArgument)) fail();
 
   const userDataDirectory = canonicalHostProfileUserDataDirectory(userDataArgument, hostProfileDirectory, input?.uid);
   const expectedMain = path.join(workingDirectory, 'dist-electron', 'main.js');
@@ -48,6 +113,7 @@ export function resolveMacOSLocalAppHostLaunch(input) {
   if (mainEntry !== expectedMain) fail();
   const rendererOrigin = exactLoopbackOrigin(rendererArgument);
   return Object.freeze({
+    mode: 'native-dev',
     mainEntry,
     rendererOrigin,
     userDataDirectory,
@@ -69,14 +135,9 @@ function optionalCdpPort(argv) {
   return port;
 }
 
-// The Host profile is the Runtime-derived `<data root>/app-hosts/<scope>/apps/
-// <subject>` prepared by the native carrier and passed only to this child as
-// NIMI_APP_HOST_PROFILE_DIR; the user data argument must be its user-data.
-function canonicalHostProfileUserDataDirectory(candidate, hostProfileDirectory, rawUID) {
+function canonicalHostProfileDirectory(hostProfileDirectory, rawUID) {
   const uid = rawUID ?? process.getuid?.();
   if (!Number.isSafeInteger(uid) || Number(uid) < 0) fail();
-  const expected = path.join(hostProfileDirectory, 'user-data');
-  if (exactAbsolute(candidate) !== expected) fail();
   const [subject, apps, scope, appHosts] = hostProfileDirectory.split(path.sep).reverse();
   if (appHosts !== 'app-hosts' || apps !== 'apps'
     || !/^[a-f0-9]{32}$/u.test(scope ?? '') || !/^[a-f0-9]{32}$/u.test(subject ?? '')) fail();
@@ -91,6 +152,15 @@ function canonicalHostProfileUserDataDirectory(candidate, hostProfileDirectory, 
     if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== Number(uid)
       || (metadata.mode & 0o077) !== 0 || realpathSync(current) !== current) fail();
   }
+  return path.join(hostProfileDirectory, 'user-data');
+}
+
+// The Host profile is the Runtime-derived `<data root>/app-hosts/<scope>/apps/
+// <subject>` prepared by the native carrier and passed only to this child as
+// NIMI_APP_HOST_PROFILE_DIR; the user data argument must be its user-data.
+function canonicalHostProfileUserDataDirectory(candidate, hostProfileDirectory, rawUID) {
+  const expected = canonicalHostProfileDirectory(hostProfileDirectory, rawUID);
+  if (exactAbsolute(candidate) !== expected) fail();
   return expected;
 }
 

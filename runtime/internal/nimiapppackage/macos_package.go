@@ -78,6 +78,9 @@ func validatePlatformManifestShape(raw []byte, targetOS string) error {
 	if targetOS == "macos" {
 		nativeKeys = []string{"posture", "macos_developer_id", "macos_notarization", "certificate_subject"}
 		executionKeys = []string{"launch_mode"}
+	} else if targetOS == "any" {
+		nativeKeys = []string{"posture", "certificate_subject"}
+		executionKeys = []string{"launch_mode"}
 	}
 	for _, expected := range []struct {
 		fields map[string]json.RawMessage

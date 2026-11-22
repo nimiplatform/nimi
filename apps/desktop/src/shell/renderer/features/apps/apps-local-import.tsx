@@ -164,11 +164,12 @@ export function AppsLocalImportFeedback({ state, entries }: {
           <AppsDistributionInfo info={preview.info} />
           <p>{t('Apps.localImport.sourceDisclosure')}</p>
           {state.intent?.installed ? <p>{t('Apps.update.confirmMessage', { from: state.intent.installed.version, to: preview.version })}</p> : null}
+          {preview.os === 'any' && preview.arch === 'any' && preview.info?.targetId === 'desktop-universal' ? <p>{t('Apps.catalog.managedWebPosture')}</p> : null}
           {preview.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.localImport.nativeWindowsUnsigned')}</p> : null}
           {preview.os === 'macos' && preview.macosNotarization === 'absent' ? <p>{t(preview.observedSigningSubject ? 'Apps.localImport.nativeMacOSUnnotarized' : 'Apps.localImport.nativeMacOSUnsigned')}</p> : null}
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
             <dt>{t('LocalDevelopment.field.app')}</dt><dd className="break-all">{preview.appId}</dd>
-            <dt>{t('Apps.localImport.platform')}</dt><dd>{preview.os} · {preview.arch}</dd>
+            <dt>{t('Apps.localImport.platform')}</dt><dd>{preview.os === 'any' && preview.arch === 'any' && preview.info?.targetId === 'desktop-universal' ? t('Apps.catalog.managedWebPlatform') : `${preview.os} · ${preview.arch}`}</dd>
             <dt>{t('Apps.localImport.appAccess')}</dt><dd>{preview.appAccess.join(', ') || t('Apps.catalog.none')}</dd>
             {preview.observedSigningSubject ? <><dt>{t('Apps.catalog.nativePosture')}</dt><dd className="break-all">{preview.observedSigningSubject}</dd></> : null}
           </dl>

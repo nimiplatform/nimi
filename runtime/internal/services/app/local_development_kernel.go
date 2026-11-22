@@ -30,12 +30,12 @@ type localDevelopmentExecutionObservation struct {
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-036b
-func (s *Service) observeLocalDevelopmentExecution(project localDevelopmentProjectSnapshot) (localDevelopmentExecutionObservation, error) {
+func (s *Service) observeLocalDevelopmentExecution(ctx context.Context, project localDevelopmentProjectSnapshot) (localDevelopmentExecutionObservation, error) {
 	projectFileID, err := localDevelopmentCanonicalProjectFileID(project.ProjectRoot)
 	if err != nil {
 		return localDevelopmentExecutionObservation{}, err
 	}
-	hostExecutable, err := localDevelopmentHostExecutable(project)
+	hostExecutable, err := s.resolveLocalDevelopmentHostExecutable(ctx, project)
 	if err != nil {
 		return localDevelopmentExecutionObservation{}, err
 	}
@@ -54,7 +54,7 @@ func (s *Service) registerLocalDevelopmentProject(ctx context.Context, project l
 	if s == nil || s.localAppKernel == nil {
 		return localappkernel.Registration{}, localappkernel.ErrNotFound
 	}
-	observation, err := s.observeLocalDevelopmentExecution(project)
+	observation, err := s.observeLocalDevelopmentExecution(ctx, project)
 	if err != nil {
 		return localappkernel.Registration{}, err
 	}

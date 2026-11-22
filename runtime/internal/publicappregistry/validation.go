@@ -113,10 +113,16 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 	if !appidentity.Valid(candidate.AppID) || !exactText(candidate.DisplayName) || !exactText(candidate.Version) ||
 		candidate.Release.Tag != "v"+candidate.Version || !candidate.Release.Immutable || candidate.Release.Prerelease ||
 		!commitSHAPattern.MatchString(candidate.Release.CommitSHA) || candidate.Package.Kind != "nimiapp" ||
-		candidate.Package.RuntimeKind != "native" || candidate.Package.RegistrationMode != "app-managed" ||
+		(candidate.Package.RuntimeKind != "native" && candidate.Package.RuntimeKind != "managed-web") ||
+		candidate.Package.RegistrationMode != "app-managed" ||
 		candidate.Targets == nil || len(candidate.Targets) == 0 || candidate.Source.License.Files == nil ||
 		candidate.AppAccess == nil || candidate.CapabilityContractRefs == nil || candidate.RequiredStandardizedFeatureRefs == nil {
 		return fmt.Errorf("validate approved App candidate: %w", ErrInvalidRegistrySnapshot)
+	}
+	if candidate.Package.RuntimeKind == "managed-web" {
+		if len(candidate.Targets) != 1 || candidate.StoragePolicy.Kind != "nimi-mediated-default" {
+			return fmt.Errorf("validate approved managed-web App candidate: %w", ErrInvalidRegistrySnapshot)
+		}
 	}
 	owner, err := githubRepositoryOwner(candidate.Source.Repository)
 	if err != nil || !strings.EqualFold(owner, candidate.Publisher.GitHubNamespace) {
@@ -194,6 +200,17 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 			target.ProvenanceAttestationRefs == nil ||
 			len(target.ProvenanceAttestationRefs) == 0 || !exactText(target.ExecutionProfileRef) {
 			return fmt.Errorf("validate approved App target %s: %w", target.TargetID, ErrInvalidRegistrySnapshot)
+		}
+		if candidate.Package.RuntimeKind == "managed-web" {
+			if target.TargetID != ManagedWebTargetID || target.OS != "any" || target.Arch != "any" ||
+				target.RuntimeEntry != ManagedWebRuntimeEntry || target.ExecutionProfileRef != ManagedWebExecutionProfileRef ||
+				target.NativeTrust.WindowsCodeSigning != "not-applicable" || target.NativeTrust.MacOSNotarization != "not-applicable" ||
+				target.NativeTrust.SigningSubject != nil || target.NativeTrust.ObservedSubject != nil ||
+				target.NativeTrust.MacOSDeveloperIDSubject != nil || target.NativeTrust.EntitlementsRef != nil {
+				return fmt.Errorf("validate approved managed-web target %s: %w", target.TargetID, ErrInvalidRegistrySnapshot)
+			}
+		} else if target.TargetID == ManagedWebTargetID || target.OS == "any" || target.Arch == "any" || target.ExecutionProfileRef == ManagedWebExecutionProfileRef {
+			return fmt.Errorf("validate approved native target %s: %w", target.TargetID, ErrInvalidRegistrySnapshot)
 		}
 		if err := validateAsset(target.AssetID, target.AssetName, target.AssetURL, target.Size, target.SHA256, candidate.Source.Repository, candidate.Release.Tag); err != nil {
 			return fmt.Errorf("validate approved App target %s: %w", target.TargetID, err)

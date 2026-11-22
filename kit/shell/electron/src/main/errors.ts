@@ -40,7 +40,10 @@ function normalizeRendererUrlForComparison(value: unknown): string {
   try {
     const url = new URL(text);
     url.hash = '';
-    if ((url.protocol === 'http:' || url.protocol === 'https:') && url.pathname === '/') {
+    if (
+      url.protocol === 'nimi-app:'
+      || ((url.protocol === 'http:' || url.protocol === 'https:') && url.pathname === '/')
+    ) {
       url.search = '';
     }
     return url.toString();

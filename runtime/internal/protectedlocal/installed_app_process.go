@@ -18,5 +18,6 @@ func (policy InstalledAppProcessPolicy) valid() bool {
 		policy.HostExecutablePath != "" && policy.HostExecutableDigest != (Identifier{}) &&
 		policy.SupervisorProcess.validate() == nil &&
 		((policy.ExecutionProfileRef == "windows-user-mode-as-invoker-v1" && policy.SupervisorProcess.OS == OSWindows) ||
-			(policy.ExecutionProfileRef == "macos-user-mode-same-session-v1" && policy.SupervisorProcess.OS == OSMacOS))
+			(policy.ExecutionProfileRef == "macos-user-mode-same-session-v1" && policy.SupervisorProcess.OS == OSMacOS) ||
+			(policy.ExecutionProfileRef == ManagedWebExecutionProfileRef && (policy.SupervisorProcess.OS == OSWindows || policy.SupervisorProcess.OS == OSMacOS)))
 }

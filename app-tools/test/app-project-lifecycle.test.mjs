@@ -553,7 +553,7 @@ test('generated production staging uses the project work area and preserves arch
     mkdirSync(path.dirname(archive));
     writeFileSync(archive, 'the selected archive');
     const snapshot = buildAppScaffoldSnapshot({
-      profile: 'standalone', versions, targetDir: physicalApp,
+      profile: 'standalone', carrier: 'native', versions, targetDir: physicalApp,
       appId: 'example.staging', appTitle: 'Staging', packageName: 'example-staging', features: [],
     });
     const packager = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;

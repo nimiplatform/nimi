@@ -27,6 +27,7 @@ export function AppsInstallConfirmationDialog({
           <p>{t('Apps.catalog.registryApproved')}</p>
           {intent.update ? <p>{t('Apps.update.confirmMessage', { from: intent.update.installedVersion, to: intent.version })}</p> : null}
           {intent.update ? <p>{t('Apps.update.confirmAvailability', { version: intent.update.installedVersion })}</p> : null}
+          {intent.os === 'any' ? <p>{t('Apps.catalog.managedWebPosture')}</p> : null}
           {intent.windowsCodeSigning === 'unsigned' ? <>
             <p>{t('Apps.catalog.unsignedConfirmMessage')}</p>
             <p>{t('Apps.catalog.unsignedConfirmInstall')}</p>

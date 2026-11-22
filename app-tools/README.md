@@ -50,6 +50,8 @@ pnpm dev
 
 Set `--author` to the person or team responsible for the App and its license.
 
+Desktop projects default to a static frontend that Home opens in Nimi’s managed carrier on Windows x64 and macOS arm64. Choose `--carrier native` at creation if the App needs its own Electron main process.
+
 ### Feature Profiles
 - `--features studio-create`: Injects creative text and multimodal generation capabilities along with `runtime.consume` permissions.
 - `--features studio-media`: Includes music, audio separation, and speech transcription capabilities.
@@ -96,6 +98,16 @@ pnpm dev -- --resume <selector>
 ## 4. Production Packaging & Distribution
 
 ### Building for Targets
+
+For the default managed desktop App, build one package for both supported platforms:
+
+```bash
+pnpm exec nimi-app build --target desktop-universal --production
+pnpm exec nimi-app pack --target desktop-universal --production
+```
+
+For an App created with `--carrier native`, build on the matching host:
+
 ```bash
 # macOS (Apple Silicon)
 pnpm exec nimi-app build --target macos-aarch64 --production
@@ -162,14 +174,14 @@ Save it as a **secret** (not an Actions variable) and confirm the exact name app
 Electron packages must keep native add-ons and their companion libraries outside the ASAR archive with their relative directory layout intact. The scaffold configures `asar: { unpack: '**/*.{node,dylib,dll}' }` on macOS and Windows. Apply the equivalent rule to any custom App-owned packager configuration and verify native module loading from the packaged layout—unpacking only `.node` files can leave companion libraries such as Sharp's `libvips` unavailable to the OS dynamic loader.
 
 #### Local Pre-Release Check & Tagging
-Run the production verification path locally from the App repository:
+Run the production verification path locally from the App repository. For a native App, substitute the matching host target shown above.
 
 ```bash
 pnpm run sync
 pnpm exec nimi-app check --production
 pnpm exec nimi-app test
-pnpm exec nimi-app build --target windows-x86_64 --production
-pnpm exec nimi-app pack --target windows-x86_64 --production
+pnpm exec nimi-app build --target desktop-universal --production
+pnpm exec nimi-app pack --target desktop-universal --production
 ```
 
 Ensure `package.json` and `nimi.app.yaml` declare the exact same version, commit all release changes, and land that exact commit on the repository's canonical default branch. Then create and push an annotated tag matching that version (`0.1.0` shown as an example):

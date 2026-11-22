@@ -86,6 +86,8 @@
     "macosNotarized": "Apple notarized",
     "macosNotarizationAbsent": "Not notarized by Apple",
     "macosNotarizationUnknown": "Apple notarization unknown",
+    "managedWebPosture": "Runs in Nimi managed desktop container (no separate native host required)",
+    "managedWebPlatform": "macOS · Windows (Nimi managed container)",
     "policyRevision": "Registry policy revision",
     "rowAbsent": "The current Catalog no longer lists this App. Your installed copy stays as it is.",
     "readFailed": "The App Catalog could not be read right now. Try again later."

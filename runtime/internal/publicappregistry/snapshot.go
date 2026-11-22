@@ -24,6 +24,13 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
+	"golang.org/x/mod/semver"
+)
+
+const (
+	ManagedWebTargetID            = "desktop-universal"
+	ManagedWebExecutionProfileRef = "nimi-managed-web-v1"
+	ManagedWebRuntimeEntry        = "payload/index.html"
 )
 
 const (
@@ -181,29 +188,69 @@ func (s *Snapshot) Revision() string {
 	return s.revision
 }
 
+// TargetCompatibleWithPlatform reports whether an admitted Registry target can
+// run on the given host platform (exact platform-native match or managed-web
+// desktop-universal on any supported desktop host).
+func TargetCompatibleWithPlatform(target Target, expectedOS, expectedArch string) bool {
+	if !validTargetPlatform(expectedOS, expectedArch) {
+		return false
+	}
+	if target.OS == expectedOS && target.Arch == expectedArch {
+		return true
+	}
+	return target.TargetID == ManagedWebTargetID && target.OS == "any" && target.Arch == "any" &&
+		target.ExecutionProfileRef == ManagedWebExecutionProfileRef
+}
+
 // ListVisible resolves every public App that has an admitted pointer for the
-// exact target. A malformed visible row fails the whole snapshot rather than
-// silently disappearing from Catalog truth.
+// current platform target or cross-platform desktop-universal, choosing the
+// highest semantic version when both exist (preferring desktop-universal on tie).
+// A malformed visible row fails the whole snapshot rather than silently disappearing.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 func (s *Snapshot) ListVisible(ctx context.Context, targetID, expectedOS, expectedArch string) ([]ResolvedApprovedTarget, error) {
 	if s == nil || !targetIDPattern.MatchString(targetID) || !validTargetPlatform(expectedOS, expectedArch) {
 		return nil, fmt.Errorf("list approved App targets: %w", ErrInvalidRegistrySnapshot)
 	}
 	appIDs := make([]string, 0, len(s.index.Apps))
 	for appID, row := range s.index.Apps {
-		if row.Visibility == "public" {
-			if _, ok := row.LatestAdmittedReleaseByTarget[targetID]; ok {
-				appIDs = append(appIDs, appID)
-			}
+		if row.Visibility != "public" {
+			continue
+		}
+		_, hasNative := row.LatestAdmittedReleaseByTarget[targetID]
+		_, hasUniversal := row.LatestAdmittedReleaseByTarget[ManagedWebTargetID]
+		if hasNative || hasUniversal {
+			appIDs = append(appIDs, appID)
 		}
 	}
 	sort.Strings(appIDs)
 	result := make([]ResolvedApprovedTarget, 0, len(appIDs))
 	for _, appID := range appIDs {
-		resolved, err := s.Resolve(ctx, appID, targetID, expectedOS, expectedArch)
-		if err != nil {
-			return nil, fmt.Errorf("list approved App target %s/%s: %w", appID, targetID, err)
+		row := s.index.Apps[appID]
+		candidates := make([]ResolvedApprovedTarget, 0, 2)
+		if _, ok := row.LatestAdmittedReleaseByTarget[targetID]; ok {
+			resolved, err := s.Resolve(ctx, appID, targetID, expectedOS, expectedArch)
+			if err != nil {
+				return nil, fmt.Errorf("list approved App target %s/%s: %w", appID, targetID, err)
+			}
+			candidates = append(candidates, resolved)
 		}
-		result = append(result, resolved)
+		if ManagedWebTargetID != targetID {
+			if _, ok := row.LatestAdmittedReleaseByTarget[ManagedWebTargetID]; ok {
+				resolved, err := s.Resolve(ctx, appID, ManagedWebTargetID, expectedOS, expectedArch)
+				if err != nil {
+					return nil, fmt.Errorf("list approved App target %s/%s: %w", appID, ManagedWebTargetID, err)
+				}
+				candidates = append(candidates, resolved)
+			}
+		}
+		selected := candidates[0]
+		for _, candidate := range candidates[1:] {
+			cmp := semver.Compare("v"+candidate.Version, "v"+selected.Version)
+			if cmp > 0 || (cmp == 0 && candidate.Target.TargetID == ManagedWebTargetID) {
+				selected = candidate
+			}
+		}
+		result = append(result, selected)
 	}
 	return result, nil
 }
@@ -551,7 +598,7 @@ func (s *Snapshot) Resolve(ctx context.Context, appID, targetID, expectedOS, exp
 	if err != nil {
 		return ResolvedApprovedTarget{}, err
 	}
-	if resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
+	if !TargetCompatibleWithPlatform(resolved.Target, expectedOS, expectedArch) {
 		return ResolvedApprovedTarget{}, fmt.Errorf("resolve approved App target: %w", ErrCatalogTargetNotFound)
 	}
 	return resolved, nil

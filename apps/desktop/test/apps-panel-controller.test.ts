@@ -79,7 +79,9 @@ describe('Desktop Apps controller action boundary', () => {
       approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
       descriptorId: 'publisher.example@1.0.0', appId: 'publisher.example', displayName: 'Example App', version: '1.0.0',
       publisherGithubNamespace: 'publisher', targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64',
-      assetName: 'example.nimiapp', assetSize: '42', windowsCodeSigning: 'unsigned', policyBlocked: false, policyRevision: '0',
+      executionProfileRef: 'windows-user-mode-as-invoker-v1',
+      assetName: 'example.nimiapp', assetSize: '42', windowsCodeSigning: 'unsigned', macosNotarization: 'not-applicable',
+      policyBlocked: false, policyRevision: '0',
     } as ApprovedAppCatalogTarget;
     const entry: DesktopAppsEntry = {
       identity: { entryKey: 'verified:publisher.example', appId: target.appId, sourceClass: 'verified', displayName: target.displayName, updatedAtUnixMs: 0 },

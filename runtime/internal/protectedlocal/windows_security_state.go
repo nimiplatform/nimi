@@ -28,7 +28,8 @@ type WindowsRuntimeSecurityState struct {
 	ownerIdentity          windowsSourceProcessIdentity
 	expectedDesktopPath    string
 
-	peerRejections peerRejectionSink
+	peerRejections            peerRejectionSink
+	managedWebCarrierResolver ManagedWebCarrierResolver
 
 	transportMu       sync.Mutex
 	desktopTransport  interface{ Close() error }
@@ -45,6 +46,19 @@ func (state *WindowsRuntimeSecurityState) SetPeerRejectionObserver(observer Peer
 	if state != nil {
 		state.peerRejections.set(observer)
 	}
+}
+
+func (state *WindowsRuntimeSecurityState) SetManagedWebCarrierResolver(resolver ManagedWebCarrierResolver) {
+	if state != nil {
+		state.managedWebCarrierResolver = resolver
+	}
+}
+
+func (state *WindowsRuntimeSecurityState) ManagedWebCarrierResolver() ManagedWebCarrierResolver {
+	if state == nil {
+		return nil
+	}
+	return state.managedWebCarrierResolver
 }
 
 type windowsSourceProcessIdentity struct {

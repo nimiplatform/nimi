@@ -46,7 +46,9 @@ export async function runDevShell(cwd, options = {}) {
   if (typeof fetchImpl !== 'function') {
     throw new DevShellError('local-development-launcher-unavailable', 'This Node.js runtime does not provide fetch.');
   }
-  if (!options.listRegistrations) await assertProjectElectronRuntime(projectRoot);
+  if (!options.listRegistrations && !(await isManagedWebProject(projectRoot))) {
+    await assertProjectElectronRuntime(projectRoot);
+  }
   let registrationSelector = options.resume;
   if (options.listRegistrations || (!options.resume && !options.newRegistration)) {
     const listed = await postJson(fetchImpl, descriptor, '/v1/registrations', {
@@ -204,6 +206,16 @@ export async function assertProjectElectronRuntime(projectRoot, platform = proce
       + 'For the matched Electron package, run pnpm exec install-electron --no in this project, '
       + 'resolve any reported installation error, then retry nimi-app dev.',
     );
+  }
+}
+
+export async function isManagedWebProject(projectRoot) {
+  try {
+    const raw = await readFile(path.join(projectRoot, '.nimi', 'config', 'build-profile.yaml'), 'utf8');
+    const parsed = parseYaml(raw);
+    return parsed?.build_profile_ref === 'managed-web-pnpm-vite';
+  } catch {
+    return false;
   }
 }
 

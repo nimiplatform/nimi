@@ -3,12 +3,14 @@
 package app
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 const macOSSourceLocalDevelopmentHostExecutableEnvironment = "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE"
@@ -16,6 +18,13 @@ const macOSSourceLocalDevelopmentHostExecutableEnvironment = "NIMI_MACOS_SOURCE_
 func localDevelopmentHostExecutable(project localDevelopmentProjectSnapshot) (string, error) {
 	if project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
 		return "", errLocalDevelopmentProjectChanged
+	}
+	if project.ManagedWeb {
+		carrier, err := protectedlocal.ResolveManagedWebCarrier(context.Background())
+		if err != nil || !carrier.Valid() {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		return carrier.ExecutablePath, nil
 	}
 	host := filepath.Clean(strings.TrimSpace(os.Getenv(macOSSourceLocalDevelopmentHostExecutableEnvironment)))
 	if !filepath.IsAbs(host) || host != strings.TrimSpace(os.Getenv(macOSSourceLocalDevelopmentHostExecutableEnvironment)) {

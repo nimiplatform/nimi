@@ -38,6 +38,7 @@ type localDevelopmentProjectSnapshot struct {
 	ProjectRoot           string
 	ManifestPath          string
 	ShellKind             runtimev1.LocalDevelopmentShellKind
+	ManagedWeb            bool
 	RawAppAccess          []string
 	ActivatedDomains      []string
 	SourceGeneration      uint64
@@ -225,10 +226,15 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(_ context.Context, launc
 	if !ok || ticket.Process.PID != 0 {
 		return protectedlocal.LocalDevelopmentProcessPolicy{}, errLocalDevelopmentLaunchExpired
 	}
-	return protectedlocal.LocalDevelopmentProcessPolicy{
-		ProjectRoot: ticket.Project.ProjectRoot, HostExecutablePath: ticket.HostExecutable,
-		ProjectHostAliasPath: localDevelopmentProjectHostAliasPath(ticket.Project.ProjectRoot, ticket.Project.ShellKind),
-	}, nil
+	policy := protectedlocal.LocalDevelopmentProcessPolicy{
+		ProjectRoot:           ticket.Project.ProjectRoot,
+		HostExecutablePath:    ticket.HostExecutable,
+		PlatformSharedCarrier: ticket.Project.ManagedWeb,
+	}
+	if !ticket.Project.ManagedWeb {
+		policy.ProjectHostAliasPath = localDevelopmentProjectHostAliasPath(ticket.Project.ProjectRoot, ticket.Project.ShellKind)
+	}
+	return policy, nil
 }
 
 func (store *localDevelopmentStore) BindLaunch(_ context.Context, launchID protectedlocal.Identifier, process protectedlocal.ProcessTuple) (time.Time, error) {

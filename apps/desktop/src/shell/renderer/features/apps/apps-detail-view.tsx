@@ -619,7 +619,7 @@ function InstalledAppsDetailView({
         }]
       : []),
     ...(localDownloadSize ? [{ label: t('Apps.storefront.downloadSizeLabel'), value: localDownloadSize }] : []),
-    ...(catalog ? [{ label: t('Apps.storefront.platformLabel'), value: `${catalog.os} / ${catalog.arch}` }] : []),
+    ...(catalog ? [{ label: t('Apps.storefront.platformLabel'), value: catalog.os === 'any' ? t('Apps.catalog.managedWebPlatform') : `${catalog.os} / ${catalog.arch}` }] : []),
     ...(licenseIdentifier ? [{ label: t('Apps.storefront.licenseLabel'), value: licenseIdentifier }] : []),
     ...(storagePolicyKind
       ? [{
@@ -1476,6 +1476,14 @@ function DetailSection({ title, description, children }: {
 type AppsCatalogTargetFacts = NonNullable<DesktopAppsEntry['catalogTarget']>;
 
 function catalogNativePosture(catalog: AppsCatalogTargetFacts, t: TFunction): string {
+  if (
+    catalog.os === 'any'
+    && catalog.arch === 'any'
+    && catalog.targetId === 'desktop-universal'
+    && catalog.executionProfileRef === 'nimi-managed-web-v1'
+  ) {
+    return t('Apps.catalog.managedWebPosture');
+  }
   if (catalog.os === 'macos') {
     const subject = catalog.observedSigningSubject || t('Apps.catalog.macosUnsigned');
     const notarization = t(catalog.macosNotarization === 'notarized'

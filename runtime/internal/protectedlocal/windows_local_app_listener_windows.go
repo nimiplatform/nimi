@@ -28,7 +28,7 @@ func OpenWindowsVerifiedLocalAppListener(ctx context.Context, state *WindowsRunt
 		return nil, err
 	}
 	listenerCtx, cancel := context.WithCancel(ctx)
-	developmentVerifier, err := NewWindowsLocalDevelopmentProcessVerifier(state.desktopIdentity)
+	developmentVerifier, err := NewWindowsLocalDevelopmentProcessVerifierWithCarrierResolver(state.desktopIdentity, state.managedWebCarrierResolver)
 	if err != nil {
 		_ = initial.Close()
 		cancel()
@@ -82,7 +82,7 @@ func (listener *windowsVerifiedLocalAppListener) Accept() (net.Conn, error) {
 		} else if bound {
 			developmentVerifier := listener.developmentVerifier
 			if developmentVerifier == nil {
-				developmentVerifier, err = NewWindowsLocalDevelopmentProcessVerifier(listener.state.desktopIdentity)
+				developmentVerifier, err = NewWindowsLocalDevelopmentProcessVerifierWithCarrierResolver(listener.state.desktopIdentity, listener.state.managedWebCarrierResolver)
 			}
 			if err == nil {
 				peer, pipeLiveness, err = native.verifyAndBindLocalDevelopmentClientProcess(listener.ctx, developmentVerifier, policy, expected)

@@ -53,4 +53,8 @@ test('each generated attempt has its own bootstrap and every exit reaches bounde
   assert.ok(script.includes('Goto end\n  installfail:') && script.includes('SetErrorLevel $2\n  end:'));
   assert.ok(script.includes('--prepare 0.3.0 4096 8'));
   assert.ok(script.indexOf('--prepare 0.3.0 4096 8') < script.indexOf('File /r'));
+  const extractBlock = script.slice(script.indexOf('\n  extract:'), script.indexOf('\n  currentowner:'));
+  assert.ok(extractBlock.includes('CopyFiles /SILENT'));
+  assert.ok(extractBlock.includes('IfErrors fail'));
+  assert.ok(!extractBlock.includes('IfErrors installfail'));
 });

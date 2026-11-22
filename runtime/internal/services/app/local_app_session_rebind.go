@@ -184,7 +184,7 @@ func (s *Service) revalidateLocalAppRebindSource(ctx context.Context, connection
 		if err != nil {
 			return localappkernel.Registration{}, err
 		}
-		host, err := localDevelopmentHostExecutable(project)
+		host, err := s.resolveLocalDevelopmentHostExecutable(ctx, project)
 		if err != nil {
 			return localappkernel.Registration{}, err
 		}
@@ -207,7 +207,16 @@ func (s *Service) revalidateLocalAppRebindSource(ctx context.Context, connection
 			if err = protectedlocal.VerifyLocalAppProcessParent(ctx, connection.Process().PID, previous.desktopOwner); err != nil {
 				return localappkernel.Registration{}, err
 			}
-			process, live, verifyErr := s.localDevelopmentVerifier.VerifyLocalDevelopmentProcess(ctx, connection.Process().PID, protectedlocal.LocalDevelopmentProcessPolicy{ProjectRoot: project.ProjectRoot, HostExecutablePath: host, SupervisorProcess: parent})
+			rebindPolicy := protectedlocal.LocalDevelopmentProcessPolicy{
+				ProjectRoot:           project.ProjectRoot,
+				HostExecutablePath:    host,
+				PlatformSharedCarrier: project.ManagedWeb,
+				SupervisorProcess:     parent,
+			}
+			if !project.ManagedWeb {
+				rebindPolicy.ProjectHostAliasPath = localDevelopmentProjectHostAliasPath(project.ProjectRoot, project.ShellKind)
+			}
+			process, live, verifyErr := s.localDevelopmentVerifier.VerifyLocalDevelopmentProcess(ctx, connection.Process().PID, rebindPolicy)
 			if verifyErr != nil {
 				return localappkernel.Registration{}, verifyErr
 			}
@@ -236,7 +245,10 @@ func (s *Service) revalidateLocalAppRebindSource(ctx context.Context, connection
 		return localappkernel.Registration{}, errLocalDevelopmentLaunchMismatch
 	}
 	err = s.appInstallCoordinator.WithInstalledLaunch(ctx, previous.registrationHandle, func(current nimiappinstall.InstalledLaunch) error {
-		if current.RuntimeEntry != lease.verified.RuntimeEntry || current.WorkingDirectory != lease.verified.WorkingDirectory || current.ExecutableDigest != lease.verified.ExecutableDigest || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest {
+		if current.RuntimeEntry != lease.verified.RuntimeEntry || current.WorkingDirectory != lease.verified.WorkingDirectory ||
+			current.ExecutableDigest != lease.verified.ExecutableDigest ||
+			current.CarrierExecutablePath != lease.policy.HostExecutablePath || current.CarrierExecutableDigest != lease.policy.HostExecutableDigest ||
+			current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest {
 			return errLocalDevelopmentProcessMismatch
 		}
 		registration = current.Registration

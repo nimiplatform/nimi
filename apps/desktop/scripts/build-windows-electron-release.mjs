@@ -115,14 +115,21 @@ try {
   await requireDirectory(packagedRoot);
 
   const executable = path.join(packagedRoot, `${WINDOWS_ELECTRON_LAYOUT_APP_NAME}.exe`);
+  const managedCarrierExecutable = path.join(packagedRoot, 'NimiAppHost.exe');
   await assertWindowsX64PeFile(executable, 'Nimi Desktop executable');
   await requireElectronFuses(executable, HOME_WINDOWS_FUSES);
   if (!production) {
-  const executableSigning = signWindowsDevFiles([executable], { cwd: repoRoot });
-  if (executableSigning.certificateSha256 !== developmentIdentity.certificateSha256) {
-    throw new Error('Windows Electron layout development signer changed while signing the application');
+    const executableSigning = signWindowsDevFiles([executable], { cwd: repoRoot });
+    if (executableSigning.certificateSha256 !== developmentIdentity.certificateSha256) {
+      throw new Error('Windows Electron layout development signer changed while signing the application');
+    }
   }
-  }
+  // Independent byte-identical file copy (never a hardlink) so NTFS FileIndex
+  // and basename isolate NimiAppHost.exe from Nimi.exe while reusing the exact
+  // Authenticode-signed PE bytes.
+  await cp(executable, managedCarrierExecutable, { errorOnExist: true, force: false });
+  await assertWindowsX64PeFile(managedCarrierExecutable, 'Nimi Managed App Host executable');
+  await requireElectronFuses(managedCarrierExecutable, HOME_WINDOWS_FUSES);
 
   const packagedNativeCode = await collectNativeCode(
     path.join(packagedRoot, 'resources', 'app.asar.unpacked', 'node_modules'),
@@ -132,7 +139,7 @@ try {
     await assertWindowsX64PeFile(nativePath, path.basename(nativePath));
   }
   if (!production) requireWindowsDevSignedFiles(
-    [executable, ...packagedNativeCode],
+    [executable, managedCarrierExecutable, ...packagedNativeCode],
     developmentIdentity.certificateSha256,
     { cwd: repoRoot },
   );
@@ -205,7 +212,9 @@ async function stageApplicationSource(sourceRoot, packageVersion) {
     cp(path.join(avatarRoot, 'NIMI_APP.md'), path.join(sourceRoot, 'avatar', 'NIMI_APP.md')),
     cp(path.join(zhiyuRoot, 'NIMI_APP.md'), path.join(sourceRoot, 'zhiyu', 'NIMI_APP.md')),
     cp(path.join(desktopRoot, 'assets'), path.join(sourceRoot, 'assets'), { recursive: true, force: false }),
+    cp(path.join(desktopRoot, 'dist-electron', 'entry.js'), path.join(sourceRoot, 'dist-electron', 'entry.js')),
     cp(path.join(desktopRoot, 'dist-electron', 'main.js'), path.join(sourceRoot, 'dist-electron', 'main.js')),
+    cp(path.join(desktopRoot, 'dist-electron', 'managed-web-carrier.js'), path.join(sourceRoot, 'dist-electron', 'managed-web-carrier.js')),
     cp(
       path.join(desktopRoot, 'dist-electron', 'chat-ai-store-worker.js'),
       path.join(sourceRoot, 'dist-electron', 'chat-ai-store-worker.js'),
@@ -217,6 +226,7 @@ async function stageApplicationSource(sourceRoot, packageVersion) {
     cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(sourceRoot, 'dist-electron', 'preload.cjs')),
     cp(path.join(desktopRoot, 'dist-electron', 'system-entry-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'system-entry-preload.cjs')),
     cp(path.join(desktopRoot, 'dist-electron', 'zhiyu-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'zhiyu-preload.cjs')),
+    cp(path.join(desktopRoot, 'dist-electron', 'managed-web-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'managed-web-preload.cjs')),
   ]);
   await Promise.all([
     stageSharpRuntime(sourceRoot),
@@ -224,7 +234,7 @@ async function stageApplicationSource(sourceRoot, packageVersion) {
   ]);
   await writeFile(path.join(sourceRoot, 'package.json'), `${JSON.stringify({
     description: 'Nimi Desktop',
-    main: 'dist-electron/main.js',
+    main: 'dist-electron/entry.js',
     name: 'nimi-desktop',
     private: true,
     type: 'module',
@@ -352,7 +362,7 @@ async function buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevis
   for (const [relative, pkg, flags] of [['runtime/nimi.exe', './cmd/nimi', `-s -w -X main.Version=${version}`], ['NimiProductUpdater.exe', './tools/windows-product-updater', '-s -w']]) {
     runLayoutCommand('go', ['build', '-trimpath', '-overlay', overlayPath, '-ldflags', flags, '-o', path.join(packagedRoot, relative), pkg], { cwd: path.join(repoRoot, 'runtime'), inherit: true, env: { ...process.env, GOOS: 'windows', GOARCH: 'amd64', CGO_ENABLED: '0' } });
   }
-  for (const relative of ['Nimi.exe', 'runtime/nimi.exe', 'NimiProductUpdater.exe']) {
+  for (const relative of ['Nimi.exe', 'NimiAppHost.exe', 'runtime/nimi.exe', 'NimiProductUpdater.exe']) {
     await assertWindowsX64PeFile(path.join(packagedRoot, relative), relative);
     await verifyWindowsUnsignedInstaller(path.join(packagedRoot, relative));
   }

@@ -345,8 +345,22 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 		platformSource := s.formalAppSourceDevelopment && connection.TrustClass() == protectedlocal.LocalAppTrustBuiltIn &&
 			registration.IsPlatformSourceDevelopment()
 		if !sourceOK || installedHandle != registration.RegistrationHandle || registration.SourceClass != expectedSource ||
-			(!platformSource && (!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "")) ||
-			registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest) {
+			(!platformSource && (!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "")) {
+			return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+		}
+		if registration.ExecutionProfileRef == protectedlocal.ManagedWebExecutionProfileRef {
+			lease := s.installedLaunch(launchCorrelation[:])
+			if lease == nil || lease.policy.RegistrationHandle != registration.RegistrationHandle ||
+				lease.policy.ExecutionProfileRef != protectedlocal.ManagedWebExecutionProfileRef {
+				return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+			}
+			lease.mu.Lock()
+			boundLive := lease.bound && !lease.closed
+			lease.mu.Unlock()
+			if !boundLive || lease.policy.HostExecutableDigest != connection.Process().ExecutableDigest {
+				return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+			}
+		} else if registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest) {
 			return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 		}
 	}

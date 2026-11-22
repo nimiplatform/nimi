@@ -133,6 +133,7 @@ export function createApp(cwd, options = {}) {
       dir: options.dir,
       profile: options.profile,
       platform: options.platform,
+      carrier: options.carrier,
       appId: options.appId,
       name: options.name,
       title: options.title,

@@ -1,4 +1,5 @@
 import { isAppId } from './app-identifiers.mjs';
+import { validateManifestDesktop } from './desktop-window.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readMobileDevelopment } from './mobile-development.mjs';
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
@@ -186,6 +187,7 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
   }
   for (const [intentField, lockField, label] of [
     ['profile', 'profile', 'profile'],
+    ['carrier', 'carrier', 'carrier'],
     ['appId', 'appId', 'App ID'],
     ['appTitle', 'appTitle', 'display name'],
     ['packageName', 'packageName', 'package name'],
@@ -479,12 +481,20 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
   }
 }
 
-function usesAppOwnedRenderer(targetDir, plannedSources) {
+function readBuildProfileRef(targetDir, plannedSources) {
   const relativePath = '.nimi/config/build-profile.yaml';
   const filePath = path.join(targetDir, relativePath);
   const source = plannedSources?.get(relativePath)
     ?? (existsSync(filePath) ? readFileSync(filePath, 'utf8') : undefined);
-  return source !== undefined && parseYaml(source)?.build_profile_ref === 'electron-pnpm';
+  return source !== undefined ? parseYaml(source)?.build_profile_ref : undefined;
+}
+
+function usesAppOwnedRenderer(targetDir, plannedSources) {
+  return readBuildProfileRef(targetDir, plannedSources) === 'electron-pnpm';
+}
+
+function usesManagedWebCarrier(targetDir, plannedSources) {
+  return readBuildProfileRef(targetDir, plannedSources) === 'managed-web-pnpm-vite';
 }
 
 function assertProjectConfiguration(targetDir, parsedManifest = null, managed = true) {
@@ -499,6 +509,7 @@ function assertProjectConfiguration(targetDir, parsedManifest = null, managed = 
       throw new Error(`Submitted manifest YAML cannot be parsed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+  validateManifestDesktop(document?.desktop, 'nimi.app.yaml desktop', manifest);
   readAppIntroduction(targetDir, document);
   readAppStorefront(targetDir, document);
   assertCarrierDevelopmentInputs(targetDir, document, readJsonFile(path.join(targetDir, 'package.json')), managed);
@@ -551,7 +562,7 @@ function assertDeclaredHostSourceDirectory(targetDir, document) {
   }
 }
 
-function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json'), managed = true) {
+function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json'), managed = true, managedWeb = false) {
   const scripts = packageJson?.scripts;
   if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
     throw new Error('package.json scripts are required');
@@ -573,11 +584,11 @@ function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, package
     || /\b(?:nimi-app\s+dev|(?:pnpm|npm)\s+(?:run\s+)?(?:dev|dev:renderer))(?=\s|$)/u.test(rendererCommand)) {
     throw new Error('package.json dev:renderer must be a non-recursive App-owned renderer command for the declared loopback origin');
   }
-  if (
+  if (!managedWeb && (
     typeof scripts['build:electron'] !== 'string'
     || scripts['build:electron'].trim() !== scripts['build:electron']
     || scripts['build:electron'].length === 0
-  ) {
+  )) {
     throw new Error('package.json build:electron must build the Desktop-supervised Electron host');
   }
   for (const [name, value] of Object.entries(scripts)) {
@@ -615,14 +626,16 @@ function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, manage
   }
   if (manifest.platform !== 'web') {
     if (manifest.platform !== undefined && manifest.platform !== 'desktop') throw new Error('Unsupported App platform.');
+    const managedWeb = usesManagedWebCarrier(targetDir, plannedSources);
     const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
     assertDeclaredHostSourceDirectory(targetDir, manifest);
-    assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources));
+    assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources), managedWeb);
   }
 }
 
 export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
   assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
+  validateManifestDesktop(manifest?.desktop, 'nimi.app.yaml desktop');
   readAppIntroduction(targetDir, manifest);
   readAppStorefront(targetDir, manifest);
   assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources);

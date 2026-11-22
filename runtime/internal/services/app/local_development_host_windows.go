@@ -3,16 +3,25 @@
 package app
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 func localDevelopmentHostExecutable(project localDevelopmentProjectSnapshot) (string, error) {
 	if project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
 		return "", errLocalDevelopmentProjectChanged
+	}
+	if project.ManagedWeb {
+		carrier, err := protectedlocal.ResolveManagedWebCarrier(context.Background())
+		if err != nil || !carrier.Valid() {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		return carrier.ExecutablePath, nil
 	}
 	return canonicalLocalDevelopmentHostExecutable(
 		project.ProjectRoot,

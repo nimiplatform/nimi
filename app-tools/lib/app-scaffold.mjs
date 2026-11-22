@@ -1,6 +1,6 @@
 import { isAppId } from './app-identifiers.mjs';
 import { WEB_BASE_TEMPLATE_PATHS, webDevelopmentInput, webBuildProfile, webPackage, webDependencyMatrix } from './web-scaffold.mjs';
-import { resolveWebAppScaffoldFeatures } from './app-scaffold-capabilities.mjs';
+import { resolveDesktopAppScaffoldFeatures, resolveWebAppScaffoldFeatures } from './app-scaffold-capabilities.mjs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import YAML from 'yaml';
@@ -29,7 +29,7 @@ export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my.nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
 const DEFAULT_APP_VERSION = '0.1.0';
-const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
+const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 export const SCAFFOLD_INTENT_VERSION = 4;
 export const SCAFFOLD_LOCK_VERSION = 4;
 export const SCAFFOLD_VERSION = '2026-10-13.standard-app-navigation-v1';
@@ -172,7 +172,7 @@ const APP_RELEASE_WORKFLOW = [
   '        id: matrix',
   '        shell: bash',
   '        run: |',
-  "          matrix=$(jq -c '{include: [.targets[] | {target: ., runner: (if . == \"windows-x86_64\" then \"windows-latest\" elif . == \"macos-aarch64\" then \"macos-15\" else error(\"unsupported target\") end)}]}' .nimi-targets.json)",
+  "          matrix=$(jq -c '{include: [.targets[] | {target: ., runner: (if . == \"desktop-universal\" then \"ubuntu-latest\" elif . == \"windows-x86_64\" then \"windows-latest\" elif . == \"macos-aarch64\" then \"macos-15\" else error(\"unsupported target\") end)}]}' .nimi-targets.json)",
   '          test "$(jq \'.include | length\' <<<"$matrix")" -gt 0',
   '          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"',
   '  build-target:',
@@ -521,6 +521,23 @@ function deriveScaffoldDevPort(appId) {
   return 1430 + hash;
 }
 
+export const SUPPORTED_DESKTOP_CARRIERS = Object.freeze(['managed-web', 'native']);
+
+function resolveDesktopCarrier(platform, carrier) {
+  const normalized = String(carrier || '').trim();
+  if (platform === 'web') {
+    if (normalized) {
+      throw new Error('--carrier is available only for desktop Apps');
+    }
+    return undefined;
+  }
+  const selected = normalized || 'managed-web';
+  if (!SUPPORTED_DESKTOP_CARRIERS.includes(selected)) {
+    throw new Error(`Unsupported desktop App carrier: ${selected} (expected managed-web or native)`);
+  }
+  return selected;
+}
+
 function buildAppIdentity(
   profile,
   appId,
@@ -532,14 +549,19 @@ function buildAppIdentity(
   features = undefined,
   featureResolver = resolveAppScaffoldFeatures,
   platform = 'desktop',
+  carrier = undefined,
 ) {
   const resolvedPackageName = packageName || packageSafeName(appId);
   if (!['desktop', 'web'].includes(platform)) throw new Error(`Unsupported App platform: ${platform}`);
-  const capabilityResolution = platform === 'web' ? resolveWebAppScaffoldFeatures(features, featureResolver) : featureResolver(features);
+  const desktopCarrier = resolveDesktopCarrier(platform, carrier);
+  const capabilityResolution = platform === 'web'
+    ? resolveWebAppScaffoldFeatures(features, featureResolver)
+    : resolveDesktopAppScaffoldFeatures(features, desktopCarrier, featureResolver);
   const identity = {
     appId,
     appTitle,
     platform,
+    ...(desktopCarrier ? { carrier: desktopCarrier } : {}),
     version: normalizeAppVersion(version),
     profile,
     packageName: resolvedPackageName,
@@ -573,6 +595,8 @@ function resolveAppScaffoldCreateInputWithResolver(
   featureResolver,
 ) {
   const profile = resolveProfile(options);
+  const platform = options.platform || 'desktop';
+  const carrier = resolveDesktopCarrier(platform, options.carrier);
   const appId = resolveAppId(options);
   const appTitle = normalizeDisplayName(options.title || options.name || DEFAULT_APP_TITLE);
   const version = normalizeAppVersion(options.version);
@@ -589,10 +613,12 @@ function resolveAppScaffoldCreateInputWithResolver(
     options.accentPack,
     options.features,
     featureResolver,
-    options.platform || 'desktop',
+    platform,
+    carrier,
   );
   return Object.freeze({
     ...(identity.platform === 'web' ? { platform: 'web' } : {}),
+    ...(identity.carrier ? { carrier: identity.carrier } : {}),
     profile,
     appId,
     appTitle,
@@ -672,7 +698,31 @@ function buildPackageJson(profile, versions, identity) {
   if (identity.author) {
     packageJson.author = identity.author;
   }
-  return identity.platform === 'web' ? webPackage(packageJson) : packageJson;
+  if (identity.platform === 'web') return webPackage(packageJson);
+  if (identity.carrier === 'managed-web') {
+    const { main: _main, ...managedPkg } = packageJson;
+    for (const name of ['@electron/packager', 'electron', 'esbuild', 'pngjs']) {
+      delete managedPkg.devDependencies[name];
+    }
+    managedPkg.pnpm = { onlyBuiltDependencies: ['esbuild', 'protobufjs'] };
+    managedPkg.scripts = {
+      dev: 'nimi-app dev --shell electron',
+      'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
+      'dev:shell': 'nimi-app dev',
+      init: 'nimi-app init',
+      sync: 'nimi-app sync',
+      check: 'nimi-app check',
+      test: 'nimi-app test',
+      'test:app': 'node --test test/*.test.mjs',
+      'app:build': 'nimi-app build',
+      pack: 'nimi-app pack',
+      typecheck: 'tsc --noEmit',
+      build: 'tsc --noEmit && vite build',
+      validate: 'node scripts/validate.mjs',
+    };
+    return managedPkg;
+  }
+  return packageJson;
 }
 
 function buildRuntimeDependencies(profile, versions, capabilityResolution) {
@@ -813,6 +863,13 @@ function buildNimiAppManifest(identity) {
     capability_contract_refs: identity.capabilityResolution.capabilityContractRefs,
     required_standardized_feature_refs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
     storage_policy: { kind: 'nimi-mediated-default' },
+    ...(identity.platform !== 'web' && identity.carrier === 'managed-web' ? {
+      desktop: {
+        window: {
+          title_bar_style: 'hidden',
+        },
+      },
+    } : {}),
     metadata: {
       summary: '',
       icon: 'assets/app-icon.png',
@@ -858,7 +915,187 @@ function applyProfileSeam(relativePath, content, profile, identity) {
     return buildNimiAppManifest(identity);
   }
   if (relativePath === 'README.md') {
-    return content.replace(/Profile: `standalone`/, `Profile: \`${profile}\``);
+    return content
+      .replace(/Profile: `standalone`/, `Profile: \`${profile}\``)
+      .replace(/<!-- carrier: (native|managed-web) -->\r?\n([\s\S]*?)<!-- end carrier -->\r?\n/gu,
+        (_, carrier, section) => carrier === identity.carrier ? section : '');
+  }
+  if (identity.carrier === 'managed-web' && relativePath === 'src/capabilities/agent-center/index.tsx') {
+    return [
+      "import type { ComponentProps } from 'react';",
+      "import { AppAgentCenterEntry } from '@nimiplatform/kit/features/agent-center';",
+      '',
+      '// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c',
+      '// @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-014a',
+      "export function AgentCenterCapability(props: { readonly client: ComponentProps<typeof AppAgentCenterEntry>['client'] }) {",
+      '  return (',
+      '    <AppAgentCenterEntry',
+      '      client={props.client}',
+      '      hostMechanics={null}',
+      "      language={globalThis.document?.documentElement.lang || 'en'}",
+      '    />',
+      '  );',
+      '}',
+      '',
+    ].join('\n');
+  }
+  if (identity.carrier === 'managed-web' && relativePath === 'src/capabilities/agent-conversation/index.tsx') {
+    return [
+      "import { useEffect, useMemo, useRef, useState } from 'react';",
+      "import { ArrowLeft, ChevronRight, MessagesSquare } from 'lucide-react';",
+      "import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';",
+      'import {',
+      '  APP_CONVERSATION_ENTRY_COPY,',
+      '  CanonicalComposer,',
+      '  CanonicalTranscriptView,',
+      '  createAppConversationEntrySession,',
+      '  createBrowserAppConversationHostPort,',
+      '  type AppConversationEntryClient,',
+      '  type AppConversationEntrySession,',
+      '  type AppConversationEntryState,',
+      "} from '@nimiplatform/kit/features/chat';",
+      '',
+      '// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c',
+      '// @nimi-authority: rule.nimi.runtime.agent-participation.r093',
+      '// Managed-web carrier keeps text conversation and omits microphone recording.',
+      'export function AgentConversationCapability(props: { readonly client: AppConversationEntryClient }) {',
+      "  const language = globalThis.document?.documentElement.lang || 'en';",
+      "  const copy = useMemo(() => (language.trim().toLowerCase().startsWith('zh') ? APP_CONVERSATION_ENTRY_COPY.zh : APP_CONVERSATION_ENTRY_COPY.en), [language]);",
+      '  const hostPort = useMemo(() => createBrowserAppConversationHostPort(), []);',
+      '  const sessionRef = useRef<AppConversationEntrySession | null>(null);',
+      '  const [state, setState] = useState<AppConversationEntryState | null>(null);',
+      "  const [composerText, setComposerText] = useState('');",
+      '',
+      '  useEffect(() => {',
+      '    const session = createAppConversationEntrySession({ client: props.client, hostPort });',
+      '    sessionRef.current = session;',
+      '    const unobserve = session.observe(setState);',
+      '    void session.loadReferences();',
+      '    return () => {',
+      '      unobserve();',
+      '      if (sessionRef.current === session) sessionRef.current = null;',
+      '      void session.dispose();',
+      '    };',
+      '  }, [props.client, hostPort]);',
+      '',
+      '  useEffect(() => {',
+      "    setComposerText('');",
+      '  }, [state?.conversationAnchorId]);',
+      '',
+      '  const composerAdapter = useMemo(() => ({',
+      '    submit: async ({ text }: { text: string; attachments: readonly never[] }) => {',
+      '      const session = sessionRef.current;',
+      '      if (!session || !text.trim()) return;',
+      '      const requestId = `send_${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;',
+      "      await session.send({ requestId, parts: [{ kind: 'text', text }] });",
+      '      if (sessionRef.current !== session) return;',
+      "      setComposerText((current) => (current === text ? '' : current));",
+      '    },',
+      '  }), []);',
+      '',
+      "  if (!state || state.status === 'idle' || state.status === 'loading-references' || state.status === 'opening' || state.status === 'failed' || state.status === 'stale') {",
+      "    const opening = state?.status === 'opening';",
+      '    return (',
+      '      <Surface tone="panel" className="space-y-3 p-4" data-nimi-app-conversation-entry="true">',
+      '        <h1 className="m-0 text-2xl font-semibold tracking-tight">{copy.title}</h1>',
+      "        {!state || state.status === 'idle' || state.status === 'loading-references' || opening ? (",
+      '          <LoadingSkeleton lines={2} label={opening ? copy.opening : copy.loadingReferences} />',
+      '        ) : null}',
+      '        {state?.error ? <InlineAlert tone="warning">{state.error}</InlineAlert> : null}',
+      "        {state && (state.status === 'failed' || state.status === 'stale') ? (",
+      '          <Button size="sm" tone="secondary" onClick={() => { void sessionRef.current?.loadReferences(); }}>',
+      '            {state.selectedReference ? copy.reload : copy.retry}',
+      '          </Button>',
+      '        ) : null}',
+      '      </Surface>',
+      '    );',
+      '  }',
+      '',
+      "  if (state.status === 'select-reference') {",
+      '    return (',
+      '      <Surface tone="panel" className="space-y-4 p-4" data-nimi-app-conversation-entry="true">',
+      '        <header className="flex items-start gap-3">',
+      '          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">',
+      '            <MessagesSquare className="size-5" aria-hidden="true" />',
+      '          </span>',
+      '          <div className="min-w-0">',
+      '            <h1 className="m-0 text-2xl font-semibold tracking-tight">{copy.title}</h1>',
+      '            <p className="m-0 mt-1 text-sm text-[var(--nimi-text-secondary)]">{copy.description}</p>',
+      '          </div>',
+      '        </header>',
+      '        {state.references.length === 0 ? (',
+      '          <InlineAlert tone="warning">{copy.empty}</InlineAlert>',
+      '        ) : (',
+      '          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-2" data-nimi-app-conversation-selector="true">',
+      '            {state.references.map((reference) => (',
+      '              <Button',
+      '                key={reference.agentHandle}',
+      '                tone="secondary"',
+      '                aria-label={`${reference.displayName} · ${copy.select}`}',
+      '                className="min-h-14 min-w-0 justify-start px-3 text-left [&>span]:w-full [&>span]:justify-start"',
+      '                onClick={() => { void sessionRef.current?.selectReference(reference.agentHandle); }}',
+      '              >',
+      '                <Avatar size="md" src={reference.avatarUrl || undefined} alt="" fallback={reference.displayName.slice(0, 1)} />',
+      '                <span className="min-w-0 flex-1 truncate">{reference.displayName}</span>',
+      '                <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden="true" />',
+      '              </Button>',
+      '            ))}',
+      '          </div>',
+      '        )}',
+      '      </Surface>',
+      '    );',
+      '  }',
+      '',
+      "  if (state.status !== 'ready' || !state.selectedReference || !state.conversationAnchorId) {",
+      '    return null;',
+      '  }',
+      '',
+      '  const reference = state.selectedReference;',
+      '  return (',
+      '    <div className="h-full min-h-[28rem]" data-nimi-app-conversation-entry="true">',
+      '      <Surface tone="panel" className="flex h-full min-h-[inherit] min-w-0 flex-col overflow-hidden">',
+      '        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--nimi-border-subtle)] px-4 py-3">',
+      '          <div className="flex min-w-0 items-center gap-3">',
+      '            <Button size="sm" tone="ghost" onClick={() => { void sessionRef.current?.clearSelection(); }}>',
+      '              <ArrowLeft className="size-4" aria-hidden="true" />{copy.back}',
+      '            </Button>',
+      '            <Avatar size="md" src={reference.avatarUrl || undefined} alt="" fallback={reference.displayName.slice(0, 1)} />',
+      '            <h1 className="m-0 min-w-0 text-base font-semibold break-words">{reference.displayName}</h1>',
+      '          </div>',
+      '        </header>',
+      '        {state.actionError ? <div className="px-4 py-2"><InlineAlert tone="warning">{state.actionError}</InlineAlert></div> : null}',
+      '        <CanonicalTranscriptView',
+      '          messages={state.messages}',
+      '          copy={copy.chatCopy}',
+      '          activeConversationId={state.conversationAnchorId}',
+      '          agentAvatarUrl={reference.avatarUrl}',
+      '          agentName={reference.displayName}',
+      '          pendingFirstBeat={state.activeTurnId !== null}',
+      '          emptyEyebrow={copy.transcriptEmptyEyebrow}',
+      '          emptyTitle={copy.transcriptEmptyTitle}',
+      '          emptyDescription={copy.transcriptEmptyDescription}',
+      '          pendingStopLabel={copy.stopTurn}',
+      '          onStopGenerating={() => { void sessionRef.current?.interrupt().catch(() => {}); }}',
+      '          widthClassName="w-full max-w-[52rem]"',
+      '          contentPaddingBottomClassName="pb-4"',
+      '        />',
+      '        <div className="shrink-0 border-t border-[var(--nimi-border-subtle)]">',
+      '          <CanonicalComposer',
+      '            adapter={composerAdapter}',
+      '            text={composerText}',
+      '            onTextChange={setComposerText}',
+      '            placeholder={copy.composerPlaceholder}',
+      '            sendLabel={copy.send}',
+      '            widthClassName="w-full max-w-[52rem]"',
+      '            layout="stacked"',
+      '          />',
+      '        </div>',
+      '      </Surface>',
+      '    </div>',
+      '  );',
+      '}',
+      '',
+    ].join('\n');
   }
   return content;
 }
@@ -951,6 +1188,28 @@ export function renderAppIdentityInput(identity) {
 export function renderAppBuildProfile(options = {}) {
   const identity = options.identity || null;
   if (identity?.platform === 'web') return YAML.stringify(webBuildProfile(), { lineWidth: 0 });
+  if (identity?.carrier === 'managed-web') {
+    const targets = options.targets || {
+      'desktop-universal': {
+        os: 'any',
+        arch: 'any',
+        build_command: 'pnpm run build',
+        payload_path: 'dist/renderer',
+        runtime_entry: 'payload/index.html',
+      },
+    };
+    return YAML.stringify({
+      build_profile_ref: 'managed-web-pnpm-vite',
+      test_command: options.testCommand || 'pnpm run test:app',
+      build_command: options.buildCommand || 'pnpm run build',
+      output_path: 'dist/renderer',
+      lockfile_path: 'pnpm-lock.yaml',
+      lockfile_policy: LOCKFILE_POLICY,
+      ci_install_command: 'pnpm install --frozen-lockfile',
+      targets,
+      profile_role: 'developer-workflow-input',
+    }, { lineWidth: 0 });
+  }
   const targets = options.targets || (identity ? {
     'windows-x86_64': {
       os: 'windows',
@@ -1141,6 +1400,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     initOrder: ['nimi-app create', 'pnpm install', 'pnpm exec nimi-app init'],
     profile: identity.profile,
     ...(identity.platform === 'web' ? { platform: 'web' } : {}),
+    ...(identity.carrier === 'managed-web' ? { carrier: 'managed-web' } : {}),
     appId: identity.appId,
     appTitle: identity.appTitle,
     version: identity.version,
@@ -1162,7 +1422,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     requiredStandardizedFeatureRefs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
     devPort: identity.devPort,
     appIdentity: buildIdentityMapping(identity, targetDir),
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform, identity.carrier),
     semantics: {
       role: 'app-scaffold-init-input',
       authority: 'app-tools-orchestration-input-not-platform-admission',
@@ -1258,7 +1518,7 @@ export function hashScaffoldContent(content) {
   return createHash('sha256').update(content).digest('hex');
 }
 
-function buildDependencyMatrix(profile, versions, capabilityResolution, platform = 'desktop') {
+function buildDependencyMatrix(profile, versions, capabilityResolution, platform = 'desktop', carrier = 'native') {
   const matrix = {
     npm: {
       '@nimiplatform/app-tools': versions.appToolsVersion,
@@ -1280,7 +1540,13 @@ function buildDependencyMatrix(profile, versions, capabilityResolution, platform
       pnpm: versions.packageManager.replace(/^pnpm@/u, ''),
     },
   };
-  return platform === 'web' ? webDependencyMatrix(matrix) : matrix;
+  if (platform === 'web') return webDependencyMatrix(matrix);
+  if (carrier === 'managed-web') {
+    for (const name of ['@electron/packager', 'electron', 'esbuild', 'pngjs']) {
+      delete matrix.npm[name];
+    }
+  }
+  return matrix;
 }
 
 function buildScaffoldLock(identity, versions, files, targetDir = '') {
@@ -1314,6 +1580,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     scaffoldVersion: SCAFFOLD_VERSION,
     profile: identity.profile,
     ...(identity.platform === 'web' ? { platform: 'web' } : {}),
+    ...(identity.carrier === 'managed-web' ? { carrier: 'managed-web' } : {}),
     appId: identity.appId,
     appTitle: identity.appTitle,
     version: identity.version,
@@ -1341,7 +1608,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     },
     managedFileHashes,
     appOwnedInitialHashes,
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform, identity.carrier),
     semantics: {
       initRole: 'developer-scaffold-initialization-after-install',
       nimicodingProjectionOwner: '@nimiplatform/nimi-coding',
@@ -1356,7 +1623,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
 }
 
 function buildAppScaffoldSnapshotWithResolver(
-  { profile, platform = 'desktop', versions, appId, appTitle, version = DEFAULT_APP_VERSION, packageName, author, accentPack, features, targetDir = '' },
+  { profile, platform = 'desktop', carrier = undefined, versions, appId, appTitle, version = DEFAULT_APP_VERSION, packageName, author, accentPack, features, targetDir = '' },
   featureResolver,
 ) {
   const identity = buildAppIdentity(
@@ -1370,6 +1637,7 @@ function buildAppScaffoldSnapshotWithResolver(
     features,
     featureResolver,
     platform,
+    carrier,
   );
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
@@ -1400,6 +1668,7 @@ function buildAppScaffoldSnapshotWithResolver(
     version: identity.version,
     profile: identity.profile,
     ...(identity.platform === 'web' ? { platform: 'web' } : {}),
+    ...(identity.carrier ? { carrier: identity.carrier } : {}),
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
@@ -1433,9 +1702,12 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
     throw new Error(`Unsupported scaffold profile: ${String(intent?.profile || 'missing')}`);
   }
   const canonicalTargetDir = targetDir || intent?.appIdentity?.targetDir || '';
+  const platform = intent.platform || 'desktop';
+  const carrier = platform === 'web' ? undefined : (intent.carrier || 'native');
   const snapshot = buildAppScaffoldSnapshotWithResolver({
     profile: intent.profile,
-    platform: intent.platform || 'desktop',
+    platform,
+    carrier,
     versions,
     appId: intent.appId,
     appTitle: intent.appTitle,
@@ -1448,7 +1720,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
   }, resolveAppScaffoldIntentFeatures);
   const expectedIntent = JSON.parse(snapshot.filesByPath.get(SCAFFOLD_INTENT_PATH).content);
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
-  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'platform', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
+  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'platform', 'carrier', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
   if (canonicalJson(Object.keys(intent).sort()) !== canonicalJson(Object.keys(expectedIntent).sort())) {
     throw new Error('Scaffold intent fields do not match the current canonical resolved intent');
   }
@@ -1482,6 +1754,7 @@ function buildAppScaffoldCreatePlanWithResolver(
   const snapshot = buildAppScaffoldSnapshotWithResolver({
     profile: resolvedInput.profile,
     platform: resolvedInput.platform || 'desktop',
+    carrier: resolvedInput.carrier,
     versions,
     appId: resolvedInput.appId,
     appTitle: resolvedInput.appTitle,
@@ -1498,6 +1771,7 @@ function buildAppScaffoldCreatePlanWithResolver(
     preview: Object.freeze({
       targetDir: resolvedInput.targetDir,
       profile: resolvedInput.profile,
+      ...(resolvedInput.carrier ? { carrier: resolvedInput.carrier } : {}),
       identity: snapshot.lock.appIdentity,
       directFeatures: snapshot.lock.directFeatures,
       resolvedModules: snapshot.lock.resolvedModules,
@@ -1558,7 +1832,7 @@ export function createAppScaffoldCandidate(input) {
   return createAppScaffold({ ...input, plan });
 }
 
-export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile', 'public_slug']);
+export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['desktop', 'metadata', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile', 'public_slug']);
 
 // Source configuration is editable; existing scaffold checks still cover identity and carrier fields.
 export function hashScaffoldManagedContent(relativePath, content) {

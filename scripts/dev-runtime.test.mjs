@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { realpathSync } from 'node:fs';
+import os from 'node:os';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 import { EventEmitter } from 'node:events';
 
@@ -10,6 +11,20 @@ import {
   runSourceRuntimeDevelopment,
   stopSourceRuntimeDevelopment,
 } from './dev-runtime.mjs';
+
+function isolatedWindowsLaunch(t) {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-test-dev-runtime-'));
+  t.after(() => rmSync(repoRoot, { recursive: true, force: true }));
+  const dist = path.join(repoRoot, 'electron-dist');
+  mkdirSync(path.join(dist, 'resources'), { recursive: true });
+  for (const name of ['electron.exe', 'resources/default_app.asar', 'icudtl.dat', 'v8_context_snapshot.bin']) {
+    writeFileSync(path.join(dist, name), name);
+  }
+  return {
+    argv: [], repoRoot, electronExecutable: path.join(dist, 'electron.exe'),
+    tempRoot: path.join(repoRoot, 'supervisor'), platform: 'win32', architecture: 'x64',
+  };
+}
 
 test('dev:runtime accepts no topology overrides', () => {
   assert.deepEqual(parseSourceRuntimeArguments([]), {});
@@ -64,7 +79,7 @@ test('source stop preserves arguments and distinguishes absent owner from failur
   }
 });
 
-test('source Runtime launcher removes its temporary supervisor after child shutdown', async () => {
+test('source Runtime launcher removes its temporary supervisor after child shutdown', async (t) => {
   const events = [];
   const fakeChild = {
     stdin: { end: () => events.push('stdin-end') },
@@ -74,12 +89,7 @@ test('source Runtime launcher removes its temporary supervisor after child shutd
     },
   };
   const result = await runSourceRuntimeDevelopment({
-    argv: [],
-    repoRoot: process.cwd(),
-    electronExecutable: process.execPath,
-    tempRoot: path.join(process.cwd(), '.nimi', 'local', 'test-source-supervisor'),
-    platform: 'win32',
-    architecture: 'x64',
+    ...isolatedWindowsLaunch(t),
     makeTemp: () => events.push('make'),
     removeTemp: () => events.push('remove'),
     spawnSync: () => ({ status: 0 }),
@@ -89,22 +99,31 @@ test('source Runtime launcher removes its temporary supervisor after child shutd
   assert.deepEqual(events, ['make', 'remove']);
 });
 
-test('Desktop cancellation asks its own Runtime supervisor to stop through stdin', async () => {
+test('Desktop cancellation asks its own Runtime supervisor to stop through stdin', async (t) => {
   const abort = new AbortController();
   const signalListeners = process.listenerCount('SIGINT');
   const child = new EventEmitter();
   let stopped = 0;
   child.stdin = { end() { stopped += 1; queueMicrotask(() => child.emit('exit', 0, null)); } };
   const run = runSourceRuntimeDevelopment({
-    argv: [], repoRoot: process.cwd(), electronExecutable: process.execPath,
-    tempRoot: path.join(process.cwd(), '.nimi', 'local', 'test-source-supervisor'),
-    platform: 'win32', architecture: 'x64', signal: abort.signal,
+    ...isolatedWindowsLaunch(t), signal: abort.signal,
     makeTemp() {}, removeTemp() {}, spawnSync: () => ({ status: 0 }), spawn: () => child,
   });
   assert.equal(process.listenerCount('SIGINT'), signalListeners);
   abort.abort();
   assert.equal(await run, 0);
   assert.equal(stopped, 1);
+});
+
+test('an invalid Electron source leaves the existing development carrier intact', async (t) => {
+  const launch = isolatedWindowsLaunch(t);
+  const carrierDir = path.join(launch.repoRoot, '.nimi', 'local', 'dev-carrier', 'win32-x64');
+  mkdirSync(carrierDir, { recursive: true });
+  const carrier = path.join(carrierDir, 'NimiAppHost.exe');
+  writeFileSync(carrier, 'previous carrier');
+  await assert.rejects(runSourceRuntimeDevelopment({ ...launch, electronExecutable: process.execPath }),
+    /Incomplete Windows Electron distribution/u);
+  assert.equal(readFileSync(carrier, 'utf8'), 'previous carrier');
 });
 
 test('already-cancelled startup does not build or spawn Runtime', async () => {

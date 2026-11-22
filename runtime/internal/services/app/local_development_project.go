@@ -4,12 +4,14 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
 	"github.com/nimiplatform/nimi/runtime/internal/appidentity"
+	"gopkg.in/yaml.v3"
 )
 
 func resolveLocalDevelopmentProject(rootPath, expectedAppID string, shellKind runtimev1.LocalDevelopmentShellKind) (localDevelopmentProjectSnapshot, error) {
@@ -29,19 +31,44 @@ func resolveLocalDevelopmentProject(rootPath, expectedAppID string, shellKind ru
 		shellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI {
 		return localDevelopmentProjectSnapshot{}, errors.New("local-development shell kind is invalid")
 	}
+	managedWeb, err := detectManagedWebBuildProfile(filepath.Clean(root))
+	if err != nil {
+		return localDevelopmentProjectSnapshot{}, err
+	}
+	if managedWeb && shellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
+		return localDevelopmentProjectSnapshot{}, errors.New("managed-web local-development requires electron carrier shell kind")
+	}
 	raw, activated, err := appaccess.ResolveDeclaration(*manifest.AppAccess)
 	if err != nil {
 		return localDevelopmentProjectSnapshot{}, err
 	}
 	project := localDevelopmentProjectSnapshot{
 		AppID: appID, DisplayName: displayName, ProjectRoot: filepath.Clean(root),
-		ManifestPath: filepath.Clean(manifestPath), ShellKind: shellKind,
+		ManifestPath: filepath.Clean(manifestPath), ShellKind: shellKind, ManagedWeb: managedWeb,
 		RawAppAccess: raw, ActivatedDomains: activated,
 	}
 	if err := validateLocalDevelopmentProject(project); err != nil {
 		return localDevelopmentProjectSnapshot{}, err
 	}
 	return project, nil
+}
+
+func detectManagedWebBuildProfile(projectRoot string) (bool, error) {
+	profilePath := filepath.Join(projectRoot, ".nimi", "config", "build-profile.yaml")
+	raw, err := os.ReadFile(profilePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("read local-development build profile: %w", err)
+	}
+	var parsed struct {
+		BuildProfileRef string `yaml:"build_profile_ref"`
+	}
+	if err := yaml.Unmarshal(raw, &parsed); err != nil {
+		return false, fmt.Errorf("parse local-development build profile: %w", err)
+	}
+	return strings.TrimSpace(parsed.BuildProfileRef) == "managed-web-pnpm-vite", nil
 }
 
 func validateLocalDevelopmentProject(project localDevelopmentProjectSnapshot) error {

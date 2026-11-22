@@ -141,6 +141,7 @@ type Service struct {
 	localAppKernel             *localappkernel.Kernel
 	approvedAppCatalog         ApprovedAppCatalogProvider
 	appInstallCoordinator      *nimiappinstall.Coordinator
+	managedWebCarrierResolver  protectedlocal.ManagedWebCarrierResolver
 	formalAppReleaseResolver   FormalAppReleaseResolver
 	formalAppSourceDevelopment bool
 	sourceDevelopmentHosts     map[string]protectedlocal.Identifier // guarded by installedAppRegistrationMu
@@ -244,6 +245,33 @@ func WithAppInstallCoordinator(coordinator *nimiappinstall.Coordinator) Option {
 	return func(s *Service) {
 		s.appInstallCoordinator = coordinator
 	}
+}
+
+func WithManagedWebCarrierResolver(resolver protectedlocal.ManagedWebCarrierResolver) Option {
+	return func(s *Service) {
+		s.managedWebCarrierResolver = resolver
+	}
+}
+
+func (s *Service) resolveManagedWebCarrier(ctx context.Context) (protectedlocal.ManagedWebCarrier, error) {
+	if s != nil && s.managedWebCarrierResolver != nil {
+		return s.managedWebCarrierResolver.ResolveManagedWebCarrier(ctx)
+	}
+	return protectedlocal.ResolveManagedWebCarrier(ctx)
+}
+
+func (s *Service) resolveLocalDevelopmentHostExecutable(ctx context.Context, project localDevelopmentProjectSnapshot) (string, error) {
+	if project.ManagedWeb {
+		if project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		carrier, err := s.resolveManagedWebCarrier(ctx)
+		if err != nil || !carrier.Valid() {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		return carrier.ExecutablePath, nil
+	}
+	return localDevelopmentHostExecutable(project)
 }
 
 func WithFormalAppReleaseResolver(resolver FormalAppReleaseResolver) Option {

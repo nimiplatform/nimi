@@ -44,6 +44,31 @@ export function resolveWindowsResourceVersion(appVersion) {
 
 export function buildDefaultStarterFiles(identity) {
   if (identity.platform === 'web') return [...buildWebStarterFiles(identity, { productArea: renderDefaultProductArea(identity), navigation: renderDefaultAppNavigation() }), ...buildGeneratedModuleCompositionFiles(identity)];
+  if (identity.carrier === 'managed-web') {
+    return [
+      {
+        path: 'src/main.tsx',
+        content: renderDefaultMain(identity),
+        mutationClass: 'scaffold-managed glue',
+      },
+      {
+        path: 'src/shell/routes/product-area.tsx',
+        content: renderDefaultProductArea(identity),
+        mutationClass: 'app-owned product code',
+      },
+      {
+        path: 'src/shell/routes/app-navigation.tsx',
+        content: renderDefaultAppNavigation(),
+        mutationClass: 'app-owned product code',
+      },
+      ...buildGeneratedModuleCompositionFiles(identity),
+      {
+        path: 'vite.config.ts',
+        content: MANAGED_WEB_VITE_CONFIG,
+        mutationClass: 'scaffold-managed glue',
+      },
+    ];
+  }
   return [
     {
       path: 'src/main.tsx',
@@ -117,6 +142,31 @@ const DEFAULT_VITE_CONFIG = [
   "  plugins: [react({ exclude: [/\\/node_modules\\//, /\\/src\\/main\\.tsx$/] }), tailwindcss()],",
   '  server: {',
   "    watch: { ignored: ['**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**', '**/dist-web/**', '**/dist-mobile/**', '**/android/**/build/**', '**/android/app/src/main/assets/public/**'] },",
+  '  },',
+  '  resolve: {',
+  "    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],",
+  '  },',
+  '});',
+  '',
+].join('\n');
+
+const MANAGED_WEB_VITE_CONFIG = [
+  "import { defineConfig } from 'vite';",
+  "import react from '@vitejs/plugin-react';",
+  "import tailwindcss from '@tailwindcss/vite';",
+  '',
+  'export default defineConfig({',
+  "  base: './',",
+  "  cacheDir: '.vite',",
+  "  optimizeDeps: { entries: ['index.html'] },",
+  '  // The bootstrap creates the root once; only components participate in Fast Refresh.',
+  "  plugins: [react({ exclude: [/\\/node_modules\\//, /\\/src\\/main\\.tsx$/] }), tailwindcss()],",
+  '  build: {',
+  "    outDir: 'dist/renderer',",
+  '    emptyOutDir: true,',
+  '  },',
+  '  server: {',
+  "    watch: { ignored: ['**/.nimi/local/**', '**/dist/**', '**/dist-web/**', '**/dist-mobile/**', '**/android/**/build/**', '**/android/app/src/main/assets/public/**'] },",
   '  },',
   '  resolve: {',
   "    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],",

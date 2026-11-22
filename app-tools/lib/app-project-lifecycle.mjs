@@ -1,4 +1,5 @@
 import { assertDesktopHostSupport } from './app-host-support.mjs';
+import { validateManifestDesktop } from './desktop-window.mjs';
 import { hostedWebIdentity, isAppId } from './app-identifiers.mjs';
 import { readWebDevelopment } from './web-development.mjs';
 import { readAppInfo } from './app-info.mjs';
@@ -53,9 +54,10 @@ const SYNCHRONIZED_NIMI_PACKAGES = new Set([
   ...KIT_OWNED_NATIVE_CARRIERS,
 ]);
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
+const MANAGED_WEB_BUILD_PROFILE_REF = 'managed-web-pnpm-vite';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
 const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
-const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, 'web-pnpm']);
+const SUPPORTED_BUILD_PROFILE_REFS = new Set([MANAGED_WEB_BUILD_PROFILE_REF, ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, 'web-pnpm']);
 const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
 const HOSTED_WEB_WORKFLOW_PATH = '.github/workflows/nimi-web-release.yml';
 function hostedWorkflowSource() {
@@ -73,10 +75,11 @@ function planHostedWorkflow(targetDir) {
 }
 const APP_IDENTITY_PATH = '.nimi/config/app-identity.yaml';
 const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
-const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
+const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const CURRENT_APP_TARGETS = Object.freeze({
   'windows-x86_64': Object.freeze({ os: 'windows', arch: 'x86_64' }),
   'macos-aarch64': Object.freeze({ os: 'macos', arch: 'arm64' }),
+  'desktop-universal': Object.freeze({ os: 'any', arch: 'any' }),
 });
 
 function resolveTargetDir(cwd, options = {}) {
@@ -169,7 +172,8 @@ function readSubmittedManifest(targetDir, sources) {
       throw new Error(`nimi.app.yaml ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
   }
-  return Object.freeze({ appId, displayName, profile, platform, version, publicSlug: hosted?.slug, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
+  const desktop = validateManifestDesktop(document.desktop, 'nimi.app.yaml desktop', source);
+  return Object.freeze({ appId, displayName, profile, platform, version, publicSlug: hosted?.slug, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile, desktop });
 }
 
 function assertNoRetiredScaffoldState(targetDir) {
@@ -352,6 +356,13 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
     normalized.scripts.dev = 'nimi-app dev --platform web';
     normalized.scripts.sync ||= 'nimi-app sync';
     if (normalized.scripts.pack === 'nimi-app pack') delete normalized.scripts.pack;
+  } else if (buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF) {
+    normalized.scripts.dev = 'nimi-app dev --shell electron';
+    normalized.scripts['dev:shell'] = 'nimi-app dev';
+    normalized.scripts['dev:renderer'] = `vite --host 127.0.0.1 --port ${new URL(descriptor.rendererOrigin).port} --strictPort`;
+    normalized.scripts.sync ||= 'nimi-app sync';
+    normalized.scripts.pack = 'nimi-app pack';
+    delete normalized.scripts.publish;
   } else {
   if (typeof normalized.scripts['build:electron'] !== 'string' || !normalized.scripts['build:electron'].trim()) {
     throw new Error('package.json build:electron must build the Desktop-supervised Electron host');
@@ -961,13 +972,26 @@ function readBuildProfile(targetDir, sources) {
   if (Object.keys(targets).length === 0) {
     throw new Error(`${BUILD_PROFILE_PATH} must declare at least one target`);
   }
+  if (buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF) {
+    const keys = Object.keys(targets);
+    if (keys.length !== 1 || keys[0] !== 'desktop-universal') {
+      throw new Error(`${BUILD_PROFILE_PATH} managed-web-pnpm-vite must declare only the desktop-universal target`);
+    }
+  }
   for (const [targetId, target] of Object.entries(targets)) {
-    const expected = buildProfileRef === 'web-pnpm' ? (targetId === 'web' ? {} : null) : CURRENT_APP_TARGETS[targetId];
+    const expected = buildProfileRef === 'web-pnpm'
+      ? (targetId === 'web' ? {} : null)
+      : buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF
+        ? (targetId === 'desktop-universal' ? CURRENT_APP_TARGETS['desktop-universal'] : null)
+        : (targetId === 'desktop-universal' ? null : CURRENT_APP_TARGETS[targetId]);
     if (!expected || !target || typeof target !== 'object' || Array.isArray(target)) {
       throw new Error(`${BUILD_PROFILE_PATH} declares unsupported target: ${targetId}`);
     }
     if (buildProfileRef !== 'web-pnpm' && (target.os !== expected.os || target.arch !== expected.arch)) {
       throw new Error(`${BUILD_PROFILE_PATH} target identity mismatch: ${targetId}`);
+    }
+    if (buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF && target.runtime_entry !== 'payload/index.html') {
+      throw new Error(`${BUILD_PROFILE_PATH} desktop-universal runtime_entry must be payload/index.html`);
     }
   }
   return {
@@ -985,7 +1009,13 @@ function currentTargetId() {
 }
 
 function selectBuildOwner(profile, requestedTarget) {
-  const target = String(requestedTarget || '').trim() || (profile.buildProfileRef === 'web-pnpm' ? 'web' : currentTargetId());
+  const target = String(requestedTarget || '').trim() || (
+    profile.buildProfileRef === 'web-pnpm'
+      ? 'web'
+      : profile.buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF
+        ? 'desktop-universal'
+        : currentTargetId()
+  );
   const targetProfile = profile.targets[target];
   if (Object.keys(profile.targets).length > 0 && (!targetProfile || typeof targetProfile !== 'object' || Array.isArray(targetProfile))) {
     throw new Error(`Unsupported App build target: ${target}`);
@@ -1046,6 +1076,9 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
+  if (buildProfile.buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF && descriptor.storagePolicy?.kind !== 'nimi-mediated-default') {
+    throw new Error('managed-web Apps must declare storage_policy.kind: nimi-mediated-default (use --carrier native for app-owned-os-storage).');
+  }
   const files = readProjectLifecycleFiles(targetDir, sources);
   const combination = selectDependencyCombination(files.packageJson, versions, options.managed === true);
   assertPackageManifestCurrent(files.packageJson, versions, combination, descriptor.platform);
@@ -1071,6 +1104,9 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
+  if (buildProfile.buildProfileRef === MANAGED_WEB_BUILD_PROFILE_REF && descriptor.storagePolicy?.kind !== 'nimi-mediated-default') {
+    throw new Error('managed-web Apps must declare storage_policy.kind: nimi-mediated-default (use --carrier native for app-owned-os-storage).');
+  }
   const files = readProjectLifecycleFiles(targetDir, sources);
   const version = files.packageJson.version;
   if (typeof version !== 'string' || !SEMVER_PATTERN.test(version)) {

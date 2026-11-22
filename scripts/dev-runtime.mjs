@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readDevelopmentRealm, developmentRealmEnvironment, parseRealmArguments, supervisorRealmArguments } from './lib/development-realm.mjs';
+import { ensureManagedWebDevCarrier } from './lib/dev-carrier.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = realpathSync(path.resolve(scriptDir, '..'));
@@ -90,6 +91,12 @@ export async function runSourceRuntimeDevelopment(input = {}) {
   const launch = input.spawn ?? spawn;
   makeTemp();
   try {
+    ensureManagedWebDevCarrier({
+      repoRoot: plan.repoRoot,
+      electronExecutable: plan.electronExecutable,
+      platform: input.platform ?? process.platform,
+      architecture: input.architecture ?? process.arch,
+    });
     const built = build(plan.build.command, plan.build.args, {
       cwd: plan.runtimeRoot,
       env: plan.environment,

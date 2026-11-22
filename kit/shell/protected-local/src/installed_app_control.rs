@@ -20,6 +20,9 @@ type Runs = HashMap<[u8; 32], SupervisedDevelopmentProcess>;
 const EXECUTION_PROFILE: &str = "windows-user-mode-as-invoker-v1";
 #[cfg(target_os = "macos")]
 const EXECUTION_PROFILE: &str = "macos-user-mode-same-session-v1";
+const MANAGED_WEB_EXECUTION_PROFILE: &str = "nimi-managed-web-v1";
+const MANAGED_WEB_LAUNCH_ARGUMENT: &str = "--nimi-managed-web-app";
+const MANAGED_WEB_PAYLOAD_DIGEST_PREFIX: &str = "--nimi-payload-digest=";
 fn runs() -> &'static Mutex<Runs> {
     static RUNS: OnceLock<Mutex<Runs>> = OnceLock::new();
     RUNS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -62,9 +65,10 @@ pub(crate) async fn launch(
         .await
         .map_err(runtime_error)?
         .into_inner();
+    let is_managed_web = prepared.execution_profile_ref == MANAGED_WEB_EXECUTION_PROFILE;
     if prepared.reason_code != ReasonCode::ActionExecuted as i32
-        || prepared.execution_profile_ref != EXECUTION_PROFILE
-        || !prepared.arguments.is_empty()
+        || (!is_managed_web && prepared.execution_profile_ref != EXECUTION_PROFILE)
+        || (!is_managed_web && !prepared.arguments.is_empty())
     {
         return Err(invalid());
     }
@@ -89,24 +93,34 @@ pub(crate) async fn launch(
         .try_into()
         .map_err(|_| invalid())?;
     let result = async {
-        if !executable.is_absolute()
-            || executable.parent() != Some(cwd.as_path())
-            || expected == [0; 32]
-        {
+        if expected == [0; 32] {
             return Err(invalid());
         }
-        // Runtime checks the committed Host before preparation and independently
-        // hashes the actual suspended child image during bind. Rehashing here
-        // would neither pin the file nor add a stronger process identity.
-        // Arguments stay empty; the standard shell reads its profile from the
-        // child environment before any Electron session exists.
         let profile = crate::host_profile::prepare(host_storage)?;
-        let mut process = SupervisedDevelopmentProcess::create_verified_installed(
-            &executable,
-            &prepared.arguments,
-            &cwd,
-            &profile,
-        )?;
+        let mut process = if is_managed_web {
+            validate_managed_web_installed_launch(&executable, &prepared.arguments, &cwd)?;
+            SupervisedDevelopmentProcess::create_verified_managed_web(
+                &executable,
+                &prepared.arguments,
+                &cwd,
+                &profile,
+            )?
+        } else {
+            if !executable.is_absolute() || executable.parent() != Some(cwd.as_path()) {
+                return Err(invalid());
+            }
+            // Runtime checks the committed Host before preparation and independently
+            // hashes the actual suspended child image during bind. Rehashing here
+            // would neither pin the file nor add a stronger process identity.
+            // Arguments stay empty; the standard shell reads its profile from the
+            // child environment before any Electron session exists.
+            SupervisedDevelopmentProcess::create_verified_installed(
+                &executable,
+                &prepared.arguments,
+                &cwd,
+                &profile,
+            )?
+        };
         let bound = crate::grpc_limits::runtime_app_client(channel.clone())
             .bind_local_app_process(request(
                 BindLocalAppProcessRequest {
@@ -284,6 +298,160 @@ fn timestamp_ms(value: Option<prost_types::Timestamp>) -> Result<i64, NimiHostEr
 fn invalid() -> NimiHostError {
     NimiHostError::new(NimiHostErrorReasonCode::InstalledAppLaunchFailed, false)
 }
+
+pub(crate) fn valid_managed_web_payload_digest_arg(value: &str) -> bool {
+    let Some(digest) = value.strip_prefix(MANAGED_WEB_PAYLOAD_DIGEST_PREFIX) else {
+        return false;
+    };
+    let Some(hex) = digest.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn validate_managed_web_installed_launch(
+    executable: &std::path::Path,
+    arguments: &[String],
+    cwd: &std::path::Path,
+) -> Result<(), NimiHostError> {
+    if !executable.is_absolute() || !cwd.is_absolute() || !cwd.is_dir() {
+        return Err(invalid());
+    }
+    let canonical_exe = std::fs::canonicalize(executable).map_err(|_| invalid())?;
+    if !canonical_exe.is_file() {
+        return Err(invalid());
+    }
+    #[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
+    {
+        if arguments.len() != 2
+            || arguments[0] != MANAGED_WEB_LAUNCH_ARGUMENT
+            || !valid_managed_web_payload_digest_arg(&arguments[1])
+        {
+            return Err(invalid());
+        }
+        let current_exe = std::env::current_exe()
+            .and_then(std::fs::canonicalize)
+            .map_err(|_| invalid())?;
+        let expected_carrier = current_exe
+            .parent()
+            .ok_or_else(invalid)?
+            .join("NimiAppHost.exe");
+        let canonical_expected = std::fs::canonicalize(&expected_carrier).map_err(|_| invalid())?;
+        if canonical_exe != canonical_expected || canonical_exe == current_exe {
+            return Err(invalid());
+        }
+        return Ok(());
+    }
+    #[cfg(all(target_os = "windows", feature = "windows-source-local-development"))]
+    {
+        if arguments.len() != 3
+            || arguments[1] != MANAGED_WEB_LAUNCH_ARGUMENT
+            || !valid_managed_web_payload_digest_arg(&arguments[2])
+        {
+            return Err(invalid());
+        }
+        let entry_path = std::fs::canonicalize(std::path::Path::new(&arguments[0]))
+            .map_err(|_| invalid())?;
+        if !entry_path.is_file() {
+            return Err(invalid());
+        }
+        let repo_root = entry_path
+            .parent()
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("dist-electron")))
+            .and_then(|p| p.parent())
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("desktop")))
+            .and_then(|p| p.parent())
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("apps")))
+            .and_then(|p| p.parent())
+            .ok_or_else(invalid)?;
+        if entry_path.file_name() != Some(std::ffi::OsStr::new("managed-web-carrier.js")) {
+            return Err(invalid());
+        }
+        let expected_carrier = repo_root
+            .join(".nimi")
+            .join("local")
+            .join("dev-carrier")
+            .join("win32-x64")
+            .join("NimiAppHost.exe");
+        let canonical_expected = std::fs::canonicalize(&expected_carrier).map_err(|_| invalid())?;
+        let current_exe = std::env::current_exe()
+            .and_then(std::fs::canonicalize)
+            .map_err(|_| invalid())?;
+        if canonical_exe != canonical_expected || canonical_exe == current_exe {
+            return Err(invalid());
+        }
+        return Ok(());
+    }
+    #[cfg(all(target_os = "macos", not(feature = "macos-source-local-development")))]
+    {
+        if arguments.len() != 2
+            || arguments[0] != MANAGED_WEB_LAUNCH_ARGUMENT
+            || !valid_managed_web_payload_digest_arg(&arguments[1])
+        {
+            return Err(invalid());
+        }
+        let expected_carrier =
+            std::path::Path::new(crate::macos_supervised_process::MACOS_LOCAL_APP_HOST_PATH);
+        let canonical_expected = std::fs::canonicalize(expected_carrier).map_err(|_| invalid())?;
+        if executable != expected_carrier || canonical_exe != canonical_expected {
+            return Err(invalid());
+        }
+        return Ok(());
+    }
+    #[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
+    {
+        if arguments.len() != 3
+            || arguments[1] != MANAGED_WEB_LAUNCH_ARGUMENT
+            || !valid_managed_web_payload_digest_arg(&arguments[2])
+        {
+            return Err(invalid());
+        }
+        let entry_path = std::fs::canonicalize(std::path::Path::new(&arguments[0]))
+            .map_err(|_| invalid())?;
+        if !entry_path.is_file() || entry_path.file_name() != Some(std::ffi::OsStr::new("main.mjs"))
+        {
+            return Err(invalid());
+        }
+        let repo_root = entry_path
+            .parent()
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("local-app-host")))
+            .and_then(|p| p.parent())
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("macos")))
+            .and_then(|p| p.parent())
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("desktop")))
+            .and_then(|p| p.parent())
+            .filter(|p| p.file_name() == Some(std::ffi::OsStr::new("apps")))
+            .and_then(|p| p.parent())
+            .ok_or_else(invalid)?;
+        let expected_carrier = repo_root
+            .join(".nimi")
+            .join("local")
+            .join("dev-carrier")
+            .join("Nimi Local App Host Dev.app")
+            .join("Contents")
+            .join("MacOS")
+            .join("Electron");
+        let canonical_expected = std::fs::canonicalize(&expected_carrier).map_err(|_| invalid())?;
+        if canonical_exe != canonical_expected {
+            return Err(invalid());
+        }
+        if let Some(home_exe) =
+            std::env::var_os("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE")
+        {
+            if let Ok(canonical_home) = std::fs::canonicalize(home_exe) {
+                if canonical_home == canonical_exe {
+                    return Err(invalid());
+                }
+            }
+        }
+        return Ok(());
+    }
+    #[allow(unreachable_code)]
+    Err(invalid())
+}
 fn request<T>(message: T, timeout_seconds: u64) -> tonic::Request<T> {
     let mut request = tonic::Request::new(message);
     request.set_timeout(Duration::from_secs(timeout_seconds));
@@ -321,5 +489,22 @@ mod tests {
             runtime_error(Status::unavailable("pipe disconnected")).reason_code(),
             NimiHostErrorReasonCode::RuntimeServiceUnavailable
         );
+    }
+
+    #[test]
+    fn managed_web_payload_digest_arg_requires_lowercase_sha256() {
+        let valid = format!("--nimi-payload-digest=sha256:{}", "a".repeat(64));
+        assert!(valid_managed_web_payload_digest_arg(&valid));
+        assert!(!valid_managed_web_payload_digest_arg(&format!(
+            "--nimi-payload-digest=sha256:{}",
+            "A".repeat(64)
+        )));
+        assert!(!valid_managed_web_payload_digest_arg(&format!(
+            "--nimi-payload-digest=sha256:{}",
+            "a".repeat(63)
+        )));
+        assert!(!valid_managed_web_payload_digest_arg(
+            "--nimi-managed-web-app"
+        ));
     }
 }

@@ -344,6 +344,9 @@ func (service *windowsRuntimeService) open(ctx context.Context, requestRestart f
 	if err != nil {
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupSecurityState, err)
 	}
+	if carrierResolver, ok := verifier.(protectedlocal.ManagedWebCarrierResolver); ok {
+		securityState.SetManagedWebCarrierResolver(carrierResolver)
+	}
 	desktopListener, err := protectedlocal.OpenWindowsVerifiedDesktopListener(ctx, securityState, verifier)
 	if err != nil {
 		_ = securityState.Close()

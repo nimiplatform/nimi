@@ -24,18 +24,23 @@ pnpm install
 pnpm run init
 pnpm run sync
 pnpm run check
-pnpm run test
-pnpm run app:build -- --target windows-x86_64
+pnpm run app:build
 pnpm dev
 ```
 
 ### Local Development
 
-`pnpm dev` launches the official Desktop-supervised Electron development Host. Launching the renderer, Electron, or Tauri directly does not establish protected Nimi access.
+Open Nimi Home, sign in and enable Developer Mode before running `pnpm dev`. Add an App test under `test/*.test.mjs` and run it with `pnpm test`.
 
 ### Building & Carrier Layout
 
-The default `windows-x86_64` build outputs a fresh non-installer Electron directory at `dist-electron-package/acme-widget-shell-win32-x64/`, containing:
+<!-- carrier: managed-web -->
+This App builds static frontend files into `dist/renderer/`. Nimi Home runs them in its managed desktop carrier on Windows x64 and macOS arm64. Both platforms use the same package.
+
+Set the summary, PNG icon and release notes in `nimi.app.yaml` and the license identifier in `package.json`. Run `pnpm exec nimi-app pack --target desktop-universal` after building. The resulting `.nimiapp` is in `dist/nimi-app/`.
+<!-- end carrier -->
+<!-- carrier: native -->
+The `windows-x86_64` build outputs a fresh non-installer Electron directory at `dist-electron-package/acme-widget-shell-win32-x64/`, containing:
 
 - The App-specific executable `acme-widget-shell.exe`
 - ASAR-packaged JavaScript and renderer assets
@@ -45,11 +50,14 @@ The production bundle rejects `--nimi-dev-renderer-url`. The protected native bi
 
 Electron packages target Windows x64 and macOS arm64. Standard builds use Node, pnpm and the prebuilt native Kit package for the target.
 
+Run `pnpm exec nimi-app pack --target windows-x86_64` on Windows or `pnpm exec nimi-app pack --target macos-aarch64` on macOS after building. Publishers may sign the Windows executable before packing. Production packing records the observed Authenticode signature or an explicit unsigned posture.
+<!-- end carrier -->
+
 ### Packaging & Release Boundaries
 
-After a real target build finishes, run `pnpm run pack -- --target <target-id>`. `app-tools` is the sole package owner and intentionally provides no local `publish` command. Pushing a protected version tag triggers the managed GitHub Release workflow; you then submit the resulting immutable Release through the separate Registry pull-request and human-review flow.
+Pushing a protected version tag triggers the managed GitHub Release workflow. Submit the resulting immutable Release through the Registry pull-request and human-review flow.
 
-Before cutting a production release, the public GitHub repository must enable a protected `v*` tag ruleset and immutable releases, and provide a read-only repository-admin token to verify those settings. On Windows, tag-triggered production builds run the App-declared build owner without a Nimi signing step. Publishers may sign the exact declared Host through their own build or signing custody; production `pack` records either a verified Authenticode signature or an explicit unsigned posture, and rejects invalid or unresolved signatures. Manual workflow dispatch runs only the non-production path.
+Before cutting a production release, enable a protected `v*` tag ruleset and immutable releases in the public GitHub repository, and provide a read-only repository-admin token to verify those settings. Manual workflow dispatch runs a development build.
 
 A GitHub Release remains independent from registry admission, Runtime installation, Desktop launch, and Nimi Access. Runtime, Realm, registry admission, installed state, and process truth remain with their canonical owners. This repository stores no Runtime credentials or protected session material.
 

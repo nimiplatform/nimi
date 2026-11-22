@@ -108,8 +108,11 @@ Section
   IntCmp $2 10 currentowner
   IntCmp $2 0 extract installfail installfail
   extract:
+  ClearErrors
   SetOutPath "$PROGRAMFILES64\\Nimi\\Product\\${version}"
-  File /r "${literal(root)}\\*"
+  File /r /x NimiAppHost.exe "${literal(root)}\\*"
+  CopyFiles /SILENT "$PROGRAMFILES64\\Nimi\\Product\\${version}\\Nimi.exe" "$PROGRAMFILES64\\Nimi\\Product\\${version}\\NimiAppHost.exe"
+  IfErrors fail
   currentowner:
   StrCmp $5 "" standaloneinstall
   ExecWait '"$0\\NimiProductUpdater.exe" --install ${version} "$5" $6' $2

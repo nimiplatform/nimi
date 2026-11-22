@@ -14,7 +14,8 @@ import (
 )
 
 type windowsLocalDevelopmentProcessVerifier struct {
-	identity WindowsDesktopIdentity
+	identity        WindowsDesktopIdentity
+	carrierResolver ManagedWebCarrierResolver
 }
 
 type windowsLocalDevelopmentExecutableVerifier struct {
@@ -54,17 +55,21 @@ func WindowsLocalDevelopmentPolicyStageFromError(err error) (WindowsLocalDevelop
 }
 
 func NewWindowsLocalDevelopmentProcessVerifier(identity WindowsDesktopIdentity) (LocalDevelopmentProcessVerifier, error) {
+	return NewWindowsLocalDevelopmentProcessVerifierWithCarrierResolver(identity, nil)
+}
+
+func NewWindowsLocalDevelopmentProcessVerifierWithCarrierResolver(identity WindowsDesktopIdentity, carrierResolver ManagedWebCarrierResolver) (LocalDevelopmentProcessVerifier, error) {
 	if err := identity.validate(); err != nil {
 		return nil, windowsPipeFailure("create Windows local-development process verifier", fmt.Errorf("active Desktop identity is required: %w", err))
 	}
-	return &windowsLocalDevelopmentProcessVerifier{identity: identity}, nil
+	return &windowsLocalDevelopmentProcessVerifier{identity: identity, carrierResolver: carrierResolver}, nil
 }
 
 func (verifier *windowsLocalDevelopmentProcessVerifier) VerifyLocalDevelopmentProcess(ctx context.Context, pid uint32, policy LocalDevelopmentProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error) {
 	if verifier == nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows local-development process", fmt.Errorf("local-development verifier is required"))
 	}
-	canonicalPolicy, err := canonicalWindowsLocalDevelopmentPolicy(policy)
+	canonicalPolicy, err := canonicalWindowsLocalDevelopmentPolicyWithCarrier(ctx, policy, verifier.carrierResolver)
 	if err != nil {
 		return ProcessTuple{}, nil, windowsExecutableTrustFailure("verify Windows local-development project policy", err)
 	}
@@ -169,6 +174,10 @@ func sameWindowsLocalDevelopmentHostFile(observed string, expected string) bool 
 }
 
 func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy) (LocalDevelopmentProcessPolicy, error) {
+	return canonicalWindowsLocalDevelopmentPolicyWithCarrier(context.Background(), policy, nil)
+}
+
+func canonicalWindowsLocalDevelopmentPolicyWithCarrier(ctx context.Context, policy LocalDevelopmentProcessPolicy, carrierResolver ManagedWebCarrierResolver) (LocalDevelopmentProcessPolicy, error) {
 	root := filepath.Clean(strings.TrimSpace(policy.ProjectRoot))
 	host := filepath.Clean(strings.TrimSpace(policy.HostExecutablePath))
 	if !filepath.IsAbs(root) || !filepath.IsAbs(host) {
@@ -187,6 +196,26 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 	info, err := os.Stat(canonicalHost)
 	if err != nil || !info.Mode().IsRegular() {
 		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("host executable must be a readable regular file"))
+	}
+	if policy.PlatformSharedCarrier {
+		var carrier ManagedWebCarrier
+		if carrierResolver != nil {
+			carrier, err = carrierResolver.ResolveManagedWebCarrier(ctx)
+		} else {
+			carrier, err = ResolveManagedWebCarrier(ctx)
+		}
+		if err != nil || !carrier.Valid() {
+			return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("resolve platform shared carrier: %w", err))
+		}
+		canonicalCarrier, carrierErr := filepath.EvalSymlinks(filepath.Clean(carrier.ExecutablePath))
+		if carrierErr != nil {
+			return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("canonicalize platform shared carrier: %w", carrierErr))
+		}
+		canonicalCarrier = normalizeWindowsDevelopmentPath(canonicalCarrier)
+		if !sameWindowsLocalDevelopmentHostFile(canonicalHost, canonicalCarrier) {
+			return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("host executable does not match verified platform shared carrier"))
+		}
+		return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost, PlatformSharedCarrier: true}, nil
 	}
 	if windowsPathWithinRoot(canonicalRoot, canonicalHost) {
 		return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost}, nil

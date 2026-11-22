@@ -1158,29 +1158,36 @@ export class ElectronLocalDevelopmentHost {
 
   private async supervise(run: RunContext): Promise<void> {
     try {
-      setRunState(run, 'building', 'Building Electron main and preload', undefined, false);
-      await this.runPackageScript(run, 'build:electron');
-      if (run.stopped) return;
+      if (run.plan.carrier !== 'managed-web') {
+        setRunState(run, 'building', 'Building Electron main and preload', undefined, false);
+        await this.runPackageScript(run, 'build:electron');
+        if (run.stopped) return;
+      }
       await assertLocalDevelopmentRendererOriginAvailable(run.plan.rendererOrigin);
       run.renderer = this.spawnPackageScript(run, 'dev:renderer');
       await waitForRenderer(run.plan.rendererOrigin, run.renderer, () => run.stopped);
-      const electronSourceRoot = run.plan.hostSourceDirectory;
-      run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
+      if (run.plan.carrier !== 'managed-web') {
+        const electronSourceRoot = run.plan.hostSourceDirectory;
+        run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
+      }
       await this.launchHost(run);
       if (run.stopped) return;
-      run.watcher = watch(electronSourceRoot, { recursive: true }, (eventType, filename) => {
-        if (run.stopped) return;
-        run.electronSourceWatchTriggers ??= new Set();
-        if (run.electronSourceWatchTriggers.size < 16) {
-          run.electronSourceWatchTriggers.add(formatLocalDevelopmentWatchTrigger(eventType, filename));
-        }
-        run.rebuildRequested = true;
-        if (run.rebuildTimer) clearTimeout(run.rebuildTimer);
-        run.rebuildTimer = setTimeout(() => {
-          run.rebuildTimer = undefined;
-          void this.rebuild(run);
-        }, REBUILD_DEBOUNCE_MS);
-      });
+      if (run.plan.carrier !== 'managed-web') {
+        const electronSourceRoot = run.plan.hostSourceDirectory;
+        run.watcher = watch(electronSourceRoot, { recursive: true }, (eventType, filename) => {
+          if (run.stopped) return;
+          run.electronSourceWatchTriggers ??= new Set();
+          if (run.electronSourceWatchTriggers.size < 16) {
+            run.electronSourceWatchTriggers.add(formatLocalDevelopmentWatchTrigger(eventType, filename));
+          }
+          run.rebuildRequested = true;
+          if (run.rebuildTimer) clearTimeout(run.rebuildTimer);
+          run.rebuildTimer = setTimeout(() => {
+            run.rebuildTimer = undefined;
+            void this.rebuild(run);
+          }, REBUILD_DEBOUNCE_MS);
+        });
+      }
       this.ensureHealthTimer(run);
       const renderer = run.renderer;
       renderer.once('exit', (code) => {
@@ -1237,20 +1244,29 @@ export class ElectronLocalDevelopmentHost {
 
   private async launchHost(run: RunContext): Promise<void> {
     if (!run.registrationHandle) throw new Error('local-development-registration-not-found');
-    const mainEntry = await canonicalElectronMain(run.plan);
     const launchCdpPort = run.cdpPort ?? run.requestedCdpPort;
-    const hostLaunch = resolveLocalDevelopmentElectronHostLaunch({
-      mainEntry,
-      rendererOrigin: run.plan.rendererOrigin,
-      cdpPort: launchCdpPort,
-      sourceLocalDevelopment: (
-        process.platform === 'darwin'
-        && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
-      ) || (
-        process.platform === 'win32'
-        && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
-      ),
-    });
+    const sourceLocalDevelopment = (
+      process.platform === 'darwin'
+      && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
+    ) || (
+      process.platform === 'win32'
+      && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
+    );
+    const hostLaunch = run.plan.carrier === 'managed-web'
+      ? resolveLocalDevelopmentElectronHostLaunch({
+        carrier: 'managed-web',
+        carrierScript: run.plan.carrierScript,
+        rendererOrigin: run.plan.rendererOrigin,
+        cdpPort: launchCdpPort,
+        sourceLocalDevelopment,
+      })
+      : resolveLocalDevelopmentElectronHostLaunch({
+        carrier: 'native',
+        mainEntry: await canonicalElectronMain(run.plan),
+        rendererOrigin: run.plan.rendererOrigin,
+        cdpPort: launchCdpPort,
+        sourceLocalDevelopment,
+      });
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
     // HTTP, IPC, Zhiyu and watcher restarts all reach this bounded Prepare ->
@@ -1707,11 +1723,14 @@ function sameLocalDevelopmentPlan(
 ): boolean {
   return left.appId === right.appId
     && left.displayName === right.displayName
+    && left.carrier === right.carrier
     && left.aiConfigAllowedRoutes.join('|') === right.aiConfigAllowedRoutes.join('|')
     && comparableCanonicalProjectPath(left.projectRoot) === comparableCanonicalProjectPath(right.projectRoot)
     && left.rendererOrigin === right.rendererOrigin
     && comparableCanonicalProjectPath(left.electronExecutable) === comparableCanonicalProjectPath(right.electronExecutable)
-    && comparableCanonicalProjectPath(left.mainEntry) === comparableCanonicalProjectPath(right.mainEntry);
+    && (left.carrier === 'managed-web'
+      ? (left.carrierScript ?? '') === (right.carrierScript ?? '')
+      : comparableCanonicalProjectPath(left.mainEntry) === comparableCanonicalProjectPath(right.mainEntry));
 }
 
 export function sameLocalDevelopmentProject(

@@ -13,6 +13,7 @@ import {
 } from './lib/electron-dev-carrier.mjs';
 import { acquireDesktopDevSessionLock } from './lib/electron-dev-session-lock.mjs';
 import { prepareDesktopDevDependencies } from '../../../scripts/lib/desktop-dev-dependencies.mjs';
+import { ensureManagedWebDevCarrier } from '../../../scripts/lib/dev-carrier.mjs';
 import { readDevelopmentRealm, developmentRealmEnvironment, parseRealmArguments } from '../../../scripts/lib/development-realm.mjs';
 
 const require = createRequire(import.meta.url);
@@ -103,6 +104,16 @@ if (process.platform === 'darwin') {
 
 async function runWindowsDesktopDev() {
   try {
+    const electronBin = resolveWorkspaceElectronDevCarrier({
+      platform: process.platform,
+      architecture: process.arch,
+      electronExecutable: require('electron'),
+      existsSync,
+    });
+    ensureManagedWebDevCarrier({
+      repoRoot: workspaceRoot,
+      electronExecutable: electronBin,
+    });
     dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
     await dependencyTask;
     dependencyAbort.signal.throwIfAborted();
@@ -110,12 +121,6 @@ async function runWindowsDesktopDev() {
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
-    const electronBin = resolveWorkspaceElectronDevCarrier({
-      platform: process.platform,
-      architecture: process.arch,
-      electronExecutable: require('electron'),
-      existsSync,
-    });
     mkdirSync(localAssetRoot, { recursive: true });
     process.stdout.write(`${JSON.stringify({
       status: 'starting',
@@ -151,6 +156,7 @@ async function runWindowsDesktopDev() {
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: windowsSourceLocalDevelopmentRuntime,
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE: electronBin,
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: windowsSourceLocalDevelopmentNativeEntry,
+        NIMI_SOURCE_RUNTIME_REPO_ROOT: workspaceRoot,
         NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
     }));
@@ -173,6 +179,16 @@ async function runWindowsDesktopDev() {
 
 async function runMacOSDesktopDev() {
   try {
+    const electronBin = resolveWorkspaceElectronDevCarrier({
+      platform: process.platform,
+      architecture: process.arch,
+      electronExecutable: require('electron'),
+      existsSync,
+    });
+    ensureManagedWebDevCarrier({
+      repoRoot: workspaceRoot,
+      electronExecutable: electronBin,
+    });
     dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
     await dependencyTask;
     dependencyAbort.signal.throwIfAborted();
@@ -180,12 +196,6 @@ async function runMacOSDesktopDev() {
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
     await waitForWorkspaceSurfaces(workspaceSurfaceWatcher, 180_000);
     await buildElectronHostForDesktopDev(workspaceSurfaceWatcher);
-    const electronBin = resolveWorkspaceElectronDevCarrier({
-      platform: process.platform,
-      architecture: process.arch,
-      electronExecutable: require('electron'),
-      existsSync,
-    });
     const macOSProfileRoot = path.join(workspaceRoot, '.nimi', 'local', 'dev-profiles', 'macos-desktop');
     mkdirSync(macOSProfileRoot, { recursive: true });
     mkdirSync(localAssetRoot, { recursive: true });
@@ -221,6 +231,7 @@ async function runMacOSDesktopDev() {
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: macOSSourceLocalDevelopmentRuntime,
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_HOST_EXECUTABLE: electronBin,
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: macOSSourceLocalDevelopmentNativeEntry,
+        NIMI_SOURCE_RUNTIME_REPO_ROOT: workspaceRoot,
         NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
     }));

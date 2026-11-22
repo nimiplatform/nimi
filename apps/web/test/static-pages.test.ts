@@ -609,6 +609,23 @@ test('PublicProduct renders Storefront media, highlights, platform sizes, and bl
   assert.match(blockedHtml, /Distribution suspended/);
   assert.doesNotMatch(blockedHtml, /web-storefront-gallery/);
   assert.doesNotMatch(blockedHtml, /Open in browser/);
+
+  const managedWebHtml = renderRoute(
+    '/apps/shijing?lang=en',
+    '/apps/:slug',
+    createElement(PublicProduct, {
+      item: {
+        ...published,
+        pc_targets: ['desktop-universal'],
+        pc_target_releases: { 'desktop-universal': { version: '0.1.12', size: 5_242_880 } },
+        displayed_version: '0.1.12',
+      },
+      locale: 'en',
+      detail: true,
+    }),
+  );
+  assert.match(managedWebHtml, /macOS · Windows/);
+  assert.match(managedWebHtml, /5\.0 MB/);
 });
 
 test('apps directory routing and list projection unify live states while preserving special non-native identities', () => {

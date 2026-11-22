@@ -234,6 +234,59 @@ describe('Desktop approved App install intent', () => {
     assert.equal(approvedCatalogTargetMatchesIntent(catalogTarget({ approvedTargetSelector: new Uint8Array([1, 2, 4]) }), intent), false);
   });
 
+  it('starts managed-web desktop-universal installation directly in one step and rejects contradictory posture', async () => {
+    let starts = 0;
+    const controller = createAppsInstallIntentController({
+      startInstall: async () => { starts += 1; return { kind: 'started' }; },
+      refresh: () => undefined,
+    });
+    const managedWeb = catalogTarget({
+      targetId: 'desktop-universal',
+      os: 'any',
+      arch: 'any',
+      assetName: 'publisher.example-1.2.3-desktop-universal.nimiapp',
+      executionProfileRef: 'nimi-managed-web-v1',
+      windowsCodeSigning: 'not-applicable',
+      macosNotarization: 'not-applicable',
+    });
+    const result = await controller.requestInstall(managedWeb);
+    assert.deepEqual(result, { kind: 'start-result', result: { kind: 'started' } });
+    assert.equal(starts, 1);
+    assert.equal(snapshotAppsInstallIntent(managedWeb).os, 'any');
+    assert.throws(
+      () => snapshotAppsInstallIntent({ ...managedWeb, windowsCodeSigning: 'unsigned' }),
+      /Contradictory managed-web posture/u,
+    );
+    assert.throws(
+      () => snapshotAppsInstallIntent({ ...managedWeb, executionProfileRef: 'windows-user-mode-as-invoker-v1' }),
+      /Unsupported App Catalog target/u,
+    );
+    assert.throws(
+      () => snapshotAppsInstallIntent(catalogTarget({
+        os: 'windows',
+        arch: 'x86_64',
+        targetId: 'windows-x86_64',
+        executionProfileRef: 'nimi-managed-web-v1',
+        windowsCodeSigning: 'signed',
+        macosNotarization: 'notarized',
+        observedSigningSubject: 'CN=Publisher',
+      })),
+      /Unsupported App Catalog target/u,
+    );
+    assert.throws(
+      () => snapshotAppsInstallIntent(catalogTarget({
+        os: 'windows',
+        arch: 'x86_64',
+        targetId: 'windows-x86_64',
+        executionProfileRef: 'windows-user-mode-as-invoker-v1',
+        windowsCodeSigning: 'signed',
+        macosNotarization: 'notarized',
+        observedSigningSubject: 'CN=Publisher',
+      })),
+      /Contradictory Windows native posture/u,
+    );
+  });
+
   it('fails closed on an unsupported target or native posture', () => {
     assert.throws(() => snapshotAppsInstallIntent(catalogTarget({ targetId: 'macos-aarch64', os: 'macos', arch: 'aarch64' })), /Unsupported App Catalog target/u);
     assert.throws(() => snapshotAppsInstallIntent(catalogTarget({ windowsCodeSigning: 'invalid' })), /Unsupported Windows native posture/u);

@@ -303,6 +303,7 @@ export function WebLaunch({ item, locale }: { item: Product; locale: LandingLoca
 const pcTargets: Record<string, string> = {
   'windows-x86_64': 'Windows x86_64',
   'macos-aarch64': 'macOS arm64',
+  'desktop-universal': 'macOS · Windows',
 };
 
 const ORIGIN_LABELS: Record<LandingLocale, Record<ProductOrigin, string>> = {

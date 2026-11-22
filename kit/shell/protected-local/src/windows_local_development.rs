@@ -194,7 +194,7 @@ pub(crate) async fn launch_host(
     validate_identifier(request.supervisor_run_id)?;
     let host_executable_path = canonical_file(&request.host_executable_path)?;
     let working_directory = canonical_directory(&request.working_directory)?;
-    let _renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
+    let renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
     let response = crate::grpc_limits::runtime_app_client(channel.clone())
         .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
             local_app_handle: request.registration_handle.to_vec(),
@@ -207,8 +207,12 @@ pub(crate) async fn launch_host(
     let launch_id = required_identifier(response.launch_id)?;
     let prepare_deadline = required_timestamp_ms(response.bind_deadline)?;
     let profile = crate::host_profile::prepare(response.host_storage)?;
-    let host_arguments =
-        development_host_arguments(request.shell_kind, &profile, &request.host_arguments)?;
+    let host_arguments = development_host_arguments(
+        request.shell_kind,
+        &profile,
+        &request.host_arguments,
+        &renderer_origin,
+    )?;
     profile.clear_devtools_active_port()?;
     let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
         &host_executable_path,
@@ -257,12 +261,24 @@ fn development_host_arguments(
     shell_kind: LocalDevelopmentShellKind,
     profile: &crate::host_profile::PreparedHostProfile,
     caller_arguments: &[String],
+    expected_renderer_origin: &str,
 ) -> Result<Vec<String>, NimiHostError> {
+    if caller_arguments.iter().any(|argument| {
+        argument == "--user-data-dir"
+            || argument.starts_with("--user-data-dir=")
+            || argument == "--nimi-managed-web-app"
+            || argument.starts_with("--nimi-payload-digest=")
+    }) {
+        return Err(untrusted());
+    }
     if caller_arguments
         .iter()
-        .any(|argument| argument == "--user-data-dir" || argument.starts_with("--user-data-dir="))
+        .any(|argument| argument == "--nimi-managed-web-dev")
     {
-        return Err(untrusted());
+        if shell_kind != LocalDevelopmentShellKind::Electron {
+            return Err(untrusted());
+        }
+        validate_managed_web_dev_arguments(caller_arguments, expected_renderer_origin)?;
     }
     let mut arguments = Vec::with_capacity(caller_arguments.len() + 1);
     if shell_kind == LocalDevelopmentShellKind::Electron {
@@ -272,6 +288,106 @@ fn development_host_arguments(
     }
     arguments.extend(caller_arguments.iter().cloned());
     Ok(arguments)
+}
+
+fn validate_managed_web_dev_arguments(
+    arguments: &[String],
+    expected_renderer_origin: &str,
+) -> Result<(), NimiHostError> {
+    let expected_origin = controlled_renderer_origin(expected_renderer_origin)?;
+    let mut saw_dev_flag = false;
+    let mut saw_renderer_url = false;
+    #[allow(unused_mut)]
+    let mut saw_entry_script = false;
+    let mut saw_debug_addr = false;
+    let mut saw_debug_port = false;
+    for argument in arguments {
+        if argument == "--nimi-managed-web-dev" {
+            if saw_dev_flag {
+                return Err(untrusted());
+            }
+            saw_dev_flag = true;
+            continue;
+        }
+        if let Some(url) = argument.strip_prefix("--nimi-dev-renderer-url=") {
+            if saw_renderer_url {
+                return Err(untrusted());
+            }
+            let parsed = controlled_renderer_origin(url)?;
+            if parsed != expected_origin {
+                return Err(untrusted());
+            }
+            saw_renderer_url = true;
+            continue;
+        }
+        if argument == "--remote-debugging-address=127.0.0.1" {
+            if saw_debug_addr {
+                return Err(untrusted());
+            }
+            saw_debug_addr = true;
+            continue;
+        }
+        if let Some(port_text) = argument.strip_prefix("--remote-debugging-port=") {
+            if saw_debug_port {
+                return Err(untrusted());
+            }
+            let port: u16 = port_text.parse().map_err(|_| untrusted())?;
+            if port != 0 && port < 1024 {
+                return Err(untrusted());
+            }
+            saw_debug_port = true;
+            continue;
+        }
+        #[cfg(any(
+            all(target_os = "windows", feature = "windows-source-local-development"),
+            all(target_os = "macos", feature = "macos-source-local-development")
+        ))]
+        if !saw_entry_script && !saw_dev_flag && !argument.starts_with('-') {
+            if validate_source_managed_web_dev_script(argument).is_ok() {
+                saw_entry_script = true;
+                continue;
+            }
+        }
+        return Err(untrusted());
+    }
+    let _ = saw_entry_script;
+    if !saw_dev_flag || !saw_renderer_url || saw_debug_addr != saw_debug_port {
+        return Err(untrusted());
+    }
+    Ok(())
+}
+
+#[cfg(any(
+    all(target_os = "windows", feature = "windows-source-local-development"),
+    all(target_os = "macos", feature = "macos-source-local-development")
+))]
+fn validate_source_managed_web_dev_script(argument: &str) -> Result<(), NimiHostError> {
+    let repo_root = std::env::var_os("NIMI_SOURCE_RUNTIME_REPO_ROOT")
+        .filter(|value| !value.is_empty())
+        .ok_or_else(untrusted)?;
+    let canonical_repo = canonical_directory(Path::new(&repo_root))?;
+    #[cfg(target_os = "windows")]
+    let expected = canonical_file(
+        &canonical_repo
+            .join("apps")
+            .join("desktop")
+            .join("dist-electron")
+            .join("managed-web-carrier.js"),
+    )?;
+    #[cfg(target_os = "macos")]
+    let expected = canonical_file(
+        &canonical_repo
+            .join("apps")
+            .join("desktop")
+            .join("macos")
+            .join("local-app-host")
+            .join("main.mjs"),
+    )?;
+    let actual = canonical_file(Path::new(argument))?;
+    if actual != expected {
+        return Err(untrusted());
+    }
+    Ok(())
 }
 
 #[cfg(any(
@@ -771,17 +887,26 @@ mod tests {
             "--remote-debugging-port=0".to_string(),
             "main.js".to_string(),
         ];
-        let arguments =
-            development_host_arguments(LocalDevelopmentShellKind::Electron, &profile, &caller)
-                .expect("electron arguments");
+        let arguments = development_host_arguments(
+            LocalDevelopmentShellKind::Electron,
+            &profile,
+            &caller,
+            "http://127.0.0.1:5173",
+        )
+        .expect("electron arguments");
         assert_eq!(
             arguments[0],
             format!("--user-data-dir={}", profile.user_data().display())
         );
         assert_eq!(&arguments[1..], caller.as_slice());
         assert_eq!(
-            development_host_arguments(LocalDevelopmentShellKind::Tauri, &profile, &caller)
-                .expect("tauri arguments"),
+            development_host_arguments(
+                LocalDevelopmentShellKind::Tauri,
+                &profile,
+                &caller,
+                "http://127.0.0.1:5173",
+            )
+            .expect("tauri arguments"),
             caller
         );
         for forged in ["--user-data-dir=C:\\elsewhere", "--user-data-dir"] {
@@ -790,10 +915,32 @@ mod tests {
             assert!(development_host_arguments(
                 LocalDevelopmentShellKind::Electron,
                 &profile,
-                &forged_arguments
+                &forged_arguments,
+                "http://127.0.0.1:5173",
             )
             .is_err());
         }
+        // Mode B managed-web: exact renderer origin match required; mismatched origin rejected.
+        assert!(development_host_arguments(
+            LocalDevelopmentShellKind::Electron,
+            &profile,
+            &[
+                "--nimi-managed-web-dev".to_string(),
+                "--nimi-dev-renderer-url=http://127.0.0.1:5173".to_string(),
+            ],
+            "http://127.0.0.1:5173",
+        )
+        .is_ok());
+        assert!(development_host_arguments(
+            LocalDevelopmentShellKind::Electron,
+            &profile,
+            &[
+                "--nimi-managed-web-dev".to_string(),
+                "--nimi-dev-renderer-url=http://127.0.0.1:9999".to_string(),
+            ],
+            "http://127.0.0.1:5173",
+        )
+        .is_err());
         let _ = std::fs::remove_dir_all(&data_root);
     }
 

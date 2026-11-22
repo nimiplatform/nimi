@@ -234,7 +234,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows protected connector custody: %w", err))
 	}
-	localDevelopmentVerifier, err := protectedlocal.NewWindowsLocalDevelopmentProcessVerifier(state.DesktopIdentity())
+	localDevelopmentVerifier, err := protectedlocal.NewWindowsLocalDevelopmentProcessVerifierWithCarrierResolver(state.DesktopIdentity(), state.ManagedWebCarrierResolver())
 	if err != nil {
 		return fail(fmt.Errorf("construct Windows local-development process verifier: %w", err))
 	}
@@ -261,6 +261,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			DesktopSessions:                  sessions,
 			LocalAppLaunches:                 state.LocalAppLaunches(),
 			LocalDevelopmentVerifier:         localDevelopmentVerifier,
+			ManagedWebCarrierResolver:        state.ManagedWebCarrierResolver(),
 			RuntimeRestartRequester:          requestRestart,
 			PeerRejections:                   state,
 		},

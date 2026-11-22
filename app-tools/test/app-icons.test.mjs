@@ -87,7 +87,7 @@ test('custom metadata paths drive all outputs; removed and invalid artwork canno
 });
 
 async function runGeneratedHost(appId, production, platform, hasIcon = true) {
-  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId, appTitle: appId, packageName: appId.replaceAll('.', '-') });
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', carrier: 'native', versions, appId, appTitle: appId, packageName: appId.replaceAll('.', '-') });
   const source = stripTypeScriptTypes(snapshot.filesByPath.get('src-electron/main.ts').content, { mode: 'strip' })
     .replace(/^import .+ from '[^']+';$/gm, '')
     .replace("await import('@nimiplatform/kit/shell/electron/main')", 'kitMain')
@@ -134,7 +134,7 @@ test('generated Hosts isolate App and development identities while selecting pac
 });
 
 test('scaffold owns the icon pipeline and production packaging includes its resources', () => {
-  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'test.icons', appTitle: 'Icons', packageName: 'test-icons' });
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', carrier: 'native', versions, appId: 'test.icons', appTitle: 'Icons', packageName: 'test-icons' });
   assert.equal(snapshot.filesByPath.get('scripts/app-icons.mjs').content, readFileSync(new URL('../lib/app-icons.mjs', import.meta.url), 'utf8'));
   const pkg = JSON.parse(snapshot.filesByPath.get('package.json').content);
   assert.equal(pkg.devDependencies.pngjs, versions.pngjsVersion);

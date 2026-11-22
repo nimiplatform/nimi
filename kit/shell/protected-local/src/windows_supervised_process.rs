@@ -67,7 +67,21 @@ impl SupervisedDevelopmentProcess {
             executable,
             arguments,
             working_directory,
-            installed_environment(profile)?,
+            installed_environment(profile, false)?,
+        )
+    }
+
+    pub(crate) fn create_verified_managed_web(
+        executable: &Path,
+        arguments: &[String],
+        working_directory: &Path,
+        profile: &PreparedHostProfile,
+    ) -> Result<Self, NimiHostError> {
+        Self::create(
+            executable,
+            arguments,
+            working_directory,
+            installed_environment(profile, true)?,
         )
     }
 
@@ -432,14 +446,24 @@ const INSTALLED_ENVIRONMENT_KEYS: &[&str] = &[
     "WINDIR",
 ];
 
-fn installed_environment(profile: &PreparedHostProfile) -> Result<Vec<u16>, NimiHostError> {
-    let keys = INSTALLED_ENVIRONMENT_KEYS.iter().copied();
+fn installed_environment(
+    profile: &PreparedHostProfile,
+    managed_web_carrier: bool,
+) -> Result<Vec<u16>, NimiHostError> {
+    #[allow(unused_mut)]
+    let mut keys: Vec<&str> = INSTALLED_ENVIRONMENT_KEYS.to_vec();
     #[cfg(feature = "windows-source-local-development")]
-    let keys = keys.chain([
-        "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT",
-        "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE",
-    ]);
+    {
+        keys.push("NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT");
+        keys.push("NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE");
+        if managed_web_carrier {
+            keys.push("NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY");
+        }
+    }
+    #[cfg(not(feature = "windows-source-local-development"))]
+    let _ = managed_web_carrier;
     let mut entries = keys
+        .into_iter()
         .filter_map(|key| std::env::var_os(key).map(|value| (OsString::from(key), value)))
         .collect::<Vec<_>>();
     entries.extend(profile_environment(profile));
@@ -696,7 +720,7 @@ mod tests {
     #[test]
     fn installed_environment_contains_only_system_d2_and_host_profile_facts() {
         let profile = test_profile();
-        let block = installed_environment(&profile).expect("installed environment");
+        let block = installed_environment(&profile, false).expect("installed environment");
         let temp = profile.temp().to_string_lossy().into_owned();
         let mut profile_keys = 0;
         for (key, value) in environment_entries(&block) {

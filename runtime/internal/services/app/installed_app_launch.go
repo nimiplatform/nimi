@@ -96,7 +96,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 				return installedLaunchUnavailable()
 			}
 			prepared, err := s.directLocalAppLaunches.PrepareInstalled(owner, handle, runID, verified.Registration.SourceGeneration,
-				verified.Registration.DeclarationGeneration, peer.PID, peer.UID, verified.RuntimeEntry, expires)
+				verified.Registration.DeclarationGeneration, peer.PID, peer.UID, verified.CarrierExecutablePath, expires)
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 			policy: protectedlocal.InstalledAppProcessPolicy{RegistrationHandle: verified.Registration.RegistrationHandle,
 				TrustClass:       trustClass,
 				SourceGeneration: verified.Registration.SourceGeneration, DeclarationGeneration: verified.Registration.DeclarationGeneration,
-				HostExecutablePath: verified.RuntimeEntry, HostExecutableDigest: verified.ExecutableDigest,
+				HostExecutablePath: verified.CarrierExecutablePath, HostExecutableDigest: verified.CarrierExecutableDigest,
 				ExecutionProfileRef: verified.Release.ExecutionProfileRef, SupervisorProcess: supervisor}}
 		s.installedLaunchMu.Lock()
 		if s.installedLaunches == nil {
@@ -153,8 +153,8 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		}
 	})
 	return &runtimev1.PrepareInstalledAppLaunchResponse{LaunchId: append([]byte(nil), lease.id[:]...),
-		AppId: lease.verified.Release.AppID, Version: lease.verified.Release.Version, ExecutablePath: lease.verified.RuntimeEntry,
-		WorkingDirectory: lease.verified.WorkingDirectory, Arguments: []string{}, ExecutableSha256: append([]byte(nil), lease.verified.ExecutableDigest[:]...),
+		AppId: lease.verified.Release.AppID, Version: lease.verified.Release.Version, ExecutablePath: lease.verified.CarrierExecutablePath,
+		WorkingDirectory: lease.verified.WorkingDirectory, Arguments: append([]string{}, lease.verified.Arguments...), ExecutableSha256: append([]byte(nil), lease.verified.CarrierExecutableDigest[:]...),
 		ExecutionProfileRef: lease.policy.ExecutionProfileRef, BindDeadline: timestamppb.New(lease.expires), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		HostStorage: &runtimev1.HostStorageProjection{ProfileRoot: lease.profileRoot}}, nil
 }
@@ -214,7 +214,8 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 		if current.Registration.SourceClass != lease.verified.Registration.SourceClass ||
 			current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
 			current.Release.ReleaseRef != lease.verified.Release.ReleaseRef || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest ||
-			current.ExecutableDigest != lease.policy.HostExecutableDigest || current.RuntimeEntry != lease.policy.HostExecutablePath || !s.now().UTC().Before(lease.expires) {
+			current.RuntimeEntry != lease.verified.RuntimeEntry || current.ExecutableDigest != lease.verified.ExecutableDigest ||
+			current.CarrierExecutableDigest != lease.policy.HostExecutableDigest || current.CarrierExecutablePath != lease.policy.HostExecutablePath || !s.now().UTC().Before(lease.expires) {
 			return installedLaunchMismatch()
 		}
 		deadline = s.now().UTC().Add(10 * time.Second)

@@ -23,12 +23,15 @@ var ErrInstalledLaunch = errors.New("installed App launch is unavailable")
 // InstalledLaunch is host-private material resolved by Runtime. It is
 // not a renderer DTO or an input accepting a caller's executable/arguments.
 type InstalledLaunch struct {
-	Release          localappkernel.CommittedRelease
-	Registration     localappkernel.Registration
-	RuntimeEntry     string
-	WorkingDirectory string
-	ExecutableDigest protectedlocal.Identifier
-	expected         nimiapppackage.Expected
+	Release                 localappkernel.CommittedRelease
+	Registration            localappkernel.Registration
+	RuntimeEntry            string
+	WorkingDirectory        string
+	ExecutableDigest        protectedlocal.Identifier
+	CarrierExecutablePath   string
+	CarrierExecutableDigest protectedlocal.Identifier
+	Arguments               []string
+	expected                nimiapppackage.Expected
 }
 
 // Installation owns these inputs. They prevent a changed manifest from
@@ -42,6 +45,12 @@ type installedLaunchConfig struct {
 // Prepare invokes it once; bind independently verifies the actual child image
 // against the committed digest before Desktop resumes that child.
 func (launch InstalledLaunch) VerifyHost(ctx context.Context) error {
+	if nimiapppackage.IsManagedWebExecutionProfile(launch.Release.ExecutionProfileRef) {
+		if launch.CarrierExecutablePath == "" || launch.CarrierExecutableDigest == (protectedlocal.Identifier{}) || len(launch.Arguments) < 2 {
+			return ErrInstalledLaunch
+		}
+		return nil
+	}
 	verifier, err := nativeVerifierForExpected(launch.expected)
 	if err != nil {
 		return err
@@ -125,7 +134,15 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 		return errors.Join(ErrInstalledLaunch, err)
 	}
 	packageExpected := config.Expected
-	if packageExpected.AppID != release.AppID || packageExpected.Version != release.Version || packageExpected.OS != expectedOS || packageExpected.Arch != expectedArch ||
+	managedWeb := nimiapppackage.IsManagedWebExecutionProfile(release.ExecutionProfileRef)
+	platformMatches := packageExpected.OS == expectedOS && packageExpected.Arch == expectedArch
+	if managedWeb {
+		platformMatches = nimiapppackage.IsManagedWebTarget(packageExpected) &&
+			packageExpected.TargetID == nimiapppackage.ManagedWebTargetID &&
+			packageExpected.OS == "any" && packageExpected.Arch == "any" &&
+			packageExpected.RuntimeEntry == nimiapppackage.ManagedWebRuntimeEntry
+	}
+	if packageExpected.AppID != release.AppID || packageExpected.Version != release.Version || !platformMatches ||
 		packageExpected.ExecutionProfileRef != release.ExecutionProfileRef || config.DisplayName != registration.DisplayName || !equalTextList(packageExpected.AppAccess, registration.RawDeclaration) {
 		return ErrInstalledLaunch
 	}
@@ -143,7 +160,8 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 		}
 		if resolved.AppID != release.AppID || resolved.Version != release.Version || resolved.Selector != selector ||
 			resolved.DescriptorID != selector.DescriptorID() || resolved.Target.TargetID != selector.TargetID() ||
-			resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
+			!publicappregistry.TargetCompatibleWithPlatform(resolved.Target, expectedOS, expectedArch) ||
+			resolved.Target.OS != packageExpected.OS || resolved.Target.Arch != packageExpected.Arch {
 			return ErrInstalledLaunch
 		}
 		if !reflect.DeepEqual(packageExpected, packageExpectation(resolved)) {
@@ -158,7 +176,31 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 	if err != nil {
 		return fmt.Errorf("resolve installed App entry: %w", err)
 	}
-	launch := InstalledLaunch{Release: release, Registration: registration, RuntimeEntry: entry, WorkingDirectory: filepath.Dir(entry), ExecutableDigest: digest, expected: packageExpected}
+	launch := InstalledLaunch{
+		Release:                 release,
+		Registration:            registration,
+		RuntimeEntry:            entry,
+		WorkingDirectory:        filepath.Dir(entry),
+		ExecutableDigest:        digest,
+		CarrierExecutablePath:   entry,
+		CarrierExecutableDigest: digest,
+		Arguments:               []string{},
+		expected:                packageExpected,
+	}
+	if managedWeb {
+		carrier, err := coordinator.resolveManagedWebCarrier(ctx)
+		if err != nil || !carrier.Valid() {
+			return fmt.Errorf("resolve managed-web shared carrier: %w", errors.Join(ErrInstalledLaunch, err))
+		}
+		arguments, err := protectedlocal.BuildManagedWebLaunchArguments(carrier.ArgumentsPrefix, release.PayloadRootDigest)
+		if err != nil {
+			return fmt.Errorf("build managed-web launch arguments: %w", errors.Join(ErrInstalledLaunch, err))
+		}
+		launch.WorkingDirectory = registration.ProjectRoot
+		launch.CarrierExecutablePath = carrier.ExecutablePath
+		launch.CarrierExecutableDigest = carrier.ExecutableDigest
+		launch.Arguments = arguments
+	}
 	if verifyHost {
 		nativeStarted := time.Now()
 		err := launch.VerifyHost(ctx)

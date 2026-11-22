@@ -2,6 +2,7 @@ package nimiapppackage
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -40,9 +41,32 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
-	reader, err := zip.NewReader(file, info.Size())
-	if err != nil {
-		return LocalMetadata{}, fmt.Errorf("open local App archive: %w", ErrInvalidPackage)
+	var (
+		reader        *zip.Reader
+		archiveSHA256 string
+		archiveSize   = info.Size()
+	)
+	if info.Size() <= ManagedWebMaxArchiveBytes {
+		var buf bytes.Buffer
+		buf.Grow(int(info.Size()))
+		if err := copyWithContext(ctx, &buf, io.LimitReader(file, info.Size()+1), uint64(info.Size())); err != nil {
+			return LocalMetadata{}, err
+		}
+		raw := buf.Bytes()
+		if int64(len(raw)) != info.Size() {
+			return LocalMetadata{}, ErrPackageIntegrity
+		}
+		sum := sha256.Sum256(raw)
+		archiveSHA256 = hex.EncodeToString(sum[:])
+		reader, err = zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
+		if err != nil {
+			return LocalMetadata{}, fmt.Errorf("open local App archive: %w", ErrInvalidPackage)
+		}
+	} else {
+		reader, err = zip.NewReader(file, info.Size())
+		if err != nil {
+			return LocalMetadata{}, fmt.Errorf("open local App archive: %w", ErrInvalidPackage)
+		}
 	}
 	var manifest, declaration []byte
 	for _, entry := range reader.File {
@@ -66,12 +90,18 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	if err != nil {
 		return LocalMetadata{}, err
 	}
-	digest := sha256.New()
-	if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
-		return LocalMetadata{}, err
+	if IsManagedWebTarget(metadata.Expected) && archiveSHA256 == "" {
+		return LocalMetadata{}, ErrInvalidPackage
 	}
-	metadata.Expected.ArchiveSize = info.Size()
-	metadata.Expected.ArchiveSHA256 = hex.EncodeToString(digest.Sum(nil))
+	if archiveSHA256 == "" {
+		digest := sha256.New()
+		if err := copyWithContext(ctx, digest, file, uint64(info.Size())); err != nil {
+			return LocalMetadata{}, err
+		}
+		archiveSHA256 = hex.EncodeToString(digest.Sum(nil))
+	}
+	metadata.Expected.ArchiveSize = archiveSize
+	metadata.Expected.ArchiveSHA256 = archiveSHA256
 	inspection, _, err := inspectReader(ctx, reader, metadata.Expected)
 	if err != nil {
 		return LocalMetadata{}, err
@@ -116,7 +146,12 @@ func localMetadata(manifestRaw, declarationRaw []byte, targetOS, targetArch stri
 	if err := jsonstrict.Decode(manifestRaw, &manifest); err != nil {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
-	if manifest.OS != targetOS || manifest.Arch != targetArch {
+	managedWeb := manifest.OS == "any" && manifest.Arch == "any" && manifest.TargetID == ManagedWebTargetID
+	if managedWeb {
+		if (targetOS != "windows" || targetArch != "x86_64") && (targetOS != "macos" || targetArch != "arm64") {
+			return LocalMetadata{}, ErrUnsupportedTarget
+		}
+	} else if manifest.OS != targetOS || manifest.Arch != targetArch {
 		return LocalMetadata{}, ErrUnsupportedTarget
 	}
 	// x/mod accepts abbreviated versions such as v1.2; package versions must
@@ -126,7 +161,11 @@ func localMetadata(manifestRaw, declarationRaw []byte, targetOS, targetArch stri
 	if !appidentity.Valid(manifest.AppID) || !semver.IsValid(version) || semver.Canonical(version) != withoutBuild {
 		return LocalMetadata{}, ErrInvalidPackage
 	}
-	if err := validatePlatformManifestShape(manifestRaw, targetOS); err != nil {
+	shapeOS := targetOS
+	if managedWeb {
+		shapeOS = "any"
+	}
+	if err := validatePlatformManifestShape(manifestRaw, shapeOS); err != nil {
 		return LocalMetadata{}, err
 	}
 	var declaration struct {
@@ -144,7 +183,13 @@ func localMetadata(manifestRaw, declarationRaw []byte, targetOS, targetArch stri
 		OS: targetOS, Arch: targetArch, RuntimeEntry: manifest.RuntimeEntry, AppAccess: access,
 		ExecutionProfileRef: windowsExecutionProfileRef}
 	native := manifest.NativeTrust
-	if targetOS == "macos" {
+	if managedWeb {
+		expected.OS = "any"
+		expected.Arch = "any"
+		expected.ExecutionProfileRef = ManagedWebExecutionProfileRef
+		expected.NativeTrust.WindowsCodeSigning = "not-applicable"
+		expected.NativeTrust.MacOSNotarization = "not-applicable"
+	} else if targetOS == "macos" {
 		expected.ExecutionProfileRef = macOSExecutionProfileRef
 		expected.NativeTrust.WindowsCodeSigning = "not-applicable"
 		expected.NativeTrust.MacOSNotarization = native.MacOSNotarization
@@ -156,7 +201,7 @@ func localMetadata(manifestRaw, declarationRaw []byte, targetOS, targetArch stri
 	} else {
 		return LocalMetadata{}, ErrUnsupportedTarget
 	}
-	if native.Posture == "observed-valid-native-signature" {
+	if !managedWeb && native.Posture == "observed-valid-native-signature" {
 		var subject string
 		if err := json.Unmarshal(native.CertificateSubject, &subject); err != nil || !exactText(subject) {
 			return LocalMetadata{}, ErrInvalidPackage

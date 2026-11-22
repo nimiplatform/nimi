@@ -1,5 +1,6 @@
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
 declare const __NIMI_MACOS_LOCAL_APP_HOST_PATH__: string;
@@ -11,20 +12,27 @@ const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUIL
 const MACOS_LOCAL_DEVELOPMENT_HOST_PATH = typeof __NIMI_MACOS_LOCAL_APP_HOST_PATH__ === 'string'
   ? __NIMI_MACOS_LOCAL_APP_HOST_PATH__
   : '';
-const MACOS_PER_USER_RUNTIME_D2 = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
-  && __NIMI_ELECTRON_DEVELOPMENT_BUILD__
+const ELECTRON_DEVELOPMENT_BUILD = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
+  && __NIMI_ELECTRON_DEVELOPMENT_BUILD__;
+const MACOS_PER_USER_RUNTIME_D2 = ELECTRON_DEVELOPMENT_BUILD
   && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1';
+const WINDOWS_PER_USER_RUNTIME_D2 = ELECTRON_DEVELOPMENT_BUILD
+  && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1';
 const MACOS_PRODUCTION_LOCAL_APP_HOST_PATH = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
+
+export type ElectronLocalDevelopmentCarrier = 'native' | 'managed-web';
 
 export type ElectronLocalDevelopmentPlan = {
   readonly appId: string;
   readonly displayName: string;
+  readonly carrier: ElectronLocalDevelopmentCarrier;
   readonly aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[];
   readonly projectRoot: string;
   readonly rendererOrigin: string;
   readonly electronExecutable: string;
   readonly mainEntry: string;
   readonly hostSourceDirectory: string;
+  readonly carrierScript?: string;
 };
 
 export type ElectronAIConfigAllowedRoute = 'local' | 'cloud';
@@ -47,19 +55,91 @@ export async function resolveElectronLocalDevelopmentPlan(
   const localDevelopment = record(document.local_development);
   const electron = record(localDevelopment.electron);
   const rendererOrigin = loopbackOrigin(electron.renderer_origin);
+  const carrier = await resolveLocalDevelopmentCarrier(projectRoot);
 
   const packagePath = within(projectRoot, path.join(projectRoot, 'package.json'));
   const packageDocument = record(JSON.parse(await readFile(packagePath, 'utf8')) as unknown);
-  assertLocalDevelopmentPackageScripts(packageDocument.scripts);
-  const hostSourceDirectory = await resolveLocalDevelopmentHostSourceDirectory(projectRoot, electron.host_source_directory);
+  assertLocalDevelopmentPackageScripts(packageDocument.scripts, carrier);
 
+  if (carrier === 'managed-web') {
+    const resolvedCarrier = await resolveManagedWebDevCarrierHost();
+    return {
+      appId,
+      displayName,
+      carrier,
+      aiConfigAllowedRoutes,
+      projectRoot,
+      rendererOrigin,
+      electronExecutable: resolvedCarrier.electronExecutable,
+      mainEntry: '',
+      hostSourceDirectory: '',
+      ...(resolvedCarrier.carrierScript ? { carrierScript: resolvedCarrier.carrierScript } : {}),
+    };
+  }
+
+  const hostSourceDirectory = await resolveLocalDevelopmentHostSourceDirectory(projectRoot, electron.host_source_directory);
   const electronExecutable = process.platform === 'darwin'
     ? await canonicalFile(macOSLocalAppHostPath())
     : await canonicalFile(within(projectRoot, path.join(
       projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
     )));
   const mainEntry = within(projectRoot, path.join(projectRoot, 'dist-electron', 'main.js'));
-  return { appId, displayName, aiConfigAllowedRoutes, projectRoot, rendererOrigin, electronExecutable, mainEntry, hostSourceDirectory };
+  return { appId, displayName, carrier, aiConfigAllowedRoutes, projectRoot, rendererOrigin, electronExecutable, mainEntry, hostSourceDirectory };
+}
+
+async function resolveLocalDevelopmentCarrier(projectRoot: string): Promise<ElectronLocalDevelopmentCarrier> {
+  const profilePath = within(projectRoot, path.join(projectRoot, '.nimi', 'config', 'build-profile.yaml'));
+  let raw: string;
+  try {
+    raw = await readFile(profilePath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 'native';
+    fail('local-development-project-changed');
+  }
+  const parsed = parseYaml(raw) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return 'native';
+  return (parsed as Record<string, unknown>).build_profile_ref === 'managed-web-pnpm-vite'
+    ? 'managed-web'
+    : 'native';
+}
+
+async function resolveManagedWebDevCarrierHost(): Promise<{
+  readonly electronExecutable: string;
+  readonly carrierScript?: string;
+}> {
+  if (process.platform === 'win32') {
+    if (WINDOWS_PER_USER_RUNTIME_D2) {
+      const repoRoot = await resolveSourceRepoRoot();
+      return {
+        electronExecutable: await canonicalFile(path.join(repoRoot, '.nimi', 'local', 'dev-carrier', 'win32-x64', 'NimiAppHost.exe')),
+        carrierScript: await canonicalFile(path.join(repoRoot, 'apps', 'desktop', 'dist-electron', 'managed-web-carrier.js')),
+      };
+    }
+    return {
+      electronExecutable: await canonicalFile(path.join(path.dirname(process.execPath), 'NimiAppHost.exe')),
+    };
+  }
+  if (process.platform === 'darwin') {
+    if (MACOS_PER_USER_RUNTIME_D2) {
+      const repoRoot = await resolveSourceRepoRoot();
+      return {
+        electronExecutable: await canonicalFile(path.join(repoRoot, '.nimi', 'local', 'dev-carrier', 'Nimi Local App Host Dev.app', 'Contents', 'MacOS', 'Electron')),
+        carrierScript: await canonicalFile(path.join(repoRoot, 'apps', 'desktop', 'macos', 'local-app-host', 'main.mjs')),
+      };
+    }
+    return {
+      electronExecutable: await canonicalFile(macOSLocalAppHostPath()),
+    };
+  }
+  fail('local-development-platform-unsupported');
+}
+
+async function resolveSourceRepoRoot(): Promise<string> {
+  const fromEnv = process.env.NIMI_SOURCE_RUNTIME_REPO_ROOT?.trim();
+  const candidate = fromEnv && path.isAbsolute(fromEnv)
+    ? fromEnv
+    : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  return canonicalDirectory(candidate);
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-008
@@ -79,17 +159,23 @@ export async function resolveLocalDevelopmentHostSourceDirectory(projectRoot: st
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-008
-export function assertLocalDevelopmentPackageScripts(value: unknown): void {
+export function assertLocalDevelopmentPackageScripts(
+  value: unknown,
+  carrier: ElectronLocalDevelopmentCarrier = 'native',
+): void {
   const scripts = record(value);
   if (scripts.dev !== 'nimi-app dev --shell electron'
     || scripts['dev:shell'] !== 'nimi-app dev'
-    || !isRendererCommand(scripts['dev:renderer'])
-    || typeof scripts['build:electron'] !== 'string'
-    || scripts['build:electron'].trim() !== scripts['build:electron']
-    || scripts['build:electron'].length === 0) {
+    || !isRendererCommand(scripts['dev:renderer'])) {
     fail('local-development-project-changed');
   }
-
+  if (carrier === 'native' && (
+    typeof scripts['build:electron'] !== 'string'
+    || scripts['build:electron'].trim() !== scripts['build:electron']
+    || scripts['build:electron'].length === 0
+  )) {
+    fail('local-development-project-changed');
+  }
 }
 
 // The renderer framework is App-owned; the supervisor verifies the declared

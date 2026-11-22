@@ -9,9 +9,10 @@ import (
 )
 
 type LocalDevelopmentProcessPolicy struct {
-	ProjectRoot          string
-	HostExecutablePath   string
-	ProjectHostAliasPath string
+	ProjectRoot           string
+	HostExecutablePath    string
+	ProjectHostAliasPath  string
+	PlatformSharedCarrier bool
 	// SupervisorProcess is injected from the verified Desktop connection by
 	// Runtime service code on Windows. SupervisorPID carries the directly
 	// verified macOS Desktop PID. Neither is persisted or request-supplied.

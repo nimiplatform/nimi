@@ -2,7 +2,9 @@
 // The native carrier prepends the Runtime-derived `--user-data-dir` from the
 // launch's Host technical profile; Desktop never chooses a profile path.
 export function resolveLocalDevelopmentElectronHostLaunch(input: {
-  readonly mainEntry: string;
+  readonly mainEntry?: string;
+  readonly carrier?: 'native' | 'managed-web';
+  readonly carrierScript?: string;
   readonly rendererOrigin: string;
   readonly cdpPort?: number;
   readonly platform?: NodeJS.Platform;
@@ -12,12 +14,25 @@ export function resolveLocalDevelopmentElectronHostLaunch(input: {
   if (platform !== 'darwin' && platform !== 'win32') {
     throw new Error('local-development-platform-unsupported');
   }
-  const applicationArgument = platform === 'darwin' && input.sourceLocalDevelopment !== true
-    ? `--nimi-local-app-main=${input.mainEntry}`
-    : input.mainEntry;
   const cdpArguments = input.cdpPort === undefined
     ? []
     : localDevelopmentCdpArguments(input.cdpPort);
+  if (input.carrier === 'managed-web') {
+    return {
+      arguments: [
+        ...cdpArguments,
+        ...(input.carrierScript ? [input.carrierScript] : []),
+        '--nimi-managed-web-dev',
+        `--nimi-dev-renderer-url=${input.rendererOrigin}`,
+      ],
+    };
+  }
+  if (!input.mainEntry) {
+    throw new Error('local-development-project-changed');
+  }
+  const applicationArgument = platform === 'darwin' && input.sourceLocalDevelopment !== true
+    ? `--nimi-local-app-main=${input.mainEntry}`
+    : input.mainEntry;
   return {
     arguments: [
       ...cdpArguments,

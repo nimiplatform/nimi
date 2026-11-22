@@ -179,6 +179,7 @@ type ProtectedServiceBindings struct {
 	DesktopSessions                  *protectedlocal.DesktopSessionManager
 	LocalAppLaunches                 *protectedlocal.LocalAppLaunchRegistry
 	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
+	ManagedWebCarrierResolver        protectedlocal.ManagedWebCarrierResolver
 	DirectLocalAppLaunches           *protectedlocal.DirectLocalAppLaunches
 	RuntimeRestartRequester          runtimecontrolservice.LifecycleRequester
 	RuntimeStopRequester             runtimecontrolservice.LifecycleRequester
@@ -975,11 +976,17 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if protected != nil && localAppKernel != nil {
 		catalog, coordinator := composeVerifiedAppPackages(context.Background(), logger, localAppKernel, auditStore)
 		if coordinator != nil {
+			if protected.ManagedWebCarrierResolver != nil {
+				coordinator.SetManagedWebCarrierResolver(protected.ManagedWebCarrierResolver)
+			}
 			appInstallCoordinator = coordinator
 			appOptions = append(appOptions,
 				appservice.WithApprovedAppCatalogProvider(catalog),
 				appservice.WithAppInstallCoordinator(coordinator),
 			)
+		}
+		if protected.ManagedWebCarrierResolver != nil {
+			appOptions = append(appOptions, appservice.WithManagedWebCarrierResolver(protected.ManagedWebCarrierResolver))
 		}
 	}
 	if bundledRoot := strings.TrimSpace(cfg.AppBundledArtifactsRoot); bundledRoot != "" {
