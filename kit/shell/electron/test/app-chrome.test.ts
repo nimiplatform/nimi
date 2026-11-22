@@ -234,7 +234,7 @@ describe('exact native chrome binding', () => {
     win.contents.mainFrame.url = 'nimi-app://nimi.shijing/other.html?view=chart';
     expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
 
-    win.contents.mainFrame.url = 'http://user:pass@127.0.0.1:1485/?tab=1';
+    win.contents.mainFrame.url = 'http://user:pass@127.0.0.1:1485/?tab=1'; // pragma: allowlist secret
     expect(() => devHost.invoke('chromeBind', { locale: 'zh' }, event(win), send)).toThrow('location-rejected');
     devHost.dispose();
   });

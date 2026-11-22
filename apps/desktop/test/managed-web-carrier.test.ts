@@ -289,7 +289,7 @@ test('SEC-6: parseManagedWebExternalUrl rejects non-HTTPS, credentials, raw IPs,
     'javascript:alert(1)',
     'data:text/html,<h1>x</h1>',
     'nimi-app://nimi.storybook/index.html',
-    'https://user:pass@nimi.ai/',
+    'https://user:pass@nimi.ai/', // pragma: allowlist secret
     'https://user@nimi.ai/',
     'https://localhost/',
     'https://localhost./',

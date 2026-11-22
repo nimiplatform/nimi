@@ -14,6 +14,10 @@ The protected Electron App Host now observes the end of its existing Runtime ses
 
 `capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
 
+## 0.24.0-rc.18
+
+- Updated `url` in the protected-local Rust lockfiles to `2.5.9` (`RUSTSEC-2026-0592`) and aligned the public `@nimiplatform/sdk` floor with `0.24.0-rc.11`.
+
 ## 0.24.0-rc.17
 
 - Moved `sharp` from Kit runtime dependencies to an optional peer dependency (`peerDependenciesMeta.sharp.optional = true`) so desktop Apps without image-processing needs do not inherit native `libvips` binaries; hosts that use `agentCenterOpenFileDialog` declare `sharp` directly.
