@@ -121,7 +121,7 @@ async function run(surface, posture = 'missing', action = 'open') {
   };
   const handler = surface === 'source-detail'
     ? loadHandler(path.join(renderer, 'features/source-detail/source-detail-panel.tsx'), ['ensureCharacterSourceReady', action === 'create' ? 'handlePrimaryAction' : 'handleStartChat'], env)
-    : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['handleViewCharacter'], env);
+    : loadHandler(path.join(renderer, 'features/world/world-detail.tsx'), ['savePeopleQuery', 'handleViewCharacter'], env);
   const previous = [globalThis.window, globalThis.__NIMI_ELECTRON_RUNTIME__];
   globalThis.window = { __NIMI_HTML_BOOT_ID__: 'source-detail-test' };
   globalThis.__NIMI_ELECTRON_RUNTIME__ = { invoke: async (command, payload) => {
