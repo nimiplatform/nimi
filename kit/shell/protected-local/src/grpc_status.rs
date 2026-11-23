@@ -262,6 +262,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_LOCAL_SERVICE_UNAVAILABLE" => LocalAppReasonCode::AiLocalServiceUnavailable,
         "AI_LOCAL_DRIVER_UNAVAILABLE" => LocalAppReasonCode::AiLocalDriverUnavailable,
         "AI_LOCAL_ASSET_INCOMPATIBLE" => LocalAppReasonCode::AiLocalAssetIncompatible,
+        "AI_LOCAL_ASSET_SLOT_MISSING" => LocalAppReasonCode::AiLocalAssetSlotMissing,
         "AI_LOCAL_SELECTION_NOT_FOUND" => LocalAppReasonCode::AiLocalSelectionNotFound,
         "AI_LOCAL_CAPABILITY_MISMATCH" => LocalAppReasonCode::AiLocalCapabilityMismatch,
         "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" => {
@@ -910,6 +911,10 @@ mod tests {
             (
                 "AI_LOCAL_ASSET_INCOMPATIBLE",
                 LocalAppReasonCode::AiLocalAssetIncompatible,
+            ),
+            (
+                "AI_LOCAL_ASSET_SLOT_MISSING",
+                LocalAppReasonCode::AiLocalAssetSlotMissing,
             ),
         ] {
             assert_eq!(

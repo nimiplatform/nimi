@@ -219,6 +219,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-local-service-unavailable',
   'ai-local-driver-unavailable',
   'ai-local-asset-incompatible',
+  'ai-local-asset-slot-missing',
   'ai-local-selection-not-found',
   'ai-local-capability-mismatch',
   'ai-local-configuration-not-configured',
