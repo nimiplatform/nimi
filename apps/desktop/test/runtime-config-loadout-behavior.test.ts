@@ -470,7 +470,7 @@ test('rapid Loadout updates use one last-write-wins impact slot for cancel and c
   assert.deepEqual(persisted, ['last']);
 });
 
-test('recommended Loadout model axes only carry fully bound pairs', () => {
+test('recommended Loadout model axes only carry fully bound pairs', async () => {
   const recommendedContentId = `sha256:${'f'.repeat(64)}`;
   const recipe = {
     slots: [
@@ -491,6 +491,50 @@ test('recommended Loadout model axes only carry fully bound pairs', () => {
   const installed = { modelAssetId: 'asset-main', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
   assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, [installed]), [
     { slotId: 'main', modelAssetId: 'asset-main', expectedContentId: recommendedContentId },
+  ]);
+
+  // Optional-conditional slots with installed static recommendations (e.g.
+  // SDXL ProMax ControlNet) must NOT be auto-bound without explicit confirmation.
+  const controlNetContentId = `sha256:${'e'.repeat(64)}`;
+  const sdxlRecipe = {
+    slots: [
+      { slotId: 'main.diffusion', displayLabel: 'Checkpoint', recommendedContentIds: [recommendedContentId], presence: 'required' },
+      { slotId: 'companion.controlnet', displayLabel: 'ControlNet', recommendedContentIds: [controlNetContentId], presence: 'optional-conditional' },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+  const sdxlLoadout = {
+    loadoutId: 'loadout-sdxl',
+    revision: 'rev-7',
+    capabilityContract: 'image.generate',
+    recipeId: 'sdxl',
+    options: {},
+    displayName: 'SDXL',
+    provenance: {},
+    modelAxes: [],
+  } as unknown as NimiMachineLoadout;
+  const installedControlNet = { modelAssetId: 'asset-promax', contentId: controlNetContentId } as NimiRuntimeModelAssetRecord;
+  const installedMain = { modelAssetId: 'asset-sdxl', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
+  assert.deepEqual(
+    runtimeConfigRecommendedLoadoutModelAxes(sdxlLoadout, sdxlRecipe, [installedMain, installedControlNet]),
+    [{ slotId: 'main.diffusion', modelAssetId: 'asset-sdxl', expectedContentId: recommendedContentId }],
+  );
+  const updates: Array<Record<string, unknown>> = [];
+  await installAndBindRuntimeConfigRecommendedLoadout({
+    items: [{
+      slotId: 'main.diffusion',
+      displayLabel: 'Checkpoint',
+      installed: false,
+      candidate: { offerRef: 'offer:sdxl', title: 'SDXL', variantLabel: 'fp16', installable: true },
+    }] as never,
+    recipe: sdxlRecipe,
+    loadout: sdxlLoadout,
+    assets: [installedControlNet],
+    async installOffer() { return installedMain; },
+    async updateLoadout(next) { updates.push(next as unknown as Record<string, unknown>); },
+  });
+  assert.equal(updates[0]?.expectedLoadoutRevision, 'rev-7');
+  assert.deepEqual(updates[0]?.modelAxes, [
+    { slotId: 'main.diffusion', modelAssetId: 'asset-sdxl', expectedContentId: recommendedContentId },
   ]);
 });
 

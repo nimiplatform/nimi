@@ -340,17 +340,10 @@ export function SavedConfigsView(props: {
         displayName: name,
         modelAxes,
       });
-      await loadoutsClient.commit(prepared.prepareId, false);
+      const created = await loadoutsClient.commit(prepared.prepareId, false);
       setShowCreate(false);
       if (items.some((item) => !item.installed)) {
-        const nextAggregate = await loadoutsClient.get();
-        const matches = nextAggregate.loadouts.filter((loadout) => (
-          loadout.recipeId === recipe.recipeId
-          && loadout.capabilityContract === recipe.capabilityContract
-          && loadout.displayName === name
-        ));
-        const created = matches[matches.length - 1];
-        setPendingInstall({ recipe, items, ...(created ? { loadout: created } : {}) });
+        setPendingInstall({ recipe, items, loadout: created });
       }
     });
   }, [assets, createAxes, displayName, loadoutsClient, recommendations, run, selectedRecipe]);
@@ -1430,9 +1423,13 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
       continue;
     }
     const resolved = resolvedBySlot.get(slot.slotId);
-    const recommended = slot.recommendedContentIds
-      .map((contentId) => assets.find((asset) => asset.contentId === contentId))
-      .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
+    // Optional-conditional slots are never confirmed by recommendedInstallItems,
+    // so never auto-bind an already-installed static recommendation into them.
+    const recommended = slot.presence === 'optional-conditional'
+      ? undefined
+      : slot.recommendedContentIds
+        .map((contentId) => assets.find((asset) => asset.contentId === contentId))
+        .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
     const asset = resolved ?? recommended;
     if (asset) {
       modelAxes.push({ slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
@@ -1475,6 +1472,7 @@ export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
     displayName: input.loadout.displayName,
     modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets, resolvedBySlot),
     provenance: input.loadout.provenance,
+    ...(input.loadout.revision ? { expectedLoadoutRevision: input.loadout.revision } : {}),
   });
 }
 
