@@ -100,7 +100,7 @@ export function RuntimeLocalModelListSection(props: {
             props.onRetry();
             void queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY });
           }}>{t('runtimeConfig.localModels.refreshStatus')}</Button>
-          {props.onOpenModelFiles ? (
+          {props.onOpenModelFiles && (pending || failed || entries.length > 0) ? (
             <Button tone="ghost" size="sm" onClick={props.onOpenModelFiles} data-testid="local-model-list-manage-files">
               <FolderOpen size={14} />
               {t('runtimeConfig.capabilities.manageFiles')}
@@ -122,9 +122,17 @@ export function RuntimeLocalModelListSection(props: {
       ) : pending ? (
         <p className="text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="local-model-list-empty">
-          {t('runtimeConfig.localModels.empty')}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--nimi-radius-md)] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] px-4 py-3.5">
+          <p className="min-w-0 flex-1 basis-60 text-sm text-[var(--nimi-text-secondary)]" data-testid="local-model-list-empty">
+            {t('runtimeConfig.localModels.empty')}
+          </p>
+          {props.onOpenModelFiles ? (
+            <Button tone="secondary" size="sm" onClick={props.onOpenModelFiles} data-testid="local-model-list-manage-files">
+              <FolderOpen size={14} aria-hidden="true" />
+              {t('runtimeConfig.localModels.manageOrImportFiles')}
+            </Button>
+          ) : null}
+        </div>
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => (

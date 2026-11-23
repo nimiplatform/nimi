@@ -752,3 +752,35 @@ test('saved configurations focus an existing setup when unspecified and render a
     assert.deepEqual(ui.calls.loadoutWrites, []);
   }, { onlyImageSaved: true });
 });
+
+test('overview has an explicit active sidebar item, orders local models before portable profiles, and surfaces inline profile actions when empty', async () => {
+  await withHome(async ui => {
+    const overviewRow = await ui.waitFor('[data-testid="ai-capabilities-overview"]');
+    const localModels = await ui.waitFor('[data-testid="local-model-list"]');
+    const profileLibrary = await ui.waitFor('[data-testid="runtime-ai-settings-profile-library"]');
+    await ui.waitFor('[data-testid="runtime-ai-settings-profile-selection-empty"]');
+
+    // Explicit Overview item is the sole active sidebar item on home.
+    assert.equal(overviewRow.getAttribute('aria-current'), 'page');
+    assert.equal(overviewRow.getAttribute('data-active'), 'true');
+    assert.equal(ui.document.querySelectorAll('.desktop-module-sidebar [aria-current="page"]').length, 1);
+
+    // Local models appear before portable AI Profiles in DOM order.
+    assert.ok(Boolean(localModels.compareDocumentPosition(profileLibrary) & ui.document.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING));
+
+    // Empty profile library renders inline actions once with no duplicate import trigger.
+    assert.equal(ui.document.querySelectorAll('[data-testid="runtime-ai-settings-profile-import"]').length, 1);
+    assert.ok(ui.document.querySelector('[data-testid="runtime-ai-settings-profile-recommended"]'));
+    assert.ok(ui.document.querySelector('[data-testid="runtime-ai-settings-profile-create"]'));
+
+    // Navigating to a capability switches active state; clicking Overview returns home.
+    await ui.click('[data-testid="ai-capability:text.generate"]');
+    await ui.waitFor('[data-testid="ai-capability-detail:text.generate"]');
+    assert.equal(overviewRow.getAttribute('aria-current'), null);
+    assert.equal(ui.document.querySelectorAll('.desktop-module-sidebar [aria-current="page"]').length, 1);
+    await ui.click('[data-testid="ai-capabilities-overview"]');
+    await ui.waitFor('[data-testid="ai-profile-quick-start"]');
+    assert.equal(overviewRow.getAttribute('aria-current'), 'page');
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  });
+});

@@ -91,7 +91,7 @@ export interface DesktopRendererCommandPort {
     readonly title: string;
   }): Promise<void> | void;
   writeClipboardText(value: string): Promise<void>;
-  openAccountManagement(page?: 'security' | 'runtime'): Promise<void>;
+  openAccountManagement(page?: 'security' | 'runtime' | 'profile'): Promise<void>;
   openWalletCheckout(url: string): Promise<{ readonly opened: boolean; readonly reason?: string }>;
   exportRuntimeAuditJson(input: {
     readonly filename: string;

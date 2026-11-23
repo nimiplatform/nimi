@@ -1,6 +1,5 @@
 import {
   RuntimeProfileQuickStart,
-  type RuntimeProfileQuickStartConversation,
   type RuntimeOverviewCapability,
 } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
@@ -8,8 +7,11 @@ import {
 import { capabilityIcon, ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
+  NimiLoadoutRecipe,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { ArrowLeft, ArrowRight, Bot, ChevronDown, CircleAlert, CircleCheck, CircleHelp, FileSliders, FileUp, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bot, ChevronDown, CircleAlert, CircleCheck, CircleHelp, Compass, FileSliders, FileUp, MoreHorizontal, Plus, Share2, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
@@ -91,10 +93,17 @@ function ProfileOwnerIdentity({ owner, prominent = false }: {
 export function RuntimeConfigAiSettingsProfilesSection(props: {
   /** Home heading; hidden while an export, create or use journey owns the page. */
   readonly title: string;
-  /** Current on-device conversation preparation and the actions the quick start can take. */
-  readonly conversation: RuntimeProfileQuickStartConversation;
+  readonly overviewPending: boolean;
+  readonly overviewUnavailable?: boolean;
   readonly capabilities: readonly RuntimeOverviewCapability[];
+  readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly libraryLoading?: boolean;
+  readonly libraryError?: boolean;
+  readonly onRetryOverview: () => void;
   readonly onOpenCapability: (capability: string) => void;
+  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -103,8 +112,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   readonly onOpenSetupTask: (taskId: string) => void;
   readonly onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   readonly onOpenCloudServices: () => void;
-  /** Model resources rendered below the saved profile library while the list is shown. */
-  readonly belowEntryPoints?: ReactNode;
+  /** On-device model inventory rendered between the capabilities overview and the portable profile library. */
+  readonly localModelsSection?: ReactNode;
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -171,6 +180,12 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
     sectionRef.current?.focus({ preventScroll: true });
   }, [mode.kind]);
 
+  const readyCount = useMemo(
+    () => props.capabilities.filter((entry) => entry.state.state === 'ready').length,
+    [props.capabilities],
+  );
+  const profilesEmpty = records !== null && !loadError && sortedRecords.length === 0;
+
   if (viewId && !view) return (
     <InlineAlert tone="warning">
       <p>{t('runtimeConfig.positionUnavailable')}</p>
@@ -182,8 +197,15 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
       <div className="desktop-module-stack">
         {mode.kind === 'list' || mode.kind === 'recommended' ? (
           <header className="desktop-module-header">
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-1">
               <h1 className="desktop-module-title">{props.owner ? t('runtimeConfig.aiSettings.profileSelectionTitle') : props.title}</h1>
+              {!props.owner && mode.kind === 'list' && !props.overviewPending && !props.overviewUnavailable ? (
+                <p className="text-sm text-[var(--nimi-text-secondary)]">
+                  {readyCount > 0
+                    ? t('runtimeConfig.quickStart.overviewSummaryReady', { count: readyCount })
+                    : t('runtimeConfig.quickStart.overviewSummaryEmpty')}
+                </p>
+              ) : null}
             </div>
           </header>
         ) : null}
@@ -197,38 +219,48 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
           </div>
         ) : null}
 
-        {!props.owner && (mode.kind === 'list' || mode.kind === 'recommended') ? (
-          <div className="mt-2">
-            <RuntimeProfileQuickStart
-              disabled={props.runtimeWritesDisabled}
-              conversation={props.conversation}
-              capabilities={props.capabilities}
-              onOpenCapability={props.onOpenCapability}
-              readyAction={
-                <Button
-                  tone="ghost"
-                  size="sm"
-                  className="ml-auto shrink-0"
-                  onClick={() => setMode({ kind: 'export' })}
-                  data-testid="runtime-ai-settings-profile-export"
-                >
-                  <Share2 size={14} strokeWidth={1.8} aria-hidden="true" />
-                  {t('runtimeConfig.quickStart.shareSetup')}
-                </Button>
-              }
-              onUse={(source) =>
-                setMode({
-                  kind: 'use',
-                  autoReview: true,
-                  profile: { source, artifactJson: JSON.stringify(source) },
-                  owner: props.owner ?? { kind: 'app', ownerAppId: sdk.appId(), returnFocus: 'chat' },
-                })
-              }
-            />
-          </div>
+        {!props.owner && mode.kind === 'list' ? (
+          <RuntimeProfileQuickStart
+            disabled={props.runtimeWritesDisabled}
+            pending={props.overviewPending}
+            unavailable={props.overviewUnavailable}
+            capabilities={props.capabilities}
+            recipes={props.recipes}
+            catalog={props.catalog}
+            assets={props.assets}
+            libraryLoading={props.libraryLoading}
+            libraryError={props.libraryError}
+            onRetry={props.onRetryOverview}
+            onOpenCapability={props.onOpenCapability}
+            onOpenTask={props.onOpenSetupTask}
+            onStartRecipe={props.onStartRecipe}
+            onOpenCloudServices={props.onOpenCloudServices}
+            onOpenRecommendations={() => setMode({ kind: 'recommended' })}
+            onImportProfile={() => setImporting(true)}
+            readyAction={
+              <Button
+                tone="ghost"
+                size="sm"
+                className="ml-auto shrink-0"
+                onClick={() => setMode({ kind: 'export' })}
+                data-testid="runtime-ai-settings-profile-export"
+              >
+                <Share2 size={14} strokeWidth={1.8} aria-hidden="true" />
+                {t('runtimeConfig.quickStart.shareSetup')}
+              </Button>
+            }
+            onUse={(source) =>
+              setMode({
+                kind: 'use',
+                autoReview: true,
+                profile: { source, artifactJson: JSON.stringify(source) },
+                owner: props.owner ?? undefined,
+              })
+            }
+          />
         ) : null}
         {mode.kind !== 'list' && mode.kind !== 'use' ? (
-          <Button tone="ghost" size="sm" className="-ml-3" onClick={() => setMode({ kind: 'list' })}>
+          <Button tone="ghost" size="sm" className="-ml-3 self-start" onClick={() => setMode({ kind: 'list' })}>
             <ArrowLeft size={15} />
             {t('runtimeConfig.capabilities.backHome')}
           </Button>
@@ -282,85 +314,115 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
           </div>
         ) : null}
 
-        {mode.kind === 'list' ? (
-          <header className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--desktop-workspace-bg,var(--nimi-surface-panel))] px-2 py-2">
-            <h2 className="desktop-module-section-title">{t('runtimeConfig.aiSettings.profileLibraryTitle')}</h2>
-            <div className="flex shrink-0 flex-wrap items-center gap-1" data-testid="runtime-ai-settings-profile-transfer">
-              <Button tone="ghost" size="sm" onClick={() => setImporting(true)} data-testid="runtime-ai-settings-profile-import">
-                <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
-                {t('runtimeConfig.aiSettings.profileLibraryImport')}
-              </Button>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button tone="ghost" size="sm" data-testid="runtime-ai-settings-profile-tools">
-                    {t('runtimeConfig.quickStart.shareTools')}
-                    <ChevronDown size={14} aria-hidden="true" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-64 p-1">
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      tone="ghost"
-                      size="sm"
-                      className="justify-start"
-                      onClick={() => setMode({ kind: 'create' })}
-                      data-testid="runtime-ai-settings-profile-create"
-                    >
-                      {t('runtimeConfig.aiSettings.profileCreate')}
-                    </Button>
-                    <Button
-                      tone="ghost"
-                      size="sm"
-                      className="justify-start"
-                      onClick={() => setMode({ kind: 'recommended' })}
-                      data-testid="runtime-ai-settings-profile-recommended"
-                    >
-                      {t('runtimeConfig.quickStart.compatibility')}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </header>
+        {!props.owner && mode.kind === 'list' && props.localModelsSection ? (
+          <div className="border-t border-[var(--nimi-border-subtle)] pt-5">{props.localModelsSection}</div>
         ) : null}
 
         {mode.kind === 'list' ? (
-          <section className="space-y-2" aria-label={t('runtimeConfig.aiSettings.profileLibraryTitle')} data-testid={props.owner ? 'runtime-ai-settings-profile-selection' : 'runtime-ai-settings-profile-library'}>
-            {loadError ? (
-              <InlineAlert tone="danger">
-                <div>{t('runtimeConfig.profiles.libraryLoadFailed', {
-                  defaultValue: 'Saved setup files could not be loaded.',
-                })}</div>
-                <Button size="sm" tone="secondary" className="mt-2" onClick={() => setRefreshNonce((value) => value + 1)}>
-                  {t('Common.retry', { defaultValue: 'Retry' })}
-                </Button>
-              </InlineAlert>
-            ) : null}
-            {deleteError ? (
-              <InlineAlert tone="danger">
-                <div>{t('runtimeConfig.aiSettings.profileDeleteFailed')}</div>
-              </InlineAlert>
-            ) : null}
-            {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
-            {records !== null && !loadError && sortedRecords.length === 0 ? (
-              <p className="py-6 text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-ai-settings-profile-selection-empty">
-                {t('runtimeConfig.aiSettings.profileSelectionEmpty')}
-              </p>
-            ) : null}
-            {(showAll || props.owner ? sortedRecords : sortedRecords.slice(0, 3)).map((record) => (
-              <ProfileLibraryCard
-                key={record.source.profileId}
-                record={record}
-                runtimeWritesDisabled={props.runtimeWritesDisabled}
-                onUse={() => setMode({ kind: 'use', profile: record, saved: true })}
-                onDelete={() => handleDeleteProfile(record)}
-              />
-            ))}
-            {sortedRecords.length > 3 && !props.owner ? <Button tone="ghost" size="sm" onClick={() => setShowAll(value => !value)}>{t(showAll ? 'runtimeConfig.product.showLess' : 'runtimeConfig.product.allSaved', { count: sortedRecords.length })}</Button> : null}
-          </section>
-        ) : null}
-        {!props.owner && mode.kind === 'list' && props.belowEntryPoints ? (
-          <div className="border-t border-[var(--nimi-border-subtle)] pt-6">{props.belowEntryPoints}</div>
+          <div className={props.owner ? 'space-y-3' : 'space-y-3 border-t border-[var(--nimi-border-subtle)] pt-5'}>
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="desktop-module-section-title flex items-center gap-2">
+                <span>{t('runtimeConfig.aiSettings.profileLibraryTitle')}</span>
+                {records !== null && !loadError && sortedRecords.length > 0 ? (
+                  <span className="rounded-full bg-[var(--nimi-status-neutral-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-neutral-soft-text)]">
+                    {sortedRecords.length}
+                  </span>
+                ) : null}
+              </h2>
+              {!profilesEmpty ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-1" data-testid="runtime-ai-settings-profile-transfer">
+                  <Button tone="ghost" size="sm" onClick={() => setImporting(true)} data-testid="runtime-ai-settings-profile-import">
+                    <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
+                    {t('runtimeConfig.aiSettings.profileLibraryImport')}
+                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button tone="ghost" size="sm" data-testid="runtime-ai-settings-profile-tools">
+                        {t('runtimeConfig.quickStart.shareTools')}
+                        <ChevronDown size={14} aria-hidden="true" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-64 p-1">
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          tone="ghost"
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => setMode({ kind: 'create' })}
+                          data-testid="runtime-ai-settings-profile-create"
+                        >
+                          {t('runtimeConfig.aiSettings.profileCreate')}
+                        </Button>
+                        <Button
+                          tone="ghost"
+                          size="sm"
+                          className="justify-start"
+                          onClick={() => setMode({ kind: 'recommended' })}
+                          data-testid="runtime-ai-settings-profile-recommended"
+                        >
+                          {t('runtimeConfig.quickStart.compatibility')}
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : null}
+            </header>
+
+            <section className="space-y-3" aria-label={t('runtimeConfig.aiSettings.profileLibraryTitle')} data-testid={props.owner ? 'runtime-ai-settings-profile-selection' : 'runtime-ai-settings-profile-library'}>
+              {loadError ? (
+                <InlineAlert tone="danger">
+                  <div>{t('runtimeConfig.profiles.libraryLoadFailed', {
+                    defaultValue: 'Saved setup files could not be loaded.',
+                  })}</div>
+                  <Button size="sm" tone="secondary" className="mt-2" onClick={() => setRefreshNonce((value) => value + 1)}>
+                    {t('Common.retry', { defaultValue: 'Retry' })}
+                  </Button>
+                </InlineAlert>
+              ) : null}
+              {deleteError ? (
+                <InlineAlert tone="danger">
+                  <div>{t('runtimeConfig.aiSettings.profileDeleteFailed')}</div>
+                </InlineAlert>
+              ) : null}
+              {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
+              {profilesEmpty ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3.5">
+                  <p className="min-w-0 flex-1 basis-60 text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-ai-settings-profile-selection-empty">
+                    {t(props.owner ? 'runtimeConfig.aiSettings.profileSelectionEmptyOwner' : 'runtimeConfig.aiSettings.profileSelectionEmpty')}
+                  </p>
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5" data-testid="runtime-ai-settings-profile-transfer">
+                    <Button tone="secondary" size="sm" onClick={() => setImporting(true)} data-testid="runtime-ai-settings-profile-import">
+                      <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
+                      {t('runtimeConfig.aiSettings.profileLibraryImport')}
+                    </Button>
+                    <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'recommended' })} data-testid="runtime-ai-settings-profile-recommended">
+                      <Compass size={14} strokeWidth={1.8} aria-hidden="true" />
+                      {t('runtimeConfig.quickStart.compatibility')}
+                    </Button>
+                    <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'create' })} data-testid="runtime-ai-settings-profile-create">
+                      <Plus size={14} strokeWidth={1.8} aria-hidden="true" />
+                      {t('runtimeConfig.aiSettings.profileCreate')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              {sortedRecords.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {(showAll || props.owner ? sortedRecords : sortedRecords.slice(0, 4)).map((record) => (
+                    <ProfileLibraryCard
+                      key={record.source.profileId}
+                      record={record}
+                      runtimeWritesDisabled={props.runtimeWritesDisabled}
+                      onUse={() => setMode({ kind: 'use', profile: record, saved: true })}
+                      onDelete={() => handleDeleteProfile(record)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {sortedRecords.length > 4 && !props.owner ? <Button tone="ghost" size="sm" onClick={() => setShowAll(value => !value)}>{t(showAll ? 'runtimeConfig.product.showLess' : 'runtimeConfig.product.allSaved', { count: sortedRecords.length })}</Button> : null}
+            </section>
+          </div>
         ) : null}
       </div>
     </div>

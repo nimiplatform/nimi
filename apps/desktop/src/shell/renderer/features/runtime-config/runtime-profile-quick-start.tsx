@@ -1,66 +1,102 @@
-import { capabilityIcon, Button, InlineAlert, LoadingSkeleton, PillTabs, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, InlineAlert, LoadingSkeleton, PillTabs, SelectField, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { parseNimiPortableAIProfile, type NimiPortableAIProfile } from '@nimiplatform/sdk/ai';
-import type { NimiLoadoutRecipe, NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
-import { useQuery } from '@tanstack/react-query';
+import type {
+  NimiLoadoutRecipe,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
+} from '@nimiplatform/sdk/runtime';
 import {
   ArrowRight,
   Check,
   ChevronRight,
   CircleAlert,
   CircleDashed,
+  Cloud,
+  Compass,
   Download,
+  FileUp,
   LoaderCircle,
-  MessageSquare,
-  type LucideIcon,
 } from 'lucide-react';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import {
+  capabilityGroup,
   contextFitReduced,
   formatContextTokens,
   groupCapabilities,
   modelDisplayTitle,
+  recipeOfferSummary,
   recipeRecommendedContextFit,
   recipeResourceSummary,
   type CapabilityGroup,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
-import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
-
-/** The capability the on-device conversation quick start is about. */
-export const CONVERSATION_CAPABILITY = 'text.generate';
-
-const PRIMARY_ICON_TILE_STYLE: CSSProperties = {
-  background:
-    'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 72%, #ffffff) 0%, var(--nimi-action-primary-bg) 100%)',
-  boxShadow: '0 10px 24px color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)',
-};
 
 export type RuntimeOverviewCapability = {
   readonly id: string;
   readonly model: string;
   readonly taskModel?: string;
+  readonly downloaded?: boolean;
   readonly state: ReturnType<typeof capabilityPreparationState>;
 };
 
+const MODALITY_ANCHOR_PREFERENCES: Readonly<Record<Exclude<CapabilityGroup, 'other'>, readonly string[]>> = Object.freeze({
+  text: ['text.generate'],
+  visual: ['image.generate', 'video.generate'],
+  audio: ['audio.synthesize', 'audio.transcribe'],
+});
+
 /**
- * What the quick start knows about the current on-device conversation
- * preparation, read from the same inventory as the capability rail, plus
- * the actions it may take when no capability is prepared yet.
+ * Selects up to one representative capability per core modality group
+ * (text, visual, audio) for the cold-start overview grid, preferring core
+ * anchor contracts and otherwise the first capability in that group that has
+ * a Runtime-supported recipe on this device.
  */
-export type RuntimeProfileQuickStartConversation = {
-  readonly enabled?: boolean;
-  readonly pending: boolean;
-  readonly preparation: ReturnType<typeof capabilityPreparationState>;
-  readonly onOpenDetail: () => void;
-  readonly onOpenTask: (taskId: string) => void;
-  readonly onRetry: () => void;
-};
+export function selectStarterCapabilities(
+  capabilities: readonly RuntimeOverviewCapability[],
+  recipes: readonly NimiLoadoutRecipe[],
+): readonly RuntimeOverviewCapability[] {
+  const supportedCapabilities = new Set(
+    recipes.filter((recipe) => recipe.applicability === 'supported').map((recipe) => recipe.capabilityContract),
+  );
+  const picked: RuntimeOverviewCapability[] = [];
+  for (const group of ['text', 'visual', 'audio'] as const) {
+    const inGroup = capabilities.filter((entry) => capabilityGroup(entry.id) === group);
+    if (inGroup.length === 0) continue;
+    const preferred = MODALITY_ANCHOR_PREFERENCES[group]
+      .map((id) => inGroup.find((entry) => entry.id === id))
+      .find((entry): entry is RuntimeOverviewCapability => entry !== undefined);
+    const chosen =
+      (preferred && supportedCapabilities.has(preferred.id) ? preferred : undefined)
+      ?? inGroup.find((entry) => supportedCapabilities.has(entry.id))
+      ?? preferred
+      ?? inGroup[0]!;
+    picked.push(chosen);
+  }
+  if (picked.length > 0) return picked;
+  return capabilities.slice(0, 3);
+}
+
+export function canBuildRecommendedPortableProfile(
+  recipe: NimiLoadoutRecipe,
+  assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): boolean {
+  const requiredSlots = recipe.slots.filter((slot) => slot.presence !== 'optional-conditional');
+  if (requiredSlots.length === 0) return false;
+  return requiredSlots.every((slot) => {
+    if (slot.recommendedVariantIds.length !== 1 || slot.recommendedContentIds.length !== 1) return false;
+    const asset = assets.find(
+      (item) =>
+        item.templateId === slot.recommendedVariantIds[0]
+        && item.contentId === slot.recommendedContentIds[0],
+    );
+    return Boolean(asset && asset.hashes[asset.entry]);
+  });
+}
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 export function recommendedPortableProfile(
@@ -74,8 +110,8 @@ export function recommendedPortableProfile(
         throw new Error(`No exact device recommendation for ${slot.displayLabel || slot.slotId}`);
       const asset = assets.find(
         (asset) =>
-          asset.templateId === slot.recommendedVariantIds[0] &&
-          asset.contentId === slot.recommendedContentIds[0],
+          asset.templateId === slot.recommendedVariantIds[0]
+          && asset.contentId === slot.recommendedContentIds[0],
       );
       const hash = asset?.hashes[asset.entry];
       if (!asset || !hash)
@@ -115,94 +151,538 @@ export function recommendedPortableProfile(
 }
 
 /**
- * Overview readiness uses the same entries as the capability rail. Each
- * prepared capability gets its model and entry point; when none are ready,
- * the conversation quick start guides the first setup. Ready entries all
- * open their capability details, without projecting app-specific usage.
+ * State-driven overview across all local AI capabilities. Any capability
+ * currently preparing or needing attention is surfaced directly regardless of
+ * other capabilities' state. When one or more capabilities are prepared it
+ * renders the grouped ready board; when none are prepared it renders
+ * multi-modal starter recommendations derived from Runtime-reported supported
+ * recipes, defaulting to machine-wide setup without binding an App owner.
  */
 export function RuntimeProfileQuickStart(props: {
   readonly disabled: boolean;
-  readonly conversation: RuntimeProfileQuickStartConversation;
+  readonly pending: boolean;
+  readonly unavailable?: boolean;
   readonly capabilities: readonly RuntimeOverviewCapability[];
+  readonly recipes?: readonly NimiLoadoutRecipe[];
+  readonly catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly assets?: readonly NimiRuntimeModelAssetRecord[];
+  readonly libraryLoading?: boolean;
+  readonly libraryError?: boolean;
+  readonly onRetry: () => void;
   readonly onOpenCapability: (capability: string) => void;
+  readonly onOpenTask: (taskId: string) => void;
+  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
+  readonly onOpenCloudServices?: () => void;
+  readonly onOpenRecommendations?: () => void;
+  readonly onImportProfile?: () => void;
   readonly readyAction?: ReactNode;
   readonly onUse: (profile: NimiPortableAIProfile) => void;
 }) {
   const { t } = useTranslation();
-  const { conversation } = props;
-  const state = conversation.preparation.state;
-  if (conversation.pending) {
+
+  if (props.pending) {
     return (
-      <QuickStartShell icon={MessageSquare} state="pending">
-        <LoadingSkeleton className="h-16 w-full" />
-      </QuickStartShell>
+      <Surface
+        as="section"
+        tone="card"
+        padding="none"
+        className="desktop-module-card space-y-3"
+        data-testid="ai-profile-quick-start"
+        data-quick-start-state="pending"
+      >
+        <LoadingSkeleton className="h-5 w-40" />
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
+          <LoadingSkeleton className="h-36 w-full" />
+          <LoadingSkeleton className="h-36 w-full" />
+          <LoadingSkeleton className="h-36 w-full" />
+        </div>
+      </Surface>
     );
   }
+
+  const allUnknown =
+    props.unavailable
+    || props.capabilities.length === 0
+    || props.capabilities.every((entry) => entry.state.state === 'unknown');
+
+  if (allUnknown) {
+    return (
+      <Surface
+        as="section"
+        tone="card"
+        padding="none"
+        className="desktop-module-card"
+        data-testid="ai-profile-quick-start"
+        data-quick-start-state="unknown"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-subtle)] text-[var(--nimi-text-muted)]">
+              <CircleDashed size={18} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <h2 className="desktop-module-section-title">{t('runtimeConfig.quickStart.unknownTitle')}</h2>
+              <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.preparationUnknown')}</p>
+            </div>
+          </div>
+          <Button tone="secondary" size="sm" onClick={props.onRetry}>
+            {t('Common.retry')}
+          </Button>
+        </div>
+      </Surface>
+    );
+  }
+
   const ready = props.capabilities.filter((entry) => entry.state.state === 'ready');
+  const activeEntries = props.capabilities.filter(
+    (entry) => entry.state.state === 'preparing' || entry.state.state === 'attention',
+  );
+
   if (ready.length > 0) {
     return (
-      <ReadyCapabilitiesOverview
-        ready={ready}
-        readyAction={props.readyAction}
+      <div className="space-y-3" data-testid="ai-profile-quick-start" data-quick-start-state="ready">
+        {activeEntries.length > 0 ? (
+          <OverviewActivityStrip
+            entries={activeEntries}
+            onOpenCapability={props.onOpenCapability}
+            onOpenTask={props.onOpenTask}
+          />
+        ) : null}
+        <ReadyCapabilitiesOverview
+          ready={ready}
+          readyAction={props.readyAction}
+          onOpenCapability={props.onOpenCapability}
+        />
+      </div>
+    );
+  }
+
+  const hasPreparing = activeEntries.some((entry) => entry.state.state === 'preparing');
+  const hasAttention = activeEntries.some((entry) => entry.state.state === 'attention');
+  const coldState = hasPreparing ? 'preparing' : hasAttention ? 'attention' : 'unset';
+
+  return (
+    <div className="space-y-4" data-testid="ai-profile-quick-start" data-quick-start-state={coldState}>
+      {activeEntries.length > 0 ? (
+        <OverviewActivityStrip
+          entries={activeEntries}
+          onOpenCapability={props.onOpenCapability}
+          onOpenTask={props.onOpenTask}
+        />
+      ) : null}
+      <MultiModalStarterSection
+        disabled={props.disabled}
+        capabilities={props.capabilities}
+        recipes={props.recipes ?? []}
+        catalog={props.catalog ?? []}
+        assets={props.assets ?? []}
+        libraryLoading={props.libraryLoading ?? false}
+        libraryError={props.libraryError ?? false}
+        onRetry={props.onRetry}
         onOpenCapability={props.onOpenCapability}
+        onStartRecipe={props.onStartRecipe}
+        onOpenCloudServices={props.onOpenCloudServices}
+        onOpenRecommendations={props.onOpenRecommendations}
+        onImportProfile={props.onImportProfile}
+        onUse={props.onUse}
       />
-    );
-  }
-  if (state === 'preparing') {
-    const task = conversation.preparation.task;
-    return (
-      <QuickStartShell icon={LoaderCircle} state={state}>
-        <QuickStartTitle>{t('runtimeConfig.quickStart.preparingTitle')}</QuickStartTitle>
-        {task ? (
-          <p className="text-sm text-[var(--nimi-text-secondary)]">
-            {t(`runtimeConfig.setupTask.status.${task.status}`)}
-          </p>
-        ) : null}
-        <Button
-          tone="secondary"
-          onClick={() => (task ? conversation.onOpenTask(task.taskId) : conversation.onOpenDetail())}
-          data-testid="ai-profile-quick-start-progress"
-        >
-          {t('runtimeConfig.quickStart.viewProgress')}
-          <ArrowRight size={15} />
-        </Button>
-      </QuickStartShell>
-    );
-  }
-  if (state === 'attention') {
-    const task = conversation.preparation.task;
-    const failureText = task?.failure ? runtimeSetupFailureText(task.failure, t) : '';
-    return (
-      <QuickStartShell icon={CircleAlert} state={state}>
-        <QuickStartTitle>{t('runtimeConfig.quickStart.attentionTitle')}</QuickStartTitle>
-        {failureText ? (
-          <p className="text-sm text-[var(--nimi-text-secondary)]">{failureText}</p>
-        ) : null}
-        <Button
-          tone="secondary"
-          onClick={() => (task ? conversation.onOpenTask(task.taskId) : conversation.onOpenDetail())}
-          data-testid="ai-profile-quick-start-detail"
-        >
-          {t('runtimeConfig.quickStart.viewDetail')}
-          <ArrowRight size={15} />
-        </Button>
-      </QuickStartShell>
-    );
-  }
-  if (state === 'unknown') {
-    return (
-      <QuickStartShell icon={CircleDashed} state={state}>
-        <QuickStartTitle>{t('runtimeConfig.quickStart.unknownTitle')}</QuickStartTitle>
-        <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.preparationUnknown')}</p>
-        <Button tone="secondary" onClick={conversation.onRetry}>
-          {t('Common.retry')}
-        </Button>
-      </QuickStartShell>
-    );
-  }
-  return <RecommendationQuickStart enabled={conversation.enabled !== false} disabled={props.disabled} onUse={props.onUse} />;
+    </div>
+  );
 }
 
+function OverviewActivityStrip(props: {
+  readonly entries: readonly RuntimeOverviewCapability[];
+  readonly onOpenCapability: (capability: string) => void;
+  readonly onOpenTask: (taskId: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section
+      className="space-y-2"
+      aria-label={t('runtimeConfig.quickStart.activityTitle')}
+      data-testid="ai-overview-activity"
+    >
+      {props.entries.map((entry) => {
+        const Icon = capabilityIcon(entry.id);
+        const capLabel = displayRuntimeConfigCapabilityLabel(entry.id, t);
+        const isPreparing = entry.state.state === 'preparing';
+        const task = entry.state.task;
+        const modelName = entry.taskModel || entry.model;
+        const detailText = isPreparing
+          ? task
+            ? t(`runtimeConfig.setupTask.status.${task.status}`)
+            : t('runtimeConfig.capabilities.state.preparing')
+          : task?.failure
+            ? runtimeSetupFailureText(task.failure, t)
+            : entry.state.reason
+              ? t(`runtimeConfig.capabilities.attentionReason.${entry.state.reason}`)
+              : t('runtimeConfig.capabilities.state.attention');
+        const onOpen = () => {
+          if (task) props.onOpenTask(task.taskId);
+          else props.onOpenCapability(entry.id);
+        };
+        return (
+          <div
+            key={entry.id}
+            data-activity-capability={entry.id}
+            data-activity-state={entry.state.state}
+            className={`flex flex-wrap items-center justify-between gap-3 rounded-[var(--nimi-radius-md)] border px-4 py-3 ${
+              isPreparing
+                ? 'border-[color-mix(in_srgb,var(--nimi-status-info)_28%,var(--nimi-border-subtle))] bg-[var(--nimi-status-info-soft-bg)]'
+                : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_32%,var(--nimi-border-subtle))] bg-[var(--nimi-status-warning-soft-bg)]'
+            }`}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span
+                className={`flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-surface-card)] ${
+                  isPreparing ? 'text-[var(--nimi-status-info)]' : 'text-[var(--nimi-status-warning)]'
+                }`}
+              >
+                {isPreparing ? (
+                  <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <CircleAlert size={16} aria-hidden="true" />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--nimi-text-primary)]">
+                  <Icon size={14} className="shrink-0 text-[var(--nimi-text-secondary)]" aria-hidden="true" />
+                  <span>
+                    {isPreparing
+                      ? t('runtimeConfig.quickStart.preparingCapabilityTitle', { capability: capLabel })
+                      : t('runtimeConfig.quickStart.attentionCapabilityTitle', { capability: capLabel })}
+                  </span>
+                  {modelName ? (
+                    <span className="font-normal text-[var(--nimi-text-secondary)]">· {modelName}</span>
+                  ) : null}
+                </div>
+                {detailText ? (
+                  <p className="mt-0.5 truncate text-xs text-[var(--nimi-text-secondary)]">{detailText}</p>
+                ) : null}
+              </div>
+            </div>
+            <Button
+              tone="secondary"
+              size="sm"
+              className="shrink-0"
+              onClick={onOpen}
+              data-testid={`ai-overview-activity-action:${entry.id}`}
+            >
+              {isPreparing ? t('runtimeConfig.quickStart.viewProgress') : t('runtimeConfig.quickStart.viewDetail')}
+              <ArrowRight size={14} aria-hidden="true" />
+            </Button>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function MultiModalStarterSection(props: {
+  readonly disabled: boolean;
+  readonly capabilities: readonly RuntimeOverviewCapability[];
+  readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly libraryLoading: boolean;
+  readonly libraryError: boolean;
+  readonly onRetry: () => void;
+  readonly onOpenCapability: (capability: string) => void;
+  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
+  readonly onOpenCloudServices?: () => void;
+  readonly onOpenRecommendations?: () => void;
+  readonly onImportProfile?: () => void;
+  readonly onUse: (profile: NimiPortableAIProfile) => void;
+}) {
+  const { t } = useTranslation();
+  const starters = selectStarterCapabilities(props.capabilities, props.recipes);
+  const [selectedByCapability, setSelectedByCapability] = useState<Readonly<Record<string, string>>>({});
+  const [error, setError] = useState('');
+
+  return (
+    <section
+      className="space-y-3"
+      aria-labelledby="ai-starter-section-title"
+      data-testid="ai-starter-section"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="ai-starter-section-title" className="desktop-module-section-title">
+          {t('runtimeConfig.quickStart.starterSectionTitle')}
+        </h2>
+        <p className="text-xs text-[var(--nimi-text-muted)]">
+          {t('runtimeConfig.quickStart.starterSectionHint')}
+        </p>
+      </div>
+
+      {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
+      {props.libraryError ? (
+        <InlineAlert tone="warning">
+          {t('runtimeConfig.product.preparationUnknown')}
+          <Button tone="ghost" size="sm" onClick={props.onRetry}>
+            {t('Common.retry')}
+          </Button>
+        </InlineAlert>
+      ) : null}
+
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
+        {starters.map((entry) => {
+          const supportedRecipes = props.recipes.filter(
+            (recipe) => recipe.capabilityContract === entry.id && recipe.applicability === 'supported',
+          );
+          const selected =
+            supportedRecipes.find((recipe) => recipe.recipeId === selectedByCapability[entry.id])
+            ?? supportedRecipes[0];
+          return (
+            <StarterCapabilityCard
+              key={entry.id}
+              capability={entry.id}
+              disabled={props.disabled}
+              supportedRecipes={supportedRecipes}
+              selected={selected}
+              onSelectRecipe={(recipeId) => {
+                setError('');
+                setSelectedByCapability((prev) => ({ ...prev, [entry.id]: recipeId }));
+              }}
+              catalog={props.catalog}
+              assets={props.assets}
+              libraryLoading={props.libraryLoading}
+              onOpenCapability={props.onOpenCapability}
+              onOpenCloudServices={props.onOpenCloudServices}
+              onPrepare={(recipe) => {
+                setError('');
+                try {
+                  if (canBuildRecommendedPortableProfile(recipe, props.catalog)) {
+                    const capLabel = displayRuntimeConfigCapabilityLabel(recipe.capabilityContract, t);
+                    props.onUse({
+                      ...recommendedPortableProfile(recipe, props.catalog),
+                      title: `${capLabel} · ${modelDisplayTitle(recipe.title)}`,
+                    });
+                    return;
+                  }
+                  if (props.onStartRecipe) {
+                    props.onStartRecipe(recipe.capabilityContract, recipe.recipeId);
+                    return;
+                  }
+                  props.onOpenCapability(recipe.capabilityContract);
+                } catch (caught) {
+                  setError(caught instanceof Error ? caught.message : String(caught));
+                }
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {props.onOpenRecommendations || props.onImportProfile || props.onOpenCloudServices ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] px-3.5 py-2.5 text-xs text-[var(--nimi-text-secondary)]"
+          data-testid="ai-starter-footer"
+        >
+          <span>{t('runtimeConfig.quickStart.starterFooterNote')}</span>
+          <div className="flex flex-wrap items-center gap-1">
+            {props.onOpenRecommendations ? (
+              <Button tone="ghost" size="sm" onClick={props.onOpenRecommendations} data-testid="ai-starter-recommendations">
+                <Compass size={13} aria-hidden="true" />
+                {t('runtimeConfig.quickStart.compatibility')}
+              </Button>
+            ) : null}
+            {props.onImportProfile ? (
+              <Button tone="ghost" size="sm" onClick={props.onImportProfile} data-testid="ai-starter-import">
+                <FileUp size={13} aria-hidden="true" />
+                {t('runtimeConfig.quickStart.loadShared')}
+              </Button>
+            ) : null}
+            {props.onOpenCloudServices ? (
+              <Button tone="ghost" size="sm" onClick={props.onOpenCloudServices} data-testid="ai-starter-cloud">
+                <Cloud size={13} aria-hidden="true" />
+                {t('runtimeConfig.quickStart.openCloudServices')}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function StarterCapabilityCard(props: {
+  readonly capability: string;
+  readonly disabled: boolean;
+  readonly supportedRecipes: readonly NimiLoadoutRecipe[];
+  readonly selected: NimiLoadoutRecipe | undefined;
+  readonly onSelectRecipe: (recipeId: string) => void;
+  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly libraryLoading: boolean;
+  readonly onOpenCapability: (capability: string) => void;
+  readonly onOpenCloudServices?: () => void;
+  readonly onPrepare: (recipe: NimiLoadoutRecipe) => void;
+}) {
+  const { t } = useTranslation();
+  const Icon = capabilityIcon(props.capability);
+  const capLabel = displayRuntimeConfigCapabilityLabel(props.capability, t);
+  const group = capabilityGroup(props.capability);
+  const { selected } = props;
+
+  const resourceSummary =
+    selected && props.catalog.length > 0
+      ? recipeResourceSummary(selected, props.catalog, props.assets)
+      : null;
+  const offerSummary = selected ? recipeOfferSummary(selected) : null;
+
+  const filesOnDevice = Boolean(
+    (offerSummary && offerSummary.required > 0 && offerSummary.installed === offerSummary.required)
+    || (resourceSummary && resourceSummary.required > 0 && resourceSummary.missing === 0),
+  );
+  const downloadBytes = filesOnDevice
+    ? 0
+    : resourceSummary?.bytes ?? offerSummary?.downloadBytes ?? null;
+
+  const modelTitle = selected ? modelDisplayTitle(selected.title) : '';
+  const contextFit = selected ? recipeRecommendedContextFit(selected) : undefined;
+
+  const actionLabel = !selected
+    ? t('runtimeConfig.quickStart.exploreModels')
+    : filesOnDevice
+      ? t('runtimeConfig.quickStart.configureOnDevice')
+      : downloadBytes !== null && downloadBytes > 0
+        ? t('runtimeConfig.quickStart.reviewDownload', { size: formatBytes(downloadBytes) })
+        : t('runtimeConfig.quickStart.use');
+
+  return (
+    <Surface
+      as="article"
+      tone="card"
+      padding="none"
+      className="desktop-module-card flex flex-col justify-between gap-3.5 border border-[var(--nimi-border-subtle)] transition-colors hover:border-[var(--nimi-border-strong)]"
+      data-starter-capability={props.capability}
+    >
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]">
+              <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{capLabel}</h3>
+              <p className="truncate text-xs text-[var(--nimi-text-muted)]">
+                {t(`runtimeConfig.capabilities.group.${group}`)}
+              </p>
+            </div>
+          </div>
+          <Tooltip content={t('runtimeConfig.quickStart.viewCapability', { capability: capLabel })} placement="top">
+            <Button
+              tone="ghost"
+              size="sm"
+              className="h-7 w-7 shrink-0 px-0 text-[var(--nimi-text-muted)]"
+              aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: capLabel })}
+              onClick={() => props.onOpenCapability(props.capability)}
+              data-testid={`ai-starter-detail:${props.capability}`}
+            >
+              <ChevronRight size={15} aria-hidden="true" />
+            </Button>
+          </Tooltip>
+        </div>
+
+        {selected ? (
+          <div className="space-y-2.5">
+            {props.supportedRecipes.length > 1 ? (
+              <SelectField
+                aria-label={t('runtimeConfig.quickStart.chooseModelFor', { capability: capLabel })}
+                value={selected.recipeId}
+                onValueChange={props.onSelectRecipe}
+                selectClassName="min-h-9 text-sm"
+                data-testid={`ai-starter-select:${props.capability}`}
+                options={props.supportedRecipes.map((recipe) => ({
+                  value: recipe.recipeId,
+                  label: modelDisplayTitle(recipe.title),
+                }))}
+              />
+            ) : (
+              <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-[var(--nimi-text-primary)]">
+                <IdentityTile seed={modelTitle.split(/\s+/u)[0] ?? modelTitle} label={modelTitle} size="sm" />
+                <span className="truncate" title={modelTitle}>{modelTitle}</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--nimi-text-secondary)]">
+              <span className="inline-flex items-center gap-1">
+                <Check size={13} className="shrink-0 text-[var(--nimi-status-success)]" aria-hidden="true" />
+                {t('runtimeConfig.product.deviceRecommendation')}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                {filesOnDevice ? (
+                  <Check size={13} className="shrink-0 text-[var(--nimi-status-success)]" aria-hidden="true" />
+                ) : (
+                  <Download size={13} className="shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
+                )}
+                {filesOnDevice
+                  ? t('runtimeConfig.product.modelsOnDevice')
+                  : downloadBytes !== null && downloadBytes > 0
+                    ? t('runtimeConfig.product.downloadSize', { size: formatBytes(downloadBytes) })
+                    : props.libraryLoading
+                      ? t('Common.loading')
+                      : t('runtimeConfig.product.downloadSizeUnknown')}
+              </span>
+            </div>
+
+            {contextFit ? (
+              <p
+                className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]"
+                data-testid={`ai-starter-context:${props.capability}`}
+              >
+                {contextFitReduced(contextFit)
+                  ? `${t('runtimeConfig.product.contextReduced', { size: formatContextTokens(contextFit.recommendedContextSize) })} · ${t('runtimeConfig.product.contextReducedReason', { full: formatContextTokens(contextFit.authoredContextSize) })}`
+                  : t('runtimeConfig.product.contextAutomatic', { size: formatContextTokens(contextFit.recommendedContextSize) })}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.quickStart.capabilityUnsupported')}
+          </p>
+        )}
+      </div>
+
+      {selected ? (
+        <Button
+          tone="primary"
+          size="sm"
+          className="w-full justify-center border-transparent bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]"
+          disabled={props.disabled}
+          onClick={() => props.onPrepare(selected)}
+          data-testid={`ai-starter-use:${props.capability}`}
+        >
+          {actionLabel}
+          <ArrowRight size={14} aria-hidden="true" />
+        </Button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            tone="secondary"
+            size="sm"
+            className="flex-1 justify-center"
+            onClick={() => props.onOpenCapability(props.capability)}
+            data-testid={`ai-starter-explore:${props.capability}`}
+          >
+            {t('runtimeConfig.quickStart.exploreModels')}
+          </Button>
+          {props.onOpenCloudServices ? (
+            <Button
+              tone="ghost"
+              size="sm"
+              onClick={props.onOpenCloudServices}
+              data-testid={`ai-starter-cloud:${props.capability}`}
+            >
+              <Cloud size={13} aria-hidden="true" />
+              {t('runtimeConfig.quickStart.openCloudServices')}
+            </Button>
+          ) : null}
+        </div>
+      )}
+    </Surface>
+  );
+}
 
 function ReadyCapabilitiesOverview(props: {
   readonly ready: readonly RuntimeOverviewCapability[];
@@ -226,9 +706,14 @@ function ReadyCapabilitiesOverview(props: {
   const showGroupHeaders = activeGroup === 'all' && groups.length > 1;
 
   return (
-    <QuickStartShell state="ready">
+    <Surface
+      as="section"
+      tone="card"
+      padding="none"
+      className="desktop-module-card space-y-3"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <QuickStartTitle>
+        <h2 className="desktop-module-section-title">
           <span className="flex items-center gap-2.5">
             <span
               className="size-2.5 shrink-0 rounded-full bg-[var(--nimi-status-success)] shadow-[0_0_0_4px_var(--nimi-status-success-soft-bg),0_0_12px_color-mix(in_srgb,var(--nimi-status-success)_45%,transparent)]"
@@ -236,7 +721,7 @@ function ReadyCapabilitiesOverview(props: {
             />
             {t('runtimeConfig.quickStart.readyTitle', { count: props.ready.length })}
           </span>
-        </QuickStartTitle>
+        </h2>
         {props.readyAction}
       </div>
       {showGroupFilter ? (
@@ -299,7 +784,7 @@ function ReadyCapabilitiesOverview(props: {
           </div>
         ))}
       </div>
-    </QuickStartShell>
+    </Surface>
   );
 }
 
@@ -359,197 +844,5 @@ function ReadyCapabilityItem(props: {
         </span>
       ) : null}
     </button>
-  );
-}
-
-function QuickStartShell(props: {
-  readonly icon?: LucideIcon;
-  readonly state: 'pending' | 'ready' | 'preparing' | 'attention' | 'unknown' | 'unset';
-  readonly children: ReactNode;
-}) {
-  const Icon = props.icon;
-  const attention = props.state === 'attention';
-  const muted = props.state === 'unknown';
-  const iconTileClass = attention
-    ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
-    : muted
-      ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-[var(--nimi-elevation-base)]'
-      : 'text-[var(--nimi-action-primary-text)]';
-  return (
-    <Surface
-      as="section"
-      tone={props.state === 'ready' ? 'card' : 'hero'}
-      padding="none"
-      className="desktop-module-card"
-      data-testid="ai-profile-quick-start"
-      data-quick-start-state={props.state}
-    >
-      <div className="flex flex-wrap items-start gap-3">
-        {Icon ? (
-          <span
-            className={`desktop-module-header-icon flex items-center justify-center ${iconTileClass}`}
-            style={attention || muted ? undefined : PRIMARY_ICON_TILE_STYLE}
-          >
-            <Icon
-              size={24}
-              strokeWidth={1.6}
-              className={props.state === 'preparing' ? 'animate-spin' : undefined}
-              aria-hidden="true"
-            />
-          </span>
-        ) : null}
-        <div className="min-w-0 flex-1 space-y-3">{props.children}</div>
-      </div>
-    </Surface>
-  );
-}
-
-function QuickStartTitle(props: { readonly children: ReactNode }) {
-  return <h2 className="desktop-module-section-title">{props.children}</h2>;
-}
-
-function Fact(props: { readonly tone: 'good' | 'muted' | 'pending'; readonly children: ReactNode }) {
-  return (
-    <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-      {props.tone === 'good' ? (
-        <Check size={14} className="text-[var(--nimi-status-success)]" aria-hidden="true" />
-      ) : props.tone === 'pending' ? (
-        <LoaderCircle size={14} className="animate-spin text-[var(--nimi-text-muted)]" aria-hidden="true" />
-      ) : (
-        <CircleDashed size={14} className="text-[var(--nimi-text-muted)]" aria-hidden="true" />
-      )}
-      {props.children}
-    </span>
-  );
-}
-
-/**
- * Nothing is prepared yet: offer the exact device recommendation and say
- * what it costs to prepare. The button says what will actually happen.
- */
-function RecommendationQuickStart(props: {
-  readonly enabled: boolean;
-  readonly disabled: boolean;
-  readonly onUse: (profile: NimiPortableAIProfile) => void;
-}) {
-  const { t } = useTranslation();
-  const sdk = useDesktopRendererSdk();
-  const library = useRuntimeModelLibrary(props.enabled);
-  const available = useQuery({
-    queryKey: ['runtime', 'conversation-starter-recipes'],
-    enabled: props.enabled,
-    queryFn: () => sdk.machineProduct().local.loadouts.listRecipes(CONVERSATION_CAPABILITY),
-    staleTime: 60_000,
-  });
-  const recipes = available.data?.filter((item) => item.applicability === 'supported') ?? [];
-  const [recipeId, setRecipeId] = useState('');
-  const selected = recipes.length === 1 ? recipes[0] : recipes.find((item) => item.recipeId === recipeId);
-  const summary =
-    selected && library.data
-      ? recipeResourceSummary(selected, library.data.catalog, library.data.assets)
-      : null;
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const prepare = async (recipe?: NimiLoadoutRecipe) => {
-    setBusy(true);
-    setError('');
-    try {
-      if (!recipe || !library.data) throw new Error(t('runtimeConfig.quickStart.unavailable'));
-      props.onUse({
-        ...recommendedPortableProfile(recipe, library.data.catalog),
-        title: t('runtimeConfig.quickStart.title'),
-      });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-    } finally {
-      setBusy(false);
-    }
-  };
-  const actionLabel = busy
-    ? t('Common.loading')
-    : !summary
-      ? t('runtimeConfig.quickStart.use')
-      : summary.missing === 0
-        ? t('runtimeConfig.quickStart.useReady')
-        : summary.bytes === null
-          ? t('runtimeConfig.quickStart.use')
-          : t('runtimeConfig.quickStart.useDownload', { size: formatBytes(summary.bytes) });
-  const modelTitle = selected ? modelDisplayTitle(selected.title) : '';
-  const contextFit = selected ? recipeRecommendedContextFit(selected) : undefined;
-  return (
-    <QuickStartShell icon={MessageSquare} state="unset">
-      <QuickStartTitle>{t('runtimeConfig.quickStart.setupTitle')}</QuickStartTitle>
-      {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
-      {available.isError || library.isError ? (
-        <InlineAlert tone="warning">
-          {t('runtimeConfig.product.preparationUnknown')}
-          <Button
-            tone="ghost"
-            size="sm"
-            onClick={() => {
-              void available.refetch();
-              void library.refetch();
-            }}
-          >
-            {t('Common.retry')}
-          </Button>
-        </InlineAlert>
-      ) : null}
-      {!available.isPending && !available.isError && recipes.length === 0 ? (
-        <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.quickStart.unavailable')}</p>
-      ) : null}
-      {recipes.length > 1 ? (
-        <SelectField
-          aria-label={t('runtimeConfig.quickStart.choose')}
-          value={recipeId}
-          onValueChange={setRecipeId}
-          options={[
-            { value: '', label: t('runtimeConfig.quickStart.choose') },
-            ...recipes.map((recipe) => ({ value: recipe.recipeId, label: modelDisplayTitle(recipe.title) })),
-          ]}
-        />
-      ) : null}
-      {selected ? (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-          <span className="flex items-center gap-2 font-medium text-[var(--nimi-text-primary)]">
-            <IdentityTile seed={modelTitle.split(/\s+/u)[0] ?? modelTitle} label={modelTitle} size="sm" />
-            {modelTitle}
-          </span>
-          <Fact tone="good">{t('runtimeConfig.product.deviceRecommendation')}</Fact>
-          <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-            {summary && summary.missing > 0 ? (
-              <Download size={14} className="text-[var(--nimi-status-warning)]" aria-hidden="true" />
-            ) : (
-              <Check size={14} className="text-[var(--nimi-status-success)]" aria-hidden="true" />
-            )}
-            {summary
-              ? summary.missing === 0
-                ? t('runtimeConfig.product.modelsOnDevice')
-                : summary.bytes === null
-                  ? t('runtimeConfig.product.downloadSizeUnknown')
-                  : t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.bytes) })
-              : t('Common.loading')}
-          </span>
-        </div>
-      ) : null}
-      {contextFit ? (
-        <p className="text-xs text-[var(--nimi-text-secondary)]" data-testid="ai-profile-quick-start-context">
-          {contextFitReduced(contextFit)
-            ? `${t('runtimeConfig.product.contextReduced', { size: formatContextTokens(contextFit.recommendedContextSize) })} · ${t('runtimeConfig.product.contextReducedReason', { full: formatContextTokens(contextFit.authoredContextSize) })}`
-            : t('runtimeConfig.product.contextAutomatic', { size: formatContextTokens(contextFit.recommendedContextSize) })}
-        </p>
-      ) : null}
-      <Button
-        tone="primary"
-        disabled={busy || props.disabled || !selected || !library.data}
-        onClick={() => {
-          void prepare(selected);
-        }}
-        data-testid="ai-profile-quick-start-use"
-      >
-        {actionLabel}
-        <ArrowRight size={15} />
-      </Button>
-    </QuickStartShell>
   );
 }

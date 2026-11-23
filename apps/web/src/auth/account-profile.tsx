@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { uploadNimiRealmResourceFile, type RealmModel } from '@nimiplatform/sdk/realm';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
-import { accountHandle, profilePatch } from './account-center-model.js';
+import {
+  accountHandle,
+  evaluateHandleDraft,
+  normalizeHandleInput,
+  profilePatch,
+} from './account-center-model.js';
 import { AccountAvatar, AccountFeedback, AccountHeading } from './account-center-layout.js';
 import { accountReadProblem, useAccountCopy } from './account-center-copy.js';
 
@@ -225,6 +231,24 @@ export function AccountProfile({
   );
 }
 
+type AvailabilityState =
+  | { status: 'idle' }
+  | { status: 'checking'; handle: string }
+  | { status: 'available'; handle: string }
+  | { status: 'taken'; handle: string; detail?: string }
+  | { status: 'error'; handle: string };
+
+function RuleItem({ state, text }: { state: 'idle' | 'pass' | 'fail'; text: string }) {
+  const icon = state === 'pass' ? '✓' : state === 'fail' ? '×' : '○';
+  const modifier = state === 'pass' ? ' ac-handle-rule--pass' : state === 'fail' ? ' ac-handle-rule--fail' : '';
+  return (
+    <li className={`ac-handle-rule${modifier}`}>
+      <span className="ac-handle-rule-icon" aria-hidden="true">{icon}</span>
+      <span>{text}</span>
+    </li>
+  );
+}
+
 function UsernameEditor({
   user,
   onSaved,
@@ -234,19 +258,31 @@ function UsernameEditor({
   onSaved: (user: Record<string, unknown>) => void;
   onDirty: (dirty: boolean) => void;
 }) {
+  const { i18n } = useTranslation();
+  const isZh = i18n.language.startsWith('zh');
   const c = useAccountCopy();
   const [rule, setRule] = useState<RealmModel<'HandleChangeEligibilityDto'> | null>(null);
   const [editing, setEditing] = useState(false);
-  const [handle, setHandle] = useState(String(user.handle));
+  const [confirming, setConfirming] = useState(false);
+  const [handle, setHandle] = useState('');
+  const [normalizeNote, setNormalizeNote] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<AvailabilityState>({ status: 'idle' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const active = useRef(true);
-  const normalized = handle.trim().replace(/^@/, '');
+
+  const currentHandle = accountHandle(rule?.handle ?? user.handle);
+  const candidate = handle.trim();
+  const evaluation = rule
+    ? evaluateHandleDraft(candidate, rule)
+    : { touched: false, lengthOk: false, patternOk: false, differentOk: false, formatValid: false };
+
   useEffect(() => {
-    onDirty(editing && normalized !== accountHandle(user.handle));
+    onDirty(editing && candidate.length > 0 && candidate !== currentHandle);
     return () => onDirty(false);
-  }, [editing, normalized, user.handle, onDirty]);
+  }, [editing, candidate, currentHandle, onDirty]);
+
   const load = () =>
     loadWebCurrentAccount()
       .then((current) => {
@@ -262,6 +298,7 @@ function UsernameEditor({
       .catch((reason) => {
         if (active.current) setError(accountReadProblem(reason, c));
       });
+
   useEffect(() => {
     active.current = true;
     void load();
@@ -269,15 +306,126 @@ function UsernameEditor({
       active.current = false;
     };
   }, []);
-  const valid = Boolean(
-    rule &&
-    normalized !== accountHandle(rule.handle) &&
-    normalized.length >= rule.minLength &&
-    normalized.length <= rule.maxLength &&
-    new RegExp(rule.pattern).test(normalized),
+
+  useEffect(() => {
+    if (!editing || !rule || !evaluation.formatValid) {
+      setAvailability({ status: 'idle' });
+      return;
+    }
+    const controller = new AbortController();
+    setAvailability({ status: 'checking', handle: candidate });
+    const timer = window.setTimeout(() => {
+      void createWebBrowserRealm()
+        .generated.checkHandle({ path: {}, query: { handle: candidate } }, { signal: controller.signal })
+        .then((result) => {
+          if (!active.current || controller.signal.aborted) return;
+          if (result.available) {
+            setAvailability({ status: 'available', handle: candidate });
+          } else {
+            setAvailability({ status: 'taken', handle: candidate, detail: result.message });
+          }
+        })
+        .catch(() => {
+          if (!active.current || controller.signal.aborted) return;
+          setAvailability({ status: 'error', handle: candidate });
+        });
+    }, 400);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [editing, rule, evaluation.formatValid, candidate]);
+
+  const canProceed = Boolean(
+    rule
+    && evaluation.formatValid
+    && availability.status !== 'checking'
+    && availability.status !== 'taken',
   );
+
+  const lengthRuleText = rule
+    ? isZh
+      ? `长度为 ${rule.minLength}–${rule.maxLength} 个字符`
+      : `Use ${rule.minLength}–${rule.maxLength} characters`
+    : '';
+
+  const availabilityRuleState: 'idle' | 'pass' | 'fail' =
+    availability.status === 'available'
+      ? 'pass'
+      : availability.status === 'taken'
+        ? 'fail'
+        : 'idle';
+
+  const availabilityRuleText =
+    availability.status === 'checking'
+      ? c('usernameChecking')
+      : availability.status === 'available'
+        ? isZh
+          ? `@${availability.handle} 可以使用`
+          : `@${availability.handle} is available`
+        : availability.status === 'taken'
+          ? availability.detail || (isZh ? `@${availability.handle} 已被其他用户使用` : `@${availability.handle} is already taken`)
+          : availability.status === 'error'
+            ? c('usernameCheckFailed')
+            : c('usernameAvailabilityIdle');
+
+  const statusBadgeText =
+    availability.status === 'checking'
+      ? c('usernameChecking')
+      : availability.status === 'available'
+        ? c('usernameAvailable')
+        : availability.status === 'taken'
+          ? c('usernameTaken')
+          : '';
+
+  const statusBadgeClass =
+    availability.status === 'available'
+      ? 'ac-handle-status ac-handle-status--ok'
+      : availability.status === 'taken'
+        ? 'ac-handle-status ac-handle-status--error'
+        : 'ac-handle-status';
+
+  const resetEdit = () => {
+    setEditing(false);
+    setConfirming(false);
+    setHandle('');
+    setNormalizeNote(null);
+    setAvailability({ status: 'idle' });
+    setError(null);
+  };
+
+  const commitChange = async () => {
+    if (!canProceed || busy) return;
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      if ((await loadWebCurrentAccount())?.id !== user.id) throw new Error(c('changed'));
+      if (!active.current) return;
+      const updated = await createWebBrowserRealm().account.updateMyHandle({
+        path: {},
+        body: { handle: candidate },
+      });
+      if (active.current) {
+        resetEdit();
+        onDirty(false);
+        onSaved({ ...updated });
+        setMessage(c('usernameSaved'));
+        void load();
+      }
+    } catch (reason) {
+      if (active.current) {
+        setConfirming(false);
+        setError(reason instanceof Error ? reason.message : c('unavailable'));
+        void load();
+      }
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  };
+
   return (
-    <section className="ac-section">
+    <section id="username" className="ac-section">
       <div className="ac-section-title">
         <h2>{c('username')}</h2>
         <button
@@ -285,7 +433,7 @@ function UsernameEditor({
           className="ac-text-button"
           onClick={() => {
             void navigator.clipboard
-              .writeText(`@${accountHandle(user.handle)}`)
+              .writeText(`@${currentHandle}`)
               .then(() => {
                 if (active.current) setMessage(c('copied'));
               })
@@ -301,12 +449,19 @@ function UsernameEditor({
       <p>{c('usernameHint')}</p>
       {!editing ? (
         <div className="ac-setting-row">
-          <strong>@{accountHandle(user.handle)}</strong>
+          <strong>@{currentHandle}</strong>
           {rule?.canChange ? (
             <button
               className="ac-button ac-button--secondary"
               type="button"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setEditing(true);
+                setConfirming(false);
+                setHandle('');
+                setNormalizeNote(null);
+                setError(null);
+                setMessage(null);
+              }}
             >
               {c('changeUsername')}
             </button>
@@ -316,57 +471,121 @@ function UsernameEditor({
             </span>
           ) : null}
         </div>
+      ) : confirming ? (
+        <div>
+          <p className="ac-muted" style={{ marginTop: 18 }}>{c('usernameConfirmIntro')}</p>
+          <div className="ac-handle-diff" data-testid="web-handle-confirm-diff">
+            <s>@{currentHandle}</s>
+            <span aria-hidden="true">→</span>
+            <strong>@{candidate}</strong>
+          </div>
+          <div className="ac-actions">
+            <button
+              type="button"
+              className="ac-button"
+              disabled={busy}
+              onClick={() => { void commitChange(); }}
+            >
+              {busy ? c('saving') : `${c('usernameConfirmAction')} @${candidate}`}
+            </button>
+            <button
+              type="button"
+              className="ac-button ac-button--secondary"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
+              {c('usernameBackToEdit')}
+            </button>
+          </div>
+        </div>
       ) : (
         <form
-          onSubmit={async (event) => {
+          onSubmit={(event) => {
             event.preventDefault();
-            if (!valid || busy) return;
-            setBusy(true);
-            setError(null);
-            try {
-              if ((await loadWebCurrentAccount())?.id !== user.id) throw new Error(c('changed'));
-              if (!active.current) return;
-              const updated = await createWebBrowserRealm().account.updateMyHandle({
-                path: {},
-                body: { handle: normalized },
-              });
-              if (active.current) {
-                setEditing(false);
-                onDirty(false);
-                onSaved({ ...updated });
-              }
-            } catch (reason) {
-              if (active.current) {
-                setError(reason instanceof Error ? reason.message : c('unavailable'));
-                void load();
-              }
-            } finally {
-              if (active.current) setBusy(false);
-            }
+            if (canProceed && !busy) setConfirming(true);
           }}
         >
-          <label className="ac-field">
-            <span>{c('username')}</span>
-            <input
-              value={handle}
-              maxLength={rule?.maxLength}
-              disabled={busy}
-              onChange={(event) => setHandle(event.target.value)}
-            />
-          </label>
-          <p className="ac-muted">{c('usernameChangeHint')}</p>
+          <div className="ac-handle-notice">
+            <strong>{c('usernameBeforeChanging')}</strong>
+            <ul>
+              <li>{c('usernameNoticeSync')}</li>
+              <li>{c('usernameNoticeFriends')}</li>
+              <li>{c('usernameNoticeCooldown')}</li>
+            </ul>
+          </div>
+
+          <div className="ac-field">
+            <div className="ac-handle-label-row">
+              <label htmlFor="ac-new-username-input">
+                <span>{c('newUsername')}</span>
+              </label>
+              {rule ? (
+                <span className="ac-handle-counter">
+                  {candidate.length} / {rule.maxLength}
+                </span>
+              ) : null}
+            </div>
+            <div
+              className={`ac-handle-input-shell${availability.status === 'taken' ? ' ac-handle-input-shell--error' : ''}`}
+            >
+              <span className="ac-handle-prefix" aria-hidden="true">@</span>
+              <input
+                id="ac-new-username-input"
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+                value={handle}
+                maxLength={rule?.maxLength}
+                disabled={busy}
+                placeholder={c('usernameInputPlaceholder')}
+                onChange={(event) => {
+                  const allowUppercase = Boolean(rule && /A-Z/.test(rule.pattern));
+                  const normalized = normalizeHandleInput(event.target.value, allowUppercase);
+                  setHandle(normalized.value);
+                  setError(null);
+                  if (normalized.strippedAt && normalized.lowercased) {
+                    setNormalizeNote(c('usernameStrippedAndLowercased'));
+                  } else if (normalized.strippedAt) {
+                    setNormalizeNote(c('usernameStrippedAt'));
+                  } else if (normalized.lowercased) {
+                    setNormalizeNote(c('usernameLowercased'));
+                  } else if (!normalized.value) {
+                    setNormalizeNote(null);
+                  }
+                }}
+              />
+              {statusBadgeText ? <span className={statusBadgeClass}>{statusBadgeText}</span> : null}
+            </div>
+            {normalizeNote ? <p className="ac-handle-note" role="status">{normalizeNote}</p> : null}
+          </div>
+
+          {rule ? (
+            <ul className="ac-handle-rules" aria-live="polite">
+              <RuleItem
+                state={!evaluation.touched ? 'idle' : evaluation.lengthOk ? 'pass' : 'fail'}
+                text={lengthRuleText}
+              />
+              <RuleItem
+                state={!evaluation.touched ? 'idle' : evaluation.patternOk ? 'pass' : 'fail'}
+                text={c('usernameRuleChars')}
+              />
+              <RuleItem
+                state={!evaluation.touched ? 'idle' : evaluation.differentOk ? 'pass' : 'fail'}
+                text={c('usernameRuleDifferent')}
+              />
+              <RuleItem state={availabilityRuleState} text={availabilityRuleText} />
+            </ul>
+          ) : null}
+
           <div className="ac-actions">
-            <button className="ac-button" disabled={busy || !valid}>
-              {c('changeUsername')}
+            <button className="ac-button" disabled={busy || !canProceed}>
+              {c('usernameReviewChange')}
             </button>
             <button
               className="ac-button ac-button--secondary"
               type="button"
               disabled={busy}
-              onClick={() => {
-                setEditing(false);
-                setHandle(String(user.handle));
-              }}
+              onClick={resetEdit}
             >
               {c('cancel')}
             </button>

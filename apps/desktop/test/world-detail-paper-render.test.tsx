@@ -639,24 +639,33 @@ test('r16 x01 world uses standard full-width banner framing without legacy portr
   assert.ok(!banner?.className.includes('object-contain'), 'x01 does not apply legacy portrait letterboxing');
 });
 
-test('world following remains a single secondary action and disappears when unavailable', () => {
-  const render = (follow?: () => void, bannerUrl: string | null = null) => new JSDOM(renderToStaticMarkup(<WorldDetailPage world={{ ...world, bannerUrl }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} onFollowWorld={follow} worldFollowed />)).window.document;
+test('world following remains a single icon-only action with overlay and surface modes and disappears when unavailable', () => {
+  const render = (follow?: () => void, bannerUrl: string | null = null, worldFollowed = true) => new JSDOM(renderToStaticMarkup(<WorldDetailPage world={{ ...world, bannerUrl }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} onFollowWorld={follow} worldFollowed={worldFollowed} />)).window.document;
   const followed = render(() => {});
   const button = followed.querySelector('[data-testid="world-detail-follow-world"]');
   assert.equal(button?.getAttribute('aria-pressed'), 'true');
   assert.equal(button?.getAttribute('aria-label'), 'Remove from favorites');
+  assert.equal(button?.getAttribute('data-followed'), 'true');
+  assert.equal(button?.getAttribute('data-bookmark-motion'), 'idle', 'initial render does not play toggle animation');
   assert.equal(button?.textContent?.trim(), '', 'the follow action is icon-only');
+  assert.ok(button?.className.includes('world-hero-bookmark--surface'), 'no-banner fallback uses surface styling');
+  assert.ok(button?.querySelector('.world-hero-bookmark__icon')?.getAttribute('fill') === 'currentColor', 'bookmark SVG keeps fill for smooth fill-opacity transition');
   assert.equal(followed.querySelectorAll('[data-testid="world-detail-follow-world"]').length, 1);
   assert.equal(render().querySelector('[data-testid="world-detail-follow-world"]'), null);
 
-  const withBanner = render(() => {}, 'https://example.test/world.png');
+  const heroReadButton = followed.querySelector('[data-testid="world-detail-hero-read"]');
+  assert.ok(heroReadButton?.className.includes('world-hero-read-cta'), 'hero read action uses editorial pill styling');
+  assert.ok(heroReadButton?.querySelector('.world-hero-read-cta__arrow'), 'hero read action shows trailing directional arrow');
+
+  const withBanner = render(() => {}, 'https://example.test/world.png', false);
   const bannerButton = withBanner.querySelector('[data-testid="world-detail-follow-world"]');
   assert.equal(bannerButton?.parentElement, withBanner.querySelector('[data-testid="world-detail-banner-frame"]'));
+  assert.equal(bannerButton?.getAttribute('aria-pressed'), 'false');
+  assert.equal(bannerButton?.getAttribute('aria-label'), 'Add to favorites');
   assert.ok(bannerButton?.className.includes('absolute'));
   assert.ok(bannerButton?.className.includes('top-3'));
   assert.ok(bannerButton?.className.includes('right-3'));
-  assert.ok(bannerButton?.className.includes('nimi-action--secondary'));
-  assert.ok(bannerButton?.className.includes('bg-[var(--nimi-action-secondary-bg)]'));
+  assert.ok(bannerButton?.className.includes('world-hero-bookmark--overlay'), 'banner bookmark uses frosted overlay styling');
 });
 
 test('the full world reader does not lose levels or realms beyond old visual-card limits', () => {
@@ -889,5 +898,87 @@ test('the reading journey uses shell navigation and resets scroll for another wo
   } finally {
     await act(async () => root.unmount()); dom.window.close();
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as Record<string, unknown>)[key]; }
+  }
+});
+
+test('world reader normalizes reading preferences and renders unified editorial hierarchy across story, systems, causality, and history', async () => {
+  const {
+    DEFAULT_READER_PREFERENCES,
+    normalizeReaderPreferences,
+  } = await import('../src/shell/renderer/features/world/world-reader-controls.js');
+
+  assert.deepEqual(DEFAULT_READER_PREFERENCES, {
+    theme: 'clean',
+    layout: 'magazine',
+    fontSize: 18,
+    lineHeight: 1.9,
+    width: 'standard',
+  });
+  assert.deepEqual(normalizeReaderPreferences(null), DEFAULT_READER_PREFERENCES);
+  assert.deepEqual(normalizeReaderPreferences({
+    theme: 'sepia',
+    layout: 'novel',
+    fontSize: 20,
+    lineHeight: 2.15,
+    width: 'narrow',
+  }), {
+    theme: 'sepia',
+    layout: 'novel',
+    fontSize: 20,
+    lineHeight: 2.15,
+    width: 'narrow',
+  });
+  assert.deepEqual(normalizeReaderPreferences({
+    theme: 'neon',
+    layout: 'columns',
+    fontSize: 99,
+    lineHeight: 3.5,
+    width: 'ultra',
+  }), DEFAULT_READER_PREFERENCES);
+
+  const semanticWithCausality: WorldSemanticData = {
+    ...semantic,
+    causality: { type: '命定与微调', karmaEnabled: true, fateWeight: 0.7 },
+  };
+  await changeLocale('zh');
+  try {
+    const html = renderToStaticMarkup(
+      <WorldDetailPage
+        world={{ ...world, setting: '第一段正文。\n\n第二段正文。' }}
+        characters={[]}
+        peopleCharacters={[]}
+        peopleCatalog={readyPeopleCatalog(0)}
+        history={history}
+        semantic={semanticWithCausality}
+        audits={[]}
+        publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }}
+        initialSubpage="reader"
+      />,
+    );
+    const document = new JSDOM(html).window.document;
+    const reader = document.querySelector<HTMLElement>('main[data-testid="world-detail-reader"]')!;
+    assert.equal(reader.getAttribute('data-reader-theme'), 'clean');
+    assert.equal(reader.getAttribute('data-reader-layout'), 'magazine');
+    assert.match(reader.getAttribute('style') ?? '', /--world-reader-font-size:\s*18px/);
+    assert.match(reader.getAttribute('style') ?? '', /--world-reader-measure:\s*680px/);
+
+    const masthead = reader.querySelector('[data-testid="world-reader-masthead"]')!;
+    assert.equal(masthead.querySelector('h1.world-reader-masthead-title')?.textContent, world.name);
+    assert.ok(masthead.textContent?.includes('世界设定'));
+    assert.ok(masthead.textContent?.includes('元代'));
+
+    const sectionTitles = [...reader.querySelectorAll('h2.world-reader-section-title')].map((node) => node.textContent);
+    assert.ok(sectionTitles.includes('世界系统'));
+    assert.ok(sectionTitles.includes('因果设定'));
+    assert.ok(sectionTitles.includes('世界历史'));
+    assert.ok(reader.querySelector('h3.world-reader-entry-title')?.textContent);
+    assert.ok(reader.querySelector('p.world-reader-paragraph')?.textContent);
+    assert.equal(reader.querySelector('.world-reader-timeline-date')?.textContent, '1238');
+    const factLabels = [...reader.querySelectorAll('dt.world-reader-fact-label')].map((node) => node.textContent);
+    const factValues = [...reader.querySelectorAll('dd.world-reader-fact-value')].map((node) => node.textContent);
+    assert.deepEqual(factLabels, ['因果报应', '命运权重']);
+    assert.deepEqual(factValues, ['启用', '0.7']);
+  } finally {
+    await changeLocale('en');
   }
 });

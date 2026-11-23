@@ -4,6 +4,8 @@ import {
   accountHandle,
   accountLoginUrl,
   accountReturnTo,
+  evaluateHandleDraft,
+  normalizeHandleInput,
   profilePatch,
 } from '../src/auth/account-center-model.js';
 import { friendRequestFailure, loadAccountPeople } from '../src/auth/account-friends.js';
@@ -71,6 +73,54 @@ test('profile editing sends only changed fields and explicitly clears optional i
   );
   assert.equal(accountHandle('@alice'), 'alice');
   assert.equal(accountHandle('alice'), 'alice');
+});
+
+test('username draft normalization strips leading @, lowercases when required, and evaluates rules', () => {
+  assert.deepEqual(normalizeHandleInput('@Halliday_01'), {
+    value: 'halliday_01',
+    strippedAt: true,
+    lowercased: true,
+  });
+  assert.deepEqual(normalizeHandleInput('@@alice'), {
+    value: 'alice',
+    strippedAt: true,
+    lowercased: false,
+  });
+  assert.deepEqual(normalizeHandleInput('Halliday', true), {
+    value: 'Halliday',
+    strippedAt: false,
+    lowercased: false,
+  });
+
+  const rule = { handle: '@halliday', minLength: 4, maxLength: 16, pattern: '^[a-z0-9_]+$' };
+  assert.deepEqual(evaluateHandleDraft('', rule), {
+    touched: false,
+    lengthOk: false,
+    patternOk: false,
+    differentOk: false,
+    formatValid: false,
+  });
+  assert.deepEqual(evaluateHandleDraft('halliday', rule), {
+    touched: true,
+    lengthOk: true,
+    patternOk: true,
+    differentOk: false,
+    formatValid: false,
+  });
+  assert.deepEqual(evaluateHandleDraft('hi!', rule), {
+    touched: true,
+    lengthOk: false,
+    patternOk: false,
+    differentOk: true,
+    formatValid: false,
+  });
+  assert.deepEqual(evaluateHandleDraft('new_halliday', rule), {
+    touched: true,
+    lengthOk: true,
+    patternOk: true,
+    differentOk: true,
+    formatValid: true,
+  });
 });
 
 test('primary Runtime sign-in keeps only a well-formed intent in the account destination', () => {

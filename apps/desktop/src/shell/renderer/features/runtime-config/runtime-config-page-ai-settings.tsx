@@ -2,7 +2,7 @@ import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../ap
 import { capabilityIcon, Button, InlineAlert, ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
-import { CircleDashed, FolderOpen, LoaderCircle, SlidersHorizontal } from 'lucide-react';
+import { CircleDashed, FolderOpen, LayoutGrid, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +24,6 @@ import { homeRuntimeDestination, type HomeRuntimePosition } from '../../app-shel
 import { RuntimeLocalModelListSection } from './runtime-local-model-list-section.js';
 import type { LocalModelConfiguration } from './runtime-local-model-list.js';
 import { SavedConfigsView } from './runtime-config-page-loadouts.js';
-import { CONVERSATION_CAPABILITY, type RuntimeProfileQuickStartConversation } from './runtime-profile-quick-start.js';
 import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
 import { RuntimeSetupFailureMessage, runtimeSetupFailureText, type RuntimeSetupFailureNotice } from './runtime-setup-failure-message.js';
 import { resolveRuntimeSetupReturnTarget, returnFromRuntimeSetup } from './runtime-setup-task-open.js';
@@ -320,28 +319,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       setBusy(false);
     }
   };
-  // The first-setup fallback reads the same preparation facts as the rail.
-  const conversationEntry = railEntries.find((entry) => entry.id === CONVERSATION_CAPABILITY);
-  const conversation: RuntimeProfileQuickStartConversation = {
-    enabled: inventoryEnabled,
-    pending: inventory.isPending || inventory.preparationPending,
-    preparation:
-      conversationEntry?.state ??
-      capabilityPreparationState({
-        capability: CONVERSATION_CAPABILITY,
-        inventory: observedInventory,
-        tasks: inventory.tasks,
-        unavailable: inventory.isError,
-      }),
-    onOpenDetail: () => openCapability(CONVERSATION_CAPABILITY),
-    onOpenTask: props.onOpenSetupTask,
-    onRetry: () => {
-      void inventory.refetch();
-    },
-  };
   const onHome = () => {
     void navigation.push(homeRuntimeDestination('aiSettings'));
     setError(null); setHomeRevision(value => value + 1); void inventory.refetch();
+  };
+  const onRetryOverview = () => {
+    void inventory.refetch();
+    void library.refetch();
   };
   const openCapability = (id: string) => {
     const pending = capabilityPreparationState({ capability: id, inventory: inventory.data, tasks: inventory.tasks, unavailable: inventory.isError }).task;
@@ -390,6 +374,25 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           viewportClassName="[&>div]:!block"
           contentClassName="desktop-sidebar__body desktop-sidebar__groups min-w-0"
         >
+          <div className="desktop-sidebar__items">
+            <button
+              type="button"
+              aria-current={activeNavigationItem === null ? 'page' : undefined}
+              className="desktop-sidebar__row flex w-full items-center text-left"
+              data-active={activeNavigationItem === null}
+              onClick={onHome}
+              data-testid="ai-capabilities-overview"
+            >
+              <LayoutGrid
+                size={16}
+                className={`shrink-0 ${activeNavigationItem === null ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}`}
+                aria-hidden="true"
+              />
+              <span className="desktop-sidebar__label min-w-0 flex-1 truncate text-[var(--nimi-text-primary)]">
+                {t('runtimeConfig.product.setupsTitle')}
+              </span>
+            </button>
+          </div>
           {groupCapabilities(railEntries.map((entry) => entry.id)).map(({ group, items }) => (
             <div key={group}>
               <p className="desktop-sidebar__section-label">
@@ -497,7 +500,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           {props.advancedDiagnostics ? (
             props.advancedDiagnostics.content
           ) : (
-            <>
+            <div className="mx-auto w-full max-w-6xl min-w-0">
               {inventory.isError ? (
                 <InlineAlert tone="warning">
                   <p>{t('runtimeConfig.capabilities.readFailed')}</p>
@@ -587,9 +590,19 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   <RuntimeConfigAiSettingsProfilesSection
                     key={homeRevision}
                     title={t('runtimeConfig.product.setupsTitle')}
-                    conversation={conversation}
+                    overviewPending={inventory.isPending || inventory.preparationPending}
+                    overviewUnavailable={inventory.isError}
                     capabilities={railEntries}
+                    recipes={inventory.data?.recipes ?? []}
+                    catalog={library.data?.catalog ?? []}
+                    assets={library.data?.assets ?? []}
+                    libraryLoading={library.isPending}
+                    libraryError={library.isError}
+                    onRetryOverview={onRetryOverview}
                     onOpenCapability={openCapability}
+                    onStartRecipe={(capabilityContract, recipeId) => {
+                      void onStart(recipeId, undefined, capabilityContract);
+                    }}
                     store={store}
                     ports={ports}
                     runtimeWritesDisabled={props.runtimeWritesDisabled}
@@ -598,16 +611,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     onOpenSetupTask={props.onOpenSetupTask}
                     onOpenSavedConfigs={props.onOpenSavedConfigs}
                     onOpenCloudServices={props.onOpenCloudServices}
-                    belowEntryPoints={
+                    localModelsSection={
                       <RuntimeLocalModelListSection
                         inventory={inventory.data}
                         inventoryPending={inventory.isPending}
                         inventoryError={inventory.isError}
                         library={library}
-                        onRetry={() => {
-                          void inventory.refetch();
-                          void library.refetch();
-                        }}
+                        onRetry={onRetryOverview}
                         tasks={inventory.tasks}
                         onOpenCapability={openCapability}
                         onOpenConfiguration={openModelConfiguration}
@@ -678,7 +688,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   onModelMarket={props.onOpenModelMarket}
                 />
               )}
-            </>
+            </div>
           )}
         </ScrollArea>}
       </Surface>

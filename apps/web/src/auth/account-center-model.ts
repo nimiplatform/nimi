@@ -15,7 +15,64 @@ export const accountDestinations = [
 export type AccountDestination = (typeof accountDestinations)[number];
 
 export function accountHandle(value: unknown): string {
-  return String(value ?? '').replace(/^@/, '');
+  return String(value ?? '').trim().replace(/^@+/, '');
+}
+
+export type HandleNormalizationResult = {
+  value: string;
+  strippedAt: boolean;
+  lowercased: boolean;
+};
+
+export function normalizeHandleInput(
+  raw: string,
+  allowUppercase = false,
+): HandleNormalizationResult {
+  let value = raw.trimStart();
+  let strippedAt = false;
+  if (value.startsWith('@')) {
+    value = value.replace(/^@+/, '');
+    strippedAt = true;
+  }
+  let lowercased = false;
+  if (!allowUppercase && /[A-Z]/.test(value)) {
+    value = value.toLowerCase();
+    lowercased = true;
+  }
+  return { value, strippedAt, lowercased };
+}
+
+export type HandleRuleEvaluation = {
+  touched: boolean;
+  lengthOk: boolean;
+  patternOk: boolean;
+  differentOk: boolean;
+  formatValid: boolean;
+};
+
+export function evaluateHandleDraft(
+  value: string,
+  rule: { handle: string; minLength: number; maxLength: number; pattern: string },
+): HandleRuleEvaluation {
+  const candidate = value.trim();
+  const touched = candidate.length > 0;
+  const lengthOk = candidate.length >= rule.minLength && candidate.length <= rule.maxLength;
+  let patternOk = false;
+  if (touched) {
+    try {
+      patternOk = new RegExp(rule.pattern).test(candidate);
+    } catch {
+      patternOk = false;
+    }
+  }
+  const differentOk = touched && candidate !== accountHandle(rule.handle);
+  return {
+    touched,
+    lengthOk,
+    patternOk,
+    differentOk,
+    formatValid: lengthOk && patternOk && differentOk,
+  };
 }
 
 function admittedDestination(value: string | null): string {

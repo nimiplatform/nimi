@@ -1,8 +1,8 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Bookmark, BookOpen, MapPin, UsersRound } from 'lucide-react';
-import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
+import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField, Tooltip } from '@nimiplatform/kit/ui';
 import type { WorldDetailPageProps } from './world-detail-template.js';
 import type { WorldCharacter, WorldPeopleCatalogState, WorldSceneItem } from './world-detail-types.js';
 import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-detail-people-catalog-status.js';
@@ -232,6 +232,51 @@ function WorldScenesDiscovery({ worldId, scenes, sharedMediaKeys, onViewCharacte
   );
 }
 
+function WorldFollowButton({
+  followed,
+  overlay,
+  onToggle,
+}: {
+  followed: boolean;
+  overlay: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation();
+  const prevFollowedRef = useRef(followed);
+  const [motionState, setMotionState] = useState<'idle' | 'collect' | 'uncollect'>('idle');
+
+  useEffect(() => {
+    if (prevFollowedRef.current === followed) return;
+    prevFollowedRef.current = followed;
+    setMotionState(followed ? 'collect' : 'uncollect');
+    const timer = window.setTimeout(() => setMotionState('idle'), 420);
+    return () => window.clearTimeout(timer);
+  }, [followed]);
+
+  const label = t(followed ? 'WorldDetail.discovery.followed' : 'WorldDetail.discovery.follow');
+  const overlayGlassClass = overlay
+    ? 'world-hero-bookmark--overlay nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] backdrop-saturate-[var(--nimi-backdrop-saturate)] absolute top-3 right-3 z-10 h-9 w-9 min-h-9'
+    : 'world-hero-bookmark--surface relative h-[38px] w-[38px] min-h-[38px]';
+
+  return (
+    <Tooltip content={label} placement={overlay ? 'left' : 'top'}>
+      <IconButton
+        tone="secondary"
+        size="sm"
+        className={`world-hero-bookmark rounded-full active:scale-[0.92] ${overlayGlassClass}`}
+        icon={<Bookmark size={17} strokeWidth={1.85} fill="currentColor" className="world-hero-bookmark__icon" aria-hidden />}
+        aria-pressed={followed}
+        aria-label={label}
+        data-nimi-material={overlay ? 'glass-thin' : undefined}
+        data-followed={followed ? 'true' : 'false'}
+        data-bookmark-motion={motionState}
+        onClick={onToggle}
+        data-testid="world-detail-follow-world"
+      />
+    </Tooltip>
+  );
+}
+
 // @nimi-authority: rule.nimi.desktop.shell-ui.r011
 // @nimi-authority: rule.nimi.desktop.shell-ui.r012
 // @nimi-authority: rule.nimi.desktop.shell-ui.r013
@@ -288,7 +333,13 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
     ? props.peopleCatalog.totalCount
     : world.characterCount + (world.personaCharacterCount ?? 0);
   const sceneTotal = scenes.length || (world.sceneCount ?? 0);
-  const followButton = props.onFollowWorld ? <IconButton tone="secondary" size="sm" className={showBanner ? 'absolute top-3 right-3 z-10 rounded-full' : 'rounded-full'} icon={props.worldFollowed ? <Bookmark size={16} fill="currentColor" className="text-[var(--nimi-action-primary-bg)]" /> : <Bookmark size={16} />} aria-pressed={Boolean(props.worldFollowed)} aria-label={t(props.worldFollowed ? 'WorldDetail.discovery.followed' : 'WorldDetail.discovery.follow')} onClick={() => props.onFollowWorld?.(world)} data-testid="world-detail-follow-world" /> : null;
+  const followButton = props.onFollowWorld ? (
+    <WorldFollowButton
+      followed={Boolean(props.worldFollowed)}
+      overlay={showBanner}
+      onToggle={() => props.onFollowWorld?.(world)}
+    />
+  ) : null;
   return (
     <main className="world-detail-content @container mx-auto w-full max-w-[1440px] space-y-10 p-6 @min-[1120px]:px-10" data-nimi-density="regular" data-testid="world-detail-discovery">
       <section data-testid="world-detail-overview" className={showBanner ? 'grid items-center gap-6 @min-[1120px]:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] @min-[1120px]:gap-10' : 'max-w-[720px]'}>
@@ -304,8 +355,16 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
             </div>
           ) : null}
           {hasReading ? (
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <Button tone="secondary" size="sm" leadingIcon={<BookOpen size={15} />} onClick={onReadWorld} data-testid="world-detail-hero-read">
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              <Button
+                tone="secondary"
+                size="sm"
+                leadingIcon={<BookOpen size={15} strokeWidth={1.85} className="world-hero-read-cta__book" aria-hidden />}
+                trailingIcon={<ArrowRight size={14} strokeWidth={1.9} className="world-hero-read-cta__arrow" aria-hidden />}
+                onClick={onReadWorld}
+                className="world-hero-read-cta min-h-[38px] rounded-full px-[18px] text-[13.5px] font-medium tracking-[0.01em] active:scale-[0.97]"
+                data-testid="world-detail-hero-read"
+              >
                 {t('WorldDetail.discovery.readWorld')}
               </Button>
               {!showBanner && props.onFollowWorld ? followButton : null}

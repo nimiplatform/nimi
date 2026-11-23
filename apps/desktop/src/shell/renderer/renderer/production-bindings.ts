@@ -107,7 +107,7 @@ export function createDesktopProductionBindings(
     for (const listener of productControlListeners) listener(result);
   };
   const attention = createBrowserAppAttentionSource();
-  const accountManagementUrl = (page: 'security' | 'runtime' = 'security') => resolveAccountManagementUrl(String(
+  const accountManagementUrl = (page: 'security' | 'runtime' | 'profile' = 'security') => resolveAccountManagementUrl(String(
     (page === 'runtime' ? (import.meta as { env?: { NIMI_RUNTIME_MANAGER_WEB_URL?: string } }).env?.NIMI_RUNTIME_MANAGER_WEB_URL : '')
       || (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
   ), page);
@@ -262,7 +262,7 @@ export function createDesktopProductionBindings(
           document.documentElement.lang = lang;
           document.title = title;
         },
-        async openAccountManagement(page: 'security' | 'runtime' = 'security') {
+        async openAccountManagement(page: 'security' | 'runtime' | 'profile' = 'security') {
           const result = await desktopBridge.openExternalUrl(accountManagementUrl(page));
           if (!result.opened) throw new Error('Nimi Web account management could not be opened.');
         },
