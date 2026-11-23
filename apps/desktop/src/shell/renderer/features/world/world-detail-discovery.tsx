@@ -9,7 +9,7 @@ import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-
 import { worldSummary, worldSummaryLead } from './world-detail-template-model.js';
 import { worldReadingEntries } from './world-detail-reading-model.js';
 import { WorldDetailStory } from './world-detail-story.js';
-import { WorldSceneViewer } from './world-scene-viewer.js';
+import { WorldSceneViewer, selectDistinctSceneImageMedia } from './world-scene-viewer.js';
 import { worldTitlePhrases } from './world-title-phrases.js';
 import { worldIllustrations } from './world-detail-illustrations.js';
 import { worldTimeDisplay } from './world-detail-paper-model.js';
@@ -108,7 +108,8 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
   );
 }
 
-function WorldScenesDiscovery({ scenes, sharedMediaKeys, onViewCharacter }: {
+function WorldScenesDiscovery({ worldId, scenes, sharedMediaKeys, onViewCharacter }: {
+  worldId: string;
   scenes: readonly WorldSceneItem[];
   sharedMediaKeys?: ReadonlySet<string>;
   onViewCharacter: (character: WorldCharacter) => void;
@@ -116,53 +117,109 @@ function WorldScenesDiscovery({ scenes, sharedMediaKeys, onViewCharacter }: {
   const { t } = useTranslation();
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [failedCardMediaIds, setFailedCardMediaIds] = useState<Set<string>>(() => new Set());
   if (scenes.length === 0) return null;
   const activeScene = (selectedSceneId ? scenes.find((item) => item.id === selectedSceneId) : null) ?? scenes[0] ?? null;
   const openScene = (id: string) => {
     setSelectedSceneId(id);
     setViewerOpen(true);
   };
+  const markCardMediaUnavailable = (assetId: string) => {
+    setFailedCardMediaIds((previous) => {
+      if (previous.has(assetId)) return previous;
+      const next = new Set(previous);
+      next.add(assetId);
+      return next;
+    });
+  };
+  const scenePrimaryMedia = scenes.map((scene) => (
+    selectDistinctSceneImageMedia(scene, scenes, sharedMediaKeys)
+      .find((asset) => !failedCardMediaIds.has(asset.id)) ?? null
+  ));
+  const hasIllustratedScenes = scenePrimaryMedia.some(Boolean);
   return (
     <section id="world-detail-scenes" data-testid="world-detail-scenes" className="space-y-4">
       <div className="flex items-baseline gap-3">
         <NimiText role="section-title">{t('WorldDetail.discovery.places')}</NimiText>
         <NimiText role="caption">{scenes.length} {t('World.atlas.preview.metrics.scenes')}</NimiText>
       </div>
-      <div className="grid grid-cols-1 gap-3.5 @min-[640px]:grid-cols-2 @min-[1120px]:grid-cols-4">
-        {scenes.map((scene) => (
-          <button
-            key={scene.id}
-            type="button"
-            data-testid="world-scene-card"
-            aria-haspopup="dialog"
-            aria-label={t('WorldDetail.discovery.openNamedScene', { name: scene.name })}
-            onClick={() => openScene(scene.id)}
-            className="group flex min-w-0 cursor-pointer flex-col gap-2.5 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_72%,transparent)] p-4 text-left transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          >
-            <div className="flex w-full items-start gap-2">
-              <MapPin size={15} className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden />
-              <span className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{scene.name}</span>
-            </div>
-            {scene.description ? (
-              <p className="line-clamp-3 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]">{scene.description}</p>
-            ) : null}
-            <div className="mt-auto flex w-full items-center justify-between gap-2 pt-1">
-              {scene.relatedCharacters.length > 0 ? (
-                <NimiText as="span" role="caption" className="truncate">
-                  {t('WorldDetail.discovery.peopleCount', { count: scene.relatedCharacters.length })}
-                </NimiText>
-              ) : <span />}
-              <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
-                {t('WorldDetail.discovery.viewScene')}
-                <ArrowRight size={13} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
-              </span>
-            </div>
-          </button>
-        ))}
+      <div className={hasIllustratedScenes
+        ? 'grid grid-cols-1 gap-4 @min-[640px]:grid-cols-2 @min-[1120px]:grid-cols-3'
+        : 'grid grid-cols-1 gap-3.5 @min-[640px]:grid-cols-2 @min-[1120px]:grid-cols-4'}
+      >
+        {scenes.map((scene, sceneIndex) => {
+          const primaryVisual = scenePrimaryMedia[sceneIndex] ?? null;
+          const imagePurpose = primaryVisual?.delivery?.images.some((set) => set.purpose === 'detail')
+            ? 'detail'
+            : primaryVisual?.delivery?.images.some((set) => set.purpose === 'hero')
+              ? 'hero'
+              : 'card';
+          const settingLabel = scene.spatial?.settingType
+            ? t(`WorldDetail.discovery.sceneSettingType.${scene.spatial.settingType}`)
+            : null;
+          return (
+            <button
+              key={scene.id}
+              type="button"
+              data-testid="world-scene-card"
+              aria-haspopup="dialog"
+              aria-label={t('WorldDetail.discovery.openNamedScene', { name: scene.name })}
+              onClick={() => openScene(scene.id)}
+              className="group flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_72%,transparent)] text-left transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              {primaryVisual ? (
+                <div
+                  data-testid="world-scene-card-media"
+                  className="aspect-[3/2] w-full overflow-hidden bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)]"
+                >
+                  <MediaImage
+                    delivery={primaryVisual.delivery}
+                    externalUrl={primaryVisual.externalUrl}
+                    purpose={imagePurpose}
+                    sizes="(min-width: 1120px) 440px, (min-width: 640px) 46vw, 94vw"
+                    alt={scene.name}
+                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                    onUnavailable={() => markCardMediaUnavailable(primaryVisual.id)}
+                  />
+                </div>
+              ) : null}
+              <div className="flex flex-1 flex-col gap-2.5 p-4">
+                <div className="flex w-full items-start gap-2">
+                  <MapPin size={15} className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden />
+                  <span className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{scene.name}</span>
+                </div>
+                {scene.description ? (
+                  <p className={primaryVisual ? 'line-clamp-2 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]' : 'line-clamp-3 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]'}>
+                    {scene.description}
+                  </p>
+                ) : null}
+                <div className="mt-auto flex w-full items-center justify-between gap-2 pt-1">
+                  <div className="flex min-w-0 items-center gap-2 truncate">
+                    {settingLabel ? (
+                      <NimiText as="span" role="caption" className="shrink-0">
+                        {settingLabel}
+                      </NimiText>
+                    ) : null}
+                    {scene.relatedCharacters.length > 0 ? (
+                      <NimiText as="span" role="caption" className="truncate">
+                        {t('WorldDetail.discovery.peopleCount', { count: scene.relatedCharacters.length })}
+                      </NimiText>
+                    ) : null}
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
+                    {t('WorldDetail.discovery.viewScene')}
+                    <ArrowRight size={13} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
+                  </span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
       {activeScene ? (
         <WorldSceneViewer
           open={viewerOpen}
+          worldId={worldId}
           scene={activeScene}
           scenes={scenes}
           sharedMediaKeys={sharedMediaKeys}
@@ -271,7 +328,7 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
       </section>
       <WorldPeopleGallery characters={props.peopleCharacters} catalog={props.peopleCatalog} loading={props.charactersLoading} onView={onViewCharacter} />
       <WorldDetailStory key={world.id} worldName={world.name} story={story} showExcerpt={showExcerpt} hasReading={hasReading} illustrations={illustrations} onReadWorld={onReadWorld} />
-      <WorldScenesDiscovery scenes={scenes} sharedMediaKeys={sharedSceneMediaKeys} onViewCharacter={onViewCharacter} />
+      <WorldScenesDiscovery worldId={world.id} scenes={scenes} sharedMediaKeys={sharedSceneMediaKeys} onViewCharacter={onViewCharacter} />
       {props.readingIncomplete ? <EmptyState title={t('WorldDetail.discovery.readingIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}
       {props.semanticLoading ? <LoadingSkeleton lines={2} label={t('WorldDetail.loading')} /> : null}
       {props.publicAssetsIncomplete ? <EmptyState title={t('WorldDetail.discovery.placesIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}

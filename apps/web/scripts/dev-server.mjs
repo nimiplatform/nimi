@@ -3,6 +3,7 @@ import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { localBrowserApiOrigin } from '../../../scripts/lib/development-realm.mjs';
 import { createServer, loadEnv, resolveConfig } from 'vite';
 
 const webRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -70,6 +71,13 @@ async function isSameServer(url, identity) {
   }
 }
 
+export function localWebDevRealmOrigin(env, mode) {
+  if (mode !== 'development' || env.NIMI_DEV_REALM !== 'local' || !env.NIMI_REALM_URL) return undefined;
+  const web = env.NIMI_WEB_DEV_ORIGIN || env.NIMI_DEV_WEB_URL;
+  if (!web) return undefined;
+  return localBrowserApiOrigin(env.NIMI_REALM_URL, web);
+}
+
 export async function startWebDevServer(options = {}) {
   const { trustedOrigin: originValue, ...viteOptions } = options;
   const origin = originValue ? new URL(originValue) : null;
@@ -134,6 +142,8 @@ async function main() {
   if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) throw new Error('--port must be an integer from 0 to 65535.');
   const env = loadEnv(values.mode ?? 'development', path.resolve(webRoot, '../..'), '');
   const trustedOrigin = process.env.NIMI_WEB_DEV_ORIGIN || env.NIMI_WEB_DEV_ORIGIN;
+  const browserApiOrigin = localWebDevRealmOrigin({ ...env, ...process.env }, values.mode ?? 'development');
+  if (browserApiOrigin) process.env.NIMI_REALM_URL = browserApiOrigin;
   const result = await startWebDevServer({
     trustedOrigin,
     mode: values.mode,

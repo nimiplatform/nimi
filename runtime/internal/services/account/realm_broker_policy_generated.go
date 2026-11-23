@@ -372,6 +372,21 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		responseMaxBytes:       1048576,
 		mediaUpload:            false,
 	},
+	"WorldPublicController_getWorldScene": {
+		method: "GET",
+		path:   "/api/world/by-id/{worldId}/scenes/{sceneId}",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_source_readiness",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"sceneId": realmUnaryParameterString, "worldId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"sceneId": {}, "worldId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
 	"WorldPublicController_listWorldTopics": {
 		method: "GET",
 		path:   "/api/world/topics",

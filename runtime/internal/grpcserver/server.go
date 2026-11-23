@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"log/slog"
 	"net/url"
 	"path/filepath"
@@ -159,6 +160,7 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
+	NativeAssetReveals               appstorage.AssetRevealViews
 	PrimarySecrets                   protectedlocal.BinarySecretStore
 	ServiceStateRoot                 string
 	ProductControlRoot               string
@@ -1024,6 +1026,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				appservice.WithLocalAppKernel(localAppKernel),
 			)
 		}
+	}
+	if protected != nil && protected.NativeAssetReveals != nil {
+		appOptions = append(appOptions, appservice.WithNativeAssetReveals(protected.NativeAssetReveals))
 	}
 	appSvc := appservice.New(logger, appOptions...)
 	aiSvc.SetLocalAppAudioSource(appSvc.OpenOwnedAudioPreparationSource)

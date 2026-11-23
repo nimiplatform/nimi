@@ -259,6 +259,9 @@ export function localizeAuthError(message: string): string {
   if (lowered.includes('blocked') || lowered.includes('disabled') || lowered.includes('banned')) {
     return 'Account has been disabled. Please contact support.';
   }
+  if (lowered.includes('invalid code') || lowered.includes('wrong code') || lowered.includes('code expired')) {
+    return 'Invalid or expired code. Please request a new one.';
+  }
   if (lowered.includes('not found') || lowered.includes('does not exist') || lowered.includes('no user')) {
     return 'This email is not registered. Please sign up first.';
   }
@@ -271,10 +274,7 @@ export function localizeAuthError(message: string): string {
   if (lowered.includes('password too weak') || lowered.includes('password strength')) {
     return 'Password is too weak. Please use a stronger password.';
   }
-  if (lowered.includes('invalid code') || lowered.includes('wrong code') || lowered.includes('code expired')) {
-    return 'Invalid or expired code. Please request a new one.';
-  }
-  if (lowered.includes('rate limit') || lowered.includes('too many requests')) {
+  if (lowered.includes('rate limit') || lowered.includes('too many requests') || lowered.includes('too many authentication requests')) {
     return 'Too many requests. Please try again later.';
   }
   if (lowered.includes('internal server error') || lowered.includes('500')) {

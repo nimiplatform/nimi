@@ -234,7 +234,7 @@ func (s *Service) RevealLocalAppAsset(ctx context.Context, req *runtimev1.Reveal
 	if err != nil {
 		return nil, localAppAssetFailure(err)
 	}
-	record, absolutePath, err := store.ResolveRevealTarget(ctx, localAppAssetOwner(decision), req.GetRelativePath())
+	record, absolutePath, err := s.resolveNativeAssetReveal(ctx, store, decision, req.GetRelativePath())
 	if err != nil {
 		return nil, localAppAssetFailure(err)
 	}
@@ -393,6 +393,9 @@ func (s *Service) localAppAssets() (*appstorage.AssetStore, error) {
 	}
 	s.localAppAssetStoreOnce.Do(func() {
 		s.localAppAssetStore, s.localAppAssetStoreErr = appstorage.NewAssetStore(s.appStorageDataRoot, s.localAppAssetPolicy)
+		if s.localAppAssetStoreErr == nil {
+			s.localAppAssetStore.SetRevealViews(s.finderViews)
+		}
 	})
 	return s.localAppAssetStore, s.localAppAssetStoreErr
 }

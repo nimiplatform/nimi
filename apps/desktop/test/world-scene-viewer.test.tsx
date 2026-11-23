@@ -405,3 +405,168 @@ test('selectDistinctSceneImageMedia hides world-shared and cross-scene duplicate
     [],
   );
 });
+
+test('illustrated scene cards render distinct 3:2 plates, connected place links, and full-screen HD Lightbox navigation', async () => {
+  const env = setupDom();
+  const { createRoot } = await import('react-dom/client');
+  const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+  const { WorldDetailPage } = await import('../src/shell/renderer/features/world/world-detail-template.js');
+  await initI18n();
+  await changeLocale('en');
+  const document = env.dom.window.document;
+  const root = createRoot(document.getElementById('root')!);
+
+  const illustratedScenes: WorldSceneItem[] = [
+    {
+      ...sampleScenes[0]!,
+      spatial: { settingType: 'interior', connectedSceneIds: ['scene-airlock'] },
+      media: [
+        {
+          id: 'res-hotpot-plate',
+          kind: 'scene',
+          purpose: 'scene_establishing',
+          label: '红油铜锅恒温餐厅 · 空间主视图',
+          mimeType: 'image/png',
+          width: 1536,
+          height: 1024,
+          externalUrl: 'https://assets.example/hotpot-plate.png',
+          delivery: null,
+          provider: 'CF_R2',
+          sha256: null,
+          durationSec: null,
+          provenance: { publicationId: null, publicationRecordId: null, ledgerRecordId: null },
+        } as WorldSceneItem['media'][number],
+      ],
+    },
+    {
+      ...sampleScenes[1]!,
+      spatial: { settingType: 'mixed', connectedSceneIds: ['scene-hotpot'] },
+      media: [
+        {
+          id: 'res-airlock-plate',
+          kind: 'scene',
+          purpose: 'scene_establishing',
+          label: '零下六十度防爆气闸哨口 · 空间主视图',
+          mimeType: 'image/png',
+          width: 1536,
+          height: 1024,
+          externalUrl: 'https://assets.example/airlock-plate.png',
+          delivery: null,
+          provider: 'CF_R2',
+          sha256: null,
+          durationSec: null,
+          provenance: { publicationId: null, publicationRecordId: null, ledgerRecordId: null },
+        } as WorldSceneItem['media'][number],
+      ],
+    },
+  ];
+
+  const lookups: string[] = [];
+  const bindings = {
+    sdk: { realm: () => ({ worldPublic: {
+      async worldPublicControllerGetWorldScene({ path }: { path: { worldId: string; sceneId: string } }) {
+        assert.equal(path.worldId, sampleWorld.id);
+        lookups.push(path.sceneId);
+        const preview = illustratedScenes.find((scene) => scene.id === path.sceneId)!.media[0]!;
+        const url = `https://assets.example/${path.sceneId}/hero.webp`;
+        return { ...path, media: [{ ...preview, externalUrl: null, delivery: {
+          resourceId: preview.id, contentVersion: 'a'.repeat(64), publicationGeneration: 1,
+          policyVersion: 'v2', originalUrl: `https://assets.example/${path.sceneId}/original.bin`,
+          images: [{ purpose: 'hero', families: [{ mimeType: 'image/webp',
+            sources: [{ url, width: 1536, height: 1024, mimeType: 'image/webp' }] }] }],
+        } }] };
+      },
+    } }) },
+  };
+  try {
+    await act(async () => {
+      root.render(
+        <DesktopRendererBindingProvider bindings={bindings as never}>
+          <WorldDetailPage
+          world={sampleWorld}
+          characters={[sampleCharacter]}
+          peopleCharacters={[sampleCharacter]}
+          peopleCatalog={readyPeopleCatalog}
+          history={emptyHistory}
+          semantic={emptySemantic}
+          audits={[]}
+          publicAssets={{
+            scenes: illustratedScenes,
+            resourceRefs: [],
+            externalRefs: [],
+            intents: [],
+          }}
+          />
+        </DesktopRendererBindingProvider>,
+      );
+    });
+
+    const cardMediaFrames = [...document.querySelectorAll('[data-testid="world-scene-card-media"]')];
+    assert.equal(cardMediaFrames.length, 2, 'each illustrated scene card renders its dedicated 3:2 plate');
+    const cards = [...document.querySelectorAll<HTMLButtonElement>('[data-testid="world-scene-card"]')];
+    assert.match(cards[0]!.textContent ?? '', /Interior/);
+    assert.match(cards[1]!.textContent ?? '', /Semi-open/);
+
+    // Open scene 1 viewer.
+    await act(async () => { cards[0]!.click(); });
+    const viewer = () => document.querySelector('[data-testid="world-scene-viewer"]');
+    assert.ok(viewer(), 'scene viewer dialog opens');
+    assert.ok(viewer()!.querySelector('[data-testid="world-scene-media-enlarge"]'), 'scene plate is clickable to enlarge');
+
+    // Click connected place chip to jump to scene 2.
+    const connectedBtn = viewer()!.querySelector<HTMLButtonElement>('[data-testid="world-scene-connected"] button');
+    assert.ok(connectedBtn, 'connected place chip is rendered');
+    assert.match(connectedBtn.textContent ?? '', /零下六十度防爆气闸哨口/);
+    await act(async () => { connectedBtn.click(); });
+    assert.equal(viewer()!.querySelector('[data-testid="world-scene-counter"]')?.textContent, '2 / 2');
+
+    // Click enlarge to open HD Lightbox, step to previous scene plate, then close Lightbox.
+    const enlargeBtn = viewer()!.querySelector<HTMLButtonElement>('[data-testid="world-scene-media-enlarge"]')!;
+    assert.deepEqual(lookups, [], 'scene previews do not request full-size media');
+    enlargeBtn.focus();
+    await act(async () => { enlargeBtn.click(); });
+    const lightbox = () => document.querySelector('[data-testid="world-scene-lightbox"]');
+    assert.ok(lightbox(), 'full-screen scene HD Lightbox opens');
+    assert.match(lightbox()!.textContent ?? '', /2 \/ 2/);
+
+    assert.deepEqual(lookups, ['scene-airlock']);
+    assert.equal(lightbox()!.querySelector('img')?.src, 'https://assets.example/scene-airlock/hero.webp');
+
+    // Exhaust the full-size image's retry without losing its preview or disabling navigation.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const image = lightbox()!.querySelector('img');
+      assert.ok(image);
+      await act(async () => { image.dispatchEvent(new env.dom.window.Event('error')); });
+    }
+    assert.equal(lightbox()!.querySelector('[role="status"]')?.textContent, 'This image could not be loaded.');
+    assert.ok(viewer()!.querySelector('[data-testid="world-scene-media-enlarge"] img'));
+
+    const prevBtn = lightbox()!.querySelector<HTMLButtonElement>('[data-testid="world-scene-lightbox-prev"]')!;
+    await act(async () => { prevBtn.click(); });
+    assert.match(lightbox()!.textContent ?? '', /1 \/ 2/);
+    assert.match(lightbox()!.textContent ?? '', /红油铜锅恒温餐厅/);
+
+    assert.equal(lightbox()!.querySelector('img')?.alt, illustratedScenes[0]!.name);
+
+    assert.deepEqual(lookups, ['scene-airlock', 'scene-hotpot']);
+    const originalButton = [...lightbox()!.querySelectorAll('button')].find((button) => button.textContent === 'View original image');
+    assert.ok(originalButton);
+    await act(async () => { originalButton.click(); });
+    assert.equal(lightbox()!.querySelector('img')?.src, 'https://assets.example/scene-hotpot/original.bin');
+
+    const closeBtn = lightbox()!.querySelector<HTMLButtonElement>('[data-testid="world-scene-lightbox-close"]')!;
+    await act(async () => { closeBtn.click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 750)); });
+    assert.equal(lightbox(), null, 'closing Lightbox dismisses only the Lightbox');
+    assert.ok(viewer(), 'parent WorldSceneViewer remains open after closing Lightbox');
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    assert.equal(enlargeBtn.isConnected, false, 'the original scene trigger was replaced');
+    assert.equal(document.activeElement, viewer()!.querySelector('[data-testid="world-scene-media-enlarge"]'),
+      'closing restores focus to the preview for the last viewed image');
+  } finally {
+    await act(async () => { root.unmount(); });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    env.restore();
+  }
+});

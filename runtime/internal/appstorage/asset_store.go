@@ -132,9 +132,10 @@ type assetOwnerState struct {
 
 // @nimi-authority: definition.nimi.runtime.app-surface.app-projection-plane
 type AssetStore struct {
-	dataRoot  string
-	policy    AssetPolicy
-	cursorKey [32]byte
+	revealViews AssetRevealViews
+	dataRoot    string
+	policy      AssetPolicy
+	cursorKey   [32]byte
 
 	mu        sync.Mutex
 	owners    map[string]*assetOwnerState
@@ -356,6 +357,9 @@ func (store *AssetStore) write(
 		if committed {
 			return AssetRecord{}, ErrAssetUnavailable
 		}
+		if err := store.invalidateReveal(target); err != nil {
+			return AssetRecord{}, err
+		}
 		if err := commitAssetCandidate(candidatePath, target); err != nil {
 			state.indexReady = false
 			return AssetRecord{}, fmt.Errorf("%w: commit asset payload: %v", ErrAssetUnavailable, err)
@@ -397,34 +401,42 @@ func (store *AssetStore) Stat(ctx context.Context, owner ManagedOwner, relativeP
 }
 
 func (store *AssetStore) Open(ctx context.Context, owner ManagedOwner, relativePath string) (*AssetSource, error) {
-	normalizedPath, err := NormalizeAssetRelativePath(relativePath)
+	record, body, err := store.openAsset(ctx, owner, relativePath)
 	if err != nil {
 		return nil, err
+	}
+	return &AssetSource{Record: record, Body: body}, nil
+}
+
+func (store *AssetStore) openAsset(ctx context.Context, owner ManagedOwner, relativePath string) (AssetRecord, *assetFileBody, error) {
+	normalizedPath, err := NormalizeAssetRelativePath(relativePath)
+	if err != nil {
+		return AssetRecord{}, nil, err
 	}
 	ownerRoot, normalizedOwner, err := managedOwnerRoot(store.dataRoot, owner)
 	if err != nil {
-		return nil, err
+		return AssetRecord{}, nil, err
 	}
 	state, _ := store.ownerState(normalizedOwner)
 	if err := acquireAssetStream(ctx, state); err != nil {
-		return nil, err
+		return AssetRecord{}, nil, err
 	}
 	objectsRoot := filepath.Join(ownerRoot, "assets", "objects")
 	target, err := assetObjectPath(objectsRoot, normalizedPath)
 	if err != nil {
 		releaseAssetStream(state)
-		return nil, err
+		return AssetRecord{}, nil, err
 	}
 	file, metadata, err := openAndVerifyAsset(ctx, target)
 	if err != nil {
 		releaseAssetStream(state)
-		return nil, err
+		return AssetRecord{}, nil, err
 	}
 	body := &assetFileBody{
 		reader: io.NewSectionReader(file, 0, metadata.SizeBytes), file: file, ctx: ctx,
 		release: func() { releaseAssetStream(state) },
 	}
-	return &AssetSource{Record: metadata.public(normalizedPath), Body: body}, nil
+	return metadata.public(normalizedPath), body, nil
 }
 
 // ResolveRevealTarget fully verifies one owner-bound committed asset and
@@ -534,6 +546,9 @@ func (store *AssetStore) Remove(ctx context.Context, owner ManagedOwner, relativ
 	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
 		return false, err
 	}
+	if err := store.invalidateReveal(target); err != nil {
+		return false, err
+	}
 	if err := removeAssetPayload(target); err != nil {
 		state.indexReady = false
 		return false, ErrAssetUnavailable
@@ -577,6 +592,9 @@ func (store *AssetStore) Move(ctx context.Context, owner ManagedOwner, from stri
 		return AssetRecord{}, ErrAssetUnavailable
 	}
 	if err := store.ensureAssetIndex(ctx, state, objectsRoot); err != nil {
+		return AssetRecord{}, err
+	}
+	if err := store.invalidateReveal(fromTarget, toTarget); err != nil {
 		return AssetRecord{}, err
 	}
 	if err := moveAssetPayload(fromTarget, toTarget); err != nil {

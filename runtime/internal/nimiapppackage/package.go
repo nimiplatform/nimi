@@ -365,7 +365,7 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 			target, linkErr := readCanonicalSymlinkTarget(ctx, archive.readerAt, entry)
 			if linkErr == nil {
 				_, _ = tree.Write([]byte(target))
-				linkErr = root.Symlink(target, name)
+				linkErr = materializeBundleLink(root, target, name)
 			}
 			if linkErr != nil {
 				_ = root.Close()

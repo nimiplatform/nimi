@@ -29,6 +29,10 @@
   <integer>20</integer>
   <key>AbandonProcessGroup</key>
   <false/>
+  <key>QueueDirectories</key>
+  <array>
+    <string>/Library/Application Support/Nimi/Runtime/state/finder-reveal-journal</string>
+  </array>
   <key>Sockets</key>
   <dict>
     <key>DesktopControl</key>

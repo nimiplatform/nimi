@@ -8661,6 +8661,7 @@ components:
             - banner
             - hero
             - highlight
+            - scene
             - avatar
             - portrait
             - referenceImage
@@ -8942,6 +8943,14 @@ components:
             - public
             - system
           type: string
+        visualIdentity:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicVisualIdentityDto'
+          description: >-
+            Canonical world visual identity bible for cross-surface media
+            continuity.
+          nullable: true
+          type: object
       required:
         - id
         - name
@@ -9158,6 +9167,66 @@ components:
         - relatedEventCount
         - relatedResourceCount
       type: object
+    WorldPublicSceneDetailDto:
+      properties:
+        activeEntities:
+          items:
+            $ref: '#/components/schemas/WorldPublicEntityCardDto'
+          type: array
+        counts:
+          $ref: '#/components/schemas/WorldPublicSceneCountsDto'
+        media:
+          items:
+            $ref: '#/components/schemas/WorldPublicAssetDto'
+          type: array
+        name:
+          type: string
+        relatedCharacters:
+          items:
+            $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          type: array
+        relatedEvents:
+          items:
+            $ref: '#/components/schemas/WorldPublicTimelineEventDto'
+          type: array
+        relatedResources:
+          items:
+            $ref: '#/components/schemas/WorldPublicSceneResourceDto'
+          type: array
+        sceneId:
+          type: string
+        spatial:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicSceneSpatialDto'
+          nullable: true
+          type: object
+        summary:
+          type: string
+        visualIdentity:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicVisualIdentityDto'
+          description: >-
+            Canonical world visual identity bible for cross-surface media
+            continuity.
+          nullable: true
+          type: object
+        worldId:
+          type: string
+        worldName:
+          type: string
+      required:
+        - sceneId
+        - name
+        - summary
+        - media
+        - activeEntities
+        - relatedCharacters
+        - relatedEvents
+        - relatedResources
+        - counts
+        - worldId
+        - worldName
+      type: object
     WorldPublicSceneDto:
       properties:
         activeEntities:
@@ -9186,6 +9255,11 @@ components:
           type: array
         sceneId:
           type: string
+        spatial:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicSceneSpatialDto'
+          nullable: true
+          type: object
         summary:
           type: string
       required:
@@ -9230,6 +9304,22 @@ components:
         - title
         - entityRefs
         - eventRefs
+      type: object
+    WorldPublicSceneSpatialDto:
+      properties:
+        connectedSceneIds:
+          items:
+            type: string
+          type: array
+        settingType:
+          enum:
+            - interior
+            - exterior
+            - mixed
+          type: string
+      required:
+        - settingType
+        - connectedSceneIds
       type: object
     WorldPublicSourceCardDto:
       properties:
@@ -9604,6 +9694,27 @@ components:
           type: string
       required:
         - state
+      type: object
+    WorldPublicVisualIdentityDto:
+      properties:
+        artMedium:
+          type: string
+        lightingAtmosphere:
+          type: string
+        materialArchitecture:
+          type: string
+        sonicMood:
+          nullable: true
+          type: string
+        styleBoundaries:
+          items:
+            type: string
+          type: array
+      required:
+        - artMedium
+        - materialArchitecture
+        - lightingAtmosphere
+        - styleBoundaries
       type: object
     WorldPublicWallClockTimeDto:
       properties:
@@ -14898,6 +15009,34 @@ paths:
                 $ref: '#/components/schemas/WorldPublicDetailWithCharactersDto'
           description: ''
       summary: Get a public world detail projection with source cards
+      tags:
+        - World
+  /api/world/by-id/{worldId}/scenes/{sceneId}:
+    get:
+      operationId: WorldPublicController_getWorldScene
+      parameters:
+        - in: path
+          name: sceneId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicSceneDetailDto'
+          description: ''
+        '404':
+          description: World or scene not found
+      summary: >-
+        Get one public world scene with full-resolution media and visual
+        identity
       tags:
         - World
   /api/world/catalog:

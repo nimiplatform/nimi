@@ -205,6 +205,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "WorldPublicController_getWorld", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}"},
 	{OperationID: "WorldPublicController_getWorldCatalogByIds", Service: "World", Method: "POST", Path: "/api/world/catalog/by-ids"},
 	{OperationID: "WorldPublicController_getWorldDetailWithCharacters", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/detail-with-characters"},
+	{OperationID: "WorldPublicController_getWorldScene", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/scenes/{sceneId}"},
 	{OperationID: "WorldPublicController_listCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/character-sources/catalog"},
 	{OperationID: "WorldPublicController_listPersonaCharacterCatalog", Service: "World", Method: "GET", Path: "/api/world/persona-characters/catalog"},
 	{OperationID: "WorldPublicController_listWorldCatalog", Service: "World", Method: "GET", Path: "/api/world/catalog"},

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, MapPin, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Expand, MapPin, X } from 'lucide-react';
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { Button, IconButton, NimiText, OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
+import { Button, DialogDescription, DialogTitle, IconButton, NimiText, OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import type { WorldCharacter, WorldPublicMediaAsset, WorldSceneItem } from './world-detail-types.js';
 
@@ -54,11 +55,82 @@ export function selectDistinctSceneImageMedia(
   });
 }
 
+function SceneLightboxImage({ worldId, sceneId, assetId, sceneName }: {
+  worldId: string; sceneId: string; assetId: string; sceneName: string;
+}) {
+  const sdk = useDesktopRendererSdk();
+  const { t } = useTranslation();
+  const [asset, setAsset] = useState<WorldPublicMediaAsset | null>();
+  const [failed, setFailed] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    async function load() {
+      try {
+        const detail = await sdk.realm().worldPublic.worldPublicControllerGetWorldScene(
+          { path: { worldId, sceneId } }, { signal },
+        );
+        if (!signal.aborted) {
+          const match = detail.worldId === worldId && detail.sceneId === sceneId
+            ? detail.media.find((item) => item.id === assetId) : null;
+          setAsset(match ?? null);
+        }
+      } catch {
+        if (!signal.aborted) setAsset(null);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [sdk, worldId, sceneId, assetId]);
+
+  const unavailableMessage = t('WorldDetail.discovery.sceneImageUnavailable');
+  if (!asset || failed) {
+    const message = asset === undefined ? t('WorldDetail.discovery.sceneImageLoading') : unavailableMessage;
+    return <p role="status" className="p-6 text-center text-sm text-white">{message}</p>;
+  }
+  const originalUrl = asset.delivery?.originalUrl;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {showOriginal && originalUrl ? (
+        <img src={originalUrl} alt={sceneName} onError={() => setFailed(true)}
+          className="h-auto max-h-[80vh] w-auto max-w-[84vw] rounded-2xl object-contain" />
+      ) : (
+        <MediaImage
+          delivery={asset.delivery}
+          externalUrl={asset.externalUrl}
+          purpose={
+            asset.delivery?.images.some((set) => set.purpose === 'hero')
+              ? 'hero'
+              : asset.delivery?.images.some((set) => set.purpose === 'detail')
+                ? 'detail'
+                : 'card'
+          }
+          sizes="85vw"
+          width={asset.width ?? 1536}
+          height={asset.height ?? 1024}
+          loading="eager"
+          onUnavailable={() => setFailed(true)}
+          fallback={unavailableMessage}
+          alt={sceneName}
+          className="h-auto max-h-[80vh] w-auto max-w-[84vw] rounded-2xl object-contain"
+        />
+      )}
+      {originalUrl && !showOriginal ? (
+        <Button tone="secondary" size="sm" onClick={() => setShowOriginal(true)}>
+          {t('WorldDetail.discovery.viewOriginalImage')}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 // @nimi-authority: rule.nimi.desktop.shell-ui.r012
 // @nimi-authority: rule.nimi.desktop.shell-ui.r013
 // @nimi-authority: rule.nimi.desktop.shell-ui.r014
 export function WorldSceneViewer({
   open,
+  worldId,
   scene,
   scenes,
   sharedMediaKeys,
@@ -67,6 +139,7 @@ export function WorldSceneViewer({
   onViewCharacter,
 }: {
   open: boolean;
+  worldId: string;
   scene: WorldSceneItem;
   scenes: readonly WorldSceneItem[];
   sharedMediaKeys?: ReadonlySet<string>;
@@ -75,21 +148,49 @@ export function WorldSceneViewer({
   onViewCharacter?: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
+  const lastViewedPreviewRef = useRef<HTMLButtonElement | null>(null);
+  const closeSceneRef = useRef<HTMLButtonElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const [unavailableMedia, setUnavailableMedia] = useState<Set<string>>(() => new Set());
+  const [lightboxAssetId, setLightboxAssetId] = useState<string | null>(null);
 
   const index = scenes.findIndex((item) => item.id === scene.id);
   const hasPrevious = index > 0;
   const hasNext = index >= 0 && index < scenes.length - 1;
 
   useEffect(() => {
-    if (open && scrollViewportRef.current) {
+    if (!open) {
+      setLightboxAssetId(null);
+      return;
+    }
+    if (scrollViewportRef.current) {
       scrollViewportRef.current.scrollTop = 0;
     }
   }, [open, scene.id]);
 
+  const allScenePlates = scenes.flatMap((item) => (
+    selectDistinctSceneImageMedia(item, scenes, sharedMediaKeys)
+      .filter((asset) => !unavailableMedia.has(asset.id))
+      .map((asset) => ({ scene: item, asset }))
+  ));
+  const activeLightboxIndex = lightboxAssetId
+    ? allScenePlates.findIndex((entry) => entry.scene.id === scene.id && entry.asset.id === lightboxAssetId)
+    : -1;
+  const activeLightboxEntry = activeLightboxIndex >= 0 ? allScenePlates[activeLightboxIndex] ?? null : null;
+
+  const moveLightbox = (step: -1 | 1) => {
+    if (allScenePlates.length < 2 || activeLightboxIndex < 0) return;
+    const nextIndex = (activeLightboxIndex + step + allScenePlates.length) % allScenePlates.length;
+    const nextEntry = allScenePlates[nextIndex];
+    if (!nextEntry) return;
+    if (nextEntry.scene.id !== scene.id) {
+      onSelect(nextEntry.scene.id);
+    }
+    setLightboxAssetId(nextEntry.asset.id);
+  };
+
   useEffect(() => {
-    if (!open || scenes.length <= 1) return;
+    if (!open || scenes.length <= 1 || activeLightboxEntry !== null) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (isEditableEventTarget(event.target)) return;
@@ -103,11 +204,17 @@ export function WorldSceneViewer({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, scenes, index, hasPrevious, hasNext, onSelect]);
+  }, [open, scenes, index, hasPrevious, hasNext, onSelect, activeLightboxEntry]);
 
   const description = scene.description.trim();
   const imageMedia = selectDistinctSceneImageMedia(scene, scenes, sharedMediaKeys)
     .filter((asset) => !unavailableMedia.has(asset.id));
+  const settingLabel = scene.spatial?.settingType
+    ? t(`WorldDetail.discovery.sceneSettingType.${scene.spatial.settingType}`)
+    : null;
+  const connectedScenes = (scene.spatial?.connectedSceneIds ?? [])
+    .map((targetId) => scenes.find((candidate) => candidate.id === targetId && candidate.id !== scene.id))
+    .filter((candidate): candidate is WorldSceneItem => Boolean(candidate));
   const relatedCharacterIds = new Set(scene.relatedCharacters.map((character) => character.id));
   const relatedCharacterNames = new Set(
     scene.relatedCharacters.map((character) => character.name.trim().toLocaleLowerCase()).filter(Boolean),
@@ -159,6 +266,9 @@ export function WorldSceneViewer({
   );
 
   const hideMedia = (id: string) => {
+    if (lightboxAssetId === id) {
+      setLightboxAssetId(null);
+    }
     setUnavailableMedia((previous) => {
       if (previous.has(id)) return previous;
       const next = new Set(previous);
@@ -168,21 +278,29 @@ export function WorldSceneViewer({
   };
 
   return (
+    <>
     <OverlayShell
       open={open}
       kind="dialog"
       size="md"
       onClose={onClose}
       data-testid="world-scene-viewer"
-      panelStyle={{ maxWidth: 'min(640px, calc(100vw - 32px))', maxHeight: 'min(82dvh, 760px)' }}
+      panelStyle={{ maxWidth: 'min(680px, calc(100vw - 32px))', maxHeight: 'min(86dvh, 820px)' }}
       panelClassName="flex flex-col overflow-hidden"
       contentClassName="flex min-h-0 flex-1 flex-col px-0 py-0"
       title={(
         <div className="flex min-w-0 items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <NimiText as="span" role="overline" className="block tracking-[0.2em] text-[var(--nimi-text-muted)]">
-              {t('WorldDetail.discovery.places')}
-            </NimiText>
+            <div className="flex flex-wrap items-center gap-2">
+              <NimiText as="span" role="overline" className="block tracking-[0.2em] text-[var(--nimi-text-muted)]">
+                {t('WorldDetail.discovery.places')}
+              </NimiText>
+              {settingLabel ? (
+                <span className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-text-secondary)]">
+                  {settingLabel}
+                </span>
+              ) : null}
+            </div>
             <div className="mt-1.5 flex items-start gap-2">
               <MapPin size={18} className="mt-1 shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden />
               <NimiText as="span" role="section-title" className="min-w-0 flex-1 break-words text-[var(--nimi-text-primary)]">
@@ -191,6 +309,7 @@ export function WorldSceneViewer({
             </div>
           </div>
           <IconButton
+            ref={closeSceneRef}
             tone="ghost"
             size="sm"
             icon={<X size={18} />}
@@ -239,23 +358,43 @@ export function WorldSceneViewer({
             data-testid="world-scene-media"
             className={imageMedia.length === 1 ? 'space-y-3' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'}
           >
-            {imageMedia.map((asset) => (
-              <div
-                key={asset.id}
-                className="overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]"
-              >
-                <MediaImage
-                  delivery={asset.delivery}
-                  externalUrl={asset.externalUrl}
-                  purpose="detail"
-                  sizes={imageMedia.length === 1 ? '592px' : '(min-width: 640px) 290px, calc(100vw - 80px)'}
-                  loading="eager"
-                  alt={scene.name}
-                  className={imageMedia.length === 1 ? 'block max-h-72 w-full object-cover' : 'block max-h-52 w-full object-cover'}
-                  onUnavailable={() => hideMedia(asset.id)}
-                />
-              </div>
-            ))}
+            {imageMedia.map((asset) => {
+              const purpose = asset.delivery?.images.some((set) => set.purpose === 'detail')
+                ? 'detail'
+                : asset.delivery?.images.some((set) => set.purpose === 'hero')
+                  ? 'hero'
+                  : 'card';
+              return (
+                <button
+                  key={asset.id}
+                  type="button"
+                  ref={asset.id === lightboxAssetId ? (button) => {
+                    // Keep the last viewed trigger through the lightbox exit animation.
+                    if (button) lastViewedPreviewRef.current = button;
+                  } : undefined}
+                  aria-haspopup="dialog"
+                  data-testid="world-scene-media-enlarge"
+                  aria-label={t('WorldDetail.discovery.enlargeIllustration', { name: scene.name })}
+                  onClick={() => setLightboxAssetId(asset.id)}
+                  className="group relative block aspect-[3/2] w-full cursor-pointer overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                >
+                  <MediaImage
+                    delivery={asset.delivery}
+                    externalUrl={asset.externalUrl}
+                    purpose={purpose}
+                    sizes={imageMedia.length === 1 ? '632px' : '(min-width: 640px) 308px, calc(100vw - 80px)'}
+                    loading="eager"
+                    alt={scene.name}
+                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
+                    onUnavailable={() => hideMedia(asset.id)}
+                  />
+                  <span className="pointer-events-none absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-black/58 px-2.5 py-1 text-[11px] font-medium text-white opacity-90 backdrop-blur-xs transition-opacity duration-150 group-hover:opacity-100">
+                    <Expand size={12} aria-hidden />
+                    {t('WorldDetail.discovery.enlarge')}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -272,6 +411,27 @@ export function WorldSceneViewer({
           <NimiText as="p" role="body" className="text-[var(--nimi-text-muted)]">
             {t('WorldDetail.noDescription')}
           </NimiText>
+        ) : null}
+
+        {connectedScenes.length > 0 ? (
+          <section className="space-y-2" data-testid="world-scene-connected">
+            <NimiText as="h3" role="label" className="text-[var(--nimi-text-secondary)]">
+              {t('WorldDetail.discovery.sceneConnectedPlaces')}
+            </NimiText>
+            <div className="flex flex-wrap gap-2">
+              {connectedScenes.map((target) => (
+                <button
+                  key={target.id}
+                  type="button"
+                  onClick={() => onSelect(target.id)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-xs font-medium text-[var(--nimi-text-primary)] transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_45%,var(--nimi-border-subtle))] hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                >
+                  <MapPin size={12} className="text-[var(--nimi-action-primary-bg)]" aria-hidden />
+                  <span>{target.name}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         ) : null}
 
         {scene.relatedCharacters.length > 0 ? (
@@ -421,5 +581,89 @@ export function WorldSceneViewer({
         ) : null}
       </ScrollArea>
     </OverlayShell>
+
+    <OverlayShell
+      open={activeLightboxEntry !== null}
+      onClose={() => setLightboxAssetId(null)}
+      getReturnFocusTarget={() => lastViewedPreviewRef.current?.isConnected
+        ? lastViewedPreviewRef.current : closeSceneRef.current}
+      data-testid="world-scene-lightbox"
+      className="bg-black/88 backdrop-blur-sm"
+      panelClassName="w-max max-w-[calc(100vw-3rem)] border-0 bg-transparent shadow-none"
+      contentClassName="p-0"
+    >
+      {activeLightboxEntry ? (
+        <div
+          onKeyDown={(event) => {
+            if (allScenePlates.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+            event.preventDefault();
+            moveLightbox(event.key === 'ArrowLeft' ? -1 : 1);
+          }}
+          className="flex max-h-[90vh] flex-col items-center gap-3"
+        >
+          <div className="flex w-full items-center justify-between gap-4 text-white">
+            <div className="flex items-baseline gap-2.5">
+              <DialogTitle className="flex items-baseline gap-2.5">
+                <span className="text-sm font-semibold">{activeLightboxEntry.scene.name}</span>
+                {activeLightboxEntry.scene.spatial?.settingType ? (
+                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white/90">
+                    {t(`WorldDetail.discovery.sceneSettingType.${activeLightboxEntry.scene.spatial.settingType}`)}
+                  </span>
+                ) : null}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-white/65 tabular-nums">
+                {activeLightboxIndex + 1} / {allScenePlates.length}
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              data-testid="world-scene-lightbox-close"
+              aria-label={t('WorldDetail.discovery.closeImage')}
+              onClick={() => setLightboxAssetId(null)}
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+
+          <div className="relative flex items-center justify-center">
+            {allScenePlates.length > 1 ? (
+              <button
+                type="button"
+                data-testid="world-scene-lightbox-prev"
+                aria-label={t('WorldDetail.discovery.previousImage')}
+                onClick={() => moveLightbox(-1)}
+                className="mr-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <ChevronLeft className="h-5 w-5" aria-hidden />
+              </button>
+            ) : null}
+
+            <div className="flex items-center justify-center overflow-hidden rounded-2xl shadow-2xl">
+              <SceneLightboxImage
+                key={JSON.stringify([worldId, activeLightboxEntry.scene.id, activeLightboxEntry.asset.id])}
+                worldId={worldId}
+                sceneId={activeLightboxEntry.scene.id}
+                assetId={activeLightboxEntry.asset.id}
+                sceneName={activeLightboxEntry.scene.name}
+              />
+            </div>
+
+            {allScenePlates.length > 1 ? (
+              <button
+                type="button"
+                data-testid="world-scene-lightbox-next"
+                aria-label={t('WorldDetail.discovery.nextImage')}
+                onClick={() => moveLightbox(1)}
+                className="ml-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </OverlayShell>
+    </>
   );
 }

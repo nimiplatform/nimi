@@ -51,3 +51,15 @@ export function parseRealmArguments(argv) {
   }
   return { realm, rest };
 }
+
+// Cookies on HTTP loopback are site-bound. Keep the API port and use the
+// configured Web hostname for browser requests to a local development Realm.
+export function localBrowserApiOrigin(apiOrigin, webOrigin) {
+  const api = new URL(apiOrigin);
+  const web = new URL(webOrigin);
+  const loopback = (host) => host === 'localhost' || host === '127.0.0.1';
+  if (api.protocol === 'http:' && web.protocol === 'http:' && loopback(api.hostname) && loopback(web.hostname)) {
+    api.hostname = web.hostname;
+  }
+  return api.origin;
+}

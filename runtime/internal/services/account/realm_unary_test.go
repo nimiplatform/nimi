@@ -77,14 +77,15 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getCharacterSource":           {method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		"WorldPublicController_getWorld":                     {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
+		"WorldPublicController_getWorldScene":                {method: http.MethodGet, path: "/api/world/by-id/{worldId}/scenes/{sceneId}"},
 		"WorldPublicController_listWorldTopics":              {method: http.MethodGet, path: "/api/world/topics"},
 		"WorldPublicController_listWorldCatalog":             {method: http.MethodGet, path: "/api/world/catalog"},
 		"WorldPublicController_getWorldCatalogByIds":         {method: http.MethodPost, path: "/api/world/catalog/by-ids"},
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 		"WorldPublicController_listCharacterCatalog":         {method: http.MethodGet, path: "/api/world/character-sources/catalog"},
 	}
-	if len(realmBrokerOperations) != 84 {
-		t.Fatalf("Realm broker operation count = %d, want 84", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 85 {
+		t.Fatalf("Realm broker operation count = %d, want 85", len(realmBrokerOperations))
 	}
 	for _, id := range []string{"applyFriendshipAction", "getMyRelationshipWithUser", "getMyHandleChangeEligibility", "updateMyHandle", "listMyAccountSessions", "revokeMyAccountSession", "revokeMyOtherAccountSessions"} {
 		op, ok := realmBrokerOperations[id]
@@ -330,6 +331,7 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 		{name: "public character source", methodID: "WorldPublicController_getCharacterSource", requestJSON: `{"body":{"sourceRef":{"kind":"worldCharacter","id":"character-1","worldId":"world-1","worldEntityRef":{"kind":"worldEntity","worldId":"world-1","entityId":"entity-1"},"sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}`, method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
+		{name: "world scene", methodID: "WorldPublicController_getWorldScene", requestJSON: `{"path":{"worldId":"world-1","sceneId":"scene-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/scenes/scene-1"},
 		{name: "world topics", methodID: "WorldPublicController_listWorldTopics", requestJSON: `{}`, method: http.MethodGet, path: "/api/world/topics", responseJSON: `[]`},
 		{name: "world catalog", methodID: "WorldPublicController_listWorldCatalog", requestJSON: `{}`, method: http.MethodGet, path: "/api/world/catalog"},
 	}

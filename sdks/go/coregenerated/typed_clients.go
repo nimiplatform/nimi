@@ -25579,6 +25579,7 @@ type WorldPublicDetailDto struct {
 	Type              string                        `json:"type"`
 	UpdatedAt         string                        `json:"updatedAt"`
 	Visibility        string                        `json:"visibility"`
+	VisualIdentity    *WorldPublicVisualIdentityDto `json:"visualIdentity,omitempty"`
 }
 
 func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
@@ -25902,6 +25903,69 @@ func (value *WorldPublicSceneCountsDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WorldPublicSceneDetailDto struct {
+	ActiveEntities    []WorldPublicEntityCardDto    `json:"activeEntities"`
+	Counts            *WorldPublicSceneCountsDto    `json:"counts"`
+	Media             []WorldPublicAssetDto         `json:"media"`
+	Name              string                        `json:"name"`
+	RelatedCharacters []WorldPublicSourceCardDto    `json:"relatedCharacters"`
+	RelatedEvents     []WorldPublicTimelineEventDto `json:"relatedEvents"`
+	RelatedResources  []WorldPublicSceneResourceDto `json:"relatedResources"`
+	SceneId           string                        `json:"sceneId"`
+	Spatial           *WorldPublicSceneSpatialDto   `json:"spatial,omitempty"`
+	Summary           string                        `json:"summary"`
+	VisualIdentity    *WorldPublicVisualIdentityDto `json:"visualIdentity,omitempty"`
+	WorldId           string                        `json:"worldId"`
+	WorldName         string                        `json:"worldName"`
+}
+
+func (value *WorldPublicSceneDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "activeEntities", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "counts", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "media", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedCharacters", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedEvents", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedResources", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldName", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	type modelAlias WorldPublicSceneDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDetailDto: %w", err)
+	}
+	*value = WorldPublicSceneDetailDto(decoded)
+	return nil
+}
+
 type WorldPublicSceneDto struct {
 	ActiveEntities    []WorldPublicEntityCardDto    `json:"activeEntities"`
 	Counts            *WorldPublicSceneCountsDto    `json:"counts"`
@@ -25911,6 +25975,7 @@ type WorldPublicSceneDto struct {
 	RelatedEvents     []WorldPublicTimelineEventDto `json:"relatedEvents"`
 	RelatedResources  []WorldPublicSceneResourceDto `json:"relatedResources"`
 	SceneId           string                        `json:"sceneId"`
+	Spatial           *WorldPublicSceneSpatialDto   `json:"spatial,omitempty"`
 	Summary           string                        `json:"summary"`
 }
 
@@ -25990,6 +26055,31 @@ func (value *WorldPublicSceneResourceDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
 	}
 	*value = WorldPublicSceneResourceDto(decoded)
+	return nil
+}
+
+type WorldPublicSceneSpatialDto struct {
+	ConnectedSceneIds []string `json:"connectedSceneIds"`
+	SettingType       string   `json:"settingType"`
+}
+
+func (value *WorldPublicSceneSpatialDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneSpatialDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectedSceneIds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneSpatialDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "settingType", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneSpatialDto: %w", err)
+	}
+	type modelAlias WorldPublicSceneSpatialDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneSpatialDto: %w", err)
+	}
+	*value = WorldPublicSceneSpatialDto(decoded)
 	return nil
 }
 
@@ -26458,6 +26548,40 @@ func (value *WorldPublicViewerRelationDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicViewerRelationDto: %w", err)
 	}
 	*value = WorldPublicViewerRelationDto(decoded)
+	return nil
+}
+
+type WorldPublicVisualIdentityDto struct {
+	ArtMedium            string   `json:"artMedium"`
+	LightingAtmosphere   string   `json:"lightingAtmosphere"`
+	MaterialArchitecture string   `json:"materialArchitecture"`
+	SonicMood            *string  `json:"sonicMood,omitempty"`
+	StyleBoundaries      []string `json:"styleBoundaries"`
+}
+
+func (value *WorldPublicVisualIdentityDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "artMedium", false); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lightingAtmosphere", false); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materialArchitecture", false); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "styleBoundaries", false); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	type modelAlias WorldPublicVisualIdentityDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicVisualIdentityDto: %w", err)
+	}
+	*value = WorldPublicVisualIdentityDto(decoded)
 	return nil
 }
 
@@ -30047,6 +30171,24 @@ type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest stru
 	Body    struct{}                                                               `json:"body,omitempty"`
 }
 
+type RealmWorldPublicControllerGetWorldSceneOperationPath struct {
+	SceneId string `json:"sceneId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldPublicControllerGetWorldSceneOperationQuery struct {
+}
+
+type RealmWorldPublicControllerGetWorldSceneOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerGetWorldSceneOperationRequest struct {
+	Path    RealmWorldPublicControllerGetWorldSceneOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerGetWorldSceneOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerGetWorldSceneOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                `json:"body,omitempty"`
+}
+
 type RealmWorldPublicControllerListCharacterCatalogOperationPath struct {
 }
 
@@ -31657,6 +31799,14 @@ func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx 
 		return WorldPublicDetailWithCharactersDto{}, err
 	}
 	return decodeTypedResponse[WorldPublicDetailWithCharactersDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerGetWorldScene(ctx context.Context, request RealmWorldPublicControllerGetWorldSceneOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSceneDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_getWorldScene", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicSceneDetailDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicSceneDetailDto](raw)
 }
 
 func (c RealmTypedClient) WorldPublicControllerListCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicCharacterCatalogPageDto, error) {

@@ -141,6 +141,14 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
     q: '邮局',
     limit: 20,
   });
+
+  const path = { worldId: 'world-1', sceneId: 'scene-1' };
+  await assert.rejects(
+    realm.worldPublic.worldPublicControllerGetWorldScene({ path }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
+  assert.equal(transport.unaryCalls.at(-1)?.methodId, 'WorldPublicController_getWorldScene');
+  assert.deepEqual(transport.unaryCalls.at(-1)?.body, { path });
 });
 
 test('Realm facade blocks direct packet issuance and privileged permission lifecycle bypass', async () => {

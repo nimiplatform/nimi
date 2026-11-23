@@ -13,6 +13,7 @@ import type {
   WorldSceneEntity,
   WorldSceneItem,
   WorldSceneResource,
+  WorldSceneSpatial,
 } from './world-detail-types.js';
 import {
   asRecord,
@@ -119,6 +120,18 @@ function toWorldDisplaySceneCounts(
   };
 }
 
+function toWorldDisplaySceneSpatial(rawValue: unknown): WorldSceneSpatial | null {
+  const raw = asRecord(rawValue);
+  const settingType = readString(raw, 'settingType');
+  if (settingType !== 'interior' && settingType !== 'exterior' && settingType !== 'mixed') {
+    return null;
+  }
+  return {
+    settingType,
+    connectedSceneIds: readStringArray(raw.connectedSceneIds),
+  };
+}
+
 function toWorldDisplaySceneItem(rawValue: unknown, index: number): WorldSceneItem {
   const raw = asRecord(rawValue);
   const activeEntities = readRecordArray(raw.activeEntities)
@@ -147,6 +160,7 @@ function toWorldDisplaySceneItem(rawValue: unknown, index: number): WorldSceneIt
     id: readString(raw, 'sceneId', 'id') || `scene-${index + 1}`,
     name: readString(raw, 'name', 'title') || 'Unnamed scene',
     description: readString(raw, 'summary', 'description'),
+    spatial: toWorldDisplaySceneSpatial(raw.spatial),
     activeEntities,
     relatedCharacters,
     relatedEvents,

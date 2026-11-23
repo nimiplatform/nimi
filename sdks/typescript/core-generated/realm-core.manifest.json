@@ -13071,6 +13071,103 @@
       ]
     },
     {
+      "operation_id": "WorldPublicController_getWorldScene",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/scenes/{sceneId}",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "sceneId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "sceneId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicSceneDetailDto",
+            "ref_name": "WorldPublicSceneDetailDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicSceneDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicSceneDetailDto"
+        }
+      ]
+    },
+    {
       "operation_id": "WorldPublicController_listCharacterCatalog",
       "method": "GET",
       "path": "/api/world/character-sources/catalog",
@@ -14973,6 +15070,12 @@
       "path": "/api/world/by-id/{worldId}/detail-with-characters"
     },
     {
+      "operation_id": "WorldPublicController_getWorldScene",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/scenes/{sceneId}"
+    },
+    {
       "operation_id": "WorldPublicController_listCharacterCatalog",
       "service": "World",
       "method": "GET",
@@ -15289,6 +15392,7 @@
         "WorldPublicController_getWorld",
         "WorldPublicController_getWorldCatalogByIds",
         "WorldPublicController_getWorldDetailWithCharacters",
+        "WorldPublicController_getWorldScene",
         "WorldPublicController_listCharacterCatalog",
         "WorldPublicController_listPersonaCharacterCatalog",
         "WorldPublicController_listWorldCatalog",
@@ -16442,10 +16546,16 @@
       "name": "WorldPublicSceneCountsDto"
     },
     {
+      "name": "WorldPublicSceneDetailDto"
+    },
+    {
       "name": "WorldPublicSceneDto"
     },
     {
       "name": "WorldPublicSceneResourceDto"
+    },
+    {
+      "name": "WorldPublicSceneSpatialDto"
     },
     {
       "name": "WorldPublicSourceCardDto"
@@ -16482,6 +16592,9 @@
     },
     {
       "name": "WorldPublicViewerRelationDto"
+    },
+    {
+      "name": "WorldPublicVisualIdentityDto"
     },
     {
       "name": "WorldPublicWallClockTimeDto"
@@ -47690,6 +47803,7 @@
                 "banner",
                 "hero",
                 "highlight",
+                "scene",
                 "avatar",
                 "portrait",
                 "referenceImage",
@@ -48682,6 +48796,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "name": "visualIdentity",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicVisualIdentityDto",
+              "ref_name": "WorldPublicVisualIdentityDto",
+              "nullable": true
+            }
           }
         ],
         "required_properties": [
@@ -49360,6 +49484,198 @@
       }
     },
     {
+      "name": "WorldPublicSceneDetailDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "activeEntities",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicEntityCardDto",
+                "ref_name": "WorldPublicEntityCardDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "counts",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSceneCountsDto",
+              "ref_name": "WorldPublicSceneCountsDto"
+            }
+          },
+          {
+            "name": "media",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicAssetDto",
+                "ref_name": "WorldPublicAssetDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "relatedCharacters",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSourceCardDto",
+                "ref_name": "WorldPublicSourceCardDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "relatedEvents",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicTimelineEventDto",
+                "ref_name": "WorldPublicTimelineEventDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "relatedResources",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSceneResourceDto",
+                "ref_name": "WorldPublicSceneResourceDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "spatial",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSceneSpatialDto",
+              "ref_name": "WorldPublicSceneSpatialDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "visualIdentity",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicVisualIdentityDto",
+              "ref_name": "WorldPublicVisualIdentityDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "worldName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "sceneId",
+          "name",
+          "summary",
+          "media",
+          "activeEntities",
+          "relatedCharacters",
+          "relatedEvents",
+          "relatedResources",
+          "counts",
+          "worldId",
+          "worldName"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicSceneDto",
       "schema": {
         "kind": "object",
@@ -49469,6 +49785,16 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "spatial",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSceneSpatialDto",
+              "ref_name": "WorldPublicSceneSpatialDto",
+              "nullable": true
             }
           },
           {
@@ -49609,6 +49935,52 @@
           "title",
           "entityRefs",
           "eventRefs"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSceneSpatialDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "connectedSceneIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "settingType",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "interior",
+                "exterior",
+                "mixed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "settingType",
+          "connectedSceneIds"
         ],
         "closed": false,
         "additional_properties": null
@@ -50947,6 +51319,98 @@
         ],
         "required_properties": [
           "state"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicVisualIdentityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artMedium",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "lightingAtmosphere",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "materialArchitecture",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sonicMood",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "styleBoundaries",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "artMedium",
+          "materialArchitecture",
+          "lightingAtmosphere",
+          "styleBoundaries"
         ],
         "closed": false,
         "additional_properties": null

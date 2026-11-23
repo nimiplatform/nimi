@@ -1130,6 +1130,12 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{worldId}/detail-with-characters"
   },
   {
+    "operation_id": "WorldPublicController_getWorldScene",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/scenes/{sceneId}"
+  },
+  {
     "operation_id": "WorldPublicController_listCharacterCatalog",
     "service": "World",
     "method": "GET",

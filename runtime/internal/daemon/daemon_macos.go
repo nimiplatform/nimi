@@ -5,6 +5,7 @@ package daemon
 import (
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
-func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.MacOSRuntimeSecurityState, requestRestart func() bool) (*Daemon, error) {
+func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.MacOSRuntimeSecurityState, requestRestart func() bool, reveals appstorage.AssetRevealViews) (*Daemon, error) {
 	if state == nil || requestRestart == nil {
 		return nil, fmt.Errorf("verified macOS Runtime security state and restart authority are required")
 	}
@@ -71,6 +72,7 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot,
 			RuntimeServiceUID:                state.RuntimeServiceUID(),
+			NativeAssetReveals:               reveals,
 			PerUserRuntime:                   state.SourceLocalDevelopment(),
 			SourceLocalDevelopment:           state.SourceLocalDevelopment(),
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceDataRoot, "runtime", "local-development.db"),

@@ -2917,7 +2917,7 @@ class WorldPublicAssetDto:
     delivery: MediaDeliveryDto | None
     externalUrl: str | None
     id: str
-    kind: Literal["icon", "banner", "hero", "highlight", "avatar", "portrait", "referenceImage", "profileCover", "cover", "voiceSample"]
+    kind: Literal["icon", "banner", "hero", "highlight", "scene", "avatar", "portrait", "referenceImage", "profileCover", "cover", "voiceSample"]
     provenance: WorldPublicAssetProvenanceDto
     provider: str
     durationSec: float | None = None
@@ -3004,6 +3004,7 @@ class WorldPublicDetailDto:
     updatedAt: str
     visibility: Literal["public", "system"]
     tagline: str | None = None
+    visualIdentity: WorldPublicVisualIdentityDto | None = None
 
 @dataclass(frozen=True)
 class WorldPublicDetailWithCharactersDto:
@@ -3065,6 +3066,22 @@ class WorldPublicSceneCountsDto:
     relatedResourceCount: float
 
 @dataclass(frozen=True)
+class WorldPublicSceneDetailDto:
+    activeEntities: tuple[WorldPublicEntityCardDto, ...]
+    counts: WorldPublicSceneCountsDto
+    media: tuple[WorldPublicAssetDto, ...]
+    name: str
+    relatedCharacters: tuple[WorldPublicSourceCardDto, ...]
+    relatedEvents: tuple[WorldPublicTimelineEventDto, ...]
+    relatedResources: tuple[WorldPublicSceneResourceDto, ...]
+    sceneId: str
+    summary: str
+    worldId: str
+    worldName: str
+    spatial: WorldPublicSceneSpatialDto | None = None
+    visualIdentity: WorldPublicVisualIdentityDto | None = None
+
+@dataclass(frozen=True)
 class WorldPublicSceneDto:
     activeEntities: tuple[WorldPublicEntityCardDto, ...]
     counts: WorldPublicSceneCountsDto
@@ -3075,6 +3092,7 @@ class WorldPublicSceneDto:
     relatedResources: tuple[WorldPublicSceneResourceDto, ...]
     sceneId: str
     summary: str
+    spatial: WorldPublicSceneSpatialDto | None = None
 
 @dataclass(frozen=True)
 class WorldPublicSceneResourceDto:
@@ -3084,6 +3102,11 @@ class WorldPublicSceneResourceDto:
     kind: Literal["system", "entity", "relationship", "timelineEvent", "rule"]
     title: str
     summary: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSceneSpatialDto:
+    connectedSceneIds: tuple[str, ...]
+    settingType: Literal["interior", "exterior", "mixed"]
 
 @dataclass(frozen=True)
 class WorldPublicSourceCardDto:
@@ -3200,6 +3223,14 @@ class WorldPublicViewerRelationDto:
     state: Literal["connectable", "connected", "unavailable"]
     connectionId: str | None = None
     runtimeSourceRef: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicVisualIdentityDto:
+    artMedium: str
+    lightingAtmosphere: str
+    materialArchitecture: str
+    styleBoundaries: tuple[str, ...]
+    sonicMood: str | None = None
 
 @dataclass(frozen=True)
 class WorldPublicWallClockTimeDto:
@@ -7485,6 +7516,29 @@ class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldSceneOperationPath:
+    sceneId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldSceneOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldSceneOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldSceneOperationRequest:
+    path: RealmWorldPublicControllerGetWorldSceneOperationPath
+    query: RealmWorldPublicControllerGetWorldSceneOperationQuery | None = None
+    headers: RealmWorldPublicControllerGetWorldSceneOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmWorldPublicControllerListCharacterCatalogOperationPath:
     pass
 
@@ -9483,6 +9537,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldDetailWithCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicDetailWithCharactersDto, raw)
+
+    async def world_public_controller_get_world_scene(self, request: RealmWorldPublicControllerGetWorldSceneOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldSceneOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldScene", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldPublicSceneDetailDto, raw)
 
     async def world_public_controller_list_character_catalog(self, request: RealmWorldPublicControllerListCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {

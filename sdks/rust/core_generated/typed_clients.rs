@@ -21371,6 +21371,7 @@ pub struct WorldPublicDetailDto {
     pub r#type: String,
     pub updated_at: String,
     pub visibility: String,
+    pub visual_identity: Option<Box<WorldPublicVisualIdentityDto>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -21440,6 +21441,23 @@ pub struct WorldPublicSceneCountsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSceneDetailDto {
+    pub active_entities: Vec<WorldPublicEntityCardDto>,
+    pub counts: Box<WorldPublicSceneCountsDto>,
+    pub media: Vec<WorldPublicAssetDto>,
+    pub name: String,
+    pub related_characters: Vec<WorldPublicSourceCardDto>,
+    pub related_events: Vec<WorldPublicTimelineEventDto>,
+    pub related_resources: Vec<WorldPublicSceneResourceDto>,
+    pub scene_id: String,
+    pub spatial: Option<Box<WorldPublicSceneSpatialDto>>,
+    pub summary: String,
+    pub visual_identity: Option<Box<WorldPublicVisualIdentityDto>>,
+    pub world_id: String,
+    pub world_name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSceneDto {
     pub active_entities: Vec<WorldPublicEntityCardDto>,
     pub counts: Box<WorldPublicSceneCountsDto>,
@@ -21449,6 +21467,7 @@ pub struct WorldPublicSceneDto {
     pub related_events: Vec<WorldPublicTimelineEventDto>,
     pub related_resources: Vec<WorldPublicSceneResourceDto>,
     pub scene_id: String,
+    pub spatial: Option<Box<WorldPublicSceneSpatialDto>>,
     pub summary: String,
 }
 
@@ -21460,6 +21479,12 @@ pub struct WorldPublicSceneResourceDto {
     pub kind: String,
     pub summary: Option<String>,
     pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSceneSpatialDto {
+    pub connected_scene_ids: Vec<String>,
+    pub setting_type: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -21588,6 +21613,15 @@ pub struct WorldPublicViewerRelationDto {
     pub connection_id: Option<String>,
     pub runtime_source_ref: Option<String>,
     pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicVisualIdentityDto {
+    pub art_medium: String,
+    pub lighting_atmosphere: String,
+    pub material_architecture: String,
+    pub sonic_mood: Option<String>,
+    pub style_boundaries: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

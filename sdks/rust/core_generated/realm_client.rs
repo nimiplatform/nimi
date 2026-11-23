@@ -1136,6 +1136,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/world/by-id/{worldId}/detail-with-characters"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldPublicController_getWorldScene",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/by-id/{worldId}/scenes/{sceneId}"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldPublicController_listCharacterCatalog",
         service: "World",
         method: "GET",

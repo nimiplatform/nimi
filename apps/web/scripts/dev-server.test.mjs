@@ -5,7 +5,7 @@ import { createServer as createHttp2Server, connect as connectHttp2 } from 'node
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { officialOriginGuard, startWebDevServer } from './dev-server.mjs';
+import { localWebDevRealmOrigin, officialOriginGuard, startWebDevServer } from './dev-server.mjs';
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), 'nimi-web-dev-'));
@@ -121,4 +121,11 @@ test('HTTP/2 admits its actual authority and rejects another or conflicting Host
   assert.equal(await status({}), 200);
   assert.equal(await status({ ':authority': 'another.example' }), 421);
   assert.equal(await status({ ':authority': authority, host: 'another.example' }), 421);
+});
+
+test('standalone Web development uses the login hostname for a loopback password session', () => {
+  const env = { NIMI_DEV_REALM: 'local', NIMI_REALM_URL: 'http://127.0.0.1:3002', NIMI_DEV_WEB_URL: 'http://localhost:3000' };
+  assert.equal(localWebDevRealmOrigin(env, 'development'), 'http://localhost:3002');
+  assert.equal(localWebDevRealmOrigin({ ...env, NIMI_DEV_REALM: 'official' }, 'development'), undefined);
+  assert.equal(localWebDevRealmOrigin(env, 'production'), undefined);
 });

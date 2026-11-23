@@ -89,6 +89,16 @@ describe('desktop OAuth callback security', () => {
 });
 
 describe('auth error rendering', () => {
+  it('reports the Realm authentication throttle separately from a password failure', () => {
+    expect(toErrorMessage(new Error('Too many authentication requests'), 'Email sign-in failed'))
+      .toBe('Too many requests. Please try again later.');
+  });
+  it('distinguishes an expired verification code from an unregistered account', () => {
+    expect(toErrorMessage(new Error('Verification code expired or not found. Please request a new code.'), 'Verification failed'))
+      .toBe('Invalid or expired code. Please request a new one.');
+    expect(localizeAuthError('User not found')).toBe('This email is not registered. Please sign up first.');
+  });
+
   it('hides raw backend details for unknown messages', () => {
     expect(localizeAuthError('SQLSTATE[42P01]: failed to decode auth payload at /internal/auth'))
       .toBe('Authentication failed. Please try again.');

@@ -15,8 +15,7 @@ pub fn reveal_local_app_asset_target(
         .ok_or_else(|| {
             LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUntrusted, false)
         })?;
-    let metadata = std::fs::metadata(&path)
-        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::NotFound, false))?;
+    let metadata = std::fs::metadata(&path).map_err(reveal_io_error)?;
     if !path.is_absolute()
         || !metadata.is_file()
         || metadata.len() != target.asset.size_bytes as u64
@@ -27,8 +26,7 @@ pub fn reveal_local_app_asset_target(
             false,
         ));
     }
-    let mut file = std::fs::File::open(&path)
-        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::NotFound, false))?;
+    let mut file = std::fs::File::open(&path).map_err(reveal_io_error)?;
     let mut hasher = Sha256::new();
     let mut buffer = [0_u8; 1024 * 1024];
     loop {
@@ -54,6 +52,18 @@ pub fn reveal_local_app_asset_target(
     reveal_in_file_manager(&path)
 }
 
+fn reveal_io_error(error: std::io::Error) -> LocalAppOperationError {
+    if !cfg!(target_os = "macos") {
+        return LocalAppOperationError::new(LocalAppReasonCode::NotFound, false);
+    }
+    let reason = match error.kind() {
+        std::io::ErrorKind::NotFound => LocalAppReasonCode::NotFound,
+        std::io::ErrorKind::PermissionDenied => LocalAppReasonCode::RuntimeAccessDenied,
+        _ => LocalAppReasonCode::HostInternalError,
+    };
+    LocalAppOperationError::new(reason, false)
+}
+
 #[cfg(target_os = "windows")]
 fn reveal_in_file_manager(path: &std::path::Path) -> Result<(), LocalAppOperationError> {
     crate::windows_asset_reveal::reveal_selected_file(path)
@@ -62,12 +72,19 @@ fn reveal_in_file_manager(path: &std::path::Path) -> Result<(), LocalAppOperatio
 
 #[cfg(target_os = "macos")]
 fn reveal_in_file_manager(path: &std::path::Path) -> Result<(), LocalAppOperationError> {
-    std::process::Command::new("open")
+    let status = std::process::Command::new("/usr/bin/open")
         .arg("-R")
         .arg(path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::HostInternalError, false))
+        .status()
+        .map_err(reveal_io_error)?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(LocalAppOperationError::new(
+            LocalAppReasonCode::HostInternalError,
+            false,
+        ))
+    }
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
@@ -76,4 +93,30 @@ fn reveal_in_file_manager(_path: &std::path::Path) -> Result<(), LocalAppOperati
         LocalAppReasonCode::CapabilityUnavailable,
         false,
     ))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn macos_reveal_reports_access_denied_separately_from_missing_files() {
+        let denied = std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+        assert_eq!(
+            reveal_io_error(denied).reason_code(),
+            LocalAppReasonCode::RuntimeAccessDenied
+        );
+        let missing = std::io::Error::from(std::io::ErrorKind::NotFound);
+        assert_eq!(
+            reveal_io_error(missing).reason_code(),
+            LocalAppReasonCode::NotFound
+        );
+    }
+
+    #[test]
+    fn macos_reveal_checks_the_file_manager_command_result() {
+        let executable = std::env::current_exe().expect("test executable");
+        let failed = reveal_in_file_manager(&executable.join("missing.wav")).unwrap_err();
+        assert_eq!(failed.reason_code(), LocalAppReasonCode::HostInternalError);
+    }
 }

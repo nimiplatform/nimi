@@ -276,10 +276,16 @@ export type WorldSceneCounts = {
   readonly relatedResourceCount: number;
 };
 
+export type WorldSceneSpatial = {
+  readonly settingType: 'interior' | 'exterior' | 'mixed';
+  readonly connectedSceneIds: readonly string[];
+};
+
 export type WorldSceneItem = {
   readonly id: string;
   readonly name: string;
   readonly description: string;
+  readonly spatial?: WorldSceneSpatial | null;
   readonly activeEntities: readonly WorldSceneEntity[];
   readonly relatedCharacters: readonly WorldCharacter[];
   readonly relatedEvents: readonly WorldHistoryItem[];

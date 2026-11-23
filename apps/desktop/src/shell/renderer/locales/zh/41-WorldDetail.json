@@ -22,6 +22,12 @@
     "sceneEntities": "场景要素",
     "sceneEvents": "相关事件",
     "sceneResources": "相关资料",
+    "sceneConnectedPlaces": "连通地点",
+    "sceneSettingType": {
+      "interior": "室内",
+      "exterior": "室外",
+      "mixed": "半开放"
+    },
     "follow": "收藏世界",
     "followed": "取消收藏",
     "enterWorld": "探索世界",
@@ -51,6 +57,9 @@
     "zoomIn": "放大图片",
     "zoomOut": "缩小图片",
     "imageViewport": "插画，双击可缩放，放大后可滚动查看细节",
+    "sceneImageLoading": "正在加载图片…",
+    "viewOriginalImage": "查看原图",
+    "sceneImageUnavailable": "这张场景大图未能加载。",
     "closeImage": "关闭大图",
     "previousImage": "上一张插画",
     "nextImage": "下一张插画"

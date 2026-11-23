@@ -38,6 +38,7 @@ surfaces:
   - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
+  - WorldPublicController_getWorldScene
   - WorldPublicController_listWorldCatalog
   - WorldPublicController_getWorldCatalogByIds
   - WorldPublicController_listWorldTopics
@@ -402,6 +403,14 @@ operations:
     path_template: /api/world/by-id/{worldId}/detail-with-characters
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/response
+
+  - <<: *desktop_source_read
+    operation_id: WorldPublicController_getWorldScene
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
+    http_method: GET
+    path_template: /api/world/by-id/{worldId}/scenes/{sceneId}
+    request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldScene/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldScene/response
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listWorldTopics

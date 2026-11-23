@@ -22,6 +22,12 @@
     "sceneEntities": "Notable elements",
     "sceneEvents": "Related events",
     "sceneResources": "Related notes",
+    "sceneConnectedPlaces": "Connected places",
+    "sceneSettingType": {
+      "interior": "Interior",
+      "exterior": "Exterior",
+      "mixed": "Semi-open"
+    },
     "follow": "Add to favorites",
     "followed": "Remove from favorites",
     "enterWorld": "Explore world",
@@ -51,6 +57,9 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "imageViewport": "Illustration, double-click to zoom and scroll to explore details",
+    "sceneImageLoading": "Loading image…",
+    "viewOriginalImage": "View original image",
+    "sceneImageUnavailable": "This image could not be loaded.",
     "closeImage": "Close image",
     "previousImage": "Previous illustration",
     "nextImage": "Next illustration"

@@ -147,6 +147,7 @@ type Service struct {
 	sourceDevelopmentHosts     map[string]protectedlocal.Identifier // guarded by installedAppRegistrationMu
 	localAppJSONStore          *appstorage.LocalAppJSONStore
 	localAppJSONStoreErr       error
+	finderViews                appstorage.AssetRevealViews
 	localAppAssetStoreOnce     sync.Once
 	localAppAssetStore         *appstorage.AssetStore
 	localAppAssetStoreErr      error
@@ -189,6 +190,10 @@ func WithAppStorageDataRoot(dataRootRef string) Option {
 	return func(s *Service) {
 		s.appStorageDataRoot = strings.TrimSpace(dataRootRef)
 	}
+}
+
+func WithNativeAssetReveals(views appstorage.AssetRevealViews) Option {
+	return func(s *Service) { s.finderViews = views }
 }
 
 func WithLocalAppAssetPolicy(policy appstorage.AssetPolicy) Option {
@@ -330,6 +335,7 @@ func (s *Service) CloseLocalAppStorage() {
 	if s != nil && s.localAppJSONStore != nil {
 		s.localAppJSONStore.Close()
 	}
+
 }
 
 func WithTrustedInternalCaller(ctx context.Context, appID string) context.Context {

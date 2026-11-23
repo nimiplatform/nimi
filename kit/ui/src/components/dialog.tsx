@@ -187,6 +187,8 @@ type OverlayShellProps = {
   size?: OverlayShellSize;
   onClose?: () => void;
   closeOnBackdrop?: boolean;
+  /** Resolve the logical trigger at dismissal when navigation can replace the original control. */
+  getReturnFocusTarget?: () => HTMLElement | null;
   title?: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
@@ -215,6 +217,7 @@ export function OverlayShell({
   size,
   onClose,
   closeOnBackdrop = true,
+  getReturnFocusTarget,
   title,
   description,
   footer,
@@ -276,7 +279,7 @@ export function OverlayShell({
     const closingScope = event.target instanceof HTMLElement ? event.target : null;
     if (activeElement && activeElement !== document.body && activeElement !== document.documentElement
       && !closingScope?.contains(activeElement)) return;
-    const target = focusReturn.target;
+    const target = getReturnFocusTarget?.() ?? focusReturn.target;
     if (target?.isConnected && !target.matches(':disabled')) target.focus({ preventScroll: true });
   };
 

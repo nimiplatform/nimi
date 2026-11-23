@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
@@ -49,6 +50,18 @@ func runProductionDaemon(version string) (resultErr error) {
 			_ = state.Close()
 		}
 	}()
+	var reveals appstorage.AssetRevealViews
+	if !state.SourceLocalDevelopment() {
+		owner, err := appstorage.NewFinderViews(state.ServiceStatePath())
+		if err != nil {
+			return fmt.Errorf("recover Finder handoffs: %w", err)
+		}
+		defer func() { resultErr = errors.Join(resultErr, owner.Close()) }()
+		if owner.Recovered() {
+			return nil
+		}
+		reveals = owner
+	}
 	desktopListener, err := protectedlocal.OpenMacOSVerifiedDesktopListener(ctx, state)
 	if err != nil {
 		return fmt.Errorf("open verified macOS Desktop transport: %w", err)
@@ -83,7 +96,7 @@ func runProductionDaemon(version string) (resultErr error) {
 		cancel()
 		return true
 	}
-	runtimeDaemon, err := daemon.NewProtectedFromMacOSSecurityState(cfg, logger, version, state, requestRestart)
+	runtimeDaemon, err := daemon.NewProtectedFromMacOSSecurityState(cfg, logger, version, state, requestRestart, reveals)
 	if err != nil {
 		return fmt.Errorf("construct protected macOS Runtime: %w", err)
 	}

@@ -170,6 +170,7 @@ test('Desktop source-readiness Realm transport exposes the exact generated opera
     'WorldCoreController_getRelationshipTargets',
     'WorldPublicController_getWorld',
     'WorldPublicController_getWorldDetailWithCharacters',
+    'WorldPublicController_getWorldScene',
     'WorldPublicController_listWorldTopics',
     'WorldPublicController_listWorldCatalog',
     'WorldPublicController_getWorldCatalogByIds',

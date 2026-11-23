@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { spawnCommand } from './command-runner.mjs';
 import { composePnpmSpawn } from './pnpm-command.mjs';
 import { runSourceRuntimeDevelopment } from '../dev-runtime.mjs';
-import { readDevelopmentRealm, developmentRealmEnvironment, readSupervisorRealm } from './development-realm.mjs';
+import { readDevelopmentRealm, developmentRealmEnvironment, readSupervisorRealm, localBrowserApiOrigin } from './development-realm.mjs';
 
 const execute = promisify(execFile);
 const acceptsRealmKeys = (value) => Array.isArray(value?.keys) && value.keys.length > 0
@@ -21,18 +21,13 @@ export function readDesktopDevEnvironment(root, environment = process.env) {
   return { ...(existsSync(envPath) ? parseEnv(readFileSync(envPath, 'utf8')) : {}), ...environment };
 }
 
-// HTTP loopback browser cookies are site-bound. Keep the local login page and
-// its API on the same loopback hostname without changing Runtime's API origin.
 export function desktopWebRealmOrigin(realm) {
-  const api = new URL(realm.apiOrigin);
-  const web = new URL(realm.webOrigin);
-  const loopback = (host) => host === 'localhost' || host === '127.0.0.1';
-  if (realm.name === 'local' && api.protocol === 'http:' && web.protocol === 'http:'
-    && loopback(api.hostname) && loopback(web.hostname)) api.hostname = web.hostname;
-  return api.origin;
+  return realm.name === 'local'
+    ? localBrowserApiOrigin(realm.apiOrigin, realm.webOrigin)
+    : new URL(realm.apiOrigin).origin;
 }
 
-async function portOccupied(url) {
+function portOccupied(url) {
   const { hostname, port } = new URL(url);
   return new Promise((resolve) => {
     const socket = net.connect({ host: hostname, port: Number(port) });
