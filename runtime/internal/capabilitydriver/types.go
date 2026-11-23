@@ -37,7 +37,7 @@ const (
 	LlamaEmbedImplementationID  = "local.text.embed.llama-cpp"
 	LlamaEmbedDriverDialect     = "llama.cpp/text-embed/v1"
 	LlamaQwen3EmbedDialect      = "llama.cpp/text-embed/qwen3-last/v1"
-	LlamaEmbeddingGemma2Dialect = "llama.cpp/text-embed/embeddinggemma2-retrieval/v1"
+	LlamaEmbeddingGemma2Dialect = "llama.cpp/text-embed/embeddinggemma2-retrieval/v2"
 	LlamaCapabilityContract     = "text.generate"
 
 	LlamaGemma4RecipeID          = "llama.text-generate.gemma4.v1"

@@ -14,8 +14,9 @@ import (
 
 func gemma2EmbedInput(t *testing.T) EmbedInvocationInput {
 	t.Helper()
+	digest := strings.Repeat("c", 64)
 	return EmbedInvocationInput{RecipeID: LlamaEmbeddingGemma2RecipeID, ModelContextWindowTokens: 8192,
-		ExactBindings: []InvocationExactBinding{{RequirementID: EmbeddingGGUFRequirementID, ModelAssetID: "gemma2", AbsolutePath: filepath.Join(t.TempDir(), "model.gguf"), VerifiedContentID: EmbeddingGemma2Q8ContentID, EntrySHA256: strings.TrimPrefix(EmbeddingGemma2Q8ContentID, "sha256:"), EmbeddingInputProtocol: EmbeddingInputGemma2V1}},
+		ExactBindings: []InvocationExactBinding{{RequirementID: EmbeddingGGUFRequirementID, ModelAssetID: "gemma2", AbsolutePath: filepath.Join(t.TempDir(), "model.gguf"), VerifiedContentID: "sha256:" + digest, EntrySHA256: digest, EmbeddingInputProtocol: EmbeddingInputGemma2V1}},
 		Request:       &runtimev1.TextEmbedScenarioSpec{Inputs: []string{" 文档\n "}, Purpose: runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT}}
 }
 
@@ -77,8 +78,7 @@ func TestEmbeddingGemma2RejectsUnreviewedInputs(t *testing.T) {
 		func(i *EmbedInvocationInput) { i.Request.Dimensions = proto.Uint32(0) },
 		func(i *EmbedInvocationInput) { i.Request.Dimensions = proto.Uint32(384) },
 		func(i *EmbedInvocationInput) {
-			i.ExactBindings[0].VerifiedContentID = "sha256:" + strings.Repeat("a", 64)
-			i.ExactBindings[0].EntrySHA256 = strings.Repeat("a", 64)
+			i.ExactBindings[0].EmbeddingInputProtocol = EmbeddingInputNativeV1
 		},
 		func(i *EmbedInvocationInput) {
 			i.ModelContextWindowTokens = 262144

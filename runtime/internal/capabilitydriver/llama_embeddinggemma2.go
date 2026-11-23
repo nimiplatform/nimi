@@ -3,7 +3,6 @@ package capabilitydriver
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
@@ -11,21 +10,16 @@ import (
 
 const EmbeddingInputGemma2V1 = "embeddinggemma2/search-prefix-mrl/v1"
 const EmbeddingRepresentationGemma2V1 = "embeddinggemma2-retrieval-mrl/v1"
-const EmbeddingGemma2Q8ContentID = "sha256:2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135" // pragma: allowlist secret -- public model digest
-
-func embeddingGemma2ContentMatches(contentID, digest string) bool {
-	return contentID == EmbeddingGemma2Q8ContentID && digest == strings.TrimPrefix(EmbeddingGemma2Q8ContentID, "sha256:")
-}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embeddinggemma2-local-retrieval
 func embeddingGemma2ModelContract(summary ggufmeta.Summary) bool {
-	if summary.Magic != "GGUF" || summary.Version != 3 || summary.TensorCount != 413 || ggufmeta.LLMDetectedArchitecture(summary) != "gemma-embedding2" {
+	if summary.Magic != "GGUF" || (summary.Version < 2 || summary.Version > 3) || summary.TensorCount == 0 || ggufmeta.LLMDetectedArchitecture(summary) != "gemma-embedding2" {
 		return false
 	}
 	for key, want := range map[string]uint64{
-		"gemma-embedding2.block_count": 24, "gemma-embedding2.embedding_length": 512,
-		"gemma-embedding2.embedding_length_out": 768, "gemma-embedding2.feed_forward_length": 2048,
-		"gemma-embedding2.attention.head_count": 4, "gemma-embedding2.pooling_type": 1,
+		"gemma-embedding2.embedding_length":     512,
+		"gemma-embedding2.embedding_length_out": 768,
+		"gemma-embedding2.pooling_type":         1,
 	} {
 		if actual, ok := summary.Uint64Value(key); !ok || actual != want {
 			return false
@@ -34,7 +28,7 @@ func embeddingGemma2ModelContract(summary ggufmeta.Summary) bool {
 	if context, ok := ggufmeta.LLMContextLength(summary); !ok || context < 8192 {
 		return false
 	}
-	for name, shape := range map[string][]uint64{"output.weight": {512, 768}, "token_embd.weight": {512, 262144}, "output_norm.weight": {512}} {
+	for name, shape := range map[string][]uint64{"output.weight": {512, 768}, "output_norm.weight": {512}} {
 		actual := summary.TensorShapes[name]
 		if len(actual) != len(shape) {
 			return false

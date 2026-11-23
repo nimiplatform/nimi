@@ -14,10 +14,11 @@ import (
 
 func TestEmbeddingGemma2CapturedMRLRestorationAndSpace(t *testing.T) {
 	service := newTestService(nil)
+	gemma2SHA := strings.Repeat("e", 64)
 	selected := &localexecution.SelectedLocalExecution{LoadoutID: "gemma2", CapabilityContract: "text.embed", Configured: true, RecipeID: capabilitydriver.LlamaEmbeddingGemma2RecipeID, RecipeRevision: "1",
 		DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbeddingGemma2Dialect}).Proto(), ModelContextWindowTokens: 8192, EmbeddingDimension: 768,
 		Requirements:  []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.EmbeddingGGUFRequirementID}},
-		ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "gemma2", AbsolutePath: filepath.Join(t.TempDir(), "model.gguf"), VerifiedContentID: capabilitydriver.EmbeddingGemma2Q8ContentID, EntrySHA256: strings.TrimPrefix(capabilitydriver.EmbeddingGemma2Q8ContentID, "sha256:"), EmbeddingInputProtocol: capabilitydriver.EmbeddingInputGemma2V1}}}
+		ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "gemma2", AbsolutePath: filepath.Join(t.TempDir(), "model.gguf"), VerifiedContentID: "sha256:" + gemma2SHA, EntrySHA256: gemma2SHA, EmbeddingInputProtocol: capabilitydriver.EmbeddingInputGemma2V1}}}
 	var space128, space768 string
 	for _, width := range []uint32{0, 128, 256, 512, 768} {
 		var pairSpace string

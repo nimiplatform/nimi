@@ -12739,14 +12739,14 @@ loadout_recipes:
     capability_contract: text.embed
     implementation_id: local.text.embed.llama-cpp
     driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-embed/embeddinggemma2-retrieval/v1
+    driver_dialect: llama.cpp/text-embed/embeddinggemma2-retrieval/v2
     default_options:
       contextSize: 8192
       gpuLayers: 99
     supported_features: []
     slot_metadata:
       - slot_id: embedding.gguf
-        display_label: EmbeddingGemma 2 Q8 model
+        display_label: EmbeddingGemma 2 model
         recommended_variant_ids:
           - local.embedding.embeddinggemma2.q8-0.cuda
         recommended_content_ids:

@@ -204,10 +204,11 @@ func TestMemoryEmbeddingLocalRetrievalSpaceMatchesExecution(t *testing.T) {
 			selected := resolver.projection
 			selected.ExactBindings[0].EmbeddingInputProtocol = protocol
 			if protocol == capabilitydriver.EmbeddingInputGemma2V1 {
+				gemma2SHA := strings.Repeat("e", 64)
 				selected.RecipeID = capabilitydriver.LlamaEmbeddingGemma2RecipeID
 				selected.DriverIdentity.DriverDialect = capabilitydriver.LlamaEmbeddingGemma2Dialect
-				selected.ExactBindings[0].VerifiedContentID = capabilitydriver.EmbeddingGemma2Q8ContentID
-				selected.ExactBindings[0].EntrySHA256 = strings.TrimPrefix(capabilitydriver.EmbeddingGemma2Q8ContentID, "sha256:")
+				selected.ExactBindings[0].VerifiedContentID = "sha256:" + gemma2SHA
+				selected.ExactBindings[0].EntrySHA256 = gemma2SHA
 			}
 			host.embedResult.Vectors[0].Values[0] = 1
 			description, err := s.DescribeMemoryEmbedding(ctx)

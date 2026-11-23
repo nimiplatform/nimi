@@ -113,7 +113,7 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 		protocol = EmbeddingInputNomicV1
 	}
 	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
-		if !embeddingGemma2ContentMatches(input.Binding.GetVerifiedContentId(), input.Binding.GetEntrySha256()) || facts.EmbeddingDimension != 768 || facts.ContextWindow != 8192 {
+		if facts.EmbeddingDimension != 768 || facts.ContextWindow != 8192 {
 			return ModelAssetBindingProjection{}, invalid
 		}
 		protocol = EmbeddingInputGemma2V1
@@ -219,8 +219,8 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 	outputDimension := 0
 	request := input.Request
 	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
-		if !embeddingGemma2ContentMatches(binding.VerifiedContentID, binding.EntrySHA256) || binding.EmbeddingInputProtocol != EmbeddingInputGemma2V1 {
-			return nil, invocationError(InvocationFailureInvalidBinding, fmt.Errorf("unreviewed EmbeddingGemma 2 binding"))
+		if binding.EmbeddingInputProtocol != EmbeddingInputGemma2V1 {
+			return nil, invocationError(InvocationFailureInvalidBinding, fmt.Errorf("EmbeddingGemma 2 binding protocol mismatch"))
 		}
 		outputDimension, err = embeddingGemma2OutputDimension(request)
 		if err != nil {
