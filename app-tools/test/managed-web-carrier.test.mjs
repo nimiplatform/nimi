@@ -300,7 +300,7 @@ test('managed-web pack is byte-identical across consecutive runs, emits 0o644 pa
   }
 });
 
-test('managed-web pack and aggregation enforce the snapshot directory budgets', async (t) => {
+test('managed-web pack and aggregation enforce snapshot path and directory constraints', async (t) => {
   const root = createManagedWebPackFixture();
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const deepest = path.join(root, 'dist', 'renderer', ...Array(63).fill('d'));
@@ -322,6 +322,13 @@ test('managed-web pack and aggregation enforce the snapshot directory budgets', 
     writeFileSync(packaged.metadataPath, JSON.stringify({ ...metadata, size: bytes.length, sha256: hashAppArchive(bytes) }));
     await assert.rejects(() => aggregateAppTargetCandidates(root), expectedError);
   }
+  // Write the two spellings into the archive directly. A case-insensitive
+  // volume would overwrite the first file while creating an on-disk fixture.
+  await checkAggregate([
+    { name: 'payload/Straße.txt', mode: 0o644, bytes: Buffer.from('lower') },
+    { name: 'payload/STRAẞE.txt', mode: 0o644, bytes: Buffer.from('upper') },
+  ], /path collision/u);
+
   assert.throws(
     () => writeNimiAppArchive([...entries, { name: `payload/${'d/'.repeat(64)}asset.txt`, mode: 0o644, bytes: Buffer.alloc(0) }]),
     /directory depth exceeds 64/u,
@@ -332,7 +339,7 @@ test('managed-web pack and aggregation enforce the snapshot directory budgets', 
   await checkAggregate(wideTree, /exceeds 10000 directories/u);
 });
 
-test('managed-web pack rejects overlapping output directory, app-owned-os-storage, Windows reserved names, case-folding collisions, and >64 MiB payloads', async () => {
+test('managed-web pack rejects overlapping output directory, app-owned-os-storage, Windows reserved names, and >64 MiB payloads', async () => {
   // Overlapping payload_path: dist contains dist/nimi-app
   const overlapRoot = createManagedWebPackFixture({ payloadPath: 'dist' });
   try {
@@ -365,23 +372,13 @@ test('managed-web pack rejects overlapping output directory, app-owned-os-storag
     /base-10 YAML integer/u,
   );
 
-  // Case-folding & Windows reserved segment check on archive entries
+  // Windows reserved segment check on archive entries
   const badRoot = createManagedWebPackFixture();
   try {
     writeFileSync(path.join(badRoot, 'dist', 'renderer', 'CON.js'), 'bad');
     await assert.rejects(() => packAppTarget(badRoot, { target: 'desktop-universal' }), /invalid Windows segment/u);
   } finally {
     rmSync(badRoot, { recursive: true, force: true });
-  }
-
-  // Unicode full case-folding collision (Straße.txt vs STRAẞE.txt) rejected
-  const strasseRoot = createManagedWebPackFixture();
-  try {
-    writeFileSync(path.join(strasseRoot, 'dist', 'renderer', 'Straße.txt'), 'lower');
-    writeFileSync(path.join(strasseRoot, 'dist', 'renderer', 'STRAẞE.txt'), 'upper');
-    await assert.rejects(() => packAppTarget(strasseRoot, { target: 'desktop-universal' }), /path collision/u);
-  } finally {
-    rmSync(strasseRoot, { recursive: true, force: true });
   }
 
   // Leading-zero numeric prerelease SemVer (0.1.12-01) rejected
