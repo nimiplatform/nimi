@@ -4,11 +4,13 @@ package nimiappinstall
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"image"
 	"image/color"
@@ -19,6 +21,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -50,6 +53,54 @@ func TestLocalPackageCommitsPrivateCopyUpdatesAndRevalidatesInstalledLaunch(t *t
 	owner.audit = auditlog.New(128, 128)
 	t.Cleanup(func() { _ = owner.Close() })
 
+	for _, mode := range []string{"lock", "write-during-copy"} {
+		t.Run("reject-concurrent-"+mode, func(t *testing.T) {
+			archive := buildManagedWebTestArchive(t, "0.1.12")
+			childContext, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			writer := exec.CommandContext(childContext, os.Args[0], "-test.run=^TestMacOSLocalPackageWriterProcess$")
+			writer.Env = append(os.Environ(), "NIMI_TEST_LOCAL_PACKAGE_WRITER="+mode, "NIMI_TEST_LOCAL_PACKAGE_PATH="+archive)
+			var importContext context.Context = childContext
+			wantOperation := "copy selected App package:"
+			if mode == "lock" {
+				wantOperation = "read selected App package:"
+				stdout, err := writer.StdoutPipe()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := writer.Start(); err != nil {
+					t.Fatal(err)
+				}
+				defer func() { cancel(); _ = writer.Wait() }()
+				line, err := bufio.NewReader(stdout).ReadString('\n')
+				if err != nil || line != "locked\n" {
+					t.Fatalf("writer did not acquire an exclusive flock: %q, %v", line, err)
+				}
+			} else {
+				importContext = &beforeLocalCopyContext{Context: childContext, run: func() {
+					if output, err := writer.CombinedOutput(); err != nil {
+						t.Fatalf("external write failed: %v\n%s", err, output)
+					}
+				}}
+			}
+
+			preview, err := owner.PrepareLocalPackage(importContext, archive)
+			if !errors.Is(err, nimiapppackage.ErrPackageIntegrity) || !strings.HasPrefix(err.Error(), wantOperation) || preview.Selector != "" {
+				t.Fatalf("selection = %q, %v; want package-integrity failure without a preview", preview.Selector, err)
+			}
+			t.Log(err)
+			jobs, err := owner.lifecycle.ListJobs(ctx)
+			if err != nil || len(jobs) != 0 {
+				t.Fatalf("rejected selection created jobs: %v, %v", jobs, err)
+			}
+			for _, dir := range []string{packageWorkDirectory, packageReleaseDirectory} {
+				entries, err := os.ReadDir(filepath.Join(owner.packagesPath, dir))
+				if err != nil || len(entries) != 0 {
+					t.Fatalf("rejected selection left bytes in %s: %v, %v", dir, entries, err)
+				}
+			}
+		})
+	}
 	install := func(version string, previous *localappkernel.CommittedRelease) localappkernel.CommittedRelease {
 		t.Helper()
 		selected := realLocalDarwinPackage(t, version)
@@ -171,7 +222,7 @@ func realLocalDarwinPackage(t *testing.T, version string) string {
 	}
 	info := nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: "test.imported", Version: version, TargetID: "macos-aarch64", DisplayName: "Local example", Summary: "Local import fixture",
 		ReadmeMarkdown: "# Local example\n\nA local import fixture.\n",
-		Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(icon.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"},
+		Icon:           nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(icon.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"},
 		AppAccess: []string{}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"}}
 	marshal := func(value any) []byte {
 		t.Helper()
@@ -238,4 +289,43 @@ func realLocalDarwinPackage(t *testing.T, version string) string {
 	file := filepath.Join(root, "local.nimiapp")
 	write(file, archive.Bytes())
 	return file
+}
+
+// PrepareLocalPackage checks the context immediately before its first read,
+// after taking the source file's initial stat. Run the external writer there.
+type beforeLocalCopyContext struct {
+	context.Context
+	run func()
+}
+
+func (ctx *beforeLocalCopyContext) Err() error {
+	if ctx.run != nil {
+		run := ctx.run
+		ctx.run = nil
+		run()
+	}
+	return ctx.Context.Err()
+}
+
+func TestMacOSLocalPackageWriterProcess(t *testing.T) {
+	mode := os.Getenv("NIMI_TEST_LOCAL_PACKAGE_WRITER")
+	if mode == "" {
+		return
+	}
+	file, err := os.OpenFile(os.Getenv("NIMI_TEST_LOCAL_PACKAGE_PATH"), os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	if mode == "lock" {
+		if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println("locked")
+		time.Sleep(10 * time.Second)
+		return
+	}
+	if _, err := file.WriteAt([]byte{0}, 0); err != nil {
+		t.Fatal(err)
+	}
 }

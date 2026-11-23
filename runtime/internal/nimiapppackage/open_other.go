@@ -19,7 +19,8 @@ func OpenArchiveReadOnly(rawPath string) (*os.File, int64, error) {
 	if rawPath == "" || cleanPath == "." || !filepath.IsAbs(cleanPath) {
 		return nil, 0, fmt.Errorf("open nimiapp archive: %w", ErrInvalidPackage)
 	}
-	file, err := os.OpenFile(cleanPath, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0)
+	// A selected FIFO must reach the regular-file check without waiting for a writer.
+	file, err := os.OpenFile(cleanPath, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		if errors.Is(err, syscall.ELOOP) {
 			return nil, 0, fmt.Errorf("validate nimiapp archive symlink: %w", errors.Join(ErrInvalidPackage, err))
