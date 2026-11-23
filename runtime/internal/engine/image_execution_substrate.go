@@ -655,7 +655,7 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 			return managedimagebackend.LoadModelRequest{}, fmt.Errorf("direct gosd cannot express the Qwen Image Edit 2511 load contract")
 		}
 		if load.Checkpoint() {
-			return managedimagebackend.LoadModelRequest{}, fmt.Errorf("SDXL ControlNet requires the native managed package")
+			return managedimagebackend.LoadModelRequest{}, fmt.Errorf("SDXL checkpoint requires the native managed package")
 		}
 		request.DirectOptions = directGOSDImageLoadOptions(load)
 		request.DirectCFGScale = float32(load.CFGScale())
@@ -670,11 +670,9 @@ func imageLoadRequest(address string, plan *capabilitydriver.ImageInvocationPlan
 	request.QwenImageZeroCondT = load.QwenImageZeroCondT()
 	request.Checkpoint = load.Checkpoint()
 	if load.Checkpoint() {
-		controlNet, present := load.ControlNet()
-		if !present {
-			return managedimagebackend.LoadModelRequest{}, fmt.Errorf("SDXL ControlNet binding is missing")
+		if controlNet, present := load.ControlNet(); present {
+			request.Components = []managedimagebackend.ComponentBinding{{OccurrenceID: "control-net", Role: "controlnet", ComponentKind: "auxiliary", EngineSlot: "control_net_path", Path: controlNet.AbsolutePath(), Required: true}}
 		}
-		request.Components = []managedimagebackend.ComponentBinding{{OccurrenceID: "control-net", Role: "controlnet", ComponentKind: "auxiliary", EngineSlot: "control_net_path", Path: controlNet.AbsolutePath(), Required: true}}
 		return request, nil
 	}
 	request.Components = []managedimagebackend.ComponentBinding{

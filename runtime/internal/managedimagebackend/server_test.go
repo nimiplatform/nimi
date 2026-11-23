@@ -3,13 +3,13 @@ package managedimagebackend
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -177,61 +177,28 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	}
 }
 
-func TestParseManagedImageProgressLineAcceptsCurrentStableDiffusionCPPOutput(t *testing.T) {
-	for _, line := range []string{
-		"13/20 - 1.34s/it",
-		"|================================>          | 13/20 - 1.34s/it",
+func TestNativeImageSamplingProgressFiltersNonSamplingStages(t *testing.T) {
+	i64 := func(v int64) *int64 { return &v }
+	for _, ignored := range []*nativeImageJobProgress{
+		nil,
+		{Stage: "conditioning", Completed: nil, Total: nil, Unit: ""},
+		{Stage: "sampling", Completed: i64(0), Total: i64(6), Unit: "steps"},
+		{Stage: "sampling", Completed: i64(1), Total: i64(25), Unit: "steps"},
+		{Stage: "sampling", Completed: i64(7), Total: i64(6), Unit: "steps"},
+		{Stage: "encoding", Completed: i64(1), Total: i64(1), Unit: "images"},
+		{Stage: "decoding", Completed: i64(1), Total: i64(6), Unit: "steps"},
 	} {
-		progress, ok := parseManagedImageProgressLine(line)
-		if !ok {
-			t.Fatalf("expected current stable-diffusion.cpp progress line to parse: %q", line)
+		if progress, ok := nativeImageSamplingProgress(ignored, 6); ok {
+			t.Fatalf("non-sampling or out-of-contract progress was admitted: %+v -> %+v", ignored, progress)
 		}
-		if progress.CurrentStep != 13 || progress.TotalSteps != 20 || progress.ProgressPercent != 65 {
-			t.Fatalf("unexpected progress for %q: %+v", line, progress)
-		}
 	}
-
-	if _, ok := parseManagedImageProgressLine("stable-diffusion.cpp 13/20 - 1.34s/it"); ok {
-		t.Fatal("expected unrelated prefixed output to fail closed")
+	step1, ok := nativeImageSamplingProgress(&nativeImageJobProgress{Stage: "sampling", Completed: i64(1), Total: i64(6), Unit: "steps"}, 6)
+	if !ok || step1 != (imageGenerateProgress{CurrentStep: 1, TotalSteps: 6, ProgressPercent: 16}) {
+		t.Fatalf("step 1 progress = %+v ok=%t", step1, ok)
 	}
-}
-
-func TestManagedImageSamplingProgressExcludesVAEProgress(t *testing.T) {
-	capture := &managedImageLogCapture{}
-	state := managedImageSamplingProgress{}
-	var observed []imageGenerateProgress
-	collect := func(progress imageGenerateProgress) error {
-		observed = append(observed, progress)
-		return nil
-	}
-	for _, line := range []string{
-		"|==>                     | 1/25 - 1.47s/it",
-		"[I] encode_first_stage completed, taking 19.72s --- image.cpp:507",
-		"[I] generating image: 1/1 - seed 42 --- image.cpp:1004",
-		"|====>                   | 1/6 - 1.34s/it",
-	} {
-		capture.Append(line)
-	}
-	if err := state.emit(capture, collect); err != nil {
-		t.Fatal(err)
-	}
-	for _, line := range []string{
-		"|====>                   | 1/6 - 1.34s/it",
-		"|========================| 6/6 - 1.19s/it",
-		"[I] sampling completed, taking 8.28s --- image.cpp:1037",
-		"|====>                   | 1/6 - 1.31s/it",
-	} {
-		capture.Append(line)
-	}
-	if err := state.emit(capture, collect); err != nil {
-		t.Fatal(err)
-	}
-	want := []imageGenerateProgress{
-		{CurrentStep: 1, TotalSteps: 6, ProgressPercent: 16},
-		{CurrentStep: 6, TotalSteps: 6, ProgressPercent: 100},
-	}
-	if !slices.Equal(observed, want) {
-		t.Fatalf("sampling progress = %+v, want %+v", observed, want)
+	step6, ok := nativeImageSamplingProgress(&nativeImageJobProgress{Stage: "sampling", Completed: i64(6), Total: i64(6), Unit: "steps"}, 6)
+	if !ok || step6 != (imageGenerateProgress{CurrentStep: 6, TotalSteps: 6, ProgressPercent: 100}) {
+		t.Fatalf("step 6 progress = %+v ok=%t", step6, ok)
 	}
 }
 
@@ -469,6 +436,7 @@ func TestStableDiffusionCPPResidentStartupArgsCloseQwenEditLoadContract(t *testi
 	}
 	joined := strings.Join(args, " ")
 	for _, want := range []string{
+		"--completed-ttl-seconds 30",
 		"--flow-shift 3",
 		"--model-args qwen_image_zero_cond_t=true",
 	} {
@@ -729,7 +697,7 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 	commandState := &fakeManagedImageCommandFactoryState{}
 	driver.commandFactory = commandState.factory
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
-	driver.generateRequester = func(_ context.Context, _ *http.Client, endpoint string, _ loadModelState, req imageGenerateState) ([]byte, error) {
+	driver.generateRequester = func(_ context.Context, _ *http.Client, endpoint string, _ loadModelState, req imageGenerateState, _ func(imageGenerateProgress) error) ([]byte, error) {
 		if endpoint == "" {
 			t.Fatal("expected resident endpoint")
 		}
@@ -844,7 +812,7 @@ func TestStableDiffusionCPPDriverRequestSamplingDoesNotRestartResident(t *testin
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
 
 	var captured imageGenerateState
-	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, request imageGenerateState) ([]byte, error) {
+	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, request imageGenerateState, _ func(imageGenerateProgress) error) ([]byte, error) {
 		captured = request
 		return []byte("png"), nil
 	}
@@ -877,7 +845,7 @@ func TestStableDiffusionCPPDriverRequestSamplingDoesNotRestartResident(t *testin
 	}
 }
 
-func TestBuildStableDiffusionCPPGenerateRequestIncludesScheduler(t *testing.T) {
+func TestBuildStableDiffusionCPPGenerateRequestUsesNativeSampleParams(t *testing.T) {
 	path, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
 		Mode:           ImageRequestModeTextToImage,
 		PositivePrompt: "orange cat",
@@ -891,14 +859,25 @@ func TestBuildStableDiffusionCPPGenerateRequestIncludesScheduler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildStableDiffusionCPPGenerateRequest: %v", err)
 	}
-	if path != "/sdapi/v1/txt2img" {
+	if path != "/sdcpp/v1/img_gen" {
 		t.Fatalf("unexpected path: %q", path)
 	}
-	if got := strings.TrimSpace(fmt.Sprint(payload["sampler_name"])); got != "heun" {
-		t.Fatalf("unexpected sampler_name: %q", got)
+	sampleParams, ok := payload["sample_params"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing sample_params: %#v", payload)
 	}
-	if got := strings.TrimSpace(fmt.Sprint(payload["scheduler"])); got != "karras" {
+	if got := strings.TrimSpace(fmt.Sprint(sampleParams["sample_method"])); got != "heun" {
+		t.Fatalf("unexpected sample_method: %q", got)
+	}
+	if got := strings.TrimSpace(fmt.Sprint(sampleParams["scheduler"])); got != "karras" {
 		t.Fatalf("unexpected scheduler: %q", got)
+	}
+	if got := sampleParams["sample_steps"]; got != int32(15) {
+		t.Fatalf("unexpected sample_steps: %#v", got)
+	}
+	guidance, ok := sampleParams["guidance"].(map[string]any)
+	if !ok || guidance["txt_cfg"] != float32(7.5) {
+		t.Fatalf("unexpected guidance: %#v", sampleParams["guidance"])
 	}
 }
 
@@ -912,15 +891,17 @@ func TestBuildStableDiffusionCPPGenerateRequestPreservesExplicitZeroOptions(t *t
 	if err != nil {
 		t.Fatalf("buildStableDiffusionCPPGenerateRequest: %v", err)
 	}
-	if got, ok := payload["cfg_scale"]; !ok || got != float32(0) {
-		t.Fatalf("expected explicit cfg_scale=0, got value=%v present=%t", got, ok)
+	sampleParams := payload["sample_params"].(map[string]any)
+	guidance := sampleParams["guidance"].(map[string]any)
+	if got, ok := guidance["txt_cfg"]; !ok || got != float32(0) {
+		t.Fatalf("expected explicit txt_cfg=0, got value=%v present=%t", got, ok)
 	}
 	if got, ok := payload["seed"]; !ok || got != int32(0) {
 		t.Fatalf("expected explicit seed=0, got value=%v present=%t", got, ok)
 	}
 }
 
-func TestBuildStableDiffusionCPPGenerateRequestUsesReferenceCarrierForInstructionEdit(t *testing.T) {
+func TestBuildStableDiffusionCPPGenerateRequestUsesNativeCarriersForEditAndImg2Img(t *testing.T) {
 	sourceImage := []byte("source-image")
 	path, payload, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
 		Mode: ImageRequestModeInstructionEdit, ReferenceImage: sourceImage, PositivePrompt: "make it dusk",
@@ -928,37 +909,110 @@ func TestBuildStableDiffusionCPPGenerateRequestUsesReferenceCarrierForInstructio
 	if err != nil {
 		t.Fatal(err)
 	}
-	if path != "/sdapi/v1/txt2img" {
+	if path != "/sdcpp/v1/img_gen" {
 		t.Fatalf("instruction edit path = %q", path)
 	}
-	extra, ok := payload["extra_images"].([]string)
-	if !ok || len(extra) != 1 || extra[0] != base64.StdEncoding.EncodeToString(sourceImage) {
+	refs, ok := payload["ref_images"].([]string)
+	if !ok || len(refs) != 1 || refs[0] != base64.StdEncoding.EncodeToString(sourceImage) {
 		t.Fatalf("instruction edit reference payload = %#v", payload)
 	}
-	if _, exists := payload["init_images"]; exists {
-		t.Fatalf("instruction edit leaked img2img carrier: %#v", payload)
+	for _, legacy := range []string{"extra_images", "init_images", "init_image", "mask", "mask_image"} {
+		if _, exists := payload[legacy]; exists {
+			t.Fatalf("instruction edit leaked carrier %q: %#v", legacy, payload)
+		}
 	}
-	if _, exists := payload["mask"]; exists {
-		t.Fatalf("instruction edit leaked mask carrier: %#v", payload)
+
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "src.png")
+	maskPath := filepath.Join(dir, "mask.png")
+	if err := os.WriteFile(srcPath, sourceImage, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(maskPath, []byte("mask-bytes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	path, img2img, err := buildStableDiffusionCPPGenerateRequest(loadModelState{}, imageGenerateState{
+		Mode: ImageRequestModeImageToImage, Src: srcPath, Mask: maskPath, PositivePrompt: "inpaint",
+	})
+	if err != nil || path != "/sdcpp/v1/img_gen" {
+		t.Fatalf("img2img build path=%q err=%v", path, err)
+	}
+	if img2img["init_image"] != base64.StdEncoding.EncodeToString(sourceImage) || img2img["mask_image"] != base64.StdEncoding.EncodeToString([]byte("mask-bytes")) {
+		t.Fatalf("img2img native carriers = %#v", img2img)
 	}
 }
 
-func TestStableDiffusionCPPGenerateResponseRejectsAmbiguousArtifactCarriers(t *testing.T) {
+func TestDecodeNativeImageJobResultRejectsInvalidResults(t *testing.T) {
 	encoded := base64.StdEncoding.EncodeToString([]byte("png"))
-	for _, response := range []stableDiffusionCPPGenerateResponse{
-		{Images: []string{encoded}, Data: []struct {
-			B64JSON string `json:"b64_json"`
-			URL     string `json:"url"`
-		}{{B64JSON: encoded}}},
-		{Images: []string{encoded, encoded}},
-		{Data: []struct {
-			B64JSON string `json:"b64_json"`
-			URL     string `json:"url"`
-		}{{B64JSON: encoded, URL: "/artifact.png"}}},
+	for _, job := range []nativeImageJob{
+		{ID: "j1", Kind: "img_gen", Status: "completed"},
+		{ID: "j2", Kind: "img_gen", Status: "completed", Result: &struct {
+			OutputFormat string `json:"output_format"`
+			Images       []struct {
+				Index  int    `json:"index"`
+				Base64 string `json:"b64_json"`
+			} `json:"images"`
+		}{OutputFormat: "jpeg", Images: []struct {
+			Index  int    `json:"index"`
+			Base64 string `json:"b64_json"`
+		}{{Index: 0, Base64: encoded}}}},
+		{ID: "j3", Kind: "img_gen", Status: "completed", Result: &struct {
+			OutputFormat string `json:"output_format"`
+			Images       []struct {
+				Index  int    `json:"index"`
+				Base64 string `json:"b64_json"`
+			} `json:"images"`
+		}{OutputFormat: "png", Images: []struct {
+			Index  int    `json:"index"`
+			Base64 string `json:"b64_json"`
+		}{{Index: 0, Base64: encoded}, {Index: 1, Base64: encoded}}}},
+		{ID: "j4", Kind: "img_gen", Status: "completed", Result: &struct {
+			OutputFormat string `json:"output_format"`
+			Images       []struct {
+				Index  int    `json:"index"`
+				Base64 string `json:"b64_json"`
+			} `json:"images"`
+		}{OutputFormat: "png", Images: []struct {
+			Index  int    `json:"index"`
+			Base64 string `json:"b64_json"`
+		}{{Index: 1, Base64: encoded}}}},
 	} {
-		if _, err := response.payload(context.Background(), nil, "http://127.0.0.1:1"); err == nil {
-			t.Fatalf("ambiguous backend response was accepted: %+v", response)
+		if _, err := decodeNativeImageJobResult(job); err == nil {
+			t.Fatalf("invalid native job result was accepted: %+v", job)
 		}
+	}
+}
+
+func TestStableDiffusionCPPDriverProgressErrorCancelsRequesterContext(t *testing.T) {
+	cliPath, _ := writeManagedImageExecutableFixtures(t)
+	modelPath, _ := writeManagedImageModelFixtures(t)
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	driver := driverAny.(*stableDiffusionCPPDriver)
+	commandState := &fakeManagedImageCommandFactoryState{}
+	driver.commandFactory = commandState.factory
+	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
+
+	ctxCanceledAfterProgressErr := false
+	sentinel := errors.New("bad progress")
+	driver.generateRequester = func(ctx context.Context, _ *http.Client, _ string, _ loadModelState, _ imageGenerateState, onProgress func(imageGenerateProgress) error) ([]byte, error) {
+		if err := onProgress(imageGenerateProgress{CurrentStep: 1, TotalSteps: 4, ProgressPercent: 25}); err != nil {
+			ctxCanceledAfterProgressErr = ctx.Err() != nil
+			return nil, err
+		}
+		return []byte("png"), nil
+	}
+	state := loadModelState{ModelPath: modelPath}
+	if _, err := driver.LoadModel(state); err != nil {
+		t.Fatal(err)
+	}
+	_, err = driver.GenerateImage(context.Background(), state, imageGenerateState{Mode: ImageRequestModeTextToImage, Step: 4}, func(imageGenerateProgress) error {
+		return sentinel
+	})
+	if !errors.Is(err, sentinel) || !ctxCanceledAfterProgressErr {
+		t.Fatalf("progress err=%v ctxCanceled=%t", err, ctxCanceledAfterProgressErr)
 	}
 }
 
@@ -976,7 +1030,7 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 	commandState := &fakeManagedImageCommandFactoryState{}
 	driver.commandFactory = commandState.factory
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
-	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, _ imageGenerateState) ([]byte, error) {
+	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, _ imageGenerateState, _ func(imageGenerateProgress) error) ([]byte, error) {
 		return []byte("png"), nil
 	}
 
@@ -1023,7 +1077,7 @@ func TestStableDiffusionCPPDriverFreeStopsResident(t *testing.T) {
 	commandState := &fakeManagedImageCommandFactoryState{}
 	driver.commandFactory = commandState.factory
 	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
-	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, _ imageGenerateState) ([]byte, error) {
+	driver.generateRequester = func(_ context.Context, _ *http.Client, _ string, _ loadModelState, _ imageGenerateState, _ func(imageGenerateProgress) error) ([]byte, error) {
 		return []byte("png"), nil
 	}
 

@@ -1,7 +1,7 @@
 models:
   - model_id: sdxl-base-1.0-local
     model_type: image
-    family: sdxl-controlnet-union
+    family: sdxl
     updated_at: 2026-11-11
     capabilities: [image.generate]
     features: [input.image]

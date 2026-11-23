@@ -1179,3 +1179,201 @@ func waitScenarioBodyCleanup(t *testing.T, svc *Service, id string) {
 		time.Sleep(time.Millisecond)
 	}
 }
+
+type stepProgressImageHostStub struct {
+	steps      []int32
+	stepGates  []chan struct{}
+	stepSignal chan int32
+}
+
+func (h *stepProgressImageHostStub) AdmitImage(plan *capabilitydriver.ImageInvocationPlan) error {
+	return plan.Validate()
+}
+
+func (h *stepProgressImageHostStub) ExecuteImage(
+	ctx context.Context,
+	plan *capabilitydriver.ImageInvocationPlan,
+	onStart localexecution.ImageExecutionStartFunc,
+	onArtifact localexecution.ImageArtifactFunc,
+	progress localexecution.ImageProgressFunc,
+) (localexecution.ImageResult, error) {
+	if onStart != nil {
+		if err := onStart(); err != nil {
+			return localexecution.ImageResult{}, err
+		}
+	}
+	totalSteps := int32(plan.RequestPlan().Steps())
+	for index, step := range h.steps {
+		if progress != nil {
+			progress(localexecution.ImageExecutionProgress{
+				Stage:           localexecution.ImageExecutionStageGenerating,
+				ArtifactIndex:   1,
+				ArtifactCount:   1,
+				CurrentStep:     step,
+				TotalSteps:      totalSteps,
+				ProgressPercent: int32((int64(step) * 100) / int64(totalSteps)),
+			})
+		}
+		if h.stepSignal != nil {
+			h.stepSignal <- step
+		}
+		if index < len(h.stepGates) && h.stepGates[index] != nil {
+			select {
+			case <-h.stepGates[index]:
+			case <-ctx.Done():
+				return localexecution.ImageResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+			}
+		}
+	}
+	artifact := localexecution.ImageArtifact{Index: 1, Seed: 42, Bytes: serviceTestPNGBytes(), MediaType: "image/png", ComputeMS: 10}
+	if onArtifact != nil {
+		if err := onArtifact(artifact); err != nil {
+			return localexecution.ImageResult{}, err
+		}
+	}
+	if progress != nil {
+		progress(localexecution.ImageExecutionProgress{Stage: localexecution.ImageExecutionStageProduced, ArtifactIndex: 1, ArtifactCount: 1})
+	}
+	return localexecution.ImageResult{Artifacts: []localexecution.ImageArtifact{artifact}, ComputeMS: 10}, nil
+}
+
+func TestLocalImageSingleImageJobProjectsMonotonicSamplingProgress(t *testing.T) {
+	svc := newTestService(nil)
+	selected := selectedImageExecutionForTest(t, "img-progress")
+	portable, err := structpb.NewStruct(map[string]any{
+		"executionOptions": map[string]any{"steps": 8.0, "cfgScale": 1.0, "width": 64.0, "height": 64.0, "seed": 7.0, "threads": 1.0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected.PortableConfig = portable
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
+	gate1, gate2 := make(chan struct{}), make(chan struct{})
+	host := &stepProgressImageHostStub{
+		steps:      []int32{2, 6},
+		stepGates:  []chan struct{}{gate1, gate2},
+		stepSignal: make(chan int32, 4),
+	}
+	svc.SetLocalImageExecutionHost(host)
+
+	resp, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(1))
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob: %v", err)
+	}
+	jobID := resp.GetJob().GetJobId()
+	<-host.stepSignal
+	first, ok := svc.scenarioJobs.get(jobID)
+	if !ok || first.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING ||
+		first.GetProgressCurrentStep() != 2 || first.GetProgressTotalSteps() != 9 || first.GetProgressPercent() <= 0 || first.GetProgressPercent() >= 100 {
+		t.Fatalf("first sampling snapshot = %+v", first)
+	}
+	close(gate1)
+	<-host.stepSignal
+	second, ok := svc.scenarioJobs.get(jobID)
+	if !ok || second.GetProgressCurrentStep() != 6 || second.GetProgressCurrentStep() <= first.GetProgressCurrentStep() ||
+		second.GetProgressPercent() <= first.GetProgressPercent() || second.GetProgressPercent() >= 100 {
+		t.Fatalf("second sampling snapshot = %+v (first=%+v)", second, first)
+	}
+	close(gate2)
+	terminal := waitForScenarioJobTerminalForLocalTextTest(t, svc, jobID)
+	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+		terminal.GetProgressCurrentStep() != 9 || terminal.GetProgressTotalSteps() != 9 || terminal.GetProgressPercent() != 100 {
+		t.Fatalf("terminal snapshot = %+v", terminal)
+	}
+}
+
+func TestUnifiedSDXLImageRequestFeaturesDistinguishReferenceAndMissingControlNet(t *testing.T) {
+	root := t.TempDir()
+	mainPath := filepath.Join(root, "sdxl.safetensors")
+	cnPath := filepath.Join(root, "controlnet.safetensors")
+	if err := os.WriteFile(mainPath, []byte("sdxl"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cnPath, []byte("cn"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mainSum := sha256.Sum256([]byte("sdxl"))
+	cnSum := sha256.Sum256([]byte("cn"))
+	mainDigest := hex.EncodeToString(mainSum[:])
+	cnDigest := hex.EncodeToString(cnSum[:])
+
+	makeSelected := func(withControlNet bool) *localexecution.SelectedLocalExecution {
+		selected := &localexecution.SelectedLocalExecution{
+			LoadoutID:          "sdxl-loadout",
+			CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+			DisplayName:        "SDXL",
+			RecipeID:           capabilitydriver.StableDiffusionSDXLRecipeID,
+			RecipeRevision:     "1",
+			DriverIdentity: (&capabilitydriver.Identity{
+				ImplementationID: capabilitydriver.StableDiffusionImplementationID,
+				DriverID:         capabilitydriver.StableDiffusionDriverID,
+				DriverDialect:    capabilitydriver.StableDiffusionDriverDialect,
+			}).Proto(),
+			Requirements: []*runtimev1.LocalCapabilityRequirement{
+				{RequirementId: capabilitydriver.StableDiffusionMainRequirementID, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED},
+				{RequirementId: capabilitydriver.StableDiffusionControlNetRequirementID, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL, ConditionalFeatures: []string{aicapabilities.FeatureInputImage}},
+			},
+			ExactBindings: []localexecution.ExactBinding{{
+				RequirementID:     capabilitydriver.StableDiffusionMainRequirementID,
+				ModelAssetID:      "sdxl-main",
+				AbsolutePath:      mainPath,
+				VerifiedContentID: "sha256:" + mainDigest,
+				EntrySHA256:       mainDigest,
+			}},
+			ImplementationSupportedFeatures: []string{aicapabilities.FeatureInputImage},
+			Configured:                      true,
+		}
+		if withControlNet {
+			selected.ConfiguredFeatures = []string{aicapabilities.FeatureInputImage}
+			selected.ExactBindings = append(selected.ExactBindings, localexecution.ExactBinding{
+				RequirementID:     capabilitydriver.StableDiffusionControlNetRequirementID,
+				ModelAssetID:      "sdxl-cn",
+				AbsolutePath:      cnPath,
+				VerifiedContentID: "sha256:" + cnDigest,
+				EntrySHA256:       cnDigest,
+			})
+		}
+		return selected
+	}
+
+	// Single-file SDXL (ControlNet unbound):
+	single := makeSelected(false)
+	if !validSelectedImageExecution(single) {
+		t.Fatal("single-file SDXL Loadout was rejected as incomplete")
+	}
+	svc := newTestService(nil)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: single})
+	svc.SetLocalImageExecutionHost(&localImageHostStub{})
+	ctx := localImageIntentContext(context.Background(), nil)
+
+	// 1. Plain text-to-image succeeds.
+	if _, err := svc.captureLocalImageEffectiveInputs(ctx, localImageExecuteRequestForTest(1).GetHead(), &runtimev1.ImageGenerateScenarioSpec{Prompt: "a mountain lake"}); err != nil {
+		t.Fatalf("single-file SDXL txt2img failed: %v", err)
+	}
+	// 2. Ordinary reference_image_artifact_id returns AI_MODALITY_NOT_SUPPORTED.
+	if _, err := svc.captureLocalImageEffectiveInputs(ctx, localImageExecuteRequestForTest(1).GetHead(), &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", ReferenceImageArtifactId: "art-1"}); err == nil {
+		t.Fatal("single-file SDXL admitted reference_image_artifact_id")
+	} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("reference_image_artifact_id reason = %v, want AI_MODALITY_NOT_SUPPORTED", reason)
+	}
+	// 3. Explicit control_image without ControlNet returns AI_LOCAL_ASSET_SLOT_MISSING.
+	if _, err := svc.captureLocalImageEffectiveInputs(ctx, localImageExecuteRequestForTest(1).GetHead(), &runtimev1.ImageGenerateScenarioSpec{
+		Prompt: "canny", ControlImage: &runtimev1.ImageControlInput{ImageArtifactId: "art-1", Type: runtimev1.ImageControlType_IMAGE_CONTROL_TYPE_CANNY},
+	}); err == nil {
+		t.Fatal("single-file SDXL admitted control_image without ControlNet")
+	} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING {
+		t.Fatalf("missing ControlNet reason = %v, want AI_LOCAL_ASSET_SLOT_MISSING", reason)
+	}
+
+	// With ControlNet bound: plain txt2img succeeds; ordinary reference_image_artifact_id STILL returns AI_MODALITY_NOT_SUPPORTED.
+	withCN := makeSelected(true)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: withCN})
+	if _, err := svc.captureLocalImageEffectiveInputs(ctx, localImageExecuteRequestForTest(1).GetHead(), &runtimev1.ImageGenerateScenarioSpec{Prompt: "plain txt2img with ControlNet bound"}); err != nil {
+		t.Fatalf("SDXL+ControlNet plain txt2img failed: %v", err)
+	}
+	if _, err := svc.captureLocalImageEffectiveInputs(ctx, localImageExecuteRequestForTest(1).GetHead(), &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", ReferenceImageArtifactId: "art-1"}); err == nil {
+		t.Fatal("SDXL+ControlNet admitted reference_image_artifact_id")
+	} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("SDXL+ControlNet reference_image_artifact_id reason = %v, want AI_MODALITY_NOT_SUPPORTED", reason)
+	}
+}

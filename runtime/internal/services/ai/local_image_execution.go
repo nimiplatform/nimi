@@ -101,7 +101,7 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	if err := requireSelectedImageRequestFeatures(request, selected.ConfiguredFeatures); err != nil {
+	if err := requireSelectedImageRequestFeatures(request, selected); err != nil {
 		return nil, err
 	}
 	inputs, err := s.resolveLocalImageInputs(ctx, head, request)
@@ -288,30 +288,51 @@ func (s *Service) resolveLocalImageConsumerIntent(
 }
 
 func validSelectedImageExecution(selected *localexecution.SelectedLocalExecution) bool {
-	minimumSlots := 3
-	if selected != nil && selected.DriverIdentity.GetDriverDialect() == capabilitydriver.SDXLControlNetDialect {
-		minimumSlots = 2
-	}
 	return selected != nil && selected.Configured &&
 		strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.StableDiffusionCapabilityContract &&
 		selected.DriverIdentity != nil &&
-		len(selected.Requirements) >= minimumSlots && len(selected.Requirements) == len(selected.ExactBindings)
+		selectedLocalExecutionBindingsComplete(selected)
 }
 
-func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSpec, supported []string) error {
+func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSpec, selected *localexecution.SelectedLocalExecution) error {
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	required := make([]string, 0, 2)
-	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" || spec.GetControlImage() != nil {
-		required = append(required, aicapabilities.FeatureInputImage)
+	var configured []string
+	isSDXL := false
+	if selected != nil {
+		configured = selected.ConfiguredFeatures
+		isSDXL = selected.RecipeID == capabilitydriver.StableDiffusionSDXLRecipeID
 	}
-	if strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != "" {
-		required = append(required, aicapabilities.FeatureInputMask)
+	hasReferenceImage := len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != ""
+	hasControlImage := spec.GetControlImage() != nil
+	hasMask := strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != ""
+	if hasMask {
+		if err := requireSelectedFeatures([]string{aicapabilities.FeatureInputMask}, configured); err != nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+		}
 	}
-	if err := requireSelectedFeatures(required, supported); err != nil {
+	if isSDXL {
+		// Unified SDXL never admits ordinary reference images; typed control_image
+		// requires the optional-conditional companion.controlnet binding.
+		if hasReferenceImage {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+		}
+		if hasControlImage {
+			if err := requireSelectedFeatures([]string{aicapabilities.FeatureInputImage}, configured); err != nil {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+			}
+		}
+		return nil
+	}
+	if hasControlImage {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+	}
+	if hasReferenceImage {
+		if err := requireSelectedFeatures([]string{aicapabilities.FeatureInputImage}, configured); err != nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+		}
 	}
 	return nil
 }

@@ -222,10 +222,10 @@ func TestImageArtifactReferenceParticipatesInSelectedAndCatalogFeatures(t *testi
 	spec := &runtimev1.ImageGenerateScenarioSpec{
 		Prompt: "edit", ReferenceImageArtifactId: "artifact_feature_source",
 	}
-	if err := requireSelectedImageRequestFeatures(spec, []string{aicapabilities.FeatureInputImage}); err != nil {
+	if err := requireSelectedImageRequestFeatures(spec, &localexecution.SelectedLocalExecution{RecipeID: "qwen-image-edit-2511", ConfiguredFeatures: []string{aicapabilities.FeatureInputImage}}); err != nil {
 		t.Fatalf("selected input.image feature rejected artifact reference: %v", err)
 	}
-	err := requireSelectedImageRequestFeatures(spec, nil)
+	err := requireSelectedImageRequestFeatures(spec, &localexecution.SelectedLocalExecution{RecipeID: "z-image"})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
 		t.Fatalf("missing selected feature error=%v reason=%v present=%v", err, reason, ok)
 	}

@@ -87,10 +87,11 @@ func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConf
 	args := []string{
 		"--listen-ip", "127.0.0.1",
 		"--listen-port", strconv.Itoa(port),
+		"--completed-ttl-seconds", "30",
 		"--diffusion-model", modelPath,
 	}
 	if config.Checkpoint {
-		args[4] = "--model"
+		args[6] = "--model"
 	}
 	if config.Threads != 0 {
 		args = append(args, "--threads", strconv.Itoa(int(config.Threads)))

@@ -72,6 +72,7 @@ type ImageExecutionHost struct {
 	queue          []*imageExecutionRequest
 	active         *imageExecutionRequest
 	stopping       bool
+	blockedErr     error
 	wake           chan struct{}
 	stop           chan struct{}
 	stopped        chan struct{}
@@ -139,6 +140,9 @@ func (h *ImageExecutionHost) ExecuteImage(
 	}
 	if h == nil || h.substrate == nil {
 		return localexecution.ImageResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("image execution host is unavailable"))
+	}
+	if err := h.blockedError(); err != nil {
+		return localexecution.ImageResult{}, executionFailure(localexecution.FailureLoad, err)
 	}
 	if err := h.AdmitImage(plan); err != nil {
 		return localexecution.ImageResult{}, executionFailure(localexecution.FailureInference, err)
@@ -257,6 +261,33 @@ func (h *ImageExecutionHost) clearActive(request *imageExecutionRequest) {
 	h.mu.Unlock()
 }
 
+func (h *ImageExecutionHost) blockedError() error {
+	if h == nil {
+		return nil
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.blockedErr
+}
+
+// stopSubstrateForReset enforces single-owner cancellation and unclean-exit
+// cleanup inside the FIFO worker. If stopping the supervised process tree fails
+// to confirm exit, subsequent execution is blocked fail-closed.
+func (h *ImageExecutionHost) stopSubstrateForReset(reason string) error {
+	if h == nil || h.substrate == nil {
+		return nil
+	}
+	if err := h.substrate.Stop(); err != nil {
+		h.mu.Lock()
+		if h.blockedErr == nil {
+			h.blockedErr = fmt.Errorf("image execution substrate failed to stop cleanly (%s): %w", reason, err)
+		}
+		h.mu.Unlock()
+		return err
+	}
+	return nil
+}
+
 func (h *ImageExecutionHost) run() {
 	defer close(h.stopped)
 	for {
@@ -274,6 +305,11 @@ func (h *ImageExecutionHost) run() {
 			h.deliver(request, imageExecutionOutcome{err: executionFailure(localexecution.FailureCanceled, fmt.Errorf("image execution host stopped"))})
 			return
 		default:
+		}
+		if err := h.blockedError(); err != nil {
+			h.clearActive(request)
+			h.deliver(request, imageExecutionOutcome{err: executionFailure(localexecution.FailureLoad, err)})
+			continue
 		}
 		if request.ctx.Err() != nil {
 			h.clearActive(request)
@@ -323,7 +359,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 	}, request.progress)
 	if err != nil {
 		if request.ctx.Err() != nil {
-			_ = h.substrate.Stop()
+			_ = h.stopSubstrateForReset("ensure-canceled")
 			return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 		}
 		if kind := localexecution.FailureKindOf(err); kind != "" {
@@ -340,7 +376,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 	result := localexecution.ImageResult{Artifacts: make([]localexecution.ImageArtifact, 0, count)}
 	for index := int32(1); index <= count; index++ {
 		if request.ctx.Err() != nil {
-			_ = h.substrate.Stop()
+			_ = h.stopSubstrateForReset("batch-canceled")
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			return result, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 		}
@@ -362,14 +398,23 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		attempt.Finish(observedLocalComputeUsage(time.Since(generationStarted).Milliseconds()))
 		if generateErr != nil {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
-			if request.ctx.Err() != nil {
-				_ = h.substrate.Stop()
+			canceled := request.ctx.Err() != nil
+			oom := executionOutOfMemory(generateErr, executionFailureDiagnostic(h.substrate))
+			healthy := h.substrate.Healthy()
+			resetReason := "generate-failed"
+			if canceled {
+				resetReason = "generate-canceled"
+			} else if !healthy {
+				resetReason = "process-crash"
+			}
+			_ = h.stopSubstrateForReset(resetReason)
+			if canceled {
 				return result, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 			}
-			if executionOutOfMemory(generateErr, executionFailureDiagnostic(h.substrate)) {
+			if oom {
 				return result, executionFailure(localexecution.FailureOutOfMemory, generateErr)
 			}
-			if !h.substrate.Healthy() {
+			if !healthy {
 				return result, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("image substrate process exited: %w", generateErr))
 			}
 			return result, executionFailure(localexecution.FailureInference, fmt.Errorf("generate image artifact %d: %w", index, generateErr))
@@ -379,6 +424,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		}
 		if artifact.Index != index || artifact.Seed != resolvedSeed || len(artifact.Bytes) == 0 || strings.TrimSpace(artifact.MediaType) == "" {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
+			_ = h.stopSubstrateForReset("invalid-artifact")
 			return result, executionFailure(localexecution.FailureInference, fmt.Errorf("image substrate returned an invalid artifact %d", index))
 		}
 		artifact.Bytes = append([]byte(nil), artifact.Bytes...)
@@ -387,7 +433,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 			if callbackErr := request.onArtifact(cloneImageArtifact(artifact)); callbackErr != nil {
 				result.ComputeMS = time.Since(startedAt).Milliseconds()
 				if request.ctx.Err() != nil {
-					_ = h.substrate.Stop()
+					_ = h.stopSubstrateForReset("artifact-canceled")
 					return result, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 				}
 				return result, executionFailure(localexecution.FailureInference, fmt.Errorf("commit image artifact %d: %w", index, callbackErr))

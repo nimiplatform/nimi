@@ -757,7 +757,7 @@ func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage
 }
 
 func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testing.T) {
-	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3-image", "hyperflow-h3-flash", "sdxl-controlnet-union", "relayvsr", "seedvr2", "flux"} {
+	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3-image", "hyperflow-h3-flash", "sdxl", "relayvsr", "seedvr2", "flux"} {
 		t.Run("windows_"+family, func(t *testing.T) {
 			if err := admitManagedImageRecipeForHost(family, "", "windows", "amd64", "nvidia", true); err != nil {
 				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
@@ -768,6 +768,9 @@ func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testin
 				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
 			}
 		})
+	}
+	if err := admitManagedImageRecipeForHost("sdxl-controlnet-union", "", "windows", "amd64", "nvidia", true); err == nil {
+		t.Fatal("retired sdxl-controlnet-union family was unexpectedly admitted")
 	}
 	if err := admitManagedImageRecipeForHost("minimax-h3", "", "windows", "amd64", "nvidia", true); err != nil {
 		t.Fatalf("Windows package rejected MiniMax-H3 video: %v", err)

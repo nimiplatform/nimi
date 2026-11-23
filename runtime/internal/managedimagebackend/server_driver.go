@@ -153,44 +153,35 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		)
 	}
 
-	progress := managedImageSamplingProgress{}
-	if resident.logCapture != nil {
-		progress.cursor = resident.logCapture.SnapshotCursor()
-	}
-	type generateResult struct {
-		payload []byte
-		err     error
-	}
-	resultCh := make(chan generateResult, 1)
-	go func() {
-		payload, err := d.generateRequester(ctx, d.httpClient, resident.endpoint, loaded, req)
-		resultCh <- generateResult{payload: payload, err: err}
-	}()
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-	var (
-		payload []byte
-		err     error
-	)
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-ticker.C:
-			if err := progress.emit(resident.logCapture, onProgress); err != nil {
-				return nil, err
-			}
-		case result := <-resultCh:
-			payload = result.payload
-			err = result.err
-			if err := progress.emit(resident.logCapture, onProgress); err != nil {
-				return nil, err
-			}
-			goto completed
+	reqCtx, cancelReq := context.WithCancel(ctx)
+	defer cancelReq()
+
+	var progressErr error
+	var progressErrMu sync.Mutex
+	wrappedProgress := func(update imageGenerateProgress) error {
+		if onProgress == nil {
+			return nil
 		}
+		if err := onProgress(update); err != nil {
+			progressErrMu.Lock()
+			if progressErr == nil {
+				progressErr = err
+			}
+			progressErrMu.Unlock()
+			cancelReq()
+			return err
+		}
+		return nil
 	}
 
-completed:
+	payload, err := d.generateRequester(reqCtx, d.httpClient, resident.endpoint, loaded, req, wrappedProgress)
+	progressErrMu.Lock()
+	capturedProgressErr := progressErr
+	progressErrMu.Unlock()
+	if capturedProgressErr != nil {
+		err = capturedProgressErr
+	}
+
 	durationMs := time.Since(startedAt).Milliseconds()
 	diag := &ImageGenerateResult{
 		QueueWaitMs:        queueWaitMs,

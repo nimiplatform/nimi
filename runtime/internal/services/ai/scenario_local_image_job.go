@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
@@ -49,7 +50,7 @@ func (s *Service) submitLocalImageScenarioJob(ctx context.Context, req *runtimev
 	job := &runtimev1.ScenarioJob{
 		JobId: jobID, ScenarioType: req.GetScenarioType(), Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		CreatedAt: now, UpdatedAt: now, ModelResolved: effective.modelResolved(), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ProgressTotalSteps: int32(effective.plan.ImageCount() + 1),
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ProgressTotalSteps: localImageJobTotalSteps(effective.plan),
 		ExecutionMode: mode, Head: cloneScenarioHead(effective.head), TraceId: ulid.Make().String(),
 		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored), EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity),
 	}
@@ -117,7 +118,11 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ti
 	for index := range slots {
 		slots[index] = runtimeartifact.JobBodySlot{ArtifactID: fmt.Sprintf("%s-image-%d", jobID, index+1), MaxBytes: localexecution.MaxImageArtifactBytes}
 	}
-	total := int32(effective.plan.ImageCount() + 1)
+	total := localImageJobTotalSteps(effective.plan)
+	stepsPerImage := int32(0)
+	if effective.plan != nil && effective.plan.RequestPlan() != nil && effective.plan.RequestPlan().Steps() > 0 {
+		stepsPerImage = int32(effective.plan.RequestPlan().Steps())
+	}
 	var schedulerRelease func()
 	defer func() {
 		if schedulerRelease != nil {
@@ -153,16 +158,45 @@ func (s *Service) runLocalImageScenarioJob(ctx context.Context, jobID string, ti
 		ticket.release()
 		return budget.start(localImageExecutionResourceBudget)
 	}
+	var maxProgressStep int32
 	progress := func(update localexecution.ImageExecutionProgress) {
-		current := int32(0)
-		switch update.Stage {
-		case localexecution.ImageExecutionStageReady,
-			localexecution.ImageExecutionStageReused,
-			localexecution.ImageExecutionStageGenerating:
-			current = 1
-		case localexecution.ImageExecutionStageProduced:
-			current = update.ArtifactIndex + 1
+		current := maxProgressStep
+		if stepsPerImage > 0 {
+			artifactIndex := update.ArtifactIndex
+			if artifactIndex < 1 {
+				artifactIndex = 1
+			}
+			switch update.Stage {
+			case localexecution.ImageExecutionStageGenerating:
+				if update.CurrentStep > 0 {
+					step := update.CurrentStep
+					if step > stepsPerImage {
+						step = stepsPerImage
+					}
+					current = (artifactIndex-1)*stepsPerImage + step
+				} else if artifactIndex > 1 {
+					current = (artifactIndex - 1) * stepsPerImage
+				}
+			case localexecution.ImageExecutionStageProduced:
+				current = artifactIndex * stepsPerImage
+			}
+		} else {
+			switch update.Stage {
+			case localexecution.ImageExecutionStageReady,
+				localexecution.ImageExecutionStageReused,
+				localexecution.ImageExecutionStageGenerating:
+				current = 1
+			case localexecution.ImageExecutionStageProduced:
+				current = update.ArtifactIndex + 1
+			}
 		}
+		if current < maxProgressStep {
+			current = maxProgressStep
+		}
+		if total > 1 && current >= total {
+			current = total - 1
+		}
+		maxProgressStep = current
 		_, _ = s.updateScenarioJobProgress(jobID, current, total, imageJobProgressPercent(current, total))
 	}
 	onArtifact := func(produced localexecution.ImageArtifact) error {
@@ -253,6 +287,20 @@ func (s *Service) finishLocalImageJobFailure(ctx context.Context, jobID string, 
 			job.ProgressPercent = 99
 		}
 	})
+}
+
+func localImageJobTotalSteps(plan *capabilitydriver.ImageInvocationPlan) int32 {
+	if plan == nil {
+		return 1
+	}
+	count := int32(plan.ImageCount())
+	if count < 1 {
+		count = 1
+	}
+	if req := plan.RequestPlan(); req != nil && req.Steps() > 0 {
+		return count*int32(req.Steps()) + 1
+	}
+	return count + 1
 }
 
 func imageJobProgressPercent(current int32, total int32) int32 {

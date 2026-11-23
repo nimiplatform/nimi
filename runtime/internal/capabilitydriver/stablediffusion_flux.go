@@ -31,6 +31,16 @@ func stableDiffusionSafetensorsContractFamily(contract string, probe []byte) (st
 	switch contract {
 	case "minimax-h3-image-pdd", "minimax-h3-image-vae":
 		return stableDiffusionMiniMaxH3SafetensorsFamily(contract, probe)
+	case "sdxl-base-checkpoint":
+		if sdxlControlNetTensorContract(contract, probe) {
+			return StableDiffusionSDXLRecipeID, true
+		}
+		return "", false
+	case "sdxl-controlnet-union-promax":
+		if sdxlControlNetTensorContract(contract, probe) {
+			return contract, true
+		}
+		return "", false
 	case "clip-l-768":
 	default:
 		return stableDiffusionVAETensorContractFamily(contract, probe)

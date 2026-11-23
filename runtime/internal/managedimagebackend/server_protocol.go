@@ -1,24 +1,62 @@
 package managedimagebackend
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
+	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
-func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *http.Client, endpoint string, loaded loadModelState, req imageGenerateState) ([]byte, error) {
+var nativeImageJobPollInterval = 150 * time.Millisecond
+
+type nativeImageJobProgress struct {
+	Stage     string `json:"stage"`
+	Detail    string `json:"detail"`
+	Pass      int    `json:"pass"`
+	Completed *int64 `json:"completed"`
+	Total     *int64 `json:"total"`
+	Unit      string `json:"unit"`
+}
+
+type nativeImageJob struct {
+	ID       string                  `json:"id"`
+	Kind     string                  `json:"kind"`
+	Status   string                  `json:"status"`
+	Progress *nativeImageJobProgress `json:"progress"`
+	Result   *struct {
+		OutputFormat string `json:"output_format"`
+		Images       []struct {
+			Index  int    `json:"index"`
+			Base64 string `json:"b64_json"`
+		} `json:"images"`
+	} `json:"result"`
+	Error *struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r067
+// @nimi-authority: rule.nimi.runtime.ai-provider.sdxl-controlnet-union
+func defaultStableDiffusionCPPGenerateRequester(
+	ctx context.Context,
+	client *http.Client,
+	endpoint string,
+	loaded loadModelState,
+	req imageGenerateState,
+	onProgress func(imageGenerateProgress) error,
+) ([]byte, error) {
 	if client == nil {
 		client = &http.Client{}
-	}
-	if req.Mode == ImageRequestModeControl {
-		return generateNativeControlImage(ctx, client, endpoint, loaded, req)
 	}
 	path, payload, err := buildStableDiffusionCPPGenerateRequest(loaded, req)
 	if err != nil {
@@ -28,65 +66,153 @@ func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *htt
 	if err != nil {
 		return nil, fmt.Errorf("marshal stable-diffusion.cpp generate request: %w", err)
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(strings.TrimSpace(endpoint), "/")+path, strings.NewReader(string(requestBody)))
+	base := strings.TrimRight(strings.TrimSpace(endpoint), "/")
+	job, err := readNativeImageJob(ctx, client, http.MethodPost, base+path, requestBody, http.StatusAccepted)
 	if err != nil {
-		return nil, fmt.Errorf("create stable-diffusion.cpp generate request: %w", err)
+		return nil, err
 	}
-	request.Header.Set("Content-Type", "application/json")
+	if !nativeImageJobID.MatchString(job.ID) || job.Kind != "img_gen" {
+		return nil, fmt.Errorf("native image submission returned an invalid job identity")
+	}
+	id := job.ID
+	pollCtx, cancelPoll := context.WithCancel(ctx)
+	defer cancelPoll()
+
+	var lastStep int64
+	emitProgress := func(progress *nativeImageJobProgress) error {
+		update, ok := nativeImageSamplingProgress(progress, req.Step)
+		if !ok || int64(update.CurrentStep) <= lastStep {
+			return nil
+		}
+		lastStep = int64(update.CurrentStep)
+		if onProgress != nil {
+			if err := onProgress(update); err != nil {
+				cancelPoll()
+				return err
+			}
+		}
+		return nil
+	}
+
+	pollInterval := nativeImageJobPollInterval
+	if pollInterval <= 0 {
+		pollInterval = 150 * time.Millisecond
+	}
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		if job.ID != id || job.Kind != "img_gen" {
+			return nil, fmt.Errorf("native image job identity changed")
+		}
+		if err := emitProgress(job.Progress); err != nil {
+			return nil, err
+		}
+		switch job.Status {
+		case "completed":
+			return decodeNativeImageJobResult(job)
+		case "failed", "cancelled":
+			if job.Error != nil {
+				return nil, fmt.Errorf("native image job %s: %s: %s", job.Status, job.Error.Code, job.Error.Message)
+			}
+			return nil, fmt.Errorf("native image job %s", job.Status)
+		case "queued", "generating":
+		default:
+			return nil, fmt.Errorf("native image job status is invalid")
+		}
+		select {
+		case <-pollCtx.Done():
+			return nil, pollCtx.Err()
+		case <-ticker.C:
+		}
+		job, err = readNativeImageJob(pollCtx, client, http.MethodGet, base+"/sdcpp/v1/jobs/"+id, nil, http.StatusOK)
+		if err != nil {
+			return nil, err
+		}
+	}
+}
+
+func nativeImageSamplingProgress(progress *nativeImageJobProgress, expectedSteps int32) (imageGenerateProgress, bool) {
+	if progress == nil || expectedSteps <= 0 {
+		return imageGenerateProgress{}, false
+	}
+	if progress.Stage != "sampling" || progress.Unit != "steps" || progress.Completed == nil || progress.Total == nil {
+		return imageGenerateProgress{}, false
+	}
+	step := *progress.Completed
+	total := *progress.Total
+	if step <= 0 || total != int64(expectedSteps) || step > total {
+		return imageGenerateProgress{}, false
+	}
+	percent := int32((step * 100) / total)
+	return imageGenerateProgress{
+		CurrentStep:     int32(step),
+		TotalSteps:      int32(total),
+		ProgressPercent: percent,
+	}, true
+}
+
+func decodeNativeImageJobResult(job nativeImageJob) ([]byte, error) {
+	if job.Error != nil || job.Result == nil || job.Result.OutputFormat != "png" ||
+		len(job.Result.Images) != 1 || job.Result.Images[0].Index != 0 {
+		return nil, fmt.Errorf("native image job returned an invalid result")
+	}
+	return decodeManagedImageBase64(job.Result.Images[0].Base64)
+}
+
+func readNativeImageJob(ctx context.Context, client *http.Client, method, endpoint string, payload []byte, expectedStatus int) (nativeImageJob, error) {
+	var job nativeImageJob
+	var bodyReader io.Reader
+	if len(payload) > 0 {
+		bodyReader = bytes.NewReader(payload)
+	}
+	request, err := http.NewRequestWithContext(ctx, method, endpoint, bodyReader)
+	if err != nil {
+		return job, fmt.Errorf("create stable-diffusion.cpp generate request: %w", err)
+	}
+	if len(payload) > 0 {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	response, err := client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("execute stable-diffusion.cpp generate request: %w", err)
+		return job, fmt.Errorf("execute stable-diffusion.cpp generate request: %w", err)
 	}
 	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
-		return nil, fmt.Errorf("stable-diffusion.cpp generate request failed: status=%d body=%s", response.StatusCode, strings.TrimSpace(string(body)))
+	if response.StatusCode != expectedStatus {
+		message, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+		return job, fmt.Errorf("stable-diffusion.cpp generate request failed: status=%d body=%s", response.StatusCode, strings.TrimSpace(string(message)))
 	}
-	var respBody stableDiffusionCPPGenerateResponse
-	if err := json.NewDecoder(response.Body).Decode(&respBody); err != nil {
-		return nil, fmt.Errorf("decode stable-diffusion.cpp generate response: %w", err)
+	if err := json.NewDecoder(io.LimitReader(response.Body, localexecution.MaxImageArtifactBytes*2+(1<<20))).Decode(&job); err != nil {
+		return job, fmt.Errorf("decode native image job: %w", err)
 	}
-	return respBody.payload(ctx, client, endpoint)
+	return job, nil
 }
 
-type stableDiffusionCPPGenerateResponse struct {
-	Images []string `json:"images"`
-	Data   []struct {
-		B64JSON string `json:"b64_json"`
-		URL     string `json:"url"`
-	} `json:"data"`
-}
+func buildStableDiffusionCPPGenerateRequest(loaded loadModelState, req imageGenerateState) (string, map[string]any, error) {
+	sampleParams := map[string]any{
+		"guidance": map[string]any{
+			"txt_cfg": req.CFGScale,
+		},
+	}
+	if req.Step > 0 {
+		sampleParams["sample_steps"] = req.Step
+	}
+	if sampler := strings.TrimSpace(req.Sampler); sampler != "" {
+		sampleParams["sample_method"] = sampler
+	}
+	if scheduler := strings.TrimSpace(req.Scheduler); scheduler != "" {
+		sampleParams["scheduler"] = scheduler
+	}
 
-func (r stableDiffusionCPPGenerateResponse) payload(ctx context.Context, client *http.Client, endpoint string) ([]byte, error) {
-	if len(r.Images) > 0 && len(r.Data) > 0 {
-		return nil, fmt.Errorf("stable-diffusion.cpp generate response contains ambiguous artifact carriers")
-	}
-	if len(r.Images) == 1 {
-		return decodeManagedImageBase64(r.Images[0])
-	}
-	if len(r.Images) > 1 || len(r.Data) > 1 {
-		return nil, fmt.Errorf("stable-diffusion.cpp generate response contains an unexpected artifact count")
-	}
-	if len(r.Data) == 1 {
-		hasBase64 := strings.TrimSpace(r.Data[0].B64JSON) != ""
-		hasURL := strings.TrimSpace(r.Data[0].URL) != ""
-		if hasBase64 == hasURL {
-			return nil, fmt.Errorf("stable-diffusion.cpp generate response contains an invalid artifact carrier")
-		}
-		if hasBase64 {
-			return decodeManagedImageBase64(r.Data[0].B64JSON)
-		}
-		return fetchManagedImageURL(ctx, client, endpoint, r.Data[0].URL)
-	}
-	return nil, fmt.Errorf("stable-diffusion.cpp generate response did not include an image artifact")
-}
-
-func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateState) (string, map[string]any, error) {
 	payload := map[string]any{
-		"prompt": req.PositivePrompt,
+		"prompt":        req.PositivePrompt,
+		"seed":          req.Seed,
+		"batch_count":   1,
+		"output_format": "png",
+		"sample_params": sampleParams,
 	}
-	if strings.TrimSpace(req.NegativePrompt) != "" {
-		payload["negative_prompt"] = strings.TrimSpace(req.NegativePrompt)
+	if negative := strings.TrimSpace(req.NegativePrompt); negative != "" {
+		payload["negative_prompt"] = negative
 	}
 	if req.Width > 0 {
 		payload["width"] = req.Width
@@ -94,24 +220,13 @@ func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateS
 	if req.Height > 0 {
 		payload["height"] = req.Height
 	}
-	if req.Step > 0 {
-		payload["steps"] = req.Step
-	}
-	payload["cfg_scale"] = req.CFGScale
-	if sampler := strings.TrimSpace(req.Sampler); sampler != "" {
-		payload["sampler_name"] = sampler
-	}
-	if scheduler := strings.TrimSpace(req.Scheduler); scheduler != "" {
-		payload["scheduler"] = scheduler
-	}
-	payload["seed"] = req.Seed
 
 	switch req.Mode {
 	case ImageRequestModeTextToImage:
 		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) != 0 {
 			return "", nil, fmt.Errorf("stable-diffusion.cpp text-to-image request contains image inputs")
 		}
-		return "/sdapi/v1/txt2img", payload, nil
+		return "/sdcpp/v1/img_gen", payload, nil
 	case ImageRequestModeImageToImage:
 		if strings.TrimSpace(req.Src) == "" || len(req.ReferenceImage) != 0 {
 			return "", nil, fmt.Errorf("stable-diffusion.cpp image-to-image request requires src")
@@ -120,21 +235,33 @@ func buildStableDiffusionCPPGenerateRequest(_ loadModelState, req imageGenerateS
 		if err != nil {
 			return "", nil, err
 		}
-		payload["init_images"] = []string{sourceImage}
+		payload["init_image"] = sourceImage
 		if maskPath := strings.TrimSpace(req.Mask); maskPath != "" {
 			maskImage, err := loadManagedImageRequestImage(maskPath)
 			if err != nil {
 				return "", nil, err
 			}
-			payload["mask"] = maskImage
+			payload["mask_image"] = maskImage
 		}
-		return "/sdapi/v1/img2img", payload, nil
+		return "/sdcpp/v1/img_gen", payload, nil
 	case ImageRequestModeInstructionEdit:
 		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) == 0 {
 			return "", nil, fmt.Errorf("stable-diffusion.cpp instruction edit requires resolved image bytes and rejects paths and masks")
 		}
-		payload["extra_images"] = []string{base64.StdEncoding.EncodeToString(req.ReferenceImage)}
-		return "/sdapi/v1/txt2img", payload, nil
+		payload["ref_images"] = []string{base64.StdEncoding.EncodeToString(req.ReferenceImage)}
+		return "/sdcpp/v1/img_gen", payload, nil
+	case ImageRequestModeControl:
+		if !loaded.Options.Checkpoint || loaded.Options.ComponentsBySlot()["control_net_path"] == "" ||
+			strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) == 0 ||
+			!validManagedControlType(req.ControlType) ||
+			math.IsNaN(float64(req.ControlStrength)) || math.IsInf(float64(req.ControlStrength), 0) ||
+			req.ControlStrength < 0 || req.ControlStrength > 2 {
+			return "", nil, fmt.Errorf("native ControlNet request does not match the loaded checkpoint")
+		}
+		payload["control_image"] = base64.StdEncoding.EncodeToString(req.ReferenceImage)
+		payload["control_type"] = req.ControlType
+		payload["control_strength"] = req.ControlStrength
+		return "/sdcpp/v1/img_gen", payload, nil
 	default:
 		return "", nil, fmt.Errorf("stable-diffusion.cpp request mode is unknown")
 	}
@@ -171,126 +298,9 @@ func decodeManagedImageBase64(value string) ([]byte, error) {
 	return payload, nil
 }
 
-func fetchManagedImageURL(ctx context.Context, client *http.Client, endpoint string, target string) ([]byte, error) {
-	if client == nil {
-		client = &http.Client{}
-	}
-	artifactURL, err := managedImageArtifactURL(endpoint, target)
-	if err != nil {
-		return nil, err
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, artifactURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create managed image artifact request: %w", err)
-	}
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("execute managed image artifact request: %w", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("managed image artifact request failed: status=%d", response.StatusCode)
-	}
-	payload, err := io.ReadAll(io.LimitReader(response.Body, 100*1024*1024))
-	if err != nil {
-		return nil, fmt.Errorf("read managed image artifact: %w", err)
-	}
-	if len(payload) == 0 {
-		return nil, fmt.Errorf("managed image artifact is empty")
-	}
-	return payload, nil
-}
-
-func managedImageArtifactURL(endpoint string, target string) (string, error) {
-	base, err := url.Parse(strings.TrimRight(strings.TrimSpace(endpoint), "/") + "/")
-	if err != nil || base.Scheme == "" || base.Host == "" {
-		return "", fmt.Errorf("managed image resident endpoint is invalid")
-	}
-	if base.Scheme != "http" && base.Scheme != "https" {
-		return "", fmt.Errorf("managed image resident endpoint scheme is not allowed")
-	}
-	parsed, err := url.Parse(strings.TrimSpace(target))
-	if err != nil {
-		return "", fmt.Errorf("managed image artifact url is invalid: %w", err)
-	}
-	resolved := base.ResolveReference(parsed)
-	if resolved.Scheme != base.Scheme || resolved.Host != base.Host || resolved.User != nil || resolved.Fragment != "" {
-		return "", fmt.Errorf("managed image artifact url is outside resident endpoint scope")
-	}
-	if resolved.Path == "" || resolved.Path == "/" {
-		return "", fmt.Errorf("managed image artifact url path is required")
-	}
-	return resolved.String(), nil
-}
-
 func defaultManagedImageString(value string, fallback string) string {
 	if trimmed := strings.TrimSpace(value); trimmed != "" {
 		return trimmed
 	}
 	return strings.TrimSpace(fallback)
-}
-
-type managedImageSamplingProgress struct {
-	cursor   int
-	sampling bool
-	last     imageGenerateProgress
-}
-
-func (state *managedImageSamplingProgress) emit(capture *managedImageLogCapture, onProgress func(imageGenerateProgress) error) error {
-	if capture == nil {
-		return nil
-	}
-	lines, nextCursor := capture.LinesSince(state.cursor)
-	state.cursor = nextCursor
-	for _, line := range lines {
-		// VAE encoding and decoding also print progress bars. Only the bars
-		// emitted between the upstream sampling markers count as denoising steps.
-		switch {
-		case strings.HasPrefix(line, "[I] generating image: "):
-			state.sampling = true
-			state.last = imageGenerateProgress{}
-			continue
-		case strings.HasPrefix(line, "[I] sampling completed,"):
-			state.sampling = false
-			continue
-		}
-		if !state.sampling {
-			continue
-		}
-		progress, ok := parseManagedImageProgressLine(line)
-		if !ok || progress == state.last {
-			continue
-		}
-		if onProgress != nil {
-			if err := onProgress(progress); err != nil {
-				return err
-			}
-		}
-		state.last = progress
-	}
-	return nil
-}
-
-func parseManagedImageProgressLine(line string) (imageGenerateProgress, bool) {
-	matches := stableDiffusionProgressPattern.FindStringSubmatch(strings.TrimSpace(line))
-	if len(matches) != 3 {
-		return imageGenerateProgress{}, false
-	}
-	currentStep, err := strconv.Atoi(matches[1])
-	if err != nil || currentStep <= 0 {
-		return imageGenerateProgress{}, false
-	}
-	totalSteps, err := strconv.Atoi(matches[2])
-	if err != nil || totalSteps <= 0 || currentStep > totalSteps {
-		return imageGenerateProgress{}, false
-	}
-	progressPercent := int32((currentStep * 100) / totalSteps)
-	if currentStep == totalSteps {
-		progressPercent = 100
-	}
-	return imageGenerateProgress{
-		CurrentStep:     int32(currentStep),
-		TotalSteps:      int32(totalSteps),
-		ProgressPercent: progressPercent,
-	}, true
 }

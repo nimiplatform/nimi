@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -20,7 +19,6 @@ import (
 )
 
 var managedImageBackendGOOS = runtime.GOOS
-var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(?:\|[=<># -]{1,160}\|\s*)?(\d+)\s*/\s*(\d+)\b.*s/it`)
 
 var stableDiffusionCPPCUDARequiredArtifacts = []string{
 	"cudart64_12.dll",
@@ -37,7 +35,7 @@ type managedImageCommand interface {
 
 type managedImageCommandFactory func(ctx context.Context, executablePath string, args []string, workingDir string, env []string) (managedImageCommand, io.ReadCloser, io.ReadCloser, error)
 type managedImageReadinessProbe func(ctx context.Context, client *http.Client, endpoint string) error
-type managedImageGenerateRequester func(ctx context.Context, client *http.Client, endpoint string, loaded loadModelState, req imageGenerateState) ([]byte, error)
+type managedImageGenerateRequester func(ctx context.Context, client *http.Client, endpoint string, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) ([]byte, error)
 
 type execManagedImageCommand struct {
 	cmd *exec.Cmd

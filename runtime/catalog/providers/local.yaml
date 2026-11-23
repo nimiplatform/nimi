@@ -7163,7 +7163,7 @@ models:
       note: Complete SDXL Base 1.0 checkpoint with both text encoders and VAE, under CreativeML Open RAIL++-M.
     features:
       - input.image
-    family: sdxl-controlnet-union
+    family: sdxl
     image_request_options:
       response_formats:
         - b64_json
@@ -11987,13 +11987,13 @@ loadout_recipes:
         model_contract:
           format: tensorflow-checkpoint
           artifact_role: music_model
-  - recipe_id: sdxl-controlnet-union
+  - recipe_id: sdxl
     revision: "1"
-    title: SDXL ControlNet Union ProMax
+    title: Stable Diffusion XL (SDXL)
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/sdxl-controlnet-union/v1
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features:
       - input.image
@@ -13024,7 +13024,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features:
       - input.image
@@ -13068,7 +13068,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13121,7 +13121,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13168,7 +13168,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13493,7 +13493,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13534,7 +13534,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features:
       - input.image
@@ -13577,7 +13577,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features:
       - input.image

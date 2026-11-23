@@ -3,11 +3,15 @@
 package capabilitydriver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"math"
 	"path/filepath"
 	"sort"
@@ -22,7 +26,7 @@ import (
 const (
 	StableDiffusionImplementationID   = "local.image.generate.stable-diffusion-cpp"
 	StableDiffusionDriverID           = "nimi.runtime.driver.stable-diffusion-cpp"
-	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v4"
+	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v5"
 	StableDiffusionCapabilityContract = "image.generate"
 
 	StableDiffusionMainRequirementID            = "main.diffusion"
@@ -30,12 +34,14 @@ const (
 	StableDiffusionCLIPLRequirementID           = "companion.clip-l"
 	StableDiffusionVAERequirementID             = "companion.vae"
 	StableDiffusionUncondDiffusionRequirementID = "companion.uncond-diffusion"
+	StableDiffusionControlNetRequirementID      = "companion.controlnet"
 
 	StableDiffusionQwenImageRecipeID      = "qwen-image"
 	StableDiffusionQwenImageEditRecipeID  = "qwen-image-edit-2511"
 	StableDiffusionFluxSchnellRecipeID    = "flux1-schnell"
 	StableDiffusionFlux3KleinRecipeID     = "flux3-klein"
 	StableDiffusionMiniMaxH3ImageRecipeID = "minimax-h3-image"
+	StableDiffusionSDXLRecipeID           = "sdxl"
 )
 
 const (
@@ -43,6 +49,8 @@ const (
 	stableDiffusionTextEncoderLabel     = "Text encoder"
 	stableDiffusionVAELabel             = "VAE"
 	stableDiffusionUncondDiffusionLabel = "Unconditional diffusion model"
+	stableDiffusionSDXLMainLabel        = "SDXL Base checkpoint"
+	stableDiffusionControlNetLabel      = "ControlNet Union ProMax"
 )
 
 // @nimi-authority: definition.nimi.platform.core-protocol.capability-implementation-driver
@@ -75,6 +83,7 @@ func (StableDiffusionImageDriver) EffectiveRequestDefaults(recipeID string, valu
 
 type stableDiffusionFamilySpec struct {
 	name                            string
+	isCheckpoint                    bool
 	mainArtifactRole                string
 	requiresUncond                  bool
 	requiresCLIPL                   bool
@@ -90,7 +99,7 @@ type stableDiffusionFamilySpec struct {
 }
 
 func (family stableDiffusionFamilySpec) mainFormat() string {
-	if family.name == StableDiffusionMiniMaxH3ImageRecipeID {
+	if family.name == StableDiffusionMiniMaxH3ImageRecipeID || family.isCheckpoint {
 		return "safetensors"
 	}
 	return "gguf"
@@ -144,6 +153,10 @@ func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 			compatibleTextEncoders: []string{"qwen-vl"}, textEncoderGGUFArchitectures: []string{"qwen2vl"},
 			compatibleVAEs: []string{"qwen-image-vae"}, vaeTensorContract: "qwen-image-vae-3d",
 		}, true
+	case StableDiffusionSDXLRecipeID:
+		return stableDiffusionFamilySpec{
+			name: value, isCheckpoint: true, mainArtifactRole: "diffusion_model", mainTensorContract: "sdxl-base-checkpoint",
+		}, true
 	default:
 		return stableDiffusionFamilySpec{}, false
 	}
@@ -188,6 +201,8 @@ func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (s
 		}
 		family.mainArtifactRole = "edit_diffusion_model"
 		return family, true, true
+	case StableDiffusionSDXLRecipeID:
+		return family, family.name == StableDiffusionSDXLRecipeID, false
 	default:
 		return stableDiffusionFamilySpec{}, false, false
 	}
@@ -197,9 +212,6 @@ func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (s
 // family required by one closed image recipe. It is a static dialect fact, not
 // a live package or catalog selector.
 func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
-	if recipeID == SDXLControlNetRecipeID {
-		return "sdxl-controlnet-union", true
-	}
 	recipeID = strings.TrimSpace(recipeID)
 	familyName := recipeID
 	if recipeID == StableDiffusionQwenImageEditRecipeID {
@@ -223,7 +235,10 @@ func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
 }
 
 func stableDiffusionRecipeSupportsInputImage(recipeID string) bool {
-	return recipeID == StableDiffusionQwenImageEditRecipeID || recipeID == StableDiffusionFlux3KleinRecipeID || recipeID == StableDiffusionMiniMaxH3ImageRecipeID
+	return recipeID == StableDiffusionQwenImageEditRecipeID ||
+		recipeID == StableDiffusionFlux3KleinRecipeID ||
+		recipeID == StableDiffusionMiniMaxH3ImageRecipeID ||
+		recipeID == StableDiffusionSDXLRecipeID
 }
 
 func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
@@ -234,6 +249,39 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	features, reason := normalizedStableDiffusionFeatures(input.SupportedFeatures)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
+	}
+	if portable.family.isCheckpoint {
+		requirements := []*runtimev1.LocalCapabilityRequirement{
+			stableDiffusionRequirement(
+				StableDiffusionMainRequirementID,
+				runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
+				"image",
+				0,
+				stableDiffusionSDXLMainLabel,
+				map[string]any{
+					"asset_kind": "image", "model_family": portable.family.name, "recipe_id": portable.recipeID,
+					"artifact_role": portable.family.mainArtifactRole, "format": portable.family.mainFormat(),
+					"tensor_contract": portable.family.mainTensorContract,
+				},
+			),
+		}
+		if contains(features, aicapabilities.FeatureInputImage) {
+			controlNet := stableDiffusionRequirement(
+				StableDiffusionControlNetRequirementID,
+				runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION,
+				"auxiliary",
+				0,
+				stableDiffusionControlNetLabel,
+				map[string]any{
+					"asset_kind": "auxiliary", "format": "safetensors",
+					"tensor_contract": "sdxl-controlnet-union-promax",
+				},
+			)
+			controlNet.Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
+			controlNet.ConditionalFeatures = []string{aicapabilities.FeatureInputImage}
+			requirements = append(requirements, controlNet)
+		}
+		return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
 	if stableDiffusionRecipeSupportsInputImage(portable.recipeID) != contains(features, aicapabilities.FeatureInputImage) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
@@ -323,6 +371,27 @@ func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.
 // slot-admission pins.
 func (driver StableDiffusionImageDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
+}
+
+// ProjectRecipeForHost gates each closed image recipe against the exact host
+// platform tuples admitted in runtime-managed-image-backend-packages.yaml so
+// unsupported hosts project UNSUPPORTED before Prepare or environment setup.
+func (driver StableDiffusionImageDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	platform := strings.ToLower(strings.TrimSpace(platformTuple))
+	switch strings.TrimSpace(recipeID) {
+	case StableDiffusionFlux3KleinRecipeID:
+		if platform != "windows/amd64" {
+			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+		}
+	case StableDiffusionSDXLRecipeID, StableDiffusionFluxSchnellRecipeID, StableDiffusionMiniMaxH3ImageRecipeID,
+		"z-image", "ideogram4", StableDiffusionQwenImageRecipeID, StableDiffusionQwenImageEditRecipeID:
+		if platform != "windows/amd64" && platform != "darwin/arm64" {
+			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+		}
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.ProjectRecipe(recipeID, options, supportedFeatures)
 }
 
 func (driver StableDiffusionImageDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
@@ -482,10 +551,10 @@ func (driver StableDiffusionImageDriver) ValidateCombination(
 	bindings []*runtimev1.ModelAssetExactBinding,
 	assets []ModelAssetDescriptor,
 ) runtimev1.LocalCapabilityReason {
-	if len(requirements) == 0 || len(bindings) < len(requirements) {
+	if len(requirements) == 0 {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
 	}
-	if len(bindings) != len(requirements) || len(assets) != len(bindings) {
+	if len(bindings) > len(requirements) || len(assets) != len(bindings) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
 	if !validStableDiffusionRequirementSequence(requirements) {
@@ -519,15 +588,20 @@ func (driver StableDiffusionImageDriver) ValidateCombination(
 			return reason
 		}
 	}
-	if len(seenBindings) != len(byRequirement) {
+	for _, requirement := range requirements {
+		if _, exists := seenBindings[requirement.GetRequirementId()]; exists {
+			continue
+		}
+		if requirement.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL {
+			continue
+		}
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
 	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapabilityRequirement) bool {
-	if len(requirements) < 3 || !stableDiffusionRequirementShape(requirements[0], StableDiffusionMainRequirementID, "image", 0) ||
-		!stableDiffusionRequirementShape(requirements[2], StableDiffusionVAERequirementID, "vae", 0) {
+	if len(requirements) == 0 || !stableDiffusionRequirementShape(requirements[0], StableDiffusionMainRequirementID, "image", 0) {
 		return false
 	}
 	family, ok := stableDiffusionRequirementConstraintString(requirements[0], "model_family")
@@ -546,21 +620,50 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 	if !ok {
 		return false
 	}
+	mainRole, mainRoleOK := stableDiffusionRequirementConstraintString(requirements[0], "artifact_role")
+	mainFormat, mainFormatOK := stableDiffusionRequirementConstraintString(requirements[0], "format")
+	if !mainRoleOK || mainRole != familySpec.mainArtifactRole || !mainFormatOK || mainFormat != familySpec.mainFormat() ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_architectures", familySpec.mainGGUFArchitectures) ||
+		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_families", familySpec.mainGGUFFamilies) {
+		return false
+	}
+	if familySpec.isCheckpoint {
+		if requirements[0].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			return false
+		}
+		actualContract, exists := stableDiffusionRequirementConstraintString(requirements[0], "tensor_contract")
+		if !exists || actualContract != familySpec.mainTensorContract {
+			return false
+		}
+		if len(requirements) == 1 {
+			return true
+		}
+		if len(requirements) != 2 {
+			return false
+		}
+		controlNet := requirements[1]
+		if !stableDiffusionRequirementShape(controlNet, StableDiffusionControlNetRequirementID, "auxiliary", 0) ||
+			controlNet.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL ||
+			!stableDiffusionStringSlicesEqual(controlNet.GetConditionalFeatures(), []string{aicapabilities.FeatureInputImage}) {
+			return false
+		}
+		cnFormat, cnFormatOK := stableDiffusionRequirementConstraintString(controlNet, "format")
+		cnContract, cnContractOK := stableDiffusionRequirementConstraintString(controlNet, "tensor_contract")
+		return cnFormatOK && cnFormat == "safetensors" && cnContractOK && cnContract == "sdxl-controlnet-union-promax"
+	}
+	if len(requirements) < 3 || !stableDiffusionRequirementShape(requirements[2], StableDiffusionVAERequirementID, "vae", 0) {
+		return false
+	}
 	textKind, expectedTextRole := familySpec.textEncoderKindAndRole()
 	if !stableDiffusionRequirementShape(requirements[1], StableDiffusionTextEncoderRequirementID, textKind, 0) {
 		return false
 	}
-	mainRole, mainRoleOK := stableDiffusionRequirementConstraintString(requirements[0], "artifact_role")
-	mainFormat, mainFormatOK := stableDiffusionRequirementConstraintString(requirements[0], "format")
 	textRole, textRoleOK := stableDiffusionRequirementConstraintString(requirements[1], "artifact_role")
 	textFormat, textFormatOK := stableDiffusionRequirementConstraintString(requirements[1], "format")
 	textFamilies, textFamiliesOK := stableDiffusionRequirementConstraintStrings(requirements[1], "compatible_families")
 	vaeFormat, vaeFormatOK := stableDiffusionRequirementConstraintString(requirements[2], "format")
 	vaeTensorContract, vaeTensorContractOK := stableDiffusionRequirementConstraintString(requirements[2], "tensor_contract")
-	if !mainRoleOK || mainRole != familySpec.mainArtifactRole || !mainFormatOK || mainFormat != familySpec.mainFormat() ||
-		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_architectures", familySpec.mainGGUFArchitectures) ||
-		!stableDiffusionRequirementConstraintStringsMatch(requirements[0], "gguf_families", familySpec.mainGGUFFamilies) ||
-		!textRoleOK || textRole != expectedTextRole || !textFormatOK || textFormat != "gguf" ||
+	if !textRoleOK || textRole != expectedTextRole || !textFormatOK || textFormat != "gguf" ||
 		!textFamiliesOK || !stableDiffusionStringSlicesEqual(textFamilies, familySpec.compatibleTextEncoders) ||
 		!stableDiffusionRequirementConstraintStringsMatch(requirements[1], "gguf_architectures", familySpec.textEncoderGGUFArchitectures) ||
 		!stableDiffusionRequirementConstraintStringsMatch(requirements[1], "gguf_architecture_families", familySpec.textEncoderArchitectureFamilies) ||
@@ -608,7 +711,10 @@ func validStableDiffusionRequirementSequence(requirements []*runtimev1.LocalCapa
 }
 
 func validStableDiffusionRequirementSequenceForPortable(requirements []*runtimev1.LocalCapabilityRequirement, portable stableDiffusionPortableConfig) bool {
-	if !validStableDiffusionRequirementSequence(requirements) || len(requirements) < 3 {
+	if !validStableDiffusionRequirementSequence(requirements) || len(requirements) == 0 {
+		return false
+	}
+	if !portable.family.isCheckpoint && len(requirements) < 3 {
 		return false
 	}
 	return portable.family.name == stableDiffusionRequirementModelFamily(requirements[0]) &&
@@ -682,8 +788,19 @@ func stableDiffusionAssetCompatible(requirement *runtimev1.LocalCapabilityRequir
 			if !valid || family != asset.Family {
 				return false
 			}
-		} else if !stableDiffusionImageFormatValid(format, asset.FormatProbe) {
-			return false
+		} else {
+			if !stableDiffusionImageFormatValid(format, asset.FormatProbe) {
+				return false
+			}
+			if format == "safetensors" {
+				if contract, hasContract := stableDiffusionRequirementConstraintString(requirement, "tensor_contract"); hasContract &&
+					(contract == "sdxl-base-checkpoint" || contract == "sdxl-controlnet-union-promax") {
+					family, valid := stableDiffusionSafetensorsContractFamily(contract, asset.FormatProbe)
+					if !valid || family != asset.Family {
+						return false
+					}
+				}
+			}
 		}
 	}
 	return true
@@ -742,6 +859,13 @@ func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRe
 			required[key] = struct{}{}
 		}
 		expectedCount = 5
+	case StableDiffusionControlNetRequirementID:
+		allowed["format"] = struct{}{}
+		allowed["tensor_contract"] = struct{}{}
+		for _, key := range []string{"format", "tensor_contract"} {
+			required[key] = struct{}{}
+		}
+		expectedCount = 3
 	default:
 		return false
 	}
@@ -858,14 +982,21 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion portable config: %s", reason.String()))
 	}
-	features, reason := normalizedStableDiffusionFeatures(input.SupportedFeatures)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED ||
-		stableDiffusionRecipeSupportsInputImage(portable.recipeID) != contains(features, aicapabilities.FeatureInputImage) {
-		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the portable configuration"))
-	}
 	bindings, orderedIDs, err := exactStableDiffusionInvocationBindings(portable, input.ExactBindings)
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
+	}
+	features, reason := normalizedStableDiffusionFeatures(input.SupportedFeatures)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the portable configuration"))
+	}
+	if portable.family.isCheckpoint {
+		_, hasControlNet := bindings[StableDiffusionControlNetRequirementID]
+		if hasControlNet != contains(features, aicapabilities.FeatureInputImage) {
+			return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the bound SDXL ControlNet slot"))
+		}
+	} else if stableDiffusionRecipeSupportsInputImage(portable.recipeID) != contains(features, aicapabilities.FeatureInputImage) {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion supported features do not match the portable configuration"))
 	}
 	request, err := normalizeStableDiffusionImageRequest(input.Request, input.Inputs, portable, features)
 	if err != nil {
@@ -878,8 +1009,10 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 	}
 	hasher := sha256.New()
 	for _, value := range []string{
+		StableDiffusionDriverDialect,
 		portable.family.name,
 		portable.recipeID,
+		strconv.FormatBool(portable.family.isCheckpoint),
 		strconv.Itoa(portable.execution.threads),
 		strconv.FormatFloat(portable.execution.cfgScale, 'g', -1, 64),
 		portable.execution.sampler,
@@ -906,10 +1039,9 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		}
 	}
 	load := StableDiffusionCPPLoadPlan{
+		checkpoint:              portable.family.isCheckpoint,
 		recipeID:                portable.recipeID,
 		main:                    stableDiffusionImageModelFile(bindings[StableDiffusionMainRequirementID]),
-		textEncoder:             stableDiffusionImageModelFile(bindings[StableDiffusionTextEncoderRequirementID]),
-		vae:                     stableDiffusionImageModelFile(bindings[StableDiffusionVAERequirementID]),
 		flowShift:               portable.execution.flowShift,
 		qwenImageZeroCondT:      portable.qwenZeroCondT,
 		threads:                 portable.execution.threads,
@@ -918,6 +1050,14 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		scheduler:               portable.execution.scheduler,
 		diffusionFlashAttention: portable.execution.diffusionFlashAttention,
 		offloadParamsToCPU:      portable.execution.offloadParamsToCPU,
+	}
+	if !portable.family.isCheckpoint {
+		load.textEncoder = stableDiffusionImageModelFile(bindings[StableDiffusionTextEncoderRequirementID])
+		load.vae = stableDiffusionImageModelFile(bindings[StableDiffusionVAERequirementID])
+	}
+	if binding, ok := bindings[StableDiffusionControlNetRequirementID]; ok {
+		value := stableDiffusionImageModelFile(binding)
+		load.controlNet = &value
 	}
 	if binding, ok := bindings[StableDiffusionUncondDiffusionRequirementID]; ok {
 		value := stableDiffusionImageModelFile(binding)
@@ -941,6 +1081,13 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		requestPlan = StableDiffusionCPPInstructionEditRequestPlan{
 			stableDiffusionCPPRequestFields: requestFields,
 			sourceImage:                     cloneImageResolvedInput(request.sourceImage),
+		}
+	case stableDiffusionRequestControl:
+		requestPlan = StableDiffusionCPPControlRequestPlan{
+			stableDiffusionCPPRequestFields: requestFields,
+			controlImage:                    cloneImageResolvedInput(request.controlImage),
+			controlType:                     request.controlType,
+			controlStrength:                 request.controlStrength,
 		}
 	default:
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("stable-diffusion image recipe request variant is unsupported"))
@@ -974,7 +1121,7 @@ func stableDiffusionImageModelFile(binding InvocationExactBinding) ImageModelFil
 type stableDiffusionImageTranslator struct{}
 
 func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPlan) error {
-	if plan == nil || strings.TrimSpace(plan.processKey) == "" || len(plan.modelFiles) < 2 || len(plan.modelFiles) > 5 {
+	if plan == nil || strings.TrimSpace(plan.processKey) == "" || len(plan.modelFiles) < 1 || len(plan.modelFiles) > 5 {
 		return fmt.Errorf("stable-diffusion image plan is incomplete")
 	}
 	load, ok := plan.loadPlan.(StableDiffusionCPPLoadPlan)
@@ -995,8 +1142,8 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		request.steps < 1 || request.steps > 150 || math.IsNaN(request.cfgScale) || math.IsInf(request.cfgScale, 0) ||
 		request.cfgScale < 0 || request.cfgScale > 30 || request.seed < -1 || request.seed > math.MaxInt32 ||
 		request.imageCount < 1 || request.imageCount > 4 ||
-		(request.sampler != "" && !stableDiffusionOptionToken(request.sampler)) ||
-		(request.scheduler != "" && !stableDiffusionOptionToken(request.scheduler)) {
+		(request.sampler != "" && !validStableDiffusionSampler(request.sampler)) ||
+		(request.scheduler != "" && !validStableDiffusionScheduler(request.scheduler)) {
 		return fmt.Errorf("stable-diffusion image request variant is incomplete")
 	}
 	if request.seed != -1 {
@@ -1014,13 +1161,20 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		((load.recipeID == "qwen-image" || load.recipeID == "qwen-image-edit-2511") && load.flowShift != 3) || (load.recipeID == StableDiffusionFlux3KleinRecipeID && load.flowShift != 6.93) {
 		return fmt.Errorf("stable-diffusion image recipe load facts are inconsistent")
 	}
-	files := []ImageModelFile{load.main, load.textEncoder, load.vae}
+	var files []ImageModelFile
 	if load.checkpoint {
-		controlNet, present := load.ControlNet()
-		if !present || load.recipeID != SDXLControlNetRecipeID {
-			return fmt.Errorf("checkpoint image plan requires the SDXL ControlNet recipe")
+		if load.recipeID != StableDiffusionSDXLRecipeID {
+			return fmt.Errorf("checkpoint image plan requires the unified SDXL recipe")
 		}
-		files = []ImageModelFile{load.main, controlNet}
+		files = []ImageModelFile{load.main}
+		if controlNet, present := load.ControlNet(); present {
+			files = append(files, controlNet)
+		}
+	} else {
+		if _, hasControlNet := load.ControlNet(); hasControlNet {
+			return fmt.Errorf("ControlNet is only admitted by the unified SDXL recipe")
+		}
+		files = []ImageModelFile{load.main, load.textEncoder, load.vae}
 	}
 	if clip, exists := load.CLIPL(); exists {
 		if load.recipeID != StableDiffusionFluxSchnellRecipeID {
@@ -1047,13 +1201,14 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		}
 	}
 	if edit, isEdit := plan.requestPlan.(StableDiffusionCPPInstructionEditRequestPlan); isEdit {
-		if !stableDiffusionRecipeSupportsInputImage(load.recipeID) || edit.sourceImage.SourceIdentity == "" ||
+		if load.checkpoint || !stableDiffusionRecipeSupportsInputImage(load.recipeID) || edit.sourceImage.SourceIdentity == "" ||
 			edit.sourceImage.SourceIdentity != strings.TrimSpace(edit.sourceImage.SourceIdentity) || len(edit.sourceImage.ImageBytes) == 0 {
 			return fmt.Errorf("stable-diffusion instruction-edit request is incomplete")
 		}
 	}
 	if control, isControl := plan.requestPlan.(StableDiffusionCPPControlRequestPlan); isControl {
-		if !load.checkpoint || control.controlImage.Role != ImageResolvedInputRoleControl || control.controlImage.SourceIdentity == "" || len(control.controlImage.ImageBytes) == 0 || !validSDXLControlType(control.controlType) || math.IsNaN(control.controlStrength) || math.IsInf(control.controlStrength, 0) || control.controlStrength < 0 || control.controlStrength > 2 {
+		_, hasControlNet := load.ControlNet()
+		if !load.checkpoint || !hasControlNet || control.controlImage.Role != ImageResolvedInputRoleControl || control.controlImage.SourceIdentity == "" || len(control.controlImage.ImageBytes) == 0 || !validSDXLControlType(control.controlType) || math.IsNaN(control.controlStrength) || math.IsInf(control.controlStrength, 0) || control.controlStrength < 0 || control.controlStrength > 2 {
 			return fmt.Errorf("SDXL ControlNet request is incomplete")
 		}
 	}
@@ -1133,20 +1288,27 @@ func exactStableDiffusionInvocationBindings(
 	portable stableDiffusionPortableConfig,
 	values []InvocationExactBinding,
 ) (map[string]InvocationExactBinding, []string, error) {
-	expected := []string{
-		StableDiffusionMainRequirementID,
-		StableDiffusionTextEncoderRequirementID,
-		StableDiffusionVAERequirementID,
-	}
-	if portable.family.requiresCLIPL {
-		expected = append(expected, StableDiffusionCLIPLRequirementID)
-	}
-	if portable.family.requiresUncond {
-		expected = append(expected, StableDiffusionUncondDiffusionRequirementID)
-	}
-	expectedSet := make(map[string]struct{}, len(expected))
-	for _, requirementID := range expected {
-		expectedSet[requirementID] = struct{}{}
+	var required []string
+	allowed := map[string]struct{}{}
+	if portable.family.isCheckpoint {
+		required = []string{StableDiffusionMainRequirementID}
+		allowed[StableDiffusionMainRequirementID] = struct{}{}
+		allowed[StableDiffusionControlNetRequirementID] = struct{}{}
+	} else {
+		required = []string{
+			StableDiffusionMainRequirementID,
+			StableDiffusionTextEncoderRequirementID,
+			StableDiffusionVAERequirementID,
+		}
+		if portable.family.requiresCLIPL {
+			required = append(required, StableDiffusionCLIPLRequirementID)
+		}
+		if portable.family.requiresUncond {
+			required = append(required, StableDiffusionUncondDiffusionRequirementID)
+		}
+		for _, requirementID := range required {
+			allowed[requirementID] = struct{}{}
+		}
 	}
 	bindings := make(map[string]InvocationExactBinding, len(values))
 	for _, binding := range values {
@@ -1154,7 +1316,7 @@ func exactStableDiffusionInvocationBindings(
 		if requirementID != binding.RequirementID {
 			return nil, nil, fmt.Errorf("stable-diffusion invocation contains a non-canonical requirement %q", binding.RequirementID)
 		}
-		if _, ok := expectedSet[requirementID]; !ok {
+		if _, ok := allowed[requirementID]; !ok {
 			return nil, nil, fmt.Errorf("stable-diffusion invocation contains an unknown requirement %q", binding.RequirementID)
 		}
 		if _, exists := bindings[requirementID]; exists {
@@ -1169,15 +1331,22 @@ func exactStableDiffusionInvocationBindings(
 		}
 		bindings[requirementID] = cloneInvocationExactBindings([]InvocationExactBinding{binding})[0]
 	}
-	for _, requirementID := range expected {
+	ordered := make([]string, 0, len(bindings))
+	for _, requirementID := range required {
 		if _, exists := bindings[requirementID]; !exists {
 			return nil, nil, fmt.Errorf("stable-diffusion invocation requirement %q is required", requirementID)
 		}
+		ordered = append(ordered, requirementID)
 	}
-	if len(bindings) != len(expected) {
+	if portable.family.isCheckpoint {
+		if _, exists := bindings[StableDiffusionControlNetRequirementID]; exists {
+			ordered = append(ordered, StableDiffusionControlNetRequirementID)
+		}
+	}
+	if len(bindings) != len(ordered) {
 		return nil, nil, fmt.Errorf("stable-diffusion invocation contains ambiguous bindings")
 	}
-	return bindings, expected, nil
+	return bindings, ordered, nil
 }
 
 type stableDiffusionRequestKind uint8
@@ -1185,18 +1354,22 @@ type stableDiffusionRequestKind uint8
 const (
 	stableDiffusionRequestTextToImage stableDiffusionRequestKind = iota + 1
 	stableDiffusionRequestInstructionEdit
+	stableDiffusionRequestControl
 )
 
 type normalizedStableDiffusionImageRequest struct {
-	kind           stableDiffusionRequestKind
-	prompt         string
-	negativePrompt string
-	sourceImage    ImageResolvedInput
-	responseFormat string
-	width          int
-	height         int
-	seed           int64
-	imageCount     int
+	kind            stableDiffusionRequestKind
+	prompt          string
+	negativePrompt  string
+	sourceImage     ImageResolvedInput
+	controlImage    ImageResolvedInput
+	controlType     string
+	controlStrength float64
+	responseFormat  string
+	width           int
+	height          int
+	seed            int64
+	imageCount      int
 }
 
 func normalizeStableDiffusionImageRequest(
@@ -1242,11 +1415,14 @@ func normalizeStableDiffusionImageRequest(
 	mask := strings.TrimSpace(spec.GetMask())
 	maskArtifactID := strings.TrimSpace(spec.GetMaskArtifactId())
 	sourceInputs := make([]ImageResolvedInput, 0, len(inputs))
+	controlInputs := make([]ImageResolvedInput, 0, 1)
 	maskInputs := make([]ImageResolvedInput, 0, 1)
 	for _, input := range inputs {
 		switch input.Role {
 		case ImageResolvedInputRoleSource:
 			sourceInputs = append(sourceInputs, input)
+		case ImageResolvedInputRoleControl:
+			controlInputs = append(controlInputs, input)
 		case ImageResolvedInputRoleMask:
 			maskInputs = append(maskInputs, input)
 		default:
@@ -1262,8 +1438,11 @@ func normalizeStableDiffusionImageRequest(
 	if mask != "" || maskArtifactID != "" || len(maskInputs) > 0 || spec.Strength != nil {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected stable-diffusion recipe does not admit a mask"))
 	}
-	if ImageHasExtendedControls(spec) {
+	if spec.GetComplexity() != "" || spec.GetOutputFormat() != "" || spec.GetMarkup() != "" || spec.GetMarkupArtifactId() != "" || spec.FrameCount != nil || spec.FrameDurationMs != nil {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected local image recipe does not admit these render controls"))
+	}
+	if portable.recipeID != StableDiffusionSDXLRecipeID && (spec.GetControlImage() != nil || len(controlInputs) > 0) {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected local image recipe does not admit control_image"))
 	}
 	negativePrompt := strings.TrimSpace(spec.GetNegativePrompt())
 	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511" || portable.recipeID == StableDiffusionFluxSchnellRecipeID || portable.recipeID == StableDiffusionFlux3KleinRecipeID || portable.recipeID == StableDiffusionMiniMaxH3ImageRecipeID) && negativePrompt != "" {
@@ -1274,7 +1453,40 @@ func normalizeStableDiffusionImageRequest(
 	}
 	kind := stableDiffusionRequestTextToImage
 	sourceImage := ImageResolvedInput{}
+	controlImage := ImageResolvedInput{}
+	controlType := ""
+	controlStrength := float64(0)
 	switch portable.recipeID {
+	case StableDiffusionSDXLRecipeID:
+		if imageCount != 1 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("SDXL recipe admits one PNG output per request"))
+		}
+		if len(sourceInputs) > 0 || len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("SDXL recipe does not admit ordinary reference images"))
+		}
+		if spec.GetControlImage() != nil || len(controlInputs) > 0 {
+			if !contains(features, aicapabilities.FeatureInputImage) {
+				return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("SDXL control_image requires the optional companion.controlnet binding"))
+			}
+			if spec.GetControlImage() == nil || len(controlInputs) != 1 || controlInputs[0].SourceIdentity == "" ||
+				controlInputs[0].SourceIdentity != strings.TrimSpace(controlInputs[0].SourceIdentity) || len(controlInputs[0].ImageBytes) == 0 {
+				return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("SDXL ControlNet requires one captured control image"))
+			}
+			controlImage = cloneImageResolvedInput(controlInputs[0])
+			config, format, err := image.DecodeConfig(bytes.NewReader(controlImage.ImageBytes))
+			if err != nil || (format != "png" && format != "jpeg") || config.Width != width || config.Height != height {
+				return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("control map must be PNG or JPEG with the requested canvas dimensions"))
+			}
+			controlType = strings.TrimPrefix(strings.ToLower(spec.GetControlImage().GetType().String()), "image_control_type_")
+			controlStrength = 1
+			if spec.GetControlImage().Strength != nil {
+				controlStrength = float64(spec.GetControlImage().GetStrength())
+			}
+			if !validSDXLControlType(controlType) || math.IsNaN(controlStrength) || math.IsInf(controlStrength, 0) || controlStrength < 0 || controlStrength > 2 {
+				return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("control map type or strength is invalid"))
+			}
+			kind = stableDiffusionRequestControl
+		}
 	case StableDiffusionFlux3KleinRecipeID, StableDiffusionMiniMaxH3ImageRecipeID:
 		if len(sourceInputs) > 1 || imageCount != 1 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected image recipe supports one output and at most one owned source"))
@@ -1313,15 +1525,18 @@ func normalizeStableDiffusionImageRequest(
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate batch seed progression overflows the stable-diffusion.cpp signed-int32 range"))
 	}
 	return normalizedStableDiffusionImageRequest{
-		kind:           kind,
-		prompt:         prompt,
-		negativePrompt: negativePrompt,
-		sourceImage:    sourceImage,
-		responseFormat: responseFormat,
-		width:          width,
-		height:         height,
-		seed:           seed,
-		imageCount:     imageCount,
+		kind:            kind,
+		prompt:          prompt,
+		negativePrompt:  negativePrompt,
+		sourceImage:     sourceImage,
+		controlImage:    controlImage,
+		controlType:     controlType,
+		controlStrength: controlStrength,
+		responseFormat:  responseFormat,
+		width:           width,
+		height:          height,
+		seed:            seed,
+		imageCount:      imageCount,
 	}, nil
 }
 
@@ -1426,6 +1641,13 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 		result.execution.flowShift = 3
 		result.execution.diffusionFlashAttention = true
 		result.execution.offloadParamsToCPU = true
+	case StableDiffusionSDXLRecipeID:
+		result.execution.steps = 20
+		result.execution.cfgScale = 7
+		result.execution.sampler = "euler"
+		result.execution.scheduler = "discrete"
+		result.execution.diffusionFlashAttention = true
+		result.execution.offloadParamsToCPU = true
 	}
 	var reason runtimev1.LocalCapabilityReason
 	if result.execution, reason = stableDiffusionExecutionOptionsFromValue(fields["executionOptions"], result.execution); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
@@ -1493,14 +1715,19 @@ func stableDiffusionExecutionOptionsFromValue(
 		}
 		result.seed = value
 	}
-	for key, target := range map[string]*string{"sampler": &result.sampler, "scheduler": &result.scheduler} {
-		if field := fields[key]; field != nil {
-			text, ok := portableStringValue(field)
-			if !ok || !stableDiffusionOptionToken(text) {
-				return stableDiffusionExecutionOptions{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
-			}
-			*target = text
+	if field := fields["sampler"]; field != nil {
+		text, ok := portableStringValue(field)
+		if !ok || !validStableDiffusionSampler(text) {
+			return stableDiffusionExecutionOptions{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
+		result.sampler = text
+	}
+	if field := fields["scheduler"]; field != nil {
+		text, ok := portableStringValue(field)
+		if !ok || !validStableDiffusionScheduler(text) {
+			return stableDiffusionExecutionOptions{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+		}
+		result.scheduler = text
 	}
 	if field := fields["threads"]; field != nil {
 		value, ok := stableDiffusionInteger(field, 1, 1024)
@@ -1535,6 +1762,33 @@ func stableDiffusionInteger(value *structpb.Value, minimum, maximum int64) (int6
 		return 0, false
 	}
 	return int64(number), true
+}
+
+// Pinned stable-diffusion.cpp master-1088-32d516c sampling methods and sigma
+// schedulers (verified via sd-server --help and examples/common/common.cpp).
+// Rejecting unknown values at portable-config validation prevents sd-server
+// from silently falling back to model defaults and freezing an unhonored option.
+func validStableDiffusionSampler(value string) bool {
+	switch value {
+	case "euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2",
+		"ipndm", "ipndm_v", "lcm", "ddim_trailing", "tcd", "res_multistep", "res_2s",
+		"er_sde", "euler_cfg_pp", "euler_a_cfg_pp", "euler_ge", "dpm++2m_sde",
+		"dpm++2m_sde_bt", "lms":
+		return true
+	default:
+		return false
+	}
+}
+
+func validStableDiffusionScheduler(value string) bool {
+	switch value {
+	case "discrete", "normal", "karras", "exponential", "ays", "gits",
+		"sgm_uniform", "simple", "smoothstep", "kl_optimal", "lcm", "bong_tangent",
+		"ltx2", "logit_normal", "flux2", "flux", "beta", "llada_image":
+		return true
+	default:
+		return false
+	}
 }
 
 func stableDiffusionOptionToken(value string) bool {

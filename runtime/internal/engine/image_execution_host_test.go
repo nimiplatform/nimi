@@ -32,6 +32,7 @@ type fakeImageInvocationSubstrate struct {
 	active         int
 	maxActive      int
 	stopCalls      int
+	stopErr        error
 	ensureFn       func(context.Context, *capabilitydriver.ImageInvocationPlan, func() error, localexecution.ImageProgressFunc) (bool, error)
 	generateFn     func(context.Context, *capabilitydriver.ImageInvocationPlan, int32, int64) (localexecution.ImageArtifact, error)
 }
@@ -81,9 +82,12 @@ func (f *fakeImageInvocationSubstrate) Healthy() bool {
 func (f *fakeImageInvocationSubstrate) Stop() error {
 	f.mu.Lock()
 	f.stopCalls++
-	f.healthy = false
+	err := f.stopErr
+	if err == nil {
+		f.healthy = false
+	}
 	f.mu.Unlock()
-	return nil
+	return err
 }
 
 func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
@@ -705,4 +709,66 @@ func waitForImageHostQueueLength(t *testing.T, host *ImageExecutionHost, wanted 
 
 func testPNGBytes() []byte {
 	return []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 0, 'I', 'H', 'D', 'R'}
+}
+
+func TestImageExecutionHostStopsSubstrateOnUncleanGenerateFailureAndBlocksWhenStopFails(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{healthy: true, stopErr: errors.New("process remained alive after SIGKILL")}
+	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32, _ int64) (localexecution.ImageArtifact, error) {
+		return localexecution.ImageArtifact{}, errors.New("progress callback aborted")
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+
+	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "unclean", 1), nil, nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureInference {
+		t.Fatalf("first unclean error = %v", err)
+	}
+	substrate.mu.Lock()
+	stops := substrate.stopCalls
+	ensureBefore := substrate.ensureCalls
+	substrate.mu.Unlock()
+	if stops != 1 {
+		t.Fatalf("stop calls after unclean generate error = %d, want 1", stops)
+	}
+	// Subsequent request must be blocked fail-closed without reaching Ensure/Generate.
+	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "blocked-next", 1), nil, nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureLoad {
+		t.Fatalf("subsequent job after failed Stop = %v, want FailureLoad", err)
+	}
+	substrate.mu.Lock()
+	ensureAfter := substrate.ensureCalls
+	substrate.mu.Unlock()
+	if ensureAfter != ensureBefore {
+		t.Fatalf("blocked host still ran Ensure: before=%d after=%d", ensureBefore, ensureAfter)
+	}
+}
+
+func TestImageLoadRequestAllowsSingleFileSDXLCheckpointWithoutControlNet(t *testing.T) {
+	root := t.TempDir()
+	mainPath := filepath.Join(root, "sdxl.safetensors")
+	payload := []byte("sdxl-checkpoint")
+	if err := os.WriteFile(mainPath, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(payload)
+	digest := hex.EncodeToString(sum[:])
+	plan, err := (capabilitydriver.StableDiffusionImageDriver{}).PlanImageInvocation(capabilitydriver.ImageInvocationInput{
+		RecipeID: capabilitydriver.StableDiffusionSDXLRecipeID,
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{
+			RequirementID:     capabilitydriver.StableDiffusionMainRequirementID,
+			ModelAssetID:      "sdxl-main",
+			AbsolutePath:      mainPath,
+			VerifiedContentID: "sha256:" + digest,
+			EntrySHA256:       digest,
+		}},
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "sunlit desk", Size: "64x64"},
+	})
+	if err != nil {
+		t.Fatalf("PlanImageInvocation(sdxl): %v", err)
+	}
+	req, err := imageLoadRequest("127.0.0.1:1234", plan, managedimagebackend.ProtocolManagedWrapper)
+	if err != nil {
+		t.Fatalf("imageLoadRequest(sdxl): %v", err)
+	}
+	if !req.Checkpoint || req.ModelPath != mainPath || len(req.Components) != 0 {
+		t.Fatalf("single-file SDXL load request = %+v", req)
+	}
 }

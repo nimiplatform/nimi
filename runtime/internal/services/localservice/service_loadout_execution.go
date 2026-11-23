@@ -525,7 +525,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		if consumer == audioCppCUDAConsumerID {
 			required = append(required, requiredDependency{family: localEnvironmentFamilyCUDA, dependencyID: cuda13UserSpaceRuntimeDependencyID})
 		}
-	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.Wan22VideoDriver, capabilitydriver.SDXLControlNetDriver, capabilitydriver.UpscaleDriver:
+	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.Wan22VideoDriver, capabilitydriver.UpscaleDriver:
 		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "stable-diffusion.cpp Runtime package is unsupported on the exact host tuple", nil)

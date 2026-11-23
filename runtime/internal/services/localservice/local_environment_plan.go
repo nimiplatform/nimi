@@ -148,7 +148,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-image-native", stableDiffusionCUDAConsumerID, true
 		}
 		return "", "", false
-	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.SDXLControlNetDriver, capabilitydriver.UpscaleDriver:
+	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.UpscaleDriver:
 		if strings.EqualFold(strings.TrimSpace(host.OS), "windows") && strings.EqualFold(strings.TrimSpace(host.Arch), "amd64") && localEnvironmentHostSupportsCUDA(host) {
 			return "local-image-native", stableDiffusionCUDAConsumerID, true
 		}

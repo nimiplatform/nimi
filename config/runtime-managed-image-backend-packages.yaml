@@ -36,7 +36,7 @@ entries:
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1088-32d516c/sd-master-32d516c-bin-Darwin-macOS-26.7.2-arm64.zip
     archive_sha256: b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77 # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
-    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
+    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
@@ -63,7 +63,7 @@ entries:
     install_dir_name: sd-macos-metal-int8-arm64-stablediffusion-ggml-32d516c
     archive_sha256: 3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9 # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
-    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
+    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
@@ -96,7 +96,7 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
-    supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
+    supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported

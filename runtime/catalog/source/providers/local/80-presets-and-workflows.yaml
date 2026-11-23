@@ -2,13 +2,13 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
-  - recipe_id: sdxl-controlnet-union
+  - recipe_id: sdxl
     revision: "1"
-    title: SDXL ControlNet Union ProMax
+    title: Stable Diffusion XL (SDXL)
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/sdxl-controlnet-union/v1
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: [input.image]
     slot_metadata:
@@ -812,7 +812,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: [input.image]
     slot_metadata:
@@ -844,7 +844,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -883,7 +883,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -923,7 +923,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -1165,7 +1165,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -1195,7 +1195,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: [input.image]
     slot_metadata:
@@ -1225,7 +1225,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
     default_options: {}
     supported_features: [input.image]
     slot_metadata:
