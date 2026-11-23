@@ -1045,11 +1045,11 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 			return err
 		}
 	case "video-face-swap":
-		if _, err := videoFaceSwapPlanFromResolvedAssembly(assembly); err != nil {
+		if err := validatePersistedVideoFaceSwapAssembly(assembly); err != nil {
 			return err
 		}
 	case "image-face-swap":
-		if _, err := faceSwapPlanFromResolvedAssembly(assembly); err != nil {
+		if err := validatePersistedFaceSwapAssembly(assembly); err != nil {
 			return err
 		}
 	case "vision":

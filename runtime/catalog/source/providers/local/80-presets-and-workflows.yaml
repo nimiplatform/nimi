@@ -315,17 +315,17 @@ loadout_recipes:
     capability_contract: image.face_swap
     implementation_id: local.image.face-swap.hyperswap-1a
     driver_id: nimi.runtime.driver.hyperswap
-    driver_dialect: hyperswap/image-face-swap/v1
+    driver_dialect: hyperswap/image-face-swap/v2
     default_options: {}
     supported_features: []
     custody: []
     slot_metadata:
       - slot_id: detector.onnx
-        display_label: Exact SCRFD five-point detector
+        display_label: SCRFD five-point detector
         recommended_variant_ids: []
         model_contract: { format: onnx }
       - slot_id: recognizer.onnx
-        display_label: Paired ArcFace W600K-R50 encoder
+        display_label: ArcFace 512-dim identity encoder
         recommended_variant_ids: []
         model_contract: { format: onnx }
       - slot_id: swapper.onnx
@@ -338,17 +338,17 @@ loadout_recipes:
     capability_contract: video.face_swap
     implementation_id: local.video.face-swap.hyperswap-1a
     driver_id: nimi.runtime.driver.hyperswap
-    driver_dialect: hyperswap/video-face-swap/v1
+    driver_dialect: hyperswap/video-face-swap/v2
     default_options: {}
     supported_features: []
     custody: []
     slot_metadata:
       - slot_id: detector.onnx
-        display_label: Exact SCRFD five-point detector
+        display_label: SCRFD five-point detector
         recommended_variant_ids: []
         model_contract: { format: onnx }
       - slot_id: recognizer.onnx
-        display_label: Paired ArcFace W600K-R50 encoder
+        display_label: ArcFace 512-dim identity encoder
         recommended_variant_ids: []
         model_contract: { format: onnx }
       - slot_id: swapper.onnx

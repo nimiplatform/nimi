@@ -20,15 +20,16 @@ func TestHyperSwapRejectsSameWidthWrongContentAndUnreviewedGraph(t *testing.T) {
 	}
 	req := requirements[2]
 	data, _ := json.Marshal(hyperSwapTestGraph())
-	b := &runtimev1.ModelAssetExactBinding{RequirementId: FaceSwapperSlot, ModelAssetId: "model", VerifiedContentId: "content", EntrySha256: HyperSwapSwapperSHA}
-	a := ModelAssetDescriptor{ModelAssetID: "model", VerifiedContentID: "content", EntrySHA256: HyperSwapSwapperSHA, Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION, Family: "hyperswap-1a", ArtifactRoles: []string{FaceSwapperSlot}, FormatProbe: data}
+	customSHA := "1111111111111111111111111111111111111111111111111111111111111111"
+	b := &runtimev1.ModelAssetExactBinding{RequirementId: FaceSwapperSlot, ModelAssetId: "model", VerifiedContentId: "sha256:" + customSHA, EntrySha256: customSHA}
+	a := ModelAssetDescriptor{ModelAssetID: "model", VerifiedContentID: "sha256:" + customSHA, EntrySHA256: customSHA, Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION, Family: "hyperswap-1a", ArtifactRoles: []string{FaceSwapperSlot}, FormatProbe: data}
 	if d.ValidateBinding(req, b, a) != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		t.Fatal("exact metadata fixture rejected")
+		t.Fatal("structurally valid HyperSwap swapper rejected")
 	}
 	wrong := a
-	wrong.EntrySHA256 = HyperSwapRecognizerSHA
+	wrong.EntrySHA256 = "2222222222222222222222222222222222222222222222222222222222222222"
 	if d.ValidateBinding(req, b, wrong) == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
-		t.Fatal("same-dimensional unrelated content admitted")
+		t.Fatal("mismatched entry digest admitted")
 	}
 	for _, mutate := range []func(*onnxModel){func(m *onnxModel) { m.IRVersion = 10 }, func(m *onnxModel) { m.Opsets[""] = 17 }, func(m *onnxModel) { m.NodeDomains = []string{"untrusted.ops"} }, func(m *onnxModel) { m.Outputs = m.Outputs[:1] }, func(m *onnxModel) { m.Inputs[1].Shape[2] = 128 }} {
 		m := hyperSwapTestGraph()
@@ -44,8 +45,9 @@ func TestHyperSwapRejectsSameWidthWrongContentAndUnreviewedGraph(t *testing.T) {
 func TestHyperSwapCapturedPlanRequiresCompleteExactGroupAndProfile(t *testing.T) {
 	root := t.TempDir()
 	bindings := []InvocationExactBinding{}
-	for _, slot := range []string{FaceDetectorSlot, FaceRecognizerSlot, FaceSwapperSlot} {
-		bindings = append(bindings, InvocationExactBinding{RequirementID: slot, AbsolutePath: filepath.Join(root, slot), VerifiedContentID: "content-" + slot, EntrySHA256: hyperSwapDigest(slot)})
+	for index, slot := range []string{FaceDetectorSlot, FaceRecognizerSlot, FaceSwapperSlot} {
+		sha := []string{"1111111111111111111111111111111111111111111111111111111111111111", "2222222222222222222222222222222222222222222222222222222222222222", "3333333333333333333333333333333333333333333333333333333333333333"}[index]
+		bindings = append(bindings, InvocationExactBinding{RequirementID: slot, AbsolutePath: filepath.Join(root, slot), VerifiedContentID: "sha256:" + sha, EntrySHA256: sha})
 	}
 	deps := []InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: InsightFaceConsumerID, CanonicalRoot: root, SelectedSourceRecordID: "source", Version: "profile", Hashes: map[string]string{"profile_digest": "profile", "driver_bundle_sha256": "bundle"}}}
 	for _, host := range []string{"windows/amd64", "darwin/arm64"} {
@@ -66,10 +68,6 @@ func TestHyperSwapCapturedPlanRequiresCompleteExactGroupAndProfile(t *testing.T)
 		if _, err := (HyperSwapVideoDriver{}).PlanVideoFaceSwapSession(host, HyperSwapVideoRecipeID, []byte("reference"), bindings, deps); err == nil {
 			t.Fatal("unadmitted host accepted", host)
 		}
-	}
-	bindings[1].EntrySHA256 = HyperSwapSwapperSHA
-	if _, e := planHyperSwapModels(bindings, deps); e == nil {
-		t.Fatal("replaced paired encoder accepted")
 	}
 	if _, e := planHyperSwapModels(bindings, nil); e == nil {
 		t.Fatal("missing profile accepted")

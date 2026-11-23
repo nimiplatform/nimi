@@ -1,7 +1,14 @@
 import unittest
 import numpy as np
 from types import SimpleNamespace
-from face_swap import FaceSwapError, HyperSwapONNX, normalize_hyperswap_identity, prepare_hyperswap_crop, decode_hyperswap_pixels
+from face_swap import (
+    FaceSwapError,
+    HyperSwapONNX,
+    decode_hyperswap_pixels,
+    normalize_hyperswap_identity,
+    prepare_hyperswap_crop,
+    reject_external_onnx_model,
+)
 
 
 class ControlledTensorSession:
@@ -46,6 +53,46 @@ class HyperSwapArithmeticTests(unittest.TestCase):
         class WrongGraph(ControlledTensorSession):
             def get_outputs(self):return super().get_outputs()[:1]
         with self.assertRaises(FaceSwapError):HyperSwapONNX(WrongGraph())
+
+    def test_reject_external_onnx_model_blocks_function_attribute_proto_external_tensor(self):
+        import onnx
+
+        clean = onnx.ModelProto()
+        clean.graph.name = "clean"
+        reject_external_onnx_model(clean)
+
+        ext_tensor = onnx.TensorProto(
+            name="ext",
+            data_type=onnx.TensorProto.FLOAT,
+            dims=[1],
+            data_location=onnx.TensorProto.EXTERNAL,
+        )
+        entry = ext_tensor.external_data.add()
+        entry.key = "location"
+        entry.value = "../secret.bin"
+
+        with_fn_attr = onnx.ModelProto()
+        fn = with_fn_attr.functions.add()
+        fn.name = "custom_fn"
+        attr = fn.attribute_proto.add()
+        attr.name = "default_weight"
+        attr.type = onnx.AttributeProto.TENSOR
+        attr.t.CopyFrom(ext_tensor)
+        with self.assertRaises(FaceSwapError) as ctx:
+            reject_external_onnx_model(with_fn_attr)
+        self.assertEqual(ctx.exception.reason, "AI_LOCAL_EXECUTION_LOAD_FAILED")
+
+        with_fn_subgraph = onnx.ModelProto()
+        fn2 = with_fn_subgraph.functions.add()
+        fn2.name = "custom_subgraph_fn"
+        attr2 = fn2.attribute_proto.add()
+        attr2.name = "default_body"
+        attr2.type = onnx.AttributeProto.GRAPH
+        attr2.g.name = "nested"
+        attr2.g.initializer.add().CopyFrom(ext_tensor)
+        with self.assertRaises(FaceSwapError) as ctx2:
+            reject_external_onnx_model(with_fn_subgraph)
+        self.assertEqual(ctx2.exception.reason, "AI_LOCAL_EXECUTION_LOAD_FAILED")
 
 
 if __name__=='__main__':unittest.main()

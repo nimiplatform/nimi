@@ -65,6 +65,63 @@ def execution_environment():
     raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "The face execution platform is not admitted")
 
 
+def _reject_external_tensor(tensor):
+    if tensor.external_data or tensor.data_location != 0:
+        raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "External ONNX tensor files are not admitted")
+
+
+def _reject_external_sparse_tensor(sparse):
+    if sparse.HasField("values"):
+        _reject_external_tensor(sparse.values)
+    if sparse.HasField("indices"):
+        _reject_external_tensor(sparse.indices)
+
+
+def _reject_external_attribute(attr, depth):
+    if attr.HasField("t"):
+        _reject_external_tensor(attr.t)
+    for tensor in attr.tensors:
+        _reject_external_tensor(tensor)
+    if attr.HasField("sparse_tensor"):
+        _reject_external_sparse_tensor(attr.sparse_tensor)
+    for sparse in attr.sparse_tensors:
+        _reject_external_sparse_tensor(sparse)
+    if attr.HasField("g"):
+        _reject_external_graph(attr.g, depth + 1)
+    for subgraph in attr.graphs:
+        _reject_external_graph(subgraph, depth + 1)
+
+
+def _reject_external_node(node, depth):
+    for attr in node.attribute:
+        _reject_external_attribute(attr, depth)
+
+
+def _reject_external_graph(graph, depth=0):
+    if depth > 8:
+        raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "ONNX subgraph nesting exceeds its bound")
+    for tensor in graph.initializer:
+        _reject_external_tensor(tensor)
+    for sparse in graph.sparse_initializer:
+        _reject_external_sparse_tensor(sparse)
+    for node in graph.node:
+        _reject_external_node(node, depth)
+
+
+def reject_external_onnx_model(model):
+    _reject_external_graph(model.graph)
+    for fn in model.functions:
+        for node in fn.node:
+            _reject_external_node(node, 1)
+        for attr in getattr(fn, "attribute_proto", ()):
+            _reject_external_attribute(attr, 1)
+    for info in model.training_info:
+        if info.HasField("initialization"):
+            _reject_external_graph(info.initialization, 1)
+        if info.HasField("algorithm"):
+            _reject_external_graph(info.algorithm, 1)
+
+
 class FaceSwapWorker:
     """One serial Host owns this worker; only model sessions may remain resident."""
 
@@ -133,8 +190,7 @@ class FaceSwapWorker:
                 if not Path(path).is_absolute() or not Path(path).is_file():
                     raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "A captured model file is unavailable")
                 model = onnx.load(path, load_external_data=False)
-                if any(t.external_data or t.data_location != 0 for t in model.graph.initializer):
-                    raise FaceSwapError("AI_LOCAL_EXECUTION_LOAD_FAILED", "External ONNX tensor files are not admitted")
+                reject_external_onnx_model(model)
                 del model
                 options = ort.SessionOptions()
                 options.log_severity_level = 3

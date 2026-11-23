@@ -3,8 +3,10 @@ package ai
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -102,22 +104,33 @@ func faceSwapResolvedLoadPlan(plan *capabilitydriver.ImageFaceSwapInvocationPlan
 	return &localResolvedAssemblyFaceSwapPlan{PlatformTuple: platform, ProfileRoot: plan.ProfileRoot, ProfileDigest: plan.ProfileDigest, DriverBundleDigest: plan.DriverBundleDigest}
 }
 
-func faceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.ImageFaceSwapInvocationPlan, error) {
+func validatePersistedFaceSwapAssembly(assembly *localResolvedAssembly) error {
 	if assembly == nil || assembly.LoadPlan.Kind != "image-face-swap" || assembly.LoadPlan.FaceSwap == nil || assembly.CapabilityContract != capabilitydriver.ImageFaceSwapContract || assembly.Request.Kind != capabilitydriver.ImageFaceSwapContract ||
 		len(assembly.RecipeCustody) != 0 {
-		return nil, fmt.Errorf("captured face replacement assembly is incomplete")
+		return fmt.Errorf("captured face replacement assembly is incomplete")
 	}
 	spec := &runtimev1.ImageFaceSwapScenarioSpec{}
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, spec); err != nil {
-		return nil, err
+		return err
 	}
 	if err := validateImageFaceSwapSpec(spec); err != nil {
-		return nil, err
+		return err
 	}
 	for _, data := range [][]byte{assembly.Request.BinaryInput, assembly.Request.ReferenceInput} {
 		if _, _, err := localexecution.FaceSwapImageSize(data); err != nil {
-			return nil, err
+			return err
 		}
+	}
+	load := assembly.LoadPlan.FaceSwap
+	if strings.TrimSpace(load.PlatformTuple) == "" || !filepath.IsAbs(strings.TrimSpace(load.ProfileRoot)) || strings.TrimSpace(load.ProfileDigest) == "" || strings.TrimSpace(load.DriverBundleDigest) == "" {
+		return fmt.Errorf("captured face replacement load plan is incomplete")
+	}
+	return nil
+}
+
+func faceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.ImageFaceSwapInvocationPlan, error) {
+	if err := validatePersistedFaceSwapAssembly(assembly); err != nil {
+		return nil, err
 	}
 	load := assembly.LoadPlan.FaceSwap
 	driver, err := restoredImageFaceSwapPlanner(assembly)

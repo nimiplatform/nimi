@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -116,15 +118,36 @@ func videoFaceSwapResolvedLoadPlan(plan *capabilitydriver.VideoFaceSwapInvocatio
 	return &localResolvedAssemblyFaceSwapPlan{PlatformTuple: platform, ProfileRoot: plan.Models.ProfileRoot, ProfileDigest: plan.Models.ProfileDigest, DriverBundleDigest: plan.Models.DriverBundleDigest}
 }
 
-func videoFaceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.VideoFaceSwapInvocationPlan, error) {
+func validatePersistedVideoFaceSwapAssembly(assembly *localResolvedAssembly) error {
 	if assembly == nil || assembly.LoadPlan.Kind != "video-face-swap" || assembly.LoadPlan.FaceSwap == nil || assembly.CapabilityContract != capabilitydriver.VideoFaceSwapContract || assembly.Request.Kind != capabilitydriver.VideoFaceSwapContract || assembly.Request.MIMEType != "video/mp4" || len(assembly.RecipeCustody) != 0 {
-		return nil, fmt.Errorf("captured video replacement assembly is incomplete")
+		return fmt.Errorf("captured video replacement assembly is incomplete")
 	}
 	spec := &runtimev1.VideoFaceSwapScenarioSpec{}
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, spec); err != nil {
-		return nil, err
+		return err
 	}
 	if err := validateVideoFaceSwapSpec(spec); err != nil {
+		return err
+	}
+	if _, _, err := localexecution.FaceSwapImageSize(assembly.Request.ReferenceInput); err != nil {
+		return err
+	}
+	if len(assembly.Request.BinaryInput) == 0 {
+		return fmt.Errorf("captured video replacement target video is empty")
+	}
+	load := assembly.LoadPlan.FaceSwap
+	if strings.TrimSpace(load.PlatformTuple) == "" || !filepath.IsAbs(strings.TrimSpace(load.ProfileRoot)) || strings.TrimSpace(load.ProfileDigest) == "" || strings.TrimSpace(load.DriverBundleDigest) == "" {
+		return fmt.Errorf("captured video replacement load plan is incomplete")
+	}
+	return nil
+}
+
+func videoFaceSwapPlanFromResolvedAssembly(assembly *localResolvedAssembly) (*capabilitydriver.VideoFaceSwapInvocationPlan, error) {
+	if err := validatePersistedVideoFaceSwapAssembly(assembly); err != nil {
+		return nil, err
+	}
+	spec := &runtimev1.VideoFaceSwapScenarioSpec{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, spec); err != nil {
 		return nil, err
 	}
 	load := assembly.LoadPlan.FaceSwap
