@@ -2,7 +2,7 @@ import { formatBytes } from '../../components/download-format.js';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 
 import { ModelMakerLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -114,10 +114,12 @@ export function ModelStatsCard(props: {
       {stats.length > 0 ? (
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat) => (
-            <div key={stat.key} title={stat.title}>
-              <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">{stat.value}</p>
-              <p className="text-xs text-[var(--nimi-text-muted)]">{stat.label}</p>
-            </div>
+            <Tooltip key={stat.key} content={stat.title} placement="top">
+              <div>
+                <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">{stat.value}</p>
+                <p className="text-xs text-[var(--nimi-text-muted)]">{stat.label}</p>
+              </div>
+            </Tooltip>
           ))}
         </div>
       ) : null}
@@ -215,13 +217,15 @@ export function MarketMeta(props: {
     items.push({
       key: 'downloads',
       node: (
-        <span
-          className="inline-flex items-center gap-1"
-          title={t('runtimeConfig.recommend.downloads', { count: props.downloads, defaultValue: '{{count}} downloads' })}
+        <Tooltip
+          content={t('runtimeConfig.recommend.downloads', { count: props.downloads, defaultValue: '{{count}} downloads' })}
+          placement="top"
         >
-          <DownloadIcon className="h-3.5 w-3.5" />
-          {formatCompactCount(props.downloads)}
-        </span>
+          <span className="inline-flex items-center gap-1">
+            <DownloadIcon className="h-3.5 w-3.5" />
+            {formatCompactCount(props.downloads)}
+          </span>
+        </Tooltip>
       ),
     });
   }
@@ -229,13 +233,15 @@ export function MarketMeta(props: {
     items.push({
       key: 'likes',
       node: (
-        <span
-          className="inline-flex items-center gap-1"
-          title={t('runtimeConfig.recommend.likes', { count: props.likes, defaultValue: '{{count}} likes' })}
+        <Tooltip
+          content={t('runtimeConfig.recommend.likes', { count: props.likes, defaultValue: '{{count}} likes' })}
+          placement="top"
         >
-          <HeartIcon className="h-3.5 w-3.5" />
-          {formatCompactCount(props.likes)}
-        </span>
+          <span className="inline-flex items-center gap-1">
+            <HeartIcon className="h-3.5 w-3.5" />
+            {formatCompactCount(props.likes)}
+          </span>
+        </Tooltip>
       ),
     });
   }
@@ -281,9 +287,11 @@ export function ModelMakerLogo(props: {
     return null;
   }
   return (
-    <span title={maker} className="inline-flex shrink-0">
-      <ModelMakerLogoTile maker={maker} size={props.size === 'lg' ? 'md' : 'xs'} />
-    </span>
+    <Tooltip content={maker} placement="top">
+      <span aria-label={maker} className="inline-flex shrink-0">
+        <ModelMakerLogoTile maker={maker} size={props.size === 'lg' ? 'md' : 'xs'} />
+      </span>
+    </Tooltip>
   );
 }
 

@@ -55,12 +55,14 @@ export function sourceDisplayDetailQueryKey(selection: SourceDisplayDetailSelect
 export async function fetchSourceDisplayDetail(
   selection: SourceDisplayDetailSelection,
   sdk: DesktopRendererSdkPort,
+  options?: { prefetchedSource?: object | null },
 ): Promise<SourceDisplayDetail | null> {
   const normalizedSourceRef = readCharacterSourceRefV3(selection);
   if (!normalizedSourceRef) return null;
   const sourceResult = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
     sdk.realm(),
     normalizedSourceRef,
+    options?.prefetchedSource ? { prefetchedSource: options.prefetchedSource } : undefined,
   );
   const sourceState = resolveCharacterSourceState(sourceResult);
   return {

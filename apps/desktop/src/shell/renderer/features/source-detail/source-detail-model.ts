@@ -40,6 +40,14 @@ export type SourceDetailVisualItem = {
   height: number | null;
 };
 
+export type SourceDetailRelationshipTarget = {
+  kind: string;
+  name: string;
+  isCharacter?: boolean;
+  avatarUrl?: string | null;
+  avatarMedia?: RealmModel<'MediaDeliveryDto'> | null;
+};
+
 export type SourceDetailData = {
   id: string;
   displayName: string;
@@ -75,7 +83,7 @@ export type SourceDetailData = {
   characterProfile: CharacterProfileProjection;
   relationshipClues: SourceDetailRelationshipClue[];
   relationshipTargetLabels: Record<string, string>;
-  relationshipTargets: Record<string, { kind: string; name: string; isCharacter?: boolean }>;
+  relationshipTargets: Record<string, SourceDetailRelationshipTarget>;
   works: SourceDetailWorkCollection[];
   worksAvailability: 'available' | 'unavailable';
   sourceState: CharacterSourceState;
@@ -166,7 +174,16 @@ function readRelationshipTargets(value: unknown): SourceDetailData['relationship
     if (!entry) continue;
     const kind = readOptionalString(entry, 'kind');
     const name = readOptionalString(entry, 'name');
-    if (kind && name) targets[id] = { kind, name, ...(entry.isCharacter === true ? { isCharacter: true } : {}) };
+    if (!kind || !name) continue;
+    const avatarUrl = readOptionalString(entry, 'avatarUrl');
+    const avatarMedia = readMediaDelivery(entry.avatarMedia);
+    targets[id] = {
+      kind,
+      name,
+      ...(entry.isCharacter === true ? { isCharacter: true } : {}),
+      ...(avatarUrl ? { avatarUrl } : {}),
+      ...(avatarMedia ? { avatarMedia } : {}),
+    };
   }
   return targets;
 }

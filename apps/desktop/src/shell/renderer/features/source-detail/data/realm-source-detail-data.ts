@@ -1,3 +1,4 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import { projectWorldSummaryBatch } from '../../world/data/realm-world-data.js';
 import { type Realm } from '@nimiplatform/sdk/realm';
 import { type JsonObject } from '@nimiplatform/sdk/types';
@@ -119,6 +120,71 @@ async function loadWorldCharacterRelationshipProjections(
   return relationships.map(projectWorldRelationshipCore);
 }
 
+function toPublicHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return /^https?:\/\//i.test(normalized) ? normalized : null;
+}
+
+const RELATIONSHIP_AVATAR_CATALOG_LIMIT = 100;
+const RELATIONSHIP_AVATAR_FALLBACK_QUERY_CAP = 12;
+
+async function attachRelationshipTargetAvatars(
+  realm: Realm,
+  targets: JsonObject,
+  characterTargetsByWorld: ReadonlyMap<string, ReadonlyArray<{ entityId: string; name: string }>>,
+): Promise<void> {
+  if (typeof realm.worldPublic?.worldPublicControllerListCharacterCatalog !== 'function'
+    || characterTargetsByWorld.size === 0) {
+    return;
+  }
+
+  await Promise.all(Array.from(characterTargetsByWorld, async ([targetWorldId, characterTargets]) => {
+    const remaining = new Map(characterTargets.map((item) => [item.entityId, item.name]));
+    const applyPage = (page: unknown) => {
+      const items = asRecord(page).items;
+      if (!Array.isArray(items)) return;
+      for (const raw of items) {
+        const record = asRecord(raw);
+        const ref = readCharacterSourceRefV3(record.sourceRef);
+        if (!ref || ref.kind !== 'worldCharacter' || ref.worldId !== targetWorldId) continue;
+        const entityId = ref.worldEntityRef.entityId;
+        if (!remaining.has(entityId)) continue;
+        const avatarMedia = readMediaDelivery(record.avatarMedia);
+        const avatarUrl = toPublicHttpUrl(record.avatarUrl);
+        if (avatarMedia || avatarUrl) {
+          const existing = asRecord(targets[entityId]);
+          targets[entityId] = {
+            ...existing,
+            ...(avatarUrl ? { avatarUrl } : {}),
+            ...(avatarMedia ? { avatarMedia: avatarMedia as unknown as JsonObject } : {}),
+          };
+        }
+        remaining.delete(entityId);
+      }
+    };
+
+    const firstPage = await realm.worldPublic.worldPublicControllerListCharacterCatalog({
+      path: {},
+      query: { worldId: targetWorldId, limit: RELATIONSHIP_AVATAR_CATALOG_LIMIT },
+    }).catch(() => null);
+    if (!firstPage) return;
+    applyPage(firstPage);
+
+    if (firstPage.hasMore && remaining.size > 0) {
+      const queries = [...new Set(Array.from(remaining.values(), (name) => name.trim()).filter(Boolean))]
+        .slice(0, RELATIONSHIP_AVATAR_FALLBACK_QUERY_CAP);
+      const pages = await Promise.all(queries.map((q) => realm.worldPublic.worldPublicControllerListCharacterCatalog({
+        path: {},
+        query: { worldId: targetWorldId, q, limit: 20 },
+      }).catch(() => null)));
+      for (const page of pages) {
+        if (page) applyPage(page);
+      }
+    }
+  }));
+}
+
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r033
 // Resolve the actual endpoints, not names, id prefixes or relation-type guesses.
 // Shared profile references work identically for Persona and World characters.
@@ -146,6 +212,7 @@ async function loadRelationshipTargets(
   }
   const targets: JsonObject = {};
   const byWorld = new Map<string, string[]>();
+  const characterTargetsByWorld = new Map<string, Array<{ entityId: string; name: string }>>();
   for (const [id, targetWorldId] of refs) {
     const ids = byWorld.get(targetWorldId) ?? [];
     ids.push(id);
@@ -154,9 +221,14 @@ async function loadRelationshipTargets(
   for (const [targetWorldId, ids] of byWorld) {
     for (let offset = 0; offset < ids.length; offset += 100) {
       const entityIds = ids.slice(offset, offset + 100);
-      const rows = await realm.worldCore.worldCoreControllerGetRelationshipTargets({
-        path: { worldId: targetWorldId }, body: { entityIds },
-      }).catch(() => null);
+      let rows: Awaited<ReturnType<Realm['worldCore']['worldCoreControllerGetRelationshipTargets']>>;
+      try {
+        rows = await realm.worldCore.worldCoreControllerGetRelationshipTargets({
+          path: { worldId: targetWorldId }, body: { entityIds },
+        });
+      } catch {
+        continue;
+      }
       if (!rows) continue;
       const expected = new Set(entityIds);
       for (const row of rows) {
@@ -164,9 +236,15 @@ async function loadRelationshipTargets(
           throw new Error('Relationship endpoint identity or world mismatch');
         }
         targets[row.entityId] = { kind: row.kind, name: row.name, ...(row.isCharacter ? { isCharacter: true } : {}) };
+        if (row.isCharacter) {
+          const characterTargets = characterTargetsByWorld.get(targetWorldId) ?? [];
+          characterTargets.push({ entityId: row.entityId, name: row.name });
+          characterTargetsByWorld.set(targetWorldId, characterTargets);
+        }
       }
     }
   }
+  await attachRelationshipTargetAvatars(realm, targets, characterTargetsByWorld);
   return targets;
 }
 
@@ -189,31 +267,110 @@ async function loadPublicSourceCard(
   return source;
 }
 
-async function loadProfileProjection(
+type PersonaCharacterRecord = Awaited<ReturnType<Realm['worldCore']['worldCoreControllerGetPersonaCharacter']>>;
+type WorldCharacterRecord = Awaited<ReturnType<Realm['worldCore']['worldCoreControllerGetWorldCharacter']>>;
+
+type PrefetchedPartnerSourcePayload =
+  | {
+    kind: 'personaCharacter';
+    sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>;
+    record: PersonaCharacterRecord;
+    publicSource: WorldPublicSourceCardDto;
+  }
+  | {
+    kind: 'worldCharacter';
+    sourceRef: Extract<CharacterSourceRefV3, { kind: 'worldCharacter' }>;
+    record: WorldCharacterRecord;
+    publicSource: WorldPublicSourceCardDto;
+  };
+
+// Weakly binds verified records to the resolved PartnerSource projection cached
+// in TanStack Query (already account/realm-scoped) so PartnerDetails can skip
+// duplicate GetWorldCharacter / GetPersonaCharacter / GetCharacterSource hops.
+const prefetchedPartnerSources = new WeakMap<object, PrefetchedPartnerSourcePayload>();
+
+function readMatchingPrefetchedPersona(
+  prefetchedSource: object | null | undefined,
+  sourceRef: Extract<CharacterSourceRefV3, { kind: 'personaCharacter' }>,
+): { persona: PersonaCharacterRecord; publicSource: WorldPublicSourceCardDto } | null {
+  if (!prefetchedSource) return null;
+  const cached = prefetchedPartnerSources.get(prefetchedSource);
+  if (!cached || cached.kind !== 'personaCharacter') return null;
+  if (characterSourceRefKey(cached.sourceRef) !== characterSourceRefKey(sourceRef)) return null;
+  if (!cached.record.profile || typeof cached.record.profile !== 'object') return null;
+  if (
+    toNonEmptyString(cached.record.id) !== sourceRef.id
+    || toNonEmptyString(cached.record.worldId) !== sourceRef.worldId
+    || toNonEmptyString(cached.record.sourceHash) !== sourceRef.sourceHash
+    || toNonEmptyString(cached.record.ownerAccountId) !== sourceRef.ownerAccountId
+  ) {
+    return null;
+  }
+  const returnedSourceRef = readCharacterSourceRefV3(cached.publicSource.sourceRef);
+  if (!returnedSourceRef || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
+    return null;
+  }
+  return { persona: cached.record, publicSource: cached.publicSource };
+}
+
+function readMatchingPrefetchedWorldCharacter(
+  prefetchedSource: object | null | undefined,
+  sourceRef: Extract<CharacterSourceRefV3, { kind: 'worldCharacter' }>,
+): { character: WorldCharacterRecord; publicSource: WorldPublicSourceCardDto } | null {
+  if (!prefetchedSource) return null;
+  const cached = prefetchedPartnerSources.get(prefetchedSource);
+  if (!cached || cached.kind !== 'worldCharacter') return null;
+  if (characterSourceRefKey(cached.sourceRef) !== characterSourceRefKey(sourceRef)) return null;
+  if (!cached.record.profile || typeof cached.record.profile !== 'object') return null;
+  if (
+    toNonEmptyString(cached.record.id) !== sourceRef.id
+    || toNonEmptyString(cached.record.worldId) !== sourceRef.worldId
+    || toNonEmptyString(cached.record.sourceHash) !== sourceRef.sourceHash
+    || toNonEmptyString(cached.record.worldEntityRef?.entityId) !== sourceRef.worldEntityRef.entityId
+  ) {
+    return null;
+  }
+  const returnedSourceRef = readCharacterSourceRefV3(cached.publicSource.sourceRef);
+  if (!returnedSourceRef || characterSourceRefKey(returnedSourceRef) !== characterSourceRefKey(sourceRef)) {
+    return null;
+  }
+  return { character: cached.record, publicSource: cached.publicSource };
+}
+
+async function loadWorldBanner(
   realm: Realm,
-  profile: CharacterProfileCoreDto,
-  source: WorldPublicSourceCardDto,
-  runtimeSourceRef: string | null,
-): Promise<JsonObject> {
-  const projection = projectCharacterSourceProfile(profile, source);
+  worldId: string,
+): Promise<{ worldBannerUrl: string | null; worldBannerMedia: unknown }> {
   // Resolve the shared world banner with the same projection as World.
-  let worldBannerUrl: string | null = null;
-  let worldBannerMedia: unknown = null;
   // An unavailable optional image must not hide a successfully loaded
   // character. Validate successful replies outside the transport catch so
   // malformed or mismatched public projections still fail closed.
-  const worlds = await realm.worldPublic.worldPublicControllerGetWorldCatalogByIds({
-    path: {}, body: { worldIds: [source.worldId] },
-  }).catch(() => null);
-  if (worlds) {
-    const [projected] = projectWorldSummaryBatch(worlds, [source.worldId]);
-    worldBannerUrl = typeof projected?.bannerUrl === 'string' ? projected.bannerUrl : null;
-    worldBannerMedia = projected?.bannerMedia ?? null;
+  let worlds: Awaited<ReturnType<Realm['worldPublic']['worldPublicControllerGetWorldCatalogByIds']>>;
+  try {
+    worlds = await realm.worldPublic.worldPublicControllerGetWorldCatalogByIds({
+      path: {}, body: { worldIds: [worldId] },
+    });
+  } catch {
+    return { worldBannerUrl: null, worldBannerMedia: null };
   }
+  const [projected] = projectWorldSummaryBatch(worlds, [worldId]);
+  return {
+    worldBannerUrl: typeof projected?.bannerUrl === 'string' ? projected.bannerUrl : null,
+    worldBannerMedia: projected?.bannerMedia ?? null,
+  };
+}
+
+function buildProfileProjection(
+  profile: CharacterProfileCoreDto,
+  source: WorldPublicSourceCardDto,
+  worldBanner: { worldBannerUrl: string | null; worldBannerMedia: unknown },
+  runtimeSourceRef: string | null,
+): JsonObject {
+  const projection = projectCharacterSourceProfile(profile, source);
   return {
     ...projection,
-    worldBannerUrl,
-    worldBannerMedia,
+    worldBannerUrl: worldBanner.worldBannerUrl,
+    worldBannerMedia: worldBanner.worldBannerMedia,
     runtimeSourceRef: projection.viewerRelation.runtimeSourceRef ?? runtimeSourceRef,
   } as unknown as JsonObject;
 }
@@ -221,13 +378,16 @@ async function loadProfileProjection(
 async function loadRealmSourceDetailsBySourceRef(
   realm: Realm,
   sourceRef: CharacterSourceRefV3,
-  context?: { runtimeSourceRef?: string | null },
+  context?: { runtimeSourceRef?: string | null; prefetchedSource?: object | null },
 ): Promise<JsonObject> {
   const runtimeSourceRef = toNonEmptyString(context?.runtimeSourceRef) || null;
   if (sourceRef.kind === 'personaCharacter') {
-    const persona = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
-      path: { personaCharacterId: sourceRef.id },
-    });
+    const prefetched = readMatchingPrefetchedPersona(context?.prefetchedSource, sourceRef);
+    const persona = prefetched
+      ? prefetched.persona
+      : await realm.worldCore.worldCoreControllerGetPersonaCharacter({
+          path: { personaCharacterId: sourceRef.id },
+        });
     const worldId = toNonEmptyString(persona.worldId);
     const sourceHash = toNonEmptyString(persona.sourceHash);
     const ownerAccountId = toNonEmptyString(persona.ownerAccountId);
@@ -237,11 +397,12 @@ async function loadRealmSourceDetailsBySourceRef(
       || ownerAccountId !== sourceRef.ownerAccountId) {
       throw new Error('PersonaCharacter sourceRef is stale or mismatched');
     }
-    const publicSource = await loadPublicSourceCard(realm, sourceRef);
-    const [projection, relationshipTargets] = await Promise.all([
-      loadProfileProjection(realm, persona.profile, publicSource, runtimeSourceRef),
+    const [publicSource, worldBanner, relationshipTargets] = await Promise.all([
+      prefetched ? Promise.resolve(prefetched.publicSource) : loadPublicSourceCard(realm, sourceRef),
+      loadWorldBanner(realm, worldId),
       loadRelationshipTargets(realm, persona.profile, [], worldId),
     ]);
+    const projection = buildProfileProjection(persona.profile, publicSource, worldBanner, runtimeSourceRef);
     return {
       id: persona.id,
       ...projection,
@@ -259,9 +420,12 @@ async function loadRealmSourceDetailsBySourceRef(
     };
   }
 
-  const character = await realm.worldCore.worldCoreControllerGetWorldCharacter({
-    path: { characterId: sourceRef.id },
-  });
+  const prefetched = readMatchingPrefetchedWorldCharacter(context?.prefetchedSource, sourceRef);
+  const character = prefetched
+    ? prefetched.character
+    : await realm.worldCore.worldCoreControllerGetWorldCharacter({
+        path: { characterId: sourceRef.id },
+      });
   const worldId = toNonEmptyString(character.worldId);
   const sourceHash = toNonEmptyString(character.sourceHash);
   if (worldId !== sourceRef.worldId
@@ -273,15 +437,20 @@ async function loadRealmSourceDetailsBySourceRef(
   if (!entityId) {
     throw new Error('WorldCharacterCore source detail requires entityId');
   }
-  const [entity, relationships, publicSource] = await Promise.all([
+  const [entity, relationships, publicSource, worldBanner] = await Promise.all([
     loadBoundWorldEntityProjection(realm, character, worldId),
     loadWorldCharacterRelationshipProjections(realm, entityId, worldId),
-    loadPublicSourceCard(realm, sourceRef),
+    prefetched ? Promise.resolve(prefetched.publicSource) : loadPublicSourceCard(realm, sourceRef),
+    loadWorldBanner(realm, worldId),
   ]);
-  const [projection, relationshipTargets] = await Promise.all([
-    loadProfileProjection(realm, character.profile, publicSource, runtimeSourceRef),
-    loadRelationshipTargets(realm, character.profile, relationships, worldId, entityId),
-  ]);
+  const relationshipTargets = await loadRelationshipTargets(
+    realm,
+    character.profile,
+    relationships,
+    worldId,
+    entityId,
+  );
+  const projection = buildProfileProjection(character.profile, publicSource, worldBanner, runtimeSourceRef);
   return {
     id: character.id,
     ...projection,
@@ -306,7 +475,7 @@ export const realmSourceDetailData = {
   loadRealmSourceDetailsBySourceRef: (
     realm: Realm,
     sourceRef: CharacterSourceRefV3,
-    context?: { runtimeSourceRef?: string | null },
+    context?: { runtimeSourceRef?: string | null; prefetchedSource?: object | null },
   ) =>
     loadRealmSourceDetailsBySourceRef(realm, sourceRef, context),
 };
@@ -328,12 +497,34 @@ export async function resolveCurrentPartnerSource(realm: Realm, captured: Charac
   const card = await loadPublicSourceCard(realm, current);
   const display = projectWorldPublicSourceCard(card);
   const voice = display.mediaAssets?.voiceSample;
-  return { sourceRef: current, displayName: card.displayName, worldName: card.worldName,
-    summary: card.summary, media: card.media, updated: current.sourceHash !== captured.sourceHash,
+  const result = {
+    sourceRef: current,
+    displayName: card.displayName,
+    worldName: card.worldName,
+    summary: card.summary,
+    media: card.media,
+    updated: current.sourceHash !== captured.sourceHash,
     preview: {
       role: card.role ?? null,
       species: display.speciesDescription ?? null,
       topics: card.topics,
       voice: voice && display.voiceSampleUrl ? { url: display.voiceSampleUrl, durationSec: voice.durationSec ?? null } : null,
-    } };
+    },
+  };
+  if (current.kind === 'personaCharacter') {
+    prefetchedPartnerSources.set(result, {
+      kind: 'personaCharacter',
+      sourceRef: current,
+      record: value as PersonaCharacterRecord,
+      publicSource: card,
+    });
+  } else {
+    prefetchedPartnerSources.set(result, {
+      kind: 'worldCharacter',
+      sourceRef: current,
+      record: value as WorldCharacterRecord,
+      publicSource: card,
+    });
+  }
+  return result;
 }

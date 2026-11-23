@@ -1,5 +1,5 @@
 import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
-import { ActionMenu, AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { ActionMenu, AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -80,11 +80,12 @@ export function HomeMessageSourceNotices({ messages, systemSources, app = true, 
  * One bounded timeline with its navigation and local filters above the list.
  * Source-owned state and the complete Message center remain independent.
  */
-export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice }: {
+export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice, variant = 'card' }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
   onViewAll: () => void;
   appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
+  variant?: 'card' | 'drawer';
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<HomeTimelineQuickFilter>('all');
@@ -161,17 +162,61 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
   const quiet = !filtered && !loading && complete && groups?.length === 0
     && messages.offHomeCount === 0 && pending.known && pending.count === 0
     && messages.preferences.state.status === 'ready' && !messages.preferences.saveFailed;
-  return (
-    <AppCardSurface
-      as="aside"
-      kind="operational-solid"
-      className="group/messages flex min-w-0 flex-col gap-2 px-4 py-3.5 shadow-[var(--nimi-elevation-base)]"
-      aria-label={t('runtimeConfig.overview.messages.title')}
-      data-testid="home-messages"
-    >
+  const isDrawer = variant === 'drawer';
+
+  const body = (
+    <>
       <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1" data-testid="home-messages-toolbar">
-        <h2 className={`text-base font-semibold ${quiet ? 'sr-only group-has-[.home-message-notices:not(:empty)]/messages:not-sr-only' : ''}`}>{t('runtimeConfig.overview.messages.title')}</h2>
-        {quiet ? (
+        {!isDrawer ? (
+          <h2 className={`text-base font-semibold ${quiet ? 'sr-only group-has-[.home-message-notices:not(:empty)]/messages:not-sr-only' : ''}`}>
+            {t('runtimeConfig.overview.messages.title')}
+          </h2>
+        ) : null}
+        {isDrawer ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              aria-pressed={filter === 'all'}
+              onClick={() => setFilter('all')}
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+                filter === 'all'
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
+                  : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
+              }`}
+            >
+              {t('runtimeConfig.overview.messages.filterAll')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={filter === 'pending'}
+              onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+                filter === 'pending'
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
+                  : pending.count > 0
+                    ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]'
+                    : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
+              }`}
+              data-testid="home-messages-pending"
+            >
+              {pending.known
+                ? t(pending.more ? 'runtimeConfig.overview.messages.filterPendingCountMore' : 'runtimeConfig.overview.messages.filterPendingCount', { count: pending.count })
+                : t('runtimeConfig.overview.messages.filterPending')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={filter === 'unread'}
+              onClick={() => setFilter(filter === 'unread' ? 'all' : 'unread')}
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+                filter === 'unread'
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
+                  : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
+              }`}
+            >
+              {t('runtimeConfig.overview.messages.filterUnread')}
+            </button>
+          </div>
+        ) : quiet ? (
           <span className="inline-flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)] group-has-[.home-message-notices:not(:empty)]/messages:hidden">
             <Bell size={15} aria-hidden="true" />{t('runtimeConfig.overview.messages.empty')}
           </span>
@@ -182,7 +227,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
             onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
             className={`rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${filter === 'pending'
               ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-              : pending.count > 0 ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]'}`}
+              : pending.count > 0 ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)]'}`}
             data-testid="home-messages-pending"
           >
             {pending.known
@@ -191,25 +236,28 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           </button>
         )}
         <div className="ml-auto flex items-center gap-1">
-          <Button tone="ghost" size="sm" onClick={onViewAll} data-testid="home-messages-view-all">
-            {t('runtimeConfig.overview.messages.viewAll')}
-          </Button>
+          {!isDrawer ? (
+            <Button tone="ghost" size="sm" onClick={onViewAll} data-testid="home-messages-view-all">
+              {t('runtimeConfig.overview.messages.viewAll')}
+            </Button>
+          ) : null}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
-              <IconButton
-                icon={<ListFilter size={16} />}
-                aria-label={t(filtered ? 'runtimeConfig.overview.messages.filtersActive' : 'runtimeConfig.overview.messages.filters')}
-                title={t('runtimeConfig.overview.messages.filters')}
-                className={`rounded-full ${filtered ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : ''}`}
-                data-testid="home-messages-filter"
-              />
-            </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={8} className="w-44 p-1">
+            <Tooltip content={t('runtimeConfig.overview.messages.filters')} placement="top">
+              <PopoverTrigger asChild>
+                <IconButton
+                  icon={<ListFilter size={16} />}
+                  aria-label={t(filtered ? 'runtimeConfig.overview.messages.filtersActive' : 'runtimeConfig.overview.messages.filters')}
+                  className={`rounded-full ${filtered ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'bg-[var(--nimi-home-soft-well)] hover:bg-[var(--nimi-home-soft-well-hover)]'}`}
+                  data-testid="home-messages-filter"
+                />
+              </PopoverTrigger>
+            </Tooltip>
+            <PopoverContent align="end" sideOffset={8} className="w-44 rounded-2xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-1 shadow-[var(--nimi-home-porcelain-pill-shadow)]!">
               <ActionMenu
                 items={(['all', 'unread', 'pending'] as const).map(quickFilterItem)}
                 ariaLabel={t('runtimeConfig.overview.messages.filters')}
               />
-              <div className="mx-1 my-1 border-t border-[var(--nimi-border-subtle)]" role="separator" />
+              <div className="mx-2 my-1 h-px bg-[var(--nimi-home-soft-well)]" role="separator" />
               <ActionMenu
                 items={(['message', 'todo'] as const).map(quickFilterItem)}
                 ariaLabel={t('runtimeConfig.overview.messages.quickFilterTypeGroup')}
@@ -218,7 +266,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           </Popover>
         </div>
       </div>
-      <ScrollArea className="min-w-0 lg:max-h-[50vh]" contentClassName="flex flex-col gap-3">
+      <ScrollArea className={isDrawer ? 'min-h-0 flex-1 min-w-0' : 'min-w-0 lg:max-h-[50vh]'} contentClassName="flex flex-col gap-3">
         {filtered ? (
           <div className="flex items-center justify-between gap-2 px-1 text-xs text-[var(--nimi-text-secondary)]" role="status">
             <span>{t(`runtimeConfig.overview.messages.quickFilters.${filter}`)}</span>
@@ -239,8 +287,13 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           data-testid="home-messages-list"
         >
           {groups?.map(renderGroup)}
+          {isDrawer && quiet ? (
+            <div className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-10 text-center text-xs text-[var(--nimi-text-secondary)] group-has-[.home-message-notices:not(:empty)]/messages:hidden">
+              {t('runtimeConfig.overview.messages.empty')}
+            </div>
+          ) : null}
           {!quiet && !groups?.length && !loading ? (
-            <p className="py-2 text-sm text-[var(--nimi-text-secondary)]">
+            <p className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-6 text-center text-xs text-[var(--nimi-text-secondary)]">
               {!filtered && messages.offHomeCount > 0
                 ? t('runtimeConfig.overview.messages.allHidden')
                 : complete
@@ -249,12 +302,36 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
             </p>
           ) : null}
           {loading ? (
-            <div className="rounded-xl px-3.5 py-3">
+            <div className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-3.5 py-3">
               <LoadingSkeleton lines={2} label={t('Common.loading')} />
             </div>
           ) : null}
         </div>
       </ScrollArea>
+    </>
+  );
+
+  if (isDrawer) {
+    return (
+      <div
+        className="group/messages flex min-h-0 flex-1 min-w-0 flex-col gap-3"
+        aria-label={t('runtimeConfig.overview.messages.title')}
+        data-testid="home-messages"
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AppCardSurface
+      as="aside"
+      kind="operational-solid"
+      className="group/messages flex min-w-0 flex-col gap-2 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! px-5 py-4 shadow-[var(--nimi-home-porcelain-shadow)]!"
+      aria-label={t('runtimeConfig.overview.messages.title')}
+      data-testid="home-messages"
+    >
+      {body}
     </AppCardSurface>
   );
 }

@@ -6,7 +6,7 @@ import { ChatPartnerAvatarCard } from './chat-partner-avatar-card.js';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import './chat-relationship-rail.css';
 import { ChevronsRight, ContactRound, History, Rotate3d, Settings2 } from 'lucide-react';
-import { AppCardSurface, IconButton, IconToggleAction, NimiTabs, ScrollArea } from '@nimiplatform/kit/ui';
+import { AppCardSurface, IconButton, IconToggleAction, NimiTabs, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion.js';
@@ -257,19 +257,20 @@ export function ContactsAvatarRail({
             className="flex min-h-0 w-[72px] flex-1 flex-col items-center pb-[76px] pt-2"
           >
             <div className="relative flex shrink-0 flex-col items-center gap-1 pb-3">
-              <IconButton
-                tone="ghost"
-                icon={(
-                  <span className="chat-side-flip" data-side={side} aria-hidden="true">
-                    <Rotate3d size={29} strokeWidth={1.55} />
-                  </span>
-                )}
-                aria-label={flipLabel}
-                title={flipLabel}
-                data-testid="chat-side-flip"
-                onClick={onSwitch}
-                className="chat-side-toggle h-11 w-11 rounded-full"
-              />
+              <Tooltip content={flipLabel} placement="right">
+                <IconButton
+                  tone="ghost"
+                  icon={(
+                    <span className="chat-side-flip" data-side={side} aria-hidden="true">
+                      <Rotate3d size={29} strokeWidth={1.55} />
+                    </span>
+                  )}
+                  aria-label={flipLabel}
+                  data-testid="chat-side-flip"
+                  onClick={onSwitch}
+                  className="chat-side-toggle h-11 w-11 rounded-full"
+                />
+              </Tooltip>
               {otherUnread ? (
                 <span
                   className="absolute -right-1 top-6 h-2.5 w-2.5 rounded-full bg-[var(--nimi-status-danger)] ring-2 ring-[var(--nimi-surface-canvas)]"
@@ -292,14 +293,15 @@ export function ContactsAvatarRail({
                   ? <PartnerRelationshipAvatar key={target.id} target={target} selected={selectedId === target.id} onSelect={() => onSelect(target)} />
                   : <RelationshipAvatar key={target.id} target={target} selected={selectedId === target.id} onSelect={() => onSelect(target)} />)}
                 {onMore ? (
-                  <IconButton
-                    size="sm"
-                    tone="ghost"
-                    icon={<span aria-hidden="true">…</span>}
-                    aria-label={t('Relationship.contacts.loadMore')}
-                    title={t('Relationship.contacts.loadMore')}
-                    onClick={onMore}
-                  />
+                  <Tooltip content={t('Relationship.contacts.loadMore')} placement="right">
+                    <IconButton
+                      size="sm"
+                      tone="ghost"
+                      icon={<span aria-hidden="true">…</span>}
+                      aria-label={t('Relationship.contacts.loadMore')}
+                      onClick={onMore}
+                    />
+                  </Tooltip>
                 ) : null}
               </div>
             </ScrollArea>

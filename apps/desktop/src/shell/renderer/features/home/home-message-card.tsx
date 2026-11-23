@@ -1,6 +1,6 @@
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { realmMessageAccount } from './home-realm-messages-model.js';
-import { AppCardSurface, Button, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, ProgressIndicator, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,9 +35,6 @@ export type HomeMessageCardContext = Readonly<{
 }>;
 
 const CARD_CLASS = 'relative flex gap-3 rounded-[20px] px-3.5 py-3';
-
-/** Dense message lists rest cards on the Home card elevation; the promoted-glass raised default reads as a heavy shadow under every card. */
-const LIST_CARD_ELEVATION = 'shadow-[var(--nimi-home-card-elevation)]';
 
 export function messageSourceLabel(message: HomeMessage, t: Translate): string {
   switch (message.sourceKind) {
@@ -122,10 +119,10 @@ function SystemTile({ children, alert }: { children: ReactNode; alert?: boolean 
   return (
     <span
       aria-hidden="true"
-      className={`flex size-10 shrink-0 items-center justify-center rounded-xl border ${
+      className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
         alert
-          ? 'border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
-          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-status-info)]'
+          ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
+          : 'bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]'
       }`}
     >
       {children}
@@ -212,17 +209,18 @@ function openLabel(message: HomeMessage, busy: 'open' | 'read' | undefined, t: T
 
 function HideButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="absolute right-1.5 top-1.5 z-10 flex size-8 items-center justify-center rounded-full opacity-0 transition-opacity focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] group-hover/message:opacity-100 group-focus-within/message:opacity-100"
-    >
-      <span className="flex size-[22px] items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] hover:text-[var(--nimi-text-primary)]">
-        <X size={12} strokeWidth={2.5} aria-hidden="true" />
-      </span>
-    </button>
+    <Tooltip content={label} placement="top">
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        className="absolute right-1.5 top-1.5 z-10 flex size-8 items-center justify-center rounded-full opacity-0 transition-opacity focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+      >
+        <span className="flex size-6 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] hover:text-[var(--nimi-text-primary)]">
+          <X size={12} strokeWidth={2.5} aria-hidden="true" />
+        </span>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -276,16 +274,17 @@ function HoverActionButton({ label, disabled, onClick, children }: {
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="flex size-[26px] items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:text-[var(--nimi-text-primary)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-    >
-      {children}
-    </button>
+    <Tooltip content={label} placement="top">
+      <button
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+        className="flex size-7 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:text-[var(--nimi-text-primary)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -337,7 +336,7 @@ function HomeMessageCardCompact({ message, context }: {
       kind="promoted-glass"
       as="article"
       aria-label={title}
-      className={`group/message relative flex items-center gap-3 rounded-[20px] px-3.5 py-2.5 ${LIST_CARD_ELEVATION}`}
+      className="group/message relative flex items-center gap-3 rounded-2xl border-transparent! bg-[var(--nimi-home-soft-well)]! px-4 py-3 shadow-none! transition-colors hover:bg-[var(--nimi-home-soft-well-hover)]!"
       data-testid={`home-message:${message.key}`}
       data-unread={unread ? 'true' : 'false'}
     >
@@ -410,7 +409,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
       kind="promoted-glass"
       as="article"
       aria-label={title}
-      className={`group/message ${CARD_CLASS}`}
+      className={`group/message ${CARD_CLASS} border-transparent! bg-[var(--nimi-home-porcelain-card)]! shadow-[var(--nimi-home-porcelain-shadow)]!`}
       data-testid={`home-message:${message.key}`}
       data-unread={isUnreadMessage(message) ? 'true' : 'false'}
     >
@@ -545,19 +544,18 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
   const hideable = context.canHide && group.messages.every(isHideableMessage);
   const pending = group.sourceKind !== 'system' && group.messages.some(isPendingMessage);
   return (
-    <div className="relative pb-3" data-testid={`home-message-stack:${group.key}`}>
-      {/* Layers only peek out below the glass card; the lead card's shadow lifts the whole stack, so the layers carry none of their own. */}
+    <div className="relative pb-2.5" data-testid={`home-message-stack:${group.key}`}>
       <span
         aria-hidden="true"
-        className="absolute inset-x-2.5 bottom-1.5 h-1.5 rounded-b-[14px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)]"
+        className="absolute inset-x-3 bottom-1 h-1.5 rounded-b-xl bg-[var(--nimi-home-soft-well)] opacity-75"
       />
       {others > 1 ? (
         <span
           aria-hidden="true"
-          className="absolute inset-x-5 bottom-0 h-1.5 rounded-b-[12px] border border-t-0 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-promoted-glass-elevated)] opacity-80"
+          className="absolute inset-x-6 bottom-0 h-1 rounded-b-xl bg-[var(--nimi-home-soft-well)] opacity-50"
         />
       ) : null}
-      <AppCardSurface kind="promoted-glass" as="article" aria-label={label} className={`group/message relative rounded-[20px] ${LIST_CARD_ELEVATION}`}>
+      <AppCardSurface kind="promoted-glass" as="article" aria-label={label} className="group/message relative rounded-2xl border-transparent! bg-[var(--nimi-home-soft-well)]! shadow-none! transition-colors hover:bg-[var(--nimi-home-soft-well-hover)]!">
         {hideable ? (
           <HideButton
             label={t('runtimeConfig.overview.messages.hideGroup', { count: group.messages.length })}

@@ -34,7 +34,7 @@ test('character background translates explicit topic categories without rewritin
     }));
     const start = markup.indexOf('data-testid="world-character-knowledge-section"');
     const background = markup.slice(start, markup.indexOf('</section>', start));
-    for (const text of ['人物背景', '交游：与诗人方干有诗文往来。', '入仕：通过科举入仕。', '亲属：家族渊源。',
+    for (const text of ['擅长与学识', '交游：与诗人方干有诗文往来。', '入仕：通过科举入仕。', '亲属：家族渊源。',
       '官职：曾任主客员外郎。', '文本：著有《唐风集》。', '熟悉诗词与文章。',
       'Notes: an authored English note.', '引文中的 association：保留原文。']) {
       assert.ok(background.includes(text), text);
@@ -266,8 +266,8 @@ test('world character hero keeps banner and avatar placement and shows the expli
       markup.indexOf('data-testid="world-character-hero-banner"'),
       markup.indexOf('data-testid="world-character-hero-avatar"'),
     );
-    assert.match(bannerMarkup, /h-\[260px\][^"]*max-w-\[1360px\]/);
-    assert.match(bannerMarkup, /overflow-hidden[^"]*rounded-\[24px\]/);
+    assert.match(bannerMarkup, /h-\[240px\]/);
+    assert.match(bannerMarkup, /overflow-hidden[^"]*rounded-\[var\(--nimi-radius-lg\)\]/);
     assert.match(bannerMarkup, /h-full[^"]*object-cover/);
     assert.doesNotMatch(bannerMarkup, /h-auto|min-h-\[260px\]/);
   } finally {
@@ -275,16 +275,16 @@ test('world character hero keeps banner and avatar placement and shows the expli
   }
 });
 
-test('world character hero prefers the world banner over character media', () => {
-  const source = toSourceDetailData({
+test('world character hero prefers the character profile cover and falls back to the world banner', () => {
+  const withCover = toSourceDetailData({
     ...ouYangDeRaw,
     profileCoverUrl: 'https://cdn.example.test/li-mengyang-cover.png',
     referenceImageUrl: 'https://cdn.example.test/li-mengyang-reference.png',
     worldBannerUrl: 'https://cdn.example.test/ming-world-banner.png',
   }, 'source_materialization_available');
-  const markup = renderToStaticMarkup(
+  const coverMarkup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
-      source,
+      source: withCover,
       stats: null,
       loading: false,
       error: false,
@@ -293,13 +293,36 @@ test('world character hero prefers the world banner over character media', () =>
       onPrimaryAction: () => {},
     }),
   );
-  const bannerMarkup = markup.slice(
-    markup.indexOf('data-testid="world-character-hero-banner"'),
-    markup.indexOf('data-testid="world-character-hero-avatar"'),
+  const coverBanner = coverMarkup.slice(
+    coverMarkup.indexOf('data-testid="world-character-hero-banner"'),
+    coverMarkup.indexOf('data-testid="world-character-hero-avatar"'),
   );
 
-  assert.match(bannerMarkup, /src="https:\/\/cdn\.example\.test\/ming-world-banner\.png"/);
-  assert.doesNotMatch(bannerMarkup, /li-mengyang-(?:cover|reference)\.png/);
+  assert.match(coverBanner, /src="https:\/\/cdn\.example\.test\/li-mengyang-cover\.png"/);
+  assert.doesNotMatch(coverBanner, /ming-world-banner\.png/);
+
+  const withoutCover = toSourceDetailData({
+    ...ouYangDeRaw,
+    profileCoverUrl: null,
+    referenceImageUrl: 'https://cdn.example.test/li-mengyang-reference.png',
+    worldBannerUrl: 'https://cdn.example.test/ming-world-banner.png',
+  }, 'source_materialization_available');
+  const fallbackMarkup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source: withoutCover,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+  const fallbackBanner = fallbackMarkup.slice(
+    fallbackMarkup.indexOf('data-testid="world-character-hero-banner"'),
+    fallbackMarkup.indexOf('data-testid="world-character-hero-avatar"'),
+  );
+  assert.match(fallbackBanner, /src="https:\/\/cdn\.example\.test\/ming-world-banner\.png"/);
 });
 
 test('world character source detail renders admitted CBDB dossier prose as authored without script conversion', () => {
@@ -386,7 +409,7 @@ test('world character source detail renders admitted CBDB dossier prose as autho
   assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
 });
 
-test('world character hero shows the world pill, an age-qualified subtitle, and the voice preview row', async () => {
+test('world character hero shows the world pill, role hook, voice preview, and places age details in profile specs', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -428,12 +451,14 @@ test('world character hero shows the world pill, an age-qualified subtitle, and 
     assert.match(markup, /data-testid="world-character-world-pill"/);
     assert.match(markup, /所在世界/);
     assert.match(markup, /东南秋声/);
-    const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
-    assert.equal(description, '二十多岁');
+    assert.doesNotMatch(markup, /data-testid="world-character-hero-description"/);
     assert.match(markup, /data-testid="world-character-hero-role"[^>]*>瓦舍说话艺人<\/p>/);
+    const specsStart = markup.indexOf('data-testid="world-character-profile-specs"');
+    assert.ok(specsStart >= 0, 'profile specs card should render');
+    assert.match(markup.slice(specsStart), /二十多岁/);
     assert.match(markup, /data-testid="world-character-hero-voice"/);
     assert.match(markup, /声音试听/);
-    assert.match(markup, /· 23 秒/);
+    assert.match(markup, />23 秒</);
     assert.match(markup, /data-testid="world-character-voice-sample-audio"[^>]*src="https:\/\/cdn\.example\.test\/voice\.wav"/);
   } finally {
     await changeLocale('en');
@@ -500,7 +525,7 @@ test('world character overview renders authored biography and dialogue without c
     assert.match(markup, /初遇招呼/);
     assert.match(markup, /role="tab"[^>]*aria-selected="true"/);
     assert.doesNotMatch(markup, /可以聊什么|world-character-topics-section|world-character-topic-chip/);
-    assert.match(markup, /人物背景/);
+    assert.match(markup, /擅长与学识/);
     assert.match(markup, /都城行铺生计与茶坊掌故/);
     assert.match(markup, /额外话题/);
   } finally {

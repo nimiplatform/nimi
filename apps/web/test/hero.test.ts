@@ -86,7 +86,7 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   assert.ok(zhiyuHtml.includes('data-canonical-composer-root'));
   assert.ok(zhiyuHtml.includes('先选择本地伙伴'));
   assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.sendLabel}"`));
-  assert.ok(zhiyuHtml.includes(`title="${zhiyu.copy.attachLabel}"`));
+  assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.attachLabel}"`));
   assert.ok(zhiyuHtml.includes('data-zhiyu-composer-tool="avatar"'));
   assert.ok(zhiyuHtml.includes('data-zhiyu-composer-tool="proactive"'));
   assert.ok(zhiyuHtml.includes('data-zhiyu-composer-agent-center-state="closed"'));

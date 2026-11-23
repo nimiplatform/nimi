@@ -251,7 +251,7 @@ test('platform page renders three-domain boundaries, visual architecture map, se
     assert.match(html, /data-capability="music.transcribe" aria-pressed="false"/);
     assert.match(html, /data-capability="video.upscale" aria-pressed="false"/);
     assert.match(html, /data-sample="text.generate"/);
-    assert.match(html, /The main object is a bright orange ceramic mug/);
+    assert.match(html, locale === 'zh' ? /亮橙色陶瓷马克杯/ : /The main object is a bright orange ceramic mug/);
     assert.match(html, /class="public-capability-route-counts">[\s\S]*?<strong>\d+<\/strong>[\s\S]*?<strong>\d+<\/strong>/);
     assert.ok(html.includes(locale === 'zh' ? '本地模型' : 'Local models'));
     assert.ok(html.includes(locale === 'zh' ? '云端服务' : 'Cloud services'));
@@ -266,41 +266,44 @@ test('platform page renders three-domain boundaries, visual architecture map, se
 });
 
 test('all twenty capability previews render rich interactive stages, valid media assets, and observations', () => {
-  const results = {
-    'text.generate': 'bright orange ceramic mug',
-    'text.embed': '0.7590',
-    'text.decide': '74.2%',
-    'text.annotate': '64 docs',
-    'image.generate': '1024 × 1024',
-    'image.upscale': '4096 × 4096',
-    'image.face_swap': 'PNG',
-    'video.generate': '512 × 288',
-    'video.upscale': '300 frames',
-    'video.face_swap': '1280 × 720 RGB8',
-    'vision.locate': '0.655',
-    'realtime.interact': 'TTFB 190 ms',
-    'audio.synthesize': '5.68 s',
-    'audio.transcribe': '00:04.1',
-    'voice.create': 'The next train leaves at 10.',
-    'audio.speaker.embed': 'space_id',
-    'audio.separate': '2 / 4',
-    'audio.voice.convert': '600 s',
-    'music.generate': '30.77 s',
-    'music.transcribe': 'MIDI',
-  } satisfies Record<CapabilityId, string>;
+  const results: Record<CapabilityId, { zh: string; en: string }> = {
+    'text.generate': { zh: '亮橙色陶瓷马克杯', en: 'bright orange ceramic mug' },
+    'text.embed': { zh: '0.7590', en: '0.7590' },
+    'text.decide': { zh: '74.2%', en: '74.2%' },
+    'text.annotate': { zh: '64 docs', en: '64 docs' },
+    'image.generate': { zh: '1024 × 1024', en: '1024 × 1024' },
+    'image.upscale': { zh: '4096 × 4096', en: '4096 × 4096' },
+    'image.face_swap': { zh: 'PNG', en: 'PNG' },
+    'video.generate': { zh: '512 × 288', en: '512 × 288' },
+    'video.upscale': { zh: '300 frames', en: '300 frames' },
+    'video.face_swap': { zh: '1280 × 720 RGB8', en: '1280 × 720 RGB8' },
+    'vision.locate': { zh: '0.655', en: '0.655' },
+    'realtime.interact': { zh: 'TTFB 190 ms', en: 'TTFB 190 ms' },
+    'audio.synthesize': { zh: '24 kHz WAV', en: '24 kHz WAV' },
+    'audio.transcribe': { zh: '00:04.1', en: '00:04.1' },
+    'voice.create': { zh: '走到看见松树的地方', en: 'When you reach the pines' },
+    'audio.speaker.embed': { zh: '≤ 30 s', en: '≤ 30 s' },
+    'audio.separate': { zh: '2 / 4', en: '2 / 4' },
+    'audio.voice.convert': { zh: '600 s', en: '600 s' },
+    'music.generate': { zh: '44.1 kHz Stereo', en: '44.1 kHz Stereo' },
+    'music.transcribe': { zh: 'MIDI', en: 'MIDI' },
+  };
 
   const publicRoot = path.resolve(import.meta.dirname, '..', 'public');
 
   for (const capability of Object.keys(results) as CapabilityId[]) {
     for (const locale of ['zh', 'en'] as const) {
       const html = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability, locale }));
-      assert.ok(html.includes(results[capability]), `${capability} (${locale})`);
+      assert.ok(html.includes(results[capability][locale]), `${capability} (${locale})`);
       assert.ok(html.includes('platform-lab-hero-stage'), `Rich stage missing for ${capability}`);
       assert.doesNotMatch(
         html,
         /原图未收录|原始视频未收录|原始音频未收录|Original image unavailable|Original video unavailable|Original audio unavailable/,
       );
-      if (locale === 'en' && capability !== 'audio.synthesize') {
+      assert.doesNotMatch(html, /voice_custom_01|space_id|3\.44 s/);
+      assert.ok(!html.includes(`${capability}()`), `Unexpected pseudo-call label ${capability}()`);
+      assert.ok(!html.includes('platform-lab-code'), `Unexpected platform-lab-code badge for ${capability}`);
+      if (locale === 'en') {
         assert.doesNotMatch(html, /\p{Script=Han}/u, `Unexpected Han character in English preview for ${capability}`);
       }
       for (const match of html.matchAll(/(?:src|poster)="(\/(?:platform\/capabilities|demo)\/[^"]+)"/g)) {
@@ -311,8 +314,19 @@ test('all twenty capability previews render rich interactive stages, valid media
   }
 
   const speech = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'audio.synthesize', locale: 'zh' }));
-  assert.match(speech, /<blockquote lang="zh">橙色的杯子放在窗边，下一班火车十点出发。/);
+  assert.ok(speech.includes('昨夜雨疏风骤，浓睡不消残酒。'));
   assert.doesNotMatch(speech, /<audio\b/);
+
+  const speaker = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'audio.speaker.embed', locale: 'en' }));
+  assert.match(speaker, /Apps can compare embeddings in the same space/);
+  assert.doesNotMatch(speaker, /Cluster match|speaker distance|Speaker ID/i);
+
+  const music = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'music.generate', locale: 'zh' }));
+  assert.match(music, /文本提示/);
+  assert.doesNotMatch(music, /旋律续写|继续往下编/u);
+
+  const voiceCreateZh = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'voice.create', locale: 'zh' }));
+  assert.doesNotMatch(voiceCreateZh, /green notebook|The next train leaves at 10/i);
 
   const transcribeZh = renderToStaticMarkup(createElement(PlatformCapabilityPreview, { capability: 'audio.transcribe', locale: 'zh' }));
   assert.ok(transcribeZh.includes('新厦门，今晚九点后东北风转强，'));

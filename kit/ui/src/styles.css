@@ -39,6 +39,7 @@
   --nimi-accent-hover: var(--nimi-action-primary-bg-hover);
   --nimi-accent-soft: color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent);
   --nimi-accent-onAccent: var(--nimi-action-primary-text);
+  --nimi-titlebar-area-height: env(titlebar-area-height, 0px);
 }
 
 html,

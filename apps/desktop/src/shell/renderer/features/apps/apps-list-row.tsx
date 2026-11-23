@@ -8,6 +8,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Tooltip,
 } from '@nimiplatform/kit/ui';
 import {
   actionPlanForEntry,
@@ -85,16 +86,21 @@ export function AppRunStatusText({
   const { t } = useTranslation();
   const visual = appRunVisualState(entry.run?.state ?? null);
   if (visual === 'stopped' || appRunTransition(visual, pendingAction)) return null;
-  return (
+  const failureMessage = visual === 'failed' ? entry.run?.message : undefined;
+  const statusNode = (
     <span
       data-run-visual={visual}
-      title={visual === 'failed' ? entry.run?.message : undefined}
       className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium leading-4 ${RUN_STATUS_TEXT_TONE[visual]}`}
     >
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
       <span className="truncate">{appRunStatusLabel(t, visual)}</span>
     </span>
   );
+  return failureMessage ? (
+    <Tooltip content={failureMessage} placement="top" contentClassName="max-w-xs text-left">
+      {statusNode}
+    </Tooltip>
+  ) : statusNode;
 }
 
 // App Store capsule action: tinted primary fill, no border, pill radius. The
@@ -251,21 +257,22 @@ export const AppListRow = memo(function AppListRow({
             </span>
           ) : null}
           {aiConfigSummary ? (
-            <button
-              type="button"
-              data-testid={`apps-entry-${identity.entryKey}-ai-config-open`}
-              title={t('Apps.aiConfig.openSettings')}
-              aria-label={t('Apps.aiConfig.openSettings')}
-              data-app-ai-config-summary={entry.aiConfigSummary?.routePosture}
-              data-app-ai-config-health={entry.aiConfigSummary?.healthPosture}
-              className="relative z-10 inline-flex min-w-0 items-center rounded text-xs font-medium leading-4 text-[var(--nimi-status-danger)] outline-none hover:underline focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              onClick={(event) => {
-                event.stopPropagation();
-                onAction('open-ai-config');
-              }}
-            >
-              <span className="truncate">{aiConfigSummary.label}</span>
-            </button>
+            <Tooltip content={t('Apps.aiConfig.openSettings')} placement="top">
+              <button
+                type="button"
+                data-testid={`apps-entry-${identity.entryKey}-ai-config-open`}
+                aria-label={t('Apps.aiConfig.openSettings')}
+                data-app-ai-config-summary={entry.aiConfigSummary?.routePosture}
+                data-app-ai-config-health={entry.aiConfigSummary?.healthPosture}
+                className="relative z-10 inline-flex min-w-0 items-center rounded text-xs font-medium leading-4 text-[var(--nimi-status-danger)] outline-none hover:underline focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAction('open-ai-config');
+                }}
+              >
+                <span className="truncate">{aiConfigSummary.label}</span>
+              </button>
+            </Tooltip>
           ) : null}
           {focusFailure ? (
             <details className="relative z-10 basis-full text-xs text-[var(--nimi-status-danger)]" data-testid="apps-focus-failed">
@@ -278,13 +285,14 @@ export const AppListRow = memo(function AppListRow({
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-1">
         {hasAvailableCatalogUpdate(entry) ? (
-          <Button size="sm" tone="secondary" data-testid={`apps-entry-${identity.entryKey}-update`}
-            className={launchCapsuleClassName}
-            loading={activeAction === 'update'} disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
-            title={!canRequestCatalogUpdate(entry) && entry.run?.state === 'running' ? t('Apps.update.stopRequired') : undefined}
-            onClick={() => onAction('update')}>
-            {t('Apps.action.update')}
-          </Button>
+          <Tooltip content={!canRequestCatalogUpdate(entry) && entry.run?.state === 'running' ? t('Apps.update.stopRequired') : undefined} placement="top">
+            <Button size="sm" tone="secondary" data-testid={`apps-entry-${identity.entryKey}-update`}
+              className={launchCapsuleClassName}
+              loading={activeAction === 'update'} disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
+              onClick={() => onAction('update')}>
+              {t('Apps.action.update')}
+            </Button>
+          </Tooltip>
         ) : null}
         {/* App Store update rows carry the single Update capsule; launch
             stays reachable in the ⋯ menu. */}
@@ -292,18 +300,19 @@ export const AppListRow = memo(function AppListRow({
           <AppRowActionButton entry={entry} activeAction={activeAction} actionsDisabled={actionsDisabled} onAction={onAction} />
         )}
         <Popover>
-          <PopoverTrigger asChild>
-            <IconButton
-              data-testid={`apps-entry-${identity.entryKey}-menu`}
-              icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('Apps.library.cardMenuLabel')}
-              title={t('Apps.library.cardMenuLabel')}
-              className="h-7 w-7"
-              onClick={stopRowEvent}
-            />
-          </PopoverTrigger>
+          <Tooltip content={t('Apps.library.cardMenuLabel')} placement="top">
+            <PopoverTrigger asChild>
+              <IconButton
+                data-testid={`apps-entry-${identity.entryKey}-menu`}
+                icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={t('Apps.library.cardMenuLabel')}
+                className="h-7 w-7"
+                onClick={stopRowEvent}
+              />
+            </PopoverTrigger>
+          </Tooltip>
           <PopoverContent align="end" sideOffset={6} className="p-1">
             <ActionMenu items={menuItems} ariaLabel={t('Apps.library.cardMenuLabel')} />
           </PopoverContent>

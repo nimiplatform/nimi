@@ -24,6 +24,7 @@ const ICON_SIZE_CLASS = Object.freeze({
   xs: 'h-6 w-6 rounded-md text-xs',
   sm: 'h-8 w-8 rounded-lg text-sm',
   md: 'h-10 w-10 rounded-xl text-base',
+  dock: 'h-11 w-11 rounded-xl text-base',
   lg: 'h-16 w-16 rounded-2xl text-2xl',
   detail: 'h-14 w-14 rounded-2xl text-xl',
   xl: 'h-12 w-12 rounded-xl text-lg',
@@ -38,12 +39,14 @@ export function AppArtworkIcon({
   displayName,
   iconUrl = null,
   size = 'md',
+  imageBackground = 'transparent',
   className = '',
 }: {
   readonly appId: string;
   readonly displayName: string;
   readonly iconUrl?: string | null;
   readonly size?: AppArtworkIconSize;
+  readonly imageBackground?: string;
   readonly className?: string;
 }): ReactElement {
   const artwork = appArtworkFor(appId);
@@ -56,7 +59,7 @@ export function AppArtworkIcon({
       aria-hidden="true"
       className={`relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden font-semibold text-white ${ICON_SIZE_CLASS[size]} ${className}`}
       style={{
-        background: visibleUrl ? 'transparent' : artwork.iconBackground,
+        background: visibleUrl ? imageBackground : artwork.iconBackground,
         fontFamily: 'var(--nimi-font-display)',
       }}
     >
@@ -88,16 +91,21 @@ export function AppRunStatusBadge({
 }): ReactElement {
   const { t } = useTranslation();
   const visual = appRunVisualState(entry.run?.state ?? null);
-  return (
+  const failureMessage = visual === 'failed' ? entry.run?.message : undefined;
+  const badge = (
     <StatusBadge
       tone={APP_RUN_BADGE_TONE[visual]}
       shape={shape}
       data-run-visual={visual}
-      title={visual === 'failed' ? entry.run?.message : undefined}
     >
       {appRunStatusLabel(t, visual)}
     </StatusBadge>
   );
+  return failureMessage ? (
+    <Tooltip content={failureMessage} placement="top" contentClassName="max-w-xs text-left">
+      {badge}
+    </Tooltip>
+  ) : badge;
 }
 
 export function AppPackageStatusLine({
@@ -197,7 +205,7 @@ export function AppSourceBadge({
       </span>
     );
     return description ? (
-      <Tooltip content={description} contentClassName="max-w-xs font-normal">
+      <Tooltip content={description} contentClassName="max-w-xs text-left">
         {badge}
       </Tooltip>
     ) : badge;

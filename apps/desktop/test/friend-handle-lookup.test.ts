@@ -15,8 +15,13 @@ test('friend requests use the exact handle mutation without reading a complete p
   const result = await requestFriendByHandle(callApi, ' @alice ');
   assert.deepEqual(requests, [{ path: { handle: 'alice' }, body: {} }]);
   assert.deepEqual(result, { outcome: 'requested' });
+  await requestFriendByHandle(callApi, '@@bob', '  Hi, from World 749  ');
+  assert.deepEqual(requests[1], { path: { handle: 'bob' }, body: { requestMessage: 'Hi, from World 749' } });
+  await requestFriendByHandle(callApi, '@carol', '   ');
+  assert.deepEqual(requests[2], { path: { handle: 'carol' }, body: {} });
   await assert.rejects(requestFriendByHandle(callApi, ' @ '), /complete account handle/);
-  assert.equal(requests.length, 1, 'empty handles do not reach Realm');
+  await assert.rejects(requestFriendByHandle(callApi, '@dave', 'a'.repeat(201)), /200 characters or fewer/);
+  assert.equal(requests.length, 3, 'invalid inputs do not reach Realm');
 });
 
 test('friend requests preserve denial/offline failures and reject unconfirmed outcomes', async () => {

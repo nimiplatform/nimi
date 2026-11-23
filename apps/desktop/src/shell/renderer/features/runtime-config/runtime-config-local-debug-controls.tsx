@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@nimiplatform/kit/ui';
+import { Tooltip, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   resolveAuditDetail,
@@ -182,12 +182,14 @@ export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
         onClick={() => setExpanded((prev) => !prev)}
         className="grid w-full grid-cols-[72px_minmax(220px,1.6fr)_minmax(130px,0.9fr)_minmax(170px,1.3fr)_minmax(140px,1.2fr)_24px] items-center gap-x-3 gap-y-0 rounded-lg px-3 py-3 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/40"
       >
-        <span
-          title={event.occurredAt}
-          className={cn('block truncate text-left text-xs', TOKEN_TEXT_SECONDARY)}
-        >
-          {i18n.formatRelativeTime(event.occurredAt)}
-        </span>
+        <Tooltip content={event.occurredAt} placement="top">
+          <span
+            tabIndex={-1}
+            className={cn('block truncate text-left text-xs', TOKEN_TEXT_SECONDARY)}
+          >
+            {i18n.formatRelativeTime(event.occurredAt)}
+          </span>
+        </Tooltip>
         <span className={cn('inline-flex max-w-full items-center gap-1 justify-self-start self-center truncate rounded-md border px-2 py-0.5 font-mono text-[length:var(--nimi-type-caption-size)] font-medium', colorClass)}>
           <span className="truncate">{event.eventType}</span>
         </span>

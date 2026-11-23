@@ -87,7 +87,7 @@ test('Home filters access sources, exposes approval scope and ends only the sele
     assert.ok(document.body.textContent?.includes('Could not read or change remote access'));
     const pause = [...document.querySelectorAll<HTMLButtonElement>('article button')].find(button => button.textContent === 'Pause access');
     assert.equal(pause?.disabled, true);
-    const disable = [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === 'Disable remote access');
+    const disable = document.querySelector<HTMLButtonElement>('button[role="switch"][aria-label="Disable remote access"]');
     assert.equal(disable?.disabled, true);
     assert.ok(document.body.textContent?.includes('Showing the last records we could load'));
     assert.equal(document.body.textContent?.includes('No sources have requested access yet.'), false);
@@ -98,7 +98,10 @@ test('Home filters access sources, exposes approval scope and ends only the sele
     await settle(() => Boolean(document.querySelector('[data-testid="remote-source:pending"]')));
     assert.equal(document.querySelectorAll('article').length, 1);
   } finally {
-    await act(async () => root.unmount()); client.clear(); store.navigation.dispose(); dom.window.close();
+    await client.cancelQueries();
+    await act(async () => root.unmount());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)); });
+    client.clear(); store.navigation.dispose(); dom.window.close();
     for (const [key, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
   }
 });
@@ -171,17 +174,113 @@ test('Home exposes the appropriate access controls before and after this PC beco
     const refreshBinding = () => client.invalidateQueries({ queryKey: ['primary-runtime-binding'] });
     const access = document.querySelector('section[aria-label="Application access"]')!;
     await act(refreshBinding);
-    await settle(() => Boolean(access.textContent?.includes('Enable remote access on this primary Runtime')));
-    const enable = [...document.querySelectorAll<HTMLButtonElement>('button')].find(btn => btn.textContent === 'Enable remote access');
+    await settle(() => Boolean(access.textContent?.includes('Enable remote access to manage external applications')));
+    const enable = document.querySelector<HTMLButtonElement>('button[role="switch"][aria-label="Enable remote access"]');
     assert.equal(enable?.disabled, false);
 
     bindingReadFailed = true;
     await act(refreshBinding);
     await settle(() => Boolean(access.textContent?.includes('Could not read or change remote access')));
-    assert.equal(enable?.disabled, true);
+    assert.equal(document.querySelector<HTMLButtonElement>('button[role="switch"]')?.disabled, true);
     assert.equal(access.textContent?.includes('No sources have requested access yet.'), false);
   } finally {
-    await act(async () => root.unmount()); client.clear(); store.navigation.dispose(); dom.window.close();
+    await client.cancelQueries();
+    await act(async () => root.unmount());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)); });
+    client.clear(); store.navigation.dispose(); dom.window.close();
+    for (const [key, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
+  }
+});
+
+test('ConnectionsPanel renders Plan A header Web Manager popover with explicit dev preview label and refresh', async () => {
+  const dom = new JSDOM('<div id="root"></div>');
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, React, IS_REACT_ACT_ENVIRONMENT: true };
+  const before = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
+  const { ConnectionsPanel } = await import('../src/shell/renderer/features/settings/connections-panel.js');
+  const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+  const { RemoteAccessConnectionState } = await import('@nimiplatform/sdk/runtime/wire-types');
+  await initI18n(); await changeLocale('en');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  store.getState().setAuthSession({ id: 'account', realmEnvironmentId: 'realm' });
+  await store.navigation.push({ id: 'connections' });
+  const openedTargets: string[] = [];
+  let primaryReads = 0;
+  let remoteReads = 0;
+  const primaryRuntime = {
+    async getPrimaryRuntimeState() {
+      primaryReads += 1;
+      return { bindingId: 'b1', displayName: 'Studio PC', thisRuntime: true, validAfter: '' };
+    },
+    async preparePrimaryRuntime() { throw new Error('not invoked'); },
+  };
+  const remoteAccess = {
+    async getRemoteAccessState() {
+      remoteReads += 1;
+      return {
+        enabled: true,
+        bindingId: 'b1',
+        connectionState: RemoteAccessConnectionState.LISTENING,
+        reasonCode: '',
+        sources: [],
+        connectedPeers: 0,
+        connections: [],
+      };
+    },
+  };
+  const bindings = {
+    sdk: { accountProduct: () => ({ primaryRuntime, remoteAccess }) },
+    app: {
+      projection: {
+        runtimeManagerEntry: () => ({ url: 'http://127.0.0.1:4173/runtime', localOnly: true }),
+      },
+      commands: {
+        openAccountManagement: async (section: string) => { openedTargets.push(section); },
+      },
+    },
+  };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const root = createRoot(document.getElementById('root')!);
+  const settle = async (predicate: () => boolean) => {
+    for (let i = 0; i < 40 && !predicate(); i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    assert.ok(predicate());
+  };
+  try {
+    await act(async () => root.render(<QueryClientProvider client={client}><AppStoreProvider store={store}>
+      <DesktopMotionProvider><DesktopRendererBindingProvider bindings={bindings as never}>
+        <ConnectionsPanel />
+      </DesktopRendererBindingProvider></DesktopMotionProvider>
+    </AppStoreProvider></QueryClientProvider>));
+    await settle(() => Boolean(document.body.textContent?.includes('Studio PC')));
+    assert.ok(document.body.textContent?.includes('Dev preview'));
+    const popoverTrigger = document.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]');
+    assert.ok(popoverTrigger);
+    await act(async () => popoverTrigger.click());
+    const dialog = document.querySelector('[role="dialog"]');
+    assert.ok(dialog);
+    assert.ok(dialog.textContent?.includes('http://127.0.0.1:4173/runtime'));
+    assert.ok(dialog.textContent?.includes('Local only · Dev preview'));
+    const openBtn = [...dialog.querySelectorAll<HTMLButtonElement>('button')].find(btn => btn.textContent?.includes('Open local preview'));
+    assert.ok(openBtn);
+    await act(async () => openBtn.click());
+    assert.deepEqual(openedTargets, ['runtime']);
+    const readsBefore = primaryReads;
+    const remoteBefore = remoteReads;
+    const refreshBtn = document.querySelector<HTMLButtonElement>('button[aria-label="Refresh status"]');
+    assert.ok(refreshBtn);
+    await act(async () => refreshBtn.click());
+    await settle(() => primaryReads > readsBefore && remoteReads > remoteBefore);
+  } finally {
+    await client.cancelQueries();
+    await act(async () => root.unmount());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)); });
+    client.clear(); store.navigation.dispose(); dom.window.close();
     for (const [key, descriptor] of before) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
   }
 });

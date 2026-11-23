@@ -13,6 +13,21 @@ export function worldCharacterHeroDescription(source: SourceDetailData, t: Trans
   return role ? personaStyleDisplayText(role, t) : source.characterProfile.profileLine?.trim() || null;
 }
 
+const MAX_HERO_TRAIT_LENGTH = 16;
+const MAX_HERO_TRAITS = 4;
+
+// Hero traits only display concise authored traits (with closed-set style codes
+// localized) so long prose never crowds the identity row or primary action.
+export function worldCharacterHeroTraits(source: SourceDetailData, t: TranslationFn): string[] {
+  const role = worldCharacterHeroDescription(source, t);
+  const name = source.displayName.trim();
+  return uniqueStrings(
+    source.characterProfile.traits.map((trait) => personaStyleDisplayText(trait, t)),
+  )
+    .filter((trait) => trait.length <= MAX_HERO_TRAIT_LENGTH && trait !== role && trait !== name)
+    .slice(0, MAX_HERO_TRAITS);
+}
+
 export function worldCharacterPrimaryActionLabel(
   action: ReturnType<typeof describeCharacterPrimaryAction>,
   t: TranslationFn,

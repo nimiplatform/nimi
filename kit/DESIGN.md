@@ -158,7 +158,7 @@ components:
     padding: "{spacing.5}"
   overlay-shell-slot-tooltip-bubble:
     padding: "{spacing.3}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.md}"
   sidebar-shell-affordance-badge:
     padding: "{spacing.1}"
     rounded: "{rounded.full}"
@@ -391,7 +391,7 @@ Official component token aliases:
 - `overlay-shell-slot-panel`: rounded `{rounded.xl}`.
 - `overlay-shell-slot-sidebar`: padding `{spacing.5}`.
 - `overlay-shell-slot-title`: padding `{spacing.5}`.
-- `overlay-shell-slot-tooltip-bubble`: padding `{spacing.3}`, rounded `{rounded.sm}`.
+- `overlay-shell-slot-tooltip-bubble`: padding `{spacing.3}`, rounded `{rounded.md}`.
 - `sidebar-shell-affordance-badge`: padding `{spacing.1}`, rounded `{rounded.full}`, textColor `{colors.secondary}`.
 - `sidebar-shell-affordance-count`: padding `{spacing.1}`, rounded `{rounded.full}`, textColor `{colors.secondary}`.
 - `sidebar-shell-compound-active-description`: textColor `{colors.secondary}`.

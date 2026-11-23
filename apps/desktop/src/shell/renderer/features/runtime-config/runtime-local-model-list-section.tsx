@@ -1,4 +1,4 @@
-import { Button, InlineAlert, StatusBadge, type StatusTone } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, StatusBadge, Tooltip, type StatusTone } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeLocalEnvironmentPlan } from '@nimiplatform/sdk/runtime';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Database, File, FolderOpen } from 'lucide-react';
@@ -298,18 +298,19 @@ function VariantCard(props: {
               {t('runtimeConfig.localModels.openLibrary')}
             </Button>
           ) : null}
-          <Button
-            tone="ghost"
-            size="sm"
-            className="ml-auto"
-            aria-expanded={expanded}
-            aria-label={t(expanded ? 'runtimeConfig.localModelCenter.hideDetails' : 'runtimeConfig.localModelCenter.details')}
-            title={t(expanded ? 'runtimeConfig.localModelCenter.hideDetails' : 'runtimeConfig.localModelCenter.details')}
-            onClick={() => setExpanded((value) => !value)}
-            data-testid={`local-model-variant-toggle:${variant.contentId}`}
-          >
-            <ChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-          </Button>
+          <Tooltip content={t(expanded ? 'runtimeConfig.localModelCenter.hideDetails' : 'runtimeConfig.localModelCenter.details')} placement="top">
+            <Button
+              tone="ghost"
+              size="sm"
+              className="ml-auto"
+              aria-expanded={expanded}
+              aria-label={t(expanded ? 'runtimeConfig.localModelCenter.hideDetails' : 'runtimeConfig.localModelCenter.details')}
+              onClick={() => setExpanded((value) => !value)}
+              data-testid={`local-model-variant-toggle:${variant.contentId}`}
+            >
+              <ChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </Button>
+          </Tooltip>
         </div>
       </div>
       {expanded ? (

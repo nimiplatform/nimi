@@ -50,6 +50,10 @@ import {
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { GlobalDownloadsNavigation } from '../../features/runtime-config/global-downloads-view.js';
+import {
+  toggleHomeMessagesDrawer,
+  useHomeMessagesDrawerOpen,
+} from '../../features/home/home-messages-drawer-state.js';
 import { ProductUpdateNotice } from '../../features/home/product-update-notice.js';
 import { useProductUpdate } from '../../features/home/product-update-context.js';
 
@@ -85,11 +89,14 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
 
-  const homeEntryDestination = useHomeDestination().homeSection ?? 'overview';
-  const exploreActiveSection = useHomeDestination().exploreSection ?? 'worlds';
-  const exploreSearchText = useHomeDestination().search ?? '';
-  const railVisible = useAppStore(state => state.primaryRailVisible);
   const destination = useHomeDestination();
+  const homeEntryDestination = destination.homeSection ?? 'overview';
+  const homeMessagesDrawerOpen = useHomeMessagesDrawerOpen();
+  const isHomeOverview = destination.id === 'home' && homeEntryDestination === 'overview';
+  const bellActive = props.activeTab === 'notification' || (isHomeOverview && homeMessagesDrawerOpen);
+  const exploreActiveSection = destination.exploreSection ?? 'worlds';
+  const exploreSearchText = destination.search ?? '';
+  const railVisible = useAppStore(state => state.primaryRailVisible);
   const navigationColumn = homeNavigationColumn(destination);
   const isAnonymousShell = props.authStatus !== 'authenticated';
   const notificationIdentityRef = useMemo(
@@ -104,7 +111,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const [pendingAccountAction, setPendingAccountAction] = useState<'logout' | 'switch-account' | null>(null);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     bottom: 16,
-    left: 48,
+    left: 51,
   });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -149,7 +156,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
     if (!triggerRect) {
-      setSettingsMenuPosition({ bottom: 16, left: 48 });
+      setSettingsMenuPosition({ bottom: 16, left: 51 });
       return;
     }
     const viewportHeight = bindings.app.projection.viewportHeight();
@@ -266,6 +273,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   };
 
   const openNotificationsFromSidebar = () => {
+    if (isHomeOverview) {
+      toggleHomeMessagesDrawer();
+      return;
+    }
     props.onNav('notification');
   };
   const toggleSettingsMenuFromSidebar = () => {
@@ -380,11 +391,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
                   className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
-                    props.activeTab === 'notification'
+                    bellActive
                       ? `${SHELL_CHROME_RAIL_SELECTED_BG_CLASS} text-[var(--nimi-action-primary-bg)]`
                       : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'
                   }`}
                   aria-label={t('Common.openNotifications')}
+                  aria-expanded={isHomeOverview ? homeMessagesDrawerOpen : undefined}
                   aria-current={props.activeTab === 'notification' ? 'page' : undefined}
                 >
                   <svg
@@ -463,7 +475,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="fixed z-[11010]"
+            className="fixed z-[var(--nimi-z-popover)]"
             style={{
               bottom: settingsMenuPosition.bottom,
               left: settingsMenuPosition.left,

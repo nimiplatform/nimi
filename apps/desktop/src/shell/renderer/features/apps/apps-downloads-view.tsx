@@ -57,7 +57,7 @@ export function AppsDownloadsNavigation({ onOpen }: { readonly onOpen: () => voi
   const failed = jobs.filter((job) => failedDownloadNeedsAttention(job, jobs)).length;
   if (!downloads || (count === 0 && failed === 0)) return null;
   const title = t(downloads.status === 'unavailable' ? 'Apps.downloads.navigationStale' : 'Apps.downloads.navigation', { count });
-  return <Tooltip content={title} placement="right">
+  return <Tooltip content={title} placement="right" contentClassName="whitespace-nowrap">
     <div className="relative">
       <IconButton data-testid="apps-downloads-global-entry" aria-label={title} size="sm" icon={<Download className="h-4 w-4" aria-hidden="true" />}
         onClick={() => { downloads.openDownloads(); onOpen(); }} />

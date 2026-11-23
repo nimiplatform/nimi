@@ -291,8 +291,12 @@ export function OverlayShell({
       ? 'nimi-overlay-panel--popover'
       : 'nimi-overlay-panel--dialog';
 
+  const drawerBackdropPositionClass = kind === 'drawer'
+    ? 'top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))] right-0 bottom-0 left-0'
+    : 'inset-0';
+
   const drawerClasses = kind === 'drawer'
-    ? 'top-0 right-0 left-auto h-full translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none'
+    ? 'top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))] right-0 bottom-0 left-auto h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] max-h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none'
     : '';
 
   const canonicalSize = size === undefined ? undefined : OVERLAY_SHELL_SIZE_NORMALIZE[size];
@@ -357,7 +361,8 @@ export function OverlayShell({
             <DialogPrimitive.Overlay asChild forceMount>
               <motion.div
                 className={cn(
-                  'nimi-overlay-backdrop fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+                  'nimi-overlay-backdrop fixed z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+                  drawerBackdropPositionClass,
                   backdropKindClass,
                   className,
                 )}

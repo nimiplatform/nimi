@@ -5,7 +5,7 @@ import { Settings2 } from 'lucide-react';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
-import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, Tooltip } from '@nimiplatform/kit/ui';
 import { createConversationRowProjector, createBrowserAppConversationHostPort, createCanonicalConversationMediaReader, reconcileAgentSubmission,
   observeLocalAppConversation, useAgentComposerPersistence, type AgentPendingSubmission, type CanonicalConversationProjection,
   type LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
@@ -373,8 +373,10 @@ function PartnerTranscript({ target, reference, anchor, scope, accountId, railRe
         trailingSlot={<div className="flex items-center gap-1">
           {regenerate ? <Button size="sm" tone="ghost" disabled={working || Boolean(pending || projection?.state.textTurnId)}
             onClick={() => void run(() => send('', regenerate.turnId))}>{t('Chat.contactsRegenerate')}</Button> : null}
-          <IconButton size="sm" tone="ghost" icon={<Settings2 size={17} />} aria-label={t('Chat.contactsManage')}
-            title={t('Chat.contactsManage')} onClick={() => openProfile('overview')} />
+          <Tooltip content={t('Chat.contactsManage')} placement="top">
+            <IconButton size="sm" tone="ghost" icon={<Settings2 size={17} />} aria-label={t('Chat.contactsManage')}
+              onClick={() => openProfile('overview')} />
+          </Tooltip>
           <RelationshipActionsMenu label={t('Chat.partnerCard.more')} items={[
             { id: 'open-zhiyu', label: t('Chat.contactsOpenZhiyu'), onSelect: () => { void openZhiyu(); } },
             ...(text.trim() ? [{ id: 'draft-zhiyu', label: t('Chat.contactsOpenDraftZhiyu'), onSelect: () => { void openZhiyu(text); } }] : []),

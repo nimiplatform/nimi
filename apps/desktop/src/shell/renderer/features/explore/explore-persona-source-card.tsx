@@ -1,7 +1,7 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { CSSProperties, MouseEvent } from 'react';
 
-import { AppCardSurface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Tooltip } from '@nimiplatform/kit/ui';
 import { getSemanticSourcePalette } from '../../components/source-theme.js';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -160,15 +160,16 @@ export function PersonaSourceCard({
               {source.name}
             </span>
             {isPublic && (
-              <span
-                aria-label={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
-                title={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
-                className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{
-                  background: 'var(--nimi-accent)',
-                  boxShadow: '0 0 0 3px var(--nimi-accent-soft)',
-                }}
-              />
+              <Tooltip content={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })} placement="top">
+                <span
+                  aria-label={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
+                  className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{
+                    background: 'var(--nimi-accent)',
+                    boxShadow: '0 0 0 3px var(--nimi-accent-soft)',
+                  }}
+                />
+              </Tooltip>
             )}
           </div>
           <div
@@ -227,7 +228,6 @@ export function PersonaSourceCard({
             fontWeight: 600,
             ...sourcePillStyle(sourceState),
           }}
-          title={pillLabel}
           aria-label={pillLabel}
         >
           <PrimaryActionIcon action={primaryAction.action} />

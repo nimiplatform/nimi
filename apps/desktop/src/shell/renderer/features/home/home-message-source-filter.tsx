@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
-import { Avatar, Button, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SearchField } from '@nimiplatform/kit/ui';
+import { Avatar, Button, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SearchField, Tooltip } from '@nimiplatform/kit/ui';
 import { Check, ChevronDown, LayoutGrid, MessageCircle, Settings2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { messageSourceLabel } from './home-message-card.js';
@@ -133,20 +133,21 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
   return (
     <div className="flex w-full items-center gap-1 sm:w-auto">
       <Popover open={open} onOpenChange={setOpened}>
-        <PopoverTrigger asChild>
-          <Button
-            ref={triggerRef}
-            tone="secondary"
-            size="sm"
-            className="min-h-9 min-w-0 flex-1 justify-between text-left font-normal sm:w-64"
-            aria-label={`${t('runtimeConfig.overview.messages.sourceFilterLabel')}：${selectedLabel}`}
-            title={selectedLabel}
-            trailingIcon={<ChevronDown size={15} aria-hidden="true" />}
-            data-testid="home-message-center-source"
-          >
-            <span className="truncate">{selectedLabel}</span>
-          </Button>
-        </PopoverTrigger>
+        <Tooltip content={selectedLabel} placement="top">
+          <PopoverTrigger asChild>
+            <Button
+              ref={triggerRef}
+              tone="secondary"
+              size="sm"
+              className="min-h-9 min-w-0 flex-1 justify-between text-left font-normal sm:w-64"
+              aria-label={`${t('runtimeConfig.overview.messages.sourceFilterLabel')}：${selectedLabel}`}
+              trailingIcon={<ChevronDown size={15} aria-hidden="true" />}
+              data-testid="home-message-center-source"
+            >
+              <span className="truncate">{selectedLabel}</span>
+            </Button>
+          </PopoverTrigger>
+        </Tooltip>
         <PopoverContent
           align="end" sideOffset={6}
           className="flex max-h-[var(--radix-popover-content-available-height)] w-72 max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-2"
@@ -186,13 +187,16 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
           {!visible.length ? <p role="status" className="px-3 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.messages.noMatchingSources')}</p> : null}
         </PopoverContent>
       </Popover>
-      {value ? <IconButton
-        tone="ghost" size="sm" icon={<X size={15} />}
-        aria-label={t('runtimeConfig.overview.messages.clearSourceFilter')}
-        title={t('runtimeConfig.overview.messages.clearSourceFilter')}
-        onClick={() => { choose(null); triggerRef.current?.focus(); }}
-        data-testid="home-message-center-clear-source"
-      /> : null}
+      {value ? (
+        <Tooltip content={t('runtimeConfig.overview.messages.clearSourceFilter')} placement="top">
+          <IconButton
+            tone="ghost" size="sm" icon={<X size={15} />}
+            aria-label={t('runtimeConfig.overview.messages.clearSourceFilter')}
+            onClick={() => { choose(null); triggerRef.current?.focus(); }}
+            data-testid="home-message-center-clear-source"
+          />
+        </Tooltip>
+      ) : null}
     </div>
   );
 }

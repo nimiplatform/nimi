@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Surface, cn } from '@nimiplatform/kit/ui';
+import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from './runtime-config-primitives';
@@ -94,8 +94,8 @@ function UsageMetric({
   className?: string;
   title?: string;
 }) {
-  return (
-    <div className={cn(METRIC_CARD_CLASS, className)} title={title}>
+  const card = (
+    <div className={cn(METRIC_CARD_CLASS, className)}>
       <p className={cn('flex items-center gap-1.5 text-xs', TOKEN_TEXT_MUTED)}>
         {icon}
         {label}
@@ -111,6 +111,11 @@ function UsageMetric({
       </p>
     </div>
   );
+  return title ? (
+    <Tooltip content={title} placement="top" contentClassName="max-w-xs text-left">
+      {card}
+    </Tooltip>
+  ) : card;
 }
 
 function TokenSplitBar({ inputTokens, outputTokens, inputLabel, outputLabel }: {

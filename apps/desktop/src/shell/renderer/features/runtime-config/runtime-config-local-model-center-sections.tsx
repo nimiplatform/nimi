@@ -1,7 +1,7 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { RefObject } from 'react';
 
-import { cn } from '@nimiplatform/kit/ui';
+import { Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives';
 import {
   DownloadIcon,
@@ -29,27 +29,32 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
   return (
     <div className="ml-auto flex items-center justify-end gap-2">
       <div className="flex items-center gap-0.5">
-        <button
-          type="button"
-          onClick={props.onRefresh}
-          disabled={props.refreshing}
-          title={props.refreshing
+        <Tooltip
+          content={props.refreshing
             ? i18n.t('runtimeConfig.localModelCenter.refreshing', { defaultValue: 'Refreshing...' })
             : i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
-          aria-label={i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
-          className={iconBtnClass}
+          placement="top"
         >
-          <RefreshIcon className={cn('h-4 w-4', props.refreshing ? 'animate-spin' : undefined)} />
-        </button>
-        <button
-          type="button"
-          onClick={props.onOpenModelsFolder}
-          title={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
-          aria-label={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
-          className={iconBtnClass}
-        >
-          <FolderOpenIcon className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={props.onRefresh}
+            disabled={props.refreshing}
+            aria-label={i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
+            className={iconBtnClass}
+          >
+            <RefreshIcon className={cn('h-4 w-4', props.refreshing ? 'animate-spin' : undefined)} />
+          </button>
+        </Tooltip>
+        <Tooltip content={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })} placement="top">
+          <button
+            type="button"
+            onClick={props.onOpenModelsFolder}
+            aria-label={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
+            className={iconBtnClass}
+          >
+            <FolderOpenIcon className="h-4 w-4" />
+          </button>
+        </Tooltip>
       </div>
       <div className="h-5 w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" />
       <div className="relative" ref={props.importMenuRef}>

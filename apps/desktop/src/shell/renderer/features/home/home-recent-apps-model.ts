@@ -3,7 +3,7 @@ import { hasAvailableCatalogUpdate } from '../apps/apps-card-actions.js';
 import { groupAppsEntries, type DesktopAppGroup } from '../apps/apps-entry-groups.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 
-export const HOME_RECENT_APPS_LIMIT = 10;
+export const HOME_RECENT_APPS_LIMIT = 8;
 export const HOME_SPOTLIGHT_APPS_LIMIT = 3;
 export const BUNDLED_ZHIYU_RECENT_KEY = 'bundled:zhiyu';
 const MAX_STORED_RECENT_KEYS = 50;
@@ -87,6 +87,7 @@ export function buildHomeRecentAppsDock(input: {
   limit?: number;
 }): {
   readonly items: readonly HomeRecentAppItem[];
+  readonly overflowCount: number;
   readonly totalCount: number;
   readonly spotlightCatalog: readonly DesktopAppsEntry[];
 } {
@@ -160,8 +161,14 @@ export function buildHomeRecentAppsDock(input: {
         .slice(0, HOME_SPOTLIGHT_APPS_LIMIT)
     : [];
 
+  const hasOverflow = candidates.length > limit;
+  const visibleCount = hasOverflow && limit > 1 ? limit - 1 : limit;
+  const items = candidates.slice(0, visibleCount);
+  const overflowCount = Math.max(0, candidates.length - items.length);
+
   return {
-    items: candidates.slice(0, limit),
+    items,
+    overflowCount,
     totalCount: candidates.length,
     spotlightCatalog,
   };

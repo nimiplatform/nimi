@@ -1,7 +1,7 @@
 import { MediaAvatar } from '@nimiplatform/kit/features/media';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { CSSProperties, ReactNode } from 'react';
-import { Button, IconButton, NimiText, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
+import { Button, IconButton, NimiText, StatusBadge, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
@@ -277,19 +277,20 @@ export function PaperIconButton({
   className?: string;
 }) {
   return (
-    <IconButton
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      icon={icon}
-      tone="secondary"
-      size="sm"
-      className={cn('h-8 w-8', className)}
-      style={{
-        color: 'var(--nimi-text-primary)',
-        borderColor: 'var(--nimi-border-subtle)',
-        background: 'var(--nimi-surface-card)',
-      }}
-    />
+    <Tooltip content={label} placement="bottom">
+      <IconButton
+        aria-label={label}
+        onClick={onClick}
+        icon={icon}
+        tone="secondary"
+        size="sm"
+        className={cn('h-8 w-8', className)}
+        style={{
+          color: 'var(--nimi-text-primary)',
+          borderColor: 'var(--nimi-border-subtle)',
+          background: 'var(--nimi-surface-card)',
+        }}
+      />
+    </Tooltip>
   );
 }

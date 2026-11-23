@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Maximize2 } from 'lucide-react';
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { IconButton, NimiText } from '@nimiplatform/kit/ui';
+import { IconButton, NimiText, Tooltip } from '@nimiplatform/kit/ui';
 import { WorldStoryMarkdown } from './world-story-markdown.js';
 import type { worldIllustrations } from './world-detail-illustrations.js';
 import { WorldIllustrationViewer } from './world-illustration-viewer.js';
@@ -55,9 +55,11 @@ export function WorldDetailStory({ worldName, story, showExcerpt, hasReading, il
                 alt={illustrationAlt(selected.id)} className="world-illustration-image h-full w-full object-contain"
                 onLoad={(event) => recordRatio(selected.id, event)} onUnavailable={() => hideIllustration(selected.id)} />
             </button>
-            <IconButton tone="secondary" size="sm" icon={<Maximize2 size={16} />} onClick={openViewer} aria-haspopup="dialog"
-              aria-label={t('WorldDetail.discovery.enlarge')} title={t('WorldDetail.discovery.enlarge')} data-testid="world-illustration-enlarge"
-              className="absolute top-3 right-3 z-10 rounded-full border-white/15 bg-black/45 text-white shadow-none hover:border-white/30 hover:bg-black/60 hover:shadow-none" />
+            <Tooltip content={t('WorldDetail.discovery.enlarge')} placement="top">
+              <IconButton tone="secondary" size="sm" icon={<Maximize2 size={16} />} onClick={openViewer} aria-haspopup="dialog"
+                aria-label={t('WorldDetail.discovery.enlarge')} data-testid="world-illustration-enlarge"
+                className="absolute top-3 right-3 z-10 rounded-full border-white/15 bg-black/45 text-white shadow-none hover:border-white/30 hover:bg-black/60 hover:shadow-none" />
+            </Tooltip>
           </div>
         </div>
         {visible.length > 1 ? <div className="world-illustration-thumbnails flex gap-2 overflow-x-auto px-3 pt-3 pb-1" data-testid="world-illustration-thumbnails">

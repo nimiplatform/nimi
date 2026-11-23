@@ -428,6 +428,8 @@
   },
   "loadouts": {
     "description": "创建和管理本地模型配置，并选择每项 AI 能力当前使用的配置。",
+    "contextualTitle": "{{capability}} · 已保存的配置",
+    "contextualDescription": "创建和管理「{{capability}}」的本地模型配置，并选择当前使用的配置。",
     "recommendedTemplates": "推荐方案",
     "noRecommendedTemplates": "当前没有受支持的推荐方案。",
     "unknownTemplates": "兼容性尚未确认",
@@ -511,6 +513,8 @@
     "viewInEnvironment": "在环境中查看运行状态",
     "empty": "还没有模型配置",
     "emptyBody": "基于预设方案创建模型配置，为文本、图像或语音等能力搭配本机模型。",
+    "contextualEmpty": "「{{capability}}」还没有已保存的配置",
+    "contextualEmptyBody": "你可以返回本机模型直接选择预设模型，或在此新建自定义模型配置。",
     "name": "配置名称",
     "recipe": "用途",
     "model": "模型",
@@ -834,7 +838,6 @@
     "greetingAfternoon": "下午好",
     "greetingEvening": "晚上好",
     "greetingNight": "夜深了",
-    "statusCapabilities": "AI 能力 · {{count}} 项可用",
     "statusDownloading": "未完成的下载：{{count}}",
     "setupFailed": "{{capability}} · 设置需要处理",
     "updateTag": "有更新",
@@ -1011,7 +1014,15 @@
         "friend_request_rejected": "未接受你的好友申请"
       },
       "setupNeedsReview": "打开设置查看原因并继续。",
-      "unreadEmpty": "没有未读消息。"
+      "unreadEmpty": "没有未读消息。",
+      "drawerTriggerPending": "{{count}} 项待确认 · 消息",
+      "drawerTriggerPendingMore": "{{count}}+ 项待确认 · 消息",
+      "drawerTriggerQuiet": "没有新消息",
+      "quickPreferences": "通知偏好",
+      "desktopAlertsLabel": "桌面系统弹窗提醒",
+      "pauseOneHour": "暂停 1 小时",
+      "resumeAlerts": "恢复提醒",
+      "appPermissionsLabel": "已授权应用权限管理"
     },
     "appActivity": {
       "open": "打开",
@@ -1068,6 +1079,64 @@
         "dataStorage": "数据与存储管理"
       }
     },
+    "partnersHero": {
+      "title": "伙伴",
+      "exploreAction": "探索伙伴",
+      "exploreTileTitle": "探索更多伙伴",
+      "exploreTileHint": "发现世界与角色",
+      "allAction": "全部",
+      "allCountAction": "全部 {{total}} 位",
+      "unreadBadge": "{{count}} 位有新回复",
+      "draftPrefix": "草稿：",
+      "scrollPrev": "查看上一组伙伴",
+      "scrollNext": "查看下一组伙伴",
+      "moreCount": "还有 {{count}} 位"
+    },
+    "quickStart": {
+      "placeholder": "问 Nimi 一句，或直接开始一个任务…",
+      "label": "输入问题以开始 Nimi Chat 对话",
+      "submitDraft": "带草稿进入 Nimi Chat"
+    },
+    "attention": {
+      "sectionLabel": "当前关注与进行中的工作",
+      "textSetupUnset": "对话能力尚未配置，配置后即可开始 Nimi Chat",
+      "textSetupAttention": "对话能力配置需要处理",
+      "configureAction": "去配置",
+      "runtimeUnavailable": "本机 AI 引擎暂时离线，本地能力与连接不可用",
+      "runtimeAttention": "本机 AI 引擎尚未完全就绪",
+      "diagnoseAction": "查看状态",
+      "remotePending": "{{count}} 台外部设备请求接入本机",
+      "reviewAction": "去确认",
+      "diskCritical": "磁盘空间不足（已用 {{percent}}%），可能影响模型与缓存写入",
+      "manageStorageAction": "清理存储",
+      "memoryCritical": "系统内存压力严重，建议检查后台服务",
+      "appsReadFailed": "暂时无法读取本机应用列表",
+      "retryAction": "重试",
+      "pendingItems": "{{count}} 项待处理事项",
+      "pendingItemsMore": "{{count}}+ 项待处理事项",
+      "openMessagesAction": "查看"
+    },
+    "ambientStrip": {
+      "sectionLabel": "本机与运行状态",
+      "engineReady": "本机引擎就绪",
+      "engineAttention": "本机引擎需关注",
+      "engineUnavailable": "本机引擎离线",
+      "engineChecking": "正在确认引擎状态…",
+      "capabilitiesReady": "{{count}} 项 AI 能力可用",
+      "capabilitiesUnavailable": "AI 能力暂不可用",
+      "usageLoading": "今日用量读取中…",
+      "usageUnavailable": "今日用量暂不可用",
+      "usageIdle": "今日未调用",
+      "usageLocalOnly": "今日 {{count}} 次 · 纯本地免费",
+      "usageCostWithCalls": "今日 {{cost}} · {{count}} 次",
+      "usageCostOnly": "今日 {{cost}}",
+      "usageUnknownCost": "今日 {{count}} 次 · 费用待确认",
+      "usageCostUnknownNoCount": "今日费用待确认",
+      "remoteOtherPc": "主设备在其他电脑",
+      "remoteConnected": "远程连接中（{{count}} 台）",
+      "remoteListening": "远程直连已开启",
+      "integrationsConnected": "已连 {{count}} 个外部通道"
+    },
     "activeWork": {
       "title": "正在运行与准备",
       "appRunning": "运行中",
@@ -1079,6 +1148,7 @@
       "viewDownloads": "查看进度"
     },
     "appsWorkbench": {
+      "dockTitle": "常用应用",
       "builtInBadge": "内置",
       "devBadge": "本地开发",
       "installedBadge": "已安装",
@@ -1088,13 +1158,20 @@
       "openAction": "打开",
       "manageAction": "管理",
       "discoverTitle": "精选目录应用",
-      "discoverMore": "浏览目录"
+      "discoverMore": "浏览目录",
+      "moreAppsTitle": "更多应用",
+      "moreAppsBadge": "应用目录",
+      "overflowAppsAria": "还有 {{count}} 款应用，查看全部应用"
     },
     "capabilityMatrix": {
-      "title": "核心 AI 能力",
-      "readySummary": "{{count}} 项就绪",
+      "title": "AI 能力",
+      "readySummary": "{{count}} 项可用",
+      "allAction": "总览",
       "profilesAction": "配置方案",
       "cloudAction": "云服务",
+      "groupReadyCount": "{{ready}} / {{total}} 可用",
+      "groupTotalCount": "共 {{total}} 项",
+      "moreCapabilities": "{{names}} 等",
       "states": {
         "ready": "已就绪",
         "preparing": "准备中",
@@ -1105,8 +1182,8 @@
       "unsetHint": "配置模型"
     },
     "dailySpend": {
-      "title": "今日花销与云端用量",
-      "detailsAction": "明细",
+      "title": "今日 AI 用量",
+      "detailsAction": "调用记录",
       "localOnlyZero": "纯本地免计费运行",
       "noCallsToday": "今日暂无 AI 调用",
       "catalogEstimateHint": "按目录定价预估",
@@ -1124,7 +1201,8 @@
       "manageCloud": "管理云服务"
     },
     "hostStatus": {
-      "title": "本机宿主与远程接入",
+      "title": "本机状态与连接",
+      "combinedTitle": "本机状态与用量",
       "primaryBoundHere": "主设备：本机",
       "primaryUnbound": "尚未绑定主设备",
       "primaryBoundOther": "主设备已绑定其他电脑",
@@ -1148,6 +1226,17 @@
     },
     "integrationsSummary": {
       "activeSummary": "{{connections}} 个活跃集成连接 · {{apps}} 个已授权应用"
+    },
+    "integrationsWorkbench": {
+      "connectedSummary": "已连接 {{connections}} 个 · {{apps}} 个应用已授权",
+      "connectedOnlySummary": "已连接 {{connections}} 个",
+      "authorizedOnlySummary": "{{apps}} 个应用已授权",
+      "manageAction": "管理集成",
+      "permissionsAction": "应用授权",
+      "callsAction": "调用记录",
+      "authorizedAppsSummary": "已授权 {{count}} 个应用",
+      "addServiceAction": "添加",
+      "addServiceAria": "添加 {{service}}"
     }
   },
   "local": {
@@ -2747,9 +2836,6 @@
     "downloadedModels": "已下载并配置的模型",
     "customizeCurrent": "调整当前模型与参数",
     "backWorkspace": "返回 AI 能力",
-    "readyCount": "{{count}} 项可用",
-    "preparingCount": "{{count}} 项准备中",
-    "attentionCount": "{{count}} 项需处理",
     "apps": {
       "title": "使用此能力的应用",
       "description": "打开应用详情，查看设置与可用状态。",
@@ -3213,6 +3299,7 @@
     "yourConnections": "我的连接（{{count}}）",
     "removeConnectionTitle": "移除「{{name}}」？",
     "removeConnectionHelp": "已保存的配置可能仍引用此连接，需要重新配置。已有结果会保留，已经发出的请求仍可能完成。",
+    "removeDraftConnectionHelp": "此草稿连接尚未保存，移除后会丢弃已填写的内容。",
     "credentialMissing": "待添加凭据",
     "checkedBadge": "检查通过",
     "uncheckedBadge": "未检查",

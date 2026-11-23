@@ -60,6 +60,7 @@ export function Button({
   size = 'md',
   disabled,
   icon,
+  className,
 }: {
   children?: ReactNode;
   onClick?: () => void;
@@ -67,9 +68,10 @@ export function Button({
   size?: 'sm' | 'md';
   disabled?: boolean;
   icon?: ReactNode;
+  className?: string;
 }) {
   return (
-    <PrimitiveButton onClick={onClick} variant={variant} size={size} disabled={disabled}>
+    <PrimitiveButton onClick={onClick} variant={variant} size={size} disabled={disabled} className={className}>
       {icon}
       {children}
     </PrimitiveButton>

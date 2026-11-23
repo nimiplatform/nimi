@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { JSDOM } from 'jsdom';
 import {
+  CharacterVoicePreviewButton,
   stopCharacterVoicePreview,
   toggleCharacterVoicePreview,
 } from '../src/shell/renderer/features/explore/character-voice-preview.js';
@@ -132,4 +136,24 @@ test('interleaveCharactersByWorld distributes characters across worlds round-rob
     interleaveCharactersByWorld(input).map((item) => item.name),
     ['w1-a', 'w2-a', 'w3-a', 'w1-b', 'w2-b', 'w1-c'],
   );
+});
+
+test('CharacterVoicePreviewButton supports icon-only mode while preserving accessible name and default labeled surface mode', () => {
+  const iconOnlyHtml = renderToStaticMarkup(
+    <CharacterVoicePreviewButton src="https://assets-preview.nimi.ai/audio/a.mp3" characterName="白九谣" iconOnly />,
+  );
+  const iconOnlyButton = new JSDOM(iconOnlyHtml).window.document.querySelector('[data-testid="character-voice-preview-button"]');
+  assert.ok(iconOnlyButton, 'renders icon-only voice button');
+  assert.equal(iconOnlyButton.textContent?.trim(), '', 'icon-only mode omits visible text');
+  assert.ok(iconOnlyButton.querySelector('svg'), 'icon-only mode keeps play icon');
+  assert.ok(iconOnlyButton.getAttribute('aria-label')?.includes('白九谣'), 'icon-only mode preserves aria-label');
+  assert.equal(iconOnlyButton.getAttribute('title'), iconOnlyButton.getAttribute('aria-label'));
+
+  const labeledHtml = renderToStaticMarkup(
+    <CharacterVoicePreviewButton src="https://assets-preview.nimi.ai/audio/a.mp3" characterName="白九谣" variant="surface" />,
+  );
+  const labeledButton = new JSDOM(labeledHtml).window.document.querySelector('[data-testid="character-voice-preview-button"]');
+  assert.ok(labeledButton, 'renders labeled voice button');
+  assert.ok((labeledButton.textContent?.trim().length ?? 0) > 0, 'default surface mode keeps visible label text');
+  assert.ok(labeledButton.querySelector('svg'), 'default surface mode keeps play icon');
 });

@@ -821,8 +821,8 @@
       "community": "Community admission review"
     },
     "capabilitiesCardTitle": "AI capabilities used by this App",
-    "capabilitiesCardNote": "After installation, choose your local or cloud model routes in the AI Models tab.",
     "capabilitiesManageAction": "Open AI Capabilities",
+    "capabilitiesManageAppModelsAction": "Open this App’s AI models",
     "highlightsTitle": "Highlights",
     "releaseNotesTitle": "Release notes",
     "galleryExpand": "Show screenshots ({{count}})",

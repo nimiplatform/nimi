@@ -255,6 +255,18 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
     return () => { window.removeEventListener('keydown', keydown); window.removeEventListener('keyup', keyup); };
   });
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || !capabilities?.windowDrag || capabilities.fullscreen) return;
+    const root = document.documentElement;
+    const value = `env(titlebar-area-height, ${capabilities.geometry.height}px)`;
+    root.style.setProperty('--nimi-titlebar-area-height', value);
+    return () => {
+      if (root.style.getPropertyValue('--nimi-titlebar-area-height') === value) {
+        root.style.removeProperty('--nimi-titlebar-area-height');
+      }
+    };
+  }, [capabilities?.windowDrag, capabilities?.fullscreen, capabilities?.geometry.height]);
+
   const toolbar = (id: 'nimi.navigation.back' | 'nimi.navigation.forward' | 'nimi.sidebar.toggle', icon: React.ReactNode) => {
     const command = menuCommands.find(c => c.id === id)!;
     if (!command.state.visible) return null;
@@ -270,7 +282,7 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
       style={capabilities?.windowDrag ? { marginLeft: `env(titlebar-area-x, ${capabilities.geometry.left}px)`, width: `env(titlebar-area-width, calc(100% - ${capabilities.geometry.left + capabilities.geometry.right}px))`, height: `env(titlebar-area-height, ${capabilities.geometry.height}px)` } : undefined}>
       <div className="nimi-app-chrome__controls flex items-center gap-[var(--nimi-space-2)] [-webkit-app-region:no-drag]">
         {toolbar('nimi.navigation.back', <ArrowLeft size={16} />)}{toolbar('nimi.navigation.forward', <ArrowRight size={16} />)}
-        {toolbar('nimi.sidebar.toggle', <PanelLeft size={16} />)}
+        {toolbar('nimi.sidebar.toggle', props.sidebar?.visible ? <PanelLeft size={16} /> : <PanelLeftCollapsedIcon />)}
       </div>
       {capabilities?.menuPlacement !== 'system' ? <NimiMenubar key={`${nav?.generation ?? 0}:${props.scopeKey ?? ''}`} commands={menuCommands} locale={locale} compact={compact} onExecute={dispatch} onCaptureSelection={() => editing.capture()}
         onRestoreEditFocus={() => { try { editing.restore(lastEdit.current); } catch { /* The command path already surfaced a stale target. */ } }} /> : null}
@@ -291,6 +303,26 @@ export function NimiAppChrome<D extends NimiDestination>(props: NimiAppChromePro
       </DialogContent>
     </Dialog>
   </>;
+}
+
+function PanelLeftCollapsedIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      data-nimi-icon="panel-left-collapsed"
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M7.5 6.5v11" strokeWidth="1.75" strokeOpacity="0.75" />
+    </svg>
+  );
 }
 
 function matchesShortcut(keys: string, event: globalThis.KeyboardEvent): boolean {

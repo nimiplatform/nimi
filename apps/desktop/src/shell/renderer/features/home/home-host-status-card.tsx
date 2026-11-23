@@ -1,7 +1,12 @@
-import { AppCardSurface, Button, ProgressIndicator } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, ProgressIndicator, Tooltip } from '@nimiplatform/kit/ui';
 import { RemoteSourceAccessState, type GetRemoteAccessStateResponse } from '@nimiplatform/sdk/runtime/wire-types';
-import { HardDrive, Network, Server } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { HardDrive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { isSystemEntryLocalOnlyUsage } from '../../../shared/system-entry-types.js';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { createRuntimeConfigConnectorSdkService } from '../runtime-config/runtime-config-connector-sdk-service.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import {
   useSystemResources,
@@ -9,7 +14,8 @@ import {
   type SystemResourceStatus,
 } from '../runtime-config/runtime-config-system-resources.js';
 import { useHomePrimaryRuntimeQuery, useHomeRemoteAccessQuery } from '../settings/home-remote-access-query.js';
-import { useSystemEntry } from '../system-entry/system-entry-context.js';
+import { projectSystemEntryUsage, type SystemEntryAIState } from '../system-entry/system-entry-ai-model.js';
+import { useSystemEntry, useSystemEntryAI } from '../system-entry/system-entry-context.js';
 import { HOME_RESOURCE_WARN_PERCENT, type HomeRuntimeState } from './home-machine-status.js';
 
 const HOME_RESOURCE_POLL_MS = 15_000;
@@ -25,9 +31,13 @@ export type HomeHostStatusCardViewProps = {
   runtime: HomeRuntimeState;
   resources: { status: SystemResourceStatus; snapshot: SystemResourceSnapshot | null };
   remote: HomeRemoteSummary;
+  ai?: SystemEntryAIState | null;
+  cloudConnectorCount?: number | null;
   onOpenDiagnostics: (pane: RuntimeAdvancedDiagnosticsPane) => void;
   onOpenConnections: () => void;
   onOpenStorage: () => void;
+  onOpenUsageDetails?: () => void;
+  onOpenCloud?: () => void;
 };
 
 const RUNTIME_DOT: Record<HomeRuntimeState, string> = {
@@ -64,16 +74,15 @@ function ResourceGauge({
   warn: boolean;
   note?: string;
 }) {
-  return (
+  const gauge = (
     <div
-      className="flex min-w-0 flex-col gap-1.5"
+      className="flex min-w-0 flex-col justify-between gap-2 rounded-2xl bg-[var(--nimi-home-soft-well)] p-3"
       data-warn={warn ? 'true' : undefined}
-      title={note}
     >
       <div className="flex items-baseline justify-between gap-1 text-xs tabular-nums">
-        <span className="truncate text-[11px] font-medium text-[var(--nimi-text-secondary)]">{label}</span>
+        <span className="truncate text-xs text-[var(--nimi-text-secondary)]">{label}</span>
         <span
-          className={`font-semibold ${
+          className={`font-mono font-semibold ${
             warn ? 'text-[var(--nimi-status-warning-soft-text)]' : 'text-[var(--nimi-text-primary)]'
           }`}
         >
@@ -87,16 +96,70 @@ function ResourceGauge({
           aria-label={label}
           className={
             warn
-              ? '[&_.nimi-progress__bar]:!bg-[var(--nimi-status-warning)] [&_.nimi-progress__track]:h-1.5'
-              : '[&_.nimi-progress__track]:h-1.5'
+              ? '[&_.nimi-progress__bar]:bg-[var(--nimi-status-warning)]! [&_.nimi-progress__track]:h-[3px]!'
+              : '[&_.nimi-progress__bar]:bg-[var(--nimi-text-primary)]! [&_.nimi-progress__track]:h-[3px]!'
           }
         />
       ) : (
-        <div className="h-1.5 rounded-full bg-[var(--nimi-surface-active)]" aria-hidden="true" />
+        <div className="h-[3px] rounded-full bg-[var(--nimi-surface-active)]" aria-hidden="true" />
       )}
       {warn && note ? <span className="sr-only">{note}</span> : null}
     </div>
   );
+  return note ? (
+    <Tooltip content={note} placement="top">
+      {gauge}
+    </Tooltip>
+  ) : gauge;
+}
+
+function compactUsageText(
+  ai: SystemEntryAIState | null | undefined,
+  cloudConnectorCount: number | null | undefined,
+  locale: string,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  const cloudPart = cloudConnectorCount === null || cloudConnectorCount === undefined
+    ? t('runtimeConfig.nav.cloudServices')
+    : cloudConnectorCount > 0
+      ? t('runtimeConfig.overview.dailySpend.cloudConnectorsReady', { count: cloudConnectorCount })
+      : t('runtimeConfig.overview.dailySpend.cloudConnectorsNone');
+
+  const read = ai?.usage;
+  const summary = read?.status === 'ready' ? read.value : null;
+  const projection = ai && read && summary?.totals
+    ? projectSystemEntryUsage(read, ai.range, locale.startsWith('zh') ? 'zh' : 'en')
+    : null;
+
+  if (!projection || projection.status === 'unavailable') {
+    return cloudPart;
+  }
+
+  const localOnly = isSystemEntryLocalOnlyUsage(projection);
+  const formattedAttempts = projection.attempts && /^\d+$/u.test(projection.attempts)
+    ? new Intl.NumberFormat(locale).format(BigInt(projection.attempts))
+    : projection.attempts;
+
+  if (projection.costs.length > 0) {
+    const costStr = projection.costs.map((item) => `${item.currency} ${item.estimate}`).join(' / ');
+    return formattedAttempts
+      ? `${cloudPart} · ${t('runtimeConfig.overview.dailySpend.callsCount', { count: formattedAttempts as unknown as number })} (${costStr})`
+      : `${cloudPart} · ${costStr}`;
+  }
+
+  if (projection.attempts === '0') {
+    return `${cloudPart} · ${t('runtimeConfig.overview.dailySpend.noCallsToday')}`;
+  }
+
+  if (localOnly && formattedAttempts) {
+    return `${cloudPart} · ${t('runtimeConfig.overview.dailySpend.callsCount', { count: formattedAttempts as unknown as number })}`;
+  }
+
+  if (formattedAttempts) {
+    return `${cloudPart} · ${t('runtimeConfig.overview.dailySpend.callsCount', { count: formattedAttempts as unknown as number })}`;
+  }
+
+  return cloudPart;
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
@@ -106,11 +169,15 @@ export function HomeHostStatusCardView({
   runtime,
   resources,
   remote,
+  ai,
+  cloudConnectorCount,
   onOpenDiagnostics,
   onOpenConnections,
   onOpenStorage,
+  onOpenUsageDetails,
 }: HomeHostStatusCardViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? 'en';
   const snapshot = resources.snapshot;
   const cpu = roundPercent(snapshot?.cpuPercent ?? 0);
   const memory = roundPercent(snapshot ? percentOf(snapshot.memoryUsedBytes, snapshot.memoryTotalBytes) : 0);
@@ -136,100 +203,128 @@ export function HomeHostStatusCardView({
         ? t('runtimeConfig.overview.hostStatus.remoteConnectedCount', { count: remote.connectedClientCount })
         : t('runtimeConfig.overview.hostStatus.remoteListening');
 
+  const usageLine = compactUsageText(ai, cloudConnectorCount, locale, t);
+
+  const headerTitle = onOpenUsageDetails
+    ? t('runtimeConfig.overview.hostStatus.combinedTitle')
+    : t('runtimeConfig.overview.hostStatus.title');
+
   return (
     <AppCardSurface
       kind="operational-solid"
-      className="flex min-w-0 flex-col gap-3.5 p-5 shadow-[var(--nimi-elevation-base)]"
-      aria-label={t('runtimeConfig.overview.hostStatus.title')}
+      className="flex h-full min-w-0 flex-col justify-between gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
+      aria-label={headerTitle}
       data-testid="home-host-status"
     >
       <header className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]">
-            <Server size={15} aria-hidden="true" />
-          </span>
-          <h2 className="truncate text-sm font-semibold tracking-tight text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.overview.hostStatus.title')}
+          <h2 className="truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+            {headerTitle}
           </h2>
-        </div>
-        <Button tone="ghost" size="sm" onClick={() => onOpenDiagnostics('services')} data-testid="home-host-diagnostics">
-          {t('runtimeConfig.nav.advancedDiagnostics')}
-        </Button>
-      </header>
-
-      <div className="flex flex-col gap-3 text-xs">
-        <div data-testid="home-machine-resources">
-          {snapshot ? (
-            <div className="grid grid-cols-3 gap-3">
-              <ResourceGauge
-                label={t('runtimeConfig.overview.cpu')}
-                percent={cpu}
-                warn={cpu >= HOME_RESOURCE_WARN_PERCENT.cpu}
-              />
-              <ResourceGauge
-                label={t('runtimeConfig.overview.memory')}
-                percent={memory}
-                warn={memoryPressure === 'warning' || memoryPressure === 'critical'}
-                note={memoryPressure === 'unknown'
-                  ? undefined
-                  : t('runtimeConfig.overview.memoryPressureSummary', { state: t(`runtimeConfig.overview.memoryPressureState.${memoryPressure}`) })}
-              />
-              <ResourceGauge
-                label={t('runtimeConfig.overview.disk')}
-                percent={disk}
-                warn={diskWarn}
-                note={disk === null ? t('runtimeConfig.overview.diskUnavailable') : undefined}
-              />
-            </div>
-          ) : (
-            <span className="text-[var(--nimi-text-secondary)]">
-              {resources.status === 'unavailable'
-                ? t('runtimeConfig.overview.systemResourcesUnavailable')
-                : t('Common.loading')}
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-col divide-y divide-[var(--nimi-border-subtle)] border-t border-[var(--nimi-border-subtle)]">
-          <div className="flex items-center justify-between gap-2 py-2.5">
+          <Tooltip content={t(RUNTIME_LABEL_KEY[runtime])} placement="top">
             <button
               type="button"
               onClick={() => onOpenDiagnostics('services')}
               data-testid="home-machine-runtime"
               data-state={runtime}
-              className="inline-flex min-w-0 items-center gap-2 rounded-lg text-left transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+              aria-label={t(RUNTIME_LABEL_KEY[runtime])}
+              className="inline-flex size-4 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
             >
-              <span className={`size-2 shrink-0 rounded-full ${RUNTIME_DOT[runtime]}`} />
-              <span className={`truncate font-medium ${runtime === 'unavailable' ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-primary)]'}`}>
-                {t(RUNTIME_LABEL_KEY[runtime])}
-              </span>
+              <span className={`size-2 rounded-full ${RUNTIME_DOT[runtime]}`} />
             </button>
-            {diskWarn ? (
-              <Button tone="ghost" size="sm" onClick={onOpenStorage} data-testid="home-host-storage">
-                <HardDrive size={13} aria-hidden="true" />
-                {t('runtimeConfig.overview.hostStatus.storageAction')}
-              </Button>
+          </Tooltip>
+        </div>
+        <div className="flex items-center gap-1">
+          {diskWarn ? (
+            <Button tone="ghost" size="sm" onClick={onOpenStorage} data-testid="home-host-storage">
+              <HardDrive size={13} aria-hidden="true" />
+              {t('runtimeConfig.overview.hostStatus.storageAction')}
+            </Button>
+          ) : null}
+          <Button tone="ghost" size="sm" onClick={() => onOpenDiagnostics('services')} data-testid="home-host-diagnostics">
+            {t('runtimeConfig.nav.advancedDiagnostics')} →
+          </Button>
+        </div>
+      </header>
+
+      <div data-testid="home-machine-resources">
+        {snapshot ? (
+          <div className="grid grid-cols-3 gap-2.5">
+            <ResourceGauge
+              label={t('runtimeConfig.overview.cpu')}
+              percent={cpu}
+              warn={cpu >= HOME_RESOURCE_WARN_PERCENT.cpu}
+            />
+            <ResourceGauge
+              label={t('runtimeConfig.overview.memory')}
+              percent={memory}
+              warn={memoryPressure === 'warning' || memoryPressure === 'critical'}
+              note={memoryPressure === 'unknown'
+                ? undefined
+                : t('runtimeConfig.overview.memoryPressureSummary', { state: t(`runtimeConfig.overview.memoryPressureState.${memoryPressure}`) })}
+            />
+            <ResourceGauge
+              label={t('runtimeConfig.overview.disk')}
+              percent={disk}
+              warn={diskWarn}
+              note={disk === null ? t('runtimeConfig.overview.diskUnavailable') : undefined}
+            />
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-3.5 py-3 text-xs text-[var(--nimi-text-secondary)]">
+            {resources.status === 'unavailable'
+              ? t('runtimeConfig.overview.systemResourcesUnavailable')
+              : t('Common.loading')}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5 pt-1 text-xs" data-testid="home-host-remote">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {onOpenUsageDetails ? (
+            <button
+              type="button"
+              onClick={onOpenUsageDetails}
+              data-testid="home-host-usage-summary"
+              className="min-w-0 truncate text-left text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              {usageLine}
+            </button>
+          ) : (
+            <span className="min-w-0 truncate text-[var(--nimi-text-secondary)]">
+              {`${primaryText} · ${remoteText}`}
+            </span>
+          )}
+
+          <Tooltip content={`${primaryText} · ${remoteText}`} placement="top">
+            <button
+              type="button"
+              onClick={onOpenConnections}
+              data-testid="home-host-connections"
+              className="inline-flex shrink-0 items-center gap-1.5 font-medium text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              {remote.pendingConfirmCount > 0 ? (
+                <span className="size-1.5 rounded-full bg-[var(--nimi-status-warning)]" aria-hidden="true" />
+              ) : null}
+              <span>{t('runtimeConfig.overview.hostStatus.manageConnections')} →</span>
+            </button>
+          </Tooltip>
+        </div>
+
+        {onOpenUsageDetails ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-muted)]">
+            <span className="truncate">{`${primaryText} · ${remoteText}`}</span>
+            {remote.pendingConfirmCount > 0 ? (
+              <span className="text-[var(--nimi-status-warning-soft-text)]">
+                · {t('runtimeConfig.overview.hostStatus.remotePendingConfirm', { count: remote.pendingConfirmCount })}
+              </span>
             ) : null}
           </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5" data-testid="home-host-remote">
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 font-medium text-[var(--nimi-text-primary)]">
-                <Network size={13} aria-hidden="true" className="shrink-0 text-[var(--nimi-text-secondary)]" />
-                <span className="truncate">{primaryText}</span>
-              </span>
-              <span className="truncate text-[11px] text-[var(--nimi-text-secondary)]">{remoteText}</span>
-              {remote.pendingConfirmCount > 0 ? (
-                <span className="mt-1 inline-flex self-start rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning-soft-text)]">
-                  {t('runtimeConfig.overview.hostStatus.remotePendingConfirm', { count: remote.pendingConfirmCount })}
-                </span>
-              ) : null}
-            </div>
-            <Button tone="ghost" size="sm" onClick={onOpenConnections} data-testid="home-host-connections">
-              {t('runtimeConfig.overview.hostStatus.manageConnections')}
-            </Button>
-          </div>
-        </div>
+        ) : remote.pendingConfirmCount > 0 ? (
+          <span className="text-xs text-[var(--nimi-status-warning-soft-text)]">
+            {t('runtimeConfig.overview.hostStatus.remotePendingConfirm', { count: remote.pendingConfirmCount })}
+          </span>
+        ) : null}
       </div>
     </AppCardSurface>
   );
@@ -258,13 +353,29 @@ export function deriveHomeRemoteSummary(input: {
   return { primaryState, remoteEnabled, connectedClientCount, pendingConfirmCount };
 }
 
-function VisibleHomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'resources' | 'remote'>) {
+function VisibleHomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'resources' | 'remote' | 'ai' | 'cloudConnectorCount'>) {
   const resources = useSystemResources(HOME_RESOURCE_POLL_MS);
   const primary = useHomePrimaryRuntimeQuery();
   const remoteQuery = useHomeRemoteAccessQuery();
+  const ai = useSystemEntryAI();
+  const sdk = useDesktopRendererSdk();
+  const authStatus = useAppStore((state) => state.auth.status);
+  const connectors = useQuery({
+    queryKey: ['nimi-overview', 'cloud-connectors-count'],
+    enabled: authStatus === 'authenticated',
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async () => {
+      const service = createRuntimeConfigConnectorSdkService(() => sdk.connectorAdmin());
+      const items = await service.sdkListConnectors();
+      return items.length;
+    },
+  });
   return (
     <HomeHostStatusCardView
       {...props}
+      ai={ai}
+      cloudConnectorCount={connectors.isSuccess ? connectors.data : null}
       resources={{ status: resources.status, snapshot: resources.snapshot }}
       remote={deriveHomeRemoteSummary({
         primarySuccess: primary.isSuccess,
@@ -275,7 +386,7 @@ function VisibleHomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'res
   );
 }
 
-export function HomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'resources' | 'remote'>) {
+export function HomeHostStatusCard(props: Omit<HomeHostStatusCardViewProps, 'resources' | 'remote' | 'ai' | 'cloudConnectorCount'>) {
   const { homeVisible } = useSystemEntry();
   if (!homeVisible) return null;
   return <VisibleHomeHostStatusCard {...props} />;

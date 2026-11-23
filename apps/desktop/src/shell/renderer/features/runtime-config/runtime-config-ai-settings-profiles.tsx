@@ -5,7 +5,7 @@ import {
 } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
-import { capabilityIcon, ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { capabilityIcon, ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -91,8 +91,6 @@ function ProfileOwnerIdentity({ owner, prominent = false }: {
 export function RuntimeConfigAiSettingsProfilesSection(props: {
   /** Home heading; hidden while an export, create or use journey owns the page. */
   readonly title: string;
-  /** Preparation summary shown under the heading where the rail is hidden. */
-  readonly lead: string;
   /** Current on-device conversation preparation and the actions the quick start can take. */
   readonly conversation: RuntimeProfileQuickStartConversation;
   readonly capabilities: readonly RuntimeOverviewCapability[];
@@ -186,9 +184,6 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
           <header className="desktop-module-header">
             <div className="min-w-0">
               <h1 className="desktop-module-title">{props.owner ? t('runtimeConfig.aiSettings.profileSelectionTitle') : props.title}</h1>
-              {!props.owner && props.lead ? (
-                <p className="mt-1.5 text-sm text-[var(--nimi-text-secondary)] md:hidden">{props.lead}</p>
-              ) : null}
             </div>
           </header>
         ) : null}
@@ -440,16 +435,17 @@ function ProfileLibraryCard(props: {
           {t('runtimeConfig.aiSettings.profileView')}
         </Button>
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-          <PopoverTrigger asChild>
-            <IconButton
-              icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('runtimeConfig.aiSettings.profileMenu')}
-              title={t('runtimeConfig.aiSettings.profileMenu')}
-              data-testid={`runtime-ai-settings-profile-menu:${record.source.profileId}`}
-            />
-          </PopoverTrigger>
+          <Tooltip content={t('runtimeConfig.aiSettings.profileMenu')} placement="top">
+            <PopoverTrigger asChild>
+              <IconButton
+                icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={t('runtimeConfig.aiSettings.profileMenu')}
+                data-testid={`runtime-ai-settings-profile-menu:${record.source.profileId}`}
+              />
+            </PopoverTrigger>
+          </Tooltip>
           <PopoverContent align="end" sideOffset={6} className="w-44 p-1">
             <ActionMenu items={menuItems} ariaLabel={t('runtimeConfig.aiSettings.profileMenu')} />
           </PopoverContent>

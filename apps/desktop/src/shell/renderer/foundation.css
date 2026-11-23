@@ -51,6 +51,14 @@
   --nimi-ambient-mesh-color-4: transparent;
   --nimi-elevation-base: 0 1px 2px rgba(15,23,42,0.03);
   --nimi-home-card-elevation: 0 2px 12px rgba(15,23,42,0.04);
+  --nimi-home-porcelain-card: #ffffff;
+  --nimi-home-porcelain-shadow: 0 8px 28px -6px rgba(15,23,42,0.045), 0 2px 6px -1px rgba(15,23,42,0.02);
+  --nimi-home-porcelain-shadow-hover: 0 14px 34px -8px rgba(15,23,42,0.075), 0 3px 8px -2px rgba(15,23,42,0.03);
+  --nimi-home-porcelain-pill-shadow: 0 12px 36px -8px rgba(15,23,42,0.065), 0 2px 8px -2px rgba(15,23,42,0.03);
+  --nimi-home-soft-well: #f5f8fc;
+  --nimi-home-soft-well-hover: #ebf2fa;
+  --nimi-home-drawer-bg: rgba(255,255,255,0.96);
+  --nimi-home-drawer-shadow: -24px 0 60px -12px rgba(15,23,42,0.10);
 }
 
 :root[data-nimi-scheme="light"] [data-nimi-ambient-layer="halo"] {
@@ -89,6 +97,14 @@
 
 .dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"] {
   --nimi-home-card-elevation: 0 2px 12px rgba(2,6,23,0.14);
+  --nimi-home-porcelain-card: var(--nimi-surface-card);
+  --nimi-home-porcelain-shadow: 0 10px 30px -8px rgba(2,6,23,0.36);
+  --nimi-home-porcelain-shadow-hover: 0 16px 38px -8px rgba(2,6,23,0.48);
+  --nimi-home-porcelain-pill-shadow: 0 14px 38px -8px rgba(2,6,23,0.44);
+  --nimi-home-soft-well: color-mix(in srgb, var(--nimi-text-primary) 6%, var(--nimi-surface-card));
+  --nimi-home-soft-well-hover: color-mix(in srgb, var(--nimi-text-primary) 10%, var(--nimi-surface-card));
+  --nimi-home-drawer-bg: var(--nimi-surface-overlay);
+  --nimi-home-drawer-shadow: -24px 0 60px -12px rgba(2,6,23,0.50);
 }
 
 /* macOS root-scroller rubber-banding: a downward fling on a non-scrollable

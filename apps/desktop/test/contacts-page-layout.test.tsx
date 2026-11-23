@@ -138,6 +138,10 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     withRuntimeProtectedScopes: async (_scopes: string[], fn: (options: Record<string, never>) => Promise<unknown>) => fn({}),
     resolveDesktopAgentReference: async () => ({ reference: null }),
   };
+  const bindings = {
+    sdk,
+    app: { commands: { avatarHandoff: { available: () => false } } },
+  };
 
   const socialResource = {
     contacts: () => ({ friends: [{ id: 'eric', displayName: 'Eric', handle: 'eric', avatarUrl: null }] }),
@@ -190,7 +194,7 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
       root.render(
         <QueryClientProvider client={client}>
           <AppStoreProvider store={store}>
-            <DesktopRendererBindingProvider bindings={{ sdk } as never}>
+            <DesktopRendererBindingProvider bindings={bindings as never}>
               <RealmHumanChatDataProvider resource={chatResource as never}>
                 <RealmSocialDataProvider resource={socialResource as never}>
                   <DesktopI18nResourceProvider resource={productionDesktopI18n}>

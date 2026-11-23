@@ -1,19 +1,28 @@
-import { AppCardSurface, Button, capabilityIcon, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { Cpu } from 'lucide-react';
+import { AppCardSurface, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import {
   capabilityPreparationState,
   type CapabilityInventory,
   type CapabilityPreparationState,
 } from '../runtime-config/runtime-capability-inventory.js';
+import {
+  capabilityModelIdentity,
+  groupCapabilities,
+  modelDisplayTitle,
+} from '../runtime-config/runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import type { RuntimeSetupTask } from '../runtime-config/runtime-setup-task-store.js';
 
-export const HOME_CORE_CAPABILITIES = [
+export const DEFAULT_HOME_CAPABILITIES = [
   'text.generate',
+  'text.annotate',
+  'text.decide',
+  'text.embed',
+  'image.generate',
+  'video.generate',
   'audio.synthesize',
   'audio.transcribe',
-  'image.generate',
+  'music.generate',
 ] as const;
 
 export type HomeCapabilityMatrixItem = Readonly<{
@@ -37,37 +46,21 @@ const STATE_DOT: Record<CapabilityPreparationState, string> = {
   ready: 'bg-[var(--nimi-status-success)]',
   preparing: 'bg-[var(--nimi-status-info)]',
   attention: 'bg-[var(--nimi-status-warning)]',
-  unset: 'bg-[var(--nimi-text-muted)]',
-  unknown: 'bg-[var(--nimi-text-muted)]',
-};
-
-const STATE_ICON_TONE: Record<CapabilityPreparationState, string> = {
-  ready: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success)]',
-  preparing: 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]',
-  attention: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
-  unset: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]',
-  unknown: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]',
-};
-
-const STATE_CARD_STYLE: Record<CapabilityPreparationState, string> = {
-  ready:
-    'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] hover:-translate-y-0.5 hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
-  preparing:
-    'border-[var(--nimi-status-info)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] hover:-translate-y-0.5 hover:shadow-[var(--nimi-elevation-raised)]',
-  attention:
-    'border-[var(--nimi-status-warning)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] hover:-translate-y-0.5 hover:shadow-[var(--nimi-elevation-raised)]',
-  unset:
-    'border-dashed border-[var(--nimi-border-subtle)] bg-transparent hover:border-solid hover:border-[var(--nimi-border-strong)] hover:bg-[var(--nimi-surface-card)]',
-  unknown:
-    'border-dashed border-[var(--nimi-border-subtle)] bg-transparent hover:border-solid hover:border-[var(--nimi-border-strong)] hover:bg-[var(--nimi-surface-card)]',
+  unset: 'bg-[var(--nimi-border-strong)]',
+  unknown: 'bg-[var(--nimi-border-strong)]',
 };
 
 export function deriveHomeCapabilityMatrixItems(input: {
+  capabilities?: readonly string[];
   inventory: CapabilityInventory | undefined;
   tasks: readonly RuntimeSetupTask[];
   unavailable: boolean;
 }): HomeCapabilityMatrixItem[] {
-  return HOME_CORE_CAPABILITIES.map((capability) => {
+  const sourceCapabilities = input.capabilities && input.capabilities.length > 0
+    ? input.capabilities
+    : DEFAULT_HOME_CAPABILITIES;
+  const recipes = input.inventory?.recipes ?? [];
+  return sourceCapabilities.map((capability) => {
     const prep = capabilityPreparationState({
       capability,
       inventory: input.inventory,
@@ -80,7 +73,8 @@ export function deriveHomeCapabilityMatrixItems(input: {
     const loadout = selectedId
       ? input.inventory?.aggregate.loadouts.find((item) => item.loadoutId === selectedId)
       : undefined;
-    const modelLabel = loadout?.displayName || loadout?.loadoutId || null;
+    const identity = capabilityModelIdentity(loadout, recipes);
+    const modelLabel = identity.shortTitle || (loadout?.loadoutId ? modelDisplayTitle(loadout.loadoutId) : null);
     return {
       capability,
       state: prep.state,
@@ -101,85 +95,151 @@ export function HomeCapabilityMatrixView({
   onOpenCloud,
   onOpenAllCapabilities,
 }: HomeCapabilityMatrixViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = (i18n.resolvedLanguage ?? 'en').startsWith('zh');
+  const listJoiner = isZh ? '、' : ', ';
+
+  const itemByCapability = new Map(items.map((item) => [item.capability, item]));
+  const grouped = groupCapabilities(items.map((item) => item.capability));
+
+  const formatLabelPreview = (subset: readonly HomeCapabilityMatrixItem[]) => {
+    const names = subset
+      .slice(0, 2)
+      .map((item) => displayRuntimeConfigCapabilityLabel(item.capability, t))
+      .join(listJoiner);
+    return subset.length > 2
+      ? t('runtimeConfig.overview.capabilityMatrix.moreCapabilities', { names })
+      : names;
+  };
+
   return (
-    <AppCardSurface kind="promoted-glass" className="flex min-w-0 flex-col gap-3.5 p-5" data-testid="home-capability-matrix">
+    <AppCardSurface
+      kind="promoted-glass"
+      className="flex h-full min-w-0 flex-col justify-between gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
+      data-testid="home-capability-matrix"
+    >
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-action-primary-bg)]">
-            <Cpu size={16} aria-hidden="true" />
-          </span>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.overview.capabilityMatrix.title')}
-            </h2>
-            {!loading && !failed ? (
-              <button
-                type="button"
-                onClick={onOpenAllCapabilities}
-                data-testid="home-status-capabilities"
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
-                  readyCount > 0
-                    ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success)]'
-                    : 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]'
-                }`}
-              >
-                {t('runtimeConfig.overview.capabilityMatrix.readySummary', { count: readyCount })}
-              </button>
-            ) : null}
-          </div>
+        <div className="flex min-w-0 flex-wrap items-baseline gap-2.5">
+          <h2 className="text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.overview.capabilityMatrix.title')}
+          </h2>
+          {!loading && !failed ? (
+            <button
+              type="button"
+              onClick={onOpenAllCapabilities}
+              data-testid="home-status-capabilities"
+              className="rounded-lg text-xs text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              {t('runtimeConfig.overview.capabilityMatrix.readySummary', { count: readyCount })}
+            </button>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-1">
-          <Button tone="ghost" size="sm" onClick={onOpenProfiles} data-testid="home-capability-profiles">
-            {t('runtimeConfig.overview.capabilityMatrix.profilesAction')}
-          </Button>
-          <Button tone="ghost" size="sm" onClick={onOpenCloud} data-testid="home-capability-cloud">
-            {t('runtimeConfig.overview.capabilityMatrix.cloudAction')}
-          </Button>
-        </div>
+        <Button tone="ghost" size="sm" onClick={onOpenAllCapabilities} data-testid="home-capability-all">
+          {t('runtimeConfig.overview.capabilityMatrix.allAction')} →
+        </Button>
       </header>
 
       {loading ? (
-        <LoadingSkeleton lines={2} label={t('Common.loading')} />
+        <LoadingSkeleton lines={3} label={t('Common.loading')} />
       ) : failed ? (
-        <p className="text-sm text-[var(--nimi-status-warning)]" data-testid="home-capability-error">
+        <p className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-3 text-xs text-[var(--nimi-status-warning)]" data-testid="home-capability-error">
           {t('runtimeConfig.capabilities.readFailed')}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {items.map((item) => {
-            const Icon = capabilityIcon(item.capability);
-            const label = displayRuntimeConfigCapabilityLabel(item.capability, t);
+        <div className="flex flex-col gap-2.5">
+          {grouped.map(({ group, items: groupIds }) => {
+            const groupItems = groupIds
+              .map((id) => itemByCapability.get(id))
+              .filter((entry): entry is HomeCapabilityMatrixItem => Boolean(entry));
+            const attentionItem = groupItems.find((entry) => entry.state === 'attention');
+            const preparingItem = groupItems.find((entry) => entry.state === 'preparing');
+            const readyItems = groupItems.filter((entry) => entry.state === 'ready');
+            const targetItem = attentionItem ?? preparingItem ?? readyItems[0] ?? groupItems[0];
+            if (!targetItem) return null;
+
+            const groupState: CapabilityPreparationState = attentionItem
+              ? 'attention'
+              : preparingItem
+                ? 'preparing'
+                : readyItems.length > 0
+                  ? 'ready'
+                  : 'unset';
+
+            const focusItem = attentionItem ?? preparingItem ?? (readyItems.length === 1 ? readyItems[0] : undefined);
+            const subtitle = focusItem
+              ? `${displayRuntimeConfigCapabilityLabel(focusItem.capability, t)}${
+                  focusItem.modelLabel ? ` · ${modelDisplayTitle(focusItem.modelLabel)}` : ''
+                }`
+              : readyItems.length > 1
+                ? formatLabelPreview(readyItems)
+                : formatLabelPreview(groupItems);
+
+            const badgeText = attentionItem
+              ? t('runtimeConfig.overview.capabilityMatrix.states.attention')
+              : preparingItem
+                ? t('runtimeConfig.overview.capabilityMatrix.states.preparing')
+                : readyItems.length > 0
+                  ? t('runtimeConfig.overview.capabilityMatrix.groupReadyCount', {
+                      ready: readyItems.length,
+                      total: groupItems.length,
+                    })
+                  : t('runtimeConfig.overview.capabilityMatrix.groupTotalCount', {
+                      total: groupItems.length,
+                    });
+
+            const badgeToneClass = attentionItem
+              ? 'font-medium text-[var(--nimi-status-warning)]'
+              : preparingItem || readyItems.length > 0
+                ? 'font-medium text-[var(--nimi-text-primary)]'
+                : 'text-[var(--nimi-text-secondary)]';
+
             return (
               <button
-                key={item.capability}
+                key={group}
                 type="button"
-                onClick={() => onSelectCapability(item.capability)}
-                data-testid={`home-capability-tile:${item.capability}`}
-                data-state={item.state}
-                className={`flex min-w-0 flex-col justify-between gap-2.5 rounded-xl border p-3 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${STATE_CARD_STYLE[item.state]}`}
+                onClick={() => onSelectCapability(targetItem.capability)}
+                data-testid={`home-capability-group:${group}`}
+                data-state={groupState}
+                className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-[var(--nimi-home-soft-well)] px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${STATE_ICON_TONE[item.state]}`}>
-                    <Icon size={15} aria-hidden="true" />
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[var(--nimi-text-secondary)]">
-                    <span className={`size-1.5 shrink-0 rounded-full ${STATE_DOT[item.state]}`} aria-hidden="true" />
-                    <span>{t(`runtimeConfig.overview.capabilityMatrix.states.${item.state}`)}</span>
-                  </span>
-                </div>
-
-                <div className="min-w-0 space-y-0.5">
-                  <p className="truncate text-xs font-semibold text-[var(--nimi-text-primary)]">{label}</p>
-                  <p className="truncate text-[11px] text-[var(--nimi-text-secondary)]">
-                    {item.modelLabel ?? t('runtimeConfig.overview.capabilityMatrix.unsetHint')}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="truncate text-xs font-semibold text-[var(--nimi-text-primary)]">
+                    {t(`runtimeConfig.capabilities.group.${group}`)}
                   </p>
+                  <p className="truncate text-xs text-[var(--nimi-text-secondary)]">
+                    {subtitle}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className={`size-2 shrink-0 rounded-full ${STATE_DOT[groupState]}`} aria-hidden="true" />
+                  <span className={`text-xs tabular-nums ${badgeToneClass}`}>
+                    {badgeText}
+                  </span>
                 </div>
               </button>
             );
           })}
         </div>
       )}
+
+      <footer className="flex items-center justify-between gap-2 pt-1 text-xs">
+        <button
+          type="button"
+          onClick={onOpenProfiles}
+          data-testid="home-capability-profiles"
+          className="min-w-0 truncate text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+        >
+          {t('runtimeConfig.overview.capabilityMatrix.profilesAction')}
+        </button>
+        <button
+          type="button"
+          onClick={onOpenCloud}
+          data-testid="home-capability-cloud"
+          className="shrink-0 font-medium text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+        >
+          {t('runtimeConfig.overview.capabilityMatrix.cloudAction')} →
+        </button>
+      </footer>
     </AppCardSurface>
   );
 }

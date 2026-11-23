@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
-import { cn, InlineAlert } from '@nimiplatform/kit/ui';
+import { cn, InlineAlert, Tooltip } from '@nimiplatform/kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
@@ -232,29 +232,31 @@ export function ChatComposer<TAttachment = never>({
   const hasStackedLeadingActions = Boolean(voiceButtonNode || toolbarSlot);
 
   const attachmentButtonNode = hasAttachmentControl ? (
-    <button
-      type="button"
-      data-chat-composer-attach="true"
-      disabled={options.disabled}
-      onClick={() => {
-        if (options.attachmentAdapter) {
-          void state.openAttachmentPicker();
-        } else if (mediaActions && mediaActions.length > 0) {
-          setShowMediaActions((v) => !v);
-        }
-      }}
-      className={cn(
-        'flex shrink-0 items-center justify-center transition-colors',
-        isStacked
-          ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
-          : 'h-11 w-11 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
-        showMediaActions ? 'border border-[var(--nimi-action-primary-bg)]/50 bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : '',
-        'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--nimi-border-subtle)] disabled:hover:text-[var(--nimi-text-muted)]',
-      )}
-      title={attachLabel}
-    >
-      {ICON_PLUS}
-    </button>
+    <Tooltip content={attachLabel} placement="top">
+      <button
+        type="button"
+        data-chat-composer-attach="true"
+        disabled={options.disabled}
+        onClick={() => {
+          if (options.attachmentAdapter) {
+            void state.openAttachmentPicker();
+          } else if (mediaActions && mediaActions.length > 0) {
+            setShowMediaActions((v) => !v);
+          }
+        }}
+        className={cn(
+          'flex shrink-0 items-center justify-center transition-colors',
+          isStacked
+            ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
+            : 'h-11 w-11 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
+          showMediaActions ? 'border border-[var(--nimi-action-primary-bg)]/50 bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : '',
+          'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--nimi-border-subtle)] disabled:hover:text-[var(--nimi-text-muted)]',
+        )}
+        aria-label={attachLabel}
+      >
+        {ICON_PLUS}
+      </button>
+    </Tooltip>
   ) : null;
 
   // A stacked toolbar whose only control is the send button adds an empty
@@ -376,32 +378,35 @@ export function ChatComposer<TAttachment = never>({
               {voiceState ? (
                 <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} copy={copyResolved} />
               ) : (
-                <button
-                  type="button"
-                  disabled
-                  className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                    'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
-                  )}
-                  title={copyResolved.composerVoiceInputLabel}
-                  aria-label={copyResolved.composerVoiceInputLabel}
-                >
-                  {ICON_MIC}
-                </button>
+                <Tooltip content={copyResolved.composerVoiceInputLabel} placement="top">
+                  <button
+                    type="button"
+                    disabled
+                    className={cn(
+                      'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                      'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
+                    )}
+                    aria-label={copyResolved.composerVoiceInputLabel}
+                  >
+                    {ICON_MIC}
+                  </button>
+                </Tooltip>
               )}
               {textareaNode}
               {attachmentButtonNode ?? (
-                <button
-                  type="button"
-                  disabled
-                  className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                    'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
-                  )}
-                  title={attachLabel}
-                >
-                  {ICON_PLUS}
-                </button>
+                <Tooltip content={attachLabel} placement="top">
+                  <button
+                    type="button"
+                    disabled
+                    className={cn(
+                      'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                      'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
+                    )}
+                    aria-label={attachLabel}
+                  >
+                    {ICON_PLUS}
+                  </button>
+                </Tooltip>
               )}
               {sendButtonNode}
             </div>
@@ -460,28 +465,29 @@ function VoiceButton({
 
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-chat-composer-voice="true">
-      <button
-        type="button"
-        disabled={disabled || isTranscribing || isPlaying}
-        onClick={onToggle}
-        className={cn(
-          'flex shrink-0 items-center justify-center transition-colors',
-          compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
-          isRecording
-            ? 'border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]'
-            : isTranscribing || isPlaying
-              ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
-              : isFailed
+      <Tooltip content={voiceLabel} placement="top">
+        <button
+          type="button"
+          disabled={disabled || isTranscribing || isPlaying}
+          onClick={onToggle}
+          className={cn(
+            'flex shrink-0 items-center justify-center transition-colors',
+            compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
+            isRecording
+              ? 'border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]'
+              : isTranscribing || isPlaying
                 ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
-                : compact
-                  ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
-                  : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
-        )}
-        title={voiceLabel}
-        aria-label={voiceLabel}
-      >
-        {isTranscribing || isPlaying ? ICON_SPINNER : ICON_MIC}
-      </button>
+                : isFailed
+                  ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
+                  : compact
+                    ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
+                    : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
+          )}
+          aria-label={voiceLabel}
+        >
+          {isTranscribing || isPlaying ? ICON_SPINNER : ICON_MIC}
+        </button>
+      </Tooltip>
       {transcript ? (
         <span
           aria-live="polite"
@@ -492,15 +498,16 @@ function VoiceButton({
         </span>
       ) : null}
       {(isRecording || isTranscribing || isPlaying) && onCancel ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label={cancelActionLabel}
-          title={cancelActionLabel}
-          className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
-        >
-          {copy.composerCancelLabel}
-        </button>
+        <Tooltip content={cancelActionLabel} placement="top">
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label={cancelActionLabel}
+            className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
+          >
+            {copy.composerCancelLabel}
+          </button>
+        </Tooltip>
       ) : null}
     </div>
   );

@@ -42,9 +42,7 @@ export type CapabilitySample = Readonly<{
   useCase?: Localized;
   input: Localized;
   result: Localized;
-  excerpt?: { text: string; lang: LandingLocale };
-  facts?: readonly { label: Localized; value: string }[];
-  unavailableMedia?: 'image' | 'video' | 'audio';
+  facts?: readonly { label: Localized; value: string | Localized }[];
   usedApps: readonly CapabilityAppRef[];
 }>;
 
@@ -79,7 +77,6 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
       zh: '准确认出橙色陶瓷马克杯的色彩、釉面质感与弧形杯把。',
       en: 'Accurately identified the ceramic mug’s bright orange glaze and curved handle.',
     },
-    excerpt: { lang: 'en', text: 'The main object is a bright orange ceramic mug with a curved handle.' },
     usedApps: [APP_ZHIYU, APP_VANE, APP_NOTEBOOK],
   },
   'text.embed': {
@@ -313,16 +310,15 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
     diagramOut: { zh: '自然呼吸感人声 WAV', en: 'Expressive 24kHz WAV' },
     sampleKind: 'lab',
     input: {
-      zh: '挑一款温润声线，用舒缓平静的语气读出一段日常短句。',
-      en: 'Read a short Chinese line in a calm, warm tone.',
+      zh: '挑一款温润声线，用舒缓有呼吸感的语气读出诗词或日常台词。',
+      en: 'Pick a voice style and read a passage with calm, expressive breathing and cadence.',
     },
     result: {
       zh: '吐字轻重与停顿自然流畅，听感就像真人在耳边轻声交谈。',
       en: 'Produced lifelike pacing and warmth ready for live playback or video voiceover.',
     },
-    excerpt: { lang: 'zh', text: '橙色的杯子放在窗边，下一班火车十点出发。' },
     facts: [
-      { label: { zh: '示例时长', en: 'Duration' }, value: '5.68 s' },
+      { label: { zh: '试听声线', en: 'Sample voices' }, value: { zh: '3 款实录风格', en: '3 Styles' } },
       { label: { zh: '采样率', en: 'Sample rate' }, value: '24 kHz WAV' },
     ],
     usedApps: [APP_ZHIYU, APP_VOICESTUDIO, APP_VIDEOLINGO],
@@ -344,7 +340,7 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
       en: 'Automatically detected the language, aligned timestamps, and restored punctuation, names, and numbers.',
     },
     facts: [
-      { label: { zh: '示例时长', en: 'Duration' }, value: '10.1 s' },
+      { label: { zh: '输出精度', en: 'Alignment' }, value: { zh: '逐句时间轴', en: 'Timestamps' } },
       { label: { zh: '支持格式', en: 'Format' }, value: 'WAV / MP3' },
     ],
     usedApps: [APP_OPENWHISPR, APP_VIDEOLINGO, APP_PARENTOS],
@@ -358,36 +354,38 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
     diagramOut: { zh: '跨应用可复用专属音色', en: 'Reusable Custom Voice' },
     sampleKind: 'lab',
     input: {
-      zh: '用文字描绘「温暖清澈的青年旁白音」，再用捏出的新声音朗读台词。',
-      en: 'Describe a voice style in plain text, then read a fresh passage with that created voice.',
+      zh: '录几秒钟原声片段（或用文字描绘理想嗓音），提取专属声线并朗读全新台词。',
+      en: 'Provide a short reference clip (or describe a voice style in words) to read new lines in that voice.',
     },
     result: {
       zh: '一次捏好即可保存复用——无论是角色伴侣还是视频配音都能保持同一把好声音。',
       en: 'Saved a consistent custom voice ready for companions, stories, and dubbing.',
     },
-    excerpt: { lang: 'en', text: 'A green notebook is on the table. The next train leaves at 10.' },
-    facts: [{ label: { zh: '试听时长', en: 'Clip length' }, value: '3.44 s' }],
+    facts: [
+      { label: { zh: '创建方式', en: 'Input modes' }, value: { zh: '录音克隆 / 文本捏声', en: 'Audio / Text' } },
+      { label: { zh: '采样规格', en: 'Sample rate' }, value: '24 kHz' },
+    ],
     usedApps: [APP_VOICESTUDIO, APP_ZHIYU, APP_VIDEOLINGO],
   },
   'audio.speaker.embed': {
     tagline: {
-      zh: '纯本机听声辨人——不用把家庭或会议录音传上云端，也能自动分清「刚才是谁说的」',
-      en: 'Recognize who is speaking in meetings or family clips locally—zero audio leaves your PC',
+      zh: '在本机从一段语音提取声纹特征，录音无需上传。',
+      en: 'Extract speaker features from a short voice clip locally, without uploading the recording.',
     },
-    diagramIn: { zh: '多人会议 / 家庭录音', en: 'Multi-Speaker Audio' },
-    diagramOut: { zh: '本机说话人身份归档', en: 'Local Speaker Clusters' },
+    diagramIn: { zh: '单段语音', en: 'Short voice clip' },
+    diagramOut: { zh: '声纹向量', en: 'Speaker embedding' },
     sampleKind: 'runtime',
     input: {
-      zh: '送入几秒钟的说话片段，在本机提取独一无二的声纹特征。',
-      en: 'Feed a short voice snippet to extract a private speaker signature on device.',
+      zh: '选择一段清晰的说话录音。',
+      en: 'Select a short clip of clear speech.',
     },
     result: {
-      zh: '多人聊天或家庭记录自动按说话人归档，声纹受专属空间隔离保护。',
-      en: 'Cleanly grouped speakers in multi-person recordings under an isolated local space_id.',
+      zh: 'Runtime 返回声纹向量和所属的声纹空间。应用可以在同一空间内比较向量，并自行管理说话人分组和归档。',
+      en: 'Runtime returns an embedding and its vector space. Apps can compare embeddings in the same space and manage speaker grouping and filing.',
     },
     facts: [
-      { label: { zh: '隐私边界', en: 'Privacy' }, value: 'Local ONNX' },
-      { label: { zh: '空间保护', en: 'Isolation' }, value: 'space_id' },
+      { label: { zh: '运行方式', en: 'Execution' }, value: { zh: '纯本机 ONNX', en: 'Local ONNX' } },
+      { label: { zh: '单段输入', en: 'Max clip' }, value: '≤ 30 s' },
     ],
     usedApps: [APP_PARENTOS, APP_OPENWHISPR],
   },
@@ -437,10 +435,10 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
   },
   'music.generate': {
     tagline: {
-      zh: '写下画面氛围或情绪关键词，直接谱出立体声原创配乐，还能顺着前奏继续往下编',
-      en: 'Compose original stereo soundtracks from mood prompts or extend an existing melody',
+      zh: '描述情绪和乐器，生成适合视频或其他创作的原创配乐。',
+      en: 'Describe the mood and instruments to generate an original soundtrack for video or other projects.',
     },
-    diagramIn: { zh: '情绪氛围词 / 前奏片段', en: 'Mood Prompt / Intro' },
+    diagramIn: { zh: '配乐描述', en: 'Music prompt' },
     diagramOut: { zh: '立体声完整原创配乐', en: '44.1kHz Stereo Track' },
     sampleKind: 'lab',
     input: {
@@ -449,10 +447,10 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
     },
     result: {
       zh: '生成了层次饱满的 44.1kHz 立体声完整乐段，可直接铺进视频或继续编曲。',
-      en: 'Generated a full 30.77 s stereo track ready for timelines or further arrangement.',
+      en: 'Generated a full 44.1 kHz stereo track ready for timelines or further arrangement.',
     },
     facts: [
-      { label: { zh: '示例时长', en: 'Duration' }, value: '30.77 s' },
+      { label: { zh: '示例输入', en: 'Sample input' }, value: { zh: '文本提示', en: 'Text prompt' } },
       { label: { zh: '音质规格', en: 'Quality' }, value: '44.1 kHz Stereo' },
     ],
     usedApps: [APP_OVERTONE, APP_OPENMONTAGE],
@@ -496,7 +494,6 @@ export const CAPABILITY_SAMPLES: Readonly<Record<CapabilityId, CapabilitySample>
       zh: '伙伴即时流式开口并同步浮现对应字幕；触发插话时立刻截断旧语音并切入新回应。',
       en: 'The companion streams natural voice with time-aligned captions and cuts off immediately to pivot on barge-in.',
     },
-    excerpt: { lang: 'zh', text: '借光，劳驾往旁边侧半步，别挡了照在方凳上的天光。' },
     usedApps: [APP_ZHIYU],
   },
 };

@@ -495,3 +495,274 @@ test('shared source projection preserves authored meeting scene order and pairin
   assert.equal(readCharacterProfile({ ...projection, interaction: { ...projection.interaction, meetingScenes: [{ ...scenes[0], greeting: '' }] } }), null);
   assert.equal(readCharacterProfile({ ...projection, interaction: { ...projection.interaction, meetingScenes: [scenes[0], scenes[0]] } }), null);
 });
+
+test('partner source detail reuses verified records from resolveCurrentPartnerSource without redundant hops', async () => {
+  const publicSource = publicSourceCard(sourceRef, '宋濂');
+  const publicWorld = publicWorldProjection();
+  let getWorldCharacterCalls = 0;
+  let getCharacterSourceCalls = 0;
+  let getWorldEntityCalls = 0;
+  let getWorldBannerCalls = 0;
+  const realm = {
+    worldCore: {
+      worldCoreControllerGetWorldCharacter: async () => {
+        getWorldCharacterCalls += 1;
+        return {
+          id: sourceRef.id,
+          worldId: sourceRef.worldId,
+          sourceHash: sourceRef.sourceHash,
+          worldEntityRef: sourceRef.worldEntityRef,
+          contentHash: 'b'.repeat(64),
+          visibility: 'public',
+          createdAt: '2026-07-28T00:00:00.000Z',
+          updatedAt: '2026-07-28T00:00:00.000Z',
+          profile: characterProfile('宋濂', '明初文学家、史学家。'),
+        };
+      },
+      worldCoreControllerGetWorldEntity: async ({ path }: { path: { entityId: string } }) => {
+        getWorldEntityCalls += 1;
+        return {
+          id: path.entityId,
+          worldId: sourceRef.worldId,
+          kind: 'person',
+          contentHash: 'c'.repeat(64),
+          core: {
+            identity: { name: '宋濂', summary: '明初文学家、史学家。' },
+            classification: { tags: ['明代'] },
+            facts: [],
+          },
+        };
+      },
+      worldCoreControllerGetRelationshipTargets: async () => [
+        { entityId: 'entity-mentor', worldId: sourceRef.worldId, kind: 'person', name: '导师', isCharacter: false },
+      ],
+      worldCoreControllerListWorldRelationships: async () => [],
+    },
+    worldPublic: {
+      worldPublicControllerGetCharacterSource: async () => {
+        getCharacterSourceCalls += 1;
+        return publicSource;
+      },
+      worldPublicControllerGetWorldCatalogByIds: async () => {
+        getWorldBannerCalls += 1;
+        return [publicWorld];
+      },
+    },
+  };
+
+  const resolved = await resolveCurrentPartnerSource(realm as never, sourceRef);
+  assert.equal(getWorldCharacterCalls, 1);
+  assert.equal(getCharacterSourceCalls, 1);
+
+  const detail = await fetchSourceDisplayDetail(
+    resolved.sourceRef,
+    { realm: () => realm } as never,
+    { prefetchedSource: resolved },
+  );
+  assert.equal(detail?.source.displayName, '宋濂');
+  assert.equal(detail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
+  assert.equal(getWorldCharacterCalls, 1, 'must reuse verified character record from resolveCurrentPartnerSource');
+  assert.equal(getCharacterSourceCalls, 1, 'must reuse verified public source card from resolveCurrentPartnerSource');
+  assert.equal(getWorldEntityCalls, 1);
+  assert.equal(getWorldBannerCalls, 1);
+
+  // Unverified plain objects must not bypass fresh Realm reads.
+  await fetchSourceDisplayDetail(
+    resolved.sourceRef,
+    { realm: () => realm } as never,
+    { prefetchedSource: { ...resolved } },
+  );
+  assert.equal(getWorldCharacterCalls, 2);
+  assert.equal(getCharacterSourceCalls, 2);
+});
+
+test('persona partner source detail reuses verified records from resolveCurrentPartnerSource', async () => {
+  const personaRef: CharacterSourceRefV3 = {
+    kind: 'personaCharacter',
+    id: 'persona-1',
+    worldId: sourceRef.worldId,
+    ownerAccountId: 'account-1',
+    sourceHash: 'd'.repeat(64),
+  };
+  const publicWorld = publicWorldProjection();
+  let getPersonaCalls = 0;
+  let getCharacterSourceCalls = 0;
+  const realm = {
+    worldCore: {
+      worldCoreControllerGetPersonaCharacter: async () => {
+        getPersonaCalls += 1;
+        return {
+          ...personaRef,
+          contentHash: 'e'.repeat(64),
+          createdAt: '2026-07-28T00:00:00.000Z',
+          updatedAt: '2026-07-28T00:00:00.000Z',
+          visibility: 'public',
+          profile: characterProfile('Persona', 'A public persona.'),
+        };
+      },
+      worldCoreControllerGetRelationshipTargets: async () => [
+        { entityId: 'entity-mentor', worldId: sourceRef.worldId, kind: 'person', name: '导师', isCharacter: false },
+      ],
+    },
+    worldPublic: {
+      worldPublicControllerGetCharacterSource: async () => {
+        getCharacterSourceCalls += 1;
+        return publicSourceCard(personaRef, 'Persona');
+      },
+      worldPublicControllerGetWorldCatalogByIds: async () => [publicWorld],
+    },
+  };
+
+  const resolved = await resolveCurrentPartnerSource(realm as never, personaRef);
+  assert.equal(getPersonaCalls, 1);
+  assert.equal(getCharacterSourceCalls, 1);
+
+  const detail = await fetchSourceDisplayDetail(
+    resolved.sourceRef,
+    { realm: () => realm } as never,
+    { prefetchedSource: resolved },
+  );
+  assert.equal(detail?.source.displayName, 'Persona');
+  assert.equal(detail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
+  assert.equal(getPersonaCalls, 1);
+  assert.equal(getCharacterSourceCalls, 1);
+});
+
+test('relationship targets enrich character endpoints with avatars matched strictly by entityId', async () => {
+  const publicWorld = publicWorldProjection();
+  const personaRef: CharacterSourceRefV3 = {
+    kind: 'personaCharacter',
+    id: 'persona-rel-avatars',
+    worldId: sourceRef.worldId,
+    ownerAccountId: 'account-1',
+    sourceHash: 'd'.repeat(64),
+  };
+  const catalogQueries: Array<{ worldId?: string; q?: string; limit?: number }> = [];
+  const mentorAvatarMedia = {
+    resourceId: 'res-mentor-avatar',
+    contentVersion: 'a'.repeat(64),
+    policyVersion: 'p1',
+    publicationGeneration: 1,
+    expiresAt: null,
+    originalUrl: null,
+    previewUrl: null,
+    video: null,
+    images: [{
+      purpose: 'avatar' as const,
+      families: [{
+        mimeType: 'image/webp',
+        sources: [{ url: 'https://cdn.example.test/mentor-managed-128.webp', width: 128, height: 128, mimeType: 'image/webp' }],
+      }],
+    }],
+  };
+  const profile = {
+    ...characterProfile('Persona', 'A public persona.'),
+    relationships: [
+      {
+        relationshipId: 'rel-1',
+        relationType: 'ally',
+        targetRef: { kind: 'worldEntity', worldId: sourceRef.worldId, entityId: 'entity-mentor' },
+        summary: 'A mentor.',
+      },
+      {
+        relationshipId: 'rel-2',
+        relationType: 'colleague',
+        targetRef: { kind: 'worldEntity', worldId: sourceRef.worldId, entityId: 'entity-late-page' },
+        summary: 'A colleague on page 2.',
+      },
+    ],
+  };
+  const realm = {
+    worldCore: {
+      worldCoreControllerGetPersonaCharacter: async () => ({
+        ...personaRef,
+        contentHash: 'e'.repeat(64),
+        createdAt: '2026-07-28T00:00:00.000Z',
+        updatedAt: '2026-07-28T00:00:00.000Z',
+        visibility: 'public',
+        profile,
+      }),
+      worldCoreControllerGetRelationshipTargets: async () => [
+        { entityId: 'entity-mentor', worldId: sourceRef.worldId, kind: 'person', name: '林小棠', isCharacter: true },
+        { entityId: 'entity-late-page', worldId: sourceRef.worldId, kind: 'person', name: '徐桂英', isCharacter: true },
+      ],
+    },
+    worldPublic: {
+      worldPublicControllerGetCharacterSource: async () => publicSourceCard(personaRef, 'Persona'),
+      worldPublicControllerGetWorldCatalogByIds: async () => [publicWorld],
+      worldPublicControllerListCharacterCatalog: async ({ query }: { query?: { worldId?: string; q?: string; limit?: number } }) => {
+        catalogQueries.push(query ?? {});
+        if (!query?.q) {
+          return {
+            hasMore: true,
+            nextCursor: 'page-2',
+            totalCount: 150,
+            items: [
+              // Same displayName in wrong world must never match.
+              {
+                id: 'char-wrong-world',
+                displayName: '徐桂英',
+                summary: 'Wrong world impostor',
+                worldName: 'Other World',
+                avatarUrl: 'https://cdn.example.test/wrong-world.png',
+                avatarMedia: null,
+                sourceRef: {
+                  kind: 'worldCharacter',
+                  id: 'char-wrong-world',
+                  worldId: 'other-world',
+                  worldEntityRef: { kind: 'worldEntity', worldId: 'other-world', entityId: 'entity-late-page' },
+                  sourceHash: 'f'.repeat(64),
+                },
+              },
+              {
+                id: 'char-mentor',
+                displayName: '林小棠',
+                summary: 'Mentor',
+                worldName: publicWorld.name,
+                avatarUrl: 'https://cdn.example.test/mentor-fallback.png',
+                avatarMedia: mentorAvatarMedia,
+                sourceRef: {
+                  kind: 'worldCharacter',
+                  id: 'char-mentor',
+                  worldId: sourceRef.worldId,
+                  worldEntityRef: { kind: 'worldEntity', worldId: sourceRef.worldId, entityId: 'entity-mentor' },
+                  sourceHash: 'c'.repeat(64),
+                },
+              },
+            ],
+          };
+        }
+        return {
+          hasMore: false,
+          nextCursor: null,
+          totalCount: 1,
+          items: [{
+            id: 'char-late',
+            displayName: '徐桂英',
+            summary: 'Colleague',
+            worldName: publicWorld.name,
+            avatarUrl: 'https://cdn.example.test/xu-guiying.png',
+            avatarMedia: null,
+            sourceRef: {
+              kind: 'worldCharacter',
+              id: 'char-late',
+              worldId: sourceRef.worldId,
+              worldEntityRef: { kind: 'worldEntity', worldId: sourceRef.worldId, entityId: 'entity-late-page' },
+              sourceHash: 'b'.repeat(64),
+            },
+          }],
+        };
+      },
+    },
+  };
+
+  const detail = await fetchSourceDisplayDetail(personaRef, { realm: () => realm } as never);
+  assert.deepEqual(catalogQueries, [
+    { worldId: sourceRef.worldId, limit: 100 },
+    { worldId: sourceRef.worldId, q: '徐桂英', limit: 20 },
+  ]);
+  assert.equal(detail?.source.relationshipTargets['entity-mentor']?.avatarUrl, 'https://cdn.example.test/mentor-fallback.png');
+  assert.equal(detail?.source.relationshipTargets['entity-mentor']?.avatarMedia?.resourceId, 'res-mentor-avatar');
+  assert.equal(detail?.source.relationshipTargets['entity-late-page']?.avatarUrl, 'https://cdn.example.test/xu-guiying.png');
+  assert.equal(detail?.source.relationshipTargets['entity-late-page']?.avatarMedia, undefined);
+});

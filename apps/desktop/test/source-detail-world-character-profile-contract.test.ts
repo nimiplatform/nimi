@@ -267,10 +267,45 @@ test('the profile uses full narrative and authored motives while absent sections
   const markup = render(source);
   assert.match(markup, /An octopus keeps every letter safe/);
   assert.doesNotMatch(markup, /A short discovery line/);
-  assert.match(markup, /Adult · Octopus/);
+  const specsStart = markup.indexOf('data-testid="world-character-profile-specs"');
+  const guidanceCardStart = markup.indexOf('data-testid="world-character-guidance-card"');
+  assert.ok(specsStart >= 0, 'identity specs card should render');
+  assert.ok(guidanceCardStart > specsStart, 'profile specs should appear before guidance at the top of the dossier column');
+  const specsSlice = markup.slice(specsStart, markup.indexOf('</section>', specsStart));
+  assert.match(specsSlice, /Adult/);
+  assert.match(specsSlice, /Octopus/);
   assert.match(markup, /Keep the letters dry/);
   assert.match(markup, /Never promises delivery dates/);
   assert.doesNotMatch(markup, /world-character-dialogue-section|world-character-appearance-disclosure|world-character-relationship-clues-section/);
-  const empty = render({ ...source, bio: null, characterProfile: { ...source.characterProfile, narrativeSummary: null, drives: [], boundaries: [] } });
-  assert.doesNotMatch(empty, /world-character-overview-columns|world-character-drives-section|world-character-knowledge-section/);
+  const empty = render({ ...source, bio: null, characterProfile: { ...source.characterProfile, narrativeSummary: null, ageDescription: null, speciesDescription: null, drives: [], boundaries: [] } });
+  assert.doesNotMatch(empty, /world-character-overview-columns|world-character-drives-section|world-character-knowledge-section|world-character-profile-specs/);
+});
+
+test('guidance separates interpersonal boundaries from knowledge constraints', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...liBaiRaw,
+      characterProfile: {
+        ...liBaiRaw.characterProfile,
+        boundaries: ['别碰银白狐尾。'],
+        knowledgeConstraints: ['总部绝密封条需双钥授权。'],
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+      source, loading: false, error: false, onOpenWorld: () => {}, onPrimaryAction: () => {},
+    }));
+    const boundariesStart = markup.indexOf('data-testid="world-character-boundaries"');
+    const constraintsStart = markup.indexOf('data-testid="world-character-constraints"');
+    assert.ok(boundariesStart >= 0 && constraintsStart > boundariesStart);
+    const boundariesSlice = markup.slice(boundariesStart, constraintsStart);
+    const constraintsEnd = markup.indexOf('</aside>', constraintsStart);
+    const constraintsSlice = markup.slice(constraintsStart, constraintsEnd);
+    assert.match(boundariesSlice, /<h3[^>]*text-\[14px\][^>]*text-\[var\(--nimi-text-primary\)\][^>]*>相处边界<\/h3>[\s\S]*别碰银白狐尾。/);
+    assert.match(constraintsSlice, /<h3[^>]*text-\[14px\][^>]*text-\[var\(--nimi-text-primary\)\][^>]*>认知与权限限制<\/h3>[\s\S]*总部绝密封条需双钥授权。/);
+    assert.doesNotMatch(boundariesSlice, /text-\[15px\]/, 'dossier body copy must not inherit conflicting 15px stage size');
+    assert.doesNotMatch(constraintsSlice, /text-\[15px\]/, 'dossier body copy must not inherit conflicting 15px stage size');
+  } finally {
+    await changeLocale('en');
+  }
 });

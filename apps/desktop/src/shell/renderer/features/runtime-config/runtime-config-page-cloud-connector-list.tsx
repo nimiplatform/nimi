@@ -103,16 +103,17 @@ export function CloudConnectorListPanel(props: {
           className="min-w-0 flex-1"
         />
         <Popover>
-          <PopoverTrigger asChild>
-            <IconButton
-              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('runtimeConfig.cloudWorkspace.filterConnections')}
-              title={`${t('runtimeConfig.cloudWorkspace.filterConnections')} · ${t(`runtimeConfig.cloudWorkspace.filter.${filter}`)}`}
-              className="desktop-sidebar__icon-action shrink-0"
-            />
-          </PopoverTrigger>
+          <Tooltip content={`${t('runtimeConfig.cloudWorkspace.filterConnections')} · ${t(`runtimeConfig.cloudWorkspace.filter.${filter}`)}`} placement="bottom">
+            <PopoverTrigger asChild>
+              <IconButton
+                icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={t('runtimeConfig.cloudWorkspace.filterConnections')}
+                className="desktop-sidebar__icon-action shrink-0"
+              />
+            </PopoverTrigger>
+          </Tooltip>
           <PopoverContent align="end" sideOffset={6} className="p-1">
             <ActionMenu
               ariaLabel={t('runtimeConfig.cloudWorkspace.filterConnections')}

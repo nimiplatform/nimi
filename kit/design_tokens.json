@@ -393,7 +393,7 @@
       },
       "rounded": {
         "$type": "string",
-        "$value": "{rounded.sm}"
+        "$value": "{rounded.md}"
       }
     },
     "sidebar-shell-affordance-badge": {

@@ -22,13 +22,16 @@ const buildDir = mkdtempSync(path.join(root, '.tmp', 'session-loss-recovery-'));
 await build({
   stdin: {
     contents: `export { observeLabLocalAppSessionLoss, subscribeLabLocalAppSessionLoss } from './src/shell/auth/session-loss.ts';
+      export { AuthGate } from './src/shell/auth/auth-gate.tsx';
+      export { LabNavigationOwner } from './src/shell/routes/app-navigation.tsx';
+      export { changeLocale } from './src/shell/i18n/index.ts';
       export { WorkbenchRuntimeGate } from './src/workbench-core/runtime-gate.tsx';`,
     resolveDir: root, loader: 'ts',
   },
   outfile: path.join(buildDir, 'session-loss.mjs'), bundle: true, packages: 'external',
   platform: 'node', format: 'esm', target: 'es2022', jsx: 'automatic', logLevel: 'silent',
 });
-const { observeLabLocalAppSessionLoss, subscribeLabLocalAppSessionLoss, WorkbenchRuntimeGate } = await import(
+const { AuthGate, LabNavigationOwner, changeLocale, observeLabLocalAppSessionLoss, subscribeLabLocalAppSessionLoss, WorkbenchRuntimeGate } = await import(
   pathToFileURL(path.join(buildDir, 'session-loss.mjs')).href
 );
 
@@ -39,6 +42,45 @@ test.after(async () => {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 const shellError = (reasonCode) => Object.assign(new Error(reasonCode), { reasonCode, details: { retryable: false } });
+
+test('a signed-out Lab directs sign-in to Home and retries the protected session check', async () => {
+  const calls = [];
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command) {
+      calls.push(command);
+      throw Object.assign(shellError('runtime-unauthenticated'), {
+        code: 'runtime-unauthenticated',
+        actionHint: 'open_request_empty_local_app_session',
+        source: 'runtime',
+      });
+    },
+    listen() { return () => {}; },
+  };
+  const container = document.getElementById('root');
+  const view = createRoot(container);
+  try {
+    await changeLocale('en');
+    await act(async () => {
+      view.render(createElement(LabNavigationOwner, null,
+        createElement(AuthGate, null, createElement('p', null, 'Ready workbench'))));
+      await flush();
+    });
+    assert.equal(container.querySelector('h1')?.textContent, 'Sign in to Nimi');
+    assert.match(container.textContent ?? '', /Open Nimi Home.*and sign in/u);
+    const buttons = [...container.querySelectorAll('button')];
+    assert.deepEqual(buttons.map((button) => button.textContent), ['Check connection']);
+    await act(async () => {
+      buttons[0].click();
+      await flush();
+    });
+    assert.deepEqual(calls, ['nimi.shell.localApp.sessionStatus', 'nimi.shell.localApp.sessionStatus']);
+  } finally {
+    await act(async () => view.unmount());
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+  }
+});
 
 test('a lost technical session is reported without retrying the failed operation', async () => {
   const calls = [];
@@ -157,6 +199,88 @@ test('the runtime gate re-checks a lost session, keeps the ready App mounted and
     assert.equal(checks, 4);
     assert.equal(text(), 'App instance 2');
     assert.equal(revalidated, 1);
+  } finally {
+    await act(async () => view.unmount());
+  }
+});
+
+test('the blocked runtime gate keeps its panel steady while re-checking, surfaces retry feedback, and unlocks on window focus', async () => {
+  let pendingCheck = null;
+  const outcomes = [
+    {
+      status: 'unavailable',
+      title: 'Connect to Nimi Desktop',
+      body: 'Protected Runtime service is unavailable.',
+      signInRequired: false,
+      nextAction: 'Open Nimi Desktop and check again.',
+      technicalDetails: [{ label: 'Reason', value: 'runtime-service-unavailable' }],
+    },
+  ];
+  const resolve = () => new Promise((finish) => {
+    const next = outcomes.shift();
+    if (next) finish(next);
+    else pendingCheck = finish;
+  });
+  const copy = {
+    checking: 'Checking connection',
+    checkingHint: 'Verifying local session…',
+    setupRequired: 'Action needed',
+    signInRequired: 'Sign in',
+    connectionRequired: 'Connect',
+    retry: 'Check connection',
+    offlineTier: (tier) => `Tier ${tier}`,
+    nextAction: (action) => `Next: ${action}`,
+    stepLabel: 'How to continue',
+    recheckStillUnavailable: 'Still unavailable. Confirm Nimi Desktop is running.',
+    protectionLabel: 'Offline tier',
+    technicalDetails: 'Technical details',
+  };
+  const container = document.getElementById('root');
+  const view = createRoot(container);
+  try {
+    await act(async () => {
+      view.render(createElement(WorkbenchRuntimeGate, {
+        appTitle: 'Workbench',
+        brandMark: createElement('img', { src: 'icon.png', alt: '' }),
+        copy,
+        resolve,
+        clear: () => undefined,
+        toErrorMessage: String,
+      }, createElement('p', { id: 'ready-app' }, 'Ready')));
+      await flush();
+    });
+
+    assert.equal(container.querySelector('h1')?.textContent, 'Connect to Nimi Desktop');
+    assert.match(container.textContent ?? '', /How to continue/u);
+    assert.equal(container.textContent?.includes('Still unavailable'), false);
+
+    // Clicking retry keeps the blocked panel mounted and sets aria-busy instead of flashing to checking screen.
+    const retryButton = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Check connection');
+    await act(async () => {
+      retryButton.click();
+    });
+    assert.notEqual(container.querySelector('.runtime-unavailable-panel'), null);
+    assert.equal(container.querySelector('.runtime-check-screen'), null);
+    assert.equal(retryButton.getAttribute('aria-busy'), 'true');
+
+    await act(async () => {
+      pendingCheck({
+        status: 'unavailable',
+        title: 'Connect to Nimi Desktop',
+        body: 'Protected Runtime service is unavailable.',
+        signInRequired: false,
+      });
+      await flush();
+    });
+    assert.match(container.textContent ?? '', /Still unavailable\. Confirm Nimi Desktop is running\./u);
+
+    // Returning focus to the window after starting Nimi Desktop automatically unlocks the App.
+    outcomes.push({ status: 'ready' });
+    await act(async () => {
+      window.dispatchEvent(new window.Event('focus'));
+      await flush();
+    });
+    assert.equal(container.querySelector('#ready-app')?.textContent, 'Ready');
   } finally {
     await act(async () => view.unmount());
   }

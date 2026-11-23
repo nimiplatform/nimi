@@ -15,6 +15,7 @@ import {
   SelectField,
   StatusBadge,
   Surface,
+  Tooltip,
 } from '@nimiplatform/kit/ui';
 import {
   Boxes,
@@ -458,13 +459,18 @@ function CommunitySection(props: {
         count={props.featured ? props.featured.items.length : undefined}
         description={t('runtimeConfig.modelLibrary.community.description')}
         aside={props.staleSnapshot ? (
-          <StatusBadge
-            tone="warning"
-            shape="soft"
-            title={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
+          <Tooltip
+            content={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
+            placement="top"
+            contentClassName="max-w-xs text-left"
           >
-            {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
-          </StatusBadge>
+            <StatusBadge
+              tone="warning"
+              shape="soft"
+            >
+              {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
+            </StatusBadge>
+          </Tooltip>
         ) : null}
       />
       {props.featured?.source.availability === 'unavailable' ? (

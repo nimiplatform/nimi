@@ -55,14 +55,12 @@ const SAMPLE_COPY = {
     input: '输入场景',
     output: '实际效果',
     usedByLabel: '生态代表应用',
-    unavailable: { image: '原图未收录', video: '原始视频未收录', audio: '原始音频未收录' },
   },
   en: {
     useCase: 'Where it helps',
     input: 'What you do',
     output: 'What happens',
     usedByLabel: 'Used in Nimi Apps',
-    unavailable: { image: 'Original image unavailable', video: 'Original video unavailable', audio: 'Original audio unavailable' },
   },
 } as const;
 
@@ -87,12 +85,11 @@ export function PlatformCapabilityPreview({
 
   return (
     <div className="platform-lab-stage is-rich-stage" data-sample={capability}>
-      {/* Top Toolbar: Capability Name, Contract Call, Engine Counts & Stepper */}
+      {/* Top Toolbar: Capability Name & Engine Counts */}
       <header className="platform-lab-head">
         <div className="platform-lab-title-group">
           <span className="platform-sensory-stage-icon" aria-hidden="true"><Icon size={18} /></span>
           {title && <h3 id={headingId} aria-live="polite">{title}</h3>}
-          <code className="platform-lab-code">{capability}()</code>
         </div>
         {routeCounts && (
           <div className="platform-lab-head-controls">
@@ -130,9 +127,6 @@ export function PlatformCapabilityPreview({
             <div className="platform-sensory-story-col is-output">
               <h4>{copy.output}</h4>
               <p>{sample.result[locale]}</p>
-              {sample.excerpt && capability !== 'text.generate' && capability !== 'realtime.interact' && (
-                <blockquote lang={sample.excerpt.lang}>{sample.excerpt.text}</blockquote>
-              )}
             </div>
           </div>
         )}
@@ -154,13 +148,10 @@ export function PlatformCapabilityPreview({
               {sample.facts.map((fact) => (
                 <div key={fact.label.en}>
                   <dt>{fact.label[locale]}</dt>
-                  <dd>{fact.value}</dd>
+                  <dd>{typeof fact.value === 'string' ? fact.value : fact.value[locale]}</dd>
                 </div>
               ))}
             </dl>
-          )}
-          {sample.unavailableMedia && (
-            <small className="platform-sensory-media-note">{copy.unavailable[sample.unavailableMedia]}</small>
           )}
         </footer>
       </div>

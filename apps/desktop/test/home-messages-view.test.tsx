@@ -322,7 +322,8 @@ test('a selected download source survives the last download leaving the list', a
   const current = renderCenter(controller({ messages: [growthOpen, download] }), 'all', download.groupKey);
   assert.match(current, new RegExp('data-testid="home-message:' + download.key + '"'));
   const after = renderCenter(controller({ messages: [growthOpen] }), 'all', download.groupKey);
-  assert.match(after, /title="Nimi · Downloads"/);
+  assert.match(after, />Nimi · Downloads</);
+  assert.doesNotMatch(after, /title="Nimi · Downloads"/);
   assert.match(after, /Clear source filter/);
   assert.match(after, /No messages/);
   assert.doesNotMatch(after, /Growth record 1/);

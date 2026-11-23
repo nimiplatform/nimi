@@ -12,7 +12,7 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
-import { capabilityIcon, Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Bot, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Laptop, LoaderCircle, X } from 'lucide-react';
 import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
@@ -1101,15 +1101,16 @@ export function RuntimeConfigSetupTaskView(props: {
   const embeddedControls = (
     <div className="-mr-2 flex shrink-0 items-center gap-1">
       {stopEarly}
-      <IconButton
-        size="sm"
-        tone="ghost"
-        aria-label={closeLabel}
-        title={closeLabel}
-        icon={<X size={16} aria-hidden="true" />}
-        onClick={onBack}
-        data-testid="runtime-setup-task-close"
-      />
+      <Tooltip content={closeLabel} placement="bottom">
+        <IconButton
+          size="sm"
+          tone="ghost"
+          aria-label={closeLabel}
+          icon={<X size={16} aria-hidden="true" />}
+          onClick={onBack}
+          data-testid="runtime-setup-task-close"
+        />
+      </Tooltip>
     </div>
   );
   const notices = (

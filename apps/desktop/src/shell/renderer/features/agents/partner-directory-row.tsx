@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { IconButton } from '@nimiplatform/kit/ui';
+import { IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { ChevronRight, Globe, MessageCircle } from 'lucide-react';
 import type { PartnerDirectoryItem } from './partner-directory-model.js';
@@ -39,9 +39,11 @@ export function PartnerDirectoryRow({ partner, accountId, scopeKey, enabled, sel
       {!onMessage || !active ? <ChevronRight className="partner-directory-chevron" size={14} aria-hidden="true" /> : null}
     </button>
     {onMessage && active ? <span className="partner-directory-quick-action">
-      <IconButton size="sm" tone="ghost" icon={<MessageCircle size={15} />}
-        aria-label={t('Chat.contactsOpenConversation')} title={t('Chat.contactsOpenConversation')}
-        onClick={onMessage} />
+      <Tooltip content={t('Chat.contactsOpenConversation')} placement="top">
+        <IconButton size="sm" tone="ghost" icon={<MessageCircle size={15} />}
+          aria-label={t('Chat.contactsOpenConversation')}
+          onClick={onMessage} />
+      </Tooltip>
     </span> : null}
   </div>;
 }

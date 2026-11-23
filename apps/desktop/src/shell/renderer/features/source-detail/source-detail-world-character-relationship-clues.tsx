@@ -1,10 +1,12 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import type { SourceDetailData } from './source-detail-model.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { relationKindLabel } from './source-detail-world-character-theme.js';
 import { relationshipDetailCopy, sourceDetailDisplayText } from './source-detail-world-character-copy.js';
+import { DOSSIER_BODY_TEXT_CLASS, DOSSIER_SECTION_HEADING_CLASS } from './source-detail-character-content.js';
 
 type RelationshipClueItem = {
   id: string;
@@ -189,43 +191,82 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
     buildRelationshipClueItems(source, t).filter(item => item.group === 'people'),
     t,
   );
-  return <CharacterRelationships key={source.id} items={items} />;
+  return <CharacterRelationships key={source.id} items={items} targets={source.relationshipTargets} />;
 }
 
-function CharacterRelationships({ items }: { items: ReturnType<typeof mergePeopleByTarget> }) {
+function CharacterRelationships({
+  items,
+  targets,
+}: {
+  items: ReturnType<typeof mergePeopleByTarget>;
+  targets: SourceDetailData['relationshipTargets'];
+}) {
   const { t } = useTranslation();
   const listId = useId();
   const [expanded, setExpanded] = useState(false);
   if (!items.length) return null;
   const visibleItems = expanded ? items : items.slice(0, 4);
-  return <section data-testid="world-character-relationship-clues-section" className="min-w-0 border-t border-[var(--nimi-border-subtle)] pt-5">
-    <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+  return <section data-testid="world-character-relationship-clues-section" className="char-folio-section min-w-0">
+    <h2 className={DOSSIER_SECTION_HEADING_CLASS}>
       {t('SourceDetail.worldCharacter.relationshipTitle')}
     </h2>
-    <ul id={listId} data-testid="world-character-relationship-list" role="list" className="mt-3 divide-y divide-[var(--nimi-border-subtle)]">
+    <ul id={listId} data-testid="world-character-relationship-list" role="list" className="mt-2.5 divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_65%,transparent)]">
       {visibleItems.map(item => {
-        return <li key={item.id} data-testid={`world-character-relationship-clue-${item.type ?? 'untyped'}`}>
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-start gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <p className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</p>
-                  {item.kindLabels.filter(kind => kind !== item.title).map(kind => <p key={kind} className="rounded-md bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-1.5 py-0.5 text-xs text-[var(--nimi-text-secondary)]">{kind}</p>)}
-                </div>
-                {item.summary ? <p className="mt-1 line-clamp-1 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--nimi-text-secondary)] group-open:line-clamp-none">{item.summary}</p> : null}
+        const target = item.targetId ? targets[item.targetId] : null;
+        const visibleKinds = item.kindLabels.filter(kind => kind !== item.title);
+        const expandable = item.details.length > 0 || (item.summary ? item.summary.length > 48 : false);
+        const rowBody = (
+          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+            {item.title.trim() ? (
+              <EntityAvatar
+                imageUrl={target?.avatarUrl}
+                media={target?.avatarMedia}
+                name={item.title}
+                kind="human"
+                shape="circle"
+                sizeClassName="mt-0.5 h-7 w-7 shrink-0"
+                radiusClassName="rounded-full"
+                className="ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]"
+                fallbackClassName="bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]"
+                textClassName="text-xs font-semibold"
+              />
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="break-words text-[13px] font-semibold text-[var(--nimi-text-primary)]">{item.title}</p>
+                {visibleKinds.map(kind => <p key={kind} className="rounded bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--nimi-text-muted)]">{kind}</p>)}
               </div>
-              <ChevronDown aria-hidden className="mt-1 h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-            </summary>
-            {item.details.length ? <div className="mx-2 mb-3 border-l-2 border-[var(--nimi-border-subtle)] pl-3">
-              {item.details.map(detail => <p key={detail} className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--nimi-text-secondary)]">{detail}</p>)}
-            </div> : null}
-          </details>
+              {item.summary ? (
+                <p className={`mt-1 whitespace-pre-wrap break-words ${DOSSIER_BODY_TEXT_CLASS} ${expandable ? 'line-clamp-2 group-open:line-clamp-none' : ''}`}>
+                  {item.summary}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        );
+
+        return <li key={item.id} data-testid={`world-character-relationship-clue-${item.type ?? 'untyped'}`}>
+          {expandable ? (
+            <details className="group">
+              <summary className="-mx-2 flex cursor-pointer list-none items-start gap-2 rounded-[10px] px-2 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
+                {rowBody}
+                <ChevronDown aria-hidden className="mt-1.5 h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+              {item.details.length ? <div className="mb-3 ml-9.5 space-y-1.5">
+                {item.details.map(detail => <p key={detail} className={`whitespace-pre-wrap break-words ${DOSSIER_BODY_TEXT_CLASS}`}>{detail}</p>)}
+              </div> : null}
+            </details>
+          ) : (
+            <div className="flex items-start gap-2 py-3">
+              {rowBody}
+            </div>
+          )}
         </li>;
       })}
     </ul>
     {items.length > 4 ? <button type="button" aria-expanded={expanded} aria-controls={listId}
       onClick={() => setExpanded(value => !value)}
-      className="mt-2 rounded px-2 py-1.5 text-sm font-medium text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
+      className="mt-2 rounded py-1 text-xs font-medium text-[var(--nimi-action-primary-bg)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
       {expanded ? t('SourceDetail.worldCharacter.relationshipsShowLess') : t('SourceDetail.worldCharacter.relationshipsShowAll', { count: items.length })}
     </button> : null}
   </section>;
@@ -259,8 +300,8 @@ function LifeContextGroups({ items, sourceName }: { items: RelationshipClueItem[
       if (summary) descriptions.push({ item, summary });
       else compact.push(item);
     }
-    return <li key={type} data-testid={`world-character-life-clue-${type}`} className="text-sm leading-7 text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere]">
-      <h3 className="font-semibold text-[var(--nimi-text-primary)]">{t(`SourceDetail.worldCharacter.lifeGroups.${type}`)}</h3>
+    return <li key={type} data-testid={`world-character-life-clue-${type}`} className={`${DOSSIER_BODY_TEXT_CLASS} [overflow-wrap:anywhere]`}>
+      <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">{t(`SourceDetail.worldCharacter.lifeGroups.${type}`)}</h3>
       {descriptions.map(({ item, summary }) => {
         const prose = display(summary);
         const title = display(item.title);
@@ -292,12 +333,12 @@ function RelationshipTextSection({ items, group, sourceName }: { items: Relation
   return (
     <section
       data-testid={`${testId}-clues-section`}
-      className="min-w-0 border-t border-[var(--nimi-border-subtle)] pt-5"
+      className="char-folio-section min-w-0"
     >
-      <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+      <h2 className={DOSSIER_SECTION_HEADING_CLASS}>
         {titles[group]}
       </h2>
-      <ul data-testid={`${testId}-list`} role="list" className="mt-4 space-y-4">
+      <ul data-testid={`${testId}-list`} role="list" className="mt-3 space-y-3.5">
         {group === 'life' ? <LifeContextGroups items={items} sourceName={sourceName} /> : null}
         {items.filter(item => group !== 'life' || !LIFE_COPY_GROUPS.some(type => type === item.type)).map((item) => {
           const kind = item.type ? relationKindLabel(item.type, t) : null;
@@ -313,7 +354,7 @@ function RelationshipTextSection({ items, group, sourceName }: { items: Relation
             <li
               key={item.id}
               data-testid={testId + '-clue-' + (item.type ?? 'untyped')}
-              className="whitespace-pre-wrap text-sm leading-7 text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere]"
+              className={`whitespace-pre-wrap ${DOSSIER_BODY_TEXT_CLASS} [overflow-wrap:anywhere]`}
             >
               <p>
                 {prose}
@@ -327,7 +368,7 @@ function RelationshipTextSection({ items, group, sourceName }: { items: Relation
                 ) : null}
               </p>
               {item.details.length > 0 ? (
-                <p className="mt-1 text-sm leading-7 text-[var(--nimi-text-secondary)]">{item.details.map(display).join(' · ')}</p>
+                <p className={`mt-1 ${DOSSIER_BODY_TEXT_CLASS}`}>{item.details.map(display).join(' · ')}</p>
               ) : null}
             </li>
           );

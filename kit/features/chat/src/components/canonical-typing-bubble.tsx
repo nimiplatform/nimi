@@ -1,3 +1,5 @@
+import { Tooltip } from '@nimiplatform/kit/ui';
+
 export type CanonicalTypingBubbleProps = {
   agentAvatarUrl?: string | null;
   agentName: string;
@@ -28,17 +30,18 @@ export function CanonicalTypingBubble({
               {thinkingLabel}
             </span>
             {onStop ? (
-              <button
-                type="button"
-                onClick={onStop}
-                className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-[var(--nimi-motion-pressed-scale)]"
-                aria-label={stopLabel}
-                title={stopLabel}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
-                </svg>
-              </button>
+              <Tooltip content={stopLabel} placement="top">
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-[var(--nimi-motion-pressed-scale)]"
+                  aria-label={stopLabel}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+              </Tooltip>
             ) : null}
           </div>
         </div>

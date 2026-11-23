@@ -850,6 +850,7 @@ export function IntegrationsPanel({
             <Button
               tone="ghost"
               size="sm"
+              className="-mr-2 shrink-0"
               aria-label={t('Integrations.close')}
               disabled={busy}
               onClick={closeConnection}
@@ -859,7 +860,7 @@ export function IntegrationsPanel({
           </div>
         }
         description={
-          <p className="text-sm font-normal text-[var(--nimi-text-secondary)]">
+          <p className="mt-1.5 text-sm font-normal leading-relaxed text-[var(--nimi-text-secondary)]">
             {t(
               setupActive
                 ? 'Integrations.closeSetupHelp'
@@ -1221,6 +1222,7 @@ export function IntegrationsPanel({
             <Button
               tone="ghost"
               size="sm"
+              className="-mr-2 shrink-0"
               aria-label={t('Integrations.close')}
               disabled={busy}
               onClick={() => setPermissionOpen(false)}

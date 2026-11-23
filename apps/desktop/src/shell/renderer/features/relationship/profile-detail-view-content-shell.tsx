@@ -15,7 +15,6 @@ import {
   AlertIcon,
   DotsIcon,
   MessageIcon,
-  TOPBAR_TOOLTIP_CLASS,
   TrashIcon,
   UserPlusIcon,
 } from './profile-detail-view-parts.js';
@@ -213,7 +212,7 @@ export function ProfileDetailActionButtons(input: {
             ? input.addFriendHint
             : addFriendLabel}
           placement="bottom"
-          contentClassName={`${TOPBAR_TOOLTIP_CLASS}${input.canAddFriend === false && input.addFriendHint ? ' whitespace-pre-wrap max-w-xs' : ''}`}
+          contentClassName={input.canAddFriend === false && input.addFriendHint ? 'whitespace-pre-wrap max-w-xs text-left' : undefined}
         >
           <Button
             leadingIcon={<UserPlusIcon className="h-4 w-4" />}
@@ -228,7 +227,7 @@ export function ProfileDetailActionButtons(input: {
           open={input.showMenu}
           onOpenChange={(open) => input.onShowMenuChange?.(open)}
         >
-          <Tooltip content={moreLabel} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
+          <Tooltip content={moreLabel} placement="bottom">
             <PopoverTrigger asChild>
               <IconButton
                 icon={<DotsIcon className="h-4 w-4" />}

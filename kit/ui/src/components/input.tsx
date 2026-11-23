@@ -2,6 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef, type InputHTMLAttribute
 import { cva } from 'class-variance-authority';
 import { cn, type FieldTone } from '../design-tokens.js';
 import { IconButton } from './button.js';
+import { Tooltip } from './tooltip.js';
 
 const fieldVariants = cva(
   'flex items-center gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] min-h-[var(--nimi-sizing-field-md-height)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]',
@@ -103,17 +104,20 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
   const resolvedTrailing = trailing || showClear ? (
     <>
       {trailing}
-      {showClear ? <IconButton
-        data-testid={clearButtonTestId}
-        icon={CLEAR_ICON}
-        size="sm"
-        tone="ghost"
-        disabled={rest.disabled}
-        onClick={() => { onClear?.(); inputRef.current?.focus(); }}
-        className="h-6 w-6 min-h-6 rounded-full text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
-        aria-label={clearLabel}
-        title={clearLabel}
-      /> : null}
+      {showClear ? (
+        <Tooltip content={rest.disabled ? undefined : clearLabel} placement="top">
+          <IconButton
+            data-testid={clearButtonTestId}
+            icon={CLEAR_ICON}
+            size="sm"
+            tone="ghost"
+            disabled={rest.disabled}
+            onClick={() => { onClear?.(); inputRef.current?.focus(); }}
+            className="h-6 w-6 min-h-6 rounded-full text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+            aria-label={clearLabel}
+          />
+        </Tooltip>
+      ) : null}
     </>
   ) : undefined;
   return <TextField

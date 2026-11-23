@@ -198,7 +198,10 @@ export function SavedConfigsView(props: {
       const withSelection = capabilities.find((capability) => (
         (loadoutsByCapability.get(capability) ?? []).some((loadout) => isSelected(aggregate, loadout))
       ));
-      return withSelection ?? capabilities[0] ?? '';
+      const withSaved = capabilities.find((capability) => (
+        (loadoutsByCapability.get(capability) ?? []).length > 0
+      ));
+      return withSelection ?? withSaved ?? capabilities[0] ?? '';
     });
   }, [aggregate, capabilities, loadoutsByCapability]);
 
@@ -481,18 +484,48 @@ export function SavedConfigsView(props: {
   const capabilityLabel = useCallback((capabilityContract: string) => (
     t(loadoutCapabilityLabelKey(capabilityContract), { defaultValue: capabilityContract })
   ), [t]);
+  const contextualCapabilityLabel = props.contextual && props.capabilityContract
+    ? capabilityLabel(props.capabilityContract)
+    : '';
+  const contextualEmptyState = (targetCapability: string) => (
+    <EmptyState
+      data-testid={`loadout-capability-empty:${targetCapability}`}
+      title={t('runtimeConfig.loadouts.contextualEmpty', {
+        capability: capabilityLabel(targetCapability),
+        defaultValue: 'No saved setups for {{capability}} yet',
+      })}
+      description={t('runtimeConfig.loadouts.contextualEmptyBody', {
+        defaultValue: 'Return to on-device models to pick a ready-made model, or create a custom model setup here.',
+      })}
+      action={(
+        <Button size="sm" tone="secondary" onClick={props.onBack}>
+          {props.backLabel ?? t('runtimeConfig.product.backToCustomization')}
+        </Button>
+      )}
+    />
+  );
 
   return (
     <RuntimePageShell>
       <RuntimePageHeader
-        title={t('runtimeConfig.aiSettings.savedConfigsTitle', { defaultValue: 'Saved configurations' })}
-        description={t('runtimeConfig.loadouts.description')}
+        title={contextualCapabilityLabel
+          ? t('runtimeConfig.loadouts.contextualTitle', {
+            capability: contextualCapabilityLabel,
+            defaultValue: '{{capability}} · Saved configurations',
+          })
+          : t('runtimeConfig.aiSettings.savedConfigsTitle', { defaultValue: 'Saved configurations' })}
+        description={contextualCapabilityLabel
+          ? t('runtimeConfig.loadouts.contextualDescription', {
+            capability: contextualCapabilityLabel,
+            defaultValue: 'Create and manage local model setups for {{capability}}, and choose which setup is currently used.',
+          })
+          : t('runtimeConfig.loadouts.description')}
         actions={(
           <>
             <Button size="sm" tone="ghost" data-testid="saved-configs-back" onClick={props.onBack}>
               {props.backLabel ?? (props.contextual ? t('runtimeConfig.product.backToCustomization') : t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' }))}
             </Button>
-            <Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>
+            <Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || props.capabilityContract || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>
           </>
         )}
       />
@@ -582,7 +615,9 @@ export function SavedConfigsView(props: {
                 onInstallRecommended={requestRecommendedInstallForRecipe}
                 onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
               />
-              {activeCapabilityLoadouts.length === 0 && activeCapabilityRecipes.length === 0 ? (
+              {activeCapabilityLoadouts.length === 0 && props.contextual ? (
+                contextualEmptyState(activeCapability)
+              ) : activeCapabilityLoadouts.length === 0 && activeCapabilityRecipes.length === 0 ? (
                 <Surface tone="card" className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-testid={`loadout-capability-empty:${activeCapability}`}>
                   <span className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.sectionEmpty')}</span>
                 </Surface>
@@ -590,6 +625,8 @@ export function SavedConfigsView(props: {
             </section>
           ) : null}
         </div>
+      ) : props.contextual && props.capabilityContract ? (
+        contextualEmptyState(props.capabilityContract)
       ) : (
         <EmptyState title={t('runtimeConfig.loadouts.empty')} description={t('runtimeConfig.loadouts.emptyBody')} action={<Button size="sm" tone="primary" onClick={() => beginCreate()}>{t('runtimeConfig.loadouts.create')}</Button>} />
       )}

@@ -6,6 +6,7 @@ import {
   SHELL_CHROME_RAIL_ICON_SIZE,
   SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
   SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
+  SHELL_CHROME_TOOLTIP_CLASS,
 } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useProductUpdate } from './product-update-context.js';
 
@@ -16,7 +17,7 @@ export function ProductUpdateNotice() {
   if (!update.railVisible) return null;
   const actionPending = update.attention || update.status?.phase === 'prepared';
   return (
-    <Tooltip content={update.message} placement="right">
+    <Tooltip content={update.message} placement="right" contentClassName={SHELL_CHROME_TOOLTIP_CLASS}>
       <div className="relative">
         <IconButton data-testid="nimi-product-update" size="sm"
           className={`${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${update.attention ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-action-primary-bg)]'}`}

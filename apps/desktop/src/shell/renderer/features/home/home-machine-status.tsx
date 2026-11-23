@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/kit/ui';
+import { Button, Tooltip } from '@nimiplatform/kit/ui';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import { Coins } from 'lucide-react';
@@ -71,12 +71,12 @@ function roundPercent(percent: number): number {
 
 function ResourceValue({ label, percent, warn, note }: { label: string; percent: number | null; warn: boolean; note?: string }) {
   return (
-    <span className="flex items-center gap-1 whitespace-nowrap" data-warn={warn ? 'true' : undefined} title={note}>
+    <span className="flex items-center gap-1 whitespace-nowrap" data-warn={warn ? 'true' : undefined}>
       <span>{label}</span>
       <span className={`font-semibold tabular-nums ${warn ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-primary)]'}`}>
         {percent === null ? '—' : `${percent}%`}
       </span>
-      {warn && note ? <span className="sr-only">{note}</span> : null}
+      {note ? <span className="sr-only">{note}</span> : null}
     </span>
   );
 }
@@ -89,6 +89,11 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
   const memory = roundPercent(snapshot ? percentOf(snapshot.memoryUsedBytes, snapshot.memoryTotalBytes) : 0);
   const disk = snapshot?.diskUsedBytes != null && snapshot.diskTotalBytes != null ? roundPercent(percentOf(snapshot.diskUsedBytes, snapshot.diskTotalBytes)) : null;
   const memoryPressure = snapshot?.memoryPressure ?? 'unknown';
+  const memoryNote = memoryPressure === 'unknown'
+    ? undefined
+    : t('runtimeConfig.overview.memoryPressureSummary', { state: t(`runtimeConfig.overview.memoryPressureState.${memoryPressure}`) });
+  const diskNote = disk === null ? t('runtimeConfig.overview.diskUnavailable') : undefined;
+  const resourcesNote = [memoryNote, diskNote].filter(Boolean).join(' · ') || undefined;
   const usageReady = usage && (usage.status === 'available' || usage.status === 'partial') && usage.attempts !== null;
   const usageText = usageReady
     ? t('runtimeConfig.systemEntry.todayRecorded', { value: usage.attempts })
@@ -119,47 +124,49 @@ export function HomeMachineStatusView({ runtime, capabilities, resources, usage,
       </button>
       <span className="h-4 w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" />
       {capabilities}
-      <button
-        type="button"
-        className={`${ITEM_CLASS} gap-4`}
-        onClick={() => onOpenDiagnostics('services')}
-        data-testid="home-machine-resources"
-      >
-        {snapshot ? (
-          <>
-            <ResourceValue label={t('runtimeConfig.overview.cpu')} percent={cpu} warn={cpu >= HOME_RESOURCE_WARN_PERCENT.cpu} />
-            <ResourceValue
-              label={t('runtimeConfig.overview.memory')}
-              percent={memory}
-              warn={memoryPressure === 'warning' || memoryPressure === 'critical'}
-              note={memoryPressure === 'unknown'
-                ? undefined
-                : t('runtimeConfig.overview.memoryPressureSummary', { state: t(`runtimeConfig.overview.memoryPressureState.${memoryPressure}`) })}
-            />
-            <ResourceValue label={t('runtimeConfig.overview.disk')} percent={disk} warn={disk !== null && disk >= HOME_RESOURCE_WARN_PERCENT.disk} note={disk === null ? t('runtimeConfig.overview.diskUnavailable') : undefined} />
-          </>
-        ) : (
-          <span className="truncate">
-            {resources.status === 'unavailable'
-              ? t('runtimeConfig.overview.systemResourcesUnavailable')
-              : t('Common.loading')}
-          </span>
-        )}
-      </button>
+      <Tooltip content={snapshot ? resourcesNote : undefined} placement="top">
+        <button
+          type="button"
+          className={`${ITEM_CLASS} gap-4`}
+          onClick={() => onOpenDiagnostics('services')}
+          data-testid="home-machine-resources"
+        >
+          {snapshot ? (
+            <>
+              <ResourceValue label={t('runtimeConfig.overview.cpu')} percent={cpu} warn={cpu >= HOME_RESOURCE_WARN_PERCENT.cpu} />
+              <ResourceValue
+                label={t('runtimeConfig.overview.memory')}
+                percent={memory}
+                warn={memoryPressure === 'warning' || memoryPressure === 'critical'}
+                note={memoryNote}
+              />
+              <ResourceValue label={t('runtimeConfig.overview.disk')} percent={disk} warn={disk !== null && disk >= HOME_RESOURCE_WARN_PERCENT.disk} note={diskNote} />
+            </>
+          ) : (
+            <span className="truncate">
+              {resources.status === 'unavailable'
+                ? t('runtimeConfig.overview.systemResourcesUnavailable')
+                : t('Common.loading')}
+            </span>
+          )}
+        </button>
+      </Tooltip>
       <span className="flex-1" />
-      <button
-        type="button"
-        className={`${ITEM_CLASS} gap-1.5`}
-        onClick={onOpenUsage}
-        data-testid="home-machine-usage"
-        aria-label={t('runtimeConfig.systemEntry.activityUsageTitle')}
-        title={usage?.note}
-      >
-        <Coins size={14} strokeWidth={1.6} className="shrink-0" />
-        <span className="truncate font-medium tabular-nums text-[var(--nimi-text-primary)]">{usageText}</span>
-        {usageReady && usage.partial ? <span className="shrink-0 text-[var(--nimi-status-warning)]">{t('runtimeConfig.systemEntry.partial')}</span> : null}
-        {costText ? <span className="max-w-48 truncate tabular-nums">{costText}</span> : null}
-      </button>
+      <Tooltip content={usage?.note} placement="top">
+        <button
+          type="button"
+          className={`${ITEM_CLASS} gap-1.5`}
+          onClick={onOpenUsage}
+          data-testid="home-machine-usage"
+          aria-label={t('runtimeConfig.systemEntry.activityUsageTitle')}
+          aria-description={usage?.note}
+        >
+          <Coins size={14} strokeWidth={1.6} className="shrink-0" />
+          <span className="truncate font-medium tabular-nums text-[var(--nimi-text-primary)]">{usageText}</span>
+          {usageReady && usage.partial ? <span className="shrink-0 text-[var(--nimi-status-warning)]">{t('runtimeConfig.systemEntry.partial')}</span> : null}
+          {costText ? <span className="max-w-48 truncate tabular-nums">{costText}</span> : null}
+        </button>
+      </Tooltip>
       <Button tone="ghost" size="sm" className="rounded-full" onClick={() => onOpenDiagnostics('services')}>
         {t('runtimeConfig.nav.advancedDiagnostics')}
       </Button>

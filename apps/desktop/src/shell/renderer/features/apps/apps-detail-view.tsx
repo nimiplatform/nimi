@@ -45,6 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
+  Tooltip,
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import {
@@ -377,15 +378,16 @@ function LocalDevelopmentAppsDetailView({
                 </Button>
               )}
               <Popover>
-                <PopoverTrigger asChild>
-                  <IconButton
-                    data-testid="apps-detail-more"
-                    icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-                    tone="secondary"
-                    aria-label={t('Apps.detail.moreActions')}
-                    title={t('Apps.detail.moreActions')}
-                  />
-                </PopoverTrigger>
+                <Tooltip content={t('Apps.detail.moreActions')} placement="bottom">
+                  <PopoverTrigger asChild>
+                    <IconButton
+                      data-testid="apps-detail-more"
+                      icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                      tone="secondary"
+                      aria-label={t('Apps.detail.moreActions')}
+                    />
+                  </PopoverTrigger>
+                </Tooltip>
                 <PopoverContent align="end" sideOffset={6} className="p-1">
                   <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
                 </PopoverContent>
@@ -870,15 +872,16 @@ function InstalledAppsDetailView({
                 </Button>
               ) : null}
               <Popover>
-                <PopoverTrigger asChild>
-                  <IconButton
-                    data-testid="apps-detail-more"
-                    icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-                    tone="secondary"
-                    aria-label={t('Apps.detail.moreActions')}
-                    title={t('Apps.detail.moreActions')}
-                  />
-                </PopoverTrigger>
+                <Tooltip content={t('Apps.detail.moreActions')} placement="bottom">
+                  <PopoverTrigger asChild>
+                    <IconButton
+                      data-testid="apps-detail-more"
+                      icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                      tone="secondary"
+                      aria-label={t('Apps.detail.moreActions')}
+                    />
+                  </PopoverTrigger>
+                </Tooltip>
                 <PopoverContent align="end" sideOffset={6} className="p-1">
                   <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
                 </PopoverContent>
@@ -941,6 +944,7 @@ function InstalledAppsDetailView({
                   <>
                     <AppsCapabilitiesCard
                       capabilities={declaredCapabilities}
+                      opensAppModels={aiModelsAvailable}
                       onManageCapabilities={() => {
                         if (aiModelsAvailable) {
                           void navigation.replace({ id: 'apps', appId: entry.identity.appId, appEntryKey: entry.identity.entryKey, appSection: 'ai-models' });
@@ -1183,8 +1187,9 @@ function AppsOverviewTab({ sourceEntries, onOpenEntry, onRemoveSource, actionsDi
   );
 }
 
-function AppsCapabilitiesCard({ capabilities, onManageCapabilities }: {
+function AppsCapabilitiesCard({ capabilities, opensAppModels = false, onManageCapabilities }: {
   readonly capabilities: readonly string[];
+  readonly opensAppModels?: boolean;
   readonly onManageCapabilities: () => void;
 }): ReactElement | null {
   const { t } = useTranslation();
@@ -1213,16 +1218,13 @@ function AppsCapabilitiesCard({ capabilities, onManageCapabilities }: {
           );
         })}
       </div>
-      <p className="mt-2.5 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
-        {t('Apps.storefront.capabilitiesCardNote')}
-      </p>
       <Button
         tone="ghost"
         size="sm"
         className="-ml-2 mt-2"
         onClick={onManageCapabilities}
       >
-        {t('Apps.storefront.capabilitiesManageAction')}
+        {t(opensAppModels ? 'Apps.storefront.capabilitiesManageAppModelsAction' : 'Apps.storefront.capabilitiesManageAction')}
         <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
       </Button>
     </section>

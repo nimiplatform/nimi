@@ -11,27 +11,51 @@ export type CharacterPartnerActions = {
 };
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r006
-export function CharacterActions({ source, onOpenWorld, ...props }: CharacterPartnerActions & {
+export function CharacterActions({ source, onOpenWorld, compact = false, ...props }: CharacterPartnerActions & {
   source: SourceDetailData;
   onOpenWorld: () => void;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const action = describeCharacterPrimaryAction(source.sourceState, t);
   const openExisting = action.action === 'open_partner';
   const busy = props.primaryActionJoining === true;
-  return <div className="flex min-w-0 flex-col items-end gap-3 max-[720px]:items-start">
-    <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
+  const label = openExisting
+    ? t('Explore.characterSourceOpenLocalAgent')
+    : busy
+      ? t('SourceDetail.worldCharacter.primaryActionJoining')
+      : worldCharacterPrimaryActionLabel(action, t);
+
+  if (compact) {
+    return (
+      <Button
+        tone="primary"
+        size="sm"
+        onClick={props.onPrimaryAction}
+        disabled={busy || action.disabled}
+        className="shrink-0 justify-center gap-1.5 px-4"
+        data-source-state={source.sourceState}
+        data-primary-action={action.action}
+      >
+        {openExisting ? null : <CirclePlus aria-hidden className="h-3.5 w-3.5" />}
+        {label}
+        {openExisting ? <ArrowRight aria-hidden className="h-3.5 w-3.5" /> : null}
+      </Button>
+    );
+  }
+
+  return <div className="flex min-w-0 shrink-0 flex-col items-end gap-2 max-[760px]:items-start">
+    <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-2.5 max-[760px]:justify-start">
       {source.worldId && !source.worldName ? <Button tone="secondary" onClick={onOpenWorld}>{t('SourceDetail.openWorld')}</Button> : null}
       <Button tone="primary" size="lg" onClick={props.onPrimaryAction}
         disabled={busy || action.disabled}
-        className={openExisting ? 'justify-center rounded-full px-5' : 'justify-center gap-2 rounded-full px-5'}
+        className={openExisting ? 'justify-center px-5' : 'justify-center gap-2 px-5'}
         data-source-state={source.sourceState} data-primary-action={action.action}>
         {openExisting ? null : <CirclePlus aria-hidden className="h-4 w-4" />}
-        {openExisting ? t('Explore.characterSourceOpenLocalAgent') : busy
-          ? t('SourceDetail.worldCharacter.primaryActionJoining') : worldCharacterPrimaryActionLabel(action, t)}
+        {label}
         {openExisting ? <ArrowRight aria-hidden className="h-4 w-4" /> : null}
       </Button>
     </div>
-    {action.hint ? <p role="status" className="max-w-sm text-sm text-[var(--nimi-text-secondary)]">{action.hint}</p> : null}
+    {action.hint ? <p role="status" className="max-w-xs text-right text-xs leading-5 text-[var(--nimi-text-muted)] max-[760px]:text-left">{action.hint}</p> : null}
   </div>;
 }

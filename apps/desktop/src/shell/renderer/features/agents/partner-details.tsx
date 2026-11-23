@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { ActionMenu, Avatar, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { AgentCenter, type AgentCenterI18n } from '@nimiplatform/kit/features/agent-center';
 import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
-import { BookOpen, Globe, MessageCircle, Settings, List } from 'lucide-react';
+import { BookOpen, Globe, MessageCircle, MoreHorizontal, Settings, List, Sparkles, UserRound } from 'lucide-react';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useDesktopAgentCenterSession } from './agent-center-session.js';
 import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 import { fetchSourceDisplayDetail, sourceDisplayDetailQueryKey } from '../source-detail/source-detail-queries.js';
+import { SourceDetailSkeleton } from '../source-detail/source-detail-skeleton.js';
 import { CharacterSourceDetailPage } from '../source-detail/source-detail-world-character-view.js';
 import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
 import { openRuntimeSetupTaskFromEntry } from '../runtime-config/runtime-setup-task-open.js';
@@ -17,7 +18,8 @@ import { projectPartnerRecord } from './partner-directory-model.js';
 import { usePartnerChat } from './use-partner-chat.js';
 import { PartnerStatus } from './partner-status.js';
 import { PartnerActivity } from './partner-activity.js';
-import { PartnerAvatarAction } from './partner-avatar-action.js';
+import { usePartnerAvatarAction } from './partner-avatar-action.js';
+import { PartnerProfileLoading } from './partner-profile-loading.js';
 import { PartnerUtopiaPresence } from './partner-utopia-presence.js';
 
 const P = 'runtimeConfig.partners';
@@ -46,12 +48,19 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
     enabled: Boolean(partner?.sourceRef) && !selected.isError, staleTime: 60_000, retry: false });
   const profile = useQuery({
     queryKey: [...(source.data ? sourceDisplayDetailQueryKey(source.data.sourceRef) : ['partner-profile-unavailable']), accountId, scopeKey],
-    queryFn: () => fetchSourceDisplayDetail(source.data!.sourceRef, bindings.sdk),
+    queryFn: () => fetchSourceDisplayDetail(source.data!.sourceRef, bindings.sdk, { prefetchedSource: source.data }),
     enabled: Boolean(source.data) && !source.isError && !selected.isError,
     staleTime: 60_000, retry: false,
   });
   const [actionError, setActionError] = useState<string | null>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const chat = usePartnerChat(accountId);
+  const avatarAction = usePartnerAvatarAction({
+    session: active ? session : null,
+    accountId,
+    localAgentRef,
+    onConfigure: () => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'appearance' } }); },
+  });
   const copy = useMemo<AgentCenterI18n>(() => ({ language: i18n.resolvedLanguage || i18n.language,
     exists: key => key === 'AgentCenter.chrome.title' || i18n.exists(key),
     t: (key, values) => key === 'AgentCenter.chrome.title' ? t(`${P}.settings`) : t(key, values) as string,
@@ -64,40 +73,129 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
       openTask: taskId => bindings.app.commands.runtimeConfigNavigation.openSetupTask(taskId),
     }).catch(() => setActionError(t(`${P}.actionFailed`)));
   };
-  if (selected.isPending) return <LoadingSkeleton lines={4} />;
+  if (selected.isPending) {
+    return settings || showActivity ? <LoadingSkeleton lines={4} /> : <SourceDetailSkeleton variant="partner" />;
+  }
   if (selected.isError || !partner) return <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void selected.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.unavailable`)}</InlineAlert>;
-  const actions = <div className="flex flex-wrap items-center gap-2">
-          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t('Chat.contactsOpenConversation')}</Button>
-          <Button tone="secondary" disabled={!active || reference.isPending || reference.isError} onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } }); }}><Settings size={16} />{t(`${P}.manage`)}</Button>
-          <Button tone="secondary" onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, ...(showActivity ? {} : { activity: {} }) } }); }}><List size={16} />{t(showActivity ? `${P}.profile` : `${P}.activity.title`)}</Button>
-          {session && active ? <PartnerAvatarAction session={session} accountId={accountId} localAgentRef={localAgentRef}
-            onConfigure={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'appearance' } }); }} /> : null}
-          <Button tone="ghost" size="sm" disabled={!active || Boolean(chat.openingRef)} onClick={() => { void chat.openChat(partner, 'zhiyu'); }}>{t('Chat.contactsOpenZhiyu')}</Button></div>;
-  const statusContent = <div className="space-y-3">
-    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--nimi-text-secondary)]">
-      <span>{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleDateString() }) : t(`${P}.creationUnknown`)}</span>
-      <span>{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</span>
+  const moreMenuItems: NimiMenuItem[] = [
+    {
+      id: 'manage',
+      label: t(`${P}.manage`),
+      icon: <Settings size={15} />,
+      disabled: !active || reference.isPending || reference.isError,
+      onSelect: () => {
+        void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } });
+      },
+    },
+    ...(session && active ? [{
+      id: 'avatar',
+      label: avatarAction.label,
+      icon: <UserRound size={15} />,
+      disabled: avatarAction.disabled,
+      onSelect: () => { void avatarAction.trigger(); },
+    }] : []),
+    {
+      id: 'activity',
+      label: t(showActivity ? `${P}.profile` : `${P}.activity.title`),
+      icon: <List size={15} />,
+      onSelect: () => {
+        void navigation.push({ ...destination, partner: { localAgentRef, ...(showActivity ? {} : { activity: {} }) } });
+      },
+    },
+    {
+      id: 'zhiyu',
+      label: t('Chat.contactsOpenZhiyu'),
+      icon: <Sparkles size={15} />,
+      disabled: !active || Boolean(chat.openingRef),
+      onSelect: () => { void chat.openChat(partner, 'zhiyu'); },
+    },
+  ];
+  const actions = <div className="flex flex-wrap items-center justify-end gap-2 max-[760px]:justify-start">
+          <Button tone="primary" className="px-4" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t('Chat.contactsOpenConversation')}</Button>
+          <Popover open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+            <PopoverTrigger asChild>
+              <IconButton
+                tone="secondary"
+                aria-label={t('SourceDetail.worldCharacter.morePartnerActions', { defaultValue: 'More partner actions' })}
+                icon={<MoreHorizontal size={16} />}
+              />
+            </PopoverTrigger>
+            <PopoverContent align="end" className="p-1.5">
+              <ActionMenu
+                ariaLabel={t('SourceDetail.worldCharacter.morePartnerActions', { defaultValue: 'More partner actions' })}
+                items={moreMenuItems}
+                onRequestClose={() => setMoreMenuOpen(false)}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>;
+  const renderStatusContent = (layout: 'grid' | 'stack') => (
+    <div className="space-y-3">
+      {layout === 'stack' ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--nimi-text-muted)]">
+          <span>{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleDateString() }) : t(`${P}.creationUnknown`)}</span>
+          <span className="font-medium text-[var(--nimi-text-secondary)]">{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</span>
+        </div>
+      ) : null}
+      {session ? <PartnerStatus session={session} layout={layout} onManage={section => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: section } }); }} /> : null}
+      {session && active ? <PartnerUtopiaPresence session={session} agentHandle={!reference.isError ? reference.data?.reference?.agentHandle : null} accountId={accountId} scopeKey={scopeKey} /> : null}
+      {reference.isError || actionError || chat.failed ? <InlineAlert tone="warning">{actionError || t(chat.failed ? `${P}.actionFailed` : `${P}.managerUnavailable`)}</InlineAlert> : null}
     </div>
-    {session ? <PartnerStatus session={session} onManage={section => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: section } }); }} /> : null}
-    {session && active ? <PartnerUtopiaPresence session={session} agentHandle={!reference.isError ? reference.data?.reference?.agentHandle : null} accountId={accountId} scopeKey={scopeKey} /> : null}
-    {reference.isError || actionError || chat.failed ? <InlineAlert tone="warning">{actionError || t(chat.failed ? `${P}.actionFailed` : `${P}.managerUnavailable`)}</InlineAlert> : null}
-  </div>;
-  const publicProfile = !source.isError && !profile.isError ? profile.data?.source : null;
+  );
+  const publicProfile = !source.isError && !profile.isError ? profile.data?.source ?? null : null;
+  const isProfilePaused = Boolean(partner.sourceRef) && (
+    (source.isPending && source.fetchStatus === 'paused')
+    || (Boolean(source.data) && profile.isPending && profile.fetchStatus === 'paused')
+  );
+  const isProfileFailed = Boolean(partner.sourceRef) && (
+    source.isError
+    || profile.isError
+    || isProfilePaused
+    || (Boolean(source.data) && profile.isSuccess && !profile.data?.source)
+  );
+  const isLoadingPublicProfile = Boolean(partner.sourceRef)
+    && !publicProfile
+    && !isProfileFailed
+    && (source.isPending || profile.isPending);
+  const showFallbackCard = Boolean(settings || showActivity || (!publicProfile && !isLoadingPublicProfile));
+  const loadingWorldId = source.data?.sourceRef.worldId ?? partner.sourceRef?.worldId ?? null;
+  const retryProfile = () => {
+    if (source.isError || !source.data) {
+      void source.refetch();
+      return;
+    }
+    void profile.refetch();
+  };
   return <div className="space-y-5" data-testid="partner-details">
     {!settings && !showActivity && publicProfile ? <CharacterSourceDetailPage source={publicProfile}
       onOpenWorld={() => { void navigation.push({ id: 'world-detail', worldId: publicProfile.worldId }); }}
       onPrimaryAction={() => { void chat.openChat(partner); }}
       partner={{ displayName: partner.displayName, avatarUrl: reference.data?.reference?.avatarUrl,
-        actions, status: statusContent,
-        sourceNotice: <div className="border-t border-[var(--nimi-border-subtle)] pt-5">
-          <h2 className="text-lg font-semibold">{t(`${P}.characterProfile`)}</h2>
-          {source.data?.updated ? <p role="status" className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
+        actions, status: renderStatusContent('stack'),
+        sourceNotice: <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-xs font-medium text-[var(--nimi-text-muted)]">{t(`${P}.characterProfile`)}</span>
+          {source.data?.updated ? <p role="status" className="text-xs text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
         </div>,
-      }} /> : <header className="rounded-[20px] bg-[var(--nimi-surface-card)] p-6">
+      }} /> : !settings && !showActivity && isLoadingPublicProfile ? <PartnerProfileLoading
+      displayName={partner.displayName || t(`${P}.unnamed`)}
+      avatarUrl={reference.data?.reference?.avatarUrl}
+      source={source.data}
+      worldId={loadingWorldId}
+      onOpenWorld={loadingWorldId ? () => { void navigation.push({ id: 'world-detail', worldId: loadingWorldId }); } : undefined}
+      actions={actions}
+      status={renderStatusContent('stack')}
+      sourceNotice={<div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="text-xs font-medium text-[var(--nimi-text-muted)]">{t(`${P}.characterProfile`)}</span>
+        <span role="status" className="text-xs text-[var(--nimi-text-muted)]">{t(`${P}.sourceLoading`)}</span>
+      </div>}
+    /> : showFallbackCard ? <header data-testid="partner-fallback-header" className="rounded-[20px] bg-[var(--nimi-surface-card)] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4"><Avatar alt={partner.displayName} size="lg" src={reference.data?.reference?.avatarUrl || undefined} fallback={partner.displayName.slice(0, 1)} />
           <div><h2 className="break-words text-2xl font-semibold">{partner.displayName || t(`${P}.unnamed`)}</h2>
-            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleString() }) : t(`${P}.creationUnknown`)}</p></div></div>
+            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+              {partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleString() }) : t(`${P}.creationUnknown`)}
+              {active ? ` · ${t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}` : null}
+            </p></div></div>
         {actions}
       </div>
       {!active ? <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</p> : null}
@@ -109,9 +207,9 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
         {source.isError ? <Button tone="ghost" size="sm" onClick={() => { void source.refetch(); }}>{t('Common.retry')}</Button> : null}
       </div>
       {source.data?.updated && !source.isError ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
-    </header>}
-    {!settings && !showActivity && !publicProfile ? <div className="space-y-4 px-6">{statusContent}
-      {source.isError || profile.isError ? <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void source.refetch(); void profile.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.sourceUnavailable`)}</InlineAlert> : partner.sourceRef ? <LoadingSkeleton lines={4} /> : null}
+    </header> : null}
+    {!settings && !showActivity && !publicProfile && !isLoadingPublicProfile ? <div className="space-y-4 px-6">{renderStatusContent('grid')}
+      {isProfileFailed ? <InlineAlert tone="warning" action={<Button size="sm" onClick={retryProfile}>{t('Common.retry')}</Button>}>{t(`${P}.sourceUnavailable`)}</InlineAlert> : null}
     </div> : null}
     {showActivity ? !active || reference.isError || (!reference.isPending && !reference.data?.reference?.agentHandle)
       ? <InlineAlert tone="warning">{t(`${P}.activity.unavailable`)}</InlineAlert>

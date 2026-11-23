@@ -18,7 +18,18 @@ import {
   useNimiReducedMotion,
 } from '../motion/index.js';
 
-export const TooltipProvider = TooltipPrimitive.Provider;
+const HasTooltipProviderContext = createContext(false);
+
+export function TooltipProvider({
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>) {
+  return (
+    <HasTooltipProviderContext.Provider value={true}>
+      <TooltipPrimitive.Provider {...props}>{children}</TooltipPrimitive.Provider>
+    </HasTooltipProviderContext.Provider>
+  );
+}
 
 /**
  * `null` = unmanaged (TooltipContent used outside the kit Tooltip root):
@@ -26,8 +37,10 @@ export const TooltipProvider = TooltipPrimitive.Provider;
  */
 const TooltipPresenceContext = createContext<boolean | null>(null);
 
+const TOOLTIP_CONTENT_Z_CLASS = 'z-[max(var(--nimi-z-tooltip),calc(var(--nimi-z-dialog)+1))]';
+
 const BUBBLE_CLASSES =
-  'nimi-tooltip-layer nimi-tooltip-bubble rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] shadow-[var(--nimi-elevation-floating)]';
+  'nimi-tooltip-layer nimi-tooltip-bubble pointer-events-none rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-2.5 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]';
 
 export type TooltipPlacement = 'top' | 'right' | 'bottom' | 'left';
 
@@ -139,7 +152,6 @@ function tooltipTriggerChild(children: ReactNode, className?: string) {
     const addKeyboardFocus = Boolean(nativeType) && !nativeInteractive && children.props.tabIndex === undefined;
     return React.cloneElement(children, {
       className: cn(
-        'inline-flex items-center justify-center',
         addKeyboardFocus && FOCUS_RING_CLASS_NAME,
         children.props.className,
         className,
@@ -165,6 +177,16 @@ type TooltipProps = {
   contentClassName?: string;
 };
 
+function hasTooltipContent(content: ReactNode): boolean {
+  if (content === null || content === undefined || typeof content === 'boolean') {
+    return false;
+  }
+  if (typeof content === 'string') {
+    return content.trim().length > 0;
+  }
+  return true;
+}
+
 export function Tooltip({
   children,
   content,
@@ -175,10 +197,17 @@ export function Tooltip({
   className,
   contentClassName,
 }: TooltipProps) {
+  const hasProvider = useContext(HasTooltipProviderContext);
   const [internalOpen, setInternalOpen] = useState(defaultOpen ?? false);
-  const actualOpen = open ?? internalOpen;
+  const contentVisible = hasTooltipContent(content);
+  const actualOpen = contentVisible && (open ?? internalOpen);
   const { presenceKey, trackBubble } = usePresenceExitWatchdog(actualOpen);
-  return (
+  // Keep a single trigger mounted when its hint becomes available or disappears.
+  if (!contentVisible && (!React.isValidElement(children) || children.type === React.Fragment)) {
+    return <>{children}</>;
+  }
+
+  const root = (
     <TooltipPrimitive.Root
       // Always controlled. The exiting bubble keeps Radix's Content mounted
       // (forceMount) and with it Radix's document-level "tooltip.open"
@@ -192,20 +221,24 @@ export function Tooltip({
       // pointermove stops reaching the window (embedded app surfaces).
       disableHoverableContent
       onOpenChange={(next) => {
+        if (!contentVisible) {
+          setInternalOpen(false);
+          return;
+        }
         setInternalOpen(next);
         onOpenChange?.(next);
       }}
     >
       <TooltipPresenceContext.Provider value={actualOpen}>
         <TooltipPrimitive.Trigger asChild>
-          {tooltipTriggerChild(children, className)}
+          {contentVisible ? tooltipTriggerChild(children, className) : children}
         </TooltipPrimitive.Trigger>
         <AnimatePresence key={presenceKey}>
           {actualOpen ? (
             <TooltipPrimitive.Portal forceMount>
               {/* Outer Content owns popper positioning; inner bubble owns
                   visual chrome + spring (P-DESIGN-027). */}
-              <TooltipPrimitive.Content forceMount side={placement} sideOffset={8} className="z-[var(--nimi-z-tooltip)]">
+              <TooltipPrimitive.Content forceMount side={placement} sideOffset={8} className={TOOLTIP_CONTENT_Z_CLASS}>
                 <MotionTooltipBubble side={placement} className={contentClassName} onPresence={trackBubble}>
                   {content}
                 </MotionTooltipBubble>
@@ -216,6 +249,7 @@ export function Tooltip({
       </TooltipPresenceContext.Provider>
     </TooltipPrimitive.Root>
   );
+  return hasProvider ? root : <TooltipPrimitive.Provider>{root}</TooltipPrimitive.Provider>;
 }
 
 export function TooltipTrigger({ children, className }: { children: ReactNode; className?: string }) {
@@ -233,7 +267,7 @@ export function TooltipContent({ children, className, side = 'bottom', sideOffse
     // Unmanaged usage: render instantly (no dead classes, no motion).
     return (
       <TooltipPrimitive.Portal>
-        <TooltipPrimitive.Content side={side} sideOffset={sideOffset} className="z-[var(--nimi-z-tooltip)]" {...rest}>
+        <TooltipPrimitive.Content side={side} sideOffset={sideOffset} className={TOOLTIP_CONTENT_Z_CLASS} {...rest}>
           <div className={cn(BUBBLE_CLASSES, className)}>{children}</div>
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
@@ -243,7 +277,7 @@ export function TooltipContent({ children, className, side = 'bottom', sideOffse
     <AnimatePresence key={presenceKey}>
       {managedOpen ? (
         <TooltipPrimitive.Portal forceMount>
-          <TooltipPrimitive.Content forceMount side={side} sideOffset={sideOffset} className="z-[var(--nimi-z-tooltip)]" {...rest}>
+          <TooltipPrimitive.Content forceMount side={side} sideOffset={sideOffset} className={TOOLTIP_CONTENT_Z_CLASS} {...rest}>
             <MotionTooltipBubble side={side} className={className} onPresence={trackBubble}>
               {children}
             </MotionTooltipBubble>

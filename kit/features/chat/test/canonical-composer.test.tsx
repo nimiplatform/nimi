@@ -50,11 +50,11 @@ describe('CanonicalComposer', () => {
     ['playing', '正在播放语音回复', '停止语音回复'],
   ] as const)('localizes the %s voice controls through shared copy', async (status, primaryLabel, cancelLabel) => {
     const target = await renderComposer({ copy: getMessageInteractionCopy('zh-CN'), voiceState: { status, onToggle: vi.fn(), onCancel: vi.fn() } });
-    const primary = target.querySelector<HTMLButtonElement>(`[aria-label="${primaryLabel}"]`);
-    expect(primary).toBeTruthy(); expect(primary?.title).toBe(primaryLabel);
+    const primary = target.querySelector<HTMLButtonElement>(`button[aria-label="${primaryLabel}"]`);
+    expect(primary).toBeTruthy(); expect(primary?.getAttribute('title')).toBeNull();
     if (cancelLabel) {
-      const cancel = target.querySelector<HTMLButtonElement>(`[aria-label="${cancelLabel}"]`);
-      expect(cancel?.textContent).toBe('取消'); expect(cancel?.title).toBe(cancelLabel);
+      const cancel = target.querySelector<HTMLButtonElement>(`button[aria-label="${cancelLabel}"]`);
+      expect(cancel?.textContent).toBe('取消'); expect(cancel?.getAttribute('title')).toBeNull();
     }
   });
   it('keeps the default English send label', async () => {

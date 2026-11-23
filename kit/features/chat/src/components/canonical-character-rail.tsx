@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { Avatar, cn } from '@nimiplatform/kit/ui';
+import { Avatar, Tooltip, cn } from '@nimiplatform/kit/ui';
 import {
   AvatarStage,
   createAvatarStageSnapshot,
@@ -143,34 +143,35 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
       <div className="relative z-10 flex h-full min-h-0 flex-col">
         {props.hideBackButton ? null : (
           <div className="shrink-0 border-b border-[var(--nimi-border-subtle)] px-6 py-3" data-canonical-rail-header="true">
-            <button
-              type="button"
-              onClick={props.onBackToTargets}
-              className={CANONICAL_HEADER_ICON_CLASS}
-              aria-label={copy.characterRailBackLabel}
-              title={copy.characterRailBackLabel}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
+            <Tooltip content={copy.characterRailBackLabel} placement="bottom">
+              <button
+                type="button"
+                onClick={props.onBackToTargets}
+                className={CANONICAL_HEADER_ICON_CLASS}
+                aria-label={copy.characterRailBackLabel}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         )}
         <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
           <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
-            <button
-              type="button"
-              ref={(node) => {
-                if (props.avatarAnchorRef) {
-                  props.avatarAnchorRef.current = node;
-                }
-              }}
-              onClick={props.onOpenProfile}
-              className="group relative rounded-full outline-none transition-transform duration-[var(--nimi-motion-slow)] hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              aria-label={copy.characterRailOpenProfileLabel}
-              title={copy.characterRailOpenProfileLabel}
-              data-canonical-rail-avatar-anchor="true"
-            >
+            <Tooltip content={copy.characterRailOpenProfileLabel} placement="bottom">
+              <button
+                type="button"
+                ref={(node) => {
+                  if (props.avatarAnchorRef) {
+                    props.avatarAnchorRef.current = node;
+                  }
+                }}
+                onClick={props.onOpenProfile}
+                className="group relative rounded-full outline-none transition-transform duration-[var(--nimi-motion-slow)] hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                aria-label={copy.characterRailOpenProfileLabel}
+                data-canonical-rail-avatar-anchor="true"
+              >
               <span
                 className="absolute inset-[-28px] rounded-full opacity-75"
                 style={{ background: `radial-gradient(circle, ${theme?.accentSoft || 'color-mix(in srgb, var(--nimi-status-success) 35%, transparent)'}, transparent 70%)` }}
@@ -212,7 +213,8 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                   </span>
                 </span>
               )}
-            </button>
+              </button>
+            </Tooltip>
           </div>
           <div className="shrink-0 space-y-4 pb-4 text-center">
             <div className="space-y-2">

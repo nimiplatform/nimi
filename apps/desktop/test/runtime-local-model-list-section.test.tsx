@@ -61,7 +61,7 @@ const recipe = {
   }],
 };
 
-function createFakeSdk(incompleteExamples = false, multipleVersions = false, savedProfile = false) {
+function createFakeSdk(incompleteExamples = false, multipleVersions = false, savedProfile = false, onlyImageSaved = false) {
   const calls: { loadoutWrites: string[]; rpc: string[]; environmentPlans: string[]; profileDeletes: string[]; inventorySignals: AbortSignal[] } = { loadoutWrites: [], rpc: [], environmentPlans: [], profileDeletes: [], inventorySignals: [] };
   let inventoryGate: Promise<void> = Promise.resolve();
   const failedChecks = new Set(['L-failing']);
@@ -75,11 +75,17 @@ function createFakeSdk(incompleteExamples = false, multipleVersions = false, sav
     ],
   };
   const imageRecipe = { ...recipe, recipeId: 'r-image', title: 'Image model', capabilityContract: 'image.generate' };
-  const aggregate = {
-    loadouts: [loadout('L-default', 'Default'), loadout('L-custom', 'Custom'), loadout('L-failing', 'Failing'), imageLoadout],
-    selections: [{ capabilityContract: 'text.generate', loadoutId: 'L-default', effectiveDefaults: {} }],
-    selectionRevisions: {},
-  };
+  const aggregate = onlyImageSaved
+    ? {
+      loadouts: [imageLoadout],
+      selections: [],
+      selectionRevisions: {},
+    }
+    : {
+      loadouts: [loadout('L-default', 'Default'), loadout('L-custom', 'Custom'), loadout('L-failing', 'Failing'), imageLoadout],
+      selections: [{ capabilityContract: 'text.generate', loadoutId: 'L-default', effectiveDefaults: {} }],
+      selectionRevisions: {},
+    };
   const choiceRecipe = multipleVersions ? { ...recipe, slots: [{ ...recipe.slots[0]!, offers: [
     { ...recipe.slots[0]!.offers[0]!, candidate: { ...recipe.slots[0]!.offers[0]!.candidate, title: 'Gemma 4 2B', variantLabel: 'Q4' } },
     { ...recipe.slots[0]!.offers[0]!, installedModelAssetId: 'gemma-q8', candidate: { ...recipe.slots[0]!.offers[0]!.candidate, offerRef: 'o2', title: 'Gemma 4 2B', variantLabel: 'Q8' } },
@@ -185,6 +191,7 @@ async function withHome(run: (ui: {
   setupTask?: 'profile' | 'standalone';
   multipleVersions?: boolean;
   savedProfile?: boolean;
+  onlyImageSaved?: boolean;
 } = {}) {
   const { incompleteExamples = false, diagnosticsInitiallyOpen = false, profileOwnerAppId } = options;
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
@@ -241,7 +248,7 @@ async function withHome(run: (ui: {
   store.navigation.reset(homeRuntimeDestination(diagnosticsInitiallyOpen ? 'advancedDiagnostics' : 'aiSettings', {
     ...(setupTask ? { setupTaskId: setupTask.taskId } : {}),
   }));
-  const { sdk, calls, failedChecks, dependencyStates, holdInventoryReads } = createFakeSdk(incompleteExamples, options.multipleVersions, options.savedProfile);
+  const { sdk, calls, failedChecks, dependencyStates, holdInventoryReads } = createFakeSdk(incompleteExamples, options.multipleVersions, options.savedProfile, options.onlyImageSaved);
   const bindings = { app: { commands: {} }, sdk } as unknown as DesktopCanonicalRendererBindings;
   const root = createRoot(dom.window.document.getElementById('root')!);
   const noop = () => undefined;
@@ -494,6 +501,7 @@ test('diagnostics shares the right pane, preserves the capability rail and retur
     assert.equal(row.getAttribute('aria-current'), 'page');
     await ui.click('[data-testid="ai-capabilities-advanced-diagnostics"]');
     await ui.waitFor('[data-testid="diagnostics-test-content"]');
+    assert.equal(ui.document.querySelector('[data-testid="ai-capabilities-home"]')?.textContent, 'runtimeConfig.capabilities.title');
     await ui.click('[data-testid="ai-capabilities-home"]');
     await ui.waitFor('[data-testid="ai-profile-quick-start"]');
     assert.equal(ui.document.querySelector('[data-testid="diagnostics-test-content"]'), null);
@@ -609,6 +617,7 @@ test('the home lists on-device models, expands with read-only candidate checks, 
     assert.deepEqual([...new Set(ui.calls.environmentPlans.filter(Boolean))].sort(), ['L-custom', 'L-default', 'L-failing']);
 
     // Refresh through the home button: the list is still there and still read-only.
+    assert.equal(ui.document.querySelector('[data-testid="ai-capabilities-home"]')?.textContent, 'runtimeConfig.capabilities.title');
     await ui.click('[data-testid="ai-capabilities-home"]');
     await ui.waitFor('[data-testid="local-model-configuration-badge:L-default"]');
 
@@ -725,4 +734,21 @@ test('current configuration checks its own dependencies, fails visibly and recov
     assert.deepEqual(ui.calls.environmentPlans.slice(previousChecks), ['L-default'], 'the inventory invalidation refreshes only this exact configuration');
     assert.deepEqual(ui.calls.loadoutWrites, []);
   });
+});
+
+test('saved configurations focus an existing setup when unspecified and render an explicit empty state when a capability has none', async () => {
+  await withHome(async ui => {
+    await ui.waitFor('[data-testid="ai-capability:text.generate"]');
+    await ui.navigate(homeRuntimeDestination('aiSettings', { section: 'saved' }));
+    await ui.waitFor('[data-testid="loadout-capability-tabs-scroll"]');
+    await ui.waitFor('[data-testid="loadout-capability:image.generate"]');
+    assert.ok(ui.document.querySelector('[data-testid="machine-loadout:L-image"]'));
+
+    await ui.navigate(homeRuntimeDestination('aiSettings', { capabilityContract: 'text.generate', section: 'saved' }));
+    const empty = await ui.waitFor('[data-testid="loadout-capability-empty:text.generate"]');
+    assert.ok(empty.textContent && empty.textContent.trim().length > 0);
+    await ui.click('[data-testid="saved-configs-back"]');
+    await ui.waitFor('[data-testid="capability-model-list"]');
+    assert.deepEqual(ui.calls.loadoutWrites, []);
+  }, { onlyImageSaved: true });
 });

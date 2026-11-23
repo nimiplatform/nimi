@@ -223,6 +223,11 @@ test('preview falls back to the conversation title, then to continue-chat guidan
   });
   assert.match(textless, /data-testid="home-recent-chat-message">继续对话/);
   assert.doesNotMatch(textless, /还没有对话/);
+  const defaultTitle = render({
+    partners: [{ localAgentRef: 'mei', displayName: 'Mei', avatarUrl: null, lastMessageText: null, conversationTitle: 'Agent conversation', updatedAtMs: 1760614440000, hasUnread: false }],
+  });
+  assert.match(defaultTitle, /data-testid="home-recent-chat-message">继续对话/);
+  assert.doesNotMatch(defaultTitle, /Agent conversation/);
   const unavailable = render({
     partners: [{ localAgentRef: 'mei', displayName: 'Mei', avatarUrl: null, lastMessageText: null, previewUnavailable: true, conversationTitle: null, updatedAtMs: null, hasUnread: false }],
   });

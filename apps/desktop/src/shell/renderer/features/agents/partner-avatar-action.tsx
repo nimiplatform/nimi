@@ -14,22 +14,25 @@ import { openPartnerConversation } from './partner-navigation.js';
 const P = 'runtimeConfig.partners.avatar';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.partner-activity-and-use
-export function PartnerAvatarAction({ session, accountId, localAgentRef, onConfigure }: {
-  session: AgentCenterSession; accountId: string; localAgentRef: string; onConfigure(): void;
+export function usePartnerAvatarAction({ session, accountId, localAgentRef, onConfigure }: {
+  session: AgentCenterSession | null; accountId: string; localAgentRef: string; onConfigure(): void;
 }) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const store = useAppStoreApi();
   const navigation = useHomeNavigation();
-  const snapshot = useSyncExternalStore(useCallback(listener => session.subscribe(listener), [session]), useCallback(() => session.getSnapshot(), [session]));
-  const appearance = snapshot.state.appearance;
-  const loading = snapshot.reads.presentation === 'pending';
-  const unavailable = snapshot.reads.presentation === 'failed';
-  const configured = Boolean(appearance.avatarAssetRef && appearance.status === 'ready' && (appearance.backendKind === 'live2d' || appearance.backendKind === 'vrm'));
+  const snapshot = useSyncExternalStore(
+    useCallback(listener => (session ? session.subscribe(listener) : () => {}), [session]),
+    useCallback(() => (session ? session.getSnapshot() : null), [session]),
+  );
+  const appearance = snapshot?.state.appearance;
+  const loading = snapshot?.reads.presentation === 'pending';
+  const unavailable = snapshot?.reads.presentation === 'failed';
+  const configured = Boolean(appearance?.avatarAssetRef && appearance.status === 'ready' && (appearance.backendKind === 'live2d' || appearance.backendKind === 'vrm'));
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
-  const launch = async () => {
-    if (busy.current) return;
+  const trigger = async () => {
+    if (!session || busy.current) return;
     if (unavailable) { await session.refresh(); return; }
     if (!configured) { onConfigure(); return; }
     const account = captureAccountActionScope(store);
@@ -46,7 +49,23 @@ export function PartnerAvatarAction({ session, accountId, localAgentRef, onConfi
     } catch { if (isCurrent()) emitFeedbackToast({ kind: 'error', message: t(`${P}.failed`) }); }
     finally { account.dispose(); position.dispose(); busy.current = false; setPending(false); }
   };
-  return <Button tone="secondary" loading={pending} disabled={loading || !bindings.app.commands.avatarHandoff.available()} onClick={() => { void launch(); }}>
-    <UserRound size={16} />{t(loading ? 'Common.loading' : unavailable ? `${P}.retry` : configured ? `${P}.open` : `${P}.configure`)}
+  const handoffAvailable = bindings.app.commands.avatarHandoff.available();
+  return {
+    pending,
+    loading,
+    handoffAvailable,
+    disabled: !session || loading || pending || !handoffAvailable,
+    label: t(loading || pending ? 'Common.loading' : unavailable ? `${P}.retry` : configured ? `${P}.open` : `${P}.configure`),
+    trigger,
+  };
+}
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.partner-activity-and-use
+export function PartnerAvatarAction({ session, accountId, localAgentRef, onConfigure }: {
+  session: AgentCenterSession; accountId: string; localAgentRef: string; onConfigure(): void;
+}) {
+  const action = usePartnerAvatarAction({ session, accountId, localAgentRef, onConfigure });
+  return <Button tone="secondary" loading={action.pending} disabled={action.loading || !action.handoffAvailable} onClick={() => { void action.trigger(); }}>
+    <UserRound size={16} />{action.label}
   </Button>;
 }

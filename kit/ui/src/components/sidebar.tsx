@@ -1,5 +1,6 @@
 import React, { createElement, useEffect, useRef, useState, type CSSProperties, type ComponentPropsWithoutRef, type ElementType, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { IconButton } from './button.js';
+import { Tooltip } from './tooltip.js';
 import { cn, type SidebarItemKind } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
@@ -131,14 +132,15 @@ export function SidebarSearch({
     <div className={cn('nimi-sidebar-search-row px-2 pb-1', className)}>
       <div className={cn('flex min-h-10 items-center gap-2', showCollapsedTrigger ? 'justify-end' : undefined)}>
         {showCollapsedTrigger ? (
-          <IconButton
-            icon={SEARCH_ICON}
-            tone="ghost"
-            onClick={() => setExpanded(true)}
-            className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
-            aria-label={ariaLabel || placeholder}
-            title={placeholder}
-          />
+          <Tooltip content={placeholder} placement="bottom">
+            <IconButton
+              icon={SEARCH_ICON}
+              tone="ghost"
+              onClick={() => setExpanded(true)}
+              className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
+              aria-label={ariaLabel || placeholder}
+            />
+          </Tooltip>
         ) : (
           <div className="nimi-sidebar-search flex min-w-0 flex-1 items-center px-2">
             <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
@@ -159,15 +161,16 @@ export function SidebarSearch({
               aria-label={ariaLabel || placeholder}
             />
             {value && onClear ? (
-              <IconButton
-                icon={CLEAR_ICON}
-                size="sm"
-                tone="ghost"
-                onClick={handleClear}
-                className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
-                aria-label={clearLabel}
-                title={clearLabel}
-              />
+              <Tooltip content={clearLabel} placement="top">
+                <IconButton
+                  icon={CLEAR_ICON}
+                  size="sm"
+                  tone="ghost"
+                  onClick={handleClear}
+                  className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+                  aria-label={clearLabel}
+                />
+              </Tooltip>
             ) : null}
           </div>
         )}

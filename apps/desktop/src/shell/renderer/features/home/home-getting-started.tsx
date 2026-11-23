@@ -1,6 +1,6 @@
-import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
+import { Button, IconButton, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { readStorageTextFrom, resolveBrowserStorage, writeStorageTextTo } from '@nimiplatform/kit/core/storage-json';
-import { ArrowRight, Sparkles, X } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CapabilityPreparationState } from '../runtime-config/runtime-capability-inventory.js';
@@ -39,44 +39,40 @@ export function HomeGettingStarted(props: HomeGettingStartedProps) {
   return (
     <Surface
       as="section"
-      tone="hero"
-      elevation="raised"
+      tone="card"
+      elevation="base"
       padding="none"
-      className="flex min-w-0 flex-col gap-4 rounded-2xl p-5"
+      className="flex min-w-0 flex-col gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-first-run"
       data-ready="false"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]">
-            <Sparkles size={16} aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.overview.firstRunTitle')}
-            </h2>
-            <p className="truncate text-xs text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.overview.firstRunSteps.coldStartHint')}
-            </p>
-          </div>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.overview.firstRunTitle')}
+          </h2>
+          <p className="truncate text-xs text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.overview.firstRunSteps.coldStartHint')}
+          </p>
         </div>
-        <IconButton
-          tone="ghost"
-          size="sm"
-          aria-label={t('runtimeConfig.overview.firstRunDismiss')}
-          title={t('runtimeConfig.overview.firstRunDismiss')}
-          onClick={dismiss}
-          data-testid="home-first-run-dismiss"
-          className="size-8 shrink-0 rounded-full text-[var(--nimi-text-secondary)]"
-          icon={<X size={15} aria-hidden="true" />}
-        />
+        <Tooltip content={t('runtimeConfig.overview.firstRunDismiss')} placement="top">
+          <IconButton
+            tone="ghost"
+            size="sm"
+            aria-label={t('runtimeConfig.overview.firstRunDismiss')}
+            onClick={dismiss}
+            data-testid="home-first-run-dismiss"
+            className="size-8 shrink-0 rounded-full bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)]"
+            icon={<X size={15} aria-hidden="true" />}
+          />
+        </Tooltip>
       </div>
 
       <div id="home-getting-started-steps" className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
+        <div className="flex flex-col justify-between gap-3 rounded-2xl bg-[var(--nimi-home-soft-well)] p-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[11px] font-bold text-[var(--nimi-action-primary-text)]">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-text-primary)] text-xs font-semibold text-[var(--nimi-surface-card)]">
                 1
               </span>
               <p className="text-xs font-semibold text-[var(--nimi-text-primary)]">
@@ -91,16 +87,16 @@ export function HomeGettingStarted(props: HomeGettingStartedProps) {
             <Button tone="primary" size="sm" onClick={props.onOpenAI}>
               {t('runtimeConfig.overview.firstRun.model.action')}
             </Button>
-            <Button tone="secondary" size="sm" onClick={props.onOpenCloud}>
+            <Button tone="ghost" size="sm" onClick={props.onOpenCloud}>
               {t('runtimeConfig.overview.firstRun.model.cloud')}
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 shadow-[var(--nimi-elevation-base)]">
+        <div className="flex flex-col justify-between gap-3 rounded-2xl bg-[var(--nimi-home-soft-well)] p-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] text-[11px] font-bold text-[var(--nimi-text-secondary)]">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-xs font-semibold text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)]">
                 2
               </span>
               <p className="text-xs font-semibold text-[var(--nimi-text-primary)]">

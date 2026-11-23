@@ -475,7 +475,11 @@ test('world discovery prioritizes people before compact setting and scenes, and 
   assert.equal(scenes.querySelectorAll('[data-testid="world-scene-card"]').length, publicAssets.scenes.length);
   assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, voicedCharacters.length);
   assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, voicedCharacters.length);
-  assert.equal(people.querySelectorAll('[data-testid="character-voice-preview-button"]').length, 1, 'voiced characters expose inline voice preview');
+  const voiceButtons = people.querySelectorAll('[data-testid="character-voice-preview-button"]');
+  assert.equal(voiceButtons.length, 1, 'voiced characters expose inline voice preview');
+  assert.equal(voiceButtons[0]?.textContent?.trim(), '', 'world person card voice preview renders icon-only without label text');
+  assert.ok(voiceButtons[0]?.querySelector('svg'), 'world person card voice preview keeps play icon');
+  assert.ok(voiceButtons[0]?.getAttribute('aria-label')?.includes(voicedCharacters[0].name), 'world person card voice preview preserves accessible name');
   assert.equal(people.querySelector('[data-testid="world-detail-open-relationships"]'), null, 'hollow relationship explorer trigger is hidden');
   assert.ok(people.textContent?.includes('105 people'));
   assert.ok(!people.querySelector('[data-testid="world-detail-people-view-all"]'), 'every person is listed inline without a view-all page');

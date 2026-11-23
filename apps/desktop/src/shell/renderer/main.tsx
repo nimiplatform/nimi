@@ -13,6 +13,7 @@ import './foundation.css';
 import './styles.css';
 import './features/world/world-atlas.css';
 import './features/world/world-detail.css';
+import './features/source-detail/source-detail-character.css';
 
 const entryModuleLoader = createRendererEntryModuleLoader({
     retryDelaysMs: import.meta.env.DEV ? DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS : [],

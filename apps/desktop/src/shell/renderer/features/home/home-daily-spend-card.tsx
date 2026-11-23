@@ -1,7 +1,7 @@
-import { AppCardSurface, Button, IconButton, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ProgressIndicator } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, IconButton, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopAIExecutionRoute, type DesktopAICostEstimate, type DesktopAIUsageGroup } from '@nimiplatform/sdk/runtime/generated';
 import { useQuery } from '@tanstack/react-query';
-import { Cloud, Coins, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSystemEntryLocalOnlyUsage } from '../../../shared/system-entry-types.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -78,8 +78,6 @@ export function HomeDailySpendCardView({
       && projection.localAttempts !== null
       && projection.cloudAttempts !== null,
   );
-  const totalCount = validSplit ? Number(projection!.attempts) : 0;
-  const localCount = validSplit ? Number(projection!.localAttempts) : 0;
 
   const cloudGroups: readonly DesktopAIUsageGroup[] = summary
     ? summary.groups
@@ -95,31 +93,29 @@ export function HomeDailySpendCardView({
   return (
     <AppCardSurface
       kind="operational-solid"
-      className="flex min-w-0 flex-col gap-3.5 p-5 shadow-[var(--nimi-elevation-raised)]"
+      className="flex h-full min-w-0 flex-col justify-between gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-daily-spend-card"
     >
       <header className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-action-primary-bg)]">
-            <Coins size={16} aria-hidden="true" />
-          </span>
-          <h2 className="truncate text-sm font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2 className="truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.overview.dailySpend.title')}
           </h2>
           {!loading && !unavailable && costIncomplete ? (
             <Popover>
-              <PopoverTrigger asChild>
-                <IconButton
-                  tone="ghost"
-                  size="sm"
-                  className="size-6 shrink-0 rounded-full text-[var(--nimi-status-warning)]"
-                  aria-label={t('runtimeConfig.systemEntry.costsIncomplete')}
-                  title={t('runtimeConfig.systemEntry.costsIncomplete')}
-                  data-testid="home-daily-spend-warning"
-                  icon={<Info size={14} aria-hidden="true" />}
-                />
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={6} className="w-72 space-y-1.5 p-3 text-xs leading-5">
+              <Tooltip content={t('runtimeConfig.systemEntry.costsIncomplete')} placement="top">
+                <PopoverTrigger asChild>
+                  <IconButton
+                    tone="ghost"
+                    size="sm"
+                    className="size-6 shrink-0 rounded-full text-[var(--nimi-status-warning)]"
+                    aria-label={t('runtimeConfig.systemEntry.costsIncomplete')}
+                    data-testid="home-daily-spend-warning"
+                    icon={<Info size={14} aria-hidden="true" />}
+                  />
+                </PopoverTrigger>
+              </Tooltip>
+              <PopoverContent align="end" sideOffset={6} className="w-72 space-y-1.5 rounded-2xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-3.5 text-xs leading-5 shadow-[var(--nimi-home-porcelain-pill-shadow)]!">
                 <p className="font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.systemEntry.costsIncomplete')}</p>
                 {recordsIncomplete ? <p className="text-[var(--nimi-text-secondary)]">{t('runtimeConfig.systemEntry.costsMissingRecords')}</p> : null}
                 {pending && quantitiesIncomplete ? (
@@ -140,18 +136,18 @@ export function HomeDailySpendCardView({
           ) : null}
         </div>
         <Button tone="ghost" size="sm" onClick={onOpenDetails} data-testid="home-daily-spend-details">
-          {t('runtimeConfig.overview.dailySpend.detailsAction')}
+          {t('runtimeConfig.overview.dailySpend.detailsAction')} →
         </Button>
       </header>
 
       {loading ? (
         <LoadingSkeleton lines={2} label={t('runtimeConfig.systemEntry.usageLoading')} />
       ) : unavailable || !projection ? (
-        <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-unavailable">
+        <p className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-3 text-xs text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-unavailable">
           {t('runtimeConfig.systemEntry.usageUnavailableShort')}
         </p>
       ) : (
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3" data-testid="home-daily-spend-primary">
             {projection.costs.length > 0 ? (
               <div className="flex flex-col gap-1">
@@ -159,7 +155,7 @@ export function HomeDailySpendCardView({
                   {projection.costs.map((item) => (
                     <span key={item.currency} className="inline-flex items-baseline gap-1.5 tabular-nums" data-testid={`home-daily-spend-currency:${item.currency}`}>
                       <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-secondary)]">{item.currency}</span>
-                      <span className="text-3xl font-bold tracking-tight text-[var(--nimi-text-primary)]">{item.estimate}</span>
+                      <span className="text-2xl font-semibold tracking-tight text-[var(--nimi-text-primary)]">{item.estimate}</span>
                     </span>
                   ))}
                 </div>
@@ -172,64 +168,57 @@ export function HomeDailySpendCardView({
               </div>
             ) : localOnly && !costIncomplete ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-3xl font-bold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>
-                <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
+                <span className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>
+                <span className="rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
                   {t('runtimeConfig.overview.dailySpend.localOnlyZero')}
                 </span>
               </div>
             ) : projection.attempts === '0' && !costIncomplete ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-3xl font-bold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>
-                  <p className="text-xs font-medium text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-zero">
+                  <span className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-[var(--nimi-text-primary)]">0.00</span>
+                  <p className="text-xs text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-zero">
                     {t('runtimeConfig.overview.dailySpend.noCallsToday')}
                   </p>
                 </div>
                 {projection.partial ? (
-                  <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning-soft-text)]">
+                  <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-warning-soft-text)]">
                     {t('runtimeConfig.systemEntry.partial')}
                   </span>
                 ) : null}
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-cost-unknown">
+                <span className="text-xs font-medium text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-cost-unknown">
                   {t('runtimeConfig.systemEntry.costUnknown')}
                 </span>
                 {projection.partial ? (
-                  <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning-soft-text)]">
+                  <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-warning-soft-text)]">
                     {t('runtimeConfig.systemEntry.partial')}
                   </span>
                 ) : null}
               </div>
             )}
 
-            <div className="flex flex-col gap-2 border-t border-[var(--nimi-border-subtle)] pt-3" data-testid="home-daily-spend-split">
+            <div className="flex flex-col gap-2" data-testid="home-daily-spend-split">
               {validSplit ? (
                 <>
-                  <div className="grid grid-cols-3 divide-x divide-[var(--nimi-border-subtle)] text-center">
-                    <div className="px-1">
-                      <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('runtimeConfig.overview.dailySpend.metricTotal')}</p>
-                      <p className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--nimi-text-primary)]">
-                        {formatDecimalCount(projection.attempts, locale) ?? projection.attempts}
-                      </p>
-                    </div>
-                    <div className="px-1">
-                      <p className="inline-flex items-center gap-1 text-[11px] text-[var(--nimi-text-muted)]">
-                        <span className="size-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
-                        {t('runtimeConfig.overview.dailySpend.metricLocal')}
-                      </p>
-                      <p className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--nimi-text-primary)]">
-                        {formatDecimalCount(projection.localAttempts, locale) ?? projection.localAttempts}
-                      </p>
-                    </div>
-                    <div className="px-1">
-                      <p className="inline-flex items-center gap-1 text-[11px] text-[var(--nimi-text-muted)]">
+                  <div className="grid grid-cols-2 gap-2.5 text-center">
+                    <div className="rounded-2xl bg-[var(--nimi-home-soft-well)] p-3">
+                      <p className="flex items-center justify-center gap-1.5 text-xs leading-4 text-[var(--nimi-text-secondary)]">
                         <span className="size-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]" aria-hidden="true" />
                         {t('runtimeConfig.overview.dailySpend.metricCloud')}
                       </p>
-                      <p className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--nimi-text-primary)]">
+                      <p className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-[var(--nimi-text-primary)]">
                         {formatDecimalCount(projection.cloudAttempts, locale) ?? projection.cloudAttempts}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-[var(--nimi-home-soft-well)] p-3">
+                      <p className="flex items-center justify-center text-xs leading-4 text-[var(--nimi-text-secondary)]">
+                        {t('runtimeConfig.overview.dailySpend.metricTotal')}
+                      </p>
+                      <p className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-[var(--nimi-text-primary)]">
+                        {formatDecimalCount(projection.attempts, locale) ?? projection.attempts}
                       </p>
                     </div>
                   </div>
@@ -240,16 +229,9 @@ export function HomeDailySpendCardView({
                       cloud: formatDecimalCount(projection.cloudAttempts, locale) ?? projection.cloudAttempts,
                     })}
                   </p>
-                  {Number.isFinite(totalCount) && totalCount > 0 ? (
-                    <ProgressIndicator
-                      value={localCount}
-                      max={totalCount}
-                      aria-label={t('runtimeConfig.overview.dailySpend.title')}
-                    />
-                  ) : null}
                 </>
               ) : (
-                <p className="text-xs tabular-nums text-[var(--nimi-text-secondary)]">
+                <p className="rounded-2xl bg-[var(--nimi-home-soft-well)] px-3.5 py-2.5 text-xs tabular-nums text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.overview.dailySpend.splitTotalOnly', {
                     total: formatDecimalCount(projection.attempts, locale) ?? projection.attempts ?? '0',
                   })}
@@ -259,11 +241,11 @@ export function HomeDailySpendCardView({
           </div>
 
           {cloudGroups.length > 0 ? (
-            <div className="flex flex-col gap-1.5 border-t border-[var(--nimi-border-subtle)] pt-3" data-testid="home-daily-spend-cloud-groups">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
+            <div className="flex flex-col gap-2" data-testid="home-daily-spend-cloud-groups">
+              <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.overview.dailySpend.topCloudTitle')}
               </p>
-              <ul className="divide-y divide-[var(--nimi-border-subtle)]">
+              <ul className="flex flex-col gap-1.5">
                 {cloudGroups.map((group, index) => {
                   const primaryModel = group.models[0];
                   const modelLabel = primaryModel?.displayName || primaryModel?.modelId || t('runtimeConfig.systemEntry.modelUnknown');
@@ -273,7 +255,7 @@ export function HomeDailySpendCardView({
                   return (
                     <li
                       key={`${group.sourceKind}:${group.capability}:${index}`}
-                      className="flex items-center justify-between gap-2 py-2 first:pt-1 last:pb-0 text-xs"
+                      className="flex items-center justify-between gap-2 rounded-2xl bg-[var(--nimi-home-soft-well)] px-3 py-2 text-xs"
                       data-testid="home-daily-spend-cloud-row"
                     >
                       <div className="min-w-0 flex-1">
@@ -281,16 +263,16 @@ export function HomeDailySpendCardView({
                           {modelLabel}
                           {providerLabel ? <span className="ml-1.5 font-normal text-[var(--nimi-text-secondary)]">{providerLabel}</span> : null}
                         </p>
-                        <p className="truncate text-[11px] text-[var(--nimi-text-muted)]">
+                        <p className="truncate text-xs text-[var(--nimi-text-muted)]">
                           {displayRuntimeConfigCapabilityLabel(group.capability, t)}
                           {' · '}
                           {t('runtimeConfig.overview.dailySpend.callsCount', { count: attemptsText as unknown as number })}
                         </p>
                       </div>
-                      <div className="shrink-0 text-right font-semibold tabular-nums text-[var(--nimi-text-primary)]">
+                      <div className="shrink-0 text-right font-mono font-semibold tabular-nums text-[var(--nimi-text-primary)]">
                         {estimates.length > 0
                           ? estimates.map((est) => `${est.currency} ${est.estimatedAmount}`).join(' · ')
-                          : <span className="font-normal text-[var(--nimi-text-muted)]">{t('runtimeConfig.overview.dailySpend.unpricedTag')}</span>}
+                          : <span className="font-sans font-normal text-[var(--nimi-text-muted)]">{t('runtimeConfig.overview.dailySpend.unpricedTag')}</span>}
                       </div>
                     </li>
                   );
@@ -301,18 +283,22 @@ export function HomeDailySpendCardView({
         </div>
       )}
 
-      <footer className="flex items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3 text-xs">
-        <span className="flex min-w-0 items-center gap-1.5 truncate text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-connectors">
-          <Cloud size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+      <footer className="flex items-center justify-between gap-2 pt-1 text-xs">
+        <span className="min-w-0 truncate text-[var(--nimi-text-secondary)]" data-testid="home-daily-spend-connectors">
           {cloudConnectorCount === null
             ? t('runtimeConfig.nav.cloudServices')
             : cloudConnectorCount > 0
               ? t('runtimeConfig.overview.dailySpend.cloudConnectorsReady', { count: cloudConnectorCount })
               : t('runtimeConfig.overview.dailySpend.cloudConnectorsNone')}
         </span>
-        <Button tone="ghost" size="sm" onClick={onOpenCloud} data-testid="home-daily-spend-manage-cloud">
-          {t('runtimeConfig.overview.dailySpend.manageCloud')}
-        </Button>
+        <button
+          type="button"
+          onClick={onOpenCloud}
+          data-testid="home-daily-spend-manage-cloud"
+          className="shrink-0 font-medium text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+        >
+          {t('runtimeConfig.overview.dailySpend.manageCloud')} →
+        </button>
       </footer>
     </AppCardSurface>
   );

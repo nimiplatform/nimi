@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Button, OverlayShell, ScrollShell, SegmentedControl } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell, ScrollShell, SegmentedControl, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowRight, RotateCw } from 'lucide-react';
 import { DesktopAICloudAttemptOutcome, type DesktopConnectorReference } from '@nimiplatform/sdk/runtime/wire-types';
 import { normalizeNimiRuntimeReasonCode } from '@nimiplatform/sdk/runtime';
@@ -108,7 +108,9 @@ export function CloudConnectorUsage({ connectorId, onOpenHistory }: { connectorI
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       <SegmentedControl size="sm" value={days} onValueChange={setDays} ariaLabel={t('runtimeConfig.cloudWorkspace.usageWindow')} className="border-0 bg-transparent p-0 shadow-none [&>button]:min-h-8 [&>button]:px-3 [&>button]:shadow-none" items={['1', '7'].map(value => ({ value, label: t(`runtimeConfig.cloudWorkspace.days${value}`) }))} />
       <div className="flex items-center gap-2">
-        <Button size="sm" tone="ghost" aria-label={t('runtimeConfig.runtime.refresh')} title={t('runtimeConfig.runtime.refresh')} disabled={!account.enabled || query.isFetching} onClick={refresh}><RotateCw size={14} aria-hidden="true" className={query.isFetching ? 'animate-spin motion-reduce:animate-none' : ''} /></Button>
+        <Tooltip content={t('runtimeConfig.runtime.refresh')} placement="top">
+          <Button size="sm" tone="ghost" aria-label={t('runtimeConfig.runtime.refresh')} disabled={!account.enabled || query.isFetching} onClick={refresh}><RotateCw size={14} aria-hidden="true" className={query.isFetching ? 'animate-spin motion-reduce:animate-none' : ''} /></Button>
+        </Tooltip>
         <Button size="sm" tone="ghost" onClick={() => onOpenHistory(days)}>{t('runtimeConfig.cloudWorkspace.viewHistory')}<ArrowRight size={14} aria-hidden="true" /></Button>
       </div>
     </div>

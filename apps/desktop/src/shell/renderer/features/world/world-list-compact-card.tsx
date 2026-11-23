@@ -1,6 +1,6 @@
 import { Heart, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { IconButton, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { IconButton, NimiText, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { displayTags } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import { WORLD_EXPLORER_SHADOWS, WORLD_EXPLORER_THEME } from './world-list-theme';
@@ -40,24 +40,27 @@ export function CompactWorldCard({
       }}
     >
       {onToggleFollow ? (
-        <IconButton
-          type="button"
-          data-testid="world-card-follow-toggle"
-          aria-label={followed ? t('World.atlas.followed.unfollow') : t('World.atlas.followed.follow')}
-          aria-pressed={followed}
-          title={followAvailable ? undefined : t('World.atlas.followed.unavailable')}
-          disabled={!followAvailable}
-          icon={<Heart size={15} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
-          tone="ghost"
-          size="sm"
-          className={followed
-            ? 'absolute top-2.5 right-2.5 z-10 rounded-full text-[var(--world-explorer-favorite)] hover:bg-[var(--world-explorer-surface-weak)]'
-            : 'absolute top-2.5 right-2.5 z-10 rounded-full text-[var(--world-explorer-text-muted)] hover:bg-[var(--world-explorer-surface-weak)]'}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleFollow();
-          }}
-        />
+        <div className="absolute top-2.5 right-2.5 z-10">
+          <Tooltip content={followAvailable ? undefined : t('World.atlas.followed.unavailable')} placement="top">
+            <IconButton
+              type="button"
+              data-testid="world-card-follow-toggle"
+              aria-label={followed ? t('World.atlas.followed.unfollow') : t('World.atlas.followed.follow')}
+              aria-pressed={followed}
+              disabled={!followAvailable}
+              icon={<Heart size={15} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
+              tone="ghost"
+              size="sm"
+              className={followed
+                ? 'rounded-full text-[var(--world-explorer-favorite)] hover:bg-[var(--world-explorer-surface-weak)]'
+                : 'rounded-full text-[var(--world-explorer-text-muted)] hover:bg-[var(--world-explorer-surface-weak)]'}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleFollow();
+              }}
+            />
+          </Tooltip>
+        </div>
       ) : null}
       <button
         type="button"

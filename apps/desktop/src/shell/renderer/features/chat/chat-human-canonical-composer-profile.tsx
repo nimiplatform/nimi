@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { finalizeNimiRealmTransferredFile, uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import {
   createRealmChatResourceAttachmentPayload,
@@ -53,18 +54,19 @@ function HumanAttachmentStrip(props: {
               </div>
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => props.removeAttachment(index)}
-            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/85"
-            aria-label={t('TurnInput.removeAttachment')}
-            title={t('TurnInput.removeAttachment')}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <Tooltip content={t('TurnInput.removeAttachment')} placement="top">
+            <button
+              type="button"
+              onClick={() => props.removeAttachment(index)}
+              className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/85"
+              aria-label={t('TurnInput.removeAttachment')}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </Tooltip>
         </div>
       ))}
     </div>

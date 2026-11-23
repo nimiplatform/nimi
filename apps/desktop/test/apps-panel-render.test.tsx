@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { JSDOM } from 'jsdom';
 import { TooltipProvider } from '@nimiplatform/kit/ui';
 
 // ScrollArea / radix CJS primitives expect a global `React`.
@@ -159,15 +160,16 @@ function verifiedLabEntry(): DesktopAppsEntry {
 }
 
 function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
-  const catalogTarget = {
+  const catalogTarget: ApprovedAppCatalogTarget = {
     approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
     descriptorId: 'example.catalog-app@1.0.0', appId: 'example.catalog-app', displayName: 'Example Catalog App', version: '1.0.0',
     publisherGithubNamespace: 'publisher', sourceRepository: 'https://github.com/publisher/example', sourceLicenseSpdxExpression: 'MIT', targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64',
     assetName: 'example.catalog-app-1.0.0-windows-x86_64.nimiapp', assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1',
-    windowsCodeSigning: 'unsigned', appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'], requiredStandardizedFeatureRefs: ['app.storage'],
+    windowsCodeSigning: 'unsigned', macosNotarization: 'not-applicable', appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'], requiredStandardizedFeatureRefs: ['app.storage'],
     storagePolicyKind: 'app-owned-os-storage', osStorageDisclosures: [{ pathPattern: '%LOCALAPPDATA%/Example', purpose: 'cache', expectedSizeBand: '1–10 MiB' }],
     policyBlocked, policyReason: policyBlocked ? 'security-review-revoked' : undefined, policyRevision: policyBlocked ? '7' : '0',
-  } as ApprovedAppCatalogTarget;
+    productOrigin: '', admissionTrustTier: '',
+  };
   return {
     identity: {
       entryKey: 'verified:example.catalog-app', appId: catalogTarget.appId, sourceClass: 'verified',
@@ -224,7 +226,6 @@ function NavigationBoundView(props: AppsPanelViewProps) {
 }
 
 test('Nimi Access recognizes integration consumption and preserves unknown declarations in both locales', async () => {
-  const { JSDOM } = await import('jsdom');
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
@@ -300,7 +301,6 @@ test('Nimi Access recognizes integration consumption and preserves unknown decla
 });
 
 test('automatic update prompts wait until the current install confirmation closes', async () => {
-  const { JSDOM } = await import('jsdom');
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
@@ -323,7 +323,7 @@ test('automatic update prompts wait until the current install confirmation close
   const catalog = catalogRuntimeEntry();
   const entry: DesktopAppsEntry = {
     ...catalog,
-    catalogTarget: { ...catalog.catalogTarget!, version: '2.0.0' },
+    catalogTarget: { ...catalog.catalogTarget!, version: '2.0.0', descriptorId: 'example.catalog-app@2.0.0' },
     committedRelease: installedRuntimeEntry().committedRelease,
   };
   writeAppUpdatePolicy(entry.identity.appId, 'auto');
@@ -339,7 +339,7 @@ test('automatic update prompts wait until the current install confirmation close
     await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>));
     assert.deepEqual(calls, []);
     assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, null);
-    await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} installConfirmation={null} /></TooltipProvider>));
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} installConfirmation={null} /></TooltipProvider></AppStoreProvider>));
     assert.deepEqual(calls, [`${entry.identity.entryKey}:update`]);
     assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, '2.0.0');
   } finally {
@@ -356,6 +356,7 @@ test('automatic update prompts wait until the current install confirmation close
 test('installed AI model tabs follow installed access, independently of Catalog access', async () => {
   await initI18n();
   await changeLocale('en');
+  const tabLabels = (markup: string) => Array.from(JSDOM.fragment(markup).querySelectorAll('[role="tab"]'), (tab) => tab.textContent);
   for (const source of [AppPackageSourceClass.VERIFIED, AppPackageSourceClass.USER_IMPORTED]) {
     const base = installedRuntimeEntry();
     const installed: DesktopAppsEntry = {
@@ -367,7 +368,7 @@ test('installed AI model tabs follow installed access, independently of Catalog 
       projection: { status: 'loaded', entries: [installed], catalogStatus: 'loaded', runtimeError: null },
       selectedEntryKey: installed.identity.entryKey,
     }));
-    assert.match(markup.replace(/<[^>]*>/gu, " "), /AI models/iu);
+    assert.ok(tabLabels(markup).some((label) => /^AI models$/iu.test(label ?? '')));
     const catalogOnlyAccess: DesktopAppsEntry = {
       ...installed, committedRelease: { ...installed.committedRelease!, appAccess: [] },
       catalogTarget: { ...catalogRuntimeEntry().catalogTarget!, appAccess: ['runtime.consume'] },
@@ -376,7 +377,10 @@ test('installed AI model tabs follow installed access, independently of Catalog 
       projection: { status: 'loaded', entries: [catalogOnlyAccess], catalogStatus: 'loaded', runtimeError: null },
       selectedEntryKey: installed.identity.entryKey,
     }));
-    assert.doesNotMatch(withoutAccess.replace(/<[^>]*>/gu, " "), /AI models/iu);
+    assert.ok(!tabLabels(withoutAccess).some((label) => /^AI models$/iu.test(label ?? '')));
+    const capabilities = JSDOM.fragment(withoutAccess).querySelector('[data-testid="apps-capabilities-card"]');
+    assert.equal(capabilities?.querySelector('button')?.textContent?.trim(), 'Open AI Capabilities');
+    assert.doesNotMatch(capabilities?.textContent ?? '', /after installation/iu);
   }
 });
 
@@ -422,7 +426,13 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
   assert.ok(markup.includes('Nimi Lab'), 'expected first display name');
   assert.ok(markup.includes('织羽 Zhiyu'), 'expected second display name');
   assert.equal(markup.includes('data-source-badge="local_development"'), false, 'single-source local rows keep the quiet name line');
-  assert.equal(markup.includes('本地开发'), false, 'local-development source copy hidden without duplicates');
+  const panel = JSDOM.fragment(markup);
+  const recent = panel.querySelector('[data-testid="apps-home-recent"]');
+  assert.ok(recent);
+  assert.doesNotMatch(recent.textContent ?? '', /本地开发/u, 'recent rows omit a redundant source label');
+  const labRailRow = panel.querySelector('[data-testid="apps-rail-app-nimi.lab"]');
+  assert.ok(labRailRow);
+  assert.doesNotMatch(labRailRow.textContent ?? '', /本地开发/u, 'single-source rail rows omit a redundant source label');
   assert.ok(markup.includes('linear-gradient'), 'expected generated artwork gradients');
   assert.equal(markup.includes('未运行'), false, 'stopped rows stay silent; the launch action already says the App is not running');
   assert.ok(markup.includes('启动'), 'expected launch action copy');
@@ -440,7 +450,6 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
 });
 
 test('attention groups multiple registrations without losing exact source rows', async () => {
-  const { JSDOM } = await import('jsdom');
   await initI18n();
   await changeLocale('en');
   const first = entry({ selector: 'project-first', canonicalProjectRoot: '/projects/first' }, 'failed');
@@ -619,7 +628,6 @@ test('Apps home lists Apps with an available catalog update in their own section
 });
 
 test('App artwork stays current in updates, attention sources, recent rows and details without changing release targets', async () => {
-  const { JSDOM } = await import('jsdom');
   await initI18n();
   await changeLocale('en');
   const catalog = catalogRuntimeEntry();
@@ -1088,7 +1096,9 @@ test('approved Catalog facts render an install intent without claiming certifica
   assert.equal(detailMarkup.includes('data-testid="apps-catalog-target-facts"'), false, 'registry facts leave the overview for the properties dialog');
   assert.equal(detailMarkup.includes('Online version'), false, 'the registry card title stays behind the properties dialog');
   assert.ok(detailMarkup.includes('Version</dt>'), 'the about section displays the source version');
-  assert.equal(detailMarkup.includes('MIT'), false, 'the license stays behind the properties dialog');
+  const about = JSDOM.fragment(detailMarkup).querySelector('[data-testid="apps-about-section"]');
+  const license = Array.from(about?.querySelectorAll('dt') ?? []).find((fact) => fact.textContent === 'License');
+  assert.equal(license?.nextElementSibling?.textContent?.trim(), 'MIT', 'the overview presents the declared license identifier');
   assert.equal(detailMarkup.includes('unsigned'), false, 'the signing posture stays behind the properties dialog');
   assert.equal(detailMarkup.includes('Expected size: 1–10 MiB'), false, 'storage disclosures stay behind the properties dialog');
 
@@ -1103,7 +1113,7 @@ test('approved Catalog facts render an install intent without claiming certifica
   await changeLocale('zh');
 });
 
-test('installed App detail moves Registry and release facts into the properties dialog', async () => {
+test('installed App detail summarizes capabilities and leaves technical Registry and release facts in properties', async () => {
   await initI18n();
   await changeLocale('en');
   const catalog = catalogRuntimeEntry();
@@ -1137,7 +1147,8 @@ test('installed App detail moves Registry and release facts into the properties 
   assert.equal(markup.includes('data-testid="apps-catalog-target-facts"'), false, 'registry facts leave the overview once installed');
   assert.equal(markup.includes('Online version'), false, 'the registry card title stays behind the properties dialog');
   assert.equal(markup.includes('release:example:1.0.0'), false, 'the release reference leaves the overview');
-  assert.equal(markup.includes('text.generate'), false, 'capability refs move to the properties dialog');
+  const capabilities = JSDOM.fragment(markup).querySelector('[data-testid="apps-capabilities-card"]');
+  assert.equal(capabilities?.querySelector('[title="text.generate"]')?.textContent, 'Text generation');
   assert.equal(markup.includes('%LOCALAPPDATA%/Example'), false, 'storage disclosures move to the properties dialog');
   await changeLocale('zh');
 });

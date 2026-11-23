@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, InlineAlert, SelectField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, SelectField, Tooltip } from '@nimiplatform/kit/ui';
 import {
   AppPackageSourceClass,
   type AppPackageInfo,
@@ -145,17 +145,18 @@ export function AppsUpdateSection({ entry, readPackageInfo, onAction, actionsDis
             <span className="min-w-0 truncate text-sm text-[var(--nimi-status-info)]" data-testid="apps-update-available">
               {t('Apps.update.available', { version: targetVersion })}
             </span>
-            <Button
-              size="sm"
-              tone="primary"
-              data-testid="apps-update-now"
-              loading={actionPending}
-              disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
-              title={running ? t('Apps.update.stopRequired') : undefined}
-              onClick={() => onAction('update')}
-            >
-              {t('Apps.update.toVersion', { version: targetVersion })}
-            </Button>
+            <Tooltip content={running ? t('Apps.update.stopRequired') : undefined} placement="top">
+              <Button
+                size="sm"
+                tone="primary"
+                data-testid="apps-update-now"
+                loading={actionPending}
+                disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
+                onClick={() => onAction('update')}
+              >
+                {t('Apps.update.toVersion', { version: targetVersion })}
+              </Button>
+            </Tooltip>
           </div>
         ) : (
           <span className="min-w-0 text-right text-sm text-[color:var(--nimi-text-primary)]">

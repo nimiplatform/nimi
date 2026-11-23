@@ -1,5 +1,6 @@
 import { formatBytes } from '../../components/download-format.js';
 import { useState } from 'react';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
@@ -237,16 +238,17 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                         : t('runtimeConfig.localModelCenter.details', { defaultValue: 'Details' })}
                       <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${detailsVisible ? 'rotate-180' : ''}`} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => requestRemove(asset.modelAssetId)}
-                      disabled={props.assetBusy || removing || props.runtimeWritesDisabled}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50"
-                      title={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
-                      aria-label={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                    <Tooltip content={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })} placement="top">
+                      <button
+                        type="button"
+                        onClick={() => requestRemove(asset.modelAssetId)}
+                        disabled={props.assetBusy || removing || props.runtimeWritesDisabled}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50"
+                        aria-label={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
                 {detailsVisible ? (

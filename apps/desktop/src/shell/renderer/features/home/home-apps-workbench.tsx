@@ -1,10 +1,13 @@
-import { AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { ArrowUp, LayoutGrid, LoaderCircle, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { InlineAlert, LoadingSkeleton, Tooltip } from '@nimiplatform/kit/ui';
+import { ArrowUp, LoaderCircle, Plus, SlidersHorizontal } from 'lucide-react';
+import { useMemo, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
+import { actionPlanForEntry } from '../apps/apps-card-actions.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { createDesktopAppsLiveBridge } from '../apps/apps-live-bridge.js';
+import { installedLaunchFailureMessage } from '../apps/apps-panel-controller.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 import { focusRunningDesktopApp } from './home-active-work-card.js';
 import {
@@ -26,7 +29,28 @@ export type HomeAppsWorkbenchProps = {
   unavailable: boolean;
   onOpenAllApps: () => void;
   onOpenApp: (appId: string, entryKey: string) => void;
+  onLaunchApp?: (entry: DesktopAppsEntry) => Promise<void>;
+  onAppsMutated?: () => void;
 };
+
+async function launchDesktopApp(
+  entry: DesktopAppsEntry,
+  t: ReturnType<typeof useTranslation>['t'],
+): Promise<void> {
+  const liveBridge = createDesktopAppsLiveBridge();
+  if (entry.localDevelopment) {
+    await liveBridge.startRegistration(entry.localDevelopment.selector);
+    return;
+  }
+  if (entry.committedRelease && liveBridge.launchInstalled) {
+    const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
+    if (run.state === 'crashed') {
+      throw new Error(installedLaunchFailureMessage(run, t));
+    }
+    return;
+  }
+  throw new Error(t('Apps.actionFailed'));
+}
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
 // @nimi-authority: rule.nimi.desktop.shell-ui.r029
@@ -40,11 +64,13 @@ export function HomeAppsWorkbench({
   unavailable,
   onOpenAllApps,
   onOpenApp,
+  onLaunchApp,
+  onAppsMutated,
 }: HomeAppsWorkbenchProps) {
   const { t } = useTranslation();
   const [zhiyuBusy, setZhiyuBusy] = useState(false);
   const [zhiyuFailed, setZhiyuFailed] = useState(false);
-  const [focusingKey, setFocusingKey] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [timestamps, setTimestamps] = useState<Readonly<Record<string, number>>>(() =>
     readHomeRecentAppTimestamps(accountKey),
   );
@@ -83,50 +109,76 @@ export function HomeAppsWorkbench({
     }
   };
 
-  const handleFocus = (entry: DesktopAppsEntry) => {
-    setFocusingKey(entry.identity.entryKey);
-    void focusRunningDesktopApp(entry, focusGeneration)
-      .then(() => markOpened(entry.identity.appId))
-      .catch(() => emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.overview.activeWork.focusFailed') }))
-      .finally(() => setFocusingKey(null));
-  };
-
   const handleOpenAppDetail = (appId: string, entryKey: string) => {
     markOpened(appId);
     onOpenApp(appId, entryKey);
   };
 
+  const handleActivateApp = (entry: DesktopAppsEntry, running: boolean, starting: boolean) => {
+    const entryKey = entry.identity.entryKey;
+    const appId = entry.identity.appId;
+    if (busyKey === entryKey) return;
+
+    if (running) {
+      setBusyKey(entryKey);
+      void focusRunningDesktopApp(entry, focusGeneration)
+        .then(() => {
+          markOpened(appId);
+          onAppsMutated?.();
+        })
+        .catch(() => emitFeedbackToast({ kind: 'error', message: t('runtimeConfig.overview.activeWork.focusFailed') }))
+        .finally(() => setBusyKey(null));
+      return;
+    }
+
+    if (starting) {
+      handleOpenAppDetail(appId, entryKey);
+      return;
+    }
+
+    const plan = actionPlanForEntry(entry);
+    if (plan.primary?.id !== 'launch') {
+      handleOpenAppDetail(appId, entryKey);
+      return;
+    }
+
+    setBusyKey(entryKey);
+    const launch = onLaunchApp ? () => onLaunchApp(entry) : () => launchDesktopApp(entry, t);
+    void launch()
+      .then(() => {
+        markOpened(appId);
+        onAppsMutated?.();
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error && error.message.trim()
+          ? error.message
+          : t('Apps.actionFailed');
+        emitFeedbackToast({ kind: 'error', message });
+      })
+      .finally(() => setBusyKey(null));
+  };
+
+  const handleContextMenu = (
+    event: MouseEvent<HTMLButtonElement>,
+    appId: string,
+    entryKey: string,
+  ) => {
+    event.preventDefault();
+    handleOpenAppDetail(appId, entryKey);
+  };
+
+  const showOverflowTile = !loading && dock.overflowCount > 0;
+
   return (
-    <AppCardSurface kind="promoted-glass" className="flex min-w-0 flex-col gap-4 p-5" data-testid="home-apps">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-action-primary-bg)]">
-            <LayoutGrid size={16} aria-hidden="true" />
-          </span>
-          <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.overview.apps')}
-            </h2>
-            {!loading ? (
-              <span
-                className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--nimi-text-secondary)]"
-                data-testid="home-apps-recent-count"
-              >
-                {dock.totalCount > HOME_RECENT_APPS_LIMIT
-                  ? t('runtimeConfig.overview.appsWorkbench.recentCapSummary', {
-                      shown: dock.items.length,
-                      total: dock.totalCount,
-                    })
-                  : t('runtimeConfig.overview.appsWorkbench.recentTotalSummary', {
-                      total: dock.totalCount,
-                    })}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <Button tone="ghost" size="sm" onClick={onOpenAllApps}>
-          {t('runtimeConfig.overview.allApps')}
-        </Button>
+    <section
+      aria-label={t('runtimeConfig.overview.appsWorkbench.dockTitle')}
+      data-testid="home-apps"
+      className="flex min-w-0 flex-col gap-3"
+    >
+      <header className="flex items-center justify-between gap-2 px-0.5">
+        <h2 className="text-xs font-semibold tracking-wide text-[var(--nimi-text-secondary)]">
+          {t('runtimeConfig.overview.appsWorkbench.dockTitle')}
+        </h2>
       </header>
 
       {unavailable ? (
@@ -135,173 +187,173 @@ export function HomeAppsWorkbench({
       {zhiyuFailed ? (
         <InlineAlert tone="warning">{t('Apps.bundled.openFailed')}</InlineAlert>
       ) : null}
-      {loading ? <LoadingSkeleton lines={2} label={t('Common.loading')} /> : null}
+      {loading ? <LoadingSkeleton lines={1} label={t('Common.loading')} /> : null}
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5" data-testid="home-apps-dock">
+      <div
+        className="flex flex-wrap items-start gap-3.5"
+        data-testid="home-apps-dock"
+      >
         {dock.items.map((item) => {
           if (item.kind === 'bundled-zhiyu') {
             return (
               <div
                 key={item.key}
                 data-testid="bundled-zhiyu"
-                className="group/tile relative flex min-w-0 flex-col rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]"
+                className="group/tile relative flex flex-col items-center gap-1.5"
               >
-                <button
-                  type="button"
-                  disabled={zhiyuBusy}
-                  onClick={() => void openZhiyu()}
-                  aria-label={t('Apps.bundled.openZhiyu')}
-                  className="flex h-full w-full min-w-0 flex-col items-center gap-2 px-2.5 py-3 text-center focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60"
-                >
-                  <span className="relative inline-flex">
-                    <img src={zhiyuIcon} alt="" className="size-12 shrink-0 rounded-2xl shadow-[var(--nimi-elevation-base)]" />
+                <Tooltip content={bundledZhiyuName} placement="top">
+                  <button
+                    type="button"
+                    disabled={zhiyuBusy}
+                    onClick={() => void openZhiyu()}
+                    aria-label={t('Apps.bundled.openZhiyu')}
+                    className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60"
+                  >
+                    <img
+                      src={zhiyuIcon}
+                      alt=""
+                      className="size-11 shrink-0 rounded-xl bg-[var(--nimi-home-porcelain-card)] object-contain"
+                    />
                     {zhiyuBusy ? (
-                      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
+                      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
                         <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
                       </span>
                     ) : null}
-                  </span>
-                  <span className="w-full min-w-0 space-y-0.5">
-                    <span className="block truncate text-xs font-semibold text-[var(--nimi-text-primary)]">
-                      {bundledZhiyuName}
-                    </span>
-                    <span className="block truncate text-[11px] text-[var(--nimi-text-secondary)]">
-                      {t('runtimeConfig.overview.appsWorkbench.builtInBadge')}
-                    </span>
-                  </span>
-                </button>
+                  </button>
+                </Tooltip>
+                <span className="h-1.5 w-1.5 rounded-full bg-transparent" aria-hidden="true" />
               </div>
             );
           }
 
           const { group, hasUpdate, disambiguator } = item;
-          const entry = group.entries.find((entry) => entry.run?.state === 'running') ?? group.primary;
+          const entry = group.entries.find((candidate) => candidate.run?.state === 'running') ?? group.primary;
           const running = group.running;
           const starting = group.starting;
           const active = group.active;
-          const baseSourceLabel = entry.localDevelopment
-            ? t('runtimeConfig.overview.appsWorkbench.devBadge')
-            : entry.committedRelease?.version
-              ? t('runtimeConfig.overview.appsWorkbench.installedVersion', { version: entry.committedRelease.version })
-              : t('runtimeConfig.overview.appsWorkbench.installedBadge');
-          const sourceLabel = disambiguator ? `${baseSourceLabel} · ${disambiguator}` : baseSourceLabel;
-          const isFocusing = focusingKey === entry.identity.entryKey;
+          const isBusy = busyKey === entry.identity.entryKey;
+          const resolvedIconUrl = group.iconUrl ?? iconUrls.get(group.appId) ?? null;
+          const hasCustomArtwork = group.appId === 'nimi.desktop' || Boolean(resolvedIconUrl);
+
+          const baseName = disambiguator ? `${group.displayName} · ${disambiguator}` : group.displayName;
+          const statusSuffix = running
+            ? `${t('runtimeConfig.overview.activeWork.appRunning')} · ${t('runtimeConfig.overview.activeWork.focusWindow')}`
+            : starting
+              ? t('runtimeConfig.overview.activeWork.appStarting')
+              : hasUpdate
+                ? t('runtimeConfig.overview.updateTag')
+                : null;
+          const tooltipText = statusSuffix ? `${baseName} · ${statusSuffix}` : baseName;
 
           return (
             <div
               key={group.appId}
-              className={`group/tile relative flex min-w-0 flex-col rounded-xl border bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-elevation-raised)] ${
-                active
-                  ? 'border-[var(--nimi-status-success)] hover:border-[var(--nimi-status-success)]'
-                  : 'border-[var(--nimi-border-subtle)] hover:border-[var(--nimi-border-strong)]'
-              }`}
+              className="group/tile relative flex flex-col items-center gap-1.5"
             >
-              <button
-                type="button"
-                onClick={() =>
-                  running
-                    ? handleFocus(entry)
-                    : handleOpenAppDetail(group.appId, entry.identity.entryKey)
-                }
-                data-testid={`home-app:${group.appId}`}
-                className="flex h-full w-full min-w-0 flex-col items-center gap-2 px-2.5 py-3 text-center focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-              >
-                <span className="relative inline-flex">
+              <Tooltip content={tooltipText} placement="top">
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  aria-label={tooltipText}
+                  onClick={() => handleActivateApp(entry, running, starting)}
+                  onContextMenu={(event) => handleContextMenu(event, group.appId, entry.identity.entryKey)}
+                  data-testid={`home-app:${group.appId}`}
+                  className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-70"
+                >
                   <AppArtworkIcon
                     appId={group.appId}
                     displayName={group.displayName}
-                    iconUrl={group.iconUrl ?? iconUrls.get(group.appId) ?? null}
-                    size="xl"
-                    className="rounded-2xl shadow-[var(--nimi-elevation-base)]"
+                    iconUrl={resolvedIconUrl}
+                    size="dock"
+                    imageBackground="var(--nimi-home-porcelain-card)"
                   />
-                  {active ? (
-                    <span
-                      className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-[var(--nimi-status-success)] ring-2 ring-[var(--nimi-surface-card)]"
-                      aria-hidden="true"
-                    />
+                  {isBusy ? (
+                    <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
+                      <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+                    </span>
                   ) : hasUpdate ? (
                     <span
-                      className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] ring-2 ring-[var(--nimi-surface-card)]"
-                      title={t('runtimeConfig.overview.updateTag')}
+                      className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] ring-2 ring-[var(--nimi-surface-canvas)] transition-opacity group-hover/tile:opacity-0"
+                      aria-hidden="true"
                     >
-                      <ArrowUp size={10} aria-hidden="true" />
+                      <ArrowUp size={10} />
                     </span>
                   ) : null}
-                </span>
+                </button>
+              </Tooltip>
 
-                <span className="w-full min-w-0 space-y-0.5">
-                  <span className="block truncate text-xs font-semibold text-[var(--nimi-text-primary)]">
-                    {group.displayName}
-                  </span>
-                  {active ? (
-                    <span className="inline-flex max-w-full items-center justify-center gap-1 truncate text-[11px] font-medium text-[var(--nimi-status-success)]">
-                      {isFocusing ? <LoaderCircle size={10} className="animate-spin" aria-hidden="true" /> : null}
-                      <span>
-                        {running
-                          ? `${t('runtimeConfig.overview.activeWork.appRunning')} · ${t('runtimeConfig.overview.activeWork.focusWindow')}`
-                          : starting
-                            ? t('runtimeConfig.overview.activeWork.appStarting')
-                            : t('runtimeConfig.overview.activeWork.appRunning')}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="block truncate text-[11px] text-[var(--nimi-text-secondary)]">
-                      {hasUpdate ? `${sourceLabel} · ${t('runtimeConfig.overview.updateTag')}` : sourceLabel}
-                    </span>
-                  )}
-                </span>
-              </button>
-
-              {running ? (
-                <IconButton
-                  tone="ghost"
-                  size="sm"
+              <Tooltip content={t('runtimeConfig.overview.appsWorkbench.manageAction')} placement="top">
+                <button
+                  type="button"
                   aria-label={`${group.displayName} · ${t('runtimeConfig.overview.appsWorkbench.manageAction')}`}
-                  title={t('runtimeConfig.overview.appsWorkbench.manageAction')}
                   onClick={() => handleOpenAppDetail(group.appId, entry.identity.entryKey)}
                   data-testid={`home-app-manage:${group.appId}`}
-                  className="absolute right-1 top-1 size-6 rounded-lg opacity-0 transition-opacity group-hover/tile:opacity-100 focus-visible:opacity-100"
-                  icon={<SlidersHorizontal size={12} aria-hidden="true" />}
-                />
+                  className="absolute -right-1.5 -top-1.5 flex size-6 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-text-secondary)] opacity-0 shadow-[var(--nimi-home-porcelain-shadow)] transition-opacity duration-150 hover:text-[var(--nimi-text-primary)] group-hover/tile:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                >
+                  <SlidersHorizontal size={11} aria-hidden="true" />
+                </button>
+              </Tooltip>
+
+              <span
+                className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                  active ? 'bg-[var(--nimi-status-success)]' : 'bg-transparent'
+                }`}
+                data-testid={active ? `home-app-running:${group.appId}` : undefined}
+                aria-hidden="true"
+              />
+
+              {!hasCustomArtwork ? (
+                <span
+                  className="max-w-14 truncate text-[11px] font-medium text-[var(--nimi-text-secondary)]"
+                  data-testid={`home-app-fallback-label:${group.appId}`}
+                >
+                  {group.displayName}
+                </span>
               ) : null}
             </div>
           );
         })}
-      </div>
 
-      {dock.spotlightCatalog.length > 0 ? (
-        <footer
-          className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3"
-          data-testid="home-apps-spotlight"
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--nimi-text-secondary)]">
-              <Sparkles size={13} aria-hidden="true" />
-              {t('runtimeConfig.overview.appsWorkbench.discoverTitle')}
-            </span>
-            {dock.spotlightCatalog.map((entry) => (
+        {showOverflowTile ? (
+          <div className="flex flex-col items-center gap-1.5">
+            <Tooltip
+              content={t('runtimeConfig.overview.appsWorkbench.overflowAppsAria', { count: dock.overflowCount })}
+              placement="top"
+            >
               <button
-                key={entry.identity.entryKey}
                 type="button"
-                onClick={() => onOpenApp(entry.identity.appId, entry.identity.entryKey)}
-                data-testid={`home-app-spotlight:${entry.identity.appId}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                onClick={onOpenAllApps}
+                aria-label={t('runtimeConfig.overview.appsWorkbench.overflowAppsAria', {
+                  count: dock.overflowCount,
+                })}
+                data-testid="home-apps-overflow-tile"
+                data-overflow-count={dock.overflowCount}
+                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent font-semibold tabular-nums text-[var(--nimi-text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
               >
-                <AppArtworkIcon
-                  appId={entry.identity.appId}
-                  displayName={entry.identity.displayName}
-                  iconUrl={iconUrls.get(entry.identity.appId) ?? null}
-                  size="xs"
-                />
-                <span className="max-w-32 truncate">{entry.identity.displayName}</span>
+                <span className={dock.overflowCount >= 100 ? 'text-xs' : 'text-sm'}>
+                  +{dock.overflowCount}
+                </span>
               </button>
-            ))}
+            </Tooltip>
+            <span className="h-1.5 w-1.5 rounded-full bg-transparent" aria-hidden="true" />
           </div>
-          <Button tone="ghost" size="sm" onClick={onOpenAllApps}>
-            {t('runtimeConfig.overview.appsWorkbench.discoverMore')}
-          </Button>
-        </footer>
-      ) : null}
-    </AppCardSurface>
+        ) : !loading ? (
+          <div className="flex flex-col items-center gap-1.5">
+            <Tooltip content={t('runtimeConfig.overview.allApps')} placement="top">
+              <button
+                type="button"
+                onClick={onOpenAllApps}
+                aria-label={t('runtimeConfig.overview.allApps')}
+                data-testid="home-apps-more-tile"
+                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent text-[var(--nimi-text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+              >
+                <Plus size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
+            <span className="h-1.5 w-1.5 rounded-full bg-transparent" aria-hidden="true" />
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }

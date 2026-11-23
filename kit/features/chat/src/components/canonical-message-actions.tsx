@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { Copy, Keyboard, MoreHorizontal, Pause, Play, Reply, X } from 'lucide-react';
-import { ActionMenu, Dialog, DialogContent, DialogDescription, DialogTitle, IconButton, Popover, PopoverAnchor, PopoverContent, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { ActionMenu, Dialog, DialogContent, DialogDescription, DialogTitle, IconButton, Popover, PopoverAnchor, PopoverContent, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { collectFocusableElements, FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
@@ -323,9 +323,14 @@ export function CanonicalMessageQuote({ message }: { message: ConversationCanoni
   const context = useContext(MessageActionsContext);
   const quote = message.metadata?.canonicalQuote as NimiLocalAppConversationQuote | null | undefined;
   if (!context || !quote) return null;
-  return <button type="button" data-chat-copy-ignore disabled={!context.actions.onLocateMessage} title={!context.actions.onLocateMessage ? context.copy.historyFailedLabel : undefined} onClick={() => { void context.actions.onLocateMessage?.(quote.sourceMessageId, quote); }}
-    aria-label={context.copy.quoteSourceLabel} className={`mb-2 block w-full rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-left text-[var(--nimi-text-secondary)] ${FOCUS_RING_CLASS_NAME}`}>
-    <span className="block text-xs">{quote.sourceRole === 'assistant' ? context.copy.bubbleAssistantLabel : quote.sourceRole === 'app' ? context.copy.quoteAppSourceLabel : context.copy.bubbleUserLabel}{quote.sourcePartial ? ` · ${context.copy.quotePartialLabel}` : ''}</span>
-    <span className="line-clamp-2 whitespace-pre-wrap text-sm">{quote.text}</span>
-  </button>;
+  const quoteButton = (
+    <button type="button" data-chat-copy-ignore disabled={!context.actions.onLocateMessage} onClick={() => { void context.actions.onLocateMessage?.(quote.sourceMessageId, quote); }}
+      aria-label={context.copy.quoteSourceLabel} className={`mb-2 block w-full rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-left text-[var(--nimi-text-secondary)] ${FOCUS_RING_CLASS_NAME}`}>
+      <span className="block text-xs">{quote.sourceRole === 'assistant' ? context.copy.bubbleAssistantLabel : quote.sourceRole === 'app' ? context.copy.quoteAppSourceLabel : context.copy.bubbleUserLabel}{quote.sourcePartial ? ` · ${context.copy.quotePartialLabel}` : ''}</span>
+      <span className="line-clamp-2 whitespace-pre-wrap text-sm">{quote.text}</span>
+    </button>
+  );
+  return context.actions.onLocateMessage
+    ? quoteButton
+    : <Tooltip content={context.copy.historyFailedLabel} placement="top" className="w-full">{quoteButton}</Tooltip>;
 }

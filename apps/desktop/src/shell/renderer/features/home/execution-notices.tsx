@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AppCardSurface, Button, InlineAlert, OverlayShell, ScrollShell, StatusBadge } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, InlineAlert, OverlayShell, ScrollShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowRight, BellRing, ChevronDown, History, PanelRightClose, Trash2 } from 'lucide-react';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
@@ -263,11 +263,13 @@ export function HomeExecutionNotices({ appArtworkFor }: {
       </button>
     </section> : null}
     <OverlayShell open={open} kind="drawer" size="S" title={<div className="flex items-center gap-3">
-      <button type="button" aria-label={t('Common.close')} title={t('Common.close')} data-testid="execution-notices-close" onClick={() => setOpen(false)} className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"><PanelRightClose size={16} aria-hidden="true" /><span className="sr-only">{t('Common.close')}</span></button>
+      <Tooltip content={t('Common.close')} placement="bottom">
+        <button type="button" aria-label={t('Common.close')} data-testid="execution-notices-close" onClick={() => setOpen(false)} className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"><PanelRightClose size={16} aria-hidden="true" /><span className="sr-only">{t('Common.close')}</span></button>
+      </Tooltip>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]" data-testid="execution-notices-title-icon"><BellRing size={17} aria-hidden="true" /></span>
       <div className="flex min-w-0 flex-1 items-center gap-2"><span className="truncate">{t('Notifications.execution.notices')}</span>{notices.length ? <StatusBadge tone="neutral" className="shrink-0">{notices.length}</StatusBadge> : null}</div>
     </div>}
-      onClose={() => setOpen(false)} panelClassName="flex h-full flex-col" contentClassName="flex min-h-0 flex-1 flex-col p-0"
+      onClose={() => setOpen(false)} panelClassName="flex flex-col" contentClassName="flex min-h-0 flex-1 flex-col p-0"
       data-testid="execution-notices-drawer">
       <ScrollShell className="flex-1 px-5 pt-2 pb-6">
         {query.isError ? <div className="mb-4"><InlineAlert tone="warning" action={<Button tone="ghost" size="sm" onClick={() => void query.refetch()}>{t('Notifications.execution.retry')}</Button>}>{t('Notifications.execution.unavailable')}</InlineAlert></div> : null}

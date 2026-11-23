@@ -15,6 +15,7 @@ import {
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
   TextField,
+  Tooltip,
   cn,
 } from '@nimiplatform/kit/ui';
 import {
@@ -61,12 +62,14 @@ export function Button({
   variant = 'primary',
   disabled,
   size = 'md',
+  className,
 }: {
   children: ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
   size?: 'sm' | 'md';
+  className?: string;
 }) {
   const interactiveMotion = useDesktopInteractiveMotion();
   return (
@@ -81,6 +84,7 @@ export function Button({
         size={size}
         onClick={onClick}
         disabled={disabled}
+        className={className}
       >
         {children}
       </KitButton>
@@ -428,11 +432,16 @@ export function RuntimeHealthBadge({
   const statusText = daemonRunning
     ? localizedStatusTextV11(status, t)
     : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' });
-  return (
-    <KitStatusBadge tone={daemonRunning ? BADGE_STATUS_TONES[status] : 'danger'} shape="dot" title={hint}>
+  const badge = (
+    <KitStatusBadge tone={daemonRunning ? BADGE_STATUS_TONES[status] : 'danger'} shape="dot">
       {t('runtimeConfig.common.runtimeStatusWithLabel', { defaultValue: 'Runtime {{status}}', status: statusText })}
     </KitStatusBadge>
   );
+  return hint ? (
+    <Tooltip content={hint} placement="top" contentClassName="max-w-xs text-left">
+      {badge}
+    </Tooltip>
+  ) : badge;
 }
 
 export function ModelChips(props: { readonly models: string[]; readonly prefix: string }) {

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   AudioLines,
-  Fingerprint,
   Headphones,
   Lock,
   Mic,
@@ -160,8 +159,8 @@ const SYNTH_VOICES = [
     name: { zh: '温润清澈', en: 'Warm & Clear' },
     tone: { zh: '自然呼吸 · 舒缓叙事', en: 'Natural breath · Calm narration' },
     line: {
-      zh: '橙色的杯子放在窗边，下一班火车十点出发。',
-      en: 'The orange mug rests by the window; the next train departs at ten.',
+      zh: '昨夜雨疏风骤，浓睡不消残酒。你听，「骤」字后头要停一停，酒意才上得来。',
+      en: '“Last night the rain was sparse and the wind abrupt…” Hear that brief pause—that is where the mood settles in.',
     },
   },
   {
@@ -471,7 +470,7 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
             <Sparkles size={11} aria-hidden="true" />
             {isZh ? '专属声线 · 跨应用复用' : 'Custom Voice · Reusable'}
           </span>
-          <code>voice_custom_01</code>
+          <code>{isZh ? '已存音色 · 24 kHz' : 'Saved · 24 kHz'}</code>
         </div>
 
         <div className="platform-voice-quote-box is-cloned">
@@ -526,25 +525,21 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
 }
 
 /* ==========================================================================
-   15. audio.speaker.embed — Local Speaker Diarization & Voiceprint Stage
+   15. audio.speaker.embed — Local speaker embedding samples
    ========================================================================== */
 const SPEAKERS = [
   {
     id: 'spkA',
     url: '/demo/explore/peiyu-voice.mp3',
     avatar: '/demo/explore/emberware-court-character-1.png',
-    name: { zh: '说话人 A · 佩榆', en: 'Speaker A · Peiyu' },
-    score: '0.942',
-    segments: '00:00 – 00:06 · 00:14 – 00:19',
+    name: { zh: '佩榆的语音片段', en: 'Peiyu’s voice clip' },
     accent: 'emerald',
   },
   {
     id: 'spkB',
     url: '/demo/explore/heguan-voice.mp3',
     avatar: '/demo/explore/emberware-court-character-0.png',
-    name: { zh: '说话人 B · 禾罐', en: 'Speaker B · Heguan' },
-    score: '0.918',
-    segments: '00:06 – 00:14 · 00:19 – 00:25',
+    name: { zh: '禾罐的语音片段', en: 'Heguan’s voice clip' },
     accent: 'sky',
   },
 ] as const;
@@ -558,17 +553,9 @@ function AudioSpeakerEmbedStage({ locale }: { locale: LandingLocale }) {
       <div className="platform-audio-top-row">
         <span className="platform-stage-chip is-emerald">
           <Lock size={11} aria-hidden="true" />
-          {isZh ? '纯本机 ONNX 提取声纹 · 录音零上传' : '100% Local ONNX · Audio Never Leaves PC'}
+          {isZh ? '本机 ONNX 声纹提取' : 'Local ONNX speaker embeddings'}
         </span>
-        <code className="platform-audio-meta-code">space_id · 192-dim</code>
-      </div>
-
-      {/* Multi-speaker color-coded diarization timeline */}
-      <div className="platform-diarization-bar" aria-hidden="true">
-        <span className="is-a" style={{ width: '25%' }} />
-        <span className="is-b" style={{ width: '31%' }} />
-        <span className="is-a" style={{ width: '20%' }} />
-        <span className="is-b" style={{ width: '24%' }} />
+        <span className="platform-audio-meta-code">{isZh ? '示例录音' : 'Sample recordings'}</span>
       </div>
 
       <div className="platform-speaker-grid">
@@ -579,11 +566,6 @@ function AudioSpeakerEmbedStage({ locale }: { locale: LandingLocale }) {
               <img src={spk.avatar} alt="" className="platform-speaker-avatar" />
               <div className="platform-speaker-info">
                 <strong>{spk.name[locale]}</strong>
-                <small>{spk.segments}</small>
-                <span className="platform-speaker-sim">
-                  <Fingerprint size={11} aria-hidden="true" />
-                  {isZh ? `类内相似度 ${spk.score}` : `Cluster match ${spk.score}`}
-                </span>
               </div>
               <button
                 type="button"
@@ -596,13 +578,6 @@ function AudioSpeakerEmbedStage({ locale }: { locale: LandingLocale }) {
             </div>
           );
         })}
-      </div>
-
-      <div className="platform-stage-bottom-strip">
-        <span className="platform-stage-chip">
-          {isZh ? '跨人声纹距离 0.16（清晰分离 · 自动按人归档）' : 'Cross-speaker distance 0.16 (cleanly separated)'}
-        </span>
-        <code>LOCAL · ONNX</code>
       </div>
     </div>
   );

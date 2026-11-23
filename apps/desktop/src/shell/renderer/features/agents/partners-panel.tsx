@@ -50,7 +50,7 @@ export function PartnersPanel({ onBackToContacts }: { onBackToContacts?: () => v
         title={t('Chat.contactsChoosePartner')} description={t('Chat.contactsChoosePartnerHint')} />
     </div>;
   }
-  return <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="px-5 pb-6 pt-6" contentClassName="mx-auto w-full max-w-[960px]">
+  return <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="px-6 pb-8 pt-6" contentClassName="mx-auto w-full max-w-[1120px]">
     <div role="region" aria-label={t(`${P}.details`)}>
       {onBackToContacts ? <div className="mb-3 min-[960px]:hidden">
         <Button tone="ghost" size="sm" onClick={onBackToContacts}><ArrowLeft size={16} />{t('Relationship.contacts.title')}</Button>

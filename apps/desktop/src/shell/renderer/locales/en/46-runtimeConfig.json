@@ -428,6 +428,8 @@
   },
   "loadouts": {
     "description": "Create and manage local model setups, and choose which setup each AI capability currently uses.",
+    "contextualTitle": "{{capability}} · Saved configurations",
+    "contextualDescription": "Create and manage local model setups for {{capability}}, and choose which setup is currently used.",
     "recommendedTemplates": "Recommended plans",
     "noRecommendedTemplates": "No supported plan is currently recommended.",
     "unknownTemplates": "Compatibility unconfirmed",
@@ -511,6 +513,8 @@
     "viewInEnvironment": "View runtime status in Environment",
     "empty": "No model setups yet",
     "emptyBody": "Create a setup from a plan to assemble local models for text, image, speech, or another capability.",
+    "contextualEmpty": "No saved setups for {{capability}} yet",
+    "contextualEmptyBody": "Return to on-device models to pick a ready-made model, or create a custom model setup here.",
     "name": "Setup name",
     "recipe": "Use",
     "model": "Model",
@@ -834,7 +838,6 @@
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
     "greetingNight": "Still up",
-    "statusCapabilities": "AI capabilities · {{count}} ready",
     "statusDownloading": "Unfinished downloads: {{count}}",
     "setupFailed": "{{capability}} · setup needs attention",
     "updateTag": "Update",
@@ -1011,7 +1014,15 @@
         "friend_request_rejected": "Declined your friend request"
       },
       "setupNeedsReview": "Open settings to review the issue and continue.",
-      "unreadEmpty": "No unread messages."
+      "unreadEmpty": "No unread messages.",
+      "drawerTriggerPending": "{{count}} pending · Messages",
+      "drawerTriggerPendingMore": "{{count}}+ pending · Messages",
+      "drawerTriggerQuiet": "No new messages",
+      "quickPreferences": "Preferences",
+      "desktopAlertsLabel": "Desktop system alerts",
+      "pauseOneHour": "Pause 1h",
+      "resumeAlerts": "Resume",
+      "appPermissionsLabel": "Authorized app permissions"
     },
     "appActivity": {
       "open": "Open",
@@ -1068,6 +1079,64 @@
         "dataStorage": "Data & storage"
       }
     },
+    "partnersHero": {
+      "title": "Partners",
+      "exploreAction": "Explore",
+      "exploreTileTitle": "Explore more partners",
+      "exploreTileHint": "Discover worlds & characters",
+      "allAction": "All",
+      "allCountAction": "All {{total}}",
+      "unreadBadge": "{{count}} unread",
+      "draftPrefix": "Draft: ",
+      "scrollPrev": "Previous partners",
+      "scrollNext": "Next partners",
+      "moreCount": "+{{count}} more"
+    },
+    "quickStart": {
+      "placeholder": "Ask Nimi anything, or start a task…",
+      "label": "Type a message to start Nimi Chat",
+      "submitDraft": "Open Nimi Chat with draft"
+    },
+    "attention": {
+      "sectionLabel": "Attention and active work",
+      "textSetupUnset": "Chat capability isn't configured yet — set it up to use Nimi Chat",
+      "textSetupAttention": "Chat capability setup needs attention",
+      "configureAction": "Configure",
+      "runtimeUnavailable": "Local AI engine is temporarily unavailable",
+      "runtimeAttention": "Local AI engine needs attention",
+      "diagnoseAction": "Check status",
+      "remotePending": "{{count}} remote access request pending confirmation",
+      "reviewAction": "Review",
+      "diskCritical": "Low disk space ({{percent}}% used) may affect model and cache writes",
+      "manageStorageAction": "Storage",
+      "memoryCritical": "Critical system memory pressure detected",
+      "appsReadFailed": "Unable to read installed apps right now",
+      "retryAction": "Retry",
+      "pendingItems": "{{count}} items need attention",
+      "pendingItemsMore": "{{count}}+ items need attention",
+      "openMessagesAction": "View"
+    },
+    "ambientStrip": {
+      "sectionLabel": "System and runtime status",
+      "engineReady": "Engine ready",
+      "engineAttention": "Engine needs attention",
+      "engineUnavailable": "Engine offline",
+      "engineChecking": "Checking engine…",
+      "capabilitiesReady": "{{count}} AI capabilities ready",
+      "capabilitiesUnavailable": "AI capabilities unavailable",
+      "usageLoading": "Loading today's usage…",
+      "usageUnavailable": "Today's usage unavailable",
+      "usageIdle": "No AI calls today",
+      "usageLocalOnly": "{{count}} local calls today · free",
+      "usageCostWithCalls": "Today {{cost}} · {{count}} calls",
+      "usageCostOnly": "Today {{cost}}",
+      "usageUnknownCost": "{{count}} calls today · cost pending",
+      "usageCostUnknownNoCount": "Today's cost pending",
+      "remoteOtherPc": "Primary host on another PC",
+      "remoteConnected": "{{count}} remote connected",
+      "remoteListening": "Remote access on",
+      "integrationsConnected": "{{count}} integrations active"
+    },
     "activeWork": {
       "title": "Running & in progress",
       "appRunning": "Running",
@@ -1079,6 +1148,7 @@
       "viewDownloads": "View progress"
     },
     "appsWorkbench": {
+      "dockTitle": "Apps",
       "builtInBadge": "Built-in",
       "devBadge": "Local dev",
       "installedBadge": "Installed",
@@ -1088,13 +1158,20 @@
       "openAction": "Open",
       "manageAction": "Manage",
       "discoverTitle": "Featured catalog apps",
-      "discoverMore": "Browse catalog"
+      "discoverMore": "Browse catalog",
+      "moreAppsTitle": "More apps",
+      "moreAppsBadge": "App catalog",
+      "overflowAppsAria": "{{count}} more apps, view all apps"
     },
     "capabilityMatrix": {
-      "title": "Core AI capabilities",
+      "title": "AI capabilities",
       "readySummary": "{{count}} ready",
+      "allAction": "Overview",
       "profilesAction": "AI profiles",
       "cloudAction": "Cloud",
+      "groupReadyCount": "{{ready}} / {{total}} ready",
+      "groupTotalCount": "{{total}} items",
+      "moreCapabilities": "{{names}} & more",
       "states": {
         "ready": "Ready",
         "preparing": "Preparing",
@@ -1105,8 +1182,8 @@
       "unsetHint": "Configure model"
     },
     "dailySpend": {
-      "title": "Today's spend & cloud usage",
-      "detailsAction": "Details",
+      "title": "Today's AI usage",
+      "detailsAction": "Usage & records",
       "localOnlyZero": "Local-only · zero API cost",
       "noCallsToday": "No AI executions today",
       "catalogEstimateHint": "Catalog price estimate",
@@ -1124,7 +1201,8 @@
       "manageCloud": "Manage cloud"
     },
     "hostStatus": {
-      "title": "Host & remote access",
+      "title": "This device & connections",
+      "combinedTitle": "This device & usage",
       "primaryBoundHere": "Primary host: This PC",
       "primaryUnbound": "Primary host not bound",
       "primaryBoundOther": "Primary bound to another PC",
@@ -1148,6 +1226,17 @@
     },
     "integrationsSummary": {
       "activeSummary": "{{connections}} active integrations · {{apps}} authorized apps"
+    },
+    "integrationsWorkbench": {
+      "connectedSummary": "{{connections}} connected · {{apps}} apps authorized",
+      "connectedOnlySummary": "{{connections}} connected",
+      "authorizedOnlySummary": "{{apps}} apps authorized",
+      "manageAction": "Manage",
+      "permissionsAction": "Permissions",
+      "callsAction": "Call log",
+      "authorizedAppsSummary": "{{count}} authorized apps",
+      "addServiceAction": "Add",
+      "addServiceAria": "Add {{service}}"
     }
   },
   "local": {
@@ -2747,9 +2836,6 @@
     "downloadedModels": "Downloaded and configured models",
     "customizeCurrent": "Customize current models and options",
     "backWorkspace": "Back to AI capabilities",
-    "readyCount": "{{count}} prepared",
-    "preparingCount": "{{count}} preparing",
-    "attentionCount": "{{count}} need attention",
     "apps": {
       "title": "Apps using this capability",
       "description": "Open app details to check setup and availability.",
@@ -3213,6 +3299,7 @@
     "yourConnections": "Your connections ({{count}})",
     "removeConnectionTitle": "Remove “{{name}}”?",
     "removeConnectionHelp": "Saved configurations may still reference this connection and need updating. Existing results remain. Requests already sent may still finish.",
+    "removeDraftConnectionHelp": "This draft connection has not been saved yet. Removing it discards your entered details.",
     "credentialMissing": "Needs credentials",
     "checkedBadge": "Check passed",
     "uncheckedBadge": "Not checked",

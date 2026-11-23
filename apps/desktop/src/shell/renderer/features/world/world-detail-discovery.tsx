@@ -9,6 +9,7 @@ import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-
 import { worldSummary, worldSummaryLead } from './world-detail-template-model.js';
 import { worldReadingEntries } from './world-detail-reading-model.js';
 import { WorldDetailStory } from './world-detail-story.js';
+import { WorldSceneViewer } from './world-scene-viewer.js';
 import { worldTitlePhrases } from './world-title-phrases.js';
 import { worldIllustrations } from './world-detail-illustrations.js';
 import { worldTimeDisplay } from './world-detail-paper-model.js';
@@ -93,7 +94,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
                   </button>
                   {voiceUrl ? (
                     <div className="absolute right-2.5 top-2.5 z-20">
-                      <CharacterVoicePreviewButton src={voiceUrl} characterName={character.name} />
+                      <CharacterVoicePreviewButton src={voiceUrl} characterName={character.name} iconOnly />
                     </div>
                   ) : null}
                 </div>
@@ -107,9 +108,20 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
   );
 }
 
-function WorldScenesDiscovery({ scenes }: { scenes: readonly WorldSceneItem[] }) {
+function WorldScenesDiscovery({ scenes, sharedMediaKeys, onViewCharacter }: {
+  scenes: readonly WorldSceneItem[];
+  sharedMediaKeys?: ReadonlySet<string>;
+  onViewCharacter: (character: WorldCharacter) => void;
+}) {
   const { t } = useTranslation();
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
   if (scenes.length === 0) return null;
+  const activeScene = (selectedSceneId ? scenes.find((item) => item.id === selectedSceneId) : null) ?? scenes[0] ?? null;
+  const openScene = (id: string) => {
+    setSelectedSceneId(id);
+    setViewerOpen(true);
+  };
   return (
     <section id="world-detail-scenes" data-testid="world-detail-scenes" className="space-y-4">
       <div className="flex items-baseline gap-3">
@@ -118,21 +130,47 @@ function WorldScenesDiscovery({ scenes }: { scenes: readonly WorldSceneItem[] })
       </div>
       <div className="grid grid-cols-1 gap-3.5 @min-[640px]:grid-cols-2 @min-[1120px]:grid-cols-4">
         {scenes.map((scene) => (
-          <article
+          <button
             key={scene.id}
+            type="button"
             data-testid="world-scene-card"
-            className="flex min-w-0 flex-col gap-2 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_72%,transparent)] p-4"
+            aria-haspopup="dialog"
+            aria-label={t('WorldDetail.discovery.openNamedScene', { name: scene.name })}
+            onClick={() => openScene(scene.id)}
+            className="group flex min-w-0 cursor-pointer flex-col gap-2.5 rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_72%,transparent)] p-4 text-left transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           >
-            <div className="flex items-start gap-2">
+            <div className="flex w-full items-start gap-2">
               <MapPin size={15} className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden />
-              <h3 className="min-w-0 break-words text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{scene.name}</h3>
+              <span className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{scene.name}</span>
             </div>
             {scene.description ? (
               <p className="line-clamp-3 text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]">{scene.description}</p>
             ) : null}
-          </article>
+            <div className="mt-auto flex w-full items-center justify-between gap-2 pt-1">
+              {scene.relatedCharacters.length > 0 ? (
+                <NimiText as="span" role="caption" className="truncate">
+                  {t('WorldDetail.discovery.peopleCount', { count: scene.relatedCharacters.length })}
+                </NimiText>
+              ) : <span />}
+              <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
+                {t('WorldDetail.discovery.viewScene')}
+                <ArrowRight size={13} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
+              </span>
+            </div>
+          </button>
         ))}
       </div>
+      {activeScene ? (
+        <WorldSceneViewer
+          open={viewerOpen}
+          scene={activeScene}
+          scenes={scenes}
+          sharedMediaKeys={sharedMediaKeys}
+          onSelect={setSelectedSceneId}
+          onClose={() => setViewerOpen(false)}
+          onViewCharacter={onViewCharacter}
+        />
+      ) : null}
     </section>
   );
 }
@@ -165,6 +203,20 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
     .find((value) => value && value !== summary.trim()) || null;
   const showBanner = Boolean((world.bannerMedia || world.bannerUrl) && !bannerFailed);
   const illustrations = worldIllustrations(props.publicAssets);
+  const sharedSceneMediaKeys = new Set<string>(
+    [
+      world.bannerMedia?.resourceId,
+      world.bannerUrl,
+      world.iconMedia?.resourceId,
+      world.iconUrl,
+      ...(props.publicAssets.mediaAssets ?? [])
+        .filter((asset) => asset.kind === 'hero' || asset.kind === 'highlight' || asset.kind === 'icon')
+        .flatMap((asset) => [asset.id, asset.delivery?.resourceId, asset.externalUrl]),
+      ...illustrations.flatMap((item) => [item.id, item.delivery?.resourceId, item.url]),
+    ]
+      .map((value) => value?.trim() ?? '')
+      .filter(Boolean),
+  );
   // Some worlds publish their setting as structured systems instead of prose.
   // Preview those supplied descriptions without repeating the hero overview.
   const systemDescriptions = props.semantic.powerSystems
@@ -219,7 +271,7 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
       </section>
       <WorldPeopleGallery characters={props.peopleCharacters} catalog={props.peopleCatalog} loading={props.charactersLoading} onView={onViewCharacter} />
       <WorldDetailStory key={world.id} worldName={world.name} story={story} showExcerpt={showExcerpt} hasReading={hasReading} illustrations={illustrations} onReadWorld={onReadWorld} />
-      <WorldScenesDiscovery scenes={scenes} />
+      <WorldScenesDiscovery scenes={scenes} sharedMediaKeys={sharedSceneMediaKeys} onViewCharacter={onViewCharacter} />
       {props.readingIncomplete ? <EmptyState title={t('WorldDetail.discovery.readingIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}
       {props.semanticLoading ? <LoadingSkeleton lines={2} label={t('WorldDetail.loading')} /> : null}
       {props.publicAssetsIncomplete ? <EmptyState title={t('WorldDetail.discovery.placesIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}

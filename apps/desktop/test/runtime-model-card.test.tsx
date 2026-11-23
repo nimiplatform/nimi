@@ -119,7 +119,8 @@ test('market logos credit a quantization to its base model maker and keep a mono
   assert.equal(modelMakerOrg(undefined), '');
 
   const logo = renderToStaticMarkup(<ModelMakerLogo author="unsloth" tags={quantizedTags} />);
-  assert.match(logo, /title="Qwen"/);
+  assert.match(logo, /aria-label="Qwen"/);
+  assert.doesNotMatch(logo, /title="Qwen"/);
   assert.match(logo, /data-model-maker-logo="qwen-color"/);
   assert.match(logo, /<svg /);
   const monogram = renderToStaticMarkup(<ModelMakerLogo author="ornith-ai" tags={[]} />);

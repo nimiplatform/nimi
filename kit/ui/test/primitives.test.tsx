@@ -805,6 +805,41 @@ test('tooltip gives a disabled action one wrapper focus stop and exposes its hin
   expect(document.body.querySelector('[role="tooltip"]')?.textContent).toContain('Add a compatible account first');
 });
 
+test('tooltip renders unified bubble chrome and works without an explicit TooltipProvider', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <Tooltip content="Unified hint" defaultOpen>
+        <button type="button">Target</button>
+      </Tooltip>,
+    );
+    await flush();
+    await flush();
+  });
+
+  const bubble = document.body.querySelector('.nimi-tooltip-bubble');
+  expect(bubble).toBeTruthy();
+  expect(bubble?.className).toContain('rounded-[var(--nimi-radius-md)]');
+  expect(bubble?.className).toContain('px-2.5');
+  expect(bubble?.className).toContain('py-1.5');
+  expect(bubble?.className).toContain('font-medium');
+  expect(bubble?.className).toContain('text-[var(--nimi-text-primary)]');
+  expect(bubble?.className).toContain('pointer-events-none');
+});
+
+test('tooltip preserves plain text and multiple children when the hint is empty', () => {
+  const html = renderToStaticMarkup(
+    <div>
+      <Tooltip content={undefined}>Plain text</Tooltip>
+      <Tooltip content=" "><strong>First</strong><em>Second</em></Tooltip>
+    </div>,
+  );
+  expect(html).toBe('<div>Plain text<strong>First</strong><em>Second</em></div>');
+});
+
 test('confirm dialog uses governed overlay and action primitives', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -925,4 +960,48 @@ test('back-link asChild merges visual onto child element (router-friendly)', () 
   expect(html).toMatch(/href="\/profile"/);
   expect(html).toMatch(/返回档案/);
   expect(hasClass(html, 'nimi-back-link')).toBe(true);
+});
+
+test('drawer overlay offsets backdrop and panel below native titlebar height while keeping explicit overrides mergeable', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell open kind="drawer" title="Connect service" data-testid="titlebar-safe-drawer">
+        Drawer body
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const backdrop = document.body.querySelector('.nimi-overlay-backdrop--drawer') as HTMLElement | null;
+  const panel = document.body.querySelector('[data-testid="titlebar-safe-drawer"]') as HTMLElement | null;
+  expect(backdrop).toBeTruthy();
+  expect(panel).toBeTruthy();
+  expect(backdrop!.className).toContain('top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))]');
+  expect(backdrop!.className).not.toContain('inset-0');
+  expect(panel!.className).toContain('top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))]');
+  expect(panel!.className).toContain('h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))]');
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell
+        open
+        kind="drawer"
+        panelClassName="top-11 right-2.5 bottom-2.5 h-auto"
+        data-testid="custom-inset-drawer"
+      >
+        Custom drawer
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const customPanel = document.body.querySelector('[data-testid="custom-inset-drawer"]') as HTMLElement | null;
+  expect(customPanel).toBeTruthy();
+  expect(customPanel!.className).toContain('top-11');
+  expect(customPanel!.className).toContain('h-auto');
+  expect(customPanel!.className).not.toContain('top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))]');
 });

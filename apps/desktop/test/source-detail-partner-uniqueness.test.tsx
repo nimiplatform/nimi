@@ -49,13 +49,29 @@ test('source detail offers the exact partner action without duplicate creation o
   assert.match(html, /data-primary-action="open_partner"/);
   assert.doesNotMatch(html, /Create another|创建另一位|character-choose-partner/);
 });
-test('partner presentation preserves Runtime identity, public profile and collapsed first-meeting reference', () => {
-  const html = renderToStaticMarkup(<CharacterSourceDetailPage source={toSourceDetailData(liBaiRaw, 'local_agent_available')}
+test('partner presentation preserves Runtime identity, public profile, isomorphic dual columns and collapsed first-meeting reference', () => {
+  const withMeeting = toSourceDetailData({
+    ...liBaiRaw,
+    characterProfile: {
+      ...liBaiRaw.characterProfile,
+      interaction: {
+        tone: null,
+        cadence: null,
+        scenario: '长安酒肆初逢。',
+        greeting: '且饮一杯，再谈诗。',
+      },
+    },
+  }, 'local_agent_available');
+  const html = renderToStaticMarkup(<CharacterSourceDetailPage source={withMeeting}
     onOpenWorld={() => {}} onPrimaryAction={() => {}}
     partner={{ displayName: 'Runtime partner', actions: <button>Chat with partner</button>, status: <p>Owner state</p>, sourceNotice: <p>Public profile updated</p> }} />);
   assert.match(html, /Runtime partner/);
   assert.match(html, /盛唐诗人/);
   assert.match(html, /Owner state/);
   assert.match(html, /Public profile updated/);
+  assert.match(html, /data-testid="world-character-stage-column"/);
+  assert.match(html, /data-testid="world-character-dossier-column"/);
+  assert.match(html, /data-testid="world-character-partner-meeting-reference"/);
+  assert.doesNotMatch(html, /<details[^>]*data-testid="world-character-partner-meeting-reference"[^>]*open/);
   assert.doesNotMatch(html, /data-primary-action=/);
 });

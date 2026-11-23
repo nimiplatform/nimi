@@ -152,9 +152,11 @@ test('world character sample tabs select exchanges with keyboard access and rese
         const initialScene = sceneText();
         assert.ok(initialScene?.includes(presenceRaw.characterProfile.interaction.scenario));
         assert.equal(document.querySelector('[data-testid="world-character-about-section"] [data-testid="world-character-meeting-scene"]'), null);
-        const leftColumn = document.querySelector('[data-testid="world-character-profile-column"]');
-        assert.ok(leftColumn?.querySelector('[data-testid="world-character-about-section"]'));
-        assert.ok(leftColumn?.querySelector('[data-testid="world-character-life-clues-section"]'));
+        const stageColumn = document.querySelector('[data-testid="world-character-stage-column"]');
+        const dossierColumn = document.querySelector('[data-testid="world-character-dossier-column"]');
+        assert.ok(stageColumn?.querySelector('[data-testid="world-character-about-section"]'));
+        assert.ok(stageColumn?.querySelector('[data-testid="world-character-interaction-stage"]'));
+        assert.ok(dossierColumn?.querySelector('[data-testid="world-character-life-clues-section"]'));
         assert.equal(document.querySelectorAll('[data-testid="world-character-relationship-clues-section"]').length, 0);
         assert.equal(document.querySelector('[data-testid="world-character-topics-section"]'), null);
         assert.equal(document.querySelector('[data-testid="world-character-topic-chip"]'), null);
@@ -383,6 +385,432 @@ test('first meeting selection changes the scene and its opening line together', 
     } finally {
       await act(async () => { root.unmount(); });
       await changeLocale('en');
+    }
+  });
+});
+
+test('short related characters without extra details omit inert disclosure chevrons', async () => {
+  await withDom(async (dom) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale, ouYangDeRaw, toSourceDetailData } = await import('./source-detail-world-character-test-utils.js');
+    const { WorldCharacterRelationshipCluesSection } = await import('../src/shell/renderer/features/source-detail/source-detail-world-character-relationship-clues.js');
+    await initI18n();
+    await changeLocale('zh');
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.characterProfile.relationshipNotes = [];
+    source.relationshipClues = [
+      { id: 'short-rel', type: 'ally', label: '盟友', targetEntityId: 'p-short', targetLabel: '短简介友人', summary: '一起值夜班的搭档。', details: [] },
+      { id: 'rich-rel', type: 'colleague', label: '同事', targetEntityId: 'p-rich', targetLabel: '长详情同事', summary: '共同负责冷库巡检。', details: ['持有双钥授权。'] },
+    ];
+    source.relationshipTargets = {
+      'p-short': { kind: 'person', name: '短简介友人' },
+      'p-rich': { kind: 'person', name: '长详情同事' },
+    };
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => { root.render(<WorldCharacterRelationshipCluesSection source={source} />); });
+      const rows = dom.window.document.querySelectorAll('[data-testid="world-character-relationship-list"] > li');
+      assert.equal(rows.length, 2);
+      assert.equal(rows[0].querySelector('details'), null, 'short row without extra details should not render an inert disclosure');
+      assert.ok(rows[1].querySelector('details'), 'row with extra details should render an expandable disclosure');
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+    }
+  });
+});
+
+test('voice preview surfaces transcript while playing and reports playback rejection', async () => {
+  await withDom(async (dom) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale, ouYangDeRaw, toSourceDetailData } = await import('./source-detail-world-character-test-utils.js');
+    const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+    const { SourceDetailView } = await import('../src/shell/renderer/features/source-detail/source-detail-view.js');
+    await initI18n();
+    await changeLocale('zh');
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.voiceSample = {
+      id: 'voice-transcript',
+      previewUrl: 'https://cdn.example.test/voice.wav',
+      originalUrl: null,
+      durationSec: 12,
+      transcript: '无影灯下少废话，先躺上验尸台。',
+      previewText: null,
+    };
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => {
+        root.render(React.createElement(DesktopRendererBindingProvider, { bindings: { app: { projection: { resourceBaseUrl: () => '' } } } as never },
+          React.createElement(SourceDetailView, { source, loading: false, error: false, onOpenWorld: () => {}, onPrimaryAction: () => {} })));
+      });
+      const document = dom.window.document;
+      const audio = document.querySelector<HTMLAudioElement>('[data-testid="world-character-voice-sample-audio"]')!;
+      const playButton = document.querySelector<HTMLButtonElement>('[data-testid="world-character-voice-play-button"]')!;
+      assert.equal(document.querySelector('[data-testid="world-character-voice-transcript"]'), null);
+      await act(async () => { audio.dispatchEvent(new dom.window.Event('play')); });
+      assert.match(document.querySelector('[data-testid="world-character-voice-transcript"]')?.textContent ?? '', /无影灯下少废话/);
+      await act(async () => { audio.dispatchEvent(new dom.window.Event('pause')); });
+      assert.equal(document.querySelector('[data-testid="world-character-voice-transcript"]'), null);
+
+      Object.defineProperty(audio, 'play', { configurable: true, value: () => Promise.reject(new Error('decode failed')) });
+      await act(async () => { playButton.click(); });
+      assert.match(document.body.textContent ?? '', /语音试听加载失败/);
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+    }
+  });
+});
+
+test('sticky partner bar tracks the ScrollArea viewport top across titlebar offsets without missing slow scrolls', async () => {
+  await withDom(async (dom) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale, ouYangDeRaw, toSourceDetailData } = await import('./source-detail-world-character-test-utils.js');
+    const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+    const { SourceDetailView } = await import('../src/shell/renderer/features/source-detail/source-detail-view.js');
+    await initI18n();
+    await changeLocale('zh');
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    let primaryClicks = 0;
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => {
+        root.render(React.createElement(DesktopRendererBindingProvider, { bindings: { app: { projection: { resourceBaseUrl: () => '' } } } as never },
+          React.createElement(SourceDetailView, {
+            source,
+            loading: false,
+            error: false,
+            onOpenWorld: () => {},
+            onPrimaryAction: () => { primaryClicks += 1; },
+          })));
+      });
+      const document = dom.window.document;
+      const viewport = document.querySelector<HTMLDivElement>('[data-radix-scroll-area-viewport]');
+      const sentinel = document.querySelector<HTMLDivElement>('[data-testid="world-character-hero-sentinel"]');
+      assert.ok(viewport, 'ScrollArea viewport should mount');
+      assert.ok(sentinel, 'hero sentinel should mount');
+
+      const makeRect = (top: number, height: number): DOMRect => ({
+        x: 0,
+        y: top,
+        top,
+        bottom: top + height,
+        left: 0,
+        right: 960,
+        width: 960,
+        height,
+        toJSON: () => ({}),
+      });
+
+      // Simulate desktop titlebar chrome offsetting the ScrollArea viewport 40px from window top.
+      let viewportTop = 40;
+      let sentinelTop = 420;
+      viewport.getBoundingClientRect = () => makeRect(viewportTop, 680);
+      sentinel.getBoundingClientRect = () => makeRect(sentinelTop, 1);
+
+      await act(async () => { viewport.dispatchEvent(new dom.window.Event('scroll')); });
+      assert.equal(document.querySelector('[data-testid="world-character-sticky-bar"]'), null);
+
+      // Scroll smoothly so the sentinel leaves the ScrollArea viewport (bottom <= 40)
+      // while remaining positive in window coordinates (top = 35 >= 0).
+      sentinelTop = 35;
+      await act(async () => { viewport.dispatchEvent(new dom.window.Event('scroll')); });
+      const stickyBar = document.querySelector<HTMLDivElement>('[data-testid="world-character-sticky-bar"]');
+      assert.ok(stickyBar, 'sticky bar must appear as soon as the sentinel crosses the ScrollArea viewport top');
+      assert.match(stickyBar.parentElement?.className ?? '', /\bh-0\b/, 'sticky wrapper must occupy zero flow height to avoid shifting the sentinel');
+
+      const stickyAction = stickyBar.querySelector<HTMLButtonElement>('[data-primary-action="become_partner"]');
+      assert.ok(stickyAction);
+      assert.match(stickyAction.textContent ?? '', /添加为伙伴/);
+      await act(async () => { stickyAction.click(); });
+      assert.equal(primaryClicks, 1);
+
+      // Continue scrolling further down: sticky bar stays mounted.
+      sentinelTop = -240;
+      await act(async () => { viewport.dispatchEvent(new dom.window.Event('scroll')); });
+      assert.ok(document.querySelector('[data-testid="world-character-sticky-bar"]'));
+
+      // Scroll back up so the hero re-enters the ScrollArea viewport: sticky bar hides.
+      sentinelTop = 45;
+      await act(async () => { viewport.dispatchEvent(new dom.window.Event('scroll')); });
+      assert.equal(document.querySelector('[data-testid="world-character-sticky-bar"]'), null);
+
+      // Layout shift / chrome height change (e.g. window resize) recalculates visibility.
+      viewportTop = 64;
+      sentinelTop = 58;
+      await act(async () => { dom.window.dispatchEvent(new dom.window.Event('resize')); });
+      assert.ok(document.querySelector('[data-testid="world-character-sticky-bar"]'));
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+    }
+  });
+});
+
+test('related characters render resolved portrait media and fall back to initials when unavailable', async () => {
+  await withDom(async (dom) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale, ouYangDeRaw, toSourceDetailData } = await import('./source-detail-world-character-test-utils.js');
+    const { WorldCharacterRelationshipCluesSection } = await import('../src/shell/renderer/features/source-detail/source-detail-world-character-relationship-clues.js');
+    await initI18n();
+    await changeLocale('zh');
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.characterProfile.relationshipNotes = [];
+    source.relationshipTargets = {
+      'char-lin': {
+        kind: 'character',
+        name: '林小棠',
+        isCharacter: true,
+        avatarUrl: 'https://cdn.example.test/lin-fallback.png',
+        avatarMedia: {
+          resourceId: 'res-lin-avatar',
+          contentVersion: 'a'.repeat(64),
+          policyVersion: 'p1',
+          publicationGeneration: 1,
+          expiresAt: null,
+          originalUrl: null,
+          previewUrl: null,
+          video: null,
+          images: [{
+            purpose: 'avatar',
+            families: [{
+              mimeType: 'image/webp',
+              sources: [{ url: 'https://cdn.example.test/lin-managed-128.webp', width: 128, height: 128, mimeType: 'image/webp' }],
+            }],
+          }],
+        },
+      },
+      'person-no-avatar': {
+        kind: 'person',
+        name: '无头像友人',
+      },
+    };
+    source.relationshipClues = [
+      { id: 'rel-1', type: 'acquaintance', label: '相识', targetEntityId: 'char-lin', targetLabel: '林小棠', summary: '入职首周登记档案。', details: [] },
+      { id: 'rel-2', type: 'ally', label: '盟友', targetEntityId: 'person-no-avatar', targetLabel: '无头像友人', summary: '共同巡夜。', details: [] },
+    ];
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => { root.render(<WorldCharacterRelationshipCluesSection source={source} />); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      const rows = dom.window.document.querySelectorAll('[data-testid="world-character-relationship-list"] > li');
+      assert.equal(rows.length, 2);
+      const linImg = rows[0].querySelector<HTMLImageElement>('img');
+      assert.ok(linImg, 'related character with avatarMedia should render an img element');
+      assert.equal(linImg.getAttribute('alt'), '林小棠');
+      assert.equal(linImg.getAttribute('src'), 'https://cdn.example.test/lin-managed-128.webp');
+      assert.equal(rows[1].querySelector('img'), null, 'related person without avatar should not render an img element');
+      assert.ok(rows[1].textContent?.includes('无'), 'related person without avatar should render initial fallback');
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+    }
+  });
+});
+
+test('profile text hiding rules reject 1-line tails and tiny hidden remainders', async () => {
+  const {
+    PROFILE_TEXT_MIN_HIDDEN_UNITS,
+    PROFILE_TEXT_MIN_OVERFLOW_LINES,
+    shouldCollapseProfileText,
+    textVisualUnits,
+  } = await import('../src/shell/renderer/features/source-detail/source-detail-character-content.js');
+
+  assert.equal(PROFILE_TEXT_MIN_OVERFLOW_LINES, 2);
+  assert.equal(PROFILE_TEXT_MIN_HIDDEN_UNITS, 24);
+
+  assert.equal(textVisualUnits('账本。'), 6);
+  assert.equal(textVisualUnits('嗯。\n好。'), 8);
+  assert.equal(textVisualUnits('small ledger.'), 12);
+  assert.ok(textVisualUnits('口袋里永远揣着一本卷边的红蓝线物资小账本。') >= PROFILE_TEXT_MIN_HIDDEN_UNITS);
+
+  const lineHeight = 22.1;
+  // 4 lines and 5 lines (1 overflow line, even a full line or a 2-char tail) never collapse.
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 88, lineHeight, hiddenText: '' }), false);
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 111, lineHeight, hiddenText: '账本。' }), false);
+  assert.equal(shouldCollapseProfileText({
+    previewLines: 4,
+    contentHeight: 111,
+    lineHeight,
+    hiddenText: '口袋里永远揣着一本卷边的红蓝线物资小账本。',
+  }), false);
+
+  // 6 lines (2 overflow lines) only collapses when hidden content is meaningful.
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 133, lineHeight, hiddenText: '嗯。\n好。' }), false);
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 133, lineHeight, hiddenText: '   \n\n' }), false);
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 133, lineHeight, hiddenText: 'small ledger.' }), false);
+  assert.equal(shouldCollapseProfileText({
+    previewLines: 4,
+    contentHeight: 133,
+    lineHeight,
+    hiddenText: '口袋里永远揣着一本卷边的红蓝线物资小账本。',
+  }), true);
+  assert.equal(shouldCollapseProfileText({
+    previewLines: 4,
+    contentHeight: 133,
+    lineHeight,
+    hiddenText: 'and always carries a worn red-and-blue supply ledger in his pocket.',
+  }), true);
+  // Without Range geometry (e.g. JSDOM), falls back to the 2-line overflow threshold.
+  assert.equal(shouldCollapseProfileText({ previewLines: 4, contentHeight: 133, lineHeight, hiddenText: null }), true);
+});
+
+test('CharacterProfileText only clamps above threshold and tracks resize, expand, and text changes', async () => {
+  await withDom(async (dom) => {
+    const callbacks = new Set<() => void>();
+    class MockResizeObserver {
+      private callback: () => void;
+      constructor(cb: () => void) {
+        this.callback = cb;
+      }
+      observe() {
+        callbacks.add(this.callback);
+      }
+      unobserve() {}
+      disconnect() {
+        callbacks.delete(this.callback);
+      }
+    }
+    const previousResizeObserver = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver');
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      writable: true,
+      value: MockResizeObserver,
+    });
+
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.ts');
+    const { CharacterProfileText } = await import('../src/shell/renderer/features/source-detail/source-detail-character-content.js');
+    await initI18n();
+    await changeLocale('zh');
+
+    const baseText = '敦实魁梧，皮肤被风沙吹得粗糙黝黑，平头夹杂几丝白茬，一双粗厚大手满是机油老茧。常穿洗褪色的军绿色旧夹克，外扎宽皮带，腰间挂着七把叮当作响的黄铜钥匙，口袋里永远揣着一本卷边的红蓝线物资小账本。';
+    const longText = `${baseText}每天清晨都会清点油桶与干粮，绝不让任何人浪费一点儿物资，嘴上骂得凶心里比谁都护短。`;
+
+    let mockScrollHeight = 110; // 5 lines at 22px line-height
+    let mockCutoffIndex = baseText.length - 3; // Only "账本。" below line 4
+
+    const makeRect = (top: number, height: number): DOMRect => ({
+      x: 0,
+      y: top,
+      top,
+      bottom: top + height,
+      left: 0,
+      right: 290,
+      width: 290,
+      height,
+      toJSON: () => ({}),
+    });
+
+    const originalCreateRange = dom.window.document.createRange.bind(dom.window.document);
+    dom.window.document.createRange = () => {
+      const range = originalCreateRange();
+      let startOffset = 0;
+      const origSetStart = range.setStart.bind(range);
+      range.setStart = (node, offset) => {
+        startOffset = offset;
+        origSetStart(node, offset);
+      };
+      range.getBoundingClientRect = () => {
+        const lineIndex = startOffset >= mockCutoffIndex ? 4 : 0;
+        return makeRect(10 + lineIndex * 22, 17);
+      };
+      return range;
+    };
+
+    const originalGetComputedStyle = dom.window.getComputedStyle.bind(dom.window);
+    dom.window.getComputedStyle = ((element: Element, pseudo?: string | null) => {
+      const style = originalGetComputedStyle(element, pseudo);
+      return new Proxy(style, {
+        get(target, prop, receiver) {
+          if (prop === 'lineHeight') return '22px';
+          if (prop === 'paddingTop' || prop === 'paddingBottom' || prop === 'borderTopWidth') return '0px';
+          const value = Reflect.get(target, prop, receiver);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      });
+    }) as typeof dom.window.getComputedStyle;
+
+    const triggerResize = async () => {
+      await act(async () => {
+        for (const cb of callbacks) cb();
+      });
+    };
+
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => {
+        root.render(<CharacterProfileText testId="appearance-text" text={baseText} lines={4} />);
+      });
+      const p = dom.window.document.querySelector<HTMLParagraphElement>('[data-testid="appearance-text"]')!;
+      assert.ok(p);
+      Object.defineProperty(p, 'clientWidth', { configurable: true, get: () => 290 });
+      Object.defineProperty(p, 'scrollHeight', { configurable: true, get: () => mockScrollHeight });
+      p.getBoundingClientRect = () => makeRect(10, Math.min(mockScrollHeight, 88));
+
+      // 5 lines (1 overflow line, only "账本。"): never clamped and no toggle button.
+      await triggerResize();
+      assert.equal(dom.window.document.querySelector('button'), null);
+      assert.equal(p.style.overflow, '');
+
+      // Even if scrollHeight reports 6 lines (e.g. short newline tail), tiny hidden tail ("账本。") stays unclamped.
+      mockScrollHeight = 132;
+      mockCutoffIndex = baseText.length - 3;
+      await triggerResize();
+      assert.equal(dom.window.document.querySelector('button'), null);
+      assert.equal(p.style.overflow, '');
+
+      // 7 lines with meaningful hidden content: clamps and shows "阅读全文".
+      await act(async () => {
+        root.render(<CharacterProfileText testId="appearance-text" text={longText} lines={4} />);
+      });
+      mockScrollHeight = 154;
+      mockCutoffIndex = baseText.length - 7;
+      await triggerResize();
+      const readMore = dom.window.document.querySelector<HTMLButtonElement>('button');
+      assert.ok(readMore, 'long overflowing text should render a toggle button');
+      assert.equal(readMore.textContent, '阅读全文');
+      assert.equal(readMore.getAttribute('aria-expanded'), 'false');
+      assert.equal(p.style.overflow, 'hidden');
+
+      // Clicking "阅读全文" expands and removes clamp.
+      await act(async () => { readMore.click(); });
+      assert.equal(readMore.textContent, '收起全文');
+      assert.equal(readMore.getAttribute('aria-expanded'), 'true');
+      assert.equal(p.style.overflow, '');
+
+      // Widening the container while expanded drops below threshold and hides "收起全文".
+      mockScrollHeight = 110;
+      await triggerResize();
+      assert.equal(dom.window.document.querySelector('button'), null);
+
+      // Narrowing again re-enables collapsed preview cleanly (not stuck expanded).
+      mockScrollHeight = 154;
+      await triggerResize();
+      const collapsedAgain = dom.window.document.querySelector<HTMLButtonElement>('button');
+      assert.ok(collapsedAgain);
+      assert.equal(collapsedAgain.textContent, '阅读全文');
+      assert.equal(collapsedAgain.getAttribute('aria-expanded'), 'false');
+      assert.equal(p.style.overflow, 'hidden');
+
+      // Switching text prop while expanded resets expanded state.
+      await act(async () => { collapsedAgain.click(); });
+      assert.equal(collapsedAgain.textContent, '收起全文');
+      await act(async () => {
+        root.render(<CharacterProfileText testId="appearance-text" text={`${longText}补充一段细节。`} lines={4} />);
+      });
+      const afterTextChange = dom.window.document.querySelector<HTMLButtonElement>('button');
+      assert.ok(afterTextChange);
+      assert.equal(afterTextChange.textContent, '阅读全文');
+      assert.equal(afterTextChange.getAttribute('aria-expanded'), 'false');
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+      if (previousResizeObserver) {
+        Object.defineProperty(globalThis, 'ResizeObserver', previousResizeObserver);
+      } else {
+        Reflect.deleteProperty(globalThis, 'ResizeObserver');
+      }
     }
   });
 });

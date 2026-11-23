@@ -1,5 +1,5 @@
 import { Pause, Play, Square, X, LocateFixed } from 'lucide-react';
-import { Button, IconButton } from '@nimiplatform/kit/ui';
+import { Button, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import type { LocalAppConversationPlayback } from '../runtime/local-app-conversation-playback.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
@@ -47,7 +47,9 @@ export function LocalAppConversationPlayer({ playback, copy, onLocateMessage, on
         <Button size="sm" tone="ghost" onClick={() => void playback.continueRequest()}>{labels.voiceContinueRequestLabel}</Button>
         <span className="basis-full text-xs">{labels.voiceContinueRequestHint}</span>
       </> : null}
-      <IconButton size="sm" tone="ghost" aria-label={stopLabel} title={stopLabel} icon={hasPlayback ? <Square size={14} /> : <X size={16} />} onClick={playback.stop} />
+      <Tooltip content={stopLabel} placement="top">
+        <IconButton size="sm" tone="ghost" aria-label={stopLabel} icon={hasPlayback ? <Square size={14} /> : <X size={16} />} onClick={playback.stop} />
+      </Tooltip>
     </div>
   </div>;
 }

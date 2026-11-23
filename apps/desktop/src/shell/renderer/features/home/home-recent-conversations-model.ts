@@ -28,6 +28,16 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+const RUNTIME_DEFAULT_CONVERSATION_TITLE = 'agent conversation';
+
+export function normalizeHomeConversationTitle(value: unknown): string | null {
+  const title = normalizeText(value);
+  if (!title || title.toLowerCase() === RUNTIME_DEFAULT_CONVERSATION_TITLE) {
+    return null;
+  }
+  return title;
+}
+
 function summaryTimestampMs(value: { seconds: string; nanos: number } | undefined): number | null {
   if (!value) return null;
   const ms = Number(value.seconds) * 1_000 + value.nanos / 1_000_000;
@@ -82,7 +92,7 @@ export async function fetchHomeRecentChatPartners(input: {
       avatarUrl: normalizeText(reference?.avatarUrl) || null,
       lastMessageText: normalizeText(latest?.lastMessageText) || null,
       previewUnavailable: summaries === null,
-      conversationTitle: normalizeText(latest?.title) || null,
+      conversationTitle: normalizeHomeConversationTitle(latest?.title),
       updatedAtMs: summaryTimestampMs(latest?.updatedAt),
       hasUnread: false,
       activityAgentRef,

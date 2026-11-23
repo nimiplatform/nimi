@@ -1,32 +1,39 @@
-// Match the edge-to-edge cover and open reading layout of the source page.
-export function SourceDetailSkeleton() {
+// Match the 1120px banner, portrait identity grid, and 60/40 restrained layout.
+export function SourceDetailSkeleton({ variant = 'standalone' }: { variant?: 'standalone' | 'partner' } = {}) {
+  const partner = variant === 'partner';
   return (
     <div
       data-testid="source-detail-skeleton"
+      data-skeleton-variant={variant}
       aria-busy="true"
       aria-live="polite"
       className="flex min-h-0 flex-1 flex-col"
     >
-      <div aria-hidden="true" className="h-[280px] shrink-0 animate-pulse bg-[var(--nimi-surface-active)] max-[720px]:h-[190px]" />
-      <div aria-hidden="true" className="mx-auto w-full max-w-[1180px] px-9 pb-7 max-[720px]:px-5">
-        <div className="flex items-start gap-8 max-[720px]:flex-col max-[720px]:gap-6">
-          <div className="relative -mt-[80px] h-[160px] w-[160px] shrink-0 animate-pulse rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-surface-panel)] max-[720px]:-mt-[60px] max-[720px]:h-[120px] max-[720px]:w-[120px]" />
-          <div className="grid w-full max-w-64 gap-3 pt-6 max-[720px]:pt-0">
-            <div className="h-10 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
+      <div aria-hidden="true" className={`mx-auto w-full max-w-[1120px] ${partner ? 'px-0' : 'px-8 pt-6 max-[720px]:px-5 max-[720px]:pt-4'}`}>
+        <div className={`w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-active)] ${partner ? 'h-[176px]' : 'h-[240px] max-[720px]:h-[176px]'}`} />
+      </div>
+      <div aria-hidden="true" className={`mx-auto w-full max-w-[1120px] pb-12 ${partner ? 'px-0' : 'px-8 max-[720px]:px-5'}`}>
+        <div className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-6 gap-y-4 max-[760px]:grid-cols-[auto_minmax(0,1fr)] ${partner ? 'pl-6 max-[720px]:pl-5' : 'pl-8 max-[720px]:pl-5'}`}>
+          <div className={`relative shrink-0 animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] ring-4 ring-[var(--nimi-surface-card)] ${partner ? '-mt-12 h-24 w-24' : '-mt-16 h-32 w-32 max-[720px]:-mt-10 max-[720px]:h-22 max-[720px]:w-22'}`} />
+          <div className="grid min-w-0 max-w-md gap-2.5 pt-4 max-[760px]:pt-2">
+            <div className="h-9 w-48 animate-pulse rounded-lg bg-[var(--nimi-surface-active)]" />
+            <div className="h-4 w-72 max-w-full animate-pulse rounded bg-[var(--nimi-surface-active)]" />
+            <div className="h-3.5 w-40 animate-pulse rounded bg-[var(--nimi-surface-panel)]" />
+          </div>
+          <div className="pt-4 max-[760px]:col-span-full max-[760px]:pt-1">
+            <div className="h-10 w-32 animate-pulse rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-active)]" />
           </div>
         </div>
-        <div className="mt-7 grid gap-10 border-t border-[var(--nimi-border-subtle)] pt-7 min-[900px]:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-          {[0, 1].map((column) => (
-            <div key={column} className="grid content-start gap-5">
-              <div className="h-6 w-1/2 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-              <div className="grid gap-3">
-                {[0, 1, 2].map((line) => (
-                  <div key={line} className="h-4 animate-pulse rounded bg-[var(--nimi-surface-active)] last:w-2/3" />
-                ))}
-              </div>
+        <div className="mt-10 grid gap-12 min-[960px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <div className="grid content-start gap-10">
+            <div className="grid gap-3">
+              <div className="h-5 w-32 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
+              <div className="h-4 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
             </div>
-          ))}
+            <div className="h-60 animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+          </div>
+          <div className="h-[400px] animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
         </div>
       </div>
     </div>

@@ -182,7 +182,7 @@ function UsageNotice({ children, testId }: { children: ReactNode; testId: string
 }
 
 function UsageInfo({ children, label, testId }: { children: ReactNode; label: string; testId: string }) {
-  return <Tooltip content={<div className="space-y-2">{children}</div>} contentClassName="max-w-xs text-left font-normal">
+  return <Tooltip content={<div className="space-y-2">{children}</div>} contentClassName="max-w-xs text-left">
     <IconButton size="sm" className="size-6 shrink-0 text-[var(--nimi-text-secondary)]" aria-label={label} data-testid={testId}
       icon={<Info size={15} aria-hidden="true" />} />
   </Tooltip>;
@@ -256,11 +256,13 @@ function UsageDataDetails({ ai }: { ai: SystemEntryAIState | null }) {
   const { t } = useTranslation();
   const pricingBases = ai?.usage.status === 'ready' ? [...new Set(ai.usage.value?.estimates.map(estimate => estimate.pricingBasis).filter(Boolean))] : [];
   return <Popover>
-    <PopoverTrigger asChild>
-      <IconButton tone="ghost" size="sm" className="rounded-full text-[var(--nimi-text-secondary)]"
-        icon={<Info size={18} aria-hidden="true" />} aria-label={t(`${PREFIX}.usageExplanation`)} title={t(`${PREFIX}.usageExplanation`)}
-        data-testid="home-usage-explanation-trigger" />
-    </PopoverTrigger>
+    <Tooltip content={t(`${PREFIX}.usageExplanation`)} placement="bottom">
+      <PopoverTrigger asChild>
+        <IconButton tone="ghost" size="sm" className="rounded-full text-[var(--nimi-text-secondary)]"
+          icon={<Info size={18} aria-hidden="true" />} aria-label={t(`${PREFIX}.usageExplanation`)}
+          data-testid="home-usage-explanation-trigger" />
+      </PopoverTrigger>
+    </Tooltip>
     <PopoverContent align="start" sideOffset={8} className="w-[32rem] max-w-[calc(100vw-2rem)]">
       <div data-testid="home-usage-data-details">
         <h2 className="text-base font-semibold">{t(`${PREFIX}.usageExplanation`)}</h2>

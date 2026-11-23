@@ -200,7 +200,7 @@
     },
     "overlay-shell-slot-tooltip-bubble": {
       "padding": "{spacing.3}",
-      "rounded": "{rounded.sm}"
+      "rounded": "{rounded.md}"
     },
     "sidebar-shell-affordance-badge": {
       "padding": "{spacing.1}",

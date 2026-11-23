@@ -10,6 +10,7 @@ import {
   SHELL_CHROME_RAIL_ICON_STROKE_WIDTH,
   SHELL_CHROME_RAIL_ITEM_SIZE_CLASS,
   SHELL_CHROME_RAIL_SELECTED_BG_CLASS,
+  SHELL_CHROME_TOOLTIP_CLASS,
   SHELL_PAGE_WIDTH_CLASS,
 } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useHomeDestination } from '../../app-shell/providers/app-store.js';
@@ -78,6 +79,7 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
     <Tooltip
       content={active && fraction !== null ? `${label} · ${Math.round(fraction * 100)}%` : label}
       placement="right"
+      contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
     >
       <div className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center`}>
         <IconButton

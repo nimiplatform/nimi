@@ -1,9 +1,5 @@
 import type { ReactNode } from 'react';
 
-// Shared tooltip chrome for the profile detail top bar; matches the kit
-// tooltip bubble surface tokens so it stays readable in both themes.
-export const TOPBAR_TOOLTIP_CLASS = 'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]';
-
 export function InlineMeta({
   value,
   icon,

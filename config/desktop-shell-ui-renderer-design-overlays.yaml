@@ -8,6 +8,7 @@ catalog_id: desktop_renderer_design_overlays
 entries:
   - relationship.profile_detail_modal
   - home.quick_jump_modal
+  - home.messages_drawer
 overlays:
   - id: relationship.profile_detail_modal
     module: features/relationship/profile-detail-modal.tsx
@@ -21,6 +22,15 @@ overlays:
   - id: home.quick_jump_modal
     module: features/home/home-quick-jump-modal.tsx
     kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: home.messages_drawer
+    module: features/home/home-messages-drawer.tsx
+    kind: drawer
     surface_tone: overlay
     elevation: modal
     z_token: --nimi-z-dialog

@@ -8,7 +8,7 @@ import type { ProviderCatalogEntry, DesktopConnectorReference } from '@nimiplatf
 import type { TFunction } from 'i18next';
 import { KeyRound, PencilLine } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
-import { ConfirmDialog, OverlayShell, ScrollShell, Surface } from '@nimiplatform/kit/ui';
+import { ConfirmDialog, OverlayShell, ScrollShell, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
@@ -259,7 +259,51 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
       {selectedProviderCatalogEntry?.supportsBedrockInvocations && !isDraft ? <CloudBedrockInvocations key={selectedConnector.id} connector={selectedConnector} disabled={connectorConfigurationLocked || model.runtimeWritesDisabled || isSystemOwned || savingToken} t={t} onSaved={saved => { model.updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === saved.id ? saved : item) })); model.onVaultChanged(); }} /> : null}
 
       {editing ? (
-        <OverlayShell open kind="drawer" size="sm" title={t('runtimeConfig.product.editConnection')} onClose={stopEditing} dataTestId="cloud-connection-editor" panelClassName="flex max-h-screen flex-col" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <OverlayShell
+          open
+          kind="drawer"
+          size="sm"
+          title={t('runtimeConfig.product.editConnection')}
+          onClose={stopEditing}
+          dataTestId="cloud-connection-editor"
+          panelClassName="flex max-h-screen flex-col"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+          footer={(
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
+              <div>
+                {!isSystemOwned ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[var(--nimi-status-danger)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)]"
+                    disabled={props.deleting || savingToken || managedOAuthBusy}
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    {t('runtimeConfig.cloudWorkspace.removeConnection')}
+                  </Button>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" disabled={savingToken || managedOAuthBusy} onClick={stopEditing}>
+                  {t('Common.cancel')}
+                </Button>
+                {!isSystemOwned && (!isDraft || selectedConnector.authMode !== 'oauth_managed') ? (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={savingToken || connectorConfigurationLocked || (!pendingEdits && !isDraft) || (isDraft && !tokenDraft.trim())}
+                    onClick={() => void save()}
+                    icon={savingToken ? undefined : <CheckIcon />}
+                  >
+                    {savingToken
+                      ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
+                      : t('Common.save')}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          )}
+        >
         <ScrollShell className="min-h-0 flex-1 px-6 py-5">
           <p className="mb-5 text-sm text-[var(--nimi-text-secondary)]">{selectedConnector.label}</p>
           <div className="grid grid-cols-1 gap-4">
@@ -296,19 +340,23 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 placeholder={t('runtimeConfig.product.keyPlaceholder')}
                 icon={<KeyIcon />}
                 rightAccessory={(
-                  <button
-                    type="button"
-                    onClick={() => model.setShowCloudApiKey((v) => !v)}
-                    aria-label={model.showCloudApiKey
+                  <Tooltip
+                    content={model.showCloudApiKey
                       ? t('Auth.hidePassword', { defaultValue: 'Hide' })
                       : t('Auth.showPassword', { defaultValue: 'Show' })}
-                    title={model.showCloudApiKey
-                      ? t('Auth.hidePassword', { defaultValue: 'Hide' })
-                      : t('Auth.showPassword', { defaultValue: 'Show' })}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
+                    placement="top"
                   >
-                    {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => model.setShowCloudApiKey((v) => !v)}
+                      aria-label={model.showCloudApiKey
+                        ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                        : t('Auth.showPassword', { defaultValue: 'Show' })}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
+                    >
+                      {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </Tooltip>
                 )}
               />
             )}
@@ -374,20 +422,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             <p className="mt-3 font-mono text-[11px] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
           </details>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {!isSystemOwned && (!isDraft || selectedConnector.authMode !== 'oauth_managed') && (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={savingToken || connectorConfigurationLocked || (!pendingEdits && !isDraft) || (isDraft && !tokenDraft.trim())}
-                onClick={() => void save()}
-                icon={savingToken ? undefined : <CheckIcon />}
-              >
-                {savingToken
-                  ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
-                  : t('Common.save')}
-              </Button>
-            )}
+          <div className="mt-5 flex flex-wrap items-center gap-2 empty:hidden">
             {isBrowserManagedConnector ? (
               <Button
                 variant="secondary"
@@ -407,7 +442,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 {t('runtimeConfig.catalogOverrides.manage', { defaultValue: 'Manage custom models' })}
               </Button>
             ) : null}
-            <Button variant="ghost" size="sm" disabled={savingToken || managedOAuthBusy} onClick={stopEditing}>{t('Common.cancel')}</Button>
           </div>
 
           <div className="mt-4 space-y-2 empty:hidden">
@@ -443,10 +477,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
               </div>
             )}
           </div>
-          {!isSystemOwned ? <div className="mt-8 border-t border-[var(--nimi-border-subtle)] pt-5">
-            <Button variant="danger" size="sm" disabled={props.deleting || savingToken || managedOAuthBusy} onClick={() => setConfirmDelete(true)}>{t('runtimeConfig.cloudWorkspace.removeConnection')}</Button>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.removeConnectionHelp')}</p>
-          </div> : null}
         </ScrollShell>
         </OverlayShell>
       ) : null}
@@ -467,7 +497,18 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
         <div hidden={section !== 'references'} role="tabpanel" id={`${tabsId}-references-panel`} aria-labelledby={`${tabsId}-references`}><CloudConnectorReferences connectorId={selectedConnector.id} onOpenOwner={props.onOpenOwner} /></div>
         <div hidden={section !== 'usage'} role="tabpanel" id={`${tabsId}-usage-panel`} aria-labelledby={`${tabsId}-usage`}><CloudConnectorUsage connectorId={selectedConnector.id} onOpenHistory={props.onOpenHistory} /></div>
       </Surface> : null}
-      <ConfirmDialog open={confirmDelete} title={t('runtimeConfig.product.removeConnectionTitle', { name: selectedConnector.label })} message={<><span>{t('runtimeConfig.product.removeConnectionHelp')}</span>{confirmDelete ? <CloudConnectorReferences connectorId={selectedConnector.id} compact /> : null}</>} confirmLabel={t('runtimeConfig.cloudWorkspace.removeConnection')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => { if (!props.deleting) setConfirmDelete(false); }} onConfirm={() => { if (!props.deleting) void props.onDelete().then(() => setConfirmDelete(false)).catch(() => setConfirmDelete(false)); }} />
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t('runtimeConfig.product.removeConnectionTitle', { name: selectedConnector.label })}
+        message={isDraft
+          ? t('runtimeConfig.product.removeDraftConnectionHelp')
+          : <><span>{t('runtimeConfig.product.removeConnectionHelp')}</span>{confirmDelete ? <CloudConnectorReferences connectorId={selectedConnector.id} compact /> : null}</>}
+        confirmLabel={t('runtimeConfig.cloudWorkspace.removeConnection')}
+        cancelLabel={t('Common.cancel')}
+        confirmTone="danger"
+        onClose={() => { if (!props.deleting) setConfirmDelete(false); }}
+        onConfirm={() => { if (!props.deleting) void props.onDelete().then(() => setConfirmDelete(false)).catch(() => setConfirmDelete(false)); }}
+      />
       <ConfirmDialog open={leavePrompt !== null} title={t('runtimeConfig.cloudWorkspace.unsavedTitle')} message={t('runtimeConfig.cloudWorkspace.unsavedBody')} confirmLabel={t('runtimeConfig.cloudWorkspace.discard')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => leavePrompt?.(false)} onConfirm={() => leavePrompt?.(true)} />
     </div>
   );

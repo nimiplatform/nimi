@@ -103,7 +103,8 @@ test('a mostly occupied memory without reported pressure stays neutral', async (
     assert.match(html, /<span>Memory<\/span><span[^>]*>97%/, pressure);
     assert.doesNotMatch(html, /data-warn=/, pressure);
   }
-  assert.match(render({ resources: snapshotWith('normal') }), /title="Memory pressure: Normal"><span>Memory/);
+  assert.match(render({ resources: snapshotWith('normal') }), /<span>Memory<\/span><span[^>]*>97%<\/span><span class="sr-only">Memory pressure: Normal<\/span>/);
+  assert.doesNotMatch(render({ resources: snapshotWith('normal') }), /title=/);
   assert.doesNotMatch(render({ resources: snapshotWith('unknown') }), /Memory pressure/);
 });
 
@@ -112,10 +113,10 @@ test('memory is marked only when the OS reports pressure, and the mark is not co
   for (const [pressure, label] of [['warning', 'Elevated'], ['critical', 'Critical']] as const) {
     const html = render({ resources: snapshotWith(pressure) });
     assert.equal((html.match(/data-warn="true"/g) ?? []).length, 1, pressure);
-    assert.match(html, new RegExp(`data-warn="true" title="Memory pressure: ${label}"><span>Memory</span><span[^>]*>97%</span><span class="sr-only">Memory pressure: ${label}</span>`), pressure);
+    assert.match(html, new RegExp(`data-warn="true"><span>Memory</span><span[^>]*>97%</span><span class="sr-only">Memory pressure: ${label}</span>`), pressure);
   }
   await changeLocale('zh');
-  assert.match(render({ resources: snapshotWith('warning') }), /title="内存压力：偏高"/);
+  assert.match(render({ resources: snapshotWith('warning') }), /内存压力：偏高/);
 });
 
 test('cpu and disk keep their share thresholds, without advice text', async () => {
@@ -149,7 +150,8 @@ test('unpriced usage keeps the cost honest instead of showing zero', async () =>
     usage: usageProjection({ status: 'partial', attempts: '3', costs: [], partial: true, note: '部分费用未知' }),
   });
   assert.match(html, /费用暂无法估算/);
-  assert.match(html, /title="部分费用未知"/);
+  assert.match(html, /aria-description="部分费用未知"/);
+  assert.doesNotMatch(html, /title="部分费用未知"/);
   assert.match(html, /今日已记录 3 次 AI 执行/);
   assert.match(html, /部分/);
 });

@@ -1,5 +1,5 @@
 import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
-import { capabilityIcon, Button, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, InlineAlert, ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, FolderOpen, LoaderCircle, SlidersHorizontal } from 'lucide-react';
@@ -69,7 +69,7 @@ export function RailStatusMark(props: {
 }) {
   const dot = (color: string) => <span className={`inline-flex h-2 w-2 shrink-0 rounded-full ${color}`} aria-hidden="true" />;
   return (
-    <span role="img" aria-label={props.label} title={props.label} data-rail-state={props.state} className="inline-flex shrink-0 items-center gap-1">
+    <span role="img" aria-label={props.label} data-rail-state={props.state} className="inline-flex shrink-0 items-center gap-1">
       {props.state === 'ready' ? dot('bg-[var(--nimi-status-success)]') : null}
       {props.state === 'ready' && props.preparingReplacement ? <LoaderCircle size={11} className="shrink-0 animate-spin text-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
       {props.state === 'preparing' ? <>{dot('bg-[var(--nimi-status-info)]')}<LoaderCircle size={11} className="shrink-0 animate-spin text-[var(--nimi-status-info)]" aria-hidden="true" /></> : null}
@@ -118,15 +118,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const diagnosticsActive = !!props.advancedDiagnostics;
   useEffect(() => {
     resetRuntimePageViewport(contentViewportRef.current);
-  }, [diagnosticsActive, modelFilesActive, visibleCapability, props.focusedTaskId, modelConfiguration?.loadoutId, position?.profileViewId, position?.profileTaskDetailId]);
+  }, [diagnosticsActive, modelFilesActive, visibleCapability, section, props.focusedTaskId, modelConfiguration?.loadoutId, position?.profileViewId, position?.profileTaskDetailId]);
   const appsColumn = useCapabilityAppsColumn(visibleCapability);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
-  useEffect(() => {
-    // Resolve only an unspecified saved-config entry; explicit references stay intact.
-    if (destination.id !== 'runtime' || position?.page !== 'aiSettings' || position.section !== 'saved' || position.capabilityContract || !inventory.capabilities[0]) return;
-    const current = navigation.getSnapshot().current;
-    if (current.key === entryKey) void navigation.replace(homeRuntimeDestination('aiSettings', { ...position, capabilityContract: inventory.capabilities[0] }));
-  }, [destination.id, position, inventory.capabilities, navigation, entryKey]);
 
   const selection = inventory.data?.aggregate.selections.find(
     (item) => item.capabilityContract === visibleCapability,
@@ -171,16 +165,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     t(entry.downloaded && entry.state.state === 'unset'
       ? 'runtimeConfig.capabilities.state.downloaded'
       : `runtimeConfig.capabilities.state.${entry.state.state}`);
-  const readyCount = railEntries.filter((entry) => entry.state.state === 'ready').length;
-  const attentionCount = railEntries.filter((entry) => entry.state.state === 'attention').length;
-  const preparingCount = railEntries.filter((entry) => entry.state.state === 'preparing').length;
-  const railSummary = inventory.isPending
-    ? t('Common.loading')
-    : [
-      t('runtimeConfig.capabilities.readyCount', { count: readyCount }),
-      preparingCount ? t('runtimeConfig.capabilities.preparingCount', { count: preparingCount }) : '',
-      attentionCount ? t('runtimeConfig.capabilities.attentionCount', { count: attentionCount }) : '',
-    ].filter(Boolean).join(' · ');
 
   const recipes = inventory.data?.recipes.filter((item) => item.capabilityContract === visibleCapability) ?? [];
   const status = visibleCapability
@@ -200,10 +184,10 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     visibleCapability && status?.state === 'unset'
       ? capabilityRecommendedRecipeOnDevice(visibleCapability, recipes)
       : null;
-  const createSetupTask = async () => {
+  const createSetupTask = async (targetCapability = visibleCapability) => {
     const owner = props.profileUseOwner;
     return store.createTask({
-      capabilityContract: visibleCapability!,
+      capabilityContract: targetCapability!,
       source: {
         ...(owner ?? { kind: 'runtime' as const }),
         accountId: await currentDesktopAccountIdForSetup(),
@@ -216,12 +200,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const noticeUnlessShownByTask = (taskId: string, failure: RuntimeSetupFailureNotice) => {
     if (!store.getTask(taskId)?.failure) setError(failure);
   };
-  const onStart = async (recipeId?: string, previous?: NimiMachineLoadout) => {
-    if (!visibleCapability) return;
+  const onStart = async (recipeId?: string, previous?: NimiMachineLoadout, targetCapability = visibleCapability) => {
+    if (!targetCapability) return;
     setBusy(true);
     setError(null);
     try {
-      const task = await createSetupTask();
+      const task = await createSetupTask(targetCapability);
       if (recipeId) {
         const result = await createRuntimeSetupCandidate(store, task.taskId, ports, {
           recipeId,
@@ -394,13 +378,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         <button
           type="button"
           onClick={onHome}
-          className="desktop-sidebar__header flex min-w-0 items-center justify-between gap-2 text-left"
+          className="desktop-sidebar__header flex min-w-0 items-center text-left"
           data-testid="ai-capabilities-home"
         >
-          <span className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">
+          <span className="desktop-sidebar__title min-w-0 truncate font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.capabilities.title')}
           </span>
-          <span className="min-w-0 text-right text-xs leading-4 text-[var(--nimi-text-secondary)]">{railSummary}</span>
         </button>
         <ScrollArea
           className="min-h-0 flex-1"
@@ -431,37 +414,41 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   const markLabel = `${state === 'ready' ? railStateLabel(entry) : stateText}${reason}${stateSuffix}`;
                   const hasStatusDetails = state !== 'unset' || entry.downloaded;
                   return (
-                    <button
+                    <Tooltip
                       key={id}
-                      type="button"
-                      aria-current={activeNavigationItem === id ? 'page' : undefined}
-                      title={hasStatusDetails ? undefined : markLabel}
-                      className="desktop-sidebar__row flex w-full items-center text-left"
-                      data-active={activeNavigationItem === id}
-                      onClick={() => openCapability(id)}
-                      data-testid={`ai-capability:${id}`}
+                      content={hasStatusDetails ? (state === 'ready' ? `${stateText} · ${markLabel}` : markLabel) : markLabel}
+                      placement="right"
                     >
-                      <Icon
-                        size={16}
-                        className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
-                        aria-hidden="true"
-                      />
-                      <span className="flex min-w-0 flex-1 flex-col gap-1">
-                        <span className="desktop-sidebar__label block text-[var(--nimi-text-primary)]">
-                          {label(id)}
-                        </span>
-                        {hasStatusDetails ? (
-                          <span className={`flex min-h-4 min-w-0 items-center gap-1.5 text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}>
-                            <RailStatusMark state={state} label={markLabel} preparingReplacement={preparingReplacement} />
-                            <span className="min-w-0 truncate" title={state === 'ready' ? `${stateText} · ${markLabel}` : markLabel}>
-                              {stateText}
-                            </span>
+                      <button
+                        type="button"
+                        aria-current={activeNavigationItem === id ? 'page' : undefined}
+                        className="desktop-sidebar__row flex w-full items-center text-left"
+                        data-active={activeNavigationItem === id}
+                        onClick={() => openCapability(id)}
+                        data-testid={`ai-capability:${id}`}
+                      >
+                        <Icon
+                          size={16}
+                          className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
+                          aria-hidden="true"
+                        />
+                        <span className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className="desktop-sidebar__label block text-[var(--nimi-text-primary)]">
+                            {label(id)}
                           </span>
-                        ) : (
-                          <span className="sr-only">{markLabel}</span>
-                        )}
-                      </span>
-                    </button>
+                          {hasStatusDetails ? (
+                            <span className={`flex min-h-4 min-w-0 items-center gap-1.5 text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}>
+                              <RailStatusMark state={state} label={markLabel} preparingReplacement={preparingReplacement} />
+                              <span className="min-w-0 truncate">
+                                {stateText}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="sr-only">{markLabel}</span>
+                          )}
+                        </span>
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -584,7 +571,15 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   backLabel={t('runtimeConfig.localModels.backToModels')}
                   onBack={onHome}
                   environmentWritesDisabled={props.runtimeWritesDisabled}
-                  onPrepareEnvironment={(loadout) => { void onStart(loadout.recipeId, loadout); }}
+                  onPrepareEnvironment={(loadout) => { void onStart(loadout.recipeId, loadout, loadout.capabilityContract); }}
+                  onOpenModelMarket={props.onOpenModelMarket}
+                />
+              ) : !visibleCapability && section === 'saved' ? (
+                <SavedConfigsView
+                  navigationContext={props.savedConfigsContext}
+                  onBack={onHome}
+                  environmentWritesDisabled={props.runtimeWritesDisabled}
+                  onPrepareEnvironment={(loadout) => { void onStart(loadout.recipeId, loadout, loadout.capabilityContract); }}
                   onOpenModelMarket={props.onOpenModelMarket}
                 />
               ) : !visibleCapability ? (
@@ -592,7 +587,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   <RuntimeConfigAiSettingsProfilesSection
                     key={homeRevision}
                     title={t('runtimeConfig.product.setupsTitle')}
-                    lead={inventory.isPending ? '' : railSummary}
                     conversation={conversation}
                     capabilities={railEntries}
                     onOpenCapability={openCapability}

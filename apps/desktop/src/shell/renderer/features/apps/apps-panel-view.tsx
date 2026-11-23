@@ -40,6 +40,7 @@ import {
   ScrollArea,
   SearchField,
   Surface,
+  Tooltip,
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar, type DesktopModuleSidebarHandle } from '../../components/desktop-module-sidebar.js';
@@ -429,17 +430,18 @@ function AppsRail({
           className="min-w-0 flex-1"
         />
         <Popover>
-          <PopoverTrigger asChild>
-            <IconButton
-              data-testid="apps-filter-menu"
-              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('Apps.library.filterLabel')}
-              title={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`}
-              className="desktop-sidebar__icon-action shrink-0"
-            />
-          </PopoverTrigger>
+          <Tooltip content={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`} placement="bottom">
+            <PopoverTrigger asChild>
+              <IconButton
+                data-testid="apps-filter-menu"
+                icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`}
+                className="desktop-sidebar__icon-action shrink-0"
+              />
+            </PopoverTrigger>
+          </Tooltip>
           <PopoverContent align="end" sideOffset={6} className="p-1">
             <ActionMenu items={filterMenuItems} ariaLabel={t('Apps.library.filterLabel')} />
           </PopoverContent>
@@ -554,10 +556,12 @@ function RailDownloadsEntry({
 function RailSourceGlyph(): ReactElement {
   const { t } = useTranslation();
   return (
-    <span title={t('Apps.sourceBadge.localDevelopment')} className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-[color:var(--nimi-text-muted)]">
-      <Code2 className="h-3 w-3" aria-hidden="true" />
-      <span className="sr-only">{t('Apps.sourceBadge.localDevelopment')}</span>
-    </span>
+    <Tooltip content={t('Apps.sourceBadge.localDevelopment')} placement="top">
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-[color:var(--nimi-text-muted)]">
+        <Code2 className="h-3 w-3" aria-hidden="true" />
+        <span className="sr-only">{t('Apps.sourceBadge.localDevelopment')}</span>
+      </span>
+    </Tooltip>
   );
 }
 
@@ -707,17 +711,18 @@ const RailGroupRow = memo(function RailGroupRow({
           {/* Actions live in the row's context menu; the ⋯ stays out of the
               mouse flow and only appears for keyboard focus so it never
               competes with the name for the narrow row. */}
-          <PopoverTrigger asChild>
-            <IconButton
-              data-testid={`apps-rail-app-${group.appId}-menu`}
-              icon={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
-              tone="ghost"
-              size="sm"
-              aria-label={t('Apps.library.cardMenuLabel')}
-              title={t('Apps.library.cardMenuLabel')}
-              className="desktop-sidebar__icon-action mr-1 hidden shrink-0 group-focus-within/rail-row:inline-flex group-has-[[aria-expanded=true]]/rail-row:inline-flex"
-            />
-          </PopoverTrigger>
+          <Tooltip content={t('Apps.library.cardMenuLabel')} placement="top">
+            <PopoverTrigger asChild>
+              <IconButton
+                data-testid={`apps-rail-app-${group.appId}-menu`}
+                icon={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={t('Apps.library.cardMenuLabel')}
+                className="desktop-sidebar__icon-action mr-1 hidden shrink-0 group-focus-within/rail-row:inline-flex group-has-[[aria-expanded=true]]/rail-row:inline-flex"
+              />
+            </PopoverTrigger>
+          </Tooltip>
         </div>
         {menuAnchorRef ? <PopoverAnchor virtualRef={menuAnchorRef} /> : null}
         <PopoverContent

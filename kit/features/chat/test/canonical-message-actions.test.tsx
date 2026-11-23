@@ -230,7 +230,7 @@ describe('real shared message action rendering', () => {
           : status === 'playing' || status === 'paused' ? locale === 'en' ? 'Stop playback' : '停止播放'
             : locale === 'en' ? 'Close' : '关闭';
         const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${expected}"]`);
-        expect(button).toBeTruthy(); expect(button?.title).toBe(expected);
+        expect(button).toBeTruthy(); expect(button?.getAttribute('title')).toBeNull();
         await act(async () => { button!.click(); }); expect(stop).toHaveBeenCalledOnce();
         if (status !== 'playing' && status !== 'paused') expect(container.querySelector('[aria-label="停止播放"], [aria-label="Stop playback"]')).toBeNull();
       }

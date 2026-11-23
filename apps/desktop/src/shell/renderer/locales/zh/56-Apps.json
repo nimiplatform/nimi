@@ -821,8 +821,8 @@
       "community": "社区准入审核"
     },
     "capabilitiesCardTitle": "此 App 使用的 AI 能力",
-    "capabilitiesCardNote": "安装后可在「AI 模型」中选择你的本机或云端模型路由。",
     "capabilitiesManageAction": "前往 AI 能力配置",
+    "capabilitiesManageAppModelsAction": "打开此 App 的 AI 模型",
     "highlightsTitle": "核心亮点",
     "releaseNotesTitle": "版本更新日志",
     "galleryExpand": "查看应用截图 ({{count}})",

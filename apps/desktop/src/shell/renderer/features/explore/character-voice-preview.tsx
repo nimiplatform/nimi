@@ -97,11 +97,13 @@ export function CharacterVoicePreviewButton({
   src,
   characterName,
   variant = 'overlay',
+  iconOnly = false,
   className = '',
 }: {
   src: string;
   characterName: string;
   variant?: 'overlay' | 'surface';
+  iconOnly?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -116,6 +118,10 @@ export function CharacterVoicePreviewButton({
     : (playing
       ? 'border-white/20 bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-sm'
       : 'border-white/20 bg-black/70 text-white shadow-sm hover:bg-black/85');
+  const layoutClass = iconOnly
+    ? 'h-8 w-8 justify-center'
+    : 'h-8 gap-1.5 px-2.5 text-xs font-semibold';
+  const iconSizeClass = iconOnly ? 'h-3.5 w-3.5' : 'h-3 w-3';
 
   return (
     <button
@@ -130,19 +136,21 @@ export function CharacterVoicePreviewButton({
         toggleCharacterVoicePreview(src);
       }}
       className={
-        `inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${toneClass} ${className}`
+        `inline-flex items-center rounded-full border transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${layoutClass} ${toneClass} ${className}`
       }
     >
       {playing ? (
-        <Pause aria-hidden className="h-3 w-3 shrink-0" fill="currentColor" strokeWidth={0} />
+        <Pause aria-hidden className={`${iconSizeClass} shrink-0`} fill="currentColor" strokeWidth={0} />
       ) : (
-        <Play aria-hidden className="ml-0.5 h-3 w-3 shrink-0" fill="currentColor" strokeWidth={0} />
+        <Play aria-hidden className={`ml-0.5 ${iconSizeClass} shrink-0`} fill="currentColor" strokeWidth={0} />
       )}
-      <span className="leading-none">
-        {playing
-          ? t('SourceDetail.worldCharacter.voicePause', { defaultValue: 'Pause' })
-          : t('SourceDetail.worldCharacter.voicePreview', { defaultValue: 'Voice' })}
-      </span>
+      {iconOnly ? null : (
+        <span className="leading-none">
+          {playing
+            ? t('SourceDetail.worldCharacter.voicePause', { defaultValue: 'Pause' })
+            : t('SourceDetail.worldCharacter.voicePreview', { defaultValue: 'Voice' })}
+        </span>
+      )}
     </button>
   );
 }

@@ -224,7 +224,7 @@ test('world character detail renders the hero voice preview and sample dialogue 
   assert.match(markup, /data-testid="world-character-voice-play-button"[^>]*aria-label="Play voice"/);
   assert.match(markup, /data-testid="world-character-voice-sample-audio"[^>]*src="https:\/\/cdn\.example\.test\/character\/voice-sample\.wav"/);
   assert.match(markup, /Voice preview/);
-  assert.match(markup, /· 8s/);
+  assert.match(markup, />8s</);
   // The authored greeting renders once, as the character bubble of the sample
   // dialogue. Voice direction metadata stays in the typed profile, outside
   // the reading layout.

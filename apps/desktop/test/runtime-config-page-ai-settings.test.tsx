@@ -221,7 +221,7 @@ test('the capability rail marks each state with one labeled mark and no badge te
     const markup = renderToStaticMarkup(React.createElement(RailStatusMark, { state, label: `label-${state}` }));
     assert.match(markup, /role="img"/u, state);
     assert.match(markup, new RegExp(`aria-label="label-${state}"`, 'u'), state);
-    assert.match(markup, new RegExp(`title="label-${state}"`, 'u'), state);
+    assert.doesNotMatch(markup, /title=/u, state);
     assert.doesNotMatch(markup, />label-/u, `${state} shows no visible state text inside the mark`);
   }
   assert.match(renderToStaticMarkup(React.createElement(RailStatusMark, { state: 'attention', label: 'x' })), /status-warning/u);

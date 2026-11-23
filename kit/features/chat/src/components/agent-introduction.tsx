@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Play, Square } from 'lucide-react';
-import { Avatar } from '@nimiplatform/kit/ui';
+import { Avatar, Tooltip } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/kit/core/sdk-contract';
 import { agentIntroductionDisplayText, agentIntroductionQuestions, agentIntroductionSubtitle } from '../agent-introduction.js';
 
@@ -66,10 +66,12 @@ function IntroductionVoice({ src, duration, locale }: { src: string; duration: n
   const label = locale.startsWith('zh') ? playing ? '停止开场语音' : '播放开场语音' : playing ? 'Stop the opening voice' : 'Play the opening voice';
   return <>
     <audio ref={audioRef} src={src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
-    <button type="button" aria-label={label} aria-pressed={playing} title={duration ? `${label} · ${Math.round(duration)}s` : label} data-agent-empty-character-voice="true" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]" onClick={() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      if (!audio.paused) { audio.pause(); audio.currentTime = 0; } else { void audio.play().catch(() => setPlaying(false)); }
-    }}>{playing ? <Square size={14} fill="currentColor" aria-hidden="true" /> : <Play size={14} fill="currentColor" aria-hidden="true" />}</button>
+    <Tooltip content={duration ? `${label} · ${Math.round(duration)}s` : label} placement="top">
+      <button type="button" aria-label={label} aria-pressed={playing} data-agent-empty-character-voice="true" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]" onClick={() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (!audio.paused) { audio.pause(); audio.currentTime = 0; } else { void audio.play().catch(() => setPlaying(false)); }
+      }}>{playing ? <Square size={14} fill="currentColor" aria-hidden="true" /> : <Play size={14} fill="currentColor" aria-hidden="true" />}</button>
+    </Tooltip>
   </>;
 }

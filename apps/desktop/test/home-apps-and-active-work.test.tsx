@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React from 'react';
+import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { JSDOM } from 'jsdom';
+import { AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { DesktopAIExecutionRoute, DesktopAIExecutionState } from '@nimiplatform/sdk/runtime/generated';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n/index.js';
 import { HomeAppsWorkbench } from '../src/shell/renderer/features/home/home-apps-workbench.js';
@@ -15,6 +17,8 @@ import {
 import type { DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 
 (globalThis as { React?: typeof React }).React = React;
+
+const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 function makeEntry(overrides: Partial<DesktopAppsEntry> & { appId: string; displayName: string; updatedAtUnixMs?: number }): DesktopAppsEntry {
   const { appId, displayName, updatedAtUnixMs = 1, ...rest } = overrides;
@@ -38,25 +42,27 @@ function makeEntry(overrides: Partial<DesktopAppsEntry> & { appId: string; displ
   };
 }
 
-test('apps workbench unifies bundled Zhiyu, running apps with focus action, and catalog spotlight when few apps are installed', async () => {
+test('apps dock renders pure icons without visible names for artwork apps, preserves fallback label for monogram-only apps, and removes counts and catalog promo', async () => {
   await initI18n();
   await changeLocale('zh');
   const entries: DesktopAppsEntry[] = [
     makeEntry({
+      appId: 'nimi.lab',
+      displayName: 'Nimi Lab',
+      localDevelopment: { selector: 'dev-lab' } as never,
+      iconUrl: TINY_PNG,
+      run: { state: 'running', launchSelector: [1], accessAvailable: true, accessReasonCode: '', message: '' },
+    }),
+    makeEntry({
       appId: 'storybook',
       displayName: 'Storybook',
-      committedRelease: { version: '0.4.2' } as never,
-      run: { state: 'running', launchSelector: [1], accessAvailable: true, accessReasonCode: '', message: '' },
+      committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '0.4.2', launchSelector: Uint8Array.of(2) } as never,
+      iconUrl: null,
     }),
     makeEntry({
       appId: 'parentos',
       displayName: 'ParentOS',
       catalogTarget: { appId: 'parentos', policyBlocked: false, version: '1.0.0' } as never,
-    }),
-    makeEntry({
-      appId: 'overtone',
-      displayName: 'Nimi Overtone',
-      catalogTarget: { appId: 'overtone', policyBlocked: false, version: '0.2.0' } as never,
     }),
   ];
 
@@ -72,14 +78,105 @@ test('apps workbench unifies bundled Zhiyu, running apps with focus action, and 
     />,
   );
   assert.match(html, /data-testid="bundled-zhiyu"/);
-  assert.match(html, /织羽/);
-  assert.match(html, /内置/);
-  assert.match(html, /data-testid="home-app:storybook"/);
-  assert.match(html, /运行中 · 聚焦窗口/);
-  assert.match(html, /data-testid="home-app-manage:storybook"/);
-  assert.match(html, /data-testid="home-apps-spotlight"/);
-  assert.match(html, /data-testid="home-app-spotlight:parentos"/);
-  assert.match(html, /data-testid="home-app-spotlight:overtone"/);
+  assert.match(html, /aria-label="打开织羽"/);
+  assert.doesNotMatch(html, />织羽</, 'familiar bundled Zhiyu icon renders without a visible caption below');
+  assert.match(html, /data-testid="home-app:nimi\.lab"/);
+  assert.match(html, /aria-label="Nimi Lab · 运行中 · 聚焦窗口"/);
+  assert.doesNotMatch(html, />Nimi Lab</, 'familiar app with custom icon omits visible text label');
+  assert.match(html, /data-testid="home-app-running:nimi\.lab"/, 'running app shows dock indicator dot');
+  assert.match(html, /data-testid="home-app-manage:nimi\.lab"/);
+  assert.match(html, /data-testid="home-app-fallback-label:storybook"[^>]*>Storybook</, 'monogram-only app without artwork retains fallback label');
+  assert.match(html, /data-testid="home-apps-more-tile"/);
+  assert.doesNotMatch(html, /最近使用|精选目录应用|home-apps-spotlight|ParentOS/, 'counts, store promo, and uninstalled catalog entries stay out of Home dock');
+});
+
+test('apps dock directly launches installed or local-dev apps on click and opens detail only for blocked apps or manage/context actions', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost/' });
+  const previous = new Map<string, PropertyDescriptor | undefined>();
+  for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'Node', 'Event', 'MouseEvent'] as const) {
+    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { value: dom.window[key], configurable: true, writable: true });
+  }
+  const prevAct = (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+  const { createRoot } = await import('react-dom/client');
+  const launched: string[] = [];
+  const openedDetail: string[] = [];
+  let mutatedCount = 0;
+
+  const entries: DesktopAppsEntry[] = [
+    makeEntry({
+      appId: 'nimi.lab',
+      displayName: 'Nimi Lab',
+      localDevelopment: { selector: 'dev-lab' } as never,
+      iconUrl: TINY_PNG,
+    }),
+    makeEntry({
+      appId: 'nimi.blocked',
+      displayName: 'Blocked App',
+      committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '1.0.0', launchSelector: Uint8Array.of(9) } as never,
+      catalogTarget: { appId: 'nimi.blocked', policyBlocked: true, version: '1.0.0' } as never,
+      iconUrl: TINY_PNG,
+    }),
+  ];
+
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    await act(async () => {
+      root.render(
+        <HomeAppsWorkbench
+          focusGeneration="generation"
+          entries={entries}
+          iconUrls={new Map()}
+          loading={false}
+          unavailable={false}
+          onOpenAllApps={() => {}}
+          onOpenApp={(appId) => openedDetail.push(appId)}
+          onLaunchApp={async (entry) => {
+            launched.push(entry.identity.appId);
+          }}
+          onAppsMutated={() => {
+            mutatedCount += 1;
+          }}
+        />,
+      );
+    });
+
+    const labBtn = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-app:nimi.lab"]');
+    assert.ok(labBtn);
+    await act(async () => {
+      labBtn.click();
+    });
+    assert.deepEqual(launched, ['nimi.lab']);
+    assert.equal(mutatedCount, 1);
+    assert.deepEqual(openedDetail, []);
+
+    const blockedBtn = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-app:nimi.blocked"]');
+    assert.ok(blockedBtn);
+    await act(async () => {
+      blockedBtn.click();
+    });
+    assert.deepEqual(launched, ['nimi.lab']);
+    assert.deepEqual(openedDetail, ['nimi.blocked']);
+
+    const manageBtn = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-app-manage:nimi.lab"]');
+    assert.ok(manageBtn);
+    await act(async () => {
+      manageBtn.click();
+    });
+    assert.deepEqual(openedDetail, ['nimi.blocked', 'nimi.lab']);
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = prevAct;
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
 });
 
 test('both Home focus requests match the native command contract and require a focus acknowledgement', async () => {
@@ -119,7 +216,7 @@ test('both Home focus requests match the native command contract and require a f
   }
 });
 
-test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps, and merges multi-source entries', async () => {
+test('recent apps dock caps at 8 slots with overflow tile, prioritizes running then MRU timestamps, and merges multi-source entries', async () => {
   await initI18n();
   await changeLocale('zh');
 
@@ -128,16 +225,17 @@ test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps
       appId: `nimi.app-${index + 1}`,
       displayName: `App ${index + 1}`,
       updatedAtUnixMs: 1000 + index,
-      committedRelease: { version: '1.0.0' } as never,
+      committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '1.0.0', launchSelector: Uint8Array.of(index + 1) } as never,
+      iconUrl: TINY_PNG,
     }),
   );
-  // Add a duplicate localDevelopment source for app-3 and a running state for app-20.
   manyInstalled.push({
     ...makeEntry({
       appId: 'nimi.app-3',
       displayName: 'App 3',
       updatedAtUnixMs: 9999,
       localDevelopment: { selector: 'dev-3' } as never,
+      iconUrl: TINY_PNG,
     }),
     identity: {
       entryKey: 'local_dev:nimi.app-3',
@@ -151,7 +249,8 @@ test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps
     appId: 'nimi.app-20',
     displayName: 'App 20',
     updatedAtUnixMs: 1020,
-    committedRelease: { version: '1.0.0' } as never,
+    committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '1.0.0', launchSelector: Uint8Array.of(20) } as never,
+    iconUrl: TINY_PNG,
     run: { state: 'running', launchSelector: [20], accessAvailable: true, accessReasonCode: '', message: '' },
   });
 
@@ -165,7 +264,9 @@ test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps
     bundledZhiyuName: '织羽',
   });
 
-  assert.equal(dock.items.length, HOME_RECENT_APPS_LIMIT);
+  assert.equal(HOME_RECENT_APPS_LIMIT, 8);
+  assert.equal(dock.items.length, HOME_RECENT_APPS_LIMIT - 1, 'reserves the 8th slot for the +N overflow tile');
+  assert.equal(dock.overflowCount, 18, '25 total - 7 shown = 18 hidden');
   assert.equal(dock.totalCount, 25, '24 unique installed app groups + 1 bundled Zhiyu');
   assert.equal(dock.items[0]?.key, 'nimi.app-20', 'running app takes slot 1');
   assert.equal(dock.items[1]?.key, 'nimi.app-7', 'most recently opened app takes slot 2');
@@ -183,8 +284,34 @@ test('recent apps dock caps at 10 items, prioritizes running then MRU timestamps
       onOpenApp={() => {}}
     />,
   );
-  assert.match(html, /最近打开 10 \/ 共 25 款/);
-  assert.doesNotMatch(html, /data-testid="home-apps-spotlight"/, 'catalog spotlight hides when user already has >= 3 apps');
+  assert.match(html, /data-testid="home-apps-overflow-tile"/);
+  assert.match(html, /data-overflow-count="18"/);
+  assert.match(html, /\+18/);
+  assert.match(html, /aria-label="还有 18 款应用，查看全部应用"/);
+  assert.doesNotMatch(html, /data-testid="home-apps-more-tile"/);
+  assert.doesNotMatch(html, /最近打开|共 25 款/);
+
+  const exactFit = manyInstalled.slice(0, 7);
+  const exactDock = buildHomeRecentAppsDock({
+    entries: exactFit,
+    timestamps: {},
+    bundledZhiyuName: '织羽',
+  });
+  assert.equal(exactDock.items.length, 8);
+  assert.equal(exactDock.overflowCount, 0);
+  const exactHtml = renderToStaticMarkup(
+    <HomeAppsWorkbench
+      focusGeneration="generation"
+      entries={exactFit}
+      iconUrls={new Map()}
+      loading={false}
+      unavailable={false}
+      onOpenAllApps={() => {}}
+      onOpenApp={() => {}}
+    />,
+  );
+  assert.doesNotMatch(exactHtml, /data-testid="home-apps-overflow-tile"/);
+  assert.match(exactHtml, /data-testid="home-apps-more-tile"/);
 });
 
 test('active work card hides when idle and renders running apps, AI executions, and transfer progress when active', async () => {

@@ -1,0 +1,50 @@
+/* Restrained typographic and motion utilities for CharacterSourceDetailPage.
+   Font faces (`Source Han Serif SC` and `Source Han Sans CN`) are registered
+   by world-detail.css in main.tsx. */
+
+.char-profile-root {
+  font-family: 'Source Han Sans CN', var(--nimi-font-sans, sans-serif);
+}
+
+/* Reserve display serif strictly for the character's name as the single
+   editorial focal point; structural headings stay crisp sans-serif. */
+.char-display-serif {
+  font-family: 'Source Han Serif SC', Georgia, serif;
+  font-weight: 600;
+  font-synthesis: none;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+.char-hero-avatar {
+  box-shadow:
+    0 0 0 4px var(--nimi-surface-card),
+    0 8px 24px -10px rgba(15, 23, 42, 0.2);
+}
+
+.char-dialogue-bubble-character {
+  background: var(--nimi-surface-card);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    inset 0 0 0 1px color-mix(in srgb, var(--nimi-border-subtle) 75%, transparent);
+}
+
+.char-dialogue-bubble-user {
+  background: color-mix(in srgb, var(--nimi-text-primary) 6%, var(--nimi-surface-card));
+}
+
+.char-folio-section + .char-folio-section {
+  border-top: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 75%, transparent);
+  padding-top: 1.5rem;
+}
+
+@keyframes char-voice-wave-pulse {
+  0%, 100% { transform: scaleY(0.45); }
+  50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-voice-wave-bar {
+    animation: none !important;
+  }
+}

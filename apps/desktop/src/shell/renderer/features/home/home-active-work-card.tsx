@@ -75,23 +75,23 @@ export function HomeActiveWorkCardView({
   return (
     <AppCardSurface
       kind="promoted-glass"
-      className="flex min-w-0 flex-col gap-3 p-5"
+      className="flex min-w-0 flex-col gap-3 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-active-work"
     >
       <header className="flex items-center gap-2">
         <span className="size-2 shrink-0 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
-        <h2 className="text-sm font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+        <h2 className="text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.overview.activeWork.title')}
         </h2>
       </header>
 
-      <div className="flex flex-col divide-y divide-[var(--nimi-border-subtle)]">
+      <div className="flex flex-col gap-2.5">
         {runningApps.map((entry) => {
           const isRunning = entry.run?.state === 'running';
           return (
             <div
               key={entry.identity.entryKey}
-              className="flex min-w-0 items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-3"
               data-testid={`home-active-app:${entry.identity.appId}`}
             >
               <button
@@ -138,11 +138,11 @@ export function HomeActiveWorkCardView({
           return (
             <div
               key={execution.attemptId}
-              className="flex min-w-0 items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-3"
               data-testid={`home-active-execution:${execution.attemptId}`}
             >
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]">
                   {execution.parentWorkId ? <Layers3 size={15} aria-hidden="true" /> : <Activity size={15} aria-hidden="true" />}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -168,12 +168,12 @@ export function HomeActiveWorkCardView({
         {downloads.map((item) => (
           <div
             key={item.id}
-            className="flex min-w-0 flex-col gap-1.5 py-2.5 first:pt-0 last:pb-0"
+            className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-3"
             data-testid={`home-active-download:${item.id}`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-[var(--nimi-text-primary)]">
-                <Download size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+                <Download size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-text-secondary)]" />
                 <span className="truncate">{item.title}</span>
               </span>
               <Button tone="ghost" size="sm" onClick={onOpenDownloads}>

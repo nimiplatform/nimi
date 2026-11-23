@@ -208,13 +208,15 @@ function TextGenerateStage({ locale }: { locale: LandingLocale }) {
         <div className="platform-vision-output-body">
           {tab === 'reply' && (
             <div className="platform-vision-stream-panel">
-              <p className="platform-vision-stream-quote" lang="en">
-                “The main object is a bright orange ceramic mug with a curved handle.”
+              <p className="platform-vision-stream-quote">
+                {isZh
+                  ? '「这是一只亮橙色陶瓷马克杯，带有高光釉面与圆润的弧形杯把。」'
+                  : '“The main object is a bright orange ceramic mug with a curved handle.”'}
                 <span className="platform-stream-cursor" aria-hidden="true" />
               </p>
               <p className="platform-vision-stream-sub">
                 {isZh
-                  ? '画面主体是一只高光泽橙色陶瓷马克杯，配有圆润弧形杯把，置于晨光斜照的浅木纹桌面，身旁放着一本摊开的米白横线笔记本。'
+                  ? '杯身映着柔和的晨光窗影，稳稳置于浅色木纹桌面，身旁放着一本摊开的米白横线笔记本。'
                   : 'High-gloss orange ceramic glaze with soft morning window reflections, resting on a warm oak desk beside an open ruled notebook.'}
               </p>
               <div className="platform-vision-attr-pills">

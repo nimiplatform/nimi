@@ -287,3 +287,24 @@ it('keeps the default arrow cursor on chrome controls and menu triggers', async 
     expect(trigger.style.cursor).toBe('default');
   }
 });
+
+it('switches the sidebar toggle icon between expanded and collapsed states', async () => {
+  function ToggleHarness() {
+    const [visible, setVisible] = useState(true);
+    return <NimiAppChrome metadata={{ name: 'Test', version: '1' }} locale="zh"
+      sidebar={{ visible, onVisibleChange: setVisible }} />;
+  }
+  await mount(<ToggleHarness />);
+  const hideButton = button('隐藏侧栏');
+  expect(hideButton.getAttribute('aria-pressed')).toBe('true');
+  expect(hideButton.querySelector('svg[data-nimi-icon="panel-left-collapsed"]')).toBeNull();
+  expect(hideButton.querySelector('svg.lucide-panel-left')).not.toBeNull();
+  await click(hideButton);
+  const showButton = button('显示侧栏');
+  expect(showButton.getAttribute('aria-pressed')).toBe('false');
+  expect(showButton.querySelector('svg[data-nimi-icon="panel-left-collapsed"]')).not.toBeNull();
+  expect(showButton.querySelector('svg.lucide-panel-left')).toBeNull();
+  await click(showButton);
+  expect(button('隐藏侧栏').querySelector('svg.lucide-panel-left')).not.toBeNull();
+  expect(button('隐藏侧栏').querySelector('svg[data-nimi-icon="panel-left-collapsed"]')).toBeNull();
+});

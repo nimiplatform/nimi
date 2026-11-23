@@ -123,3 +123,9 @@ test('AI capabilities use a master-detail workspace without the retired four-tab
   assert.match(workspace, /<DesktopModuleSidebar\b/);
   assert.match(workspace, /ai-capabilities-home/);
 });
+
+test('Home quick jump opens the AI Capabilities profile home instead of saved loadouts', async () => {
+  const overview = await readFeature('home/nimi-overview.tsx');
+  assert.match(overview, /onOpenAIProfiles:\s*\(\)\s*=>\s*void navigation\.push\(\{ id: 'runtime', runtime: \{ page: 'aiSettings' \} \}\)/u);
+  assert.doesNotMatch(overview, /section:\s*'saved'/u);
+});

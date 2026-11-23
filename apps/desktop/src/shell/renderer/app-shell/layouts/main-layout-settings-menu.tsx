@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { SHELL_CHROME_MENU_ITEM_BASE_CLASS, SHELL_CHROME_OVERLAY_CLASS } from './shell-chrome-classes';
@@ -67,20 +67,22 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
             <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{props.displayName}</p>
             {props.userEmail ? <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail}</p> : null}
           </div>
-          <motion.button
-            type="button"
-            onClick={props.onEditProfile}
-            whileHover={interactiveMotion.whileHover}
-            whileTap={interactiveMotion.whileTap}
-            transition={interactiveMotion.transition}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]"
-            title={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-          </motion.button>
+          <Tooltip content={t('Layout.editProfile', { defaultValue: 'Edit Profile' })} placement="top">
+            <motion.button
+              type="button"
+              onClick={props.onEditProfile}
+              whileHover={interactiveMotion.whileHover}
+              whileTap={interactiveMotion.whileTap}
+              transition={interactiveMotion.transition}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]"
+              aria-label={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </motion.button>
+          </Tooltip>
         </div>
         <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,white)] to-transparent" />
         <ScrollArea className="flex-1">
