@@ -254,3 +254,87 @@ test('world character zh media locale names presence instead of internal media a
 
   assert.equal(locale.worldCharacter?.mediaEyebrow, '形象');
 });
+
+test('world character detail renders ordered visual gallery when portrait and referenceImages are authored', () => {
+  const raw = sourceDetailRaw();
+  raw.media.assets = {
+    ...raw.media.assets,
+    portrait: {
+      id: 'char-portrait-res',
+      kind: 'portrait',
+      purpose: 'portrait',
+      label: '竖屏全身定妆',
+      externalUrl: 'https://cdn.example.test/character/portrait.png',
+      provider: 'EXTERNAL_URL',
+      mimeType: 'image/png',
+      width: 1024,
+      height: 1536,
+      durationSec: null,
+      sha256: 'sha256-portrait',
+    },
+    referenceImages: [
+      {
+        id: 'char-face-neutral-res',
+        kind: 'referenceImage',
+        purpose: 'face_neutral',
+        label: '正脸中性主锚',
+        externalUrl: 'https://cdn.example.test/character/face-neutral.png',
+        provider: 'EXTERNAL_URL',
+        mimeType: 'image/png',
+        width: 1024,
+        height: 1024,
+        durationSec: null,
+        sha256: 'sha256-face',
+      },
+      {
+        id: 'char-turnaround-res',
+        kind: 'referenceImage',
+        purpose: 'full_body_turnaround',
+        label: '中性标准三视图',
+        externalUrl: 'https://cdn.example.test/character/turnaround.png',
+        provider: 'EXTERNAL_URL',
+        mimeType: 'image/png',
+        width: 1536,
+        height: 1024,
+        durationSec: null,
+        sha256: 'sha256-turnaround',
+      },
+      {
+        id: 'char-scene-res',
+        kind: 'referenceImage',
+        purpose: 'scene_moment',
+        label: '场景故事瞬影',
+        externalUrl: 'https://cdn.example.test/character/scene.png',
+        provider: 'EXTERNAL_URL',
+        mimeType: 'image/png',
+        width: 1024,
+        height: 1536,
+        durationSec: null,
+        sha256: 'sha256-scene',
+      },
+    ],
+  } as typeof raw.media.assets;
+
+  const detail = toSourceDetailData(raw, 'source_materialization_available');
+  assert.deepEqual(
+    detail.visualGallery.map((item) => item.purpose),
+    ['portrait', 'scene_moment', 'full_body_turnaround', 'face_neutral'],
+  );
+
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source: detail,
+      loading: false,
+      error: false,
+      stats: null,
+      onBack: () => undefined,
+      onOpenWorld: () => undefined,
+      onPrimaryAction: () => undefined,
+    }),
+  );
+  assert.match(markup, /data-testid="world-character-visual-gallery"/);
+  assert.match(markup, /data-testid="world-character-gallery-item-portrait"/);
+  assert.match(markup, /data-testid="world-character-gallery-item-scene_moment"/);
+  assert.match(markup, /data-testid="world-character-gallery-item-full_body_turnaround"/);
+  assert.match(markup, /data-testid="world-character-gallery-item-face_neutral"/);
+});

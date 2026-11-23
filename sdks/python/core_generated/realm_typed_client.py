@@ -2922,7 +2922,9 @@ class WorldPublicAssetDto:
     provider: str
     durationSec: float | None = None
     height: float | None = None
+    label: str | None = None
     mimeType: str | None = None
+    purpose: str | None = None
     sha256: str | None = None
     width: float | None = None
 
@@ -2952,6 +2954,8 @@ class WorldPublicCharacterCatalogItemDto:
     sourceRef: CharacterSourceRefV3Dto
     summary: str
     worldName: str
+    portraitMedia: MediaDeliveryDto | None = None
+    portraitUrl: str | None = None
     role: str | None = None
     voiceSampleUrl: str | None = None
 
@@ -3114,6 +3118,7 @@ class WorldPublicSourceCardPageDto:
 
 @dataclass(frozen=True)
 class WorldPublicSourceExternalMediaDto:
+    referenceImageUrls: tuple[str, ...]
     avatarUrl: str | None = None
     portraitUrl: str | None = None
     profileCoverUrl: str | None = None
@@ -3122,6 +3127,7 @@ class WorldPublicSourceExternalMediaDto:
 
 @dataclass(frozen=True)
 class WorldPublicSourceMediaAssetsDto:
+    referenceImages: tuple[WorldPublicAssetDto, ...]
     avatar: WorldPublicAssetDto | None = None
     portrait: WorldPublicAssetDto | None = None
     profileCover: WorldPublicAssetDto | None = None

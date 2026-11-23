@@ -223,6 +223,11 @@ function publicWorldProjection() {
 test('source detail loads one public Character projection without the full-world aggregate', async () => {
   const calls: string[] = [];
   const publicSource = publicSourceCard(sourceRef, '宋濂');
+  const firstReference = 'https://cdn.example.test/song-lian-side.png';
+  const secondReference = 'https://cdn.example.test/song-lian-front.png';
+  Object.assign(publicSource.media.external, {
+    referenceImageUrls: [firstReference, firstReference, 'file:///tmp/portrait.png', secondReference],
+  });
   const publicWorld = publicWorldProjection();
   const realm = {
     worldCore: {
@@ -296,6 +301,10 @@ test('source detail loads one public Character projection without the full-world
   } as never);
   assert.equal(displayDetail?.stats, null);
   assert.equal(displayDetail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
+  assert.deepEqual(
+    displayDetail?.source.visualGallery.map(({ kind, externalUrl }) => [kind, externalUrl]),
+    [['referenceImage', firstReference], ['referenceImage', secondReference]],
+  );
   assert.deepEqual(calls, [
     'worldPublicControllerGetCharacterSource',
     'worldPublicControllerGetWorldCatalogByIds',

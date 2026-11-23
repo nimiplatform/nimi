@@ -427,7 +427,21 @@
     "greetingTab": "First words",
     "readMore": "Read more",
     "readLess": "Show less",
-    "partnerCount": "Partners created: {{count}}"
+    "partnerCount": "Partners created: {{count}}",
+    "galleryTitle": "Character gallery",
+    "galleryCount": "{{count}} visuals",
+    "galleryOpenImage": "Inspect full image: {{label}}",
+    "galleryClose": "Close preview",
+    "galleryPrev": "Previous image",
+    "galleryNext": "Next image",
+    "galleryRole": {
+      "portrait": "Full portrait",
+      "scene_moment": "Story moment",
+      "full_body_turnaround": "Turnaround sheet",
+      "face_neutral": "Neutral face",
+      "avatar": "Avatar",
+      "referenceImage": "Reference"
+    }
   },
   "friends": "Friends",
   "posts": "Posts",

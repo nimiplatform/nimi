@@ -119,6 +119,15 @@ export function readSourceMediaAsset(raw: JsonObject, kind: string) {
   return readPublicMediaAsset(assets?.[kind]);
 }
 
+export function readSourceMediaAssetList(raw: JsonObject, key: string) {
+  const media = parseOptionalJsonObject(raw.media);
+  const assets = parseOptionalJsonObject(media?.assets) ?? parseOptionalJsonObject(raw.mediaAssets);
+  const items = assets?.[key];
+  return Array.isArray(items)
+    ? items.map(readPublicMediaAsset).filter((asset): asset is NonNullable<typeof asset> => Boolean(asset))
+    : [];
+}
+
 export function readSourceMediaDelivery(raw: JsonObject, kind: string) {
   return readMediaDelivery(readSourceMediaAsset(raw, kind)?.delivery);
 }
@@ -129,6 +138,15 @@ export function readSourceMediaUrl(raw: JsonObject, kind: string, scalarKey: str
   const media = parseOptionalJsonObject(raw.media);
   const external = parseOptionalJsonObject(media?.external);
   return readPublicUrlValue(asset?.externalUrl) ?? readPublicUrlValue(external?.[scalarKey]) ?? readPublicUrlValue(raw[scalarKey]);
+}
+
+export function readSourceExternalMediaUrls(raw: JsonObject, key: string): string[] {
+  const media = parseOptionalJsonObject(raw.media);
+  const external = parseOptionalJsonObject(media?.external);
+  const urls = external?.[key] ?? raw[key];
+  return Array.isArray(urls)
+    ? urls.map(readPublicUrlValue).filter((url): url is string => url !== null)
+    : [];
 }
 
 export function readVoiceSample(raw: JsonObject): SourceDetailVoiceSample | null {

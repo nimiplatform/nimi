@@ -1,3 +1,4 @@
+import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { RealmMediaDeliveryDto } from '../world/data/world-public-projection.js';
 import { readCharacterSourceRefV3, type CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
@@ -9,6 +10,8 @@ export type CharacterCatalogItem = Readonly<{
   role: string | null;
   avatarUrl: string | null;
   avatarMedia: RealmMediaDeliveryDto | null;
+  portraitUrl: string | null;
+  portraitMedia: RealmMediaDeliveryDto | null;
   voiceSampleUrl: string | null;
   worldName: string;
 }>;
@@ -75,8 +78,12 @@ export async function readCharacterCatalog(
         name: raw.displayName,
         summary: raw.summary,
         role: typeof raw.role === 'string' && raw.role.trim() ? raw.role.trim() : null,
-        avatarMedia: raw.avatarMedia,
+        avatarMedia: readMediaDelivery(raw.avatarMedia),
         avatarUrl: raw.avatarUrl,
+        portraitMedia: readMediaDelivery(raw.portraitMedia),
+        portraitUrl: typeof raw.portraitUrl === 'string' && /^https?:\/\//i.test(raw.portraitUrl.trim())
+          ? raw.portraitUrl.trim()
+          : null,
         voiceSampleUrl: typeof raw.voiceSampleUrl === 'string' && /^https?:\/\//i.test(raw.voiceSampleUrl.trim())
           ? raw.voiceSampleUrl.trim()
           : null,

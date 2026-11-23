@@ -47800,6 +47800,21 @@
             }
           },
           {
+            "name": "label",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "mimeType",
             "required": false,
             "schema": {
@@ -47835,6 +47850,21 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -48082,6 +48112,31 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "portraitMedia",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MediaDeliveryDto",
+              "ref_name": "MediaDeliveryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "portraitUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -50115,6 +50170,25 @@
             }
           },
           {
+            "name": "referenceImageUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
             "name": "voiceSampleUrl",
             "required": false,
             "schema": {
@@ -50130,7 +50204,9 @@
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "referenceImageUrls"
+        ],
         "closed": false,
         "additional_properties": null
       }
@@ -50181,6 +50257,20 @@
             }
           },
           {
+            "name": "referenceImages",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicAssetDto",
+                "ref_name": "WorldPublicAssetDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
             "name": "voiceSample",
             "required": false,
             "schema": {
@@ -50191,7 +50281,9 @@
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "referenceImages"
+        ],
         "closed": false,
         "additional_properties": null
       }

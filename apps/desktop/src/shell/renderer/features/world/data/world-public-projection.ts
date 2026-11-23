@@ -40,12 +40,14 @@ export type WorldCharacterSummaryDto = {
   portraitUrl?: string | null;
   profileCoverUrl?: string | null;
   referenceImageUrl?: string | null;
+  referenceImageUrls?: readonly string[];
   voiceSampleUrl?: string | null;
   mediaAssets?: {
     avatar?: WorldPublicAssetDto | null;
     portrait?: WorldPublicAssetDto | null;
     profileCover?: WorldPublicAssetDto | null;
     referenceImage?: WorldPublicAssetDto | null;
+    referenceImages?: WorldPublicAssetDto[];
     voiceSample?: WorldPublicAssetDto | null;
   } | null;
   createdAt?: string;
@@ -504,6 +506,9 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
   const portraitAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'portrait');
   const profileCoverAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'profileCover');
   const referenceImageAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'referenceImage');
+  const referenceImageAssets = readArray<unknown>(mediaAssetsRecord, 'referenceImages')
+    .map(readPublicAssetDto)
+    .filter((asset): asset is WorldPublicAssetDto => Boolean(asset));
   const voiceSampleAsset = readPublicAssetFromRecord(mediaAssetsRecord, 'voiceSample');
   const relation = asRecord(source.relation);
   const sourceRef = readCharacterSourceRefV3(source.sourceRef);
@@ -532,12 +537,14 @@ export function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): 
     portraitUrl: portraitAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'portraitUrl'),
     profileCoverUrl: profileCoverAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'profileCoverUrl'),
     referenceImageUrl: referenceImageAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'referenceImageUrl'),
+    referenceImageUrls: source.media?.external?.referenceImageUrls ?? [],
     voiceSampleUrl: voiceSampleAsset?.delivery?.previewUrl ?? voiceSampleAsset?.externalUrl ?? readPublicUrl(asRecord(media.external), 'voiceSampleUrl'),
     mediaAssets: {
       avatar: avatarAsset,
       portrait: portraitAsset,
       profileCover: profileCoverAsset,
       referenceImage: referenceImageAsset,
+      referenceImages: referenceImageAssets,
       voiceSample: voiceSampleAsset,
     },
     createdAt: source.updatedAt,

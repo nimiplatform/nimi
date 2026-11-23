@@ -25294,9 +25294,11 @@ type WorldPublicAssetDto struct {
 	Height      *float64                       `json:"height,omitempty"`
 	Id          string                         `json:"id"`
 	Kind        string                         `json:"kind"`
+	Label       *string                        `json:"label,omitempty"`
 	MimeType    *string                        `json:"mimeType,omitempty"`
 	Provenance  *WorldPublicAssetProvenanceDto `json:"provenance"`
 	Provider    string                         `json:"provider"`
+	Purpose     *string                        `json:"purpose,omitempty"`
 	Sha256      *string                        `json:"sha256,omitempty"`
 	Width       *float64                       `json:"width,omitempty"`
 }
@@ -25413,6 +25415,8 @@ type WorldPublicCharacterCatalogItemDto struct {
 	AvatarUrl      *string                       `json:"avatarUrl"`
 	DisplayName    string                        `json:"displayName"`
 	Id             string                        `json:"id"`
+	PortraitMedia  *MediaDeliveryDto             `json:"portraitMedia,omitempty"`
+	PortraitUrl    *string                       `json:"portraitUrl,omitempty"`
 	Relation       *WorldPublicViewerRelationDto `json:"relation"`
 	Role           *string                       `json:"role,omitempty"`
 	SourceRef      *CharacterSourceRefV3Dto      `json:"sourceRef"`
@@ -26115,11 +26119,12 @@ func (value *WorldPublicSourceCardPageDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicSourceExternalMediaDto struct {
-	AvatarUrl         *string `json:"avatarUrl,omitempty"`
-	PortraitUrl       *string `json:"portraitUrl,omitempty"`
-	ProfileCoverUrl   *string `json:"profileCoverUrl,omitempty"`
-	ReferenceImageUrl *string `json:"referenceImageUrl,omitempty"`
-	VoiceSampleUrl    *string `json:"voiceSampleUrl,omitempty"`
+	AvatarUrl          *string  `json:"avatarUrl,omitempty"`
+	PortraitUrl        *string  `json:"portraitUrl,omitempty"`
+	ProfileCoverUrl    *string  `json:"profileCoverUrl,omitempty"`
+	ReferenceImageUrl  *string  `json:"referenceImageUrl,omitempty"`
+	ReferenceImageUrls []string `json:"referenceImageUrls"`
+	VoiceSampleUrl     *string  `json:"voiceSampleUrl,omitempty"`
 }
 
 func (value *WorldPublicSourceExternalMediaDto) UnmarshalJSON(data []byte) error {
@@ -26127,7 +26132,9 @@ func (value *WorldPublicSourceExternalMediaDto) UnmarshalJSON(data []byte) error
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceExternalMediaDto: %w", err)
 	}
-
+	if err := requireRealmJSONField(raw, "referenceImageUrls", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceExternalMediaDto: %w", err)
+	}
 	type modelAlias WorldPublicSourceExternalMediaDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
@@ -26138,11 +26145,12 @@ func (value *WorldPublicSourceExternalMediaDto) UnmarshalJSON(data []byte) error
 }
 
 type WorldPublicSourceMediaAssetsDto struct {
-	Avatar         *WorldPublicAssetDto `json:"avatar,omitempty"`
-	Portrait       *WorldPublicAssetDto `json:"portrait,omitempty"`
-	ProfileCover   *WorldPublicAssetDto `json:"profileCover,omitempty"`
-	ReferenceImage *WorldPublicAssetDto `json:"referenceImage,omitempty"`
-	VoiceSample    *WorldPublicAssetDto `json:"voiceSample,omitempty"`
+	Avatar          *WorldPublicAssetDto  `json:"avatar,omitempty"`
+	Portrait        *WorldPublicAssetDto  `json:"portrait,omitempty"`
+	ProfileCover    *WorldPublicAssetDto  `json:"profileCover,omitempty"`
+	ReferenceImage  *WorldPublicAssetDto  `json:"referenceImage,omitempty"`
+	ReferenceImages []WorldPublicAssetDto `json:"referenceImages"`
+	VoiceSample     *WorldPublicAssetDto  `json:"voiceSample,omitempty"`
 }
 
 func (value *WorldPublicSourceMediaAssetsDto) UnmarshalJSON(data []byte) error {
@@ -26150,7 +26158,9 @@ func (value *WorldPublicSourceMediaAssetsDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode WorldPublicSourceMediaAssetsDto: %w", err)
 	}
-
+	if err := requireRealmJSONField(raw, "referenceImages", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaAssetsDto: %w", err)
+	}
 	type modelAlias WorldPublicSourceMediaAssetsDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {

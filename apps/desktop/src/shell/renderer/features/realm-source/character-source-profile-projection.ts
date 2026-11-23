@@ -85,6 +85,7 @@ export type CharacterSourceProfileProjection = {
   portraitUrl: string | null;
   profileCoverUrl: string | null;
   referenceImageUrl: string | null;
+  referenceImageUrls: readonly string[];
   voiceSampleUrl: string | null;
   voiceSample: WorldPublicAssetDto | null;
   mediaAssets: {
@@ -92,6 +93,7 @@ export type CharacterSourceProfileProjection = {
     portrait: WorldPublicAssetDto | null;
     profileCover: WorldPublicAssetDto | null;
     referenceImage: WorldPublicAssetDto | null;
+    referenceImages: WorldPublicAssetDto[];
     voiceSample: WorldPublicAssetDto | null;
   };
   bio: string;
@@ -195,6 +197,7 @@ export function projectCharacterSourceProfile(
     portraitUrl: publicProjection.portraitUrl ?? null,
     profileCoverUrl: publicProjection.profileCoverUrl ?? null,
     referenceImageUrl: publicProjection.referenceImageUrl ?? null,
+    referenceImageUrls: publicProjection.referenceImageUrls ?? [],
     voiceSampleUrl: publicProjection.voiceSampleUrl ?? null,
     voiceSample: mediaAssets.voiceSample ?? null,
     mediaAssets: {
@@ -202,6 +205,7 @@ export function projectCharacterSourceProfile(
       portrait: mediaAssets.portrait ?? null,
       profileCover: mediaAssets.profileCover ?? null,
       referenceImage: mediaAssets.referenceImage ?? null,
+      referenceImages: mediaAssets.referenceImages ?? [],
       voiceSample: mediaAssets.voiceSample ?? null,
     },
     bio: publicProjection.bio ?? profile.narrative.summary,

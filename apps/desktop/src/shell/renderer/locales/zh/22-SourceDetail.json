@@ -427,7 +427,21 @@
     "greetingTab": "初遇招呼",
     "readMore": "阅读全文",
     "readLess": "收起全文",
-    "partnerCount": "已创建 {{count}} 位伙伴"
+    "partnerCount": "已创建 {{count}} 位伙伴",
+    "galleryTitle": "人物形象",
+    "galleryCount": "{{count}} 张设定图",
+    "galleryOpenImage": "查看大图：{{label}}",
+    "galleryClose": "关闭预览",
+    "galleryPrev": "上一张",
+    "galleryNext": "下一张",
+    "galleryRole": {
+      "portrait": "全身定妆",
+      "scene_moment": "故事瞬影",
+      "full_body_turnaround": "标准三视图",
+      "face_neutral": "正脸参考",
+      "avatar": "头像",
+      "referenceImage": "参考图"
+    }
   },
   "friends": "好友",
   "posts": "帖子",

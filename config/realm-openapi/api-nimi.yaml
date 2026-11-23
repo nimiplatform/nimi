@@ -8668,12 +8668,18 @@ components:
             - cover
             - voiceSample
           type: string
+        label:
+          nullable: true
+          type: string
         mimeType:
           nullable: true
           type: string
         provenance:
           $ref: '#/components/schemas/WorldPublicAssetProvenanceDto'
         provider:
+          type: string
+        purpose:
+          nullable: true
           type: string
         sha256:
           nullable: true
@@ -8745,6 +8751,14 @@ components:
         displayName:
           type: string
         id:
+          type: string
+        portraitMedia:
+          allOf:
+            - $ref: '#/components/schemas/MediaDeliveryDto'
+          nullable: true
+          type: object
+        portraitUrl:
+          nullable: true
           type: string
         relation:
           $ref: '#/components/schemas/WorldPublicViewerRelationDto'
@@ -9342,9 +9356,15 @@ components:
         referenceImageUrl:
           nullable: true
           type: string
+        referenceImageUrls:
+          items:
+            type: string
+          type: array
         voiceSampleUrl:
           nullable: true
           type: string
+      required:
+        - referenceImageUrls
       type: object
     WorldPublicSourceMediaAssetsDto:
       properties:
@@ -9368,11 +9388,17 @@ components:
             - $ref: '#/components/schemas/WorldPublicAssetDto'
           nullable: true
           type: object
+        referenceImages:
+          items:
+            $ref: '#/components/schemas/WorldPublicAssetDto'
+          type: array
         voiceSample:
           allOf:
             - $ref: '#/components/schemas/WorldPublicAssetDto'
           nullable: true
           type: object
+      required:
+        - referenceImages
       type: object
     WorldPublicSourceMediaDto:
       properties:

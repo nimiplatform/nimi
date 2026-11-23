@@ -43,8 +43,13 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
       {loading && !characters.length && catalog.status === 'loading' ? <LoadingSkeleton lines={3} label={t('WorldDetail.charactersLoading')} /> : catalog.status !== 'ready' && catalog.status !== 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : characters.length ? (
         <div className={PEOPLE_GALLERY_GRID}>
           {characters.map((character) => {
-            const image = character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || null;
-            const delivery = character.mediaAssets?.portrait?.delivery ?? character.avatarMedia;
+            const hasPortrait = Boolean(character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || character.mediaAssets?.portrait?.delivery);
+            const image = hasPortrait
+              ? (character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || null)
+              : (character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || null);
+            const delivery = hasPortrait
+              ? (character.mediaAssets?.portrait?.delivery ?? null)
+              : (character.avatarMedia ?? null);
             // Gallery artwork needs display-sized renditions, even when authored in the avatar slot.
             const imagePurpose = delivery?.images.some((set) => set.purpose === 'detail') ? 'detail' : 'avatar';
             const age = character.ageDescription?.trim() || '';
@@ -70,7 +75,9 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
                     aria-label={t('WorldDetail.discovery.viewNamedCharacter', { name: character.name })}
                     className="flex w-full min-w-0 flex-col items-start text-left focus-visible:rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
-                    <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className="block h-auto w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5" />
+                    <div className="aspect-[3/4] w-full overflow-hidden rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)]">
+                      <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className={`block h-full w-full object-cover text-2xl transition-transform duration-300 group-hover:scale-[1.03] ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`} />
+                    </div>
                     <div className="relative z-10 -mt-2 w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_97%,transparent)] p-3.5 transition-colors duration-200 group-hover:bg-[var(--nimi-surface-panel)]">
                       <div className="flex w-full items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">

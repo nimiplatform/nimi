@@ -43,6 +43,62 @@ async function withDom<T>(run: (dom: JSDOM) => Promise<T>): Promise<T> {
   }
 }
 
+test('character gallery contains keyboard focus and returns it to the selected thumbnail', async () => {
+  await withDom(async ({ window }) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n } = await import('../src/shell/renderer/i18n/index.ts');
+    const { CharacterVisualGallery } = await import('../src/shell/renderer/features/source-detail/source-detail-character-gallery.js');
+    const { toSourceDetailData } = await import('../src/shell/renderer/features/source-detail/source-detail-model.js');
+    const { ouYangDeRaw } = await import('./source-detail-world-character-test-utils.js');
+    await initI18n();
+    const first = 'https://cdn.example.test/portrait-one.png';
+    const second = 'https://cdn.example.test/portrait-two.png';
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      referenceImageUrls: [first, second],
+    }, 'source_materialization_available');
+    const { document } = window;
+    const root = createRoot(document.getElementById('root')!);
+    const dialog = () => document.querySelector('[role="dialog"]');
+    const press = (key: string, shiftKey = false) => act(async () => {
+      document.activeElement?.dispatchEvent(new window.KeyboardEvent('keydown', {
+        key, shiftKey, bubbles: true, cancelable: true,
+      }));
+    });
+    try {
+      await act(async () => {
+        root.render(<CharacterVisualGallery characterName={source.displayName} items={source.visualGallery} />);
+      });
+      const thumbnails = document.querySelectorAll<HTMLButtonElement>('[data-testid="world-character-visual-gallery"] button');
+      assert.equal(thumbnails.length, 2);
+      const trigger = thumbnails[1]!;
+      trigger.focus();
+      await act(async () => { trigger.click(); });
+
+      const close = dialog()?.querySelector<HTMLButtonElement>('[data-testid="world-character-gallery-lightbox-close"]');
+      const next = dialog()?.querySelector<HTMLButtonElement>('[data-testid="world-character-gallery-lightbox-next"]');
+      assert.ok(close && next);
+      assert.equal(document.activeElement, close);
+      assert.equal(dialog()?.querySelector('img')?.src, second);
+      await press('ArrowRight');
+      assert.equal(dialog()?.querySelector('img')?.src, first);
+      await press('Tab', true);
+      assert.equal(document.activeElement, next);
+      await press('Tab');
+      assert.equal(document.activeElement, close);
+
+      await press('Escape');
+      for (let attempt = 0; attempt < 20 && document.activeElement !== trigger; attempt += 1) {
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+      }
+      assert.equal(dialog(), null);
+      assert.equal(document.activeElement, trigger);
+    } finally {
+      await act(async () => { root.unmount(); });
+    }
+  });
+});
+
 test('world character sample tabs select exchanges with keyboard access and reset for a different source', async () => {
   await withDom(async (dom) => {
     const { ouYangDeRaw } = await import('./source-detail-world-character-test-utils.js');

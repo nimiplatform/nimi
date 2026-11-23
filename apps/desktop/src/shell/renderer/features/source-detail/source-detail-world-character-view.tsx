@@ -12,6 +12,7 @@ import {
 } from './source-detail-world-character-labels.js';
 import { buildRelationshipClueItems, WorldCharacterRelationshipCluesSection, WorldCharacterBackgroundSections } from './source-detail-world-character-relationship-clues.js';
 import { CharacterActions } from './source-detail-character-actions.js';
+import { CharacterVisualGallery } from './source-detail-character-gallery.js';
 import { CharacterFirstMeeting } from './source-detail-character-meeting.js';
 import { CharacterAppearanceDisclosure, CharacterProfileSections, characterAboutParagraphs, characterAppearanceDetails } from './source-detail-character-content.js';
 
@@ -324,6 +325,13 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
             </div>
 
             {partner ? <div className="mt-6 space-y-6">{partner.status}{partner.sourceNotice}</div> : null}
+
+            {!partner && source.visualGallery.length > 0 ? (
+              <CharacterVisualGallery
+                characterName={source.displayName}
+                items={source.visualGallery}
+              />
+            ) : null}
 
             {hasLeftColumn || hasRightColumn ? <div data-testid="world-character-overview-columns" className={partner ? "mt-5" : "mt-6 border-t border-[var(--nimi-border-subtle)] pt-6"}>
               <div data-testid="world-character-reading-columns"

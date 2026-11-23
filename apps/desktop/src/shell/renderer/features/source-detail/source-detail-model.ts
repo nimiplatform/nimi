@@ -8,6 +8,9 @@ import {
 } from '../realm-source/realm-source-identity.js';
 import {
   readOptionalString,
+  readSourceExternalMediaUrls,
+  readSourceMediaAsset,
+  readSourceMediaAssetList,
   readSourceMediaUrl,
   readSourceMediaDelivery,
   readStringArray,
@@ -26,17 +29,31 @@ import type {
   CharacterSourceViewerRelationProjection,
 } from '../realm-source/character-source-profile-projection.js';
 
+export type SourceDetailVisualItem = {
+  id: string;
+  kind: string;
+  purpose: string | null;
+  label: string | null;
+  delivery: RealmModel<'MediaDeliveryDto'> | null;
+  externalUrl: string | null;
+  width: number | null;
+  height: number | null;
+};
+
 export type SourceDetailData = {
   id: string;
   displayName: string;
   handle: string;
   avatarMedia: RealmModel<'MediaDeliveryDto'> | null;
+  portraitMedia: RealmModel<'MediaDeliveryDto'> | null;
   profileCoverMedia: RealmModel<'MediaDeliveryDto'> | null;
   referenceImageMedia: RealmModel<'MediaDeliveryDto'> | null;
   worldBannerMedia: RealmModel<'MediaDeliveryDto'> | null;
   avatarUrl: string | null;
+  portraitUrl: string | null;
   profileCoverUrl: string | null;
   referenceImageUrl: string | null;
+  visualGallery: SourceDetailVisualItem[];
   voiceSample: SourceDetailVoiceSample | null;
   bio: string | null;
   createdAt: string;
@@ -186,6 +203,68 @@ function readProfileWorks(profile: CharacterProfileProjection): SourceDetailWork
     }));
 }
 
+const VISUAL_GALLERY_ORDER: Readonly<Record<string, number>> = {
+  portrait: 0,
+  scene_moment: 1,
+  full_body_turnaround: 2,
+  face_neutral: 3,
+  referenceImage: 4,
+};
+
+function readVisualGallery(raw: JsonObject): SourceDetailVisualItem[] {
+  const portrait = readSourceMediaAsset(raw, 'portrait');
+  const referenceImages = readSourceMediaAssetList(raw, 'referenceImages');
+  const seen = new Set<string>();
+  const items: SourceDetailVisualItem[] = [];
+  const push = (asset: ReturnType<typeof readSourceMediaAsset>) => {
+    if (!asset || seen.has(asset.id)) return;
+    if (!asset.delivery && !asset.externalUrl) return;
+    seen.add(asset.id);
+    const record = asset as unknown as Record<string, unknown>;
+    const purpose = typeof record.purpose === 'string' && record.purpose.trim()
+      ? record.purpose.trim()
+      : asset.kind;
+    const label = typeof record.label === 'string' && record.label.trim()
+      ? record.label.trim()
+      : null;
+    items.push({
+      id: asset.id,
+      kind: asset.kind,
+      purpose,
+      label,
+      delivery: readMediaDelivery(asset.delivery),
+      externalUrl: asset.externalUrl ?? null,
+      width: typeof asset.width === 'number' && Number.isFinite(asset.width) ? asset.width : null,
+      height: typeof asset.height === 'number' && Number.isFinite(asset.height) ? asset.height : null,
+    });
+  };
+  push(portrait);
+  for (const ref of referenceImages) {
+    push(ref);
+  }
+  const externalReferences = new Set(readSourceExternalMediaUrls(raw, 'referenceImageUrls'));
+  for (const item of items) {
+    if (item.externalUrl) externalReferences.delete(item.externalUrl);
+  }
+  for (const externalUrl of externalReferences) {
+    items.push({
+      id: `external:${externalUrl}`,
+      kind: 'referenceImage',
+      purpose: 'referenceImage',
+      label: null,
+      delivery: null,
+      externalUrl,
+      width: null,
+      height: null,
+    });
+  }
+  return items.sort((left, right) => {
+    const leftRank = VISUAL_GALLERY_ORDER[left.purpose ?? left.kind] ?? 10;
+    const rightRank = VISUAL_GALLERY_ORDER[right.purpose ?? right.kind] ?? 10;
+    return leftRank - rightRank;
+  });
+}
+
 export function toSourceDetailData(
   raw: JsonObject,
   sourceState: CharacterSourceState,
@@ -222,8 +301,10 @@ export function toSourceDetailData(
   const avatarUrl = readSourceMediaUrl(raw, 'avatar', 'avatarUrl')
     ?? readSourceMediaUrl(raw, 'portrait', 'portraitUrl')
     ?? readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl');
+  const portraitUrl = readSourceMediaUrl(raw, 'portrait', 'portraitUrl');
   const profileCoverUrl = readSourceMediaUrl(raw, 'profileCover', 'profileCoverUrl');
   const referenceImageUrl = readSourceMediaUrl(raw, 'referenceImage', 'referenceImageUrl');
+  const visualGallery = readVisualGallery(raw);
   const voiceSample = readVoiceSample(raw);
   const ownership = raw.ownership === 'worldOwned' || raw.ownership === 'userOwned'
     ? raw.ownership
@@ -234,12 +315,15 @@ export function toSourceDetailData(
     displayName,
     handle: String(raw.handle || ''),
     avatarMedia: readSourceMediaDelivery(raw, 'avatar') ?? readSourceMediaDelivery(raw, 'portrait') ?? readSourceMediaDelivery(raw, 'referenceImage'),
+    portraitMedia: readSourceMediaDelivery(raw, 'portrait'),
     profileCoverMedia: readSourceMediaDelivery(raw, 'profileCover'),
     referenceImageMedia: readSourceMediaDelivery(raw, 'referenceImage'),
     worldBannerMedia: readMediaDelivery(raw.worldBannerMedia),
     avatarUrl,
+    portraitUrl,
     profileCoverUrl,
     referenceImageUrl,
+    visualGallery,
     voiceSample,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',

@@ -21279,9 +21279,11 @@ pub struct WorldPublicAssetDto {
     pub height: Option<f64>,
     pub id: String,
     pub kind: String,
+    pub label: Option<String>,
     pub mime_type: Option<String>,
     pub provenance: Box<WorldPublicAssetProvenanceDto>,
     pub provider: String,
+    pub purpose: Option<String>,
     pub sha256: Option<String>,
     pub width: Option<f64>,
 }
@@ -21311,6 +21313,8 @@ pub struct WorldPublicCharacterCatalogItemDto {
     pub avatar_url: Option<String>,
     pub display_name: String,
     pub id: String,
+    pub portrait_media: Option<Box<MediaDeliveryDto>>,
+    pub portrait_url: Option<String>,
     pub relation: Box<WorldPublicViewerRelationDto>,
     pub role: Option<String>,
     pub source_ref: Box<CharacterSourceRefV3Dto>,
@@ -21497,6 +21501,7 @@ pub struct WorldPublicSourceExternalMediaDto {
     pub portrait_url: Option<String>,
     pub profile_cover_url: Option<String>,
     pub reference_image_url: Option<String>,
+    pub reference_image_urls: Vec<String>,
     pub voice_sample_url: Option<String>,
 }
 
@@ -21506,6 +21511,7 @@ pub struct WorldPublicSourceMediaAssetsDto {
     pub portrait: Option<Box<WorldPublicAssetDto>>,
     pub profile_cover: Option<Box<WorldPublicAssetDto>>,
     pub reference_image: Option<Box<WorldPublicAssetDto>>,
+    pub reference_images: Vec<WorldPublicAssetDto>,
     pub voice_sample: Option<Box<WorldPublicAssetDto>>,
 }
 

@@ -206,7 +206,7 @@ function CharacterDiscovery() {
   return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1480px] space-y-5 px-5 pb-8 pt-2">
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.findCharacters')}</h1>
+        <h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.discoverPartners')}</h1>
         {!catalog.initialLoading && !catalog.initialUnavailable && !tooLong ? (
           <NimiText role="caption" data-testid="explore-character-count">{t('WorldDetail.discovery.peopleCount', { count: totalCount })}</NimiText>
         ) : null}
@@ -295,45 +295,56 @@ function CharacterDiscovery() {
       : catalog.initialLoading ? <LoadingSkeleton lines={5} />
         : catalog.initialUnavailable ? <InlineAlert tone="warning" action={<Button onClick={() => { void catalog.query.refetch(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.charactersUnavailable')}</InlineAlert>
           : <>{catalog.offline ? <InlineAlert tone="warning">{t('runtimeConfig.partners.charactersOffline')}</InlineAlert> : null}
-            {items.length ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="explore-character-results">
-              {items.map(item => (
-                <article
-                  key={characterSourceRefKey(item.sourceRef)}
-                  data-view-key={characterSourceRefKey(item.sourceRef)}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] transition-colors hover:bg-[var(--nimi-surface-active)]"
-                >
-                  <button
-                    type="button"
-                    className="flex flex-1 items-start gap-4 p-5 text-left focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                    onClick={() => { stopCharacterVoicePreview(); void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}
+            {items.length ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" data-testid="explore-character-results">
+              {items.map(item => {
+                const hasPortrait = Boolean(item.portraitMedia || item.portraitUrl);
+                const delivery = hasPortrait ? item.portraitMedia : item.avatarMedia;
+                const externalUrl = hasPortrait ? item.portraitUrl : item.avatarUrl;
+                const imagePurpose = delivery?.images.some((set) => set.purpose === 'detail')
+                  ? 'detail'
+                  : delivery?.images.some((set) => set.purpose === 'hero')
+                    ? 'hero'
+                    : 'avatar';
+                return (
+                  <article
+                    key={characterSourceRefKey(item.sourceRef)}
+                    data-view-key={characterSourceRefKey(item.sourceRef)}
+                    data-visual-slot={hasPortrait ? 'portrait' : 'avatar'}
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    <span className="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-lg font-semibold text-[var(--nimi-text-secondary)]">
-                      <MediaImage
-                        delivery={item.avatarMedia}
-                        externalUrl={item.avatarUrl}
-                        purpose="avatar"
-                        sizes="80px"
-                        alt={item.name}
-                        className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                        fallback={item.name.slice(0, 1)}
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block break-words text-[16px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{item.name}</span>
-                      <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-                        <span className="truncate font-medium">{item.worldName}</span>
-                        {item.role ? <span className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[11px]">{item.role}</span> : null}
+                    <button
+                      type="button"
+                      className="flex flex-1 flex-col text-left focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                      onClick={() => { stopCharacterVoicePreview(); void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}
+                    >
+                      <span className="relative block aspect-[3/4] w-full overflow-hidden bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)]">
+                        <MediaImage
+                          delivery={delivery}
+                          externalUrl={externalUrl}
+                          purpose={imagePurpose}
+                          sizes="(min-width: 1280px) 280px, (min-width: 768px) 240px, 50vw"
+                          alt={item.name}
+                          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`}
+                          fallback={item.name.slice(0, 1)}
+                        />
                       </span>
-                      {item.summary ? <span className="mt-2.5 line-clamp-3 block text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{item.summary}</span> : null}
-                    </span>
-                  </button>
-                  {item.voiceSampleUrl ? (
-                    <div className="flex justify-end px-4 pb-3.5 pt-0">
-                      <CharacterVoicePreviewButton src={item.voiceSampleUrl} characterName={item.name} variant="surface" />
-                    </div>
-                  ) : null}
-                </article>
-              ))}
+                      <span className="flex flex-1 flex-col p-3.5">
+                        <span className="line-clamp-1 break-words text-[16px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{item.name}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+                          <span className="max-w-full truncate font-medium">{item.worldName}</span>
+                          {item.role ? <span className="max-w-full truncate rounded-full bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[11px]">{item.role}</span> : null}
+                        </span>
+                        {item.summary ? <span className="mt-2 line-clamp-2 block text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]">{item.summary}</span> : null}
+                      </span>
+                    </button>
+                    {item.voiceSampleUrl ? (
+                      <div className="absolute right-2.5 top-2.5 z-10">
+                        <CharacterVoicePreviewButton src={item.voiceSampleUrl} characterName={item.name} variant="overlay" />
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div> : <EmptyState title={t('runtimeConfig.partners.noCharacters')} />}
             {catalog.query.isFetchNextPageError ? <InlineAlert tone="warning" action={<Button size="sm" tone="secondary" onClick={() => { void catalog.query.fetchNextPage(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.moreFailed')}</InlineAlert> : null}
             {catalog.query.hasNextPage ? (
