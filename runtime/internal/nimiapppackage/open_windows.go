@@ -56,6 +56,16 @@ func OpenArchiveReadOnly(rawPath string) (*os.File, int64, error) {
 	return file, info.Size(), nil
 }
 
+// SealArchiveReadOnly is a no-op on Windows, where FILE_SHARE_READ prevents
+// concurrent writes without setting FILE_ATTRIBUTE_READONLY (which would block
+// directory cleanup on discard or recovery).
+func SealArchiveReadOnly(file *os.File) error {
+	if file == nil {
+		return ErrInvalidPackage
+	}
+	return nil
+}
+
 func toWindowsExtendedPath(cleanPath string) string {
 	if strings.HasPrefix(cleanPath, `\\?\`) || strings.HasPrefix(cleanPath, `\\.\`) {
 		return cleanPath

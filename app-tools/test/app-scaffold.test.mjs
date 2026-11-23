@@ -586,6 +586,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /license: appPackage\.license/);
     assert.match(electronProductionPackager, /author: appPackage\.author/);
     assert.match(electronProductionPackager, /await cp\(nativePackageRoot, nativeDestination/);
+    assert.match(electronProductionPackager, /const APP_DECLARES_SHARP = Object\.hasOwn\(appPackage\.dependencies \|\| \{\}, 'sharp'\)/);
+    assert.match(electronProductionPackager, /if \(APP_DECLARES_SHARP\) \{\s*await stageDeclaredSharpRuntime\(productionSourceRoot\);/);
+    assert.match(electronProductionPackager, /async function stageDeclaredSharpRuntime\(sourceRoot\)/);
     assert.match(electronProductionPackager, /let packageCompleted = false/);
     assert.match(electronProductionPackager, /packageCompleted = true/);
     assert.match(electronProductionPackager, /if \(!packageCompleted\) cleanupTasks\.push\(rm\(outputRoot, \{ recursive: true, force: true \}\)\)/);

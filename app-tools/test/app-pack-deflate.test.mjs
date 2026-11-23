@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { crc32, deflateRawSync } from 'node:zlib';
 
 import {
@@ -11,6 +12,7 @@ import {
   writeNimiAppArchive,
   writeNimiAppArchiveToFile,
 } from '../lib/app-pack.mjs';
+import { buildDefaultStarterFiles } from '../lib/app-scaffold-profiles.mjs';
 import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from '../lib/payload-links.mjs';
 
 function buildRawZip(entries) {
@@ -138,15 +140,51 @@ test('L2 sync and streaming archives round-trip Deflate 32/64 KiB boundaries, 0 
     assert.deepEqual(streamed.get('payload/__init__.py').bytes, Buffer.alloc(0));
     assert.deepEqual(streamed.get('payload/exact-32k.txt').bytes, exact32k);
 
-    // Explicitly confirm > 20x expansion ratio above 8 MiB is rejected fail-closed.
-    const bombFilePath = path.join(dir, 'zeros.bin');
-    writeFileSync(bombFilePath, Buffer.alloc(10 * 1024 * 1024));
-    await assert.rejects(
-      () => writeNimiAppArchiveToFile(path.join(dir, 'bomb.nimiapp'), [
-        { name: 'payload/zeros.bin', filePath: bombFilePath, size: 10 * 1024 * 1024, mode: 0o644 },
-      ], { compress: true }),
-      /expansion ratio exceeds 20x/u,
-    );
+    // Legitimate highly-compressible content (> 8 MiB zeros / repetitive data)
+    // must pack cleanly by selectively falling back to Store(0) so the archive
+    // stays within the 20x expansion ratio cap on both sync and streaming paths.
+    const zerosBuf = Buffer.alloc(10 * 1024 * 1024);
+    const syncZerosZip = writeNimiAppArchive([
+      { name: 'payload/zeros.bin', bytes: zerosBuf, mode: 0o644 },
+    ], { compress: true });
+    assert.ok(syncZerosZip.length >= zerosBuf.length / 20, 'sync writer must keep expansion ratio <= 20x');
+    const syncZerosRead = readNimiAppArchive(syncZerosZip);
+    assert.equal(syncZerosRead.get('payload/zeros.bin').size, zerosBuf.length);
+    assert.equal(syncZerosRead.get('payload/zeros.bin').bytes.equals(zerosBuf), true);
+
+    const zerosFilePath = path.join(dir, 'zeros.bin');
+    writeFileSync(zerosFilePath, zerosBuf);
+    const streamZerosPath = path.join(dir, 'zeros.nimiapp');
+    const streamZerosWritten = await writeNimiAppArchiveToFile(streamZerosPath, [
+      { name: 'payload/zeros.bin', filePath: zerosFilePath, size: zerosBuf.length, mode: 0o644 },
+    ], { compress: true });
+    assert.ok(streamZerosWritten.size >= zerosBuf.length / 20, 'streaming writer must keep expansion ratio <= 20x');
+    const streamZerosRead = await readNimiAppArchiveFromFile(streamZerosPath);
+    assert.equal(streamZerosRead.get('payload/zeros.bin').size, zerosBuf.length);
+
+    // Multi-file highly compressible archive (12 x 1 MiB zeros) keeps ratio <= 20x while still compressing later entries.
+    const multiEntries = Array.from({ length: 12 }, (_, idx) => ({
+      name: `payload/z-${String(idx).padStart(2, '0')}.bin`,
+      bytes: Buffer.alloc(1024 * 1024),
+      mode: 0o644,
+    }));
+    const multiZip = writeNimiAppArchive(multiEntries, { compress: true });
+    assert.ok(multiZip.length < 3 * 1024 * 1024, 'multi-file compressible archive still shrinks significantly');
+    assert.equal(readNimiAppArchive(multiZip).size, 12);
+
+    // Hand-crafted malicious > 20x Deflate archive is STILL rejected fail-closed by both readers.
+    const rawBombComp = deflateRawSync(zerosBuf, { level: 6 });
+    const rawBombZip = buildRawZip([{
+      name: 'payload/bomb.bin',
+      method: 8,
+      crc: crc32(zerosBuf),
+      uncompressedSize: zerosBuf.length,
+      compressed: rawBombComp,
+    }]);
+    assert.throws(() => readNimiAppArchive(rawBombZip), /expansion ratio exceeds 20x/u);
+    const rawBombPath = path.join(dir, 'raw-bomb.nimiapp');
+    writeFileSync(rawBombPath, rawBombZip);
+    await assert.rejects(() => readNimiAppArchiveFromFile(rawBombPath), /expansion ratio exceeds 20x/u);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -264,4 +302,131 @@ test('L2 macOS symlink validation uses component-by-component resolution with 32
     ['payload/a/to-sibling', { mode: SYMBOLIC_LINK_MODE, bytes: Buffer.from('../sibling/file') }],
   ]);
   validatePayloadLinks(legit, 'macos');
+});
+
+function writeMinimalAsar(asarPath, filePaths) {
+  const root = { files: {} };
+  for (const rel of filePaths) {
+    const parts = rel.split('/');
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i += 1) {
+      node.files[parts[i]] ??= { files: {} };
+      node = node.files[parts[i]];
+    }
+    node.files[parts[parts.length - 1]] = { size: 0, offset: '0' };
+  }
+  const json = Buffer.from(JSON.stringify(root), 'utf8');
+  const header = Buffer.alloc(16);
+  header.writeUInt32LE(4, 0);
+  header.writeUInt32LE(json.length + 8, 4);
+  header.writeUInt32LE(json.length + 4, 8);
+  header.writeUInt32LE(json.length, 12);
+  writeFileSync(asarPath, Buffer.concat([header, json]));
+}
+
+test('L1-B generated Electron packager stages host-declared sharp closure and enforces platform sharp boundary', async () => {
+  const starter = buildDefaultStarterFiles({
+    platform: 'desktop',
+    carrier: 'electron',
+    appTitle: 'Sharp Host',
+    cargoPackageName: 'sharp-host-shell',
+    tauriIdentifier: 'org.example.sharphost',
+    appId: 'org.example.sharphost',
+    capabilityResolution: { modules: [], styles: [], views: [], navigation: [] },
+    appAccess: [],
+    features: [],
+  });
+  const packagerFile = starter.find((item) => item.path === 'scripts/package-electron-production.mjs');
+  assert.ok(packagerFile, 'generated starter must include scripts/package-electron-production.mjs');
+
+  // Extract the exact generated helper functions and exercise them against a
+  // real pnpm-style symlinked sharp tree and ASAR header without copying logic.
+  const helpersStart = packagerFile.content.indexOf('async function listAsarPaths(');
+  assert.ok(helpersStart > 0, 'packager script must define helper functions');
+  const helpersBody = packagerFile.content.slice(helpersStart);
+
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'nimi-sharp-stage-'));
+  try {
+    const appRoot = path.join(dir, 'app');
+    const pnpmSharpNm = path.join(appRoot, 'node_modules', '.pnpm', 'sharp@0.35.5', 'node_modules');
+    const platformSuffix = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64' : 'win32-x64';
+    const foreignSuffix = platformSuffix === 'darwin-arm64' ? 'win32-x64' : 'darwin-arm64';
+    const pkgDefs = {
+      sharp: {
+        name: 'sharp',
+        version: '0.35.5',
+        dependencies: { 'detect-libc': '^2.1.2', '@img/colour': '^1.1.0' },
+        optionalDependencies: {
+          [`@img/sharp-${platformSuffix}`]: '0.35.5',
+          [`@img/sharp-${foreignSuffix}`]: '0.35.5',
+        },
+      },
+      'detect-libc': { name: 'detect-libc', version: '2.1.2' },
+      '@img/colour': { name: '@img/colour', version: '1.1.0' },
+      [`@img/sharp-${platformSuffix}`]: { name: `@img/sharp-${platformSuffix}`, version: '0.35.5' },
+      [`@img/sharp-${foreignSuffix}`]: { name: `@img/sharp-${foreignSuffix}`, version: '0.35.5' },
+    };
+    for (const [name, manifest] of Object.entries(pkgDefs)) {
+      const pkgDir = path.join(pnpmSharpNm, ...name.split('/'));
+      mkdirSync(pkgDir, { recursive: true });
+      writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify(manifest));
+      writeFileSync(path.join(pkgDir, 'index.js'), `module.exports = ${JSON.stringify(name)};\n`);
+    }
+    symlinkSync(path.join(pnpmSharpNm, 'sharp'), path.join(appRoot, 'node_modules', 'sharp'), 'junction');
+
+    const harnessPath = path.join(dir, 'harness.mjs');
+    const macosFlag = platformSuffix === 'darwin-arm64';
+    const nativePlat = macosFlag ? 'darwin' : 'win32';
+    const nativeArch = macosFlag ? 'arm64' : 'x64';
+    writeFileSync(
+      harnessPath,
+      [
+        "import { cp, mkdir, open, readdir, readFile, realpath } from 'node:fs/promises';",
+        "import path from 'node:path';",
+        `const MACOS_BUILD = ${String(macosFlag)};`,
+        `const NATIVE_PLATFORM = ${JSON.stringify(nativePlat)};`,
+        `const NATIVE_ARCH = ${JSON.stringify(nativeArch)};`,
+        `const appRoot = ${JSON.stringify(appRoot)};`,
+        'let APP_DECLARES_SHARP = true;',
+        'export function setDeclaresSharp(value) { APP_DECLARES_SHARP = value; }',
+        helpersBody,
+        'export { stageDeclaredSharpRuntime, assertCleanAppBundle };',
+      ].join('\n'),
+    );
+
+    const mod = await import(pathToFileURL(harnessPath).href);
+    const stagedRoot = path.join(dir, 'staged');
+    await mod.stageDeclaredSharpRuntime(stagedRoot);
+    assert.equal(existsSync(path.join(stagedRoot, 'node_modules', 'sharp', 'package.json')), true);
+    assert.equal(existsSync(path.join(stagedRoot, 'node_modules', 'detect-libc', 'package.json')), true);
+    assert.equal(existsSync(path.join(stagedRoot, 'node_modules', '@img', 'colour', 'package.json')), true);
+    assert.equal(existsSync(path.join(stagedRoot, 'node_modules', '@img', `sharp-${platformSuffix}`, 'package.json')), true);
+    assert.equal(existsSync(path.join(stagedRoot, 'node_modules', '@img', `sharp-${foreignSuffix}`, 'package.json')), false);
+
+    // Declared sharp allows target-platform @img/sharp-* but rejects foreign-platform @img/sharp-*.
+    const resourcesTarget = path.join(dir, 'res-target');
+    mkdirSync(resourcesTarget, { recursive: true });
+    writeMinimalAsar(path.join(resourcesTarget, 'app.asar'), [
+      'dist-electron/main.js',
+      `node_modules/@img/sharp-${platformSuffix}/lib/sharp-${platformSuffix}.node`,
+    ]);
+    mod.setDeclaresSharp(true);
+    await mod.assertCleanAppBundle(resourcesTarget);
+
+    // Undeclared sharp rejects even target-platform @img/sharp-*.
+    mod.setDeclaresSharp(false);
+    await assert.rejects(() => mod.assertCleanAppBundle(resourcesTarget), /Unexpected contaminated payload entry/u);
+
+    // Declared sharp still rejects foreign-platform @img/sharp-*.
+    const resourcesForeign = path.join(dir, 'res-foreign');
+    mkdirSync(resourcesForeign, { recursive: true });
+    writeMinimalAsar(path.join(resourcesForeign, 'app.asar'), [
+      'dist-electron/main.js',
+      `node_modules/@img/sharp-${foreignSuffix}/lib/sharp-${foreignSuffix}.node`,
+    ]);
+    mod.setDeclaresSharp(true);
+    await assert.rejects(() => mod.assertCleanAppBundle(resourcesForeign), /Unexpected contaminated payload entry/u);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

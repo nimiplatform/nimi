@@ -41,6 +41,7 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	var (
 		ra             io.ReaderAt
 		inMemoryReader *bytes.Reader
+		preFileStat    os.FileInfo
 		archiveSHA256  string
 	)
 	if archiveSize <= ManagedWebMaxArchiveBytes {
@@ -58,6 +59,10 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 		inMemoryReader = bytes.NewReader(raw)
 		ra = inMemoryReader
 	} else {
+		preFileStat, err = file.Stat()
+		if err != nil || !preFileStat.Mode().IsRegular() || preFileStat.Size() != archiveSize {
+			return LocalMetadata{}, ErrPackageIntegrity
+		}
 		digest := sha256.New()
 		if err := copyWithContext(ctx, digest, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
 			return LocalMetadata{}, err
@@ -98,6 +103,12 @@ func InspectLocal(ctx context.Context, archivePath, targetOS, targetArch string)
 	inspection, _, err := inspectCanonicalArchive(ctx, canonical, metadata.Expected, true)
 	if err != nil {
 		return LocalMetadata{}, err
+	}
+	if preFileStat != nil {
+		postFileStat, statErr := file.Stat()
+		if statErr != nil || !os.SameFile(preFileStat, postFileStat) || postFileStat.Size() != preFileStat.Size() || !postFileStat.ModTime().Equal(preFileStat.ModTime()) {
+			return LocalMetadata{}, ErrPackageIntegrity
+		}
 	}
 	metadata.AppInfo = inspection.AppInfo
 	return metadata, nil

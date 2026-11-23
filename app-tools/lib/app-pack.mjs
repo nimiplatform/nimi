@@ -449,17 +449,12 @@ export function writeNimiAppArchive(entries, options = {}) {
   if (normalized.length === 0 || normalized.length > MAX_ZIP32_ENTRIES) {
     throw new Error('nimiapp archive requires between 1 and 65535 files');
   }
-  for (let index = 1; index < normalized.length; index += 1) {
-    if (Buffer.compare(normalized[index - 1].rawName, normalized[index].rawName) >= 0) {
+  let totalUncompressed = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const entry = normalized[index];
+    if (index > 0 && Buffer.compare(normalized[index - 1].rawName, entry.rawName) >= 0) {
       throw new Error('nimiapp archive entries must be unique');
     }
-  }
-
-  const localParts = [];
-  const centralParts = [];
-  let offset = 0;
-  let totalUncompressed = 0;
-  for (const entry of normalized) {
     const uncompSize = entry.bytes.length;
     if (uncompSize > NATIVE_MAX_ENTRY_BYTES || uncompSize >= 0xffffffff) {
       throw new Error(`Archive entry is too large: ${entry.name}`);
@@ -471,12 +466,23 @@ export function writeNimiAppArchive(entries, options = {}) {
     if (totalUncompressed > maxTotalUncompressedBytes) {
       throw new Error(`Archive uncompressed size exceeds ${maxTotalUncompressedBytes} bytes`);
     }
+  }
+  const enforceExpansionBudget = totalUncompressed > EXPANSION_RATIO_FLOOR_BYTES;
+
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  let emittedUncompressed = 0;
+  for (const entry of normalized) {
+    const uncompSize = entry.bytes.length;
     const crc = uncompSize === 0 ? 0 : nativeCrc32(entry.bytes);
     let method = ZIP_METHOD_STORE;
     let payload = entry.bytes;
     if (compress && entry.mode !== SYMBOLIC_LINK_MODE && uncompSize > 0) {
       const deflated = deflateRawSync(entry.bytes, { level: DEFLATE_LEVEL });
-      if (deflated.length > 0 && deflated.length < uncompSize) {
+      const fitsBudget = !enforceExpansionBudget
+        || emittedUncompressed + uncompSize <= (offset + 30 + entry.rawName.length + deflated.length) * MAX_EXPANSION_RATIO;
+      if (deflated.length > 0 && deflated.length < uncompSize && fitsBudget) {
         method = ZIP_METHOD_DEFLATE;
         payload = deflated;
       }
@@ -499,6 +505,7 @@ export function writeNimiAppArchive(entries, options = {}) {
     );
     centralParts.push(central, entry.rawName);
     offset = nextOffset;
+    emittedUncompressed += uncompSize;
   }
   const central = Buffer.concat(centralParts);
   const finalSize = offset + central.length + 22;
@@ -678,6 +685,8 @@ export async function writeNimiAppArchiveToFile(filePath, entries, options = {})
     }
   }
 
+  const enforceExpansionBudget = totalUncompressed > EXPANSION_RATIO_FLOOR_BYTES;
+
   await fsp.mkdir(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const shardPath = `${tempPath}.shard`;
@@ -685,6 +694,7 @@ export async function writeNimiAppArchiveToFile(filePath, entries, options = {})
   const archiveHash = createHash('sha256');
   const centralParts = [];
   let offset = 0;
+  let emittedUncompressed = 0;
   let hashedEntrySha256 = null;
   let renamed = false;
 
@@ -716,7 +726,9 @@ export async function writeNimiAppArchiveToFile(filePath, entries, options = {})
         let payload = plain;
         if (compress && entry.mode !== SYMBOLIC_LINK_MODE) {
           const deflated = deflateRawSync(plain, { level: DEFLATE_LEVEL });
-          if (deflated.length > 0 && deflated.length < uncompSize) {
+          const fitsBudget = !enforceExpansionBudget
+            || emittedUncompressed + uncompSize <= (offset + 30 + entry.rawName.length + deflated.length) * MAX_EXPANSION_RATIO;
+          if (deflated.length > 0 && deflated.length < uncompSize && fitsBudget) {
             method = ZIP_METHOD_DEFLATE;
             payload = deflated;
           }
@@ -735,7 +747,9 @@ export async function writeNimiAppArchiveToFile(filePath, entries, options = {})
           const stats = await streamDeflateFileToShard(entry.filePath, shardPath, uncompSize, wantHash);
           crc = stats.crc;
           if (wantHash) hashedEntrySha256 = stats.entrySha256;
-          if (stats.compSize > 0 && stats.compSize < uncompSize) {
+          const fitsBudget = !enforceExpansionBudget
+            || emittedUncompressed + uncompSize <= (offset + 30 + entry.rawName.length + stats.compSize) * MAX_EXPANSION_RATIO;
+          if (stats.compSize > 0 && stats.compSize < uncompSize && fitsBudget) {
             method = ZIP_METHOD_DEFLATE;
             compSize = stats.compSize;
             const nextOffset = offset + 30 + entry.rawName.length + compSize;
@@ -806,6 +820,7 @@ export async function writeNimiAppArchiveToFile(filePath, entries, options = {})
       );
       centralParts.push(central, entry.rawName);
       offset += 30 + entry.rawName.length + compSize;
+      emittedUncompressed += uncompSize;
     }
 
     const central = Buffer.concat(centralParts);

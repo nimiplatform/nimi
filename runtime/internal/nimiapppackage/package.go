@@ -142,11 +142,25 @@ func PayloadRootDigestRef(value [sha256.Size]byte) string {
 }
 
 type inspectedArchive struct {
-	file       *os.File
-	readerAt   io.ReaderAt
-	canonical  *canonicalZipArchive
-	inspection Inspection
-	names      []string
+	file        *os.File
+	preFileStat os.FileInfo
+	readerAt    io.ReaderAt
+	canonical   *canonicalZipArchive
+	inspection  Inspection
+	names       []string
+}
+
+func (archive *inspectedArchive) verifyFileUnchanged() error {
+	if archive == nil || archive.preFileStat == nil || archive.file == nil {
+		return nil
+	}
+	postStat, err := archive.file.Stat()
+	if err != nil || !os.SameFile(archive.preFileStat, postStat) ||
+		postStat.Size() != archive.preFileStat.Size() ||
+		!postStat.ModTime().Equal(archive.preFileStat.ModTime()) {
+		return fmt.Errorf("verify nimiapp archive stability: %w", errors.Join(ErrPackageIntegrity, err))
+	}
+	return nil
 }
 
 // Inspect verifies whole-archive integrity, the closed ZIP entry profile, and
@@ -157,6 +171,9 @@ func Inspect(ctx context.Context, archivePath string, expected Expected) (Inspec
 		return Inspection{}, err
 	}
 	defer func() { _ = archive.file.Close() }()
+	if err := archive.verifyFileUnchanged(); err != nil {
+		return Inspection{}, err
+	}
 	return archive.inspection, nil
 }
 
@@ -241,6 +258,9 @@ func ProbeRuntimeEntry(
 	if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeRootErr != nil {
 		return RuntimeEntryProbe{}, fmt.Errorf("write nimiapp Runtime-entry probe: %w",
 			errors.Join(copyErr, syncErr, closeOutputErr, closeRootErr))
+	}
+	if err := archive.verifyFileUnchanged(); err != nil {
+		return RuntimeEntryProbe{}, err
 	}
 	var executableDigest [sha256.Size]byte
 	copy(executableDigest[:], digest.Sum(nil))
@@ -385,6 +405,9 @@ func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 	if err := root.Close(); err != nil {
 		return Materialized{}, fmt.Errorf("close nimiapp staging root: %w", err)
 	}
+	if err := archive.verifyFileUnchanged(); err != nil {
+		return Materialized{}, err
+	}
 	if archiveHostDigest == ([sha256.Size]byte{}) {
 		return Materialized{}, fmt.Errorf("digest nimiapp Runtime entry: %w", ErrPackageIntegrity)
 	}
@@ -465,7 +488,10 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected, 
 	} else if archiveSize <= 0 || archiveSize > NativeMaxArchiveBytes {
 		return nil, fmt.Errorf("verify native nimiapp archive size budget: %w", ErrInvalidPackage)
 	}
-	var ra io.ReaderAt
+	var (
+		ra          io.ReaderAt
+		preFileStat os.FileInfo
+	)
 	if managedWeb || archiveSize <= ManagedWebMaxArchiveBytes {
 		// Read bounded archives (<= 72 MiB) once into immutable RAM so
 		// archive SHA-256 verification, ZIP inspection, staging extraction, and
@@ -485,6 +511,10 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected, 
 		}
 		ra = bytes.NewReader(raw)
 	} else {
+		preFileStat, err = file.Stat()
+		if err != nil || !preFileStat.Mode().IsRegular() || preFileStat.Size() != archiveSize {
+			return nil, fmt.Errorf("stat nimiapp archive: %w", errors.Join(ErrPackageIntegrity, err))
+		}
 		digest := sha256.New()
 		if err := copyWithContext(ctx, digest, io.LimitReader(file, archiveSize+1), uint64(archiveSize)); err != nil {
 			return nil, fmt.Errorf("hash nimiapp archive: %w", err)
@@ -503,7 +533,7 @@ func openAndInspect(ctx context.Context, archivePath string, expected Expected, 
 		return nil, err
 	}
 	closeOnError = false
-	return &inspectedArchive{file: file, readerAt: ra, canonical: canonical, inspection: inspection, names: names}, nil
+	return &inspectedArchive{file: file, preFileStat: preFileStat, readerAt: ra, canonical: canonical, inspection: inspection, names: names}, nil
 }
 
 func inspectCanonicalArchive(ctx context.Context, canonical *canonicalZipArchive, expected Expected, verifyPayloadBytes bool) (Inspection, []string, error) {

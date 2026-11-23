@@ -60,6 +60,10 @@ func (coordinator *Coordinator) PrepareLocalPackage(ctx context.Context, selecte
 		return LocalPackagePreview{}, fmt.Errorf("read selected App package: %w", err)
 	}
 	defer func() { _ = input.Close() }()
+	beforeInfo, err := input.Stat()
+	if err != nil || !beforeInfo.Mode().IsRegular() || beforeInfo.Size() != inputSize {
+		return LocalPackagePreview{}, nimiapppackage.ErrInvalidPackage
+	}
 	if inputSize <= 0 || inputSize > nimiapppackage.NativeMaxArchiveBytes {
 		return LocalPackagePreview{}, nimiapppackage.ErrInvalidPackage
 	}
@@ -91,9 +95,16 @@ func (coordinator *Coordinator) PrepareLocalPackage(ctx context.Context, selecte
 	if copyErr == nil && copied != inputSize {
 		copyErr = nimiapppackage.ErrPackageIntegrity
 	}
+	if copyErr == nil {
+		afterInfo, statErr := input.Stat()
+		if statErr != nil || !os.SameFile(beforeInfo, afterInfo) || afterInfo.Size() != inputSize || !afterInfo.ModTime().Equal(beforeInfo.ModTime()) {
+			copyErr = errors.Join(nimiapppackage.ErrPackageIntegrity, statErr)
+		}
+	}
 	syncErr := output.Sync()
+	sealErr := nimiapppackage.SealArchiveReadOnly(output)
 	closeErr := output.Close()
-	if err := errors.Join(copyErr, syncErr, closeErr); err != nil {
+	if err := errors.Join(copyErr, syncErr, sealErr, closeErr); err != nil {
 		return LocalPackagePreview{}, fmt.Errorf("copy selected App package: %w", err)
 	}
 	archivePath := filepath.Join(coordinator.packagesPath, directory, "package.nimiapp")
