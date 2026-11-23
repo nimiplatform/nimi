@@ -264,3 +264,33 @@ models:
       context_length: 8192
       authored_context_length: 262144
       kv_cache_bytes_per_token: 16384
+
+  - model_id: inkling-2-mini-local
+    model_type: chat
+    family: inkling2_loop
+    updated_at: 2026-11-23
+    capabilities: [text.generate]
+    source_ids: [inkling2_mini_author, inkling2_mini_mainline]
+    install:
+      repo: unsloth/Inkling-2-Mini-GGUF
+      revision: 45fd08764f2b0bf16b03a5483a80e5c7aaec8772 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: Inkling-2-Mini-UD-Q4_K_XL.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.inkling-2-mini.ud-q4-k-xl.cuda
+        quant: UD-Q4_K_XL
+        files: [Inkling-2-Mini-UD-Q4_K_XL.gguf]
+        source_entry: Mainline_Support/Inkling-2-Mini-UD-Q4_K_XL.gguf_file
+        hashes:
+          Inkling-2-Mini-UD-Q4_K_XL.gguf: sha256:e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3
+        total_size_bytes: 17629760736
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 26070390272
+      context_length: 8192

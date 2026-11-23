@@ -192,7 +192,9 @@ type LocalPlaneVariant struct {
 	HostRequirement LocalPlaneHostRequirement `yaml:"host_requirement" json:"host_requirement"`
 	Repo            string                    `yaml:"repo,omitempty" json:"repo,omitempty"`
 	Revision        string                    `yaml:"revision,omitempty" json:"revision,omitempty"`
-	DriverBackend   string                    `yaml:"driver_backend,omitempty" json:"driver_backend,omitempty"`
+	// SourceEntry is the HF repository path when the installed entry has a different name.
+	SourceEntry   string `yaml:"source_entry,omitempty" json:"source_entry,omitempty"`
+	DriverBackend string `yaml:"driver_backend,omitempty" json:"driver_backend,omitempty"`
 	// Archive is present exactly for verified-release-archive offers. Files,
 	// Hashes and TotalSizeBytes keep describing the installed data files.
 	Archive *LocalPlaneArchive `yaml:"archive,omitempty" json:"archive,omitempty"`

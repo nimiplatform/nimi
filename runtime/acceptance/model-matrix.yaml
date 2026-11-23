@@ -4,8 +4,8 @@
 # Descriptive prose is English; observed_output preserves original evidence text.
 
 format_version: 1
-maintained_on: 2026-11-12
-evidence_cutoff: 2026-11-12
+maintained_on: 2026-11-23
+evidence_cutoff: 2026-11-23
 purpose: Versioned engineering acceptance summary. Not an input to Runtime catalog loading, routing,
   admission, or product authority.
 scope:
@@ -426,6 +426,20 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: windows-20261123-llama-b12648-regression
+    status: PASS
+    observed_on: 2026-11-23
+    environment: windows_development
+    scope: Official Windows CUDA 12.4 llama-server b12648 on RTX 5090, using the existing installed weights.
+    result: All eleven text weights returned 42 for 17 + 25. The five projector pairs identified a blue
+      circle on the left and a red triangle on the right of a JPEG. All three embedding models returned
+      finite nonzero vectors for each of two inputs.
+    text_weights: [ Gemma 4 E2B Q3_K_M / Q4_K_M / Q5_K_M / Q6_K / Q8_0, Gemma 4 26B UD-Q4_K_M / Q8_0,
+      Gemma 4 12B QAT Q4_0, Qwen3.5 4B Q4_K_M, Qwen3.8 27B Q4_K_M, LFM3 1.7B Q4_K_M ]
+    image_pairs: [ Gemma 4 E2B Q4, Gemma 4 26B Q4, Gemma 4 12B QAT, Qwen3.5 4B, Qwen3.8 27B ]
+    embedding_widths: { nomic-embed-text-v1.5-q4: 768, qwen3-embedding-0.6b-q8: 1024, embeddinggemma2-q8: 768 }
+    limitations: Native engine requests. Gemma 4 26B Q5 and Q6 were absent. The macOS archive digest
+      and server payload were checked; macOS inference on this engine revision remains NOT-VERIFIED.
   - id: macos-20261112-sdcpp-socket-fix-candidate-startup
     status: PASS
     observed_on: 2026-11-12
@@ -1646,6 +1660,41 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: windows-20261123-inkling2-mini-mainline-text-and-image
+        route: local
+        models: [ Inkling-2-Mini-UD-Q4_K_XL.gguf, mmproj-F16.gguf ]
+        environment: windows_development
+        observed_on: 2026-11-23
+        version:
+          implementation_base: 872d8d400
+          runtime_modified: true
+          engine: Official llama.cpp b12648 Windows x64 CUDA 12.4
+          hardware: NVIDIA GeForce RTX 5090
+          repo: unsloth/Inkling-2-Mini-GGUF
+          revision: 45fd08764f2b0bf16b03a5483a80e5c7aaec8772 # pragma: allowlist secret -- public model revision
+          main_sha256: e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3 # pragma: allowlist secret -- public model digest
+          projector_sha256: 3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f # pragma: allowlist secret -- public projector digest
+        scenario: Home imported the independently verified mainline model and projector. Lab used the
+          main-only selection for arithmetic, then the image-enabled selection for a JPEG showing two shapes.
+        result: { execution: PASS, quality: PASS }
+        observed_output: [ "105", "Left: blue circle. Right: red triangle." ]
+        summary: The first prompt asked for 68 plus 37. The second asked for the color and shape on each
+          side without naming either. The Runtime-launched server used 8192 context tokens and the second
+          process included the paired projector. Home restored the original Gemma loadout after the runs.
+        traces: [ 01M83NAWCAKE5WQT3MX1BQ42P1, 01M83NH9FARVTSH4BJXYP7QK9X ]
+        limitations: The Home catalog transfer started but was interrupted. Full acquisition in this
+          product run used Home file import. macOS inference, installed distribution, other quants,
+          tools, reasoning controls and structured output were not exercised for Inkling.
+      - id: windows-20261123-existing-gemma4-b12648
+        route: local
+        models: [ Gemma 4 26B UD-Q4_K_M ]
+        environment: windows_development
+        observed_on: 2026-11-23
+        version: { implementation_base: 872d8d400, engine: llama.cpp b12648, hardware: RTX 5090 }
+        scenario: Home prepared the upgraded engine. The existing Lab text selection ran arithmetic and a synchronous tool round trip.
+        result: { execution: PASS, quality: PASS }
+        observed_output: [ "42", "Converted 30 centimeters to 11.811 inches." ]
+        traces: [ 01M83H5P8MSBM3CP0TK8RBPTEV, 01M83HS0CY1AQ088G9F5Z2RNB5 ]
       - id: macos-20261111-installed-openai-luna
         route: openai-api
         models: [ gpt-6-luna ]

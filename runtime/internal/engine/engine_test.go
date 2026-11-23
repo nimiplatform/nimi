@@ -154,7 +154,8 @@ func TestLlamaReleaseRejectsUnadmittedVersionAndBackend(t *testing.T) {
 		{"b11669", "llama-b11669-bin-win-cuda-12.4-x64.zip"},
 		{"b8645", "llama-b8645-bin-win-cuda-12.4-x64.zip"},
 		{"v0.6.0", "llama-v0.6.0-bin-win-cuda-12.4-x64.zip"},
-		{defaultLlamaVersion, "llama-b11960-bin-win-cpu-x64.zip"},
+		{"b11960", "llama-b11960-bin-win-cuda-12.4-x64.zip"},
+		{defaultLlamaVersion, "llama-b12648-bin-win-cpu-x64.zip"},
 	} {
 		if _, err := llamaReleaseAssetByName(input[0], input[1]); !errors.Is(err, ErrEngineBinaryDownloadFailed) {
 			t.Fatalf("unadmitted source: %v", err)
@@ -252,8 +253,8 @@ func TestManagedImageSupervisedPlatformSupportedFor(t *testing.T) {
 
 func TestLlamaExpectedSHA256(t *testing.T) {
 	for name, want := range map[string]string{
-		"llama-b11960-bin-win-cuda-12.4-x64.zip": "8d9d819261de10cc2f03921b8b79c779c5c458e21edb60c170ee30a7d462d684", // pragma: allowlist secret
-		"llama-b11960-bin-macos-arm64.tar.gz":    "58e5a5e1d7c2bf66cedd9c29e0323f3e570660a70a1e2156d32eed08f4cc1e3c", // pragma: allowlist secret
+		"llama-b12648-bin-win-cuda-12.4-x64.zip": "26b82a04c99449d19641e3db392ef2c5a2977ad087bb64c8d74e538b490b9649", // pragma: allowlist secret
+		"llama-b12648-bin-macos-arm64.tar.gz":    "0bd241a5dae70c6c98db113862de1abdccb60aa250cd7623f7eb1614c14b7708", // pragma: allowlist secret
 	} {
 		got, err := llamaExpectedSHA256(defaultLlamaVersion, name)
 		if err != nil || got != want {

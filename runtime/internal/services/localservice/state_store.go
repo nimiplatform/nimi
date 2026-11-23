@@ -107,6 +107,7 @@ func transferDispositionToState(value runtimev1.LocalTransferDisposition) string
 }
 
 type localStateManagedModelDownloadSpec struct {
+	SourceEntry       string                   `json:"sourceEntry,omitempty"`
 	GitHubCommitFiles bool                     `json:"githubCommitFiles,omitempty"`
 	ModelID           string                   `json:"modelId"`
 	DisplayName       string                   `json:"displayName,omitempty"`

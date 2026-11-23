@@ -30,7 +30,7 @@ func (LlamaTextDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInp
 		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
 		return 4
 	}
-	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || qwen35Recipe(input.RecipeID) || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaLFM3RecipeID) &&
+	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || qwen35Recipe(input.RecipeID) || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaLFM3RecipeID || input.RecipeID == LlamaInkling2MiniRecipeID) &&
 		input.RequirementID == MainGGUFRequirementID && input.Entry &&
 		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
 		return MaxDriverAssetFormatProbeBytes
@@ -48,7 +48,7 @@ func (driver LlamaTextDriver) ImplementationSupportedFeatures(recipeID string) (
 	if len(driver.recipeModelArchitectures(recipeID, MainGGUFRequirementID)) == 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
-	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID || strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID {
+	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID || strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaInkling2MiniRecipeID {
 		return []string{inputImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
 	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -229,7 +229,7 @@ func (driver LlamaTextDriver) ProjectRecipe(recipeID string, options *structpb.S
 }
 
 func (driver LlamaTextDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if (strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaLFM3RecipeID || recipeID == LlamaGemma412BRecipeID) && strings.ToLower(strings.TrimSpace(platform)) != "windows/amd64" {
+	if (strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaLFM3RecipeID || recipeID == LlamaGemma412BRecipeID || recipeID == LlamaInkling2MiniRecipeID) && strings.ToLower(strings.TrimSpace(platform)) != "windows/amd64" {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return driver.ProjectRecipe(recipeID, options, supportedFeatures)
@@ -244,6 +244,8 @@ func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) 
 		return []string{"gemma4"}
 	case LlamaLFM3RecipeID:
 		return []string{"lfm3"}
+	case LlamaInkling2MiniRecipeID:
+		return []string{"inkling2_loop"}
 	case LlamaQwen35RecipeID, LlamaQwen35VisionRecipeID, LlamaQwen38RecipeID:
 		return []string{"qwen35"}
 	default:
@@ -262,6 +264,16 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 	}
 	if input.RecipeID == LlamaGemma412BRecipeID && !gemma412BExactBindingMatches(input, facts.TemplateIdentity) {
 		return ModelAssetBindingProjection{}, invalid
+	}
+	// @nimi-authority: rule.nimi.runtime.local-compute.inkling2-mini
+	if input.RecipeID == LlamaInkling2MiniRecipeID {
+		digest := "e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3" // pragma: allowlist secret -- public model digest
+		if input.Requirement.GetRequirementId() == CompanionMMProjRequirementID {
+			digest = "3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f" // pragma: allowlist secret -- public projector digest
+		}
+		if input.Binding.GetVerifiedContentId() != "sha256:"+digest || input.Binding.GetEntrySha256() != digest {
+			return ModelAssetBindingProjection{}, invalid
+		}
 	}
 	descriptor := ModelAssetDescriptor{Engine: "llama", FormatProbe: input.Entry.FormatProbe}
 	switch input.Requirement.GetRequirementId() {

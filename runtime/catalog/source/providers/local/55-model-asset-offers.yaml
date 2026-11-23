@@ -1635,3 +1635,26 @@ models:
           accelerator: cuda
           min_ram_bytes: 268435456
           min_vram_bytes: 268435456
+
+  - model_id: asset-inkling-2-mini-mmproj
+    model_type: auxiliary
+    family: inkling2_loop
+    updated_at: 2026-11-23
+    capabilities: []
+    source_ids: [inkling2_mini_author, inkling2_mini_mainline]
+    install:
+      repo: unsloth/Inkling-2-Mini-GGUF
+      revision: 45fd08764f2b0bf16b03a5483a80e5c7aaec8772 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: mmproj-F16.gguf
+      artifact_roles: [mmproj]
+    variants:
+      - variant_id: local.aux.inkling-2-mini.mmproj-f16.cuda
+        quant: F16
+        files: [mmproj-F16.gguf]
+        hashes:
+          mmproj-F16.gguf: sha256:3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f
+        total_size_bytes: 639348160
+        host_requirement:
+          accelerator: cuda

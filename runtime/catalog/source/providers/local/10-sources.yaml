@@ -424,3 +424,12 @@ sources:
     url: https://github.com/leejet/stable-diffusion.cpp/blob/32d516c0197ed5ca31305b8575e14eb1451fad33/docs/minimax_h3.md
     retrieved_at: 2026-11-11
     note: HyperFlow six-step sampling and Sol-H3 VAE decoder support.
+
+  - source_id: inkling2_mini_author
+    url: https://huggingface.co/thinkingmachines/Inkling-2-Mini/tree/b85c3cfa615fc413cc9af3379f491b963f3b586a
+    retrieved_at: 2026-11-23
+    note: Official text and image input model, text output, Apache-2.0.
+  - source_id: inkling2_mini_mainline
+    url: https://huggingface.co/unsloth/Inkling-2-Mini-GGUF/blob/45fd08764f2b0bf16b03a5483a80e5c7aaec8772/Mainline_Support/README.md
+    retrieved_at: 2026-11-23
+    note: Mainline inkling2_loop weights have a .gguf_file source suffix. Use with the matching F16 vision projector and the upstream correction for repeated-layer expert scales. The main stores 26070390272 tensor elements. Windows CUDA at 8192 context passed text and JPEG input on RTX 5090. The 32 GiB RAM and 24 GiB VRAM recommendations are reference estimates for this configuration.

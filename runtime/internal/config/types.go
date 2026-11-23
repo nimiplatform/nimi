@@ -141,7 +141,7 @@ type Config struct {
 	EngineLlamaEnabled bool
 
 	// EngineLlamaVersion is the managed llama engine version.
-	// Default: "b11960". (K-LENG-004)
+	// Default: "b12648". (K-LENG-004)
 	EngineLlamaVersion string
 
 	// EngineLlamaPort is the port for the supervised llama instance.

@@ -70,6 +70,36 @@ func TestLlamaDriversProjectBoundedGGUFIdentityBeforeTruncatedMetadata(t *testin
 	}
 }
 
+func TestInklingMainlineBindingRequiresReviewedContent(t *testing.T) {
+	driver := LlamaTextDriver{}
+	if _, reason := driver.ProjectRecipeForHost(LlamaInkling2MiniRecipeID, nil, []string{inputImageFeature}, "darwin/arm64"); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+		t.Fatalf("unadmitted Metal recipe: %v", reason)
+	}
+	requirements, reason := driver.ProjectRecipeForHost(LlamaInkling2MiniRecipeID, nil, []string{inputImageFeature}, "windows/amd64")
+	if reason != success || len(requirements) != 2 || requirements[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL {
+		t.Fatalf("Inkling recipe requirements: %v, %v", requirements, reason)
+	}
+	const digest = "e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3" // pragma: allowlist secret -- public mainline model digest
+	main := ModelAssetBindingInput{
+		RecipeID: LlamaInkling2MiniRecipeID, Requirement: requirements[0],
+		Binding: &runtimev1.ModelAssetExactBinding{RequirementId: MainGGUFRequirementID, ModelAssetId: "model/test", VerifiedContentId: "sha256:" + digest, EntrySha256: digest},
+	}
+	for _, tc := range []struct {
+		architecture, sha string
+		want              bool
+	}{
+		{"inkling2_loop", digest, true}, {"inkling2_loop", strings.Repeat("a", 64), false}, {"gemma4", digest, false},
+	} {
+		raw := boundedLLMGGUFProbeWithTruncatedTokenizer(t, tc.architecture, 1048576)
+		main.Entry = ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(raw)), FormatProbe: raw}
+		main.Binding.VerifiedContentId, main.Binding.EntrySha256 = "sha256:"+tc.sha, tc.sha
+		projection, reason := projectLlamaBindingForTest(driver, main)
+		if (reason == success) != tc.want || tc.want && projection.ModelContextWindowTokens != 1048576 {
+			t.Fatalf("architecture %s, content %s: context=%d reason=%v", tc.architecture, tc.sha, projection.ModelContextWindowTokens, reason)
+		}
+	}
+}
+
 func boundedLLMGGUFProbeWithTruncatedTokenizer(t *testing.T, architecture string, contextLength uint32) []byte {
 	t.Helper()
 	var probe bytes.Buffer

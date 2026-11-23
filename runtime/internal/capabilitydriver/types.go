@@ -44,6 +44,7 @@ const (
 	LlamaQwen35RecipeID          = "llama.text-generate.qwen35-4b.v1"
 	LlamaQwen35VisionRecipeID    = "llama.text-generate.qwen35-4b-vision.v1"
 	LlamaQwen38RecipeID          = "llama.text-generate.qwen38-27b.v1"
+	LlamaInkling2MiniRecipeID    = "llama.text-generate.inkling2-mini.v1"
 	LlamaLFM3RecipeID            = "llama.text-generate.lfm3-1.7b.v1"
 	LlamaGemma412BRecipeID       = "llama.text-generate.gemma4-12b-unified.v1"
 	LlamaEmbedGGUFRecipeID       = "llama.text-embed.gguf.v1"

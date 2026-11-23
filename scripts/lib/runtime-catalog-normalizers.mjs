@@ -845,6 +845,13 @@ function normalizeLocalVariant(raw, modelID, installEntry, options = {}) {
     variant.repo = repo;
     variant.revision = revision;
   }
+  if (raw.source_entry !== undefined) {
+    if (options.installKind !== 'weights' || typeof raw.source_entry !== 'string'
+        || !canonicalLocalArchivePath(raw.source_entry) || !/^[A-Za-z0-9._/-]+$/u.test(raw.source_entry)) {
+      throw new Error(`${label} source_entry must be a canonical Hugging Face weights path`);
+    }
+    variant.source_entry = raw.source_entry;
+  }
   if (driverBackend) {
     variant.driver_backend = driverBackend;
   }

@@ -464,6 +464,28 @@ loadout_recipes:
         model_contract:
           format: gguf
           artifact_role: mmproj
+  - recipe_id: llama.text-generate.inkling2-mini.v1
+    revision: "1"
+    title: Inkling 2 Mini image and text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Inkling 2 Mini mainline model
+        recommended_variant_ids: [local.chat.inkling-2-mini.ud-q4-k-xl.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [inkling2_loop]
+      - slot_id: companion.mmproj
+        display_label: Inkling 2 Mini F16 vision projector
+        recommended_variant_ids: [local.aux.inkling-2-mini.mmproj-f16.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-generate.qwen38-27b.v1
     revision: "1"
     title: Qwen3.8 27B image and text (Windows CUDA)

@@ -216,7 +216,17 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 		facts.TemplateIdentity, _ = ggufmeta.LLMChatTemplateIdentity(summary)
 		facts.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	case CompanionMMProjRequirementID:
-		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
+		if input.RecipeID == LlamaInkling2MiniRecipeID {
+			summary, err := ggufmeta.InspectMetadataUntilString(reader, "clip.vision.projector_type")
+			if err != nil {
+				return nil, err
+			}
+			projector, _ := summary.StringValue("clip.vision.projector_type")
+			if ggufmeta.LLMDetectedArchitecture(summary) != "clip" || projector != "inkling2v" {
+				return nil, fmt.Errorf("Inkling 2 Mini vision projector mismatch")
+			}
+			facts.Architecture = "clip"
+		} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
 			summary, inspectErr := ggufmeta.Inspect(reader)
 			if failure := reader.actualFailure(); failure != nil {
 				return nil, failure

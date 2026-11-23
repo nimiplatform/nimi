@@ -3559,6 +3559,50 @@ models:
       context_length: 8192
       authored_context_length: 262144
       kv_cache_bytes_per_token: 16384
+  - model_id: inkling-2-mini-local
+    provider: local
+    model_type: chat
+    updated_at: 2026-11-23
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/thinkingmachines/Inkling-2-Mini/tree/b85c3cfa615fc413cc9af3379f491b963f3b586a
+      retrieved_at: 2026-11-23
+      note: Official text and image input model, text output, Apache-2.0.
+    family: inkling2_loop
+    install:
+      repo: unsloth/Inkling-2-Mini-GGUF
+      revision: 45fd08764f2b0bf16b03a5483a80e5c7aaec8772
+      install_kind: weights
+      entry: Inkling-2-Mini-UD-Q4_K_XL.gguf
+      artifact_roles:
+        - llm
+      license: Apache-2.0
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.inkling-2-mini.ud-q4-k-xl.cuda
+        quant: UD-Q4_K_XL
+        entry: Inkling-2-Mini-UD-Q4_K_XL.gguf
+        files:
+          - Inkling-2-Mini-UD-Q4_K_XL.gguf
+        hashes:
+          Inkling-2-Mini-UD-Q4_K_XL.gguf: sha256:e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3
+        total_size_bytes: 17629760736
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+        source_entry: Mainline_Support/Inkling-2-Mini-UD-Q4_K_XL.gguf_file
+    fitness:
+      param_count: 26070390272
+      context_length: 8192
   - model_id: whisper-large-v3-turbo-local
     provider: local
     model_type: stt
@@ -6929,6 +6973,42 @@ models:
           accelerator: cuda
           min_ram_bytes: 268435456
           min_vram_bytes: 268435456
+  - model_id: asset-inkling-2-mini-mmproj
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-11-23
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/thinkingmachines/Inkling-2-Mini/tree/b85c3cfa615fc413cc9af3379f491b963f3b586a
+      retrieved_at: 2026-11-23
+      note: Official text and image input model, text output, Apache-2.0.
+    family: inkling2_loop
+    install:
+      repo: unsloth/Inkling-2-Mini-GGUF
+      revision: 45fd08764f2b0bf16b03a5483a80e5c7aaec8772
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+      license: Apache-2.0
+    variants:
+      - variant_id: local.aux.inkling-2-mini.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f
+        total_size_bytes: 639348160
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-decision-laya-typed-decisions
     provider: local
     model_type: auxiliary
@@ -12487,6 +12567,38 @@ loadout_recipes:
           - local.aux.qwen3.5-4b.mmproj-f16.cuda
         recommended_content_ids:
           - sha256:cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
+  - recipe_id: llama.text-generate.inkling2-mini.v1
+    revision: "1"
+    title: Inkling 2 Mini image and text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options:
+      contextSize: 8192
+      gpuLayers: 99
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Inkling 2 Mini mainline model
+        recommended_variant_ids:
+          - local.chat.inkling-2-mini.ud-q4-k-xl.cuda
+        recommended_content_ids:
+          - sha256:e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - inkling2_loop
+      - slot_id: companion.mmproj
+        display_label: Inkling 2 Mini F16 vision projector
+        recommended_variant_ids:
+          - local.aux.inkling-2-mini.mmproj-f16.cuda
+        recommended_content_ids:
+          - sha256:3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f
         model_contract:
           format: gguf
           artifact_role: mmproj

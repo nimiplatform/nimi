@@ -169,6 +169,9 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		}
 		releaseArchive := strings.TrimSpace(model.Install.InstallKind) == LocalInstallKindReleaseArchive
 		for _, variant := range model.Variants {
+			if variant.SourceEntry != "" && (model.Install.InstallKind != "weights" || !ValidHFWeightsSourceEntry(variant.SourceEntry)) {
+				return fmt.Errorf("local variant %q has invalid source_entry", variant.VariantID)
+			}
 			if (variant.Archive != nil) != releaseArchive {
 				return fmt.Errorf("local variant %q archive must be declared exactly for install_kind %s", variant.VariantID, LocalInstallKindReleaseArchive)
 			}
@@ -242,6 +245,13 @@ func ValidateLocalPlaneArchive(repo string, revision string, archive LocalPlaneA
 		}
 	}
 	return nil
+}
+
+var hfWeightsPathCharacters = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
+
+// ValidHFWeightsSourceEntry accepts only an unescaped file path inside the pinned repository.
+func ValidHFWeightsSourceEntry(value string) bool {
+	return canonicalArchivePath(value) && hfWeightsPathCharacters.MatchString(value)
 }
 
 func canonicalArchivePath(value string) bool {

@@ -397,7 +397,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			Message: "install plan does not match its catalog offer", ActionHint: "resolve_model_install_plan",
 		})
 	}
-	githubCommitFiles, err := s.catalogGitHubCommitForPlan(plan)
+	githubCommitFiles, sourceEntry, err := s.catalogFileSourceForPlan(plan)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{})
 	}
@@ -419,6 +419,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		planID:            plan.GetPlanId(),
 		archive:           archive,
 		githubCommitFiles: githubCommitFiles,
+		sourceEntry:       sourceEntry,
 	}, "")
 	if err != nil {
 		return nil, modelInstallRPCError(err)
@@ -446,4 +447,35 @@ func modelInstallRPCError(err error) error {
 		})
 	}
 	return err
+}
+
+// @nimi-authority: rule.nimi.runtime.model-catalog.r032
+// Source selection is resolved once from exact current catalog facts and then
+// retained in the durable transfer. Resume never reinterprets mutable catalog.
+func (s *Service) catalogFileSourceForPlan(plan *runtimev1.LocalInstallPlanDescriptor) (githubCommit bool, sourceEntry string, err error) {
+	if s.localProviderCatalog == nil {
+		return false, "", nil
+	}
+	for _, row := range s.localProviderCatalog.LocalPlaneModels() {
+		if row.Install == nil {
+			continue
+		}
+		github := row.Install.InstallKind == githubCommitInstallKind
+		for _, variant := range row.Variants {
+			if (!github && variant.SourceEntry == "") || variant.VariantID != plan.GetTemplateId() {
+				continue
+			}
+			repo, commit := catalogVariantSource(row, variant)
+			if (github && !validGitHubCommitSource(repo, commit)) || plan.GetRepo() != repo || plan.GetRevision() != commit || plan.GetEntry() != variant.Entry || plan.GetTotalSizeBytes() != variant.TotalSizeBytes || len(plan.GetFiles()) != len(variant.Files) {
+				return false, "", fmt.Errorf("model file plan no longer matches its offer")
+			}
+			for i, file := range variant.Files {
+				if plan.GetFiles()[i] != file || normalizeExactSHA256Hex(plan.GetHashes()[file]) != normalizeExactSHA256Hex(variant.Hashes[file]) {
+					return false, "", fmt.Errorf("model file plan integrity changed")
+				}
+			}
+			return github, variant.SourceEntry, nil
+		}
+	}
+	return false, "", nil
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -51,6 +52,7 @@ var errModelDownloadHashMismatch = errors.New("model file hash mismatch")
 // result (created or reused, final model_asset_id) lives separately on the
 // transfer.
 type managedDownloadedModelSpec struct {
+	sourceEntry       string
 	githubCommitFiles bool
 	modelID           string
 	displayName       string
@@ -463,7 +465,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		}
 		size := completedSize
 		if !completed {
-			_, err = s.downloadManagedModelFile(ctx, transferID, spec.repo, spec.revision, spec.githubCommitFiles, relativeFile, targetPath, spec.hashes, received, bundleTotal, index == len(files)-1)
+			_, err = s.downloadManagedModelFile(ctx, transferID, spec, relativeFile, targetPath, received, bundleTotal, index == len(files)-1)
 			if err != nil {
 				switch {
 				case errors.Is(err, errLocalTransferCancelled):
@@ -757,6 +759,12 @@ func canonicalManagedDownloadedModelSpec(input managedDownloadedModelSpec) (mana
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
 		planID:            strings.TrimSpace(input.planID),
 		githubCommitFiles: input.githubCommitFiles,
+		sourceEntry:       input.sourceEntry,
+	}
+	if result.sourceEntry != "" {
+		if !catalog.ValidHFWeightsSourceEntry(result.sourceEntry) || !hfCommitRevisionPattern.MatchString(result.revision) || result.githubCommitFiles || input.archive != nil {
+			return managedDownloadedModelSpec{}, errors.New("invalid Hugging Face source entry")
+		}
 	}
 	if result.githubCommitFiles {
 		if input.archive != nil || !validGitHubCommitSource(result.repo, result.revision) {
@@ -841,6 +849,7 @@ func cloneManagedDownloadedModelSpec(input managedDownloadedModelSpec) managedDo
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
 		planID:            input.planID,
 		githubCommitFiles: input.githubCommitFiles,
+		sourceEntry:       input.sourceEntry,
 		archive:           cloneManagedModelArchiveSource(input.archive),
 	}
 }
@@ -860,6 +869,7 @@ func localStateManagedDownloadSpec(input managedDownloadedModelSpec) *localState
 		SourceProvenance:  input.sourceProvenance,
 		Repo:              input.repo,
 		GitHubCommitFiles: input.githubCommitFiles,
+		SourceEntry:       input.sourceEntry,
 		Revision:          input.revision,
 		Hashes:            cloneStringMap(input.hashes),
 		TotalSizeBytes:    input.totalSizeBytes,
@@ -886,6 +896,7 @@ func managedDownloadedModelSpecFromLocalState(input *localStateManagedModelDownl
 		sourceProvenance:  input.SourceProvenance,
 		repo:              input.Repo,
 		githubCommitFiles: input.GitHubCommitFiles,
+		sourceEntry:       input.SourceEntry,
 		revision:          input.Revision,
 		hashes:            cloneStringMap(input.Hashes),
 		totalSizeBytes:    input.TotalSizeBytes,
@@ -921,34 +932,35 @@ func (s *Service) resolveManagedBundleModelsRoot() (string, error) {
 func (s *Service) downloadManagedModelFile(
 	ctx context.Context,
 	sessionID string,
-	repo string,
-	revision string,
-	githubCommitFiles bool,
+	spec managedDownloadedModelSpec,
 	relativeFile string,
 	targetPath string,
-	hashes map[string]string,
 	completedBytes int64,
 	bundleTotal int64,
 	isLastFile bool,
 ) (string, error) {
+	sourceFile := relativeFile
+	if relativeFile == spec.entry && spec.sourceEntry != "" {
+		sourceFile = spec.sourceEntry
+	}
 	requestURL, err := buildHFResolveURL(
 		defaultString(strings.TrimSpace(s.hfDownloadBaseURL), defaultHFDownloadBaseURL),
-		repo,
-		defaultString(revision, "main"),
-		relativeFile,
+		spec.repo,
+		defaultString(spec.revision, "main"),
+		sourceFile,
 	)
 	if err != nil {
 		return "", err
 	}
 	var redirect func(*http.Request, []*http.Request) error
-	if githubCommitFiles {
-		requestURL, err = buildGitHubCommitFileURL(repo, revision, relativeFile)
+	if spec.githubCommitFiles {
+		requestURL, err = buildGitHubCommitFileURL(spec.repo, spec.revision, relativeFile)
 		if err != nil {
 			return "", err
 		}
 		redirect = gitHubCommitFileRedirect
 	}
-	expectedHash := expectedModelSHA256(hashes, relativeFile)
+	expectedHash := expectedModelSHA256(spec.hashes, relativeFile)
 	if expectedHash == "" {
 		return "", fmt.Errorf("model file %q requires admitted expected sha256 before download", relativeFile)
 	}

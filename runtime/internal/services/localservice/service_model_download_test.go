@@ -84,6 +84,41 @@ func TestInstallManagedDownloadedModelCreatesContentOnlyModelAsset(t *testing.T)
 	}
 }
 
+func TestManagedWeightsAlternateEntrySurvivesResume(t *testing.T) {
+	svc := newTestService(t)
+	payload := validTestGGUF()
+	sum := sha256.Sum256(payload)
+	const entry = "model.gguf"
+	const source = "Mainline_Support/model.gguf_file"
+	const revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	spec := managedDownloadedModelSpec{
+		modelID: "reviewed-model", repo: "owner/model", revision: revision,
+		entry: entry, sourceEntry: source, files: []string{entry},
+		hashes: map[string]string{entry: "sha256:" + hex.EncodeToString(sum[:])},
+		kind:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/owner/model/resolve/"+revision+"/"+source {
+			http.NotFound(w, r)
+			return
+		}
+		serveModelWithRange(w, r, payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+	resumed, err := managedDownloadedModelSpecFromLocalState(localStateManagedDownloadSpec(cloneManagedDownloadedModelSpec(spec)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := svc.installManagedDownloadedModel(context.Background(), resumed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.GetEntry() != entry || record.GetContentId() != spec.hashes[entry] {
+		t.Fatalf("unexpected installed distribution: entry=%q content=%q", record.GetEntry(), record.GetContentId())
+	}
+}
+
 func TestManagedDownloadReturnsExistingAssetForEquivalentDistribution(t *testing.T) {
 	svc := newTestService(t)
 	payload := validTestGGUF()
@@ -464,12 +499,9 @@ func TestDownloadManagedModelFileRetriesMidStreamDrop(t *testing.T) {
 	hash, err := svc.downloadManagedModelFile(
 		context.Background(),
 		transfer.GetInstallSessionId(),
-		"Qwen/Qwen3-Embedding-8B-GGUF",
-		"main",
-		false,
+		managedDownloadedModelSpec{repo: "Qwen/Qwen3-Embedding-8B-GGUF", revision: "main", hashes: map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])}},
 		"model.gguf",
 		targetPath,
-		map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
 		0,
 		int64(len(modelBytes)),
 		true,
