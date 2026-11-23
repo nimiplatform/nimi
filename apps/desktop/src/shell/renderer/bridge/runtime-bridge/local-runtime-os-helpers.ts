@@ -26,7 +26,7 @@ export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
     kind: 'file',
     title: 'Select asset file to import',
     filters: [
-      { name: 'Asset Files', extensions: ['gguf', 'safetensors', 'bin', 'pt', 'onnx', 'pth'] },
+      { name: 'Asset Files', extensions: ['gguf', 'gguf_file', 'safetensors', 'bin', 'pt', 'onnx', 'pth'] },
       { name: 'All Files', extensions: ['*'] },
     ],
   }));

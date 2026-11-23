@@ -14,12 +14,15 @@ import type {
 import { createNimiError } from '@nimiplatform/sdk/types';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
+  buildLoadoutCreateOptions,
   installAndBindRuntimeConfigRecommendedLoadout,
   loadoutAssetLabel,
   loadoutCapabilityLabelKey,
+  parseLoadoutCreateContextOption,
   partitionRuntimeConfigRecipeTemplates,
   recommendedInstallItems,
   recommendedInstallMessage,
+  resolveLoadoutCreateContextOption,
   runtimeConfigLoadoutCandidateAssets,
   runtimeConfigRecommendedLoadoutModelAxes,
   summarizeRuntimeConfigRecipeDownloads,
@@ -536,6 +539,71 @@ test('recommended Loadout model axes only carry fully bound pairs', async () => 
   assert.deepEqual(updates[0]?.modelAxes, [
     { slotId: 'main.diffusion', modelAssetId: 'asset-sdxl', expectedContentId: recommendedContentId },
   ]);
+});
+
+test('manual text Loadout create draft preserves r061 catalog fits and never silently drops invalid contextSize', async () => {
+  const reducedRecommendedRecipe = {
+    capabilityContract: 'text.generate',
+    defaultOptions: {},
+    recommendedOptions: { contextSize: 90112 },
+    slots: [
+      {
+        slotId: 'main.gguf',
+        presence: 'required',
+        recommendedContextFit: { authoredContextSize: 131072, recommendedContextSize: 90112, recommendedOptions: { contextSize: 90112 } },
+        offers: [
+          {
+            installedModelAssetId: 'asset-reduced',
+            contextFit: { authoredContextSize: 131072, recommendedContextSize: 16384, recommendedOptions: { contextSize: 16384 } },
+          },
+          {
+            installedModelAssetId: 'asset-full-fit',
+            contextFit: { authoredContextSize: 32768, recommendedContextSize: 32768, recommendedOptions: {} },
+          },
+        ],
+      },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+  const fullRecommendedRecipe = {
+    capabilityContract: 'text.generate',
+    defaultOptions: {},
+    recommendedOptions: {},
+    slots: [
+      {
+        slotId: 'main.gguf',
+        presence: 'required',
+        recommendedContextFit: { authoredContextSize: 131072, recommendedContextSize: 131072, recommendedOptions: {} },
+        offers: [],
+      },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+
+  // Empty-store recommended install preserves r061 recommendedContextFit.
+  assert.equal(resolveLoadoutCreateContextOption(reducedRecommendedRecipe, {}), '90112');
+  assert.equal(resolveLoadoutCreateContextOption(fullRecommendedRecipe, {}), '');
+  // An imported model with no offer uses its native limit, even if below 8192.
+  const manualContext = resolveLoadoutCreateContextOption(reducedRecommendedRecipe, { 'main.gguf': 'asset-manual-4k' });
+  assert.equal(manualContext, '');
+  assert.deepEqual(buildLoadoutCreateOptions(reducedRecommendedRecipe, manualContext), {});
+  // Positive integers below 256 (e.g. 128) are honored explicitly rather than silently dropped to native context.
+  assert.deepEqual(parseLoadoutCreateContextOption('128'), { valid: true, contextSize: 128 });
+  assert.deepEqual(buildLoadoutCreateOptions(reducedRecommendedRecipe, '128'), { contextSize: 128 });
+  // Clearing the field exclusively means automatic (omit contextSize).
+  assert.deepEqual(parseLoadoutCreateContextOption(''), { valid: true });
+  assert.deepEqual(buildLoadoutCreateOptions(reducedRecommendedRecipe, ''), {});
+  // Non-empty invalid inputs fail validation instead of silently falling back to native context.
+  for (const bad of ['0', '-128', 'abc', '12.5', '08192']) {
+    assert.deepEqual(parseLoadoutCreateContextOption(bad), { valid: false });
+    assert.throws(() => buildLoadoutCreateOptions(reducedRecommendedRecipe, bad));
+  }
+  // Catalog offer with reduced r061 fit pre-fills that reduced size; full-fit offer keeps automatic (empty).
+  assert.equal(resolveLoadoutCreateContextOption(reducedRecommendedRecipe, { 'main.gguf': 'asset-reduced' }), '16384');
+  assert.equal(resolveLoadoutCreateContextOption(reducedRecommendedRecipe, { 'main.gguf': 'asset-full-fit' }), '');
+
+  // Create flow must bind pending recommended install to the exact committed Loadout return value (no re-query race).
+  const source = await readFile(path.join(rendererDir, 'features', 'runtime-config', 'runtime-config-page-loadouts.tsx'), 'utf8');
+  assert.match(source, /const created = await loadoutsClient\.commit\(prepared\.prepareId, false\);/u);
+  assert.doesNotMatch(source, /matches\[matches\.length - 1\]/u);
 });
 
 test('Loadout axis update omits unresolved axes and preserves inventory-missing sibling bindings', () => {

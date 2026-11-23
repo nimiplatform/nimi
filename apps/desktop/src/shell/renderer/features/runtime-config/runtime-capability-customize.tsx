@@ -22,6 +22,10 @@ import {
   type LoadoutModelPresentation,
   type NimiLoadoutRecipeSlot,
 } from './runtime-config-loadout-model-display.js';
+import {
+  buildLoadoutCreateOptions,
+  resolveLoadoutCreateContextOption,
+} from './runtime-config-page-loadouts.js';
 import type { RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 
 const NOT_USED = '__not-used__';
@@ -144,20 +148,33 @@ export function RuntimeCapabilityCustomize(props: {
 }) {
   const { t } = useTranslation();
   const { recipe } = props;
-  const initial = useMemo<RuntimeSetupTaskDraft>(() => ({
-    recipeId: recipe.recipeId,
-    options: (props.selected?.options ?? recipe.defaultOptions ?? {}) as RuntimeSetupTaskDraft['options'],
-    axes: (props.selected?.modelAxes ?? []).filter((axis) => axis.modelAssetId && axis.expectedContentId)
-      .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId })),
-    disabledOptionalSlots: recipe.slots.filter((slot) => props.selected && slot.presence === 'optional-conditional'
-      && !props.selected?.modelAxes.some((axis) => axis.slotId === slot.slotId && axis.modelAssetId))
-      .map((slot) => slot.slotId),
-    preferredOffers: {},
-    pendingAxes: [],
-  }), [props.selected, recipe]);
+  const initial = useMemo<RuntimeSetupTaskDraft>(() => {
+    const initialAxes = (props.selected?.modelAxes ?? []).filter((axis) => axis.modelAssetId && axis.expectedContentId)
+      .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId }));
+    const initialOptions = props.selected
+      ? (props.selected.options ?? {})
+      : (buildLoadoutCreateOptions(
+        recipe,
+        resolveLoadoutCreateContextOption(
+          recipe,
+          Object.fromEntries(initialAxes.map((axis) => [axis.slotId, axis.modelAssetId])),
+        ),
+      ) ?? recipe.recommendedOptions ?? recipe.defaultOptions ?? {});
+    return {
+      recipeId: recipe.recipeId,
+      options: initialOptions as RuntimeSetupTaskDraft['options'],
+      axes: initialAxes,
+      disabledOptionalSlots: recipe.slots.filter((slot) => props.selected && slot.presence === 'optional-conditional'
+        && !props.selected?.modelAxes.some((axis) => axis.slotId === slot.slotId && axis.modelAssetId))
+        .map((slot) => slot.slotId),
+      preferredOffers: {},
+      pendingAxes: [],
+    };
+  }, [props.selected, recipe]);
   const initialText = useMemo(() => JSON.stringify(initial.options ?? {}, null, 2), [initial]);
   const [draft, setDraft] = useState(initial);
   const [optionsText, setOptionsText] = useState(initialText);
+  const [optionsEdited, setOptionsEdited] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState('');
 
@@ -170,10 +187,12 @@ export function RuntimeCapabilityCustomize(props: {
   const disabledSlots = new Set(draft.disabledOptionalSlots ?? []);
 
   const writeOptions = (next: NimiJsonObject) => {
+    setOptionsEdited(true);
     setDraft((current) => ({ ...current, options: next }));
     setOptionsText(JSON.stringify(next, null, 2));
   };
   const onOptionsText = (text: string) => {
+    setOptionsEdited(true);
     setOptionsText(text);
     const next = parseOptions(text);
     if (next) setDraft((current) => ({ ...current, options: next }));
@@ -188,6 +207,10 @@ export function RuntimeCapabilityCustomize(props: {
       preferredOffers: withoutSlot(current.preferredOffers, slot.slotId),
       pendingAxes: (current.pendingAxes ?? []).filter((axis) => axis.slotId !== slot.slotId),
     });
+    const syncUneditedContextOptions = (nextOptions: NimiJsonObject | undefined) => {
+      if (props.selected || optionsEdited || !nextOptions) return;
+      setOptionsText(JSON.stringify(nextOptions, null, 2));
+    };
     if (next === NOT_USED) {
       setDraft((current) => ({
         ...current,
@@ -200,11 +223,23 @@ export function RuntimeCapabilityCustomize(props: {
       const offer = slot.offers.find((item) => item.candidate.offerRef === next.slice('offer:'.length));
       if (!offer || offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable)) return;
       // Acquisition is reviewed in the preparation list; the pick is recorded as its preferred choice.
+      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && recipe.capabilityContract === 'text.generate' && recipe.defaultOptions.contextSize === undefined
+        ? (offer.contextFit
+          ? buildLoadoutCreateOptions(
+            recipe,
+            offer.contextFit.recommendedContextSize < offer.contextFit.authoredContextSize
+              ? String(offer.contextFit.recommendedContextSize)
+              : '',
+          )
+          : buildLoadoutCreateOptions(recipe, ''))
+        : undefined) as RuntimeSetupTaskDraft['options'];
+      syncUneditedContextOptions(syncedOptions);
       setDraft((current) => {
         const rest = others(current);
         return {
           ...current,
           ...rest,
+          ...(syncedOptions ? { options: syncedOptions } : {}),
           disabledOptionalSlots: enabledSlots(current),
           preferredOffers: { ...rest.preferredOffers, [slot.slotId]: offer.candidate.offerRef },
         };
@@ -214,11 +249,16 @@ export function RuntimeCapabilityCustomize(props: {
     if (next.startsWith('asset:')) {
       const asset = props.assets.find((entry) => entry.modelAssetId === next.slice('asset:'.length));
       if (!asset) return;
+      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && recipe.capabilityContract === 'text.generate' && recipe.defaultOptions.contextSize === undefined
+        ? buildLoadoutCreateOptions(recipe, resolveLoadoutCreateContextOption(recipe, { [slot.slotId]: asset.modelAssetId }))
+        : undefined) as RuntimeSetupTaskDraft['options'];
+      syncUneditedContextOptions(syncedOptions);
       setDraft((current) => {
         const rest = others(current);
         return {
           ...current,
           ...rest,
+          ...(syncedOptions ? { options: syncedOptions } : {}),
           disabledOptionalSlots: enabledSlots(current),
           axes: [...rest.axes, { slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId }],
         };

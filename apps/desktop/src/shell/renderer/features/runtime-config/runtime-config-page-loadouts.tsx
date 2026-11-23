@@ -112,6 +112,8 @@ export function SavedConfigsView(props: {
   const [recipeId, setRecipeId] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [createAxes, setCreateAxes] = useState<Record<string, string>>({});
+  const [createContextSize, setCreateContextSize] = useState('');
+  const [createContextEdited, setCreateContextEdited] = useState(false);
   const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, EditDraft>>({});
   const [manageLoadoutId, setManageLoadoutId] = useState<string | null>(props.initialLoadoutId ?? null);
@@ -244,6 +246,8 @@ export function SavedConfigsView(props: {
     setRecipeId('');
     setDisplayName('');
     setCreateAxes({});
+    setCreateContextSize('');
+    setCreateContextEdited(false);
     setPickerSlotId(null);
     if (capability) {
       setCreateCapability(capability);
@@ -260,6 +264,8 @@ export function SavedConfigsView(props: {
     setRecipeId('');
     setDisplayName('');
     setCreateAxes({});
+    setCreateContextSize('');
+    setCreateContextEdited(false);
     setPickerSlotId(null);
     setCreateStep(2);
   }, []);
@@ -270,7 +276,10 @@ export function SavedConfigsView(props: {
       defaultValue: recipe.capabilityContract,
     });
     setDisplayName(`${capabilityLabel} · ${recipe.title}`);
-    setCreateAxes(recommendedAxisSelections(recipe, assets));
+    const initialAxes = recommendedAxisSelections(recipe, assets);
+    setCreateAxes(initialAxes);
+    setCreateContextSize(resolveLoadoutCreateContextOption(recipe, initialAxes));
+    setCreateContextEdited(false);
     setPickerSlotId(null);
     setCreateStep(3);
     setShowCreate(true);
@@ -296,7 +305,15 @@ export function SavedConfigsView(props: {
       setRecipeId(recipe.recipeId);
       setCreateCapability(recipe.capabilityContract);
       setDisplayName(context.draft.displayName);
-      setCreateAxes(resolveLoadoutReturnedDraftAxes(recipe, context));
+      const returnedAxes = resolveLoadoutReturnedDraftAxes(recipe, context);
+      setCreateAxes(returnedAxes);
+      if (context.draft.contextSizeEdited) {
+        setCreateContextSize(context.draft.contextSize ?? '');
+        setCreateContextEdited(true);
+      } else {
+        setCreateContextSize(resolveLoadoutCreateContextOption(recipe, returnedAxes));
+        setCreateContextEdited(false);
+      }
       setPickerSlotId(null);
       setCreateStep(3);
       setShowCreate(true);
@@ -322,9 +339,15 @@ export function SavedConfigsView(props: {
     }
   }, [busy, refresh, refreshAIConfigProjections, t]);
 
+  const createContextValidation = useMemo(() => (
+    selectedRecipe && selectedRecipe.capabilityContract === 'text.generate' && selectedRecipe.defaultOptions.contextSize === undefined
+      ? parseLoadoutCreateContextOption(createContextSize)
+      : { valid: true as const }
+  ), [createContextSize, selectedRecipe]);
+
   // @nimi-authority: rule.nimi.runtime.model-catalog.r036
   const create = useCallback(() => {
-    if (!selectedRecipe || !displayName.trim()) return;
+    if (!selectedRecipe || !displayName.trim() || !createContextValidation.valid) return;
     const recipe = selectedRecipe;
     const name = displayName.trim();
     const items = recommendations;
@@ -336,7 +359,7 @@ export function SavedConfigsView(props: {
       const prepared = await loadoutsClient.prepare({
         capabilityContract: recipe.capabilityContract,
         recipeId: recipe.recipeId,
-        options: recipe.defaultOptions,
+        options: buildLoadoutCreateOptions(recipe, createContextSize),
         displayName: name,
         modelAxes,
       });
@@ -346,7 +369,7 @@ export function SavedConfigsView(props: {
         setPendingInstall({ recipe, items, loadout: created });
       }
     });
-  }, [assets, createAxes, displayName, loadoutsClient, recommendations, run, selectedRecipe]);
+  }, [assets, createAxes, createContextSize, createContextValidation.valid, displayName, loadoutsClient, recommendations, run, selectedRecipe]);
 
   const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => {
     const items = recommendedInstallItems(recipe, loadout ? modelAssetIdsForLoadout(loadout) : {});
@@ -642,7 +665,7 @@ export function SavedConfigsView(props: {
                   size="sm"
                   tone="primary"
                   loading={busy === 'create'}
-                  disabled={!selectedRecipe || !displayName.trim()}
+                  disabled={!selectedRecipe || !displayName.trim() || !createContextValidation.valid}
                   onClick={create}
                 >
                   {missingRecommendations.length > 0 ? t('runtimeConfig.loadouts.commitDownload') : t('runtimeConfig.loadouts.commit')}
@@ -756,7 +779,13 @@ export function SavedConfigsView(props: {
                   selectedAssetId={pickerSlotId ? createAxes[pickerSlotId] ?? '' : ''}
                   onSelect={(modelAssetId) => {
                     if (!pickerSlotId) return;
-                    setCreateAxes((current) => ({ ...current, [pickerSlotId]: modelAssetId }));
+                    setCreateAxes((current) => {
+                      const next = { ...current, [pickerSlotId]: modelAssetId };
+                      if (!createContextEdited && selectedRecipe) {
+                        setCreateContextSize(resolveLoadoutCreateContextOption(selectedRecipe, next));
+                      }
+                      return next;
+                    });
                   }}
                   onOpenOffer={(offer) => {
                     const slot = selectedRecipe.slots.find((item) => item.slotId === pickerSlotId);
@@ -768,11 +797,43 @@ export function SavedConfigsView(props: {
                       recipeRevision: selectedRecipe.revision,
                       slotId: slot.slotId,
                       candidate: offer.candidate,
-                      draft: { displayName, modelAssetIds: { ...createAxes } },
+                      draft: {
+                        displayName,
+                        modelAssetIds: { ...createAxes },
+                        contextSize: createContextSize,
+                        contextSizeEdited: createContextEdited,
+                      },
                     });
                   }}
                   onClose={() => setPickerSlotId(null)}
                 />
+                {selectedRecipe.capabilityContract === 'text.generate' && selectedRecipe.defaultOptions.contextSize === undefined ? (
+                  <label className="grid gap-1 text-sm">
+                    <span>{t('runtimeConfig.loadouts.contextSize')}</span>
+                    <TextField
+                      data-testid="create-loadout-context-size"
+                      inputMode="numeric"
+                      placeholder={t('runtimeConfig.loadouts.contextSizeAuto')}
+                      value={createContextSize}
+                      onChange={(event) => {
+                        setCreateContextEdited(true);
+                        setCreateContextSize(event.currentTarget.value);
+                      }}
+                    />
+                    {!createContextValidation.valid ? (
+                      <span
+                        data-testid="create-loadout-context-size-error"
+                        className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger)]"
+                      >
+                        {t('runtimeConfig.loadouts.contextSizeInvalid')}
+                      </span>
+                    ) : (
+                      <span className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                        {t('runtimeConfig.loadouts.contextSizeHint')}
+                      </span>
+                    )}
+                  </label>
+                ) : null}
                 {missingRequiredSlots.length > 0 ? (
                   <InlineAlert tone="warning">
                     <p>{t('runtimeConfig.loadouts.missingSlots', {
@@ -1402,6 +1463,69 @@ export function recommendedInstallItems(
       installed: Boolean(offer.installedModelAssetId),
     }];
   });
+}
+
+export function resolveLoadoutCreateContextOption(
+  recipe: Pick<NimiLoadoutRecipe, 'capabilityContract' | 'defaultOptions' | 'slots'> & {
+    readonly recommendedOptions?: NimiLoadoutRecipe['recommendedOptions'];
+  },
+  selectedAxes: Readonly<Record<string, string>>,
+): string {
+  if (recipe.capabilityContract !== 'text.generate' || recipe.defaultOptions.contextSize !== undefined) {
+    return '';
+  }
+  const mainSlot = recipe.slots.find((slot) => slot.presence === 'required');
+  const selectedAssetId = mainSlot ? selectedAxes[mainSlot.slotId] : '';
+  if (mainSlot && selectedAssetId) {
+    const fit = mainSlot.offers.find((offer) => offer.installedModelAssetId === selectedAssetId)?.contextFit;
+    return fit && fit.recommendedContextSize < fit.authoredContextSize ? String(fit.recommendedContextSize) : '';
+  }
+  const recommendedFit = mainSlot?.recommendedContextFit;
+  if (recommendedFit) {
+    return recommendedFit.recommendedContextSize < recommendedFit.authoredContextSize
+      ? String(recommendedFit.recommendedContextSize)
+      : '';
+  }
+  const recommendedContextSize = recipe.recommendedOptions?.contextSize;
+  if (typeof recommendedContextSize === 'number' && Number.isSafeInteger(recommendedContextSize) && recommendedContextSize >= 1) {
+    return String(recommendedContextSize);
+  }
+  return '';
+}
+
+export function parseLoadoutCreateContextOption(
+  contextSizeDraft: string,
+): { readonly valid: true; readonly contextSize?: number } | { readonly valid: false } {
+  const trimmed = contextSizeDraft.trim();
+  if (!trimmed) {
+    return { valid: true };
+  }
+  if (!/^[1-9]\d*$/u.test(trimmed)) {
+    return { valid: false };
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    return { valid: false };
+  }
+  return { valid: true, contextSize: parsed };
+}
+
+export function buildLoadoutCreateOptions(
+  recipe: Pick<NimiLoadoutRecipe, 'capabilityContract' | 'defaultOptions'>,
+  contextSizeDraft: string,
+): NimiPrepareLoadoutInput['options'] {
+  const base = { ...recipe.defaultOptions };
+  if (recipe.capabilityContract !== 'text.generate' || base.contextSize !== undefined) {
+    return base;
+  }
+  const parsed = parseLoadoutCreateContextOption(contextSizeDraft);
+  if (!parsed.valid) {
+    throw new Error('Context window must be empty or a positive integer.');
+  }
+  if (parsed.contextSize !== undefined) {
+    return { ...base, contextSize: parsed.contextSize };
+  }
+  return base;
 }
 
 export function runtimeConfigRecommendedLoadoutModelAxes(

@@ -25,6 +25,8 @@ export type RuntimeConfigLoadoutNavigationContext = {
 export type RuntimeConfigLoadoutCreateDraft = {
   readonly displayName: string;
   readonly modelAssetIds: Readonly<Record<string, string>>;
+  readonly contextSize?: string;
+  readonly contextSizeEdited?: boolean;
 };
 
 export type RuntimeConfigModelMarketSlotContext = {
