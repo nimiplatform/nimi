@@ -704,7 +704,11 @@ func (d AudioCppTTSDriver) ProjectRecipe(recipeID string, options *structpb.Stru
 	if len(features) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
-	requirements := []*runtimev1.LocalCapabilityRequirement{audioCppSpeechRequirement(AudioCppTTSModelRequirementID, runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, "tts", d.spec.family, "tts_model", d.spec.displayName+" GGUF")}
+	mainPolicy := runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE
+	if len(d.spec.requiredFileSizes) > 0 {
+		mainPolicy = runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT
+	}
+	requirements := []*runtimev1.LocalCapabilityRequirement{audioCppSpeechRequirementWithPolicy(AudioCppTTSModelRequirementID, runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, "tts", d.spec.family, "tts_model", d.spec.displayName+" GGUF", mainPolicy)}
 	if d.spec.requiresCodec {
 		requirements = append(requirements, audioCppSpeechRequirement(AudioCppTTSCodecRequirementID, runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION, "codec", "miocodec", "audio_codec", "MioCodec v2 GGUF"))
 	}
@@ -813,8 +817,12 @@ func validAudioCppReferenceVoiceRef(value string) bool {
 }
 
 func audioCppSpeechRequirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind, family, artifactRole, display string) *runtimev1.LocalCapabilityRequirement {
+	return audioCppSpeechRequirementWithPolicy(id, role, resourceKind, family, artifactRole, display, runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE)
+}
+
+func audioCppSpeechRequirementWithPolicy(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind, family, artifactRole, display string, policy runtimev1.LocalCapabilityRequirementPolicy) *runtimev1.LocalCapabilityRequirement {
 	constraints, _ := structpb.NewStruct(map[string]any{"engine": "audio-cpp", "model_family": family, "artifact_role": artifactRole, "format": "gguf", "gguf_family": family})
-	return &runtimev1.LocalCapabilityRequirement{RequirementId: id, Role: role, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: resourceKind, Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: display}
+	return &runtimev1.LocalCapabilityRequirement{RequirementId: id, Role: role, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: resourceKind, Policy: policy, CompatibilityConstraints: constraints, DisplayLabel: display}
 }
 
 func (d AudioCppTTSDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {

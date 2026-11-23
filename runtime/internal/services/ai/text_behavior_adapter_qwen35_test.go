@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -9,19 +10,22 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestQwen35Q4BehaviorRegistrationIsExactAndSyncOnly(t *testing.T) {
-	registration := qwen35Q4TextBehaviorRegistration()
+func TestQwen35BehaviorRegistrationIsTemplateExactAndSyncOnly(t *testing.T) {
+	registration := qwen35TemplateTextBehaviorRegistration()
 	if !validTextBehaviorAdapterRegistration(registration) {
-		t.Fatal("Qwen3.5 Q4 behavior registration is invalid")
+		t.Fatal("Qwen3.5 behavior registration is invalid")
 	}
+	communitySHA := strings.Repeat("c", 64)
 	facts := textBehaviorAdapterResolutionFacts{
 		ImplementationID: capabilitydriver.LlamaImplementationID,
 		DriverID:         capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaDriverDialect,
 		LocalTarget: &textBehaviorLocalResolutionTarget{
-			RecipeID: capabilitydriver.LlamaQwen35RecipeID, RecipeRevision: "1",
+			RecipeID: capabilitydriver.LlamaGenericGGUFRecipeID, RecipeRevision: "1",
 			ModelContents: []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID,
-				ContentID: capabilitydriver.Qwen35Q4ContentID, EntrySHA256: capabilitydriver.Qwen35Q4EntrySHA256}},
+				ContentID: "sha256:" + communitySHA, EntrySHA256: communitySHA}},
 			TemplateIdentity: capabilitydriver.Qwen35Q4TemplateIdentity,
+			Architecture:     "qwen35",
+			TokenizerFacts:   capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolQwen3Coder),
 		},
 	}
 	tool := testTextBehaviorToolSpec()

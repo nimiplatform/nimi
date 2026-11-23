@@ -716,7 +716,11 @@ func TestLocalTextStreamEmitsStartedDeltasAndRealUsage(t *testing.T) {
 
 func TestLocalTextResolvedAssemblyRehydratesPublicChatShapedRequest(t *testing.T) {
 	svc := newTestService(nil)
-	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedTextExecutionForTest(t, "config-public-chat", "public-chat.gguf")})
+	projection := selectedTextExecutionForTest(t, "config-public-chat", "public-chat.gguf")
+	projection.ExactBindings[0].TemplateIdentity = capabilitydriver.Gemma4E2BTemplateIdentity
+	projection.ExactBindings[0].Architecture = "gemma4"
+	projection.ExactBindings[0].TokenizerFacts = capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4)
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: projection})
 	svc.SetLocalTextExecutionHost(&localTextHostStub{
 		streamDeltas: []localexecution.TextDelta{{Text: "public chat reply"}},
 		result: localexecution.TextResult{
@@ -999,7 +1003,7 @@ func selectedTextExecutionForTest(t *testing.T, configurationID string, filename
 		LoadoutID:          configurationID,
 		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
 		DisplayName:        configurationID,
-		RecipeID:           capabilitydriver.LlamaGemma4RecipeID,
+		RecipeID:           capabilitydriver.LlamaGenericGGUFRecipeID,
 		RecipeRevision:     "1",
 		DriverIdentity: (&capabilitydriver.Identity{
 			ImplementationID: capabilitydriver.LlamaImplementationID,

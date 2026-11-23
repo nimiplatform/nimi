@@ -109,7 +109,7 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(ctx context.Context, req
 		})
 	}
 	return s.resolveLocalEnvironmentPlan(ctx, localEnvironmentPlanRequest{
-		IncludeMediaCodec:  loadoutNeedsLlamaVideoCodec(loadout),
+		IncludeMediaCodec:  loadoutNeedsLlamaVideoCodec(driver, loadout),
 		PackID:             packID,
 		ConsumerScope:      consumerScope,
 		HostProfile:        hostProfile,

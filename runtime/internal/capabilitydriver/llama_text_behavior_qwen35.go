@@ -23,8 +23,13 @@ func Qwen35TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpe
 	format := spec.GetResponseFormat()
 	schemaMode := len(spec.GetTools()) == 0 && format != nil &&
 		format.GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA && format.GetStrict()
-	if !toolMode && !schemaMode {
-		return textbehavior.SerializedRequest{}, qwen35BehaviorUnsupported("Qwen3.5 admits one auto function tool or a separate strict JSON Schema request")
+	plainDisabledMode := len(spec.GetTools()) == 0 &&
+		(format == nil || format.GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_UNSPECIFIED ||
+			format.GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT) &&
+		spec.GetReasoning() != nil &&
+		spec.GetReasoning().GetActivation() == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	if !toolMode && !schemaMode && !plainDisabledMode {
+		return textbehavior.SerializedRequest{}, qwen35BehaviorUnsupported("Qwen3.5 admits one auto function tool, a separate strict JSON Schema request, or explicit disabled reasoning")
 	}
 	serialized, err := Gemma4TextBehaviorRequestSerializer(spec, false)
 	if err != nil {

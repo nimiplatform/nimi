@@ -33,6 +33,13 @@ type ExactBinding struct {
 	// TemplateIdentity is the Runtime-private digest of an exact model-authored
 	// chat template. Empty is a valid base-text state with no behavior match.
 	TemplateIdentity string
+	// Architecture is the verified GGUF general.architecture fact for local LLM
+	// bindings.
+	Architecture string
+	// TokenizerFacts are the verified GGUF tokenizer facts (BOS/EOS and
+	// control/user-defined special tokens) required by Tier 1 Text Behavior
+	// protocols.
+	TokenizerFacts capabilitydriver.LlamaTokenizerFacts
 }
 
 type ExactDependencySource struct {

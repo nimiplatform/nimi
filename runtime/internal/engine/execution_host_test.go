@@ -1028,7 +1028,7 @@ func llamaInvocationPlanForHostTest(t *testing.T, name string, portable *structp
 			EntrySHA256:       digestHex,
 		}},
 		BehaviorMatch: capabilitydriver.TextBehaviorAdapterMatchFacts{
-			RecipeID: capabilitydriver.LlamaGemma4RecipeID, RecipeRevision: "test-revision", DriverDialect: capabilitydriver.LlamaDriverDialect,
+			RecipeID: capabilitydriver.LlamaGenericGGUFRecipeID, RecipeRevision: "test-revision", DriverDialect: capabilitydriver.LlamaDriverDialect,
 			ModelAssetID: "asset-" + name, VerifiedContentID: "sha256:" + digestHex, EntrySHA256: digestHex,
 		},
 		Request: &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}},
@@ -1092,7 +1092,7 @@ func llamaTextBehaviorInvocationPlanForHostTest(t *testing.T, name string, strea
 			TemplateIdentity: templateIdentity,
 		}},
 		BehaviorMatch: capabilitydriver.TextBehaviorAdapterMatchFacts{
-			RecipeID: capabilitydriver.LlamaGemma4RecipeID, RecipeRevision: "test-revision", DriverDialect: capabilitydriver.LlamaDriverDialect,
+			RecipeID: capabilitydriver.LlamaGenericGGUFRecipeID, RecipeRevision: "test-revision", DriverDialect: capabilitydriver.LlamaDriverDialect,
 			ModelAssetID: "asset-" + name, VerifiedContentID: "sha256:" + digestHex, EntrySHA256: digestHex,
 			TemplateIdentity: templateIdentity,
 		},

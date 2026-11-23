@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
 // ResolvedManifestDirectoryReport is tool-private recovery evidence. It is not
@@ -217,8 +218,7 @@ func hashResolvedPayload(directory string) (map[string]string, int64, bool, erro
 		}
 		hashes[relativePath] = hex.EncodeToString(digest.Sum(nil))
 		totalSize += info.Size()
-		switch strings.ToLower(filepath.Ext(relativePath)) {
-		case ".gguf", ".safetensors":
+		if ggufmeta.IsGGUFExtension(relativePath) || strings.EqualFold(filepath.Ext(relativePath), ".safetensors") {
 			classified = true
 		}
 		return nil

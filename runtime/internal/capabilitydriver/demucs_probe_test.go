@@ -46,15 +46,15 @@ func TestDemucsProbeReadsOnlyItsFourByteFormatContract(t *testing.T) {
 	}
 }
 
-func TestGemmaProjectorProbeDoesNotPrefetchUnusedMetadata(t *testing.T) {
-	data := make([]byte, 8<<20)
-	copy(data, "GGUF")
+func TestLlamaProjectorProbeReadsOnlyMetadataHeaderNotFullWeights(t *testing.T) {
+	header := buildStructuralProjectorGGUFForTest(t, "gemma4v", "", 1536, 0)
+	data := append(append([]byte(nil), header...), make([]byte, (8<<20)-len(header))...)
 	source := &countedONNXReader{source: bytes.NewReader(data)}
-	_, err := (LlamaTextDriver{}).ProbeModelAsset(ModelAssetFormatProbeInput{RecipeID: LlamaGemma4RecipeID, RequirementID: CompanionMMProjRequirementID, RelativePath: "mmproj.gguf", Entry: true}, source, int64(len(data)))
+	_, err := (LlamaTextDriver{}).ProbeModelAsset(ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: CompanionMMProjRequirementID, RelativePath: "mmproj.gguf", Entry: true}, source, int64(len(data)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if source.readBytes != 4 {
-		t.Fatalf("magic-only projector read %d bytes", source.readBytes)
+	if source.readBytes > int64(len(header))+(128<<10) {
+		t.Fatalf("projector metadata probe read %d bytes (header=%d)", source.readBytes, len(header))
 	}
 }

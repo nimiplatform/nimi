@@ -19,7 +19,7 @@ func cpuHostBytes(ramBytes int64) *runtimev1.LocalDeviceProfile {
 func gemmaMainSlotCandidates(t *testing.T, local *LocalProviderCatalog) []string {
 	t.Helper()
 	for _, recipe := range local.LoadoutRecipes() {
-		if recipe.CapabilityContract != gemmaRecipeCap || recipe.RecipeID != "llama.text-generate.gemma4.v1" {
+		if recipe.CapabilityContract != gemmaRecipeCap || recipe.RecipeID != "llama.text-generate.gguf.v1" {
 			continue
 		}
 		for _, slot := range recipe.SlotMetadata {
@@ -28,7 +28,7 @@ func gemmaMainSlotCandidates(t *testing.T, local *LocalProviderCatalog) []string
 			}
 		}
 	}
-	t.Fatal("Gemma 4 main.gguf recipe slot is missing")
+	t.Fatal("llama.text-generate.gguf.v1 main.gguf recipe slot is missing")
 	return nil
 }
 
@@ -51,12 +51,16 @@ func TestGemmaCatalogCarriesGGUFContextEvidence(t *testing.T) {
 func TestContextFitKeepsAutomaticCapacityWhenItFits(t *testing.T) {
 	local := mustLoadLocal(t)
 	variantID, ok := local.RecommendVariantForHost(gemmaMainSlotCandidates(t, local), cpuHost(128))
-	if !ok || variantID != gemma26BQ8 {
-		t.Fatalf("128 GiB recommendation = %q/%v, want %s", variantID, ok, gemma26BQ8)
+	if !ok || variantID != gemmaE2BQ8 {
+		t.Fatalf("128 GiB recommendation = %q/%v, want %s", variantID, ok, gemmaE2BQ8)
 	}
 	fit, ok := local.ContextFitForHost(variantID, cpuHost(128))
-	if !ok || fit.Reduced() || fit.AuthoredContextSize != 262144 || fit.RecommendedContextSize != 262144 {
-		t.Fatalf("128 GiB fit = %+v/%v, want automatic 262144", fit, ok)
+	if !ok || fit.Reduced() || fit.AuthoredContextSize != 131072 || fit.RecommendedContextSize != 131072 {
+		t.Fatalf("128 GiB E2B fit = %+v/%v, want automatic 131072", fit, ok)
+	}
+	fit26B, ok := local.ContextFitForHost(gemma26BQ8, cpuHost(128))
+	if !ok || fit26B.Reduced() || fit26B.AuthoredContextSize != 262144 || fit26B.RecommendedContextSize != 262144 {
+		t.Fatalf("128 GiB 26B fit = %+v/%v, want automatic 262144", fit26B, ok)
 	}
 }
 
@@ -66,11 +70,7 @@ func TestContextFitKeepsAutomaticCapacityWhenItFits(t *testing.T) {
 func TestContextFitReducesToLargestRunnableStepForTheChosenVariant(t *testing.T) {
 	local := mustLoadLocal(t)
 	host := cpuHost(44)
-	variantID, ok := local.RecommendVariantForHost(gemmaMainSlotCandidates(t, local), host)
-	if !ok || variantID != gemma26BQ8 {
-		t.Fatalf("44 GiB recommendation = %q/%v, want the unchanged %s choice", variantID, ok, gemma26BQ8)
-	}
-	fit, ok := local.ContextFitForHost(variantID, host)
+	fit, ok := local.ContextFitForHost(gemma26BQ8, host)
 	if !ok || !fit.Reduced() || fit.AuthoredContextSize != 262144 || fit.RecommendedContextSize != 98304 {
 		t.Fatalf("44 GiB fit = %+v/%v, want 98304 of 262144", fit, ok)
 	}

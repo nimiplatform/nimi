@@ -4,20 +4,64 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 )
 
 const (
-	magicHeader            = "GGUF"
-	maxMetadataStringBytes = 1 << 20
-	maxMetadataEntries     = 1 << 20
-	maxTensorEntries       = 1 << 20
-	maxTensorDimensions    = 16
+	magicHeader                 = "GGUF"
+	maxMetadataStringBytes      = 1 << 20
+	maxMetadataEntries          = 1 << 20
+	maxTensorEntries            = 1 << 20
+	maxTensorDimensions         = 16
+	maxWatchedProtocolTokenLen  = 32
+	maxTrackedSpecialTokenCount = 4096
+	llamaTokenTypeControl       = 3
+	llamaTokenTypeUserDefined   = 4
 )
+
+// watchedProtocolTokens lists the exact control/special and BOS/EOS token
+// strings consumed by pinned llama.cpp b12648 chat templates and PEG parsers
+// (common/chat.cpp, common/parsers/{gemma4,qwen3-coder,lfm2}.cpp) for Tier 1
+// Text Behavior cohorts. Inspecting only these strings during the bounded KV
+// walk avoids allocating the full 150k-512k vocabulary in memory.
+var watchedProtocolTokens = map[string]struct{}{
+	"<bos>":               {},
+	"<|startoftext|>":     {},
+	"<|turn>":             {},
+	"<turn|>":             {},
+	"<|channel>":          {},
+	"<channel|>":          {},
+	"<|tool_call>":        {},
+	"<tool_call|>":        {},
+	"<|\"|>":              {},
+	"<think>":             {},
+	"</think>":            {},
+	"<tool_call>":         {},
+	"</tool_call>":        {},
+	"<|im_start|>":        {},
+	"<|im_end|>":          {},
+	"<|tool_list_start|>": {},
+	"<|tool_list_end|>":   {},
+	"<|tool_call_start|>": {},
+	"<|tool_call_end|>":   {},
+}
+
+// TokenizerFacts captures the bounded subset of GGUF vocabulary facts that
+// pinned llama.cpp b12648 consumes when building chat templates and PEG
+// tool/reasoning parsers (common/chat.cpp:982-1012, common/peg-parser.cpp:211-221).
+type TokenizerFacts struct {
+	BOSToken      string   `json:"bosToken,omitempty"`
+	EOSToken      string   `json:"eosToken,omitempty"`
+	SpecialTokens []string `json:"specialTokens,omitempty"`
+}
 
 type ValueType uint32
 
@@ -44,6 +88,8 @@ type MetadataEntry struct {
 	HasStringValue bool
 	Uint64Value    uint64
 	HasUint64Value bool
+	BoolValue      bool
+	HasBoolValue   bool
 }
 
 type Summary struct {
@@ -54,6 +100,14 @@ type Summary struct {
 	Entries      []MetadataEntry
 	TensorNames  []string
 	TensorShapes map[string][]uint64
+	Tokenizer    TokenizerFacts
+}
+
+// IsGGUFExtension reports whether path carries a GGUF file extension admitted
+// by pinned llama.cpp (both standard .gguf and community .gguf_file names).
+func IsGGUFExtension(path string) bool {
+	ext := strings.ToLower(filepath.Ext(strings.TrimSpace(path)))
+	return ext == ".gguf" || ext == ".gguf_file"
 }
 
 func InspectPath(path string) (Summary, error) {
@@ -79,42 +133,133 @@ func Inspect(reader io.Reader) (Summary, error) {
 		}
 		summary.Entries = append(summary.Entries, entry)
 	}
+	if err := readTensorHeaders(reader, &summary, nil); err != nil {
+		return Summary{}, err
+	}
+	return summary, nil
+}
+
+func readTensorHeaders(reader io.Reader, summary *Summary, validate func([]uint64, uint32, uint64) error) error {
 	summary.TensorNames = make([]string, 0, summary.TensorCount)
 	summary.TensorShapes = make(map[string][]uint64, summary.TensorCount)
 	for i := uint64(0); i < summary.TensorCount; i++ {
 		name, err := readGGUFString(reader)
 		if err != nil {
-			return Summary{}, fmt.Errorf("read gguf tensor name %d: %w", i, err)
+			return fmt.Errorf("read gguf tensor name %d: %w", i, err)
 		}
 		var dimensions uint32
 		if err := binary.Read(reader, binary.LittleEndian, &dimensions); err != nil {
-			return Summary{}, fmt.Errorf("read gguf tensor dimensions %q: %w", name, err)
+			return fmt.Errorf("read gguf tensor dimensions %q: %w", name, err)
 		}
 		if dimensions > maxTensorDimensions {
-			return Summary{}, fmt.Errorf("gguf tensor %q has too many dimensions: %d", name, dimensions)
+			return fmt.Errorf("gguf tensor %q has too many dimensions: %d", name, dimensions)
 		}
 		shape := make([]uint64, dimensions)
 		for dim := uint32(0); dim < dimensions; dim++ {
 			var size uint64
 			if err := binary.Read(reader, binary.LittleEndian, &size); err != nil {
-				return Summary{}, fmt.Errorf("read gguf tensor shape %q: %w", name, err)
+				return fmt.Errorf("read gguf tensor shape %q: %w", name, err)
 			}
 			shape[dim] = size
 		}
 		var tensorType uint32
 		if err := binary.Read(reader, binary.LittleEndian, &tensorType); err != nil {
-			return Summary{}, fmt.Errorf("read gguf tensor type %q: %w", name, err)
+			return fmt.Errorf("read gguf tensor type %q: %w", name, err)
 		}
 		var offset uint64
 		if err := binary.Read(reader, binary.LittleEndian, &offset); err != nil {
-			return Summary{}, fmt.Errorf("read gguf tensor offset %q: %w", name, err)
+			return fmt.Errorf("read gguf tensor offset %q: %w", name, err)
+		}
+		if validate != nil {
+			if strings.TrimSpace(name) == "" {
+				return fmt.Errorf("gguf tensor %d has no name", i)
+			}
+			if err := validate(shape, tensorType, offset); err != nil {
+				return fmt.Errorf("gguf tensor %q: %w", name, err)
+			}
 		}
 		if strings.TrimSpace(name) != "" {
 			if _, exists := summary.TensorShapes[name]; exists {
-				return Summary{}, fmt.Errorf("duplicate gguf tensor %q", name)
+				return fmt.Errorf("duplicate gguf tensor %q", name)
 			}
 			summary.TensorNames = append(summary.TensorNames, name)
 			summary.TensorShapes[name] = shape
+		}
+	}
+	return nil
+}
+
+// InspectMetadata reads the complete GGUF header and every metadata KV entry
+// strictly without traversing tensor headers or weights. Duplicate keys,
+// unsupported GGUF versions, truncated headers, or corrupt KV encodings fail
+// closed rather than returning partial facts.
+func InspectMetadata(reader io.Reader) (Summary, error) {
+	return inspectMetadataStrict(reader, false)
+}
+
+// InspectMetadataAndTensors reads the complete GGUF header, every metadata KV
+// entry, and every tensor header strictly without reading tensor weight data.
+func InspectMetadataAndTensors(reader io.Reader) (Summary, error) {
+	return inspectMetadataStrict(reader, true)
+}
+
+type tokenizerScanState struct {
+	watchedByID   map[uint64]string
+	specialIDs    map[uint64]struct{}
+	specialCapped bool
+}
+
+func inspectMetadataStrict(reader io.Reader, readTensors bool) (Summary, error) {
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
+	}
+	if summary.Version < 2 || summary.Version > 3 {
+		return Summary{}, fmt.Errorf("unsupported gguf version %d", summary.Version)
+	}
+	seen := make(map[string]bool)
+	tokScan := &tokenizerScanState{
+		watchedByID: make(map[uint64]string),
+		specialIDs:  make(map[uint64]struct{}),
+	}
+	for i := uint64(0); i < summary.KVCount; i++ {
+		entry, err := readMetadataEntryWithTokenizerScan(reader, i, tokScan)
+		if err != nil {
+			return Summary{}, err
+		}
+		if seen[entry.Key] {
+			return Summary{}, fmt.Errorf("duplicate gguf metadata key %q", entry.Key)
+		}
+		seen[entry.Key] = true
+		summary.Entries = append(summary.Entries, entry)
+	}
+	if len(tokScan.watchedByID) > 0 {
+		if bosID, ok := summary.Uint64Value("tokenizer.ggml.bos_token_id"); ok {
+			summary.Tokenizer.BOSToken = tokScan.watchedByID[bosID]
+		}
+		if eosID, ok := summary.Uint64Value("tokenizer.ggml.eos_token_id"); ok {
+			summary.Tokenizer.EOSToken = tokScan.watchedByID[eosID]
+		}
+		if len(tokScan.specialIDs) > 0 && !tokScan.specialCapped {
+			specialSet := make(map[string]struct{}, len(tokScan.watchedByID))
+			for id, tok := range tokScan.watchedByID {
+				if _, isSpecial := tokScan.specialIDs[id]; isSpecial {
+					specialSet[tok] = struct{}{}
+				}
+			}
+			if len(specialSet) > 0 {
+				specials := make([]string, 0, len(specialSet))
+				for tok := range specialSet {
+					specials = append(specials, tok)
+				}
+				sort.Strings(specials)
+				summary.Tokenizer.SpecialTokens = specials
+			}
+		}
+	}
+	if readTensors {
+		if err := readTensorHeaders(reader, &summary, nil); err != nil {
+			return Summary{}, err
 		}
 	}
 	return summary, nil
@@ -124,30 +269,12 @@ func Inspect(reader io.Reader) (Summary, error) {
 // optional LLM hints, a truncated prefix cannot prove an output contract: later
 // metadata may change pooling or output width. Tensor contents are not read.
 func InspectEmbeddingMetadata(reader io.Reader) (Summary, error) {
-	summary, err := readSummaryHeader(reader)
-	if err != nil {
-		return Summary{}, err
-	}
-	seen := make(map[string]bool)
-	for i := uint64(0); i < summary.KVCount; i++ {
-		entry, err := readMetadataEntry(reader, i)
-		if err != nil {
-			return Summary{}, err
-		}
-		if seen[entry.Key] {
-			return Summary{}, fmt.Errorf("duplicate embedding metadata key")
-		}
-		seen[entry.Key] = true
-		summary.Entries = append(summary.Entries, entry)
-	}
-	return summary, nil
+	return InspectMetadata(reader)
 }
 
-// InspectLLMMetadata reads only the GGUF metadata needed by LLM Drivers. It
-// returns as soon as architecture and model-authored context length are known,
-// without traversing unrelated tokenizer arrays or tensor headers. If a
-// bounded prefix ends after a valid architecture but before optional context
-// metadata, the already-read architecture remains usable.
+// InspectLLMMetadata reads only the GGUF metadata needed by non-chat Drivers
+// (such as text encoders). It returns as soon as architecture and authored
+// context length are known without traversing unrelated tokenizer arrays.
 func InspectLLMMetadata(reader io.Reader) (Summary, error) {
 	summary, err := readSummaryHeader(reader)
 	if err != nil {
@@ -156,40 +283,13 @@ func InspectLLMMetadata(reader io.Reader) (Summary, error) {
 	for i := uint64(0); i < summary.KVCount; i++ {
 		entry, err := readMetadataEntry(reader, i)
 		if err != nil {
-			if LLMDetectedArchitecture(summary) != "" {
+			if (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)) && LLMDetectedArchitecture(summary) != "" {
 				return summary, nil
 			}
 			return Summary{}, err
 		}
 		summary.Entries = append(summary.Entries, entry)
 		if _, ok := LLMContextLength(summary); ok {
-			return summary, nil
-		}
-	}
-	return summary, nil
-}
-
-// InspectLLMMetadataWithChatTemplate reads the same bounded LLM metadata as
-// InspectLLMMetadata and keeps scanning for the model-authored chat template.
-// A truncated bounded prefix remains usable once the model architecture has
-// been identified: optional template identity is then simply unavailable.
-func InspectLLMMetadataWithChatTemplate(reader io.Reader) (Summary, error) {
-	summary, err := readSummaryHeader(reader)
-	if err != nil {
-		return Summary{}, err
-	}
-	for i := uint64(0); i < summary.KVCount; i++ {
-		entry, err := readMetadataEntry(reader, i)
-		if err != nil {
-			if LLMDetectedArchitecture(summary) != "" {
-				return summary, nil
-			}
-			return Summary{}, err
-		}
-		summary.Entries = append(summary.Entries, entry)
-		_, hasContext := LLMContextLength(summary)
-		_, hasTemplate := LLMChatTemplateIdentity(summary)
-		if hasContext && hasTemplate {
 			return summary, nil
 		}
 	}
@@ -270,6 +370,10 @@ func readSummaryHeader(reader io.Reader) (Summary, error) {
 }
 
 func readMetadataEntry(reader io.Reader, index uint64) (MetadataEntry, error) {
+	return readMetadataEntryWithTokenizerScan(reader, index, nil)
+}
+
+func readMetadataEntryWithTokenizerScan(reader io.Reader, index uint64, tokScan *tokenizerScanState) (MetadataEntry, error) {
 	key, err := readGGUFString(reader)
 	if err != nil {
 		return MetadataEntry{}, fmt.Errorf("read gguf metadata key %d: %w", index, err)
@@ -286,6 +390,13 @@ func readMetadataEntry(reader io.Reader, index uint64) (MetadataEntry, error) {
 		}
 		entry.StringValue = value
 		entry.HasStringValue = true
+	} else if valueType == ValueTypeBool {
+		var raw uint8
+		if err := binary.Read(reader, binary.LittleEndian, &raw); err != nil {
+			return MetadataEntry{}, fmt.Errorf("read gguf metadata bool %q: %w", key, err)
+		}
+		entry.BoolValue = raw != 0
+		entry.HasBoolValue = true
 	} else if isIntegerValueType(valueType) {
 		value, ok, err := readUint64MetadataValue(reader, valueType)
 		if err != nil {
@@ -293,10 +404,129 @@ func readMetadataEntry(reader io.Reader, index uint64) (MetadataEntry, error) {
 		}
 		entry.Uint64Value = value
 		entry.HasUint64Value = ok
+	} else if tokScan != nil && valueType == ValueTypeArray && (key == "tokenizer.ggml.tokens" || key == "tokenizer.ggml.token_type") {
+		if err := scanTokenizerArray(reader, key, tokScan); err != nil {
+			return MetadataEntry{}, fmt.Errorf("scan gguf metadata value %q: %w", key, err)
+		}
 	} else if err := skipValue(reader, valueType); err != nil {
 		return MetadataEntry{}, fmt.Errorf("skip gguf metadata value %q: %w", key, err)
 	}
 	return entry, nil
+}
+
+func scanTokenizerArray(reader io.Reader, key string, tokScan *tokenizerScanState) error {
+	elementType, err := readValueType(reader)
+	if err != nil {
+		return err
+	}
+	if elementType == ValueTypeArray {
+		return fmt.Errorf("nested gguf metadata arrays are unsupported")
+	}
+	var length uint64
+	if err := binary.Read(reader, binary.LittleEndian, &length); err != nil {
+		return err
+	}
+	if key == "tokenizer.ggml.tokens" && elementType == ValueTypeString {
+		var header [8]byte
+		var buf [maxWatchedProtocolTokenLen]byte
+		for i := uint64(0); i < length; i++ {
+			if _, err := io.ReadFull(reader, header[:]); err != nil {
+				return err
+			}
+			strLen := binary.LittleEndian.Uint64(header[:])
+			if strLen > maxMetadataStringBytes {
+				return fmt.Errorf("metadata string too large: %d bytes", strLen)
+			}
+			if strLen > 0 && strLen <= maxWatchedProtocolTokenLen {
+				if _, err := io.ReadFull(reader, buf[:strLen]); err != nil {
+					return err
+				}
+				candidate := string(buf[:strLen])
+				if _, watched := watchedProtocolTokens[candidate]; watched {
+					tokScan.watchedByID[i] = candidate
+				}
+				continue
+			}
+			n, err := discardMetadataBytes(reader, int64(strLen))
+			if err == io.EOF && n > 0 {
+				err = io.ErrUnexpectedEOF
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if key == "tokenizer.ggml.token_type" && isIntegerValueType(elementType) {
+		width := fixedMetadataValueBytes(elementType)
+		if width == 0 || length > math.MaxInt64/width {
+			return fmt.Errorf("gguf metadata array byte length overflows")
+		}
+		const chunkElems = 1024
+		buf := make([]byte, chunkElems*width)
+		var index uint64
+		for index < length {
+			batch := min(length-index, uint64(chunkElems))
+			chunk := buf[:batch*width]
+			if _, err := io.ReadFull(reader, chunk); err != nil {
+				return err
+			}
+			for j := uint64(0); j < batch; j++ {
+				val, ok := decodeIntegerLittleEndian(chunk[j*width:(j+1)*width], elementType)
+				if ok && (val == llamaTokenTypeControl || val == llamaTokenTypeUserDefined) {
+					if len(tokScan.specialIDs) >= maxTrackedSpecialTokenCount {
+						tokScan.specialCapped = true
+					} else {
+						tokScan.specialIDs[index+j] = struct{}{}
+					}
+				}
+			}
+			index += batch
+		}
+		return nil
+	}
+	if width := fixedMetadataValueBytes(elementType); width != 0 {
+		if length > math.MaxInt64/width {
+			return fmt.Errorf("gguf metadata array byte length overflows")
+		}
+		return skipBytes(reader, int64(length*width))
+	}
+	if elementType == ValueTypeString {
+		return skipStringArray(reader, length)
+	}
+	for i := uint64(0); i < length; i++ {
+		if err := skipValue(reader, elementType); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeIntegerLittleEndian(raw []byte, valueType ValueType) (uint64, bool) {
+	switch valueType {
+	case ValueTypeUint8:
+		return uint64(raw[0]), true
+	case ValueTypeInt8:
+		v := int8(raw[0])
+		return uint64(max(v, 0)), v >= 0
+	case ValueTypeUint16:
+		return uint64(binary.LittleEndian.Uint16(raw)), true
+	case ValueTypeInt16:
+		v := int16(binary.LittleEndian.Uint16(raw))
+		return uint64(max(v, 0)), v >= 0
+	case ValueTypeUint32:
+		return uint64(binary.LittleEndian.Uint32(raw)), true
+	case ValueTypeInt32:
+		v := int32(binary.LittleEndian.Uint32(raw))
+		return uint64(max(v, 0)), v >= 0
+	case ValueTypeUint64:
+		return binary.LittleEndian.Uint64(raw), true
+	case ValueTypeInt64:
+		v := int64(binary.LittleEndian.Uint64(raw))
+		return uint64(max(v, 0)), v >= 0
+	default:
+		return 0, false
+	}
 }
 
 func (s Summary) Keys() []string {
@@ -346,6 +576,19 @@ func (s Summary) Uint64Value(key string) (uint64, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (s Summary) BoolValue(key string) (bool, bool) {
+	needle := strings.TrimSpace(key)
+	if needle == "" {
+		return false, false
+	}
+	for _, entry := range s.Entries {
+		if entry.Key == needle && entry.HasBoolValue {
+			return entry.BoolValue, true
+		}
+	}
+	return false, false
 }
 
 func (s Summary) HasTensorNameSuffix(suffix string) bool {
@@ -443,6 +686,29 @@ func LLMContextLength(summary Summary) (uint64, bool) {
 	return value, true
 }
 
+// LLMEmbeddingLength returns the model-authored embedding width
+// (<architecture>.embedding_length) when present and positive.
+func LLMEmbeddingLength(summary Summary) (uint64, bool) {
+	architecture := LLMDetectedArchitecture(summary)
+	if architecture == "" {
+		return 0, false
+	}
+	value, ok := summary.Uint64Value(architecture + ".embedding_length")
+	if !ok || value == 0 {
+		return 0, false
+	}
+	return value, true
+}
+
+// LLMPoolingType returns <architecture>.pooling_type when explicitly present.
+func LLMPoolingType(summary Summary) (uint64, bool) {
+	architecture := LLMDetectedArchitecture(summary)
+	if architecture == "" {
+		return 0, false
+	}
+	return summary.Uint64Value(architecture + ".pooling_type")
+}
+
 // LLMChatTemplateIdentity returns the canonical digest of the exact
 // model-authored tokenizer.chat_template bytes. It does not normalize,
 // interpret, or guess a template. Missing and empty metadata intentionally
@@ -454,6 +720,88 @@ func LLMChatTemplateIdentity(summary Summary) (string, bool) {
 	}
 	digest := sha256.Sum256([]byte(template))
 	return "sha256:" + hex.EncodeToString(digest[:]), true
+}
+
+// LLMChatTemplateToolUseIdentity returns the canonical digest of
+// tokenizer.chat_template.tool_use when present and non-empty.
+func LLMChatTemplateToolUseIdentity(summary Summary) (string, bool) {
+	template, ok := summary.StringValue("tokenizer.chat_template.tool_use")
+	if !ok || template == "" {
+		return "", false
+	}
+	digest := sha256.Sum256([]byte(template))
+	return "sha256:" + hex.EncodeToString(digest[:]), true
+}
+
+// LLMDeepstackLayers returns the declared <arch>.n_deepstack_layers count used
+// by pinned llama.cpp when computing n_embd_inp = n_embd * (1 + n_deepstack_layers).
+func LLMDeepstackLayers(summary Summary) (uint64, bool) {
+	arch := LLMDetectedArchitecture(summary)
+	if arch == "" {
+		return 0, false
+	}
+	return summary.Uint64Value(arch + ".n_deepstack_layers")
+}
+
+// Qwen3VLProjectorDimensions extracts the merger output width (mm.2.bias ne[0])
+// and projector deepstack layer count (distinct v.deepstack.<il>.fc1.weight
+// tensors) matching pinned llama.cpp b12648 tools/mtmd/mtmd-model.cpp:1702-1710,
+// 2050, 5193-5195 (actual output width = mergerWidth * (1 + deepstackLayers)).
+func Qwen3VLProjectorDimensions(summary Summary) (mergerWidth uint64, deepstackLayers uint64, ok bool) {
+	shape, exists := summary.TensorShapes["mm.2.bias"]
+	if !exists || len(shape) == 0 || shape[0] == 0 {
+		return 0, 0, false
+	}
+	mergerWidth = shape[0]
+	layers := make(map[uint64]struct{})
+	const prefix = "v.deepstack."
+	const suffix = ".fc1.weight"
+	for _, name := range summary.TensorNames {
+		if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		mid := name[len(prefix) : len(name)-len(suffix)]
+		if mid == "" {
+			continue
+		}
+		il, err := strconv.ParseUint(mid, 10, 64)
+		if err != nil || strconv.FormatUint(il, 10) != mid {
+			continue
+		}
+		layers[il] = struct{}{}
+	}
+	return mergerWidth, uint64(len(layers)), true
+}
+
+// LLMEffectiveChatTemplateIdentity returns the effective chat-template identity
+// consumed by pinned llama.cpp b12648 (common/chat.cpp:945-960 reads only
+// tokenizer.chat_template and tokenizer.chat_template.tool_use). When no
+// tokenizer.chat_template.tool_use key exists, it equals LLMChatTemplateIdentity.
+// Unrelated named templates such as tokenizer.chat_template.tts are ignored.
+func LLMEffectiveChatTemplateIdentity(summary Summary) (string, bool) {
+	defaultTemplate, ok := summary.StringValue("tokenizer.chat_template")
+	if !ok || defaultTemplate == "" {
+		return "", false
+	}
+	var toolUseEntry *MetadataEntry
+	for index := range summary.Entries {
+		if summary.Entries[index].Key == "tokenizer.chat_template.tool_use" {
+			entry := summary.Entries[index]
+			toolUseEntry = &entry
+			break
+		}
+	}
+	if toolUseEntry == nil {
+		return LLMChatTemplateIdentity(summary)
+	}
+	hash := sha256.New()
+	_, _ = hash.Write([]byte("nimi.gguf.chat_template.v2\x00default\x00"))
+	_, _ = hash.Write([]byte(defaultTemplate))
+	_, _ = hash.Write([]byte{0})
+	_, _ = hash.Write([]byte(toolUseEntry.Key))
+	_, _ = hash.Write([]byte{0})
+	_, _ = hash.Write([]byte(fmt.Sprintf("%d:%t:%s", toolUseEntry.Type, toolUseEntry.HasStringValue, toolUseEntry.StringValue)))
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), true
 }
 
 var stableDiffusionIdentityKeys = []string{

@@ -6,39 +6,63 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
-	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
-const llamaGGUFProbeSchema = "llama-gguf-probe/v1"
+const (
+	llamaGGUFProbeSchema = "llama-gguf-probe/v1"
+	// maxStructuredGGUFMetadataBytes bounds the GGUF header walk over io.ReaderAt
+	// using a 64 KiB rolling buffer so 256k-512k vocab models (whose tokenizer
+	// arrays can exceed 16 MiB) and their tensor tables are scanned without
+	// loading weight payloads.
+	maxStructuredGGUFMetadataBytes = 64 << 20
+)
+
+// ErrGGUFMetadataBudgetExceeded distinguishes a GGUF file whose KV section
+// extends past the structured probe walk bound from physical truncation or
+// header corruption.
+var ErrGGUFMetadataBudgetExceeded = errors.New("GGUF metadata exceeds structured probe budget")
 
 // These are per-probe interpreted facts, never stored verification authority.
 // Recipe and slot prevent applying a more permissive parser's result to a
 // different Model Contract. Exact content/binding identity stays owner-supplied.
 type llamaGGUFProbe struct {
-	Schema                 string                   `json:"schema"`
-	RecipeID               string                   `json:"recipeId"`
-	RequirementID          string                   `json:"requirementId"`
-	Kind                   runtimev1.LocalAssetKind `json:"kind"`
-	Architecture           string                   `json:"architecture,omitempty"`
-	ContextWindow          uint64                   `json:"contextWindow,omitempty"`
-	TemplateIdentity       string                   `json:"templateIdentity,omitempty"`
-	EmbeddingDimension     int                      `json:"embeddingDimension,omitempty"`
-	EmbeddingInputProtocol string                   `json:"embeddingInputProtocol,omitempty"`
+	Schema                   string                   `json:"schema"`
+	RecipeID                 string                   `json:"recipeId"`
+	RequirementID            string                   `json:"requirementId"`
+	Kind                     runtimev1.LocalAssetKind `json:"kind"`
+	Architecture             string                   `json:"architecture,omitempty"`
+	ContextWindow            uint64                   `json:"contextWindow,omitempty"`
+	EmbeddingLength          uint64                   `json:"embeddingLength,omitempty"`
+	DeepstackLayers          uint64                   `json:"deepstackLayers,omitempty"`
+	TemplateIdentity         string                   `json:"templateIdentity,omitempty"`
+	TokenizerBOSToken        string                   `json:"tokenizerBosToken,omitempty"`
+	TokenizerEOSToken        string                   `json:"tokenizerEosToken,omitempty"`
+	TokenizerSpecialTokens   []string                 `json:"tokenizerSpecialTokens,omitempty"`
+	ProjectorType            string                   `json:"projectorType,omitempty"`
+	AudioProjectorType       string                   `json:"audioProjectorType,omitempty"`
+	VisionProjectionDim      uint64                   `json:"visionProjectionDim,omitempty"`
+	AudioProjectionDim       uint64                   `json:"audioProjectionDim,omitempty"`
+	ProjectorMergerWidth     uint64                   `json:"projectorMergerWidth,omitempty"`
+	ProjectorDeepstackLayers uint64                   `json:"projectorDeepstackLayers,omitempty"`
+	HasVisionEncoder         bool                     `json:"hasVisionEncoder,omitempty"`
+	EmbeddingDimension       int                      `json:"embeddingDimension,omitempty"`
+	EmbeddingInputProtocol   string                   `json:"embeddingInputProtocol,omitempty"`
 }
 
-// ggufProbeReader exposes only the same prefix range the Driver admitted
-// before structured probing. Skipped bytes require a real readable boundary;
-// a supplied size or a general file Seek is not evidence of non-truncation.
+// ggufProbeReader exposes only a bounded prefix range over an opened io.ReaderAt
+// via a 64 KiB rolling window. Skipped bytes require a real readable boundary;
+// a supplied size or general Seek is not evidence of non-truncation.
 type ggufProbeReader struct {
-	window   *modelAssetProbeReaderAt
-	source   *ggufProbeSource
-	position int64
-	limit    int64
-	failure  error
+	window         *modelAssetProbeReaderAt
+	source         *ggufProbeSource
+	position       int64
+	limit          int64
+	budgetLimited  bool
+	budgetExceeded bool
+	failure        error
 }
 
 type ggufProbeSource struct {
@@ -66,12 +90,18 @@ func (r *ggufProbeSource) ReadAt(p []byte, offset int64) (int, error) {
 }
 
 func newGGUFProbeReader(source io.ReaderAt, size, limit int64) (*ggufProbeReader, error) {
-	if source == nil || size < 4 || limit < 4 || limit > MaxDriverAssetFormatProbeBytes {
+	if source == nil || size < 4 || limit < 4 || limit > maxStructuredGGUFMetadataBytes {
 		return nil, fmt.Errorf("invalid GGUF probe source or bound")
 	}
+	budgetLimited := size > limit
 	limit = min(size, limit)
 	observed := &ggufProbeSource{reader: source}
-	return &ggufProbeReader{window: newModelAssetProbeReaderAt(observed, limit, 64<<10), source: observed, limit: limit}, nil
+	return &ggufProbeReader{
+		window:        newModelAssetProbeReaderAt(observed, limit, 64<<10),
+		source:        observed,
+		limit:         limit,
+		budgetLimited: budgetLimited,
+	}, nil
 }
 
 func (r *ggufProbeReader) ContextErr() error { return r.window.ContextErr() }
@@ -85,11 +115,18 @@ func (r *ggufProbeReader) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 	if r.position >= r.limit {
+		if r.budgetLimited {
+			r.budgetExceeded = true
+		}
 		return 0, io.EOF
 	}
+	truncatedToLimit := int64(len(p)) > r.limit-r.position
 	p = p[:min(int64(len(p)), r.limit-r.position)]
 	n, err := r.window.ReadAt(p, r.position)
 	r.position += int64(n)
+	if truncatedToLimit && r.budgetLimited && r.position >= r.limit {
+		r.budgetExceeded = true
+	}
 	if err != nil && !errors.Is(err, io.EOF) {
 		r.failure = err
 	}
@@ -112,6 +149,9 @@ func (r *ggufProbeReader) Seek(offset int64, whence int) (int64, error) {
 		return r.position, fmt.Errorf("invalid GGUF seek origin")
 	}
 	if offset > r.limit-base || offset < -base {
+		if offset > r.limit-base && r.budgetLimited {
+			r.budgetExceeded = true
+		}
 		return r.position, io.EOF
 	}
 	next := base + offset
@@ -155,7 +195,7 @@ func encodeLlamaGGUFProbe(facts llamaGGUFProbe) ([]byte, error) {
 
 func decodeLlamaGGUFProbe(input ModelAssetBindingInput) (llamaGGUFProbe, error) {
 	var facts llamaGGUFProbe
-	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(input.Entry.FormatProbe) > MaxAssetFormatProbeBytes {
+	if !ggufmeta.IsGGUFExtension(input.Entry.RelativePath) || len(input.Entry.FormatProbe) > MaxAssetFormatProbeBytes {
 		return facts, fmt.Errorf("invalid GGUF structured probe")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(input.Entry.FormatProbe))
@@ -169,94 +209,168 @@ func decodeLlamaGGUFProbe(input ModelAssetBindingInput) (llamaGGUFProbe, error) 
 	return facts, nil
 }
 
+func decodeLlamaGGUFProbeBytes(probe []byte) (llamaGGUFProbe, error) {
+	var facts llamaGGUFProbe
+	if len(probe) == 0 || len(probe) > MaxAssetFormatProbeBytes {
+		return facts, fmt.Errorf("invalid GGUF structured probe")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(probe))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&facts); err != nil {
+		return facts, err
+	}
+	if decoder.Decode(new(any)) != io.EOF || facts.Schema != llamaGGUFProbeSchema {
+		return facts, fmt.Errorf("GGUF structured probe schema mismatch")
+	}
+	return facts, nil
+}
+
 // @nimi-authority: rule.nimi.runtime.local-compute.r031
+// @nimi-authority: rule.nimi.runtime.local-compute.r112
 func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
 	if !input.Entry {
 		return nil, nil
 	}
-	if filepath.Ext(strings.ToLower(input.RelativePath)) != ".gguf" {
+	if !ggufmeta.IsGGUFExtension(input.RelativePath) {
 		return nil, fmt.Errorf("GGUF entry required")
 	}
-	reader, err := newGGUFProbeReader(source, size, driver.ModelAssetFormatProbeBytes(input))
+	reader, err := newGGUFProbeReader(source, size, maxStructuredGGUFMetadataBytes)
 	if err != nil {
 		return nil, err
 	}
 	facts := llamaGGUFProbe{Schema: llamaGGUFProbeSchema, RecipeID: input.RecipeID, RequirementID: input.RequirementID}
+	if input.RequirementID != MainGGUFRequirementID && input.RequirementID != CompanionMMProjRequirementID {
+		return nil, fmt.Errorf("unsupported GGUF slot")
+	}
+	summary, tensorEnd, inspectErr := ggufmeta.InspectModel(reader, size)
+	if failure := reader.actualFailure(); failure != nil {
+		return nil, failure
+	}
+	if inspectErr != nil {
+		if (reader.budgetExceeded || (reader.budgetLimited && reader.position >= reader.limit)) &&
+			(errors.Is(inspectErr, io.EOF) || errors.Is(inspectErr, io.ErrUnexpectedEOF)) {
+			return nil, fmt.Errorf("%w (%d bytes)", ErrGGUFMetadataBudgetExceeded, reader.limit)
+		}
+		return nil, inspectErr
+	}
+	var lastByte [1]byte
+	_, err = reader.source.ReadAt(lastByte[:], tensorEnd-1)
+	if failure := reader.actualFailure(); failure != nil {
+		return nil, failure
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read GGUF tensor data boundary: %w", err)
+	}
 	switch input.RequirementID {
 	case MainGGUFRequirementID:
-		var summary ggufmeta.Summary
-		if qwen35Recipe(input.RecipeID) || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaLFM3RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
-			summary, err = ggufmeta.Inspect(reader)
-		} else {
-			summary, err = ggufmeta.InspectLLMMetadataWithChatTemplate(reader)
-		}
-		if failure := reader.actualFailure(); failure != nil {
-			return nil, failure
-		}
-		if err != nil {
-			return nil, err
-		}
-		if qwen35Recipe(input.RecipeID) && !qwen35BaseTextModelContract(summary) {
-			return nil, fmt.Errorf("qwen35 Model Contract mismatch")
-		}
-		if input.RecipeID == LlamaQwen38RecipeID && !qwen38BaseTextModelContract(summary) {
-			return nil, fmt.Errorf("qwen38 27B Model Contract mismatch")
-		}
-		if input.RecipeID == LlamaLFM3RecipeID && !lfm3BaseTextModelContract(summary) {
-			return nil, fmt.Errorf("LFM3 1.7B Model Contract mismatch")
-		}
-		if input.RecipeID == LlamaGemma412BRecipeID && !gemma412BModelContract(summary, false) {
-			return nil, fmt.Errorf("Gemma 4 12B Model Contract mismatch")
+		if summary.HasKey("general.type") {
+			modelType, ok := summary.StringValue("general.type")
+			if !ok {
+				return nil, fmt.Errorf("GGUF general.type is not a string")
+			}
+			if modelType != "model" {
+				return nil, fmt.Errorf("GGUF general.type %q is not a generative model", modelType)
+			}
 		}
 		facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
 		if !contains(driver.recipeModelArchitectures(input.RecipeID, input.RequirementID), facts.Architecture) {
-			return nil, fmt.Errorf("GGUF architecture mismatch")
+			return nil, fmt.Errorf("GGUF architecture %q is unsupported for recipe %q", facts.Architecture, input.RecipeID)
 		}
-		facts.ContextWindow, _ = ggufmeta.LLMContextLength(summary)
-		facts.TemplateIdentity, _ = ggufmeta.LLMChatTemplateIdentity(summary)
+		if summary.HasKey(facts.Architecture + ".pooling_type") {
+			pooling, ok := ggufmeta.LLMPoolingType(summary)
+			if !ok {
+				return nil, fmt.Errorf("GGUF model %s.pooling_type is not a valid non-negative integer", facts.Architecture)
+			}
+			if pooling > 0 {
+				return nil, fmt.Errorf("GGUF model declares non-zero pooling_type %d", pooling)
+			}
+		}
+		if summary.HasKey(facts.Architecture + ".n_deepstack_layers") {
+			deepstack, ok := ggufmeta.LLMDeepstackLayers(summary)
+			if !ok {
+				return nil, fmt.Errorf("GGUF model %s.n_deepstack_layers is not a valid non-negative integer", facts.Architecture)
+			}
+			facts.DeepstackLayers = deepstack
+		}
+		contextWindow, ok := ggufmeta.LLMContextLength(summary)
+		if !ok || contextWindow == 0 {
+			return nil, fmt.Errorf("GGUF model context_length is missing or zero")
+		}
+		facts.ContextWindow = contextWindow
+		facts.EmbeddingLength, _ = ggufmeta.LLMEmbeddingLength(summary)
+		facts.TemplateIdentity, _ = ggufmeta.LLMEffectiveChatTemplateIdentity(summary)
+		facts.TokenizerBOSToken = summary.Tokenizer.BOSToken
+		facts.TokenizerEOSToken = summary.Tokenizer.EOSToken
+		facts.TokenizerSpecialTokens = append([]string(nil), summary.Tokenizer.SpecialTokens...)
 		facts.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	case CompanionMMProjRequirementID:
-		if input.RecipeID == LlamaInkling2MiniRecipeID {
-			summary, err := ggufmeta.InspectMetadataUntilString(reader, "clip.vision.projector_type")
-			if err != nil {
-				return nil, err
+		if summary.HasKey("general.type") {
+			modelType, ok := summary.StringValue("general.type")
+			if !ok {
+				return nil, fmt.Errorf("GGUF projector general.type is not a string")
 			}
-			projector, _ := summary.StringValue("clip.vision.projector_type")
-			if ggufmeta.LLMDetectedArchitecture(summary) != "clip" || projector != "inkling2v" {
-				return nil, fmt.Errorf("Inkling 2 Mini vision projector mismatch")
+			if modelType != "mmproj" && modelType != "model" {
+				return nil, fmt.Errorf("GGUF projector general.type %q is not mmproj or model", modelType)
 			}
-			facts.Architecture = "clip"
-		} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
-			summary, inspectErr := ggufmeta.Inspect(reader)
-			if failure := reader.actualFailure(); failure != nil {
-				return nil, failure
+		}
+		facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
+		if facts.Architecture != "clip" {
+			return nil, fmt.Errorf("GGUF projector architecture %q is not clip", facts.Architecture)
+		}
+		if summary.HasKey("clip.vision.projector_type") {
+			projector, ok := summary.StringValue("clip.vision.projector_type")
+			if !ok {
+				return nil, fmt.Errorf("GGUF clip.vision.projector_type is not a string")
 			}
-			if inspectErr != nil {
-				return nil, inspectErr
+			facts.ProjectorType = projector
+		} else if summary.HasKey("clip.projector_type") {
+			projector, ok := summary.StringValue("clip.projector_type")
+			if !ok {
+				return nil, fmt.Errorf("GGUF clip.projector_type is not a string")
 			}
-			valid := qwen35ProjectorModelContract(summary)
-			if input.RecipeID == LlamaQwen38RecipeID {
-				valid = qwen38ProjectorModelContract(summary)
+			facts.ProjectorType = projector
+		}
+		if summary.HasKey("clip.audio.projector_type") {
+			audioProjector, ok := summary.StringValue("clip.audio.projector_type")
+			if !ok {
+				return nil, fmt.Errorf("GGUF clip.audio.projector_type is not a string")
 			}
-			if input.RecipeID == LlamaGemma412BRecipeID {
-				valid = gemma412BModelContract(summary, true)
+			facts.AudioProjectorType = audioProjector
+		}
+		if summary.HasKey("clip.vision.projection_dim") {
+			visionDim, ok := summary.Uint64Value("clip.vision.projection_dim")
+			if !ok {
+				return nil, fmt.Errorf("GGUF clip.vision.projection_dim is not a valid non-negative integer")
 			}
-			if !valid {
-				return nil, fmt.Errorf("projector Model Contract mismatch")
+			facts.VisionProjectionDim = visionDim
+		}
+		if summary.HasKey("clip.audio.projection_dim") {
+			audioDim, ok := summary.Uint64Value("clip.audio.projection_dim")
+			if !ok {
+				return nil, fmt.Errorf("GGUF clip.audio.projection_dim is not a valid non-negative integer")
 			}
-			facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
+			facts.AudioProjectionDim = audioDim
+		}
+		facts.HasVisionEncoder, _ = summary.BoolValue("clip.has_vision_encoder")
+		if input.RecipeID == LlamaGemma412BRecipeID {
+			if facts.ProjectorType != "gemma4uv" || facts.AudioProjectorType != "gemma4ua" ||
+				facts.VisionProjectionDim == 0 || facts.AudioProjectionDim == 0 {
+				return nil, fmt.Errorf("Gemma 4 unified projector metadata mismatch")
+			}
 		} else {
-			var magic [4]byte
-			if _, err := io.ReadFull(reader, magic[:]); err != nil {
-				return nil, err
+			if !llamaAdmittedVisionProjectorType(facts.ProjectorType) || facts.VisionProjectionDim == 0 {
+				return nil, fmt.Errorf("GGUF projector type %q or projection_dim %d is unsupported", facts.ProjectorType, facts.VisionProjectionDim)
 			}
-			if string(magic[:]) != "GGUF" {
-				return nil, fmt.Errorf("invalid GGUF projector magic")
+			if facts.ProjectorType == "qwen3vl_merger" {
+				mergerWidth, deepstackLayers, ok := ggufmeta.Qwen3VLProjectorDimensions(summary)
+				if !ok {
+					return nil, fmt.Errorf("GGUF qwen3vl_merger projector lacks valid mm.2.bias tensor header")
+				}
+				facts.ProjectorMergerWidth = mergerWidth
+				facts.ProjectorDeepstackLayers = deepstackLayers
 			}
 		}
 		facts.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
-	default:
-		return nil, fmt.Errorf("unsupported GGUF slot")
 	}
 	if failure := reader.actualFailure(); failure != nil {
 		return nil, failure
@@ -269,7 +383,7 @@ func (driver LlamaEmbedDriver) ProbeModelAsset(input ModelAssetFormatProbeInput,
 	if !input.Entry {
 		return nil, nil
 	}
-	if input.RequirementID != EmbeddingGGUFRequirementID || filepath.Ext(strings.ToLower(input.RelativePath)) != ".gguf" {
+	if input.RequirementID != EmbeddingGGUFRequirementID || !ggufmeta.IsGGUFExtension(input.RelativePath) {
 		return nil, fmt.Errorf("embedding GGUF entry required")
 	}
 	reader, err := newGGUFProbeReader(source, size, driver.ModelAssetFormatProbeBytes(input))

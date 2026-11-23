@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
@@ -42,10 +43,28 @@ type textBehaviorCloudTarget struct {
 	ProviderModelID string
 }
 
+type textBehaviorLocalTemplateMatchMode uint8
+
+const (
+	textBehaviorLocalTemplateMatchExact textBehaviorLocalTemplateMatchMode = iota
+	textBehaviorLocalTemplateMatchUnknownNonEmpty
+)
+
+type textBehaviorTemplateCohort struct {
+	TemplateIdentity  string
+	Architectures     []string
+	TokenizerProtocol string
+}
+
 type textBehaviorLocalTarget struct {
-	RecipeID       string
-	RecipeRevision string
-	ModelContents  []textBehaviorModelContent
+	RecipeID                   string
+	RecipeRevision             string
+	ModelContents              []textBehaviorModelContent
+	RequiredArchitectures      []string
+	RequiredTokenizerProtocol  string
+	TemplateMatchMode          textBehaviorLocalTemplateMatchMode
+	ExcludedTemplateIdentities []string
+	ExcludedTemplateCohorts    []textBehaviorTemplateCohort
 }
 
 // textBehaviorModelContent names canonical bound content, not a catalog offer,
@@ -160,6 +179,8 @@ type textBehaviorLocalResolutionTarget struct {
 	RecipeRevision   string
 	ModelContents    []textBehaviorModelContent
 	TemplateIdentity string
+	Architecture     string
+	TokenizerFacts   capabilitydriver.LlamaTokenizerFacts
 	RecipeCustody    []textBehaviorRecipeCustody
 	LoadOptions      []textBehaviorLoadOption
 }
@@ -219,8 +240,9 @@ func resolveTextBehaviorAdapterForFacts(
 	if err != nil {
 		return nil, err
 	}
+	explicitDisabled := normalizeReasoningConfig(spec.GetReasoning()).activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
 	if !validTextBehaviorResolutionFacts(facts) {
-		if !requested.any() {
+		if !requested.any() && !(explicitDisabled && facts.LocalTarget != nil) {
 			return nil, nil
 		}
 		return nil, textBehaviorUnavailableError()
@@ -238,8 +260,22 @@ func resolveTextBehaviorAdapterForFacts(
 	if !requested.any() {
 		// Explicit off is a control, not an enabled reasoning combination.
 		// Exact registered targets must admit its real mapping even on plain
-		// calls; a base Driver validates off itself when no adapter matches.
-		if normalizeReasoningConfig(spec.GetReasoning()).activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED {
+		// calls; local targets without a matching off-capable adapter fail closed.
+		if explicitDisabled {
+			if facts.LocalTarget != nil {
+				switch len(matches) {
+				case 0:
+					return nil, textBehaviorUnavailableError()
+				case 1:
+					if !textBehaviorReasoningSupportsRequest(matches[0].Support.Reasoning, requested, spec) ||
+						!textBehaviorRegistrationSupportsMode(matches[0], mode) {
+						return nil, textBehaviorUnavailableError()
+					}
+					return &resolvedTextBehaviorAdapter{registration: matches[0], facts: facts, requested: requested, mode: mode}, nil
+				default:
+					return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS)
+				}
+			}
 			for _, registration := range matches {
 				if !textBehaviorReasoningSupportsRequest(registration.Support.Reasoning, requested, spec) {
 					return nil, textBehaviorUnavailableError()
@@ -295,8 +331,21 @@ func validTextBehaviorAdapterRegistration(registration textBehaviorAdapterRegist
 			len(registration.ExecutionSemantics.RequiredRecipeCustody) == 0 &&
 			len(registration.ExecutionSemantics.RequiredLoadOptions) == 0
 	}
-	return validTextBehaviorLocalTarget(*registration.LocalTarget) &&
-		exactNonEmptyTextBehaviorValue(registration.ExecutionSemantics.RequiredTemplateIdentity)
+	if !validTextBehaviorLocalTarget(*registration.LocalTarget) {
+		return false
+	}
+	switch registration.LocalTarget.TemplateMatchMode {
+	case textBehaviorLocalTemplateMatchExact:
+		return exactNonEmptyTextBehaviorValue(registration.ExecutionSemantics.RequiredTemplateIdentity) &&
+			len(registration.LocalTarget.ExcludedTemplateIdentities) == 0 &&
+			len(registration.LocalTarget.ExcludedTemplateCohorts) == 0
+	case textBehaviorLocalTemplateMatchUnknownNonEmpty:
+		return registration.ExecutionSemantics.RequiredTemplateIdentity == "" &&
+			len(registration.LocalTarget.RequiredArchitectures) == 0 &&
+			registration.LocalTarget.RequiredTokenizerProtocol == ""
+	default:
+		return false
+	}
 }
 
 func validTextBehaviorResolutionFacts(facts textBehaviorAdapterResolutionFacts) bool {
@@ -315,8 +364,39 @@ func validTextBehaviorCloudTarget(target textBehaviorCloudTarget) bool {
 }
 
 func validTextBehaviorLocalTarget(target textBehaviorLocalTarget) bool {
-	return exactNonEmptyTextBehaviorValue(target.RecipeID) && exactNonEmptyTextBehaviorValue(target.RecipeRevision) &&
-		validTextBehaviorModelContents(target.ModelContents)
+	if !exactNonEmptyTextBehaviorValue(target.RecipeID) || !exactNonEmptyTextBehaviorValue(target.RecipeRevision) {
+		return false
+	}
+	if len(target.ModelContents) > 0 && !validTextBehaviorModelContents(target.ModelContents) {
+		return false
+	}
+	for _, arch := range target.RequiredArchitectures {
+		if !exactNonEmptyTextBehaviorValue(arch) {
+			return false
+		}
+	}
+	if target.RequiredTokenizerProtocol != "" && !capabilitydriver.LlamaTokenizerProtocolKnown(target.RequiredTokenizerProtocol) {
+		return false
+	}
+	for _, excluded := range target.ExcludedTemplateIdentities {
+		if !exactNonEmptyTextBehaviorValue(excluded) {
+			return false
+		}
+	}
+	for _, cohort := range target.ExcludedTemplateCohorts {
+		if !exactNonEmptyTextBehaviorValue(cohort.TemplateIdentity) {
+			return false
+		}
+		for _, arch := range cohort.Architectures {
+			if !exactNonEmptyTextBehaviorValue(arch) {
+				return false
+			}
+		}
+		if cohort.TokenizerProtocol != "" && !capabilitydriver.LlamaTokenizerProtocolKnown(cohort.TokenizerProtocol) {
+			return false
+		}
+	}
+	return true
 }
 
 func validTextBehaviorLocalResolutionTarget(target textBehaviorLocalResolutionTarget) bool {
@@ -536,13 +616,56 @@ func textBehaviorAdapterMatchesFacts(registration textBehaviorAdapterRegistratio
 			registration.CloudTarget.ProviderModelID == facts.CloudTarget.ProviderModelID
 	}
 	if facts.LocalTarget == nil || registration.LocalTarget.RecipeID != facts.LocalTarget.RecipeID ||
-		registration.LocalTarget.RecipeRevision != facts.LocalTarget.RecipeRevision ||
-		!equalTextBehaviorModelContents(registration.LocalTarget.ModelContents, facts.LocalTarget.ModelContents) ||
-		registration.ExecutionSemantics.RequiredTemplateIdentity != facts.LocalTarget.TemplateIdentity {
+		registration.LocalTarget.RecipeRevision != facts.LocalTarget.RecipeRevision {
+		return false
+	}
+	if len(registration.LocalTarget.ModelContents) > 0 &&
+		!equalTextBehaviorModelContents(registration.LocalTarget.ModelContents, facts.LocalTarget.ModelContents) {
+		return false
+	}
+	switch registration.LocalTarget.TemplateMatchMode {
+	case textBehaviorLocalTemplateMatchExact:
+		if registration.ExecutionSemantics.RequiredTemplateIdentity != facts.LocalTarget.TemplateIdentity {
+			return false
+		}
+		if len(registration.LocalTarget.RequiredArchitectures) > 0 &&
+			!containsTextBehaviorString(registration.LocalTarget.RequiredArchitectures, facts.LocalTarget.Architecture) {
+			return false
+		}
+		if registration.LocalTarget.RequiredTokenizerProtocol != "" &&
+			!capabilitydriver.LlamaTokenizerProtocolSatisfied(facts.LocalTarget.TokenizerFacts, registration.LocalTarget.RequiredTokenizerProtocol) {
+			return false
+		}
+	case textBehaviorLocalTemplateMatchUnknownNonEmpty:
+		if !exactNonEmptyTextBehaviorValue(facts.LocalTarget.TemplateIdentity) {
+			return false
+		}
+		for _, excluded := range registration.LocalTarget.ExcludedTemplateIdentities {
+			if facts.LocalTarget.TemplateIdentity == excluded {
+				return false
+			}
+		}
+		for _, cohort := range registration.LocalTarget.ExcludedTemplateCohorts {
+			if facts.LocalTarget.TemplateIdentity == cohort.TemplateIdentity &&
+				(len(cohort.Architectures) == 0 || containsTextBehaviorString(cohort.Architectures, facts.LocalTarget.Architecture)) &&
+				(cohort.TokenizerProtocol == "" || capabilitydriver.LlamaTokenizerProtocolSatisfied(facts.LocalTarget.TokenizerFacts, cohort.TokenizerProtocol)) {
+				return false
+			}
+		}
+	default:
 		return false
 	}
 	return containsAllTextBehaviorRecipeCustody(facts.LocalTarget.RecipeCustody, registration.ExecutionSemantics.RequiredRecipeCustody) &&
 		containsAllTextBehaviorLoadOptions(facts.LocalTarget.LoadOptions, registration.ExecutionSemantics.RequiredLoadOptions)
+}
+
+func containsTextBehaviorString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func equalTextBehaviorModelContents(left, right []textBehaviorModelContent) bool {
@@ -608,6 +731,15 @@ func textBehaviorAdapterSupportsRequest(registration textBehaviorAdapterRegistra
 func containsTextBehaviorExecutionMode(values []runtimev1.ExecutionMode, expected runtimev1.ExecutionMode) bool {
 	for _, value := range values {
 		if value == expected {
+			return true
+		}
+	}
+	return false
+}
+
+func textBehaviorRegistrationSupportsMode(registration textBehaviorAdapterRegistration, mode runtimev1.ExecutionMode) bool {
+	for _, combination := range registration.Support.Combinations {
+		if containsTextBehaviorExecutionMode(combination.Modes, mode) {
 			return true
 		}
 	}

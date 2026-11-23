@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
 const ggufMagicHeader = "GGUF"
@@ -29,7 +30,7 @@ func validateManagedModelEntryFile(path string) error {
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("managed local model entry is not a regular file")
 	}
-	if strings.ToLower(filepath.Ext(entryPath)) != ".gguf" {
+	if !ggufmeta.IsGGUFExtension(entryPath) {
 		return nil
 	}
 	file, err := os.Open(entryPath)
@@ -44,7 +45,7 @@ func validateManagedModelEntryOpenFile(path string, file *os.File, info os.FileI
 	if file == nil || info == nil || !info.Mode().IsRegular() {
 		return fmt.Errorf("managed local model entry is not a regular file")
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(path))) != ".gguf" {
+	if !ggufmeta.IsGGUFExtension(path) {
 		return nil
 	}
 	if info.Size() < minManagedGGUFSizeBytes {

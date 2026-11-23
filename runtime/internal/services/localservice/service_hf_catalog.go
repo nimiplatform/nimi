@@ -13,6 +13,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
 const (
@@ -469,7 +470,7 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []hfCatalogVarian
 			continue
 		}
 		lower := strings.ToLower(entry)
-		if !strings.HasSuffix(lower, ".gguf") && !strings.HasSuffix(lower, ".safetensors") {
+		if !ggufmeta.IsGGUFExtension(entry) && !strings.HasSuffix(lower, ".safetensors") {
 			continue
 		}
 		format := variantFormatForEntry(entry)
@@ -545,7 +546,7 @@ func hfCatalogFileHashes(siblings []hfModelSibling) map[string]string {
 func variantFormatForEntry(entry string) string {
 	lower := strings.ToLower(strings.TrimSpace(entry))
 	switch {
-	case strings.HasSuffix(lower, ".gguf"):
+	case ggufmeta.IsGGUFExtension(entry):
 		return "gguf"
 	case strings.HasSuffix(lower, ".safetensors"):
 		return "safetensors"

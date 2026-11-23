@@ -391,13 +391,13 @@ loadout_recipes:
           format: safetensors
           model_type: grounding-dino
           artifact_role: vision_model
-  - recipe_id: llama.text-generate.gemma4.v1
+  - recipe_id: llama.text-generate.gguf.v1
     revision: "1"
-    title: Gemma 4 text generation
+    title: llama.cpp GGUF text generation
     capability_contract: text.generate
     implementation_id: local.text.generate.llama-cpp
     driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
+    driver_dialect: llama.cpp/text-generate/v3
     default_options: {}
     supported_features: [input.image]
     slot_metadata:
@@ -409,133 +409,26 @@ loadout_recipes:
           - local.chat.gemma-4-e2b-it.q5-k-m
           - local.chat.gemma-4-e2b-it.q6-k
           - local.chat.gemma-4-e2b-it.q8-0
-          - local.chat.gemma-4-26b-a4b-it.q4-k-m
-          - local.chat.gemma-4-26b-a4b-it.q5-k-m
-          - local.chat.gemma-4-26b-a4b-it.q6-k
-          - local.chat.gemma-4-26b-a4b-it.q8-0
         model_contract:
           format: gguf
-          gguf_architectures: [gemma4]
+          artifact_role: llm
       - slot_id: companion.mmproj
         display_label: Vision projector
-        recommended_variant_ids:
-          - local.aux.gemma-4-e2b-it.mmproj-f16.cuda
-          - local.aux.gemma-4-e2b-it.mmproj-f16.metal
-          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.cuda
-          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.metal
         model_contract:
           format: gguf
           artifact_role: mmproj
-  - recipe_id: llama.text-generate.qwen35-4b.v1
-    revision: "1"
-    title: Qwen3.5 4B base text generation
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
-    default_options: {}
-    supported_features: []
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Qwen3.5 4B main model
-        recommended_variant_ids: [local.chat.qwen3.5-4b.q4-k-m.cuda]
-        model_contract:
-          format: gguf
-          gguf_architectures: [qwen35]
-  - recipe_id: llama.text-generate.qwen35-4b-vision.v1
-    revision: "1"
-    title: Qwen3.5 4B image and text (Windows CUDA)
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
-    default_options: { contextSize: 8192, gpuLayers: 99 }
-    supported_features: [input.image]
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Qwen3.5 4B main model
-        recommended_variant_ids: [local.chat.qwen3.5-4b.q4-k-m.cuda]
-        model_contract:
-          format: gguf
-          gguf_architectures: [qwen35]
-      - slot_id: companion.mmproj
-        display_label: Qwen3.5 4B F16 vision projector
-        recommended_variant_ids: [local.aux.qwen3.5-4b.mmproj-f16.cuda]
-        model_contract:
-          format: gguf
-          artifact_role: mmproj
-  - recipe_id: llama.text-generate.inkling2-mini.v1
-    revision: "1"
-    title: Inkling 2 Mini image and text (Windows CUDA)
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
-    default_options: { contextSize: 8192, gpuLayers: 99 }
-    supported_features: [input.image]
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Inkling 2 Mini mainline model
-        recommended_variant_ids: [local.chat.inkling-2-mini.ud-q4-k-xl.cuda]
-        model_contract:
-          format: gguf
-          gguf_architectures: [inkling2_loop]
-      - slot_id: companion.mmproj
-        display_label: Inkling 2 Mini F16 vision projector
-        recommended_variant_ids: [local.aux.inkling-2-mini.mmproj-f16.cuda]
-        model_contract:
-          format: gguf
-          artifact_role: mmproj
-  - recipe_id: llama.text-generate.qwen38-27b.v1
-    revision: "1"
-    title: Qwen3.8 27B image and text (Windows CUDA)
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
-    default_options: { contextSize: 8192, gpuLayers: 99 }
-    supported_features: [input.image]
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Qwen3.8 27B main model
-        recommended_variant_ids: [local.chat.qwen3.8-27b.q4-k-m.cuda]
-        model_contract:
-          format: gguf
-          gguf_architectures: [qwen35]
-      - slot_id: companion.mmproj
-        display_label: Qwen3.8 27B BF16 vision projector
-        recommended_variant_ids: [local.aux.qwen3.8-27b.mmproj-bf16.cuda]
-        model_contract:
-          format: gguf
-          artifact_role: mmproj
-  - recipe_id: llama.text-generate.lfm3-1.7b.v1
-    revision: "1"
-    title: LFM3 1.7B text (Windows CUDA)
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
-    default_options: { contextSize: 8192, gpuLayers: 99 }
-    supported_features: []
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: LFM3 1.7B Q4_K_M model
-        recommended_variant_ids: [local.chat.lfm3-1.7b.q4-k-m.cuda]
-        model_contract:
-          format: gguf
-          gguf_architectures: [lfm3]
   - recipe_id: llama.text-generate.gemma4-12b-unified.v1
     revision: "1"
     title: Gemma 4 12B unified image, audio and video (Windows CUDA)
     capability_contract: text.generate
     implementation_id: local.text.generate.llama-cpp
     driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v2
+    driver_dialect: llama.cpp/text-generate/v3
     default_options: { contextSize: 8192, gpuLayers: 99 }
     supported_features: [input.image, input.audio, input.video]
     slot_metadata:
       - slot_id: main.gguf
-        display_label: Gemma 4 12B QAT Q4_0 main model
+        display_label: Gemma 4 12B unified main model
         recommended_variant_ids: [local.chat.gemma4-12b-unified.qat-q4-0.cuda]
         model_contract:
           format: gguf

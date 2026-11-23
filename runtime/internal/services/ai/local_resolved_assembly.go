@@ -68,6 +68,8 @@ type localResolvedAssemblyModelAxis struct {
 	VerifiedContentID      string                                       `json:"verified_content_id"`
 	EntrySHA256            string                                       `json:"entry_sha256"`
 	TemplateIdentity       string                                       `json:"template_identity,omitempty"`
+	Architecture           string                                       `json:"architecture,omitempty"`
+	TokenizerFacts         capabilitydriver.LlamaTokenizerFacts         `json:"tokenizer_facts,omitempty"`
 	EmbeddingInputProtocol string                                       `json:"embedding_input_protocol,omitempty"`
 }
 
@@ -145,25 +147,29 @@ type localResolvedAssemblyMusicPlan struct {
 }
 
 type localResolvedAssemblyInvocationBinding struct {
-	RequirementID          string   `json:"requirement_id"`
-	ModelAssetID           string   `json:"model_asset_id"`
-	AbsolutePath           string   `json:"absolute_path"`
-	BundleDir              string   `json:"bundle_dir,omitempty"`
-	DeclaredFiles          []string `json:"declared_files,omitempty"`
-	VerifiedContentID      string   `json:"verified_content_id"`
-	EntrySHA256            string   `json:"entry_sha256"`
-	TemplateIdentity       string   `json:"template_identity,omitempty"`
-	EmbeddingInputProtocol string   `json:"embedding_input_protocol,omitempty"`
+	RequirementID          string                               `json:"requirement_id"`
+	ModelAssetID           string                               `json:"model_asset_id"`
+	AbsolutePath           string                               `json:"absolute_path"`
+	BundleDir              string                               `json:"bundle_dir,omitempty"`
+	DeclaredFiles          []string                             `json:"declared_files,omitempty"`
+	VerifiedContentID      string                               `json:"verified_content_id"`
+	EntrySHA256            string                               `json:"entry_sha256"`
+	TemplateIdentity       string                               `json:"template_identity,omitempty"`
+	Architecture           string                               `json:"architecture,omitempty"`
+	TokenizerFacts         capabilitydriver.LlamaTokenizerFacts `json:"tokenizer_facts,omitempty"`
+	EmbeddingInputProtocol string                               `json:"embedding_input_protocol,omitempty"`
 }
 
 type localResolvedAssemblyTextBehaviorMatch struct {
-	RecipeID          string `json:"recipe_id"`
-	RecipeRevision    string `json:"recipe_revision"`
-	DriverDialect     string `json:"driver_dialect"`
-	ModelAssetID      string `json:"model_asset_id"`
-	VerifiedContentID string `json:"verified_content_id"`
-	EntrySHA256       string `json:"entry_sha256"`
-	TemplateIdentity  string `json:"template_identity,omitempty"`
+	RecipeID          string                               `json:"recipe_id"`
+	RecipeRevision    string                               `json:"recipe_revision"`
+	DriverDialect     string                               `json:"driver_dialect"`
+	ModelAssetID      string                               `json:"model_asset_id"`
+	VerifiedContentID string                               `json:"verified_content_id"`
+	EntrySHA256       string                               `json:"entry_sha256"`
+	TemplateIdentity  string                               `json:"template_identity,omitempty"`
+	Architecture      string                               `json:"architecture,omitempty"`
+	TokenizerFacts    capabilitydriver.LlamaTokenizerFacts `json:"tokenizer_facts,omitempty"`
 }
 
 type localResolvedAssemblyTextPlan struct {
@@ -502,7 +508,8 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 			ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
-			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), Architecture: strings.TrimSpace(binding.Architecture),
+			TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(binding.TokenizerFacts), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
 	for _, custody := range selected.RecipeCustody {
@@ -571,7 +578,8 @@ func resolvedAssemblyTextBehaviorMatch(facts capabilitydriver.TextBehaviorAdapte
 		RecipeID: strings.TrimSpace(facts.RecipeID), RecipeRevision: strings.TrimSpace(facts.RecipeRevision),
 		DriverDialect: strings.TrimSpace(facts.DriverDialect), ModelAssetID: strings.TrimSpace(facts.ModelAssetID),
 		VerifiedContentID: strings.TrimSpace(facts.VerifiedContentID), EntrySHA256: strings.TrimSpace(facts.EntrySHA256),
-		TemplateIdentity: strings.TrimSpace(facts.TemplateIdentity),
+		TemplateIdentity: strings.TrimSpace(facts.TemplateIdentity), Architecture: strings.TrimSpace(facts.Architecture),
+		TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(facts.TokenizerFacts),
 	}
 }
 
@@ -837,7 +845,8 @@ func resolvedAssemblyInvocationBindings(bindings []capabilitydriver.InvocationEx
 			RequirementID: strings.TrimSpace(binding.RequirementID), ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
-			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity), Architecture: strings.TrimSpace(binding.Architecture),
+			TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(binding.TokenizerFacts), EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
 	return result
@@ -868,7 +877,7 @@ func resolvedAssemblyExactBindings(assembly *localResolvedAssembly) []capability
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
-			TemplateIdentity:  axis.TemplateIdentity, EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
+			TemplateIdentity:  axis.TemplateIdentity, Architecture: axis.Architecture, TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(axis.TokenizerFacts), EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
 		})
 	}
 	return bindings
@@ -938,7 +947,7 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
-			TemplateIdentity:  axis.TemplateIdentity, EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
+			TemplateIdentity:  axis.TemplateIdentity, Architecture: axis.Architecture, TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(axis.TokenizerFacts), EmbeddingInputProtocol: axis.EmbeddingInputProtocol,
 		})
 	}
 	for _, source := range assembly.DependencySources {
@@ -1079,7 +1088,7 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		expectedMatch := localResolvedAssemblyTextBehaviorMatch{
 			RecipeID: assembly.RecipeID, RecipeRevision: assembly.RecipeRevision, DriverDialect: assembly.DriverIdentity.DriverDialect,
 			ModelAssetID: main.ModelAssetID, VerifiedContentID: main.VerifiedContentID, EntrySHA256: main.EntrySHA256,
-			TemplateIdentity: main.TemplateIdentity,
+			TemplateIdentity: main.TemplateIdentity, Architecture: main.Architecture, TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(main.TokenizerFacts),
 		}
 		if !reflect.DeepEqual(assembly.LoadPlan.Text.BehaviorMatch, expectedMatch) {
 			return fmt.Errorf("local ResolvedAssembly text behavior match differs from the exact model axis")

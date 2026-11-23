@@ -1171,7 +1171,7 @@ func isModelAssetControlFile(relativePath string) bool {
 
 func boundedModelAssetFileFingerprint(path string, extension string) (string, map[string]any) {
 	switch extension {
-	case ".gguf":
+	case ".gguf", ".gguf_file":
 		file, err := os.Open(path)
 		if err != nil {
 			return "", nil
@@ -1330,9 +1330,23 @@ func safeModelAssetEntry(files []*runtimev1.ModelAssetFile) string {
 			continue
 		}
 		switch strings.ToLower(filepath.Ext(file.GetRelativePath())) {
-		case ".gguf", ".safetensors", ".bin":
+		case ".gguf", ".gguf_file", ".safetensors", ".bin":
 			return file.GetRelativePath()
 		}
+	}
+	uniqueONNX := ""
+	onnxCount := 0
+	for _, file := range files {
+		if file == nil || file.GetNonExecutableContent() {
+			continue
+		}
+		if strings.EqualFold(filepath.Ext(file.GetRelativePath()), ".onnx") {
+			uniqueONNX = file.GetRelativePath()
+			onnxCount++
+		}
+	}
+	if onnxCount == 1 {
+		return uniqueONNX
 	}
 	for _, file := range files {
 		if file != nil && !file.GetNonExecutableContent() {

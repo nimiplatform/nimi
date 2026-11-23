@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/proto"
@@ -23,71 +24,59 @@ const inputImageFeature = "input.image"
 // LlamaTextDriver projects only llama.cpp text resource intent.
 type LlamaTextDriver struct{}
 
+func (LlamaTextDriver) RequiresVideoCodec(recipeID string, configuredFeatures []string) bool {
+	return strings.TrimSpace(recipeID) == LlamaGemma412BRecipeID && contains(configuredFeatures, "input.video")
+}
+
+func (LlamaTextDriver) OwnedMediaMaxRequestBytes(recipeID string) int64 {
+	if strings.TrimSpace(recipeID) == LlamaGemma412BRecipeID {
+		return LlamaUnifiedMaxRequestBytes
+	}
+	return 0
+}
+
+// ModelAssetFormatProbeBytes declares the legacy raw-prefix contract ceiling
+// only. Production localservice calls LlamaTextDriver through
+// ModelAssetStructuredProbeDriver.ProbeModelAsset, which walks GGUF metadata
+// over io.ReaderAt with a 64 KiB rolling buffer up to
+// maxStructuredGGUFMetadataBytes (64 MiB) and emits a bounded JSON probe.
 func (LlamaTextDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	// Gemma's projector format predicate consumes only magic. Qwen projectors
-	// still inspect their full tensor/metadata contract through the old budget.
-	if input.RecipeID == LlamaGemma4RecipeID && input.RequirementID == CompanionMMProjRequirementID && input.Entry &&
-		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
-		return 4
-	}
-	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || qwen35Recipe(input.RecipeID) || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaLFM3RecipeID || input.RecipeID == LlamaInkling2MiniRecipeID) &&
-		input.RequirementID == MainGGUFRequirementID && input.Entry &&
-		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
-		return MaxDriverAssetFormatProbeBytes
-	}
-	if input.RecipeID == LlamaGemma412BRecipeID && input.Entry {
+	recipeID := strings.TrimSpace(input.RecipeID)
+	if (recipeID == LlamaGenericGGUFRecipeID || recipeID == LlamaGemma412BRecipeID) &&
+		(input.RequirementID == MainGGUFRequirementID || input.RequirementID == CompanionMMProjRequirementID) &&
+		input.Entry && ggufmeta.IsGGUFExtension(input.RelativePath) {
 		return MaxDriverAssetFormatProbeBytes
 	}
 	return MaxAssetFormatProbeBytes
 }
 
 func (driver LlamaTextDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
-	if recipeID == LlamaGemma412BRecipeID {
+	switch strings.TrimSpace(recipeID) {
+	case LlamaGenericGGUFRecipeID:
+		return []string{inputImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	case LlamaGemma412BRecipeID:
 		return []string{"input.image", "input.audio", "input.video"}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	if len(driver.recipeModelArchitectures(recipeID, MainGGUFRequirementID)) == 0 {
+	default:
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
-	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID || strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaInkling2MiniRecipeID {
-		return []string{inputImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func (driver LlamaTextDriver) TextBehaviorCapabilities(recipeID string) ([]*runtimev1.TextBehaviorCapabilityProjection, runtimev1.LocalCapabilityReason) {
 	if len(driver.recipeModelArchitectures(recipeID, MainGGUFRequirementID)) == 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
-	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaLFM3RecipeID || recipeID == LlamaGemma412BRecipeID {
-		return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	if strings.TrimSpace(recipeID) == LlamaQwen35RecipeID {
-		return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-	}
-	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, 3)
-	for _, kind := range []runtimev1.TextBehaviorKind{
-		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE,
-		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING,
-		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT,
-	} {
-		result = append(result, &runtimev1.TextBehaviorCapabilityProjection{
-			Kind: kind, ImplementationSupported: false,
-			ConfigurationState: runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE,
-			Reasons:            []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE},
-		})
-	}
-	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r112
+// @nimi-authority: rule.nimi.runtime.ai-provider.r120
+// @nimi-authority: rule.nimi.runtime.ai-provider.r121
 func (driver LlamaTextDriver) TextBehaviorCapabilitiesForBindings(recipeID string, facts []TextBehaviorBindingFacts) ([]*runtimev1.TextBehaviorCapabilityProjection, runtimev1.LocalCapabilityReason) {
 	base, reason := driver.TextBehaviorCapabilities(recipeID)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return base, reason
 	}
 	recipeID = strings.TrimSpace(recipeID)
-	if recipeID != LlamaGemma4RecipeID && recipeID != LlamaQwen35RecipeID && recipeID != LlamaQwen38RecipeID && recipeID != LlamaLFM3RecipeID && recipeID != LlamaGemma412BRecipeID {
-		return base, reason
-	}
 	var main []TextBehaviorBindingFacts
 	for _, fact := range facts {
 		if fact.RequirementID == MainGGUFRequirementID {
@@ -98,38 +87,25 @@ func (driver LlamaTextDriver) TextBehaviorCapabilitiesForBindings(recipeID strin
 	case 0:
 		return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	case 1:
-		if recipeID == LlamaGemma412BRecipeID {
-			if gemma412BBehaviorAssetMatches(main[0]) {
-				return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-			}
+		templateID := strings.TrimSpace(main[0].TemplateIdentity)
+		if templateID == "" {
 			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 		}
-		if recipeID == LlamaQwen35RecipeID {
-			if qwen35Q4BehaviorAssetMatches(main[0]) {
+		arch := strings.TrimSpace(main[0].Architecture)
+		if recipeID == LlamaGemma412BRecipeID {
+			if KnownLlamaTemplateCohortAllowed(recipeID, templateID, arch, main[0].TokenizerFacts) {
+				return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+			}
+			return llamaStructuredOnlyTextBehaviorProjections(), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+		}
+		if KnownLlamaTemplateCohortAllowed(recipeID, templateID, arch, main[0].TokenizerFacts) {
+			if templateID == Qwen35Q4TemplateIdentity {
 				return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 			}
-			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+			return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 		}
-		if recipeID == LlamaLFM3RecipeID {
-			if lfm3Q4BehaviorAssetMatches(main[0]) {
-				return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-			}
-			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-		}
-		if recipeID == LlamaQwen38RecipeID {
-			if qwen38Q4BehaviorAssetMatches(main[0]) {
-				return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-			}
-			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-		}
-		if _, ok := gemma4CohortEntryForMain(main[0].VerifiedContentID, main[0].EntrySHA256, main[0].TemplateIdentity); !ok {
-			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-		}
-		return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+		return llamaStructuredOnlyTextBehaviorProjections(), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	default:
-		if recipeID == LlamaQwen35RecipeID {
-			return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-		}
 		return llamaFullTextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
 }
@@ -142,12 +118,11 @@ func qwen35TextBehaviorProjections(state runtimev1.TextBehaviorConfigurationStat
 		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING,
 		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT,
 	} {
-		projection := &runtimev1.TextBehaviorCapabilityProjection{Kind: kind}
+		projection := &runtimev1.TextBehaviorCapabilityProjection{Kind: kind, ImplementationSupported: true}
 		if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING {
 			projection.ConfigurationState = runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE
 			projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE}
 		} else {
-			projection.ImplementationSupported = true
 			projection.ConfigurationState = state
 			switch state {
 			case runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE:
@@ -156,11 +131,33 @@ func qwen35TextBehaviorProjections(state runtimev1.TextBehaviorConfigurationStat
 				projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS}
 			}
 			if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE {
-				projection.ImplementationToolUse = Qwen35ToolUseCapabilityProjection()
+				projection.ImplementationToolUse = LlamaFunctionToolUseCapabilityProjection()
 				if state == runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
 					projection.ConfiguredToolUse = Qwen35ToolUseCapabilityProjection()
 				}
 			}
+		}
+		result = append(result, projection)
+	}
+	return result
+}
+
+func llamaStructuredOnlyTextBehaviorProjections() []*runtimev1.TextBehaviorCapabilityProjection {
+	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, 3)
+	for _, kind := range []runtimev1.TextBehaviorKind{
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE,
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING,
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT,
+	} {
+		projection := &runtimev1.TextBehaviorCapabilityProjection{Kind: kind, ImplementationSupported: true}
+		if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT {
+			projection.ConfigurationState = runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED
+		} else {
+			projection.ConfigurationState = runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE
+			projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE}
+		}
+		if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE {
+			projection.ImplementationToolUse = LlamaFunctionToolUseCapabilityProjection()
 		}
 		result = append(result, projection)
 	}
@@ -229,7 +226,7 @@ func (driver LlamaTextDriver) ProjectRecipe(recipeID string, options *structpb.S
 }
 
 func (driver LlamaTextDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if (strings.TrimSpace(recipeID) == LlamaQwen35VisionRecipeID || strings.TrimSpace(recipeID) == LlamaQwen38RecipeID || recipeID == LlamaLFM3RecipeID || recipeID == LlamaGemma412BRecipeID || recipeID == LlamaInkling2MiniRecipeID) && strings.ToLower(strings.TrimSpace(platform)) != "windows/amd64" {
+	if strings.TrimSpace(recipeID) == LlamaGemma412BRecipeID && strings.ToLower(strings.TrimSpace(platform)) != "windows/amd64" {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return driver.ProjectRecipe(recipeID, options, supportedFeatures)
@@ -240,14 +237,10 @@ func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) 
 		return nil
 	}
 	switch strings.TrimSpace(recipeID) {
-	case LlamaGemma4RecipeID, LlamaGemma412BRecipeID:
+	case LlamaGenericGGUFRecipeID:
+		return llamaSupportedTextArchitectures
+	case LlamaGemma412BRecipeID:
 		return []string{"gemma4"}
-	case LlamaLFM3RecipeID:
-		return []string{"lfm3"}
-	case LlamaInkling2MiniRecipeID:
-		return []string{"inkling2_loop"}
-	case LlamaQwen35RecipeID, LlamaQwen35VisionRecipeID, LlamaQwen38RecipeID:
-		return []string{"qwen35"}
 	default:
 		return nil
 	}
@@ -259,35 +252,32 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 	if err != nil || facts.EmbeddingDimension != 0 || facts.EmbeddingInputProtocol != "" {
 		return ModelAssetBindingProjection{}, invalid
 	}
-	if input.RecipeID == LlamaLFM3RecipeID && (!lfm3Q4ContentMatches(input.Binding.GetVerifiedContentId(), input.Binding.GetEntrySha256()) || facts.TemplateIdentity != LFM3Q4TemplateIdentity) {
-		return ModelAssetBindingProjection{}, invalid
-	}
-	if input.RecipeID == LlamaGemma412BRecipeID && !gemma412BExactBindingMatches(input, facts.TemplateIdentity) {
-		return ModelAssetBindingProjection{}, invalid
-	}
-	// @nimi-authority: rule.nimi.runtime.local-compute.inkling2-mini
-	if input.RecipeID == LlamaInkling2MiniRecipeID {
-		digest := "e64276656f072e9b2197a61723667cbdb71da66a716ffd966e572c21088f3cd3" // pragma: allowlist secret -- public model digest
-		if input.Requirement.GetRequirementId() == CompanionMMProjRequirementID {
-			digest = "3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f" // pragma: allowlist secret -- public projector digest
-		}
-		if input.Binding.GetVerifiedContentId() != "sha256:"+digest || input.Binding.GetEntrySha256() != digest {
-			return ModelAssetBindingProjection{}, invalid
-		}
-	}
 	descriptor := ModelAssetDescriptor{Engine: "llama", FormatProbe: input.Entry.FormatProbe}
 	switch input.Requirement.GetRequirementId() {
 	case MainGGUFRequirementID:
-		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT || !contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), facts.Architecture) {
+		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT ||
+			facts.ContextWindow == 0 ||
+			!contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), facts.Architecture) {
 			return ModelAssetBindingProjection{}, invalid
 		}
 		descriptor.Kind, descriptor.ArtifactRoles = facts.Kind, []string{"llm"}
 	case CompanionMMProjRequirementID:
-		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY || facts.ContextWindow != 0 || facts.TemplateIdentity != "" {
+		if facts.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY ||
+			facts.ContextWindow != 0 || facts.TemplateIdentity != "" || facts.Architecture != "clip" {
 			return ModelAssetBindingProjection{}, invalid
 		}
-		if (strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID || input.RecipeID == LlamaQwen38RecipeID) && facts.Architecture != "clip" {
-			return ModelAssetBindingProjection{}, invalid
+		if strings.TrimSpace(input.RecipeID) == LlamaGemma412BRecipeID {
+			if facts.ProjectorType != "gemma4uv" || facts.AudioProjectorType != "gemma4ua" ||
+				facts.VisionProjectionDim == 0 || facts.AudioProjectionDim == 0 {
+				return ModelAssetBindingProjection{}, invalid
+			}
+		} else {
+			if !llamaAdmittedVisionProjectorType(facts.ProjectorType) || facts.VisionProjectionDim == 0 {
+				return ModelAssetBindingProjection{}, invalid
+			}
+			if facts.ProjectorType == "qwen3vl_merger" && facts.ProjectorMergerWidth == 0 {
+				return ModelAssetBindingProjection{}, invalid
+			}
 		}
 		descriptor.Kind, descriptor.ArtifactRoles = facts.Kind, []string{"mmproj"}
 	default:
@@ -296,20 +286,24 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 	projection, reason := validatedModelAssetBindingProjection(input, descriptor, facts.ContextWindow, driver.ValidateBinding)
 	if reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		projection.TemplateIdentity = facts.TemplateIdentity
+		projection.Architecture = facts.Architecture
+		projection.TokenizerFacts = LlamaTokenizerFacts{
+			BOSToken:      facts.TokenizerBOSToken,
+			EOSToken:      facts.TokenizerEOSToken,
+			SpecialTokens: append([]string(nil), facts.TokenizerSpecialTokens...),
+		}
 	}
 	return projection, reason
 }
 
 func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	recipeID := strings.TrimSpace(input.RecipeID)
 	features, reason := normalizedFeatures(input.SupportedFeatures)
-	if input.RecipeID == LlamaGemma412BRecipeID {
+	if recipeID == LlamaGemma412BRecipeID {
 		features, reason = gemma412BFeatures(input.SupportedFeatures)
 	}
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
-	}
-	if (strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID || input.RecipeID == LlamaLFM3RecipeID) && contains(features, inputImageFeature) {
-		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 	_, reason = parsePortableConfig(input.PortableConfig, len(features) > 0)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
@@ -323,12 +317,8 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 		"llm",
 		"Main model",
 	)
-	if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID {
-		main.CompatibilityConstraints.Fields["gemma4_contract"] = structpb.NewStringValue("v1")
-	} else if qwen35Recipe(input.RecipeID) {
-		main.CompatibilityConstraints.Fields["qwen35_4b_contract"] = structpb.NewStringValue("v1")
-	} else if input.RecipeID == LlamaQwen38RecipeID {
-		main.CompatibilityConstraints.Fields["qwen38_27b_contract"] = structpb.NewStringValue("v1")
+	if recipeID == LlamaGemma412BRecipeID {
+		main.CompatibilityConstraints.Fields["gemma4_unified_contract"] = structpb.NewStringValue("v1")
 	}
 	requirements := []*runtimev1.LocalCapabilityRequirement{main}
 	if len(features) > 0 {
@@ -339,20 +329,11 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 			"mmproj",
 			"Vision projector",
 		)
-		if strings.TrimSpace(input.RecipeID) != LlamaQwen35VisionRecipeID {
-			projector.Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
-			projector.ConditionalFeatures = []string{inputImageFeature}
-		}
-		if input.RecipeID == LlamaGemma412BRecipeID {
+		projector.Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
+		projector.ConditionalFeatures = append([]string(nil), features...)
+		if recipeID == LlamaGemma412BRecipeID {
 			projector.DisplayLabel = "Unified image and audio projection"
-			projector.ConditionalFeatures = append([]string(nil), features...)
-		}
-		if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID {
-			projector.CompatibilityConstraints.Fields["gemma4_contract"] = structpb.NewStringValue("v1")
-		} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID {
-			projector.CompatibilityConstraints.Fields["qwen35_4b_projector_contract"] = structpb.NewStringValue("v1")
-		} else if input.RecipeID == LlamaQwen38RecipeID {
-			projector.CompatibilityConstraints.Fields["qwen38_27b_projector_contract"] = structpb.NewStringValue("v1")
+			projector.CompatibilityConstraints.Fields["gemma4_unified_contract"] = structpb.NewStringValue("v1")
 		}
 		requirements = append(requirements, projector)
 	}
@@ -423,32 +404,15 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 			return reason
 		}
 	}
-	if gemma4CombinationContract(requirements) {
+	if projectorIndex, configured := byBinding[CompanionMMProjRequirementID]; configured {
 		mainIndex, ok := byBinding[MainGGUFRequirementID]
 		if !ok {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
 		}
-		expectedProjector, ok := gemma4ProjectorForMainContent(bindings[mainIndex].GetVerifiedContentId())
-		if !ok {
-			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-		if projectorIndex, configured := byBinding[CompanionMMProjRequirementID]; configured && bindings[projectorIndex].GetVerifiedContentId() != expectedProjector {
-			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-		}
-	}
-	if qwen35ProjectorCombinationContract(requirements) {
-		projectorIndex, configured := byBinding[CompanionMMProjRequirementID]
-		if configured {
-			mainIndex, ok := byBinding[MainGGUFRequirementID]
-			if !ok || !qwen35Q4VisionPair(bindings[mainIndex], bindings[projectorIndex]) {
-				return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
-			}
-		}
-	}
-	if qwen38ProjectorCombinationContract(requirements) {
-		if projectorIndex, configured := byBinding[CompanionMMProjRequirementID]; configured {
-			mainIndex, ok := byBinding[MainGGUFRequirementID]
-			if !ok || !qwen38VisionPair(bindings[mainIndex], bindings[projectorIndex]) {
+		if len(assets[mainIndex].FormatProbe) > 0 || len(assets[projectorIndex].FormatProbe) > 0 {
+			mainFacts, mainErr := decodeLlamaGGUFProbeBytes(assets[mainIndex].FormatProbe)
+			projFacts, projErr := decodeLlamaGGUFProbeBytes(assets[projectorIndex].FormatProbe)
+			if mainErr != nil || projErr != nil || !llamaProjectorCompatibleWithMain(mainFacts, projFacts, gemma4UnifiedCombinationContract(requirements)) {
 				return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 			}
 		}
@@ -456,18 +420,9 @@ func (driver LlamaTextDriver) ValidateCombination(requirements []*runtimev1.Loca
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func qwen35ProjectorCombinationContract(requirements []*runtimev1.LocalCapabilityRequirement) bool {
+func gemma4UnifiedCombinationContract(requirements []*runtimev1.LocalCapabilityRequirement) bool {
 	for _, requirement := range requirements {
-		if requirement != nil && requirement.GetCompatibilityConstraints().GetFields()["qwen35_4b_projector_contract"].GetStringValue() == "v1" {
-			return true
-		}
-	}
-	return false
-}
-
-func gemma4CombinationContract(requirements []*runtimev1.LocalCapabilityRequirement) bool {
-	for _, requirement := range requirements {
-		if requirement != nil && requirement.GetCompatibilityConstraints().GetFields()["gemma4_contract"].GetStringValue() == "v1" {
+		if requirement != nil && requirement.GetCompatibilityConstraints().GetFields()["gemma4_unified_contract"].GetStringValue() == "v1" {
 			return true
 		}
 	}
@@ -490,13 +445,14 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 	requestContentType := "application/json"
 	var requestBody []byte
 	var behaviorInvocation *textbehavior.Invocation
+	unified := input.BehaviorMatch.RecipeID == LlamaGemma412BRecipeID
 	if input.BehaviorAdapter == nil {
-		requestBody, err = llamaTextRequestBody(input.Request, input.Stream, hasMMProj)
+		requestBody, err = llamaTextRequestBody(input.Request, input.Stream, hasMMProj, unified)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if err := validateLlamaTextRequestMedia(input.Request, hasMMProj, input.BehaviorMatch.RecipeID == LlamaGemma412BRecipeID); err != nil {
+		if err := validateLlamaTextRequestMedia(input.Request, hasMMProj, unified); err != nil {
 			return nil, err
 		}
 		if err := input.BehaviorAdapter.ValidateTemplateIdentity(behaviorMatch.TemplateIdentity); err != nil {
@@ -625,7 +581,7 @@ func (driver LlamaTextDriver) validateTextBehaviorAdapterMatchFacts(facts TextBe
 	}
 	if len(driver.recipeModelArchitectures(facts.RecipeID, MainGGUFRequirementID)) == 0 || facts.DriverDialect != LlamaDriverDialect ||
 		facts.ModelAssetID != main.ModelAssetID || facts.VerifiedContentID != main.VerifiedContentID || facts.EntrySHA256 != main.EntrySHA256 ||
-		facts.TemplateIdentity != main.TemplateIdentity || !canonicalInvocationSHA256(facts.VerifiedContentID, facts.EntrySHA256) ||
+		facts.TemplateIdentity != main.TemplateIdentity || facts.Architecture != main.Architecture || !canonicalInvocationSHA256(facts.VerifiedContentID, facts.EntrySHA256) ||
 		facts.TemplateIdentity != "" && !canonicalSHA256Identity(facts.TemplateIdentity) {
 		return TextBehaviorAdapterMatchFacts{}, fmt.Errorf("llama text behavior match facts do not match the exact main GGUF binding")
 	}
@@ -716,11 +672,11 @@ func canonicalSHA256Identity(value string) bool {
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
-func llamaTextRequestBody(spec *runtimev1.TextGenerateScenarioSpec, stream bool, hasMMProj bool) ([]byte, error) {
+func llamaTextRequestBody(spec *runtimev1.TextGenerateScenarioSpec, stream bool, hasMMProj bool, unified bool) ([]byte, error) {
 	if spec == nil {
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("text.generate request is required"))
 	}
-	if err := validateLlamaTextRequest(spec, hasMMProj); err != nil {
+	if err := validateLlamaTextRequest(spec, hasMMProj, unified); err != nil {
 		return nil, err
 	}
 	messages := make([]map[string]any, 0, len(spec.GetInput())+1)
@@ -778,8 +734,8 @@ func llamaTextRequestBody(spec *runtimev1.TextGenerateScenarioSpec, stream bool,
 	return payload, nil
 }
 
-func validateLlamaTextRequest(spec *runtimev1.TextGenerateScenarioSpec, hasMMProj bool) error {
-	if err := validateLlamaTextRequestCommon(spec, hasMMProj); err != nil {
+func validateLlamaTextRequest(spec *runtimev1.TextGenerateScenarioSpec, hasMMProj bool, unified bool) error {
+	if err := validateLlamaTextRequestMedia(spec, hasMMProj, unified); err != nil {
 		return err
 	}
 	if len(spec.GetTools()) > 0 || spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED ||
@@ -792,10 +748,6 @@ func validateLlamaTextRequest(spec *runtimev1.TextGenerateScenarioSpec, hasMMPro
 		return invocationError(InvocationFailureTextBehaviorUnsupported, fmt.Errorf("llama text behavior adapter does not support the requested response format"))
 	}
 	return validateLlamaReasoningConfig(spec.GetReasoning())
-}
-
-func validateLlamaTextRequestCommon(spec *runtimev1.TextGenerateScenarioSpec, hasMMProj bool) error {
-	return validateLlamaTextRequestMedia(spec, hasMMProj, false)
 }
 
 func validateLlamaTextRequestMedia(spec *runtimev1.TextGenerateScenarioSpec, hasMMProj, unified bool) error {
@@ -851,15 +803,11 @@ func validateLlamaTextRequestMedia(spec *runtimev1.TextGenerateScenarioSpec, has
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r088
 func validateLlamaReasoningConfig(reasoning *runtimev1.ReasoningConfig) error {
-	activation := runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
-	presentation := runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
-	if reasoning != nil {
-		activation = reasoning.GetActivation()
-		presentation = reasoning.GetPresentation()
+	if reasoning == nil {
+		return nil
 	}
-	if activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
-		activation = runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
-	}
+	activation := reasoning.GetActivation()
+	presentation := reasoning.GetPresentation()
 	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
 		presentation = runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
 	}
@@ -869,12 +817,16 @@ func validateLlamaReasoningConfig(reasoning *runtimev1.ReasoningConfig) error {
 	}
 
 	switch activation {
-	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
-		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN ||
-			(reasoning != nil && reasoning.GetIntensity() != nil) {
-			return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("disabled reasoning admits only hidden presentation and no intensity"))
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED:
+		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || reasoning.GetIntensity() != nil {
+			return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("unspecified reasoning admits only hidden presentation and no intensity"))
 		}
 		return nil
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
+		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || reasoning.GetIntensity() != nil {
+			return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("disabled reasoning admits only hidden presentation and no intensity"))
+		}
+		return invocationError(InvocationFailureTextBehaviorUnsupported, fmt.Errorf("llama base text path does not support explicit disabled reasoning without a verified behavior adapter"))
 	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
 		runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED:
 		if err := validateLlamaReasoningIntensity(reasoning); err != nil {

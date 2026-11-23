@@ -7,11 +7,13 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,6 +54,10 @@ type resolvedLoadoutAxis struct {
 	embeddingDimension     int
 	embeddingInputProtocol string
 	templateIdentity       string
+	architecture           string
+	tokenizerFacts         capabilitydriver.LlamaTokenizerFacts
+	failureDetail          string
+	failureKind            string
 }
 
 type loadoutValidationResult struct {
@@ -62,6 +68,8 @@ type loadoutValidationResult struct {
 	requirements       []*runtimev1.LocalCapabilityRequirement
 	configuredFeatures []string
 	driver             capabilitydriver.Driver
+	detailMessage      string
+	detailMetadata     map[string]string
 }
 
 func validateLocalCatalogLoadoutRecipes(local *catalog.LocalProviderCatalog, drivers *capabilitydriver.Registry) error {
@@ -783,6 +791,9 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 			return nil, loadoutValidationError(validation, proposal.GetLoadoutId())
 		}
 	}
+	if validation.state == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
+		return nil, loadoutValidationError(validation, proposal.GetLoadoutId())
+	}
 	if err := validateStoredLoadout(proposal); err != nil {
 		return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_CONFIG_INVALID, err.Error(), nil)
 	}
@@ -842,6 +853,9 @@ func (s *Service) CommitLoadout(ctx context.Context, request *runtimev1.CommitLo
 		if axis.GetModelAssetId() != "" && !axis.GetRecipeCompatible() {
 			return nil, loadoutValidationError(validation, held.proposal.GetLoadoutId())
 		}
+	}
+	if validation.state == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
+		return nil, loadoutValidationError(validation, held.proposal.GetLoadoutId())
 	}
 	held.proposal.UpdatedAt = now.Format(time.RFC3339Nano)
 	held.proposal.Revision = "loadout-rev_" + ulid.Make().String()
@@ -1213,6 +1227,15 @@ func (s *Service) validateLoadoutWithAxisResolver(ctx context.Context, loadout *
 			result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 			result.reasons = appendReasonCode(result.reasons, reason)
 			result.axisReasons[slotID] = appendReasonCode(result.axisReasons[slotID], reason)
+			if result.detailMessage == "" && resolved.failureDetail != "" {
+				result.detailMessage = resolved.failureDetail
+				if resolved.failureKind != "" {
+					if result.detailMetadata == nil {
+						result.detailMetadata = make(map[string]string)
+					}
+					result.detailMetadata["probe_failure"] = resolved.failureKind
+				}
+			}
 			continue
 		}
 		result.axes = append(result.axes, resolved)
@@ -1230,6 +1253,21 @@ func (s *Service) validateLoadoutWithAxisResolver(ctx context.Context, loadout *
 		if reason := driver.ValidateCombination(cloneLocalCapabilityRequirements(requirements), cloneModelAssetExactBindings(bindings), cloneCapabilityDriverModelAssetDescriptors(descriptors)); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 			result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 			result.reasons = appendReasonCode(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED)
+		}
+	}
+	if result.state == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		if textDriver, ok := driver.(capabilitydriver.TextInvocationDriver); ok {
+			for _, axis := range result.axes {
+				if axis.requirement.GetRequirementId() == capabilitydriver.MainGGUFRequirementID && axis.contextWindow > 0 {
+					if _, err := textDriver.TextContextWindow(loadout.GetOptions(), axis.contextWindow); err != nil {
+						result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
+						result.reasons = appendReasonCode(result.reasons, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+						result.detailMessage = err.Error()
+						result.detailMetadata = map[string]string{"max_context_size": strconv.FormatUint(axis.contextWindow, 10)}
+					}
+					break
+				}
+			}
 		}
 	}
 	result.configuredFeatures = deriveConfiguredLoadoutFeatures(loadout.GetImplementationSupportedFeatures(), requirements, result)
@@ -1391,7 +1429,12 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout
 			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, err
 		}
 		if _, structured := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); structured && readErr != nil && closeErr == nil {
-			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
+			failedAxis := resolvedLoadoutAxis{}
+			if errors.Is(readErr, capabilitydriver.ErrGGUFMetadataBudgetExceeded) {
+				failedAxis.failureDetail = readErr.Error()
+				failedAxis.failureKind = "gguf_metadata_budget_exceeded"
+			}
+			return failedAxis, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED, nil
 		}
 		if readErr != nil || closeErr != nil {
 			contentMismatch = true
@@ -1434,7 +1477,8 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(ctx context.Context, loadout
 		slot: cloneLoadoutAxis(axis), requirement: cloneLocalCapabilityRequirement(requirement), binding: binding, descriptor: projection.Descriptor,
 		absolutePath: filepath.Clean(entryPath), bundleDir: filepath.Clean(directory), declaredFiles: append([]string(nil), declaredFiles...),
 		entrySHA256: entrySHA, contextWindow: projection.ModelContextWindowTokens, embeddingDimension: projection.EmbeddingDimension,
-		templateIdentity: projection.TemplateIdentity, embeddingInputProtocol: projection.EmbeddingInputProtocol,
+		templateIdentity: projection.TemplateIdentity, architecture: projection.Architecture, tokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(projection.TokenizerFacts),
+		embeddingInputProtocol: projection.EmbeddingInputProtocol,
 	}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, nil
 }
 
@@ -1501,7 +1545,8 @@ func applyValidatedLoadoutTextBehaviors(loadout *runtimev1.Loadout, validation l
 		for _, axis := range validation.axes {
 			facts = append(facts, capabilitydriver.TextBehaviorBindingFacts{
 				RequirementID: axis.requirement.GetRequirementId(), VerifiedContentID: axis.binding.GetVerifiedContentId(),
-				EntrySHA256: axis.binding.GetEntrySha256(), TemplateIdentity: axis.templateIdentity,
+				EntrySHA256: axis.binding.GetEntrySha256(), TemplateIdentity: axis.templateIdentity, Architecture: axis.architecture,
+				TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(axis.tokenizerFacts),
 			})
 		}
 	}
@@ -1885,8 +1930,18 @@ func loadoutValidationError(validation loadoutValidationResult, loadoutID string
 	}
 	if reason == runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_NOT_FOUND {
 		code = codes.NotFound
+	} else if reason == runtimev1.ReasonCode_AI_CONFIG_INVALID {
+		code = codes.InvalidArgument
 	}
-	return loadoutError(code, reason, "Loadout is not fully configured against current ModelAsset content", map[string]string{"loadout_id": loadoutID})
+	message := "Loadout is not fully configured against current ModelAsset content"
+	if strings.TrimSpace(validation.detailMessage) != "" {
+		message = validation.detailMessage
+	}
+	metadata := map[string]string{"loadout_id": loadoutID}
+	for key, value := range validation.detailMetadata {
+		metadata[key] = value
+	}
+	return loadoutError(code, reason, message, metadata)
 }
 func loadoutPersistenceError(cause error) error {
 	return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_PERSISTENCE_UNAVAILABLE, cause, grpcerr.ReasonOptions{Message: "Loadout store could not be persisted"})

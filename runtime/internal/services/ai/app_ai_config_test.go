@@ -117,10 +117,9 @@ func TestAppAIConfigReadClassifiesInvalidPersistedConfiguration(t *testing.T) {
 
 func TestAppLocalAIConfigsShareCurrentMachineSelectionWithoutRevisionChanges(t *testing.T) {
 	selected := selectedTextExecutionForTest(t, "loadout-a", "a.gguf")
-	cohort := capabilitydriver.Gemma4BehaviorCohort()[0]
-	selected.ExactBindings[0].VerifiedContentID = cohort.ContentID
-	selected.ExactBindings[0].EntrySHA256 = cohort.EntrySHA256
-	selected.ExactBindings[0].TemplateIdentity = cohort.TemplateIdentity
+	selected.ExactBindings[0].TemplateIdentity = capabilitydriver.Gemma4E2BTemplateIdentity
+	selected.ExactBindings[0].Architecture = "gemma4"
+	selected.ExactBindings[0].TokenizerFacts = capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4)
 	resolver := &mutableLocalExecutionResolver{projection: selected}
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalExecutionResolver(resolver)

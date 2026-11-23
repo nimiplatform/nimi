@@ -157,9 +157,9 @@ func TestQwen3TTSAudioCppCatalogRecommendationMatchesDriverContentIdentity(t *te
 
 func TestPrepareLoadoutExplicitAbsentAxisSuppressesReceiverRecommendation(t *testing.T) {
 	svc := newLoadoutTestService(t, t.TempDir())
-	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.LlamaGemma4RecipeID)
+	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.LlamaGenericGGUFRecipeID)
 	if !ok || len(recipe.SlotMetadata) != 2 || len(recipe.SlotMetadata[0].RecommendedContentIDs) == 0 {
-		t.Fatalf("Gemma recipe recommendation = %+v", recipe)
+		t.Fatalf("unified GGUF recipe recommendation = %+v", recipe)
 	}
 	recommended := &runtimev1.ModelAssetRecord{
 		ModelAssetId: "receiver-recommended", ContentId: recipe.SlotMetadata[0].RecommendedContentIDs[0], ContentVerified: true,
@@ -169,7 +169,7 @@ func TestPrepareLoadoutExplicitAbsentAxisSuppressesReceiverRecommendation(t *tes
 	svc.mu.Unlock()
 	prepared, err := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
 		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		RecipeId:           capabilitydriver.LlamaGemma4RecipeID,
+		RecipeId:           capabilitydriver.LlamaGenericGGUFRecipeID,
 		DisplayName:        "Explicit absent Profile axis",
 		ModelAxes: []*runtimev1.LoadoutModelAxisInput{{
 			SlotId: capabilitydriver.MainGGUFRequirementID,
@@ -1653,8 +1653,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 134 {
-		t.Fatalf("all Loadout recipes = %d, want 134", len(all))
+	if len(all) != 129 {
+		t.Fatalf("all Loadout recipes = %d, want 129", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1697,18 +1697,6 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 			t.Fatalf("unmeasured transformer projected a supported recipe: %+v", recipe)
 		}
 	}
-	qwen := byID[capabilitydriver.LlamaQwen35RecipeID]
-	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
-		len(qwen.GetImplementationSupportedFeatures()) != 0 {
-		t.Fatalf("Qwen3.5 4B base-text recipe must project one exact main slot: %+v", qwen)
-	}
-	qwenVision := byID[capabilitydriver.LlamaQwen35VisionRecipeID]
-	if qwenVision == nil || qwenVision.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED ||
-		len(qwenVision.GetSlots()) != 2 || qwenVision.GetSlots()[1].GetSlotId() != capabilitydriver.CompanionMMProjRequirementID ||
-		qwenVision.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED ||
-		!slices.Equal(qwenVision.GetImplementationSupportedFeatures(), []string{"input.image"}) {
-		t.Fatalf("Qwen3.5 vision recipe must retain its image slot but be unsupported on macOS: %+v", qwenVision)
-	}
 	qwenEmbedding := byID[capabilitydriver.LlamaQwen3EmbedRecipeID]
 	if qwenEmbedding == nil || len(qwenEmbedding.GetSlots()) != 1 ||
 		qwenEmbedding.GetSlots()[0].GetSlotId() != capabilitydriver.EmbeddingGGUFRequirementID {
@@ -1732,7 +1720,7 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		t.Fatalf("aligned transcription must expose both required model slots: %+v", aligned)
 	}
 	for _, recipeID := range []string{
-		capabilitydriver.LlamaGemma4RecipeID,
+		capabilitydriver.LlamaGenericGGUFRecipeID,
 		capabilitydriver.LlamaEmbedGGUFRecipeID,
 		capabilitydriver.LocateAnythingRecipeID,
 		capabilitydriver.InsightFaceRecipeID,
@@ -1746,18 +1734,27 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 			t.Fatalf("existing Loadout recipe %q regressed", recipeID)
 		}
 	}
-	gemmaRecipe := byID[capabilitydriver.LlamaGemma4RecipeID]
-	if !slices.Equal(gemmaRecipe.GetImplementationSupportedFeatures(), []string{"input.image"}) || len(gemmaRecipe.GetSlots()) != 2 ||
-		gemmaRecipe.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
-		gemmaRecipe.GetSlots()[0].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED ||
-		gemmaRecipe.GetSlots()[1].GetSlotId() != capabilitydriver.CompanionMMProjRequirementID ||
-		gemmaRecipe.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL ||
-		!slices.Equal(gemmaRecipe.GetSlots()[1].GetConditionalFeatures(), []string{"input.image"}) {
-		t.Fatalf("production Gemma recipe projection = %+v", gemmaRecipe)
+	genericRecipe := byID[capabilitydriver.LlamaGenericGGUFRecipeID]
+	if !slices.Equal(genericRecipe.GetImplementationSupportedFeatures(), []string{"input.image"}) || len(genericRecipe.GetSlots()) != 2 ||
+		genericRecipe.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
+		genericRecipe.GetSlots()[0].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED ||
+		genericRecipe.GetSlots()[1].GetSlotId() != capabilitydriver.CompanionMMProjRequirementID ||
+		genericRecipe.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL ||
+		!slices.Equal(genericRecipe.GetSlots()[1].GetConditionalFeatures(), []string{"input.image"}) {
+		t.Fatalf("production unified llama v3 recipe projection = %+v", genericRecipe)
 	}
-	for _, retiredID := range []string{"llama.text-generate.gemma-4-e2b-it.v1", "llama.text-generate.gemma-4-26b-a4b-it.v1"} {
+	for _, retiredID := range []string{
+		"llama.text-generate.gemma-4-e2b-it.v1",
+		"llama.text-generate.gemma-4-26b-a4b-it.v1",
+		"llama.text-generate.gemma4.v1",
+		"llama.text-generate.qwen35-4b.v1",
+		"llama.text-generate.qwen35-4b-vision.v1",
+		"llama.text-generate.qwen38-27b.v1",
+		"llama.text-generate.lfm3-1.7b.v1",
+		"llama.text-generate.inkling2-mini.v1",
+	} {
 		if byID[retiredID] != nil {
-			t.Fatalf("retired Gemma recipe remained registered: %q", retiredID)
+			t.Fatalf("retired llama text recipe remained registered: %q", retiredID)
 		}
 	}
 	video := list(capabilitydriver.StableDiffusionVideoCapabilityContract)
@@ -1958,12 +1955,12 @@ func TestCatalogLoadoutRecipeSlotValidatorUsesLiveDriverProjection(t *testing.T)
 func TestModelAssetFormatProbeLimitUsesDriverScopedGGUFMetadataBudget(t *testing.T) {
 	driver := capabilitydriver.LlamaTextDriver{}
 	large, ok := modelAssetFormatProbeLimit(driver, capabilitydriver.ModelAssetFormatProbeInput{
-		RecipeID:      capabilitydriver.LlamaGemma4RecipeID,
+		RecipeID:      capabilitydriver.LlamaGenericGGUFRecipeID,
 		RequirementID: capabilitydriver.MainGGUFRequirementID,
-		RelativePath:  "model.gguf", Entry: true,
+		RelativePath:  "model.gguf_file", Entry: true,
 	})
 	if !ok || large != capabilitydriver.MaxDriverAssetFormatProbeBytes {
-		t.Fatalf("Gemma main probe budget = (%d, %v)", large, ok)
+		t.Fatalf("unified llama v3 main probe budget = (%d, %v)", large, ok)
 	}
 	ordinary, ok := modelAssetFormatProbeLimit(capabilitydriver.LlamaEmbedDriver{}, capabilitydriver.ModelAssetFormatProbeInput{
 		RecipeID:      capabilitydriver.LlamaEmbedGGUFRecipeID,
@@ -2097,10 +2094,10 @@ func assertUnavailableTextBehaviorProjections(t *testing.T, values []*runtimev1.
 	}
 }
 
-func TestApplyValidatedLoadoutTextBehaviorsUsesExactGemma4BindingFacts(t *testing.T) {
-	entry := capabilitydriver.Gemma4BehaviorCohort()[1]
+func TestApplyValidatedLoadoutTextBehaviorsUsesTemplateIdentityWithoutWeightWhitelist(t *testing.T) {
+	sha := strings.Repeat("a", 64)
 	mainRequirement := &runtimev1.LocalCapabilityRequirement{RequirementId: capabilitydriver.MainGGUFRequirementID}
-	loadout := &runtimev1.Loadout{RecipeId: capabilitydriver.LlamaGemma4RecipeID}
+	loadout := &runtimev1.Loadout{RecipeId: capabilitydriver.LlamaGenericGGUFRecipeID}
 	validation := loadoutValidationResult{
 		state:  runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
 		driver: capabilitydriver.LlamaTextDriver{},
@@ -2108,9 +2105,11 @@ func TestApplyValidatedLoadoutTextBehaviorsUsesExactGemma4BindingFacts(t *testin
 			requirement: mainRequirement,
 			binding: &runtimev1.ModelAssetExactBinding{
 				RequirementId:     capabilitydriver.MainGGUFRequirementID,
-				VerifiedContentId: entry.ContentID, EntrySha256: entry.EntrySHA256,
+				VerifiedContentId: "sha256:" + sha, EntrySha256: sha,
 			},
-			templateIdentity: entry.TemplateIdentity,
+			templateIdentity: capabilitydriver.Gemma4E2BTemplateIdentity,
+			architecture:     "gemma4",
+			tokenizerFacts:   capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4),
 		}},
 	}
 	applyValidatedLoadoutTextBehaviors(loadout, validation)
@@ -2126,6 +2125,143 @@ func TestApplyValidatedLoadoutTextBehaviorsUsesExactGemma4BindingFacts(t *testin
 	applyValidatedLoadoutTextBehaviors(loadout, validation)
 	if loadout.GetTextBehaviors()[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE {
 		t.Fatalf("blocked Loadout behavior = %#v", loadout.GetTextBehaviors())
+	}
+}
+
+func TestPrepareLoadoutRejectsContextSizeExceedingModelCapacityAndExposesBudgetCause(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	appendString := func(dst []byte, value string) []byte {
+		dst = binary.LittleEndian.AppendUint64(dst, uint64(len(value)))
+		return append(dst, value...)
+	}
+	buildTextGGUF := func(ctxLen uint32, oversizedPadBytes uint64) []byte {
+		kvCount := uint64(2)
+		if oversizedPadBytes > 0 {
+			kvCount++
+		}
+		raw := append([]byte(nil), "GGUF"...)
+		raw = binary.LittleEndian.AppendUint32(raw, 3)
+		raw = binary.LittleEndian.AppendUint64(raw, 1)
+		raw = binary.LittleEndian.AppendUint64(raw, kvCount)
+		raw = appendString(raw, "general.architecture")
+		raw = binary.LittleEndian.AppendUint32(raw, 8)
+		raw = appendString(raw, "llama")
+		raw = appendString(raw, "llama.context_length")
+		raw = binary.LittleEndian.AppendUint32(raw, 4)
+		raw = binary.LittleEndian.AppendUint32(raw, ctxLen)
+		if oversizedPadBytes > 0 {
+			raw = appendString(raw, "ignored.padding")
+			raw = binary.LittleEndian.AppendUint32(raw, 9) // array
+			raw = binary.LittleEndian.AppendUint32(raw, 0) // uint8
+			raw = binary.LittleEndian.AppendUint64(raw, oversizedPadBytes)
+			raw = append(raw, make([]byte, oversizedPadBytes)...)
+		}
+		raw = appendString(raw, "token_embd.weight")
+		raw = binary.LittleEndian.AppendUint32(raw, 1)
+		raw = binary.LittleEndian.AppendUint64(raw, 4)
+		raw = binary.LittleEndian.AppendUint32(raw, 0)
+		raw = binary.LittleEndian.AppendUint64(raw, 0)
+		padding := (32 - len(raw)%32) % 32
+		return append(raw, make([]byte, padding+16)...)
+	}
+
+	smallCtxAsset := importModelAssetBytesForLoadoutTest(t, svc, "llama2-4k.gguf", buildTextGGUF(4096, 0))
+	tooLargeOptions, err := structpb.NewStruct(map[string]any{"contextSize": float64(8192)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.PrepareLoadout(ctx, &runtimev1.PrepareLoadoutRequest{
+		CapabilityContract: "text.generate",
+		RecipeId:           capabilitydriver.LlamaGenericGGUFRecipeID,
+		DisplayName:        "Too-large context",
+		Options:            tooLargeOptions,
+		ModelAxes: []*runtimev1.LoadoutModelAxisInput{{
+			SlotId: capabilitydriver.MainGGUFRequirementID, ModelAssetId: smallCtxAsset.GetModelAssetId(), ExpectedContentId: smallCtxAsset.GetContentId(),
+		}},
+	})
+	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+		t.Fatalf("PrepareLoadout(8192 > 4096) err = %v, want AI_CONFIG_INVALID", err)
+	}
+	if msg, _ := grpcerr.ExtractPublicMessage(err); !strings.Contains(msg, "8192") || !strings.Contains(msg, "4096") {
+		t.Fatalf("PrepareLoadout(8192 > 4096) missing capacity details: msg=%q err=%v", msg, err)
+	}
+	if meta, ok := grpcerr.ExtractReasonMetadata(err); !ok || meta["max_context_size"] != "4096" {
+		t.Fatalf("PrepareLoadout(8192 > 4096) metadata = %+v ok=%v, want max_context_size=4096", meta, ok)
+	}
+
+	prepared, err := svc.PrepareLoadout(ctx, &runtimev1.PrepareLoadoutRequest{
+		CapabilityContract: "text.generate",
+		RecipeId:           capabilitydriver.LlamaGenericGGUFRecipeID,
+		DisplayName:        "Automatic 4K context",
+		ModelAxes: []*runtimev1.LoadoutModelAxisInput{{
+			SlotId: capabilitydriver.MainGGUFRequirementID, ModelAssetId: smallCtxAsset.GetModelAssetId(), ExpectedContentId: smallCtxAsset.GetContentId(),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("PrepareLoadout with automatic 4K context: %v", err)
+	}
+	committed := commitLoadoutForTest(t, svc, ctx, prepared.GetPrepareId(), false)
+	if committed.GetValidationState() != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		t.Fatalf("committed 4K Loadout state = %s, reasons=%v", committed.GetValidationState(), committed.GetReasons())
+	}
+
+	// Oversized KV section (> 64 MiB) surfaces AI_LOADOUT_MODEL_CONTRACT_FAILED with visible budget detail.
+	oversizedAsset := importModelAssetBytesForLoadoutTest(t, svc, "oversized-kv.gguf", buildTextGGUF(4096, 64<<20))
+	_, err = svc.PrepareLoadout(ctx, &runtimev1.PrepareLoadoutRequest{
+		CapabilityContract: "text.generate",
+		RecipeId:           capabilitydriver.LlamaGenericGGUFRecipeID,
+		DisplayName:        "Oversized KV",
+		ModelAxes: []*runtimev1.LoadoutModelAxisInput{{
+			SlotId: capabilitydriver.MainGGUFRequirementID, ModelAssetId: oversizedAsset.GetModelAssetId(), ExpectedContentId: oversizedAsset.GetContentId(),
+		}},
+	})
+	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED {
+		t.Fatalf("PrepareLoadout(oversized KV) err = %v, want AI_LOADOUT_MODEL_CONTRACT_FAILED", err)
+	}
+	if msg, _ := grpcerr.ExtractPublicMessage(err); !strings.Contains(strings.ToLower(msg), "budget") {
+		t.Fatalf("PrepareLoadout(oversized KV) hid budget cause: msg=%q err=%v", msg, err)
+	}
+	if meta, ok := grpcerr.ExtractReasonMetadata(err); !ok || meta["probe_failure"] != "gguf_metadata_budget_exceeded" {
+		t.Fatalf("PrepareLoadout(oversized KV) metadata = %+v ok=%v, want probe_failure=gguf_metadata_budget_exceeded", meta, ok)
+	}
+}
+
+func TestSafeModelAssetEntryPrioritizesGGUFFileAndONNXOverLicense(t *testing.T) {
+	if got := safeModelAssetEntry([]*runtimev1.ModelAssetFile{
+		{RelativePath: "LICENSE"},
+		{RelativePath: "NOTICE"},
+		{RelativePath: "basic_pitch/nmp.onnx"},
+	}); got != "basic_pitch/nmp.onnx" {
+		t.Fatalf("safeModelAssetEntry(.onnx) = %q, want basic_pitch/nmp.onnx", got)
+	}
+	if got := safeModelAssetEntry([]*runtimev1.ModelAssetFile{
+		{RelativePath: "README.md"},
+		{RelativePath: "Inkling-2-Mini.gguf_file"},
+	}); got != "Inkling-2-Mini.gguf_file" {
+		t.Fatalf("safeModelAssetEntry(.gguf_file) = %q, want Inkling-2-Mini.gguf_file", got)
+	}
+	// Mixed bundle with an auxiliary .onnx sorted before a primary .gguf must still choose .gguf.
+	if got := safeModelAssetEntry([]*runtimev1.ModelAssetFile{
+		{RelativePath: "aux_preprocess.onnx"},
+		{RelativePath: "model.gguf"},
+	}); got != "model.gguf" {
+		t.Fatalf("safeModelAssetEntry(mixed .onnx + .gguf) = %q, want model.gguf", got)
+	}
+	// .gguf_file must be recognized across HF catalog discovery and offer format helpers.
+	if got := variantFormatForEntry("Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file"); got != "gguf" {
+		t.Fatalf("variantFormatForEntry(.gguf_file) = %q, want gguf", got)
+	}
+	if got := catalogOfferFormat("Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file"); got != "gguf" {
+		t.Fatalf("catalogOfferFormat(.gguf_file) = %q, want gguf", got)
+	}
+	variants := listHFCatalogVariantsFromDetails(&hfModelDetails{
+		Siblings: []hfModelSibling{
+			{Rfilename: "Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file", Lfs: &hfModelSiblingLFS{Size: 1024, Sha256: strings.Repeat("a", 64)}},
+		},
+	})
+	if len(variants) != 1 || variants[0].Format != "gguf" || variants[0].Entry != "Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file" {
+		t.Fatalf("listHFCatalogVariantsFromDetails(.gguf_file) = %+v", variants)
 	}
 }
 

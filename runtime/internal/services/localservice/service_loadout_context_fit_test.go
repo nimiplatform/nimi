@@ -17,11 +17,11 @@ func gemmaRecipeOnHost(t *testing.T, svc *Service, totalGiB int64) *runtimev1.Lo
 		t.Fatalf("ListLoadoutRecipes: %v", err)
 	}
 	for _, recipe := range response.GetRecipes() {
-		if recipe.GetRecipeId() == capabilitydriver.LlamaGemma4RecipeID {
+		if recipe.GetRecipeId() == capabilitydriver.LlamaGenericGGUFRecipeID {
 			return recipe
 		}
 	}
-	t.Fatal("Gemma 4 recipe is missing")
+	t.Fatal("llama.text-generate.gguf.v1 recipe is missing")
 	return nil
 }
 
@@ -36,7 +36,7 @@ func recipeSlot(t *testing.T, recipe *runtimev1.LoadoutRecipeDescriptor, slotID 
 	return nil
 }
 
-// The host keeps its 26B Q8_0 recommendation; what changes is that the
+// The host keeps its coherent E2B Q8_0 recommendation; what changes is that the
 // recommended configuration runs at a context that fits (model-catalog r061).
 func TestListLoadoutRecipesRecommendsAVerifiedContextForTheRecommendedVariant(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -45,17 +45,17 @@ func TestListLoadoutRecipesRecommendsAVerifiedContextForTheRecommendedVariant(t 
 	t.Cleanup(func() { localRuntimeProbeRAM = previousProbeRAM })
 	svc := newLoadoutTestService(t, t.TempDir())
 
-	recipe := gemmaRecipeOnHost(t, svc, 44)
+	recipe := gemmaRecipeOnHost(t, svc, 11)
 	main := recipeSlot(t, recipe, capabilitydriver.MainGGUFRequirementID)
-	if got := main.GetRecommendedVariantIds(); len(got) != 1 || got[0] != "local.chat.gemma-4-26b-a4b-it.q8-0" {
-		t.Fatalf("44 GiB recommended variant = %v, want the unchanged 26B Q8_0 choice", got)
+	if got := main.GetRecommendedVariantIds(); len(got) != 1 || got[0] != "local.chat.gemma-4-e2b-it.q8-0" {
+		t.Fatalf("11 GiB recommended variant = %v, want coherent E2B Q8_0 choice", got)
 	}
 	fit := main.GetRecommendedContextFit()
-	if fit.GetAuthoredContextSize() != 262144 || fit.GetRecommendedContextSize() != 98304 {
-		t.Fatalf("44 GiB recommended context fit = %+v, want 98304 of 262144", fit)
+	if fit.GetAuthoredContextSize() != 131072 || fit.GetRecommendedContextSize() != 90112 {
+		t.Fatalf("11 GiB recommended context fit = %+v, want 90112 of 131072", fit)
 	}
 	options := fit.GetRecommendedOptions().GetFields()
-	if len(options) != 1 || options["contextSize"].GetNumberValue() != 98304 {
+	if len(options) != 1 || options["contextSize"].GetNumberValue() != 90112 {
 		t.Fatalf("reduced recommended options = %v, want only the Driver context size", options)
 	}
 	if !proto.Equal(recipe.GetRecommendedOptions(), fit.GetRecommendedOptions()) {
@@ -87,7 +87,7 @@ func TestListLoadoutRecipesRecommendsAVerifiedContextForTheRecommendedVariant(t 
 		}
 	}
 	if reduced != 1 {
-		t.Fatalf("44 GiB reduced offers = %d, want only 26B Q8_0", reduced)
+		t.Fatalf("11 GiB reduced offers = %d, want only E2B Q8_0", reduced)
 	}
 	projector := recipeSlot(t, recipe, capabilitydriver.CompanionMMProjRequirementID)
 	if projector.GetRecommendedContextFit() != nil {
@@ -101,8 +101,8 @@ func TestListLoadoutRecipesRecommendsAVerifiedContextForTheRecommendedVariant(t 
 
 	recipe = gemmaRecipeOnHost(t, svc, 128)
 	fit = recipeSlot(t, recipe, capabilitydriver.MainGGUFRequirementID).GetRecommendedContextFit()
-	if fit.GetAuthoredContextSize() != 262144 || fit.GetRecommendedContextSize() != 262144 || len(fit.GetRecommendedOptions().GetFields()) != 0 {
-		t.Fatalf("128 GiB fit = %+v, want the automatic 262144 capacity", fit)
+	if fit.GetAuthoredContextSize() != 131072 || fit.GetRecommendedContextSize() != 131072 || len(fit.GetRecommendedOptions().GetFields()) != 0 {
+		t.Fatalf("128 GiB fit = %+v, want the automatic 131072 capacity", fit)
 	}
 	if len(recipe.GetRecommendedOptions().GetFields()) != 0 {
 		t.Fatalf("128 GiB recommended options = %v, want the omitted automatic mode", recipe.GetRecommendedOptions())

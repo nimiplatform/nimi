@@ -19,6 +19,8 @@ func projectInvocationExactBindings(values []localexecution.ExactBinding) []capa
 			VerifiedContentID:      strings.TrimSpace(binding.VerifiedContentID),
 			EntrySHA256:            strings.TrimSpace(binding.EntrySHA256),
 			TemplateIdentity:       strings.TrimSpace(binding.TemplateIdentity),
+			Architecture:           strings.TrimSpace(binding.Architecture),
+			TokenizerFacts:         capabilitydriver.CloneLlamaTokenizerFacts(binding.TokenizerFacts),
 			EmbeddingInputProtocol: strings.TrimSpace(binding.EmbeddingInputProtocol),
 		})
 	}
@@ -42,6 +44,8 @@ func projectLocalTextBehaviorAdapterMatchFacts(selected *localexecution.Selected
 		result.VerifiedContentID = strings.TrimSpace(binding.VerifiedContentID)
 		result.EntrySHA256 = strings.TrimSpace(binding.EntrySHA256)
 		result.TemplateIdentity = strings.TrimSpace(binding.TemplateIdentity)
+		result.Architecture = strings.TrimSpace(binding.Architecture)
+		result.TokenizerFacts = capabilitydriver.CloneLlamaTokenizerFacts(binding.TokenizerFacts)
 		break
 	}
 	return result

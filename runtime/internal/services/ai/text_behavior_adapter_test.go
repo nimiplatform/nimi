@@ -3,6 +3,7 @@ package ai
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,13 +15,17 @@ import (
 )
 
 func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t *testing.T) {
-	for _, entry := range capabilitydriver.Gemma4BehaviorCohort() {
-		registration := gemma4TextBehaviorRegistration(entry)
+	communitySHA := strings.Repeat("4", 64)
+	registrations := productionTextBehaviorAdapterRegistrations()
+	for _, templateID := range []string{gemma4E2BTemplateIdentity, gemma426BTemplateIdentity} {
 		facts := textBehaviorAdapterResolutionFacts{
-			ImplementationID: registration.ImplementationID, DriverID: registration.DriverID, DriverDialect: registration.DriverDialect,
+			ImplementationID: capabilitydriver.LlamaImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: llamaTextDriverDialect,
 			LocalTarget: &textBehaviorLocalResolutionTarget{
-				RecipeID: registration.LocalTarget.RecipeID, RecipeRevision: registration.LocalTarget.RecipeRevision,
-				ModelContents: registration.LocalTarget.ModelContents, TemplateIdentity: entry.TemplateIdentity,
+				RecipeID: llamaGenericTextRecipeID, RecipeRevision: llamaTextRecipeRevision,
+				ModelContents:    []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: "sha256:" + communitySHA, EntrySHA256: communitySHA}},
+				TemplateIdentity: templateID,
+				Architecture:     "gemma4",
+				TokenizerFacts:   capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4),
 			},
 		}
 		for _, tools := range []bool{false, true} {
@@ -30,11 +35,11 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 			}
 			spec.Input = []*runtimev1.ChatMessage{{Role: "system", Content: "policy"}, {Role: "user", Content: "request"}, {Role: "system", Content: "context"}}
 			for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB} {
-				_, err := resolveTextBehaviorAdapterForFacts([]textBehaviorAdapterRegistration{registration}, facts, mode, spec)
-				if entry.TemplateIdentity == gemma4E2BTemplateIdentity && err != nil {
+				_, err := resolveTextBehaviorAdapterForFacts(registrations, facts, mode, spec)
+				if templateID == gemma4E2BTemplateIdentity && err != nil {
 					t.Fatalf("E2B ordered messages tools=%t mode=%v: %v", tools, mode, err)
 				}
-				if entry.TemplateIdentity != gemma4E2BTemplateIdentity && textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+				if templateID != gemma4E2BTemplateIdentity && textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
 					t.Fatalf("unreviewed template admitted: %v", err)
 				}
 			}
@@ -44,8 +49,8 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 166 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and 153 Cloud targets", len(registrations))
+	if len(registrations) != 161 {
+		t.Fatalf("production adapter registrations = %d, want eight Local mappings and 153 Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
 		"volcengine/doubao-seed-evolving":                              "volcengine.doubao-seed-evolving.chat",
@@ -202,7 +207,20 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 		"dashscope/qwen3.8-max-0902":                                   "dashscope.qwen38-max-0902.chat",
 		"gemini/gemini-3.8-flash":                                      "gemini.38-flash.chat",
 	}
-	seenContents := map[string]struct{}{}
+	expectedLocalAdapters := map[string]struct {
+		recipeID    string
+		templateID  string
+		unknownMode bool
+	}{
+		"llama.cpp.gemma4-e2b.text-behavior":             {recipeID: llamaGenericTextRecipeID, templateID: gemma4E2BTemplateIdentity},
+		"llama.cpp.gemma4-26b.text-behavior":             {recipeID: llamaGenericTextRecipeID, templateID: gemma426BTemplateIdentity},
+		"llama.cpp.qwen35-4b.text-behavior":              {recipeID: llamaGenericTextRecipeID, templateID: capabilitydriver.Qwen35Q4TemplateIdentity},
+		"llama.cpp.qwen38-27b.text-behavior":             {recipeID: llamaGenericTextRecipeID, templateID: capabilitydriver.Qwen38Q4TemplateIdentity},
+		"llama.cpp.lfm3-1.7b.text-behavior":              {recipeID: llamaGenericTextRecipeID, templateID: capabilitydriver.LFM3Q4TemplateIdentity},
+		"llama.cpp.gguf.structured-output":               {recipeID: llamaGenericTextRecipeID, unknownMode: true},
+		"llama.cpp.gemma4-12b-unified.text-behavior":     {recipeID: capabilitydriver.LlamaGemma412BRecipeID, templateID: capabilitydriver.Gemma412BTemplateIdentity},
+		"llama.cpp.gemma4-12b-unified.structured-output": {recipeID: capabilitydriver.LlamaGemma412BRecipeID, unknownMode: true},
+	}
 	for _, registration := range registrations {
 		if registration.CloudTarget != nil {
 			key := registration.CloudTarget.Provider + "/" + registration.CloudTarget.ProviderModelID
@@ -213,37 +231,28 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 			continue
 		}
 		if !validTextBehaviorAdapterRegistration(registration) || registration.LocalTarget == nil ||
-			registration.DriverDialect != gemma4TextDriverDialect || len(registration.LocalTarget.ModelContents) != 1 {
+			registration.DriverDialect != llamaTextDriverDialect || len(registration.LocalTarget.ModelContents) != 0 {
 			t.Fatalf("invalid production Local adapter registration: %+v", registration)
 		}
-		if registration.LocalTarget.RecipeID == capabilitydriver.LlamaQwen35RecipeID {
-			if registration.AdapterID != "llama.cpp.qwen35-4b.text-behavior" ||
-				registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Qwen35Q4ContentID ||
-				registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Qwen35Q4TemplateIdentity {
-				t.Fatalf("invalid production Qwen3.5 adapter registration: %+v", registration)
-			}
-		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaQwen38RecipeID {
-			if registration.AdapterID != "llama.cpp.qwen38-27b.text-behavior" ||
-				registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Qwen38Q4ContentID ||
-				registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Qwen38Q4TemplateIdentity {
-				t.Fatalf("invalid production Qwen3.8 adapter registration: %+v", registration)
-			}
-		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaLFM3RecipeID {
-			if registration.AdapterID != "llama.cpp.lfm3-1.7b.text-behavior" || registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.LFM3Q4ContentID || registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.LFM3Q4TemplateIdentity {
-				t.Fatalf("invalid production LFM3 adapter: %+v", registration)
-			}
-		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaGemma412BRecipeID {
-			if registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Gemma412BQ4ContentID || registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Gemma412BTemplateIdentity {
-				t.Fatalf("invalid unified Gemma adapter: %+v", registration)
-			}
-		} else if registration.LocalTarget.RecipeID != gemma4TextRecipeID {
-			t.Fatalf("invalid production Gemma 4 adapter registration: %+v", registration)
+		expected, ok := expectedLocalAdapters[registration.AdapterID]
+		if !ok || registration.LocalTarget.RecipeID != expected.recipeID {
+			t.Fatalf("unexpected production Local adapter registration: %+v", registration)
 		}
-		contentID := registration.LocalTarget.ModelContents[0].ContentID
-		if _, duplicate := seenContents[contentID]; duplicate {
-			t.Fatalf("duplicate production Local adapter content %q", contentID)
+		if expected.unknownMode {
+			if registration.LocalTarget.TemplateMatchMode != textBehaviorLocalTemplateMatchUnknownNonEmpty ||
+				len(registration.LocalTarget.ExcludedTemplateCohorts) == 0 ||
+				registration.ExecutionSemantics.RequiredTemplateIdentity != "" {
+				t.Fatalf("invalid Tier 2 unknown-template registration: %+v", registration)
+			}
+		} else if registration.LocalTarget.TemplateMatchMode != textBehaviorLocalTemplateMatchExact ||
+			registration.ExecutionSemantics.RequiredTemplateIdentity != expected.templateID ||
+			len(registration.LocalTarget.RequiredArchitectures) == 0 {
+			t.Fatalf("invalid Tier 1 template registration: %+v", registration)
 		}
-		seenContents[contentID] = struct{}{}
+		delete(expectedLocalAdapters, registration.AdapterID)
+	}
+	if len(expectedLocalAdapters) != 0 {
+		t.Fatalf("missing Local adapters: %v", expectedLocalAdapters)
 	}
 	if len(expectedCloudTargets) != 0 {
 		t.Fatalf("missing Cloud targets: %v", expectedCloudTargets)
@@ -342,13 +351,16 @@ func TestTextBehaviorAdapterCombinationRequiresExactDeclaration(t *testing.T) {
 
 func TestProductionGemma4TextBehaviorCohortDeclaresOnlyApprovedCombinations(t *testing.T) {
 	registration := productionTextBehaviorAdapterRegistrations()[1]
+	communitySHA := strings.Repeat("5", 64)
 	facts := textBehaviorAdapterResolutionFacts{
 		ImplementationID: registration.ImplementationID, DriverID: registration.DriverID,
 		DriverDialect: registration.DriverDialect,
 		LocalTarget: &textBehaviorLocalResolutionTarget{
 			RecipeID: registration.LocalTarget.RecipeID, RecipeRevision: registration.LocalTarget.RecipeRevision,
-			ModelContents:    append([]textBehaviorModelContent(nil), registration.LocalTarget.ModelContents...),
+			ModelContents:    []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: "sha256:" + communitySHA, EntrySHA256: communitySHA}},
 			TemplateIdentity: registration.ExecutionSemantics.RequiredTemplateIdentity,
+			Architecture:     "gemma4",
+			TokenizerFacts:   capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4),
 		},
 	}
 	tool := testTextBehaviorToolSpec()
@@ -756,6 +768,178 @@ func TestSingleSystemConversationPreservesExactPlainRegistrationAndExternalOrder
 		}
 		if external.Input[2].Role != "system" {
 			t.Fatal("external message role changed")
+		}
+	}
+}
+
+func TestLlamaV3ThreeTierTextBehaviorResolution(t *testing.T) {
+	registrations := productionTextBehaviorAdapterRegistrations()
+	communitySHA := strings.Repeat("9", 64)
+	makeFacts := func(recipeID, templateID, arch string, tokenizer capabilitydriver.LlamaTokenizerFacts) textBehaviorAdapterResolutionFacts {
+		return textBehaviorAdapterResolutionFacts{
+			ImplementationID: capabilitydriver.LlamaImplementationID,
+			DriverID:         capabilitydriver.LlamaDriverID,
+			DriverDialect:    capabilitydriver.LlamaDriverDialect,
+			LocalTarget: &textBehaviorLocalResolutionTarget{
+				RecipeID:         recipeID,
+				RecipeRevision:   "1",
+				ModelContents:    []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: "sha256:" + communitySHA, EntrySHA256: communitySHA}},
+				TemplateIdentity: templateID,
+				Architecture:     arch,
+				TokenizerFacts:   tokenizer,
+			},
+		}
+	}
+	schema, err := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"answer": map[string]any{"type": "integer"}}, "required": []any{"answer"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "2+3"}}}
+	structured := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "2+3"}},
+		ResponseFormat: &runtimev1.ResponseFormat{
+			Kind:       runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA,
+			JsonSchema: schema,
+			Strict:     true,
+		},
+	}
+	tool := testTextBehaviorToolSpec()
+	reasoningEnabled := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "2+3"}},
+		Reasoning: &runtimev1.ReasoningConfig{
+			Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+			Intensity:    &runtimev1.ReasoningConfig_ExactBudgetTokens{ExactBudgetTokens: 32},
+			Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
+		},
+	}
+	plainDisabledReasoning := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "2+3"}},
+		Reasoning: &runtimev1.ReasoningConfig{
+			Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+			Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
+		},
+	}
+	structuredDisabledReasoning := proto.Clone(structured).(*runtimev1.TextGenerateScenarioSpec)
+	structuredDisabledReasoning.Reasoning = proto.Clone(plainDisabledReasoning.Reasoning).(*runtimev1.ReasoningConfig)
+
+	// Tier 1: known effective template identity + verified architecture + tokenizer facts matches uniquely across arbitrary community weights (no AMBIGUOUS).
+	for _, tc := range []struct {
+		recipeID   string
+		templateID string
+		arch       string
+		protocol   string
+		wantID     string
+	}{
+		{capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.Gemma4E2BTemplateIdentity, "gemma4", capabilitydriver.LlamaTokenizerProtocolGemma4, "llama.cpp.gemma4-e2b.text-behavior"},
+		{capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.Gemma426BTemplateIdentity, "gemma4", capabilitydriver.LlamaTokenizerProtocolGemma4, "llama.cpp.gemma4-26b.text-behavior"},
+		{capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.Qwen35Q4TemplateIdentity, "qwen35", capabilitydriver.LlamaTokenizerProtocolQwen3Coder, "llama.cpp.qwen35-4b.text-behavior"},
+		{capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.Qwen38Q4TemplateIdentity, "qwen35", capabilitydriver.LlamaTokenizerProtocolQwen3Coder, "llama.cpp.qwen38-27b.text-behavior"},
+		{capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.LFM3Q4TemplateIdentity, "lfm3", capabilitydriver.LlamaTokenizerProtocolLFM3, "llama.cpp.lfm3-1.7b.text-behavior"},
+		{capabilitydriver.LlamaGemma412BRecipeID, capabilitydriver.Gemma412BTemplateIdentity, "gemma4", capabilitydriver.LlamaTokenizerProtocolGemma4, "llama.cpp.gemma4-12b-unified.text-behavior"},
+	} {
+		tok := capabilitydriver.LlamaTokenizerFactsForProtocol(tc.protocol)
+		resolved, err := resolveTextBehaviorAdapterForFacts(registrations, makeFacts(tc.recipeID, tc.templateID, tc.arch, tok), runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, structured)
+		if err != nil || resolved == nil || resolved.registration.AdapterID != tc.wantID {
+			t.Fatalf("Tier 1 %s structured = adapter=%+v err=%v", tc.wantID, resolved, err)
+		}
+		disabledAdapter, err := resolveTextBehaviorAdapterForFacts(registrations, makeFacts(tc.recipeID, tc.templateID, tc.arch, tok), runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plainDisabledReasoning)
+		if err != nil || disabledAdapter == nil || disabledAdapter.registration.AdapterID != tc.wantID {
+			t.Fatalf("Tier 1 %s explicit DISABLED = adapter=%+v err=%v", tc.wantID, disabledAdapter, err)
+		}
+		disabledWire, err := disabledAdapter.registration.RequestSerializer(plainDisabledReasoning, false)
+		if err != nil {
+			t.Fatalf("Tier 1 %s explicit DISABLED serialize: %v", tc.wantID, err)
+		}
+		var disabledBody map[string]any
+		if err := json.Unmarshal(disabledWire.Payload, &disabledBody); err != nil {
+			t.Fatalf("Tier 1 %s explicit DISABLED json: %v", tc.wantID, err)
+		}
+		kwargs, _ := disabledBody["chat_template_kwargs"].(map[string]any)
+		if enabled, ok := kwargs["enable_thinking"].(bool); !ok || enabled {
+			t.Fatalf("Tier 1 %s explicit DISABLED did not emit enable_thinking=false: %v", tc.wantID, disabledBody)
+		}
+		// Same template + same architecture but missing tokenizer evidence degrades cleanly to Tier 2 (never Tier 1 or AMBIGUOUS).
+		wantTier2 := "llama.cpp.gguf.structured-output"
+		if tc.recipeID == capabilitydriver.LlamaGemma412BRecipeID {
+			wantTier2 = "llama.cpp.gemma4-12b-unified.structured-output"
+		}
+		missingTokFacts := makeFacts(tc.recipeID, tc.templateID, tc.arch, capabilitydriver.LlamaTokenizerFacts{})
+		if degraded, err := resolveTextBehaviorAdapterForFacts(registrations, missingTokFacts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, structured); err != nil || degraded == nil || degraded.registration.AdapterID != wantTier2 {
+			t.Fatalf("missing-tokenizer %s structured = adapter=%+v err=%v, want Tier 2 %s", tc.wantID, degraded, err, wantTier2)
+		}
+		for name, spec := range map[string]*runtimev1.TextGenerateScenarioSpec{
+			"tool": tool, "reasoning-enabled": reasoningEnabled, "plain-disabled": plainDisabledReasoning,
+		} {
+			if _, err := resolveTextBehaviorAdapterForFacts(registrations, missingTokFacts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, spec); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+				t.Fatalf("missing-tokenizer %s %s = %v, want AI_TEXT_BEHAVIOR_UNSUPPORTED", tc.wantID, name, err)
+			}
+		}
+	}
+	// Known Gemma 4 template copied onto a different architecture degrades cleanly to Tier 2 (never Tier 1 or AMBIGUOUS).
+	wrongArchFacts := makeFacts(capabilitydriver.LlamaGenericGGUFRecipeID, capabilitydriver.Gemma4E2BTemplateIdentity, "llama", capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4))
+	if resolved, err := resolveTextBehaviorAdapterForFacts(registrations, wrongArchFacts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, structured); err != nil || resolved == nil || resolved.registration.AdapterID != "llama.cpp.gguf.structured-output" {
+		t.Fatalf("wrong-arch known template structured = adapter=%+v err=%v, want Tier 2", resolved, err)
+	}
+	if _, err := resolveTextBehaviorAdapterForFacts(registrations, wrongArchFacts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, tool); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		t.Fatalf("wrong-arch known template tool = %v, want AI_TEXT_BEHAVIOR_UNSUPPORTED", err)
+	}
+
+	// Tier 2: unknown non-empty template (including a known default template altered by an extra tool_use sub-key digest).
+	unknownTemplateID := "sha256:" + strings.Repeat("d", 64)
+	for _, tc := range []struct {
+		recipeID string
+		wantID   string
+	}{
+		{capabilitydriver.LlamaGenericGGUFRecipeID, "llama.cpp.gguf.structured-output"},
+		{capabilitydriver.LlamaGemma412BRecipeID, "llama.cpp.gemma4-12b-unified.structured-output"},
+	} {
+		facts := makeFacts(tc.recipeID, unknownTemplateID, "gemma4", capabilitydriver.LlamaTokenizerFacts{})
+		if adapter, err := resolveTextBehaviorAdapterForFacts(registrations, facts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plain); err != nil || adapter != nil {
+			t.Fatalf("Tier 2 %s plain text = adapter=%+v err=%v, want base path (nil, nil)", tc.recipeID, adapter, err)
+		}
+		for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB} {
+			resolved, err := resolveTextBehaviorAdapterForFacts(registrations, facts, mode, structured)
+			if err != nil || resolved == nil || resolved.registration.AdapterID != tc.wantID {
+				t.Fatalf("Tier 2 %s structured mode=%v = adapter=%+v err=%v", tc.recipeID, mode, resolved, err)
+			}
+			wire, err := resolved.registration.RequestSerializer(structured, mode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
+			if err != nil {
+				t.Fatalf("Tier 2 serializer: %v", err)
+			}
+			var body map[string]any
+			if err := json.Unmarshal(wire.Payload, &body); err != nil {
+				t.Fatalf("Tier 2 json: %v", err)
+			}
+			if _, hasKwargs := body["chat_template_kwargs"]; hasKwargs {
+				t.Fatalf("Tier 2 structured output must not emit chat_template_kwargs: %v", body)
+			}
+		}
+		for name, rejected := range map[string]*runtimev1.TextGenerateScenarioSpec{
+			"tool":                tool,
+			"reasoning-required":  reasoningEnabled,
+			"plain-disabled":      plainDisabledReasoning,
+			"structured-disabled": structuredDisabledReasoning,
+		} {
+			if _, err := resolveTextBehaviorAdapterForFacts(registrations, facts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, rejected); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+				t.Fatalf("Tier 2 %s %s = %v, want AI_TEXT_BEHAVIOR_UNSUPPORTED", tc.recipeID, name, err)
+			}
+		}
+	}
+
+	// Tier 3: empty template falls back to base text only; StructuredOutput, ToolUse, Reasoning fail closed.
+	tier3Facts := makeFacts(capabilitydriver.LlamaGenericGGUFRecipeID, "", "gemma4", capabilitydriver.LlamaTokenizerFacts{})
+	if adapter, err := resolveTextBehaviorAdapterForFacts(registrations, tier3Facts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plain); err != nil || adapter != nil {
+		t.Fatalf("Tier 3 plain text = adapter=%+v err=%v, want base path (nil, nil)", adapter, err)
+	}
+	for name, rejected := range map[string]*runtimev1.TextGenerateScenarioSpec{
+		"structured":          structured,
+		"tool":                tool,
+		"reasoning-required":  reasoningEnabled,
+		"plain-disabled":      plainDisabledReasoning,
+		"structured-disabled": structuredDisabledReasoning,
+	} {
+		if _, err := resolveTextBehaviorAdapterForFacts(registrations, tier3Facts, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, rejected); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+			t.Fatalf("Tier 3 %s = %v, want AI_TEXT_BEHAVIOR_UNSUPPORTED", name, err)
 		}
 	}
 }

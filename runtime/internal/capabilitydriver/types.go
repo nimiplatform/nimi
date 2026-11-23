@@ -33,19 +33,14 @@ const (
 
 	LlamaImplementationID       = "local.text.generate.llama-cpp"
 	LlamaDriverID               = "nimi.runtime.driver.llama-cpp"
-	LlamaDriverDialect          = "llama.cpp/text-generate/v2"
+	LlamaDriverDialect          = "llama.cpp/text-generate/v3"
 	LlamaEmbedImplementationID  = "local.text.embed.llama-cpp"
 	LlamaEmbedDriverDialect     = "llama.cpp/text-embed/v1"
 	LlamaQwen3EmbedDialect      = "llama.cpp/text-embed/qwen3-last/v1"
 	LlamaEmbeddingGemma2Dialect = "llama.cpp/text-embed/embeddinggemma2-retrieval/v2"
 	LlamaCapabilityContract     = "text.generate"
 
-	LlamaGemma4RecipeID          = "llama.text-generate.gemma4.v1"
-	LlamaQwen35RecipeID          = "llama.text-generate.qwen35-4b.v1"
-	LlamaQwen35VisionRecipeID    = "llama.text-generate.qwen35-4b-vision.v1"
-	LlamaQwen38RecipeID          = "llama.text-generate.qwen38-27b.v1"
-	LlamaInkling2MiniRecipeID    = "llama.text-generate.inkling2-mini.v1"
-	LlamaLFM3RecipeID            = "llama.text-generate.lfm3-1.7b.v1"
+	LlamaGenericGGUFRecipeID     = "llama.text-generate.gguf.v1"
 	LlamaGemma412BRecipeID       = "llama.text-generate.gemma4-12b-unified.v1"
 	LlamaEmbedGGUFRecipeID       = "llama.text-embed.gguf.v1"
 	LlamaQwen3EmbedRecipeID      = "llama.text-embed.qwen3-last.v1"
@@ -142,6 +137,24 @@ type ModelAssetStructuredProbeDriver interface {
 // ModelAssetBindingProjection is the Driver-owned interpretation of verified
 // ModelAsset facts. ModelContextWindowTokens is populated only by dialects
 // whose execution contract consumes model-authored context metadata.
+// LlamaTokenizerFacts captures the bounded subset of GGUF vocabulary facts
+// required by pinned llama.cpp b12648 chat templates and PEG parsers to prove
+// a Tier 1 Text Behavior protocol (BOS/EOS + control/user-defined tokens).
+type LlamaTokenizerFacts struct {
+	BOSToken      string   `json:"bosToken,omitempty"`
+	EOSToken      string   `json:"eosToken,omitempty"`
+	SpecialTokens []string `json:"specialTokens,omitempty"`
+}
+
+// CloneLlamaTokenizerFacts returns a deep copy of tokenizer facts.
+func CloneLlamaTokenizerFacts(facts LlamaTokenizerFacts) LlamaTokenizerFacts {
+	return LlamaTokenizerFacts{
+		BOSToken:      facts.BOSToken,
+		EOSToken:      facts.EOSToken,
+		SpecialTokens: append([]string(nil), facts.SpecialTokens...),
+	}
+}
+
 type ModelAssetBindingProjection struct {
 	EmbeddingDimension       int
 	EmbeddingInputProtocol   string
@@ -152,6 +165,14 @@ type ModelAssetBindingProjection struct {
 	// It is Runtime-private behavior-matching input, never public capability
 	// or adapter identity.
 	TemplateIdentity string
+	// Architecture is the verified GGUF general.architecture fact for local LLM
+	// bindings, used alongside TemplateIdentity to keep Tier 1 Text Behavior
+	// adapters scoped to their verified architecture family.
+	Architecture string
+	// TokenizerFacts are the verified GGUF tokenizer facts (BOS/EOS and
+	// control/user-defined special tokens) required by Tier 1 Text Behavior
+	// protocols.
+	TokenizerFacts LlamaTokenizerFacts
 }
 
 func validatedModelAssetBindingProjection(
@@ -282,6 +303,8 @@ type TextBehaviorBindingFacts struct {
 	VerifiedContentID string
 	EntrySHA256       string
 	TemplateIdentity  string
+	Architecture      string
+	TokenizerFacts    LlamaTokenizerFacts
 }
 
 // TextBehaviorBindingProjectionDriver refines recipe-level implementation
@@ -309,6 +332,18 @@ type TextContextOptionDriver interface {
 	WithTextContextSize(options *structpb.Struct, contextSize uint64) (*structpb.Struct, error)
 }
 
+// MediaCodecRequirementDriver declares whether a configured recipe requires
+// Runtime's managed media-codec dependency (ffmpeg/ffprobe).
+type MediaCodecRequirementDriver interface {
+	RequiresVideoCodec(recipeID string, configuredFeatures []string) bool
+}
+
+// OwnedMediaRequestBudgetDriver declares the maximum complete serialized
+// request byte ceiling for recipes transporting inline App-owned media.
+type OwnedMediaRequestBudgetDriver interface {
+	OwnedMediaMaxRequestBytes(recipeID string) int64
+}
+
 // InvocationExactBinding is the immutable, already-verified occurrence passed
 // to a Driver at job submission. Drivers receive exact absolute paths plus any
 // captured ModelAsset bundle manifest; they never discover files or resolve
@@ -323,6 +358,8 @@ type InvocationExactBinding struct {
 	VerifiedContentID      string
 	EntrySHA256            string
 	TemplateIdentity       string
+	Architecture           string
+	TokenizerFacts         LlamaTokenizerFacts
 }
 
 // InvocationExactDependencySource is immutable Host package/dependency truth
@@ -406,6 +443,8 @@ type TextBehaviorAdapterMatchFacts struct {
 	VerifiedContentID string
 	EntrySHA256       string
 	TemplateIdentity  string
+	Architecture      string
+	TokenizerFacts    LlamaTokenizerFacts
 }
 
 type TextInvocationInput struct {

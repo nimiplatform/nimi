@@ -11,9 +11,19 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestLFM3BehaviorCapturesOnlyExactWeightsAndTemplate(t *testing.T) {
-	r := lfm3Q4TextBehaviorRegistration()
-	facts := textBehaviorAdapterResolutionFacts{ImplementationID: r.ImplementationID, DriverID: r.DriverID, DriverDialect: r.DriverDialect, LocalTarget: &textBehaviorLocalResolutionTarget{RecipeID: r.LocalTarget.RecipeID, RecipeRevision: "1", ModelContents: r.LocalTarget.ModelContents, TemplateIdentity: capabilitydriver.LFM3Q4TemplateIdentity}}
+func TestLFM3BehaviorMatchesTemplateAcrossCommunityWeights(t *testing.T) {
+	r := lfm3TemplateTextBehaviorRegistration()
+	communitySHA := strings.Repeat("a", 64)
+	facts := textBehaviorAdapterResolutionFacts{
+		ImplementationID: r.ImplementationID, DriverID: r.DriverID, DriverDialect: r.DriverDialect,
+		LocalTarget: &textBehaviorLocalResolutionTarget{
+			RecipeID: r.LocalTarget.RecipeID, RecipeRevision: "1",
+			ModelContents:    []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: "sha256:" + communitySHA, EntrySHA256: communitySHA}},
+			TemplateIdentity: capabilitydriver.LFM3Q4TemplateIdentity,
+			Architecture:     "lfm3",
+			TokenizerFacts:   capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolLFM3),
+		},
+	}
 	schema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"ok": map[string]any{"type": "boolean"}}, "required": []any{"ok"}, "additionalProperties": false})
 	tools := testTextBehaviorToolSpec()
 	tools.SystemPrompt = "  Keep exact boundaries.\n"
@@ -49,10 +59,8 @@ func TestLFM3BehaviorCapturesOnlyExactWeightsAndTemplate(t *testing.T) {
 		func(f *textBehaviorLocalResolutionTarget) {
 			f.TemplateIdentity = capabilitydriver.Qwen35Q4TemplateIdentity
 		},
-		func(f *textBehaviorLocalResolutionTarget) { f.RecipeID = capabilitydriver.LlamaQwen35RecipeID },
-		func(f *textBehaviorLocalResolutionTarget) {
-			f.ModelContents = []textBehaviorModelContent{{SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("a", 64)}}
-		},
+		func(f *textBehaviorLocalResolutionTarget) { f.RecipeID = capabilitydriver.LlamaGemma412BRecipeID },
+		func(f *textBehaviorLocalResolutionTarget) { f.TemplateIdentity = "" },
 	} {
 		copy := *facts.LocalTarget
 		change(&copy)

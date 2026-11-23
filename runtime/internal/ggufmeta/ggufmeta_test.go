@@ -309,23 +309,23 @@ func TestLLMContextLengthUsesDetectedArchitectureNumericMetadata(t *testing.T) {
 	}
 }
 
-func TestInspectLLMMetadataWithChatTemplateReturnsExactCanonicalIdentity(t *testing.T) {
+func TestInspectMetadataReturnsExactCanonicalIdentity(t *testing.T) {
 	payload := buildTestGGUF(t,
 		nil,
 		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
 		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
 		metadataKV{Key: "tokenizer.chat_template", Type: ValueTypeString, String: "{{ messages }}"},
 	)
-	summary, err := InspectLLMMetadataWithChatTemplate(bytes.NewReader(payload))
+	summary, err := InspectMetadata(bytes.NewReader(payload))
 	if err != nil {
-		t.Fatalf("InspectLLMMetadataWithChatTemplate: %v", err)
+		t.Fatalf("InspectMetadata: %v", err)
 	}
 	if got, ok := LLMChatTemplateIdentity(summary); !ok || got != "sha256:f24189f08c85a1eb19a737306c3a13e85462ee33d964f28108d64a2485fa2171" {
 		t.Fatalf("LLMChatTemplateIdentity = %q ok=%v", got, ok)
 	}
 }
 
-func TestInspectLLMMetadataWithChatTemplateKeepsBaseFactsWhenTemplateIsOutsideProbe(t *testing.T) {
+func TestInspectMetadataRejectsTruncatedLateTokenizerArray(t *testing.T) {
 	prefix := buildTestGGUF(t, nil,
 		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
 		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
@@ -338,15 +338,8 @@ func TestInspectLLMMetadataWithChatTemplateKeepsBaseFactsWhenTemplateIsOutsidePr
 	mustBinaryWrite(t, &truncated, uint64(1<<30))
 	prefix = append(prefix, truncated.Bytes()...)
 
-	summary, err := InspectLLMMetadataWithChatTemplate(bytes.NewReader(prefix))
-	if err != nil {
-		t.Fatalf("InspectLLMMetadataWithChatTemplate: %v", err)
-	}
-	if got, ok := LLMContextLength(summary); !ok || got != 262144 {
-		t.Fatalf("LLMContextLength = %d ok=%v, want 262144", got, ok)
-	}
-	if got, ok := LLMChatTemplateIdentity(summary); ok || got != "" {
-		t.Fatalf("LLMChatTemplateIdentity = %q ok=%v, want unavailable", got, ok)
+	if _, err := InspectMetadata(bytes.NewReader(prefix)); err == nil {
+		t.Fatal("InspectMetadata accepted truncated tokenizer array")
 	}
 }
 
@@ -378,5 +371,161 @@ func TestInspectLLMMetadataStopsBeforeTruncatedLargeLaterMetadata(t *testing.T) 
 	}
 	if _, err := Inspect(bytes.NewReader(prefix)); err == nil {
 		t.Fatal("full GGUF inspection unexpectedly accepted the truncated tokenizer metadata")
+	}
+}
+
+func TestIsGGUFExtension(t *testing.T) {
+	for _, path := range []string{"model.gguf", "MODEL.GGUF", "Inkling-2-Mini.gguf_file", "path/to/model.GGUF_FILE"} {
+		if !IsGGUFExtension(path) {
+			t.Fatalf("IsGGUFExtension(%q) = false, want true", path)
+		}
+	}
+	for _, path := range []string{"model.bin", "model.onnx", "model.safetensors", "gguf", ""} {
+		if IsGGUFExtension(path) {
+			t.Fatalf("IsGGUFExtension(%q) = true, want false", path)
+		}
+	}
+}
+
+func TestInspectMetadataRejectsCorruptOrTruncatedAndReadsRoleAndEffectiveTemplate(t *testing.T) {
+	defaultTmpl := "{{ messages }}"
+	withToolUse := buildTestGGUF(t, nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "general.type", Type: ValueTypeString, String: "model"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 131072},
+		metadataKV{Key: "gemma4.embedding_length", Type: ValueTypeUint32, Uint32: 1536},
+		metadataKV{Key: "tokenizer.chat_template", Type: ValueTypeString, String: defaultTmpl},
+		metadataKV{Key: "tokenizer.chat_template.tool_use", Type: ValueTypeString, String: "{{ tools }}"},
+	)
+	summary, err := InspectMetadata(bytes.NewReader(withToolUse))
+	if err != nil {
+		t.Fatalf("InspectMetadata: %v", err)
+	}
+	if width, ok := LLMEmbeddingLength(summary); !ok || width != 1536 {
+		t.Fatalf("LLMEmbeddingLength = %d/%v, want 1536", width, ok)
+	}
+	rawID, ok := LLMChatTemplateIdentity(summary)
+	if !ok || rawID == "" {
+		t.Fatalf("LLMChatTemplateIdentity missing")
+	}
+	toolID, ok := LLMChatTemplateToolUseIdentity(summary)
+	if !ok || toolID == "" {
+		t.Fatalf("LLMChatTemplateToolUseIdentity missing")
+	}
+	effectiveID, ok := LLMEffectiveChatTemplateIdentity(summary)
+	if !ok || effectiveID == "" || effectiveID == rawID {
+		t.Fatalf("LLMEffectiveChatTemplateIdentity = %q (raw=%q), want distinct digest when tool_use exists", effectiveID, rawID)
+	}
+
+	withoutToolUse := buildTestGGUF(t, nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 131072},
+		metadataKV{Key: "tokenizer.chat_template", Type: ValueTypeString, String: defaultTmpl},
+	)
+	baseSummary, err := InspectMetadata(bytes.NewReader(withoutToolUse))
+	if err != nil {
+		t.Fatalf("InspectMetadata(withoutToolUse): %v", err)
+	}
+	if eff, ok := LLMEffectiveChatTemplateIdentity(baseSummary); !ok || eff != rawID {
+		t.Fatalf("LLMEffectiveChatTemplateIdentity without tool_use = %q, want %q", eff, rawID)
+	}
+
+	// Unrelated named templates (such as tokenizer.chat_template.tts) do not
+	// alter LLMEffectiveChatTemplateIdentity because llama.cpp b12648 consumes
+	// only default and tool_use templates for chat/tools.
+	withUnrelatedTTS := buildTestGGUF(t, nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 131072},
+		metadataKV{Key: "gemma4.n_deepstack_layers", Type: ValueTypeUint32, Uint32: 3},
+		metadataKV{Key: "tokenizer.chat_template", Type: ValueTypeString, String: defaultTmpl},
+		metadataKV{Key: "tokenizer.chat_template.tts", Type: ValueTypeString, String: "{{ tts }}"},
+	)
+	ttsSummary, err := InspectMetadata(bytes.NewReader(withUnrelatedTTS))
+	if err != nil {
+		t.Fatalf("InspectMetadata(withUnrelatedTTS): %v", err)
+	}
+	if eff, ok := LLMEffectiveChatTemplateIdentity(ttsSummary); !ok || eff != rawID {
+		t.Fatalf("LLMEffectiveChatTemplateIdentity with .tts = %q, want %q", eff, rawID)
+	}
+	if ds, ok := LLMDeepstackLayers(ttsSummary); !ok || ds != 3 {
+		t.Fatalf("LLMDeepstackLayers = %d/%v, want 3", ds, ok)
+	}
+
+	// Corrupt KV wire type after architecture must fail InspectMetadata.
+	corrupt := buildTestGGUF(t, nil, metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"})
+	binary.LittleEndian.PutUint64(corrupt[16:24], 2)
+	var badKV bytes.Buffer
+	writeTestString(t, &badKV, "bad.field")
+	mustBinaryWrite(t, &badKV, uint32(99))
+	corrupt = append(corrupt, badKV.Bytes()...)
+	if _, err := InspectMetadata(bytes.NewReader(corrupt)); err == nil {
+		t.Fatal("InspectMetadata accepted corrupt wire type")
+	}
+	// Truncated metadata must fail InspectMetadata.
+	if _, err := InspectMetadata(bytes.NewReader(withoutToolUse[:len(withoutToolUse)-5])); err == nil {
+		t.Fatal("InspectMetadata accepted truncated metadata")
+	}
+}
+
+func TestInspectMetadataCapturesTokenizerFactsAndQwen3VLProjectorDimensions(t *testing.T) {
+	// Put bos/eos IDs and token_type BEFORE tokenizer.ggml.tokens to prove KV order independence.
+	var buf bytes.Buffer
+	buf.WriteString("GGUF")
+	mustBinaryWrite(t, &buf, uint32(3))
+	mustBinaryWrite(t, &buf, uint64(4)) // 4 tensors
+	mustBinaryWrite(t, &buf, uint64(5)) // 5 KVs
+	writeTestString(t, &buf, "general.architecture")
+	mustBinaryWrite(t, &buf, uint32(ValueTypeString))
+	writeTestString(t, &buf, "gemma4")
+	writeTestString(t, &buf, "tokenizer.ggml.bos_token_id")
+	mustBinaryWrite(t, &buf, uint32(ValueTypeUint32))
+	mustBinaryWrite(t, &buf, uint32(1))
+	writeTestString(t, &buf, "tokenizer.ggml.eos_token_id")
+	mustBinaryWrite(t, &buf, uint32(ValueTypeUint32))
+	mustBinaryWrite(t, &buf, uint32(3))
+	writeTestString(t, &buf, "tokenizer.ggml.token_type")
+	mustBinaryWrite(t, &buf, uint32(ValueTypeArray))
+	mustBinaryWrite(t, &buf, uint32(ValueTypeInt32))
+	mustBinaryWrite(t, &buf, uint64(4))
+	for _, tt := range []int32{1, 3, 4, 3} {
+		mustBinaryWrite(t, &buf, tt)
+	}
+	writeTestString(t, &buf, "tokenizer.ggml.tokens")
+	mustBinaryWrite(t, &buf, uint32(ValueTypeArray))
+	mustBinaryWrite(t, &buf, uint32(ValueTypeString))
+	mustBinaryWrite(t, &buf, uint64(4))
+	for _, tok := range []string{"hello", "<bos>", "<|channel>", "<turn|>"} {
+		writeTestString(t, &buf, tok)
+	}
+	writeTensor := func(name string, dims ...uint64) {
+		writeTestString(t, &buf, name)
+		mustBinaryWrite(t, &buf, uint32(len(dims)))
+		for _, d := range dims {
+			mustBinaryWrite(t, &buf, d)
+		}
+		mustBinaryWrite(t, &buf, uint32(0)) // type
+		mustBinaryWrite(t, &buf, uint64(0)) // offset
+	}
+	writeTensor("mm.2.bias", 2560)
+	writeTensor("v.deepstack.5.fc1.weight", 4096, 4096)
+	writeTensor("v.deepstack.11.fc1.weight", 4096, 4096)
+	writeTensor("v.deepstack.17.fc1.weight", 4096, 4096)
+
+	summary, err := InspectMetadataAndTensors(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("InspectMetadataAndTensors: %v", err)
+	}
+	if summary.Tokenizer.BOSToken != "<bos>" || summary.Tokenizer.EOSToken != "<turn|>" {
+		t.Fatalf("Tokenizer BOS/EOS = %+v", summary.Tokenizer)
+	}
+	if len(summary.Tokenizer.SpecialTokens) != 3 ||
+		summary.Tokenizer.SpecialTokens[0] != "<bos>" ||
+		summary.Tokenizer.SpecialTokens[1] != "<turn|>" ||
+		summary.Tokenizer.SpecialTokens[2] != "<|channel>" {
+		t.Fatalf("Tokenizer SpecialTokens = %v", summary.Tokenizer.SpecialTokens)
+	}
+	mergerWidth, deepstackLayers, ok := Qwen3VLProjectorDimensions(summary)
+	if !ok || mergerWidth != 2560 || deepstackLayers != 3 {
+		t.Fatalf("Qwen3VLProjectorDimensions = width=%d deepstack=%d ok=%v, want 2560/3/true", mergerWidth, deepstackLayers, ok)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -60,7 +59,7 @@ func demandGGUFFixture(embedding, late bool) ([]byte, int) {
 	}
 	data := append([]byte(nil), "GGUF"...)
 	data = binary.LittleEndian.AppendUint32(data, 3)
-	data = binary.LittleEndian.AppendUint64(data, 0)
+	data = binary.LittleEndian.AppendUint64(data, 1)
 	data = binary.LittleEndian.AppendUint64(data, entries)
 	stringEntry := func(key, value string) {
 		data = appendGGUFProbeString(data, key)
@@ -90,12 +89,17 @@ func demandGGUFFixture(embedding, late bool) ([]byte, int) {
 		stringEntry("tokenizer.chat_template", "{{ messages }}")
 	}
 	metadataEnd := len(data)
+	data = appendGGUFProbeString(data, "token_embd.weight")
+	data = binary.LittleEndian.AppendUint32(data, 1)
+	data = binary.LittleEndian.AppendUint64(data, 4)
+	data = binary.LittleEndian.AppendUint32(data, 0)
+	data = binary.LittleEndian.AppendUint64(data, 0)
 	return append(data, make([]byte, (20<<20)-len(data))...), metadataEnd
 }
 
 func demandBindingInput(embedding bool, size int, probe []byte) (Driver, ModelAssetBindingInput) {
 	var driver Driver = LlamaTextDriver{}
-	recipe, slot := LlamaGemma4RecipeID, MainGGUFRequirementID
+	recipe, slot := LlamaGenericGGUFRecipeID, MainGGUFRequirementID
 	if embedding {
 		driver, recipe, slot = LlamaEmbedDriver{}, LlamaEmbedGGUFRecipeID, EmbeddingGGUFRequirementID
 	}
@@ -128,22 +132,15 @@ func TestLlamaGGUFProbeReadsOnlyNecessaryBytes(t *testing.T) {
 	}
 }
 
-func TestLlamaGGUFProbeSeparatesPhysicalShortSourceFromBoundedEOF(t *testing.T) {
+func TestLlamaGGUFProbeRejectsTruncatedMetadataAndPhysicalShortSource(t *testing.T) {
 	raw := boundedLLMGGUFProbeWithTruncatedTokenizer(t, "gemma4", 8192)
 	driver := LlamaTextDriver{}
-	input := ModelAssetFormatProbeInput{RecipeID: LlamaGemma4RecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}
-	// This exact finite prefix retains the established optional-template
-	// behavior, rather than applying the strict embedding/tensor policy to it.
-	probe, err := driver.ProbeModelAsset(input, bytes.NewReader(raw), int64(len(raw)))
-	if err != nil {
-		t.Fatal(err)
+	input := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}
+	// Under llama.cpp/text-generate/v3, incomplete KV headers fail closed
+	// rather than guessing pooling_type or tool_use template absence.
+	if _, err := driver.ProbeModelAsset(input, bytes.NewReader(raw), int64(len(raw))); err == nil {
+		t.Fatal("truncated KV header was accepted")
 	}
-	var facts llamaGGUFProbe
-	if err := json.Unmarshal(probe, &facts); err != nil || facts.ContextWindow != 8192 || facts.TemplateIdentity != "" {
-		t.Fatalf("bounded facts: %+v err=%v", facts, err)
-	}
-	// The same bytes cannot claim a larger actual source. In particular a
-	// skipped tokenizer range cannot be accepted solely from the supplied size.
 	if _, err := driver.ProbeModelAsset(input, bytes.NewReader(raw), MaxDriverAssetFormatProbeBytes); !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("physical truncation hidden as optional metadata: %v", err)
 	}
@@ -163,7 +160,7 @@ func TestLlamaGGUFProbeKeepsOriginalScanLimitAndCancellation(t *testing.T) {
 	var raw bytes.Buffer
 	raw.WriteString("GGUF")
 	mustWriteLlamaProbeValue(t, &raw, uint32(3))
-	mustWriteLlamaProbeValue(t, &raw, uint64(0))
+	mustWriteLlamaProbeValue(t, &raw, uint64(1))
 	mustWriteLlamaProbeValue(t, &raw, uint64(4))
 	writeLlamaProbeString(t, &raw, "general.architecture")
 	mustWriteLlamaProbeValue(t, &raw, uint32(ggufmeta.ValueTypeString))
@@ -179,14 +176,60 @@ func TestLlamaGGUFProbeKeepsOriginalScanLimitAndCancellation(t *testing.T) {
 	writeLlamaProbeString(t, &raw, "tokenizer.chat_template")
 	mustWriteLlamaProbeValue(t, &raw, uint32(ggufmeta.ValueTypeString))
 	writeLlamaProbeString(t, &raw, "must remain outside the admitted scan")
-	input := ModelAssetFormatProbeInput{RecipeID: LlamaGemma4RecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}
-	probe, err := (LlamaTextDriver{}).ProbeModelAsset(input, bytes.NewReader(raw.Bytes()), int64(raw.Len()))
-	if err != nil {
-		t.Fatal(err)
+	writeLlamaProbeTensor(t, &raw, "token_embd.weight", 0, 4)
+	writeLlamaProbePayload(&raw, 16)
+	input := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}
+	// A valid large-vocab GGUF (> 16 MiB KV, within 64 MiB structured bound)
+	// must parse completely with a bounded 64 KiB rolling window.
+	if probe, err := (LlamaTextDriver{}).ProbeModelAsset(input, bytes.NewReader(raw.Bytes()), int64(raw.Len())); err != nil {
+		t.Fatalf("large-vocab GGUF (>16 MiB, <=64 MiB) was rejected: %v", err)
+	} else if decoded, err := decodeLlamaGGUFProbeBytes(probe); err != nil || decoded.TemplateIdentity == "" {
+		t.Fatalf("large-vocab GGUF lost late chat_template: %+v / %v", decoded, err)
 	}
-	var facts llamaGGUFProbe
-	if err := json.Unmarshal(probe, &facts); err != nil || facts.ContextWindow != 8192 || facts.TemplateIdentity != "" {
-		t.Fatalf("scan crossed former prefix bound: %+v err=%v", facts, err)
+	// A GGUF whose KV exceeds the 64 MiB structured walk bound fails closed with
+	// ErrGGUFMetadataBudgetExceeded (distinct from physical truncation/corruption).
+	var oversized bytes.Buffer
+	oversized.WriteString("GGUF")
+	mustWriteLlamaProbeValue(t, &oversized, uint32(3))
+	mustWriteLlamaProbeValue(t, &oversized, uint64(1))
+	mustWriteLlamaProbeValue(t, &oversized, uint64(3))
+	writeLlamaProbeString(t, &oversized, "general.architecture")
+	mustWriteLlamaProbeValue(t, &oversized, uint32(ggufmeta.ValueTypeString))
+	writeLlamaProbeString(t, &oversized, "gemma4")
+	writeLlamaProbeString(t, &oversized, "gemma4.context_length")
+	mustWriteLlamaProbeValue(t, &oversized, uint32(ggufmeta.ValueTypeUint32))
+	mustWriteLlamaProbeValue(t, &oversized, uint32(8192))
+	writeLlamaProbeString(t, &oversized, "ignored.padding")
+	mustWriteLlamaProbeValue(t, &oversized, uint32(ggufmeta.ValueTypeArray))
+	mustWriteLlamaProbeValue(t, &oversized, uint32(ggufmeta.ValueTypeUint8))
+	mustWriteLlamaProbeValue(t, &oversized, uint64(maxStructuredGGUFMetadataBytes))
+	oversized.Write(make([]byte, maxStructuredGGUFMetadataBytes))
+	if _, err := (LlamaTextDriver{}).ProbeModelAsset(input, bytes.NewReader(oversized.Bytes()), int64(oversized.Len())); !errors.Is(err, ErrGGUFMetadataBudgetExceeded) {
+		t.Fatalf("oversized KV section = %v, want ErrGGUFMetadataBudgetExceeded", err)
+	}
+	// Legacy/community mmproj files carrying general.type = "model" must be admitted.
+	var legacyMMProj bytes.Buffer
+	legacyMMProj.WriteString("GGUF")
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(3))
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint64(1))
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint64(4))
+	writeLlamaProbeString(t, &legacyMMProj, "general.type")
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(ggufmeta.ValueTypeString))
+	writeLlamaProbeString(t, &legacyMMProj, "model")
+	writeLlamaProbeString(t, &legacyMMProj, "general.architecture")
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(ggufmeta.ValueTypeString))
+	writeLlamaProbeString(t, &legacyMMProj, "clip")
+	writeLlamaProbeString(t, &legacyMMProj, "clip.vision.projector_type")
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(ggufmeta.ValueTypeString))
+	writeLlamaProbeString(t, &legacyMMProj, "gemma4v")
+	writeLlamaProbeString(t, &legacyMMProj, "clip.vision.projection_dim")
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(ggufmeta.ValueTypeUint32))
+	mustWriteLlamaProbeValue(t, &legacyMMProj, uint32(1536))
+	writeLlamaProbeTensor(t, &legacyMMProj, "mm.input_projection.weight", 0, 4)
+	writeLlamaProbePayload(&legacyMMProj, 16)
+	mmprojInput := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: CompanionMMProjRequirementID, RelativePath: "mmproj.gguf", Entry: true}
+	if _, err := (LlamaTextDriver{}).ProbeModelAsset(mmprojInput, bytes.NewReader(legacyMMProj.Bytes()), int64(legacyMMProj.Len())); err != nil {
+		t.Fatalf("mmproj with general.type=model was rejected: %v", err)
 	}
 	data, _ := demandGGUFFixture(false, true)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -216,11 +259,11 @@ func TestLlamaGGUFBindingAcceptsOnlyItsStructuredContract(t *testing.T) {
 	if _, reason := driver.ProjectModelAssetBinding(input); reason != success {
 		t.Fatal(reason)
 	}
-	input.RecipeID = LlamaQwen35RecipeID
+	input.RecipeID = LlamaGemma412BRecipeID
 	if _, reason := driver.ProjectModelAssetBinding(input); reason == success {
-		t.Fatal("Gemma facts reused as Qwen Model Contract")
+		t.Fatal("generic GGUF facts reused for unified recipe without re-probing")
 	}
-	input.RecipeID = LlamaGemma4RecipeID
+	input.RecipeID = LlamaGenericGGUFRecipeID
 	input.Binding.EntrySha256 = ""
 	if _, reason := driver.ProjectModelAssetBinding(input); reason == success {
 		t.Fatal("structured metadata replaced exact binding verification")

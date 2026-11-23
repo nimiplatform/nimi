@@ -85,7 +85,7 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 			}
 		}
-		if loadoutNeedsLlamaVideoCodec(loadout) {
+		if loadoutNeedsLlamaVideoCodec(validation.driver, loadout) {
 			if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyMediaCodec, "media-codec"); !ready {
 				option.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
 				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
@@ -111,11 +111,17 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 				identity.Match.VerifiedContentID = axis.slot.GetExpectedContentId()
 				identity.Match.EntrySHA256 = axis.entrySHA256
 				if driver, ok := validation.driver.(capabilitydriver.TextInvocationDriver); ok {
-					if capacity, err := driver.TextContextWindow(identity.PortableConfig, axis.contextWindow); err == nil {
+					capacity, err := driver.TextContextWindow(identity.PortableConfig, axis.contextWindow)
+					if err != nil {
+						option.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
+						option.Reasons = appendReasonCode(option.Reasons, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+					} else {
 						option.ContextWindowTokens = capacity
 					}
 				}
 				identity.Match.TemplateIdentity = axis.templateIdentity
+				identity.Match.Architecture = axis.architecture
+				identity.Match.TokenizerFacts = capabilitydriver.CloneLlamaTokenizerFacts(axis.tokenizerFacts)
 				break
 			}
 		}
@@ -217,7 +223,8 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 			ModelAssetID: axis.slot.GetModelAssetId(),
 			AbsolutePath: axis.absolutePath, BundleDir: axis.bundleDir, DeclaredFiles: append([]string(nil), axis.declaredFiles...),
 			VerifiedContentID: axis.slot.GetExpectedContentId(), EntrySHA256: axis.entrySHA256,
-			TemplateIdentity: axis.templateIdentity, EmbeddingInputProtocol: axis.embeddingInputProtocol,
+			TemplateIdentity: axis.templateIdentity, Architecture: axis.architecture, TokenizerFacts: capabilitydriver.CloneLlamaTokenizerFacts(axis.tokenizerFacts),
+			EmbeddingInputProtocol: axis.embeddingInputProtocol,
 		})
 		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN && axis.contextWindow > 0 {
 			contextWindow = axis.contextWindow
@@ -243,7 +250,7 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 	if dependencyErr != nil {
 		return nil, dependencyErr
 	}
-	if loadoutNeedsLlamaVideoCodec(loadout) {
+	if loadoutNeedsLlamaVideoCodec(driver, loadout) {
 		codec, codecErr := s.captureLlamaMediaCodecSource(ctx)
 		if codecErr != nil {
 			return nil, codecErr
@@ -405,8 +412,14 @@ func cloneTextBehaviorCapabilityProjections(values []*runtimev1.TextBehaviorCapa
 	return result
 }
 
-func loadoutNeedsLlamaVideoCodec(loadout *runtimev1.Loadout) bool {
-	return loadout.GetCapabilityContract() == capabilitydriver.VideoUpscaleContract || (loadout.GetRecipeId() == capabilitydriver.LlamaGemma412BRecipeID && stringSliceContains(loadout.GetConfiguredFeatures(), "input.video"))
+func loadoutNeedsLlamaVideoCodec(driver capabilitydriver.Driver, loadout *runtimev1.Loadout) bool {
+	if loadout.GetCapabilityContract() == capabilitydriver.VideoUpscaleContract {
+		return true
+	}
+	if codecDriver, ok := driver.(capabilitydriver.MediaCodecRequirementDriver); ok {
+		return codecDriver.RequiresVideoCodec(loadout.GetRecipeId(), loadout.GetConfiguredFeatures())
+	}
+	return false
 }
 
 func (s *Service) captureLlamaMediaCodecSource(ctx context.Context) (localexecution.ExactDependencySource, error) {

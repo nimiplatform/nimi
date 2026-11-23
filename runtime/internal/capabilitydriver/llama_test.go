@@ -11,7 +11,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -94,15 +93,21 @@ func TestLlamaInterpretImageProjectsDeterministicMainThenCompanion(t *testing.T)
 	}
 }
 
-func TestLlamaProductionRecipePublishesConditionalImageAndRetiresV1Recipes(t *testing.T) {
+func TestLlamaProductionRecipePublishesConditionalImageAndRetiresV2Recipes(t *testing.T) {
 	driver := LlamaTextDriver{}
-	features, reason := driver.ImplementationSupportedFeatures(LlamaGemma4RecipeID)
+	features, reason := driver.ImplementationSupportedFeatures(LlamaGenericGGUFRecipeID)
 	if reason != success || !slices.Equal(features, []string{inputImageFeature}) {
 		t.Fatalf("production recipe feature declaration = %v reason=%v", features, reason)
 	}
 	for _, retiredRecipeID := range []string{
 		"llama.text-generate.gemma-4-e2b-it.v1",
 		"llama.text-generate.gemma-4-26b-a4b-it.v1",
+		"llama.text-generate.gemma4.v1",
+		"llama.text-generate.qwen35-4b.v1",
+		"llama.text-generate.qwen35-4b-vision.v1",
+		"llama.text-generate.qwen38-27b.v1",
+		"llama.text-generate.lfm3-1.7b.v1",
+		"llama.text-generate.inkling2-mini.v1",
 	} {
 		if _, retiredReason := driver.ImplementationSupportedFeatures(retiredRecipeID); retiredReason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
 			t.Fatalf("retired recipe %q reason = %v", retiredRecipeID, retiredReason)
@@ -110,7 +115,7 @@ func TestLlamaProductionRecipePublishesConditionalImageAndRetiresV1Recipes(t *te
 	}
 }
 
-func TestLlamaGemma4FormatProbeBudgetIsScopedToTheExactMainEntry(t *testing.T) {
+func TestLlamaFormatProbeBudgetIsScopedToGGUFMainAndProjectorEntries(t *testing.T) {
 	driver := LlamaTextDriver{}
 	for _, test := range []struct {
 		name  string
@@ -118,33 +123,33 @@ func TestLlamaGemma4FormatProbeBudgetIsScopedToTheExactMainEntry(t *testing.T) {
 		want  int64
 	}{
 		{
-			name: "Gemma v2 main entry",
+			name: "generic v3 main .gguf entry",
 			input: ModelAssetFormatProbeInput{
-				RecipeID: LlamaGemma4RecipeID, RequirementID: MainGGUFRequirementID,
+				RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID,
 				RelativePath: "model.gguf", Entry: true,
 			},
 			want: MaxDriverAssetFormatProbeBytes,
 		},
 		{
-			name: "projector entry",
+			name: "generic v3 main .gguf_file entry",
 			input: ModelAssetFormatProbeInput{
-				RecipeID: LlamaGemma4RecipeID, RequirementID: CompanionMMProjRequirementID,
-				RelativePath: "mmproj.gguf", Entry: true,
+				RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID,
+				RelativePath: "Inkling-2-Mini.gguf_file", Entry: true,
 			},
-			want: 4,
+			want: MaxDriverAssetFormatProbeBytes,
 		},
 		{
-			name: "Qwen projector retains full metadata contract",
+			name: "generic v3 projector entry",
 			input: ModelAssetFormatProbeInput{
-				RecipeID: LlamaQwen35VisionRecipeID, RequirementID: CompanionMMProjRequirementID,
+				RecipeID: LlamaGenericGGUFRecipeID, RequirementID: CompanionMMProjRequirementID,
 				RelativePath: "mmproj.gguf", Entry: true,
 			},
-			want: MaxAssetFormatProbeBytes,
+			want: MaxDriverAssetFormatProbeBytes,
 		},
 		{
 			name: "non-entry file",
 			input: ModelAssetFormatProbeInput{
-				RecipeID: LlamaGemma4RecipeID, RequirementID: MainGGUFRequirementID,
+				RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID,
 				RelativePath: "tokenizer.gguf", Entry: false,
 			},
 			want: MaxAssetFormatProbeBytes,
@@ -152,7 +157,7 @@ func TestLlamaGemma4FormatProbeBudgetIsScopedToTheExactMainEntry(t *testing.T) {
 		{
 			name: "retired recipe",
 			input: ModelAssetFormatProbeInput{
-				RecipeID: "llama.text-generate.gemma-4-e2b-it.v1", RequirementID: MainGGUFRequirementID,
+				RecipeID: "llama.text-generate.gemma4.v1", RequirementID: MainGGUFRequirementID,
 				RelativePath: "model.gguf", Entry: true,
 			},
 			want: MaxAssetFormatProbeBytes,
@@ -173,7 +178,7 @@ func TestLlamaGemma4BindingCapturesTemplateBeyondGenericProbePrefix(t *testing.T
 		t.Fatalf("test probe length = %d", len(probe))
 	}
 	driver := LlamaTextDriver{}
-	requirements, reason := driver.ProjectRecipe(LlamaGemma4RecipeID, nil, nil)
+	requirements, reason := driver.ProjectRecipe(LlamaGenericGGUFRecipeID, nil, nil)
 	if reason != success || len(requirements) != 1 {
 		t.Fatalf("ProjectRecipe = requirements=%d reason=%v", len(requirements), reason)
 	}
@@ -182,7 +187,7 @@ func TestLlamaGemma4BindingCapturesTemplateBeyondGenericProbePrefix(t *testing.T
 		VerifiedContentId: "sha256:" + strings.Repeat("a", 64), EntrySha256: strings.Repeat("b", 64),
 	}
 	projection, gotReason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
-		RecipeID: LlamaGemma4RecipeID, Requirement: requirements[0], Binding: binding,
+		RecipeID: LlamaGenericGGUFRecipeID, Requirement: requirements[0], Binding: binding,
 		Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 	})
 	if gotReason != success || projection.TemplateIdentity != "sha256:f24189f08c85a1eb19a737306c3a13e85462ee33d964f28108d64a2485fa2171" {
@@ -192,7 +197,7 @@ func TestLlamaGemma4BindingCapturesTemplateBeyondGenericProbePrefix(t *testing.T
 
 func TestLlamaBindingProjectionCarriesExactOptionalChatTemplateIdentity(t *testing.T) {
 	driver := LlamaTextDriver{}
-	requirements, reason := driver.ProjectRecipe(LlamaGemma4RecipeID, nil, nil)
+	requirements, reason := driver.ProjectRecipe(LlamaGenericGGUFRecipeID, nil, nil)
 	if reason != success || len(requirements) != 1 {
 		t.Fatalf("ProjectRecipe = requirements=%d reason=%v", len(requirements), reason)
 	}
@@ -210,7 +215,7 @@ func TestLlamaBindingProjectionCarriesExactOptionalChatTemplateIdentity(t *testi
 		t.Run(test.name, func(t *testing.T) {
 			probe := llamaGGUFProbeForTest(t, test.template)
 			projection, gotReason := projectLlamaBindingForTest(driver, ModelAssetBindingInput{
-				RecipeID: LlamaGemma4RecipeID, Requirement: requirements[0], Binding: binding,
+				RecipeID: LlamaGenericGGUFRecipeID, Requirement: requirements[0], Binding: binding,
 				Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: int64(len(probe)), FormatProbe: probe},
 			})
 			if gotReason != success || projection.TemplateIdentity != test.want || projection.ModelContextWindowTokens != 262144 {
@@ -228,7 +233,7 @@ func llamaGGUFProbeForTest(t *testing.T, template *string) []byte {
 	}
 	var buffer bytes.Buffer
 	buffer.WriteString("GGUF")
-	for _, value := range []any{uint32(3), uint64(0), uint64(entries)} {
+	for _, value := range []any{uint32(3), uint64(1), uint64(entries)} {
 		if err := binary.Write(&buffer, binary.LittleEndian, value); err != nil {
 			t.Fatal(err)
 		}
@@ -251,6 +256,8 @@ func llamaGGUFProbeForTest(t *testing.T, template *string) []byte {
 		_ = binary.Write(&buffer, binary.LittleEndian, uint32(8))
 		writeString(*template)
 	}
+	writeLlamaProbeTensor(t, &buffer, "token_embd.weight", 0, 4)
+	writeLlamaProbePayload(&buffer, 16)
 	return buffer.Bytes()
 }
 
@@ -258,7 +265,7 @@ func llamaGGUFProbeWithPaddingForTest(t *testing.T, template string, paddingByte
 	t.Helper()
 	var buffer bytes.Buffer
 	buffer.WriteString("GGUF")
-	for _, value := range []any{uint32(3), uint64(0), uint64(4)} {
+	for _, value := range []any{uint32(3), uint64(1), uint64(4)} {
 		if err := binary.Write(&buffer, binary.LittleEndian, value); err != nil {
 			t.Fatal(err)
 		}
@@ -290,6 +297,8 @@ func llamaGGUFProbeWithPaddingForTest(t *testing.T, template string, paddingByte
 	writeString("tokenizer.chat_template")
 	_ = binary.Write(&buffer, binary.LittleEndian, uint32(8))
 	writeString(template)
+	writeLlamaProbeTensor(t, &buffer, "token_embd.weight", 0, 4)
+	writeLlamaProbePayload(&buffer, 16)
 	return buffer.Bytes()
 }
 
@@ -313,51 +322,62 @@ func TestLlamaValidateCombinationAllowsAbsentOptionalProjector(t *testing.T) {
 	}
 }
 
-func TestGemma4ProductionRecipeOwnsConditionalProjectorPairingAndBehaviorProjection(t *testing.T) {
+func TestLlamaV3ProductionRecipeOwnsStructuralProjectorPairingAndBehaviorProjection(t *testing.T) {
 	driver := LlamaTextDriver{}
-	features, reason := driver.ImplementationSupportedFeatures(LlamaGemma4RecipeID)
+	features, reason := driver.ImplementationSupportedFeatures(LlamaGenericGGUFRecipeID)
 	if reason != success || len(features) != 1 || features[0] != inputImageFeature {
-		t.Fatalf("Gemma 4 production features = %#v reason=%v", features, reason)
+		t.Fatalf("v3 production features = %#v reason=%v", features, reason)
 	}
-	requirements, reason := driver.ProjectRecipe(LlamaGemma4RecipeID, nil, features)
+	requirements, reason := driver.ProjectRecipe(LlamaGenericGGUFRecipeID, nil, features)
 	if reason != success || len(requirements) != 2 ||
 		requirements[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL ||
 		requirements[1].GetConditionalFeatures()[0] != inputImageFeature {
-		t.Fatalf("Gemma 4 production requirements = %#v reason=%v", requirements, reason)
+		t.Fatalf("v3 production requirements = %#v reason=%v", requirements, reason)
 	}
-	entry := Gemma4BehaviorCohort()[1]
+	mainSHA := strings.Repeat("a", 64)
+	mainProbe, _ := encodeLlamaGGUFProbe(llamaGGUFProbe{
+		Schema: llamaGGUFProbeSchema, RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID,
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Architecture: "gemma4", ContextWindow: 131072,
+		EmbeddingLength: 1536, TemplateIdentity: Gemma4E2BTemplateIdentity,
+	})
 	mainBinding := &runtimev1.ModelAssetExactBinding{
-		RequirementId: MainGGUFRequirementID, ModelAssetId: "main", VerifiedContentId: entry.ContentID, EntrySha256: entry.EntrySHA256,
+		RequirementId: MainGGUFRequirementID, ModelAssetId: "main", VerifiedContentId: "sha256:" + mainSHA, EntrySha256: mainSHA,
 	}
 	mainAsset := ModelAssetDescriptor{
-		ModelAssetID: "main", VerifiedContentID: entry.ContentID, EntrySHA256: entry.EntrySHA256,
-		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"},
+		ModelAssetID: "main", VerifiedContentID: "sha256:" + mainSHA, EntrySHA256: mainSHA,
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, Engine: "llama", ArtifactRoles: []string{"llm"}, FormatProbe: mainProbe,
 	}
 	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{mainBinding}, []ModelAssetDescriptor{mainAsset}); reason != success {
 		t.Fatalf("text-only Gemma 4 combination = %v", reason)
 	}
-	projectorSHA := strings.TrimPrefix(entry.ProjectorContentID, "sha256:")
+	projSHA := strings.Repeat("b", 64)
+	matchingProjProbe, _ := encodeLlamaGGUFProbe(llamaGGUFProbe{
+		Schema: llamaGGUFProbeSchema, RecipeID: LlamaGenericGGUFRecipeID, RequirementID: CompanionMMProjRequirementID,
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, Architecture: "clip", ProjectorType: "gemma4v", VisionProjectionDim: 1536,
+	})
 	projectorBinding := &runtimev1.ModelAssetExactBinding{
-		RequirementId: CompanionMMProjRequirementID, ModelAssetId: "projector", VerifiedContentId: entry.ProjectorContentID, EntrySha256: projectorSHA,
+		RequirementId: CompanionMMProjRequirementID, ModelAssetId: "projector", VerifiedContentId: "sha256:" + projSHA, EntrySha256: projSHA,
 	}
 	projectorAsset := ModelAssetDescriptor{
-		ModelAssetID: "projector", VerifiedContentID: entry.ProjectorContentID, EntrySHA256: projectorSHA,
-		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, ArtifactRoles: []string{"mmproj"},
+		ModelAssetID: "projector", VerifiedContentID: "sha256:" + projSHA, EntrySHA256: projSHA,
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, ArtifactRoles: []string{"mmproj"}, FormatProbe: matchingProjProbe,
 	}
 	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{mainBinding, projectorBinding}, []ModelAssetDescriptor{mainAsset, projectorAsset}); reason != success {
-		t.Fatalf("paired Gemma 4 projector combination = %v", reason)
+		t.Fatalf("paired Gemma 4 E2B projector combination = %v", reason)
 	}
-	wrongProjector := proto.Clone(projectorBinding).(*runtimev1.ModelAssetExactBinding)
-	wrongProjector.VerifiedContentId = Gemma426BProjectorContentID
-	wrongProjector.EntrySha256 = strings.TrimPrefix(Gemma426BProjectorContentID, "sha256:")
+	wrongWidthProjProbe, _ := encodeLlamaGGUFProbe(llamaGGUFProbe{
+		Schema: llamaGGUFProbeSchema, RecipeID: LlamaGenericGGUFRecipeID, RequirementID: CompanionMMProjRequirementID,
+		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, Architecture: "clip", ProjectorType: "gemma4v", VisionProjectionDim: 2816,
+	})
 	wrongAsset := projectorAsset
-	wrongAsset.VerifiedContentID, wrongAsset.EntrySHA256 = wrongProjector.GetVerifiedContentId(), wrongProjector.GetEntrySha256()
-	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{mainBinding, wrongProjector}, []ModelAssetDescriptor{mainAsset, wrongAsset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
-		t.Fatalf("mismatched Gemma 4 projector reason = %v", reason)
+	wrongAsset.FormatProbe = wrongWidthProjProbe
+	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{mainBinding, projectorBinding}, []ModelAssetDescriptor{mainAsset, wrongAsset}); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE {
+		t.Fatalf("mismatched Gemma 4 26B projector on E2B main reason = %v", reason)
 	}
-	configured, reason := driver.TextBehaviorCapabilitiesForBindings(LlamaGemma4RecipeID, []TextBehaviorBindingFacts{{
-		RequirementID: MainGGUFRequirementID, VerifiedContentID: entry.ContentID,
-		EntrySHA256: entry.EntrySHA256, TemplateIdentity: entry.TemplateIdentity,
+	configured, reason := driver.TextBehaviorCapabilitiesForBindings(LlamaGenericGGUFRecipeID, []TextBehaviorBindingFacts{{
+		RequirementID: MainGGUFRequirementID, VerifiedContentID: "sha256:" + mainSHA,
+		EntrySHA256: mainSHA, TemplateIdentity: Gemma4E2BTemplateIdentity, Architecture: "gemma4",
+		TokenizerFacts: LlamaTokenizerFactsForProtocol(LlamaTokenizerProtocolGemma4),
 	}})
 	if reason != success || len(configured) != 3 {
 		t.Fatalf("configured Gemma 4 behaviors = %#v reason=%v", configured, reason)
@@ -367,14 +387,44 @@ func TestGemma4ProductionRecipeOwnsConditionalProjectorPairingAndBehaviorProject
 			t.Fatalf("configured Gemma 4 behavior = %#v", behavior)
 		}
 	}
-	wrongTemplate := entry
-	wrongTemplate.TemplateIdentity = "sha256:" + strings.Repeat("f", 64)
-	unavailable, _ := driver.TextBehaviorCapabilitiesForBindings(LlamaGemma4RecipeID, []TextBehaviorBindingFacts{{
-		RequirementID: MainGGUFRequirementID, VerifiedContentID: wrongTemplate.ContentID,
-		EntrySHA256: wrongTemplate.EntrySHA256, TemplateIdentity: wrongTemplate.TemplateIdentity,
+	// Same Gemma 4 template + architecture but missing tokenizer evidence -> Tier 2 (StructuredOutput only).
+	missingTokenizer, _ := driver.TextBehaviorCapabilitiesForBindings(LlamaGenericGGUFRecipeID, []TextBehaviorBindingFacts{{
+		RequirementID: MainGGUFRequirementID, VerifiedContentID: "sha256:" + mainSHA,
+		EntrySHA256: mainSHA, TemplateIdentity: Gemma4E2BTemplateIdentity, Architecture: "gemma4",
 	}})
-	if unavailable[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE {
-		t.Fatalf("wrong-template behavior projection = %#v", unavailable)
+	if missingTokenizer[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		missingTokenizer[1].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		missingTokenizer[2].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
+		t.Fatalf("missing-tokenizer known-template behavior projection = %#v", missingTokenizer)
+	}
+	// Known template copied onto a different architecture -> Tier 2 (StructuredOutput only).
+	wrongArch, _ := driver.TextBehaviorCapabilitiesForBindings(LlamaGenericGGUFRecipeID, []TextBehaviorBindingFacts{{
+		RequirementID: MainGGUFRequirementID, VerifiedContentID: "sha256:" + mainSHA,
+		EntrySHA256: mainSHA, TemplateIdentity: Gemma4E2BTemplateIdentity, Architecture: "llama",
+	}})
+	if wrongArch[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		wrongArch[1].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		wrongArch[2].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
+		t.Fatalf("wrong-arch known-template behavior projection = %#v", wrongArch)
+	}
+	// Unknown non-empty template -> Tier 2: StructuredOutput CONFIGURED; ToolUse & Reasoning UNAVAILABLE.
+	unknownTemplate, _ := driver.TextBehaviorCapabilitiesForBindings(LlamaGenericGGUFRecipeID, []TextBehaviorBindingFacts{{
+		RequirementID: MainGGUFRequirementID, VerifiedContentID: "sha256:" + mainSHA,
+		EntrySHA256: mainSHA, TemplateIdentity: "sha256:" + strings.Repeat("f", 64),
+	}})
+	if unknownTemplate[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		unknownTemplate[1].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		unknownTemplate[2].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
+		t.Fatalf("unknown-template behavior projection = %#v", unknownTemplate)
+	}
+	// Empty template -> Tier 3: all behaviors UNAVAILABLE.
+	noTemplate, _ := driver.TextBehaviorCapabilitiesForBindings(LlamaGenericGGUFRecipeID, []TextBehaviorBindingFacts{{
+		RequirementID: MainGGUFRequirementID, VerifiedContentID: "sha256:" + mainSHA, EntrySHA256: mainSHA,
+	}})
+	for _, behavior := range noTemplate {
+		if behavior.GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE {
+			t.Fatalf("untemplated behavior projection = %#v", noTemplate)
+		}
 	}
 }
 
@@ -537,7 +587,7 @@ func TestLlamaValidateCombinationAllowsOneAssetToSatisfyDistinctOccurrences(t *t
 }
 
 func TestLlamaEffectiveRequestDefaultsMatchServerDialect(t *testing.T) {
-	defaults := (LlamaTextDriver{}).EffectiveRequestDefaults(LlamaGemma4RecipeID, nil)
+	defaults := (LlamaTextDriver{}).EffectiveRequestDefaults(LlamaGenericGGUFRecipeID, nil)
 	if defaults["temperature"] != "0.8" || defaults["topP"] != "0.95" || defaults["topK"] != "40" || defaults["seed"] != "random" {
 		t.Fatalf("effective request defaults = %#v", defaults)
 	}
@@ -569,7 +619,7 @@ func TestLlamaTextRequestBodyPreservesOptionalScalarPresence(t *testing.T) {
 				},
 			} {
 				t.Run(testName, func(t *testing.T) {
-					payload, err := llamaTextRequestBody(spec, stream, false)
+					payload, err := llamaTextRequestBody(spec, stream, false, false)
 					if err != nil {
 						t.Fatalf("llamaTextRequestBody: %v", err)
 					}
@@ -603,13 +653,9 @@ func TestLlamaReasoningConfigFailsClosedWithoutBehaviorAdapter(t *testing.T) {
 	for _, reasoning := range []*runtimev1.ReasoningConfig{
 		nil,
 		{},
-		{
-			Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
-			Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
-		},
 	} {
-		if _, err := llamaTextRequestBody(request(reasoning), false, false); err != nil {
-			t.Fatalf("disabled/omitted reasoning failed: %v", err)
+		if _, err := llamaTextRequestBody(request(reasoning), false, false, false); err != nil {
+			t.Fatalf("omitted/unspecified reasoning failed: %v", err)
 		}
 	}
 
@@ -618,6 +664,14 @@ func TestLlamaReasoningConfigFailsClosedWithoutBehaviorAdapter(t *testing.T) {
 		reasoning *runtimev1.ReasoningConfig
 		want      InvocationFailureKind
 	}{
+		{
+			name: "explicit disabled requires verified behavior adapter",
+			reasoning: &runtimev1.ReasoningConfig{
+				Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+				Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
+			},
+			want: InvocationFailureTextBehaviorUnsupported,
+		},
 		{
 			name: "disabled summary is invalid algebra",
 			reasoning: &runtimev1.ReasoningConfig{
@@ -668,7 +722,7 @@ func TestLlamaReasoningConfigFailsClosedWithoutBehaviorAdapter(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := llamaTextRequestBody(request(test.reasoning), false, false)
+			_, err := llamaTextRequestBody(request(test.reasoning), false, false, false)
 			assertLlamaInvocationFailureKind(t, err, test.want)
 		})
 	}
@@ -682,7 +736,7 @@ func TestLlamaTextTurnItemsDoNotGuessUnsupportedBehavior(t *testing.T) {
 			{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: "world"}}}}},
 		},
 	}
-	payload, err := llamaTextRequestBody(&runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{textTurn}}, false, false)
+	payload, err := llamaTextRequestBody(&runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{textTurn}}, false, false, false)
 	if err != nil {
 		t.Fatalf("text-only ordered turn: %v", err)
 	}
@@ -739,9 +793,69 @@ func TestLlamaTextTurnItemsDoNotGuessUnsupportedBehavior(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := llamaTextRequestBody(&runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{test.message}}, false, false)
+			_, err := llamaTextRequestBody(&runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{test.message}}, false, false, false)
 			assertLlamaInvocationFailureKind(t, err, test.want)
 		})
+	}
+}
+
+func TestLlamaArchitectureTableAndProjectorCompatibility(t *testing.T) {
+	for _, phantom := range []string{"falcon3", "glm5", "kimi-k2", "mistral", "bert", "clip"} {
+		if contains(llamaSupportedTextArchitectures, phantom) {
+			t.Fatalf("phantom or non-generative arch %q present in b12648 allowlist", phantom)
+		}
+	}
+	for _, real := range []string{"phimoe", "gptneox", "glm5-next", "falcon-h1", "kimi-linear", "kimi-k31", "mistral-large4", "inkling2_loop", "gemma4", "qwen35"} {
+		if !contains(llamaSupportedTextArchitectures, real) {
+			t.Fatalf("supported b12648 arch %q missing from allowlist", real)
+		}
+	}
+	// Unproven projector family must fail closed (no permissive default fallback).
+	if llamaProjectorCompatibleWithMain(
+		llamaGGUFProbe{Architecture: "llama", EmbeddingLength: 4096},
+		llamaGGUFProbe{Architecture: "clip", ProjectorType: "unknown_proj", VisionProjectionDim: 4096, HasVisionEncoder: true},
+		false,
+	) {
+		t.Fatal("unknown projector type was admitted")
+	}
+	// Missing width must fail closed.
+	if llamaProjectorCompatibleWithMain(
+		llamaGGUFProbe{Architecture: "gemma4", EmbeddingLength: 1536},
+		llamaGGUFProbe{Architecture: "clip", ProjectorType: "gemma4v", VisionProjectionDim: 0},
+		false,
+	) {
+		t.Fatal("zero projection_dim was admitted")
+	}
+	// Qwen3-VL actual output width (mm.2.bias * (1 + proj_deepstack)) must match main n_embd_inp (n_embd * (1 + main_deepstack)).
+	if !llamaProjectorCompatibleWithMain(
+		llamaGGUFProbe{Architecture: "qwen3vl", EmbeddingLength: 2048, DeepstackLayers: 3},
+		llamaGGUFProbe{Architecture: "clip", ProjectorType: "qwen3vl_merger", VisionProjectionDim: 2048, ProjectorMergerWidth: 2048, ProjectorDeepstackLayers: 3},
+		false,
+	) {
+		t.Fatal("Qwen3-VL deepstack input width was rejected")
+	}
+	if llamaProjectorCompatibleWithMain(
+		llamaGGUFProbe{Architecture: "qwen35", EmbeddingLength: 2560, DeepstackLayers: 0},
+		llamaGGUFProbe{Architecture: "clip", ProjectorType: "qwen3vl_merger", VisionProjectionDim: 2560, ProjectorMergerWidth: 2560, ProjectorDeepstackLayers: 3},
+		false,
+	) {
+		t.Fatal("Qwen3-VL deepstack projector (10240) was admitted on Qwen3.5 main (2560)")
+	}
+	// Gemma 4 12B Unified base path (unknown template, no BehaviorAdapter) must preserve user audio/video input.
+	audioReq := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{{
+				Type:    runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
+				Content: &runtimev1.ChatContentPart_AudioUrl{AudioUrl: "data:audio/wav;base64,UklGRg=="},
+			}},
+		}},
+	}
+	if _, err := llamaTextRequestBody(audioReq, false, true, true); err != nil {
+		t.Fatalf("unified unknown-template base path rejected user audio: %v", err)
+	}
+	if _, err := llamaTextRequestBody(audioReq, false, true, false); err == nil {
+		t.Fatal("non-unified base path admitted user audio")
 	}
 }
 
@@ -951,7 +1065,7 @@ func TestLlamaInvocationPlanRequiresAndUsesExactMMProjForImage(t *testing.T) {
 
 func llamaBehaviorMatchFactsForTest(main InvocationExactBinding) TextBehaviorAdapterMatchFacts {
 	return TextBehaviorAdapterMatchFacts{
-		RecipeID: LlamaGemma4RecipeID, RecipeRevision: "test-revision", DriverDialect: LlamaDriverDialect,
+		RecipeID: LlamaGenericGGUFRecipeID, RecipeRevision: "test-revision", DriverDialect: LlamaDriverDialect,
 		ModelAssetID: main.ModelAssetID, VerifiedContentID: main.VerifiedContentID, EntrySHA256: main.EntrySHA256,
 		TemplateIdentity: main.TemplateIdentity,
 	}

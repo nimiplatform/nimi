@@ -30,13 +30,12 @@ func TestCloneLocalResolvedAssemblyPreservesRequestPayloadBytes(t *testing.T) {
 }
 
 func TestOrderedSystemOnlyAssemblyRetainsExactAdapterAcrossReplay(t *testing.T) {
-	entry := capabilitydriver.Gemma4BehaviorCohort()[0]
 	selected := selectedTextExecutionForTest(t, "ordered-system", "model.gguf")
 	selected.Requirements[0].Role = runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN
 	selected.ExactBindings[0].RequirementRole = runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN
-	selected.ExactBindings[0].VerifiedContentID = entry.ContentID
-	selected.ExactBindings[0].EntrySHA256 = entry.EntrySHA256
-	selected.ExactBindings[0].TemplateIdentity = entry.TemplateIdentity
+	selected.ExactBindings[0].TemplateIdentity = capabilitydriver.Gemma4E2BTemplateIdentity
+	selected.ExactBindings[0].Architecture = "gemma4"
+	selected.ExactBindings[0].TokenizerFacts = capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4)
 	request := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "system", Content: "policy"}, {Role: "user", Content: "request"}, {Role: "system", Content: "context"}}}
 	facts, err := localTextBehaviorAdapterResolutionFacts(selected, projectLocalTextBehaviorAdapterMatchFacts(selected))
 	if err != nil {
@@ -129,7 +128,7 @@ func TestLocalTextResolvedAssemblyPersistsTemplateIdentityAndRejectsReplayDrift(
 	templateIdentity := "sha256:f24189f08c85a1eb19a737306c3a13e85462ee33d964f28108d64a2485fa2171"
 	selected := &localexecution.SelectedLocalExecution{
 		LoadoutID: "loadout-template", CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		RecipeID: capabilitydriver.LlamaGemma4RecipeID, RecipeRevision: "test-revision",
+		RecipeID: capabilitydriver.LlamaGenericGGUFRecipeID, RecipeRevision: "test-revision",
 		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaDriverDialect}).Proto(),
 		ModelContextWindowTokens: 32768,
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
@@ -188,7 +187,7 @@ func TestLocalTextResolvedAssemblyCapturesResolvedAdapterAndRejectsReplayMismatc
 	templateIdentity := "sha256:" + strings.Repeat("c", 64)
 	selected := &localexecution.SelectedLocalExecution{
 		LoadoutID: "loadout-behavior", CapabilityContract: capabilitydriver.LlamaCapabilityContract,
-		RecipeID: capabilitydriver.LlamaGemma4RecipeID, RecipeRevision: "test-revision",
+		RecipeID: capabilitydriver.LlamaGenericGGUFRecipeID, RecipeRevision: "test-revision",
 		DriverIdentity: (&capabilitydriver.Identity{
 			ImplementationID: capabilitydriver.LlamaImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaDriverDialect,
 		}).Proto(),

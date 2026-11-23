@@ -89,6 +89,16 @@ func (s *Service) captureLocalTextEffectiveInputs(
 		return nil, err
 	}
 
+	identity := capabilitydriver.IdentityFromProto(selected.DriverIdentity)
+	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.LlamaCapabilityContract, identity)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+	textDriver, ok := driver.(capabilitydriver.TextInvocationDriver)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+
 	normalized, err := normalizeLocalTextRequest(spec, intent.Defaults)
 	if err != nil {
 		return nil, err
@@ -96,23 +106,25 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if err := s.checkTextInputRisk(normalized); err != nil {
 		return nil, err
 	}
-	if selected.RecipeID == capabilitydriver.LlamaGemma412BRecipeID {
-		// Reserve encoded body space before opening any owned artifact. The
-		// bounded transcript plus per-part native envelope is conservative; the
-		// Driver also checks the complete serialized request before dispatch.
-		overhead, err := protojson.Marshal(normalized)
-		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	if budgetDriver, ok := driver.(capabilitydriver.OwnedMediaRequestBudgetDriver); ok {
+		if maxBytes := budgetDriver.OwnedMediaMaxRequestBytes(selected.RecipeID); maxBytes > 0 {
+			// Reserve encoded body space before opening any owned artifact. The
+			// bounded transcript plus per-part native envelope is conservative; the
+			// Driver also checks the complete serialized request before dispatch.
+			overhead, err := protojson.Marshal(normalized)
+			if err != nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			}
+			envelope := int64(len(overhead))
+			for _, message := range normalized.GetInput() {
+				envelope += int64(len(message.GetParts())) * 256
+			}
+			budget, err := textbehavior.NewOwnedMediaInputBudget(maxBytes, envelope)
+			if err != nil {
+				return nil, err
+			}
+			ctx = textbehavior.WithOwnedMediaInputBudget(ctx, budget)
 		}
-		envelope := int64(len(overhead))
-		for _, message := range normalized.GetInput() {
-			envelope += int64(len(message.GetParts())) * 256
-		}
-		budget, err := textbehavior.NewOwnedMediaInputBudget(capabilitydriver.LlamaUnifiedMaxRequestBytes, envelope)
-		if err != nil {
-			return nil, err
-		}
-		ctx = textbehavior.WithOwnedMediaInputBudget(ctx, budget)
 	}
 	resolved, err := s.resolveSelectedLocalTextGenerateScenario(ctx, head, normalized)
 	if err != nil {
@@ -124,16 +136,6 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	}
 	if err := requireSelectedRequestFeatures(resolved.spec, selected.ImplementationSupportedFeatures, selected.ConfiguredFeatures); err != nil {
 		return fail(err)
-	}
-
-	identity := capabilitydriver.IdentityFromProto(selected.DriverIdentity)
-	driver, reason := s.capabilityDrivers.Resolve(capabilitydriver.LlamaCapabilityContract, identity)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
-		return fail(grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE))
-	}
-	textDriver, ok := driver.(capabilitydriver.TextInvocationDriver)
-	if !ok {
-		return fail(grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE))
 	}
 
 	exactBindings := projectInvocationExactBindings(selected.ExactBindings)
@@ -382,6 +384,8 @@ func localTextBehaviorIdentityFacts(identity *runtimev1.CapabilityImplementation
 			RecipeID:         strings.TrimSpace(match.RecipeID),
 			RecipeRevision:   strings.TrimSpace(match.RecipeRevision),
 			TemplateIdentity: strings.TrimSpace(match.TemplateIdentity),
+			Architecture:     strings.TrimSpace(match.Architecture),
+			TokenizerFacts:   capabilitydriver.CloneLlamaTokenizerFacts(match.TokenizerFacts),
 			ModelContents: []textBehaviorModelContent{{
 				SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: strings.TrimSpace(match.VerifiedContentID),
 				EntrySHA256: strings.TrimSpace(match.EntrySHA256),

@@ -13,30 +13,42 @@ func TestGemma412BExactMainAndUnifiedProjectorRemainSeparateFromOlderGemma(t *te
 	if reason != success || len(requirements) != 2 || len(requirements[1].ConditionalFeatures) != 3 {
 		t.Fatalf("unified slots: %v %v", requirements, reason)
 	}
-	for i, want := range []string{Gemma412BQ4ContentID, Gemma412BProjectorContentID} {
-		facts := llamaGGUFProbe{Schema: llamaGGUFProbeSchema, RecipeID: LlamaGemma412BRecipeID, RequirementID: requirements[i].RequirementId, Architecture: "clip", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY}
+	mainSHA := strings.Repeat("a", 64)
+	projSHA := strings.Repeat("b", 64)
+	for i, sha := range []string{mainSHA, projSHA} {
+		facts := llamaGGUFProbe{
+			Schema: llamaGGUFProbeSchema, RecipeID: LlamaGemma412BRecipeID, RequirementID: requirements[i].RequirementId,
+			Architecture: "clip", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY,
+			ProjectorType: "gemma4uv", AudioProjectorType: "gemma4ua", VisionProjectionDim: 3840, AudioProjectionDim: 3840,
+		}
 		if i == 0 {
-			facts.Architecture = "gemma4"
-			facts.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
-			facts.ContextWindow = 262144
-			facts.TemplateIdentity = Gemma412BTemplateIdentity
+			facts = llamaGGUFProbe{
+				Schema: llamaGGUFProbeSchema, RecipeID: LlamaGemma412BRecipeID, RequirementID: requirements[i].RequirementId,
+				Architecture: "gemma4", Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+				ContextWindow: 262144, EmbeddingLength: 3840, TemplateIdentity: Gemma412BTemplateIdentity,
+			}
 		}
 		probe, err := encodeLlamaGGUFProbe(facts)
 		if err != nil {
 			t.Fatal(err)
 		}
-		input := ModelAssetBindingInput{RecipeID: LlamaGemma412BRecipeID, Requirement: requirements[i], Binding: &runtimev1.ModelAssetExactBinding{RequirementId: requirements[i].RequirementId, ModelAssetId: "selected", VerifiedContentId: want, EntrySha256: strings.TrimPrefix(want, "sha256:")}, Entry: ModelAssetFileFact{RelativePath: "selected.gguf", SizeBytes: 100, FormatProbe: probe}}
+		input := ModelAssetBindingInput{RecipeID: LlamaGemma412BRecipeID, Requirement: requirements[i], Binding: &runtimev1.ModelAssetExactBinding{RequirementId: requirements[i].RequirementId, ModelAssetId: "selected", VerifiedContentId: "sha256:" + sha, EntrySha256: sha}, Entry: ModelAssetFileFact{RelativePath: "selected.gguf", SizeBytes: 100, FormatProbe: probe}}
 		if _, reason := driver.ProjectModelAssetBinding(input); reason != success {
 			t.Fatal(reason)
 		}
-		input.Binding.VerifiedContentId = Gemma426BProjectorContentID
-		input.Binding.EntrySha256 = strings.TrimPrefix(Gemma426BProjectorContentID, "sha256:")
-		if _, reason := driver.ProjectModelAssetBinding(input); reason == success {
-			t.Fatal("older content inherited unified support")
+		if i == 1 {
+			nonUnified := facts
+			nonUnified.ProjectorType = "gemma4v"
+			nonUnified.AudioProjectorType = ""
+			nonUnifiedProbe, _ := encodeLlamaGGUFProbe(nonUnified)
+			input.Entry.FormatProbe = nonUnifiedProbe
+			if _, reason := driver.ProjectModelAssetBinding(input); reason == success {
+				t.Fatal("non-unified projector inherited unified support")
+			}
 		}
 	}
-	if _, reason := driver.ProjectRecipe(LlamaGemma4RecipeID, nil, []string{"input.audio"}); reason == success {
-		t.Fatal("older Gemma acquired audio")
+	if _, reason := driver.ProjectRecipe(LlamaGenericGGUFRecipeID, nil, []string{"input.audio"}); reason == success {
+		t.Fatal("standard GGUF recipe acquired audio")
 	}
 	if _, reason := driver.ProjectRecipeForHost(LlamaGemma412BRecipeID, nil, nil, "darwin/arm64"); reason == success {
 		t.Fatal("unverified platform admitted")

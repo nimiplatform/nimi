@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 )
 
 const (
@@ -288,7 +289,7 @@ func catalogLocatorOwner(locator string) string {
 func catalogOfferFormat(entry string) string {
 	lower := strings.ToLower(strings.TrimSpace(entry))
 	switch {
-	case strings.HasSuffix(lower, ".gguf"):
+	case ggufmeta.IsGGUFExtension(entry):
 		return "gguf"
 	case strings.HasSuffix(lower, ".safetensors"):
 		return "safetensors"

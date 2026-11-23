@@ -32,10 +32,14 @@ func TestGemma412BPublicOwnedAudioAndVideoCapture(t *testing.T) {
 			selected := selectedTextExecutionForTest(t, "gemma12", "model.gguf")
 			selected.RecipeID = capabilitydriver.LlamaGemma412BRecipeID
 			selected.ModelContextWindowTokens = 262144
-			selected.ExactBindings[0].VerifiedContentID = capabilitydriver.Gemma412BQ4ContentID
-			selected.ExactBindings[0].EntrySHA256 = strings.TrimPrefix(capabilitydriver.Gemma412BQ4ContentID, "sha256:")
+			mainSHA := strings.Repeat("1", 64)
+			projectorSHA := strings.Repeat("2", 64)
+			selected.ExactBindings[0].VerifiedContentID = "sha256:" + mainSHA
+			selected.ExactBindings[0].EntrySHA256 = mainSHA
 			selected.ExactBindings[0].TemplateIdentity = capabilitydriver.Gemma412BTemplateIdentity
-			selected.ExactBindings = append(selected.ExactBindings, localexecution.ExactBinding{RequirementID: capabilitydriver.CompanionMMProjRequirementID, ModelAssetID: "projector", AbsolutePath: filepath.Join(t.TempDir(), "mmproj.gguf"), VerifiedContentID: capabilitydriver.Gemma412BProjectorContentID, EntrySHA256: strings.TrimPrefix(capabilitydriver.Gemma412BProjectorContentID, "sha256:")})
+			selected.ExactBindings[0].Architecture = "gemma4"
+			selected.ExactBindings[0].TokenizerFacts = capabilitydriver.LlamaTokenizerFactsForProtocol(capabilitydriver.LlamaTokenizerProtocolGemma4)
+			selected.ExactBindings = append(selected.ExactBindings, localexecution.ExactBinding{RequirementID: capabilitydriver.CompanionMMProjRequirementID, ModelAssetID: "projector", AbsolutePath: filepath.Join(t.TempDir(), "mmproj.gguf"), VerifiedContentID: "sha256:" + projectorSHA, EntrySHA256: projectorSHA})
 			selected.Requirements = append(selected.Requirements, &runtimev1.LocalCapabilityRequirement{RequirementId: capabilitydriver.CompanionMMProjRequirementID})
 			selected.ImplementationSupportedFeatures = []string{"input.image", "input.audio", "input.video"}
 			selected.ConfiguredFeatures = selected.ImplementationSupportedFeatures
