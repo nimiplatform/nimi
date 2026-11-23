@@ -87,6 +87,25 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 			}
 			model.Opsets[name] = version
 		}
+		if field == 20 && kind == protowire.BytesType {
+			return walkONNXFields(source, start, length, func(tf protowire.Number, tk protowire.Type, to, tn int64, _ uint64) error {
+				if (tf == 1 || tf == 2) && tk == protowire.BytesType {
+					return inspectONNXGraph(source, to, tn, 1, domains, operators, nil)
+				}
+				return nil
+			})
+		}
+		if field == 25 && kind == protowire.BytesType {
+			return walkONNXFields(source, start, length, func(ff protowire.Number, fk protowire.Type, fo, fn int64, _ uint64) error {
+				if ff == 7 && fk == protowire.BytesType {
+					return inspectONNXNode(source, fo, fn, 1, domains, operators)
+				}
+				if ff == 11 && fk == protowire.BytesType {
+					return inspectONNXAttribute(source, fo, fn, 1, domains, operators)
+				}
+				return nil
+			})
+		}
 		if field != 7 || kind != protowire.BytesType {
 			return nil
 		}
@@ -94,55 +113,7 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 		if graphs != 1 {
 			return fmt.Errorf("ambiguous ONNX graph")
 		}
-		return walkONNXFields(source, start, length, func(number protowire.Number, wire protowire.Type, offset, count int64, _ uint64) error {
-			if number == 1 && wire == protowire.BytesType {
-				return walkONNXFields(source, offset, count, func(f protowire.Number, k protowire.Type, o, n int64, _ uint64) error {
-					if (f == 4 || f == 7) && k == protowire.BytesType {
-						if n > 256 {
-							return fmt.Errorf("ONNX operator identity exceeds its bound")
-						}
-						data, err := readONNXMetadata(source, o, n)
-						if err != nil {
-							return err
-						}
-						if f == 4 {
-							operators[string(data)] = true
-						} else {
-							domains[string(data)] = true
-						}
-					}
-					return nil
-				})
-			}
-			if number == 5 && wire == protowire.BytesType {
-				return walkONNXFields(source, offset, count, func(field protowire.Number, kind protowire.Type, _, _ int64, value uint64) error {
-					if field == 13 || (field == 14 && kind == protowire.VarintType && value != 0) {
-						return fmt.Errorf("external ONNX tensor files are not admitted")
-					}
-					return nil
-				})
-			}
-			if number != 11 && number != 12 {
-				return nil
-			}
-			if wire != protowire.BytesType || count > 65536 || len(model.Inputs)+len(model.Outputs) >= 32 {
-				return fmt.Errorf("ONNX interface exceeds its bound")
-			}
-			body := make([]byte, count)
-			if _, err := source.ReadAt(body, offset); err != nil {
-				return err
-			}
-			tensor, err := decodeONNXValue(body)
-			if err != nil {
-				return err
-			}
-			if number == 11 {
-				model.Inputs = append(model.Inputs, tensor)
-			} else {
-				model.Outputs = append(model.Outputs, tensor)
-			}
-			return nil
-		})
+		return inspectONNXGraph(source, start, length, 0, domains, operators, &model)
 	})
 	if err != nil {
 		return nil, err
@@ -159,6 +130,105 @@ func probeONNXModel(source io.ReaderAt, size int64) ([]byte, error) {
 	sort.Strings(model.NodeDomains)
 	sort.Strings(model.NodeOps)
 	return json.Marshal(model)
+}
+
+const maxONNXSubgraphDepth = 8
+
+func inspectONNXGraph(source io.ReaderAt, start, length int64, depth int, domains, operators map[string]bool, topLevel *onnxModel) error {
+	if depth > maxONNXSubgraphDepth {
+		return fmt.Errorf("ONNX subgraph nesting exceeds its bound")
+	}
+	return walkONNXFields(source, start, length, func(number protowire.Number, wire protowire.Type, offset, count int64, _ uint64) error {
+		if number == 1 && wire == protowire.BytesType {
+			return inspectONNXNode(source, offset, count, depth, domains, operators)
+		}
+		if number == 5 && wire == protowire.BytesType {
+			return rejectExternalONNXTensor(source, offset, count)
+		}
+		if number == 15 && wire == protowire.BytesType {
+			return rejectExternalONNXSparseTensor(source, offset, count)
+		}
+		if topLevel == nil || (number != 11 && number != 12) {
+			return nil
+		}
+		if wire != protowire.BytesType || count > 65536 || len(topLevel.Inputs)+len(topLevel.Outputs) >= 32 {
+			return fmt.Errorf("ONNX interface exceeds its bound")
+		}
+		body := make([]byte, count)
+		if _, err := source.ReadAt(body, offset); err != nil {
+			return err
+		}
+		tensor, err := decodeONNXValue(body)
+		if err != nil {
+			return err
+		}
+		if number == 11 {
+			topLevel.Inputs = append(topLevel.Inputs, tensor)
+		} else {
+			topLevel.Outputs = append(topLevel.Outputs, tensor)
+		}
+		return nil
+	})
+}
+
+func inspectONNXNode(source io.ReaderAt, offset, count int64, depth int, domains, operators map[string]bool) error {
+	return walkONNXFields(source, offset, count, func(f protowire.Number, k protowire.Type, o, n int64, _ uint64) error {
+		if (f == 4 || f == 7) && k == protowire.BytesType {
+			if n > 256 {
+				return fmt.Errorf("ONNX operator identity exceeds its bound")
+			}
+			data, err := readONNXMetadata(source, o, n)
+			if err != nil {
+				return err
+			}
+			if f == 4 {
+				operators[string(data)] = true
+			} else {
+				domains[string(data)] = true
+			}
+			return nil
+		}
+		if f == 5 && k == protowire.BytesType {
+			return inspectONNXAttribute(source, o, n, depth, domains, operators)
+		}
+		return nil
+	})
+}
+
+func inspectONNXAttribute(source io.ReaderAt, offset, count int64, depth int, domains, operators map[string]bool) error {
+	return walkONNXFields(source, offset, count, func(f protowire.Number, k protowire.Type, o, n int64, _ uint64) error {
+		if k != protowire.BytesType {
+			return nil
+		}
+		switch f {
+		case 5, 10: // AttributeProto.t, AttributeProto.tensors
+			return rejectExternalONNXTensor(source, o, n)
+		case 22, 23: // AttributeProto.sparse_tensor, AttributeProto.sparse_tensors
+			return rejectExternalONNXSparseTensor(source, o, n)
+		case 6, 11: // AttributeProto.g, AttributeProto.graphs
+			return inspectONNXGraph(source, o, n, depth+1, domains, operators, nil)
+		default:
+			return nil
+		}
+	})
+}
+
+func rejectExternalONNXTensor(source io.ReaderAt, offset, count int64) error {
+	return walkONNXFields(source, offset, count, func(field protowire.Number, kind protowire.Type, _, _ int64, value uint64) error {
+		if field == 13 || (field == 14 && kind == protowire.VarintType && value != 0) {
+			return fmt.Errorf("external ONNX tensor files are not admitted")
+		}
+		return nil
+	})
+}
+
+func rejectExternalONNXSparseTensor(source io.ReaderAt, offset, count int64) error {
+	return walkONNXFields(source, offset, count, func(field protowire.Number, kind protowire.Type, o, n int64, _ uint64) error {
+		if (field == 1 || field == 2) && kind == protowire.BytesType {
+			return rejectExternalONNXTensor(source, o, n)
+		}
+		return nil
+	})
 }
 
 func readONNXMetadata(source io.ReaderAt, offset, size int64) ([]byte, error) {

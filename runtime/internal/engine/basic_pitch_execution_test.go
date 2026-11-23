@@ -37,8 +37,8 @@ func TestBasicPitchExecutionChecksCurrentHostProfileBeforeSource(t *testing.T) {
 	}
 	plan, err := (capabilitydriver.BasicPitchDriver{}).PlanMusicTranscriptionInvocation(capabilitydriver.MusicTranscriptionInvocationInput{
 		RecipeID: capabilitydriver.BasicPitchRecipeID,
-		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.BasicPitchRequirementID, VerifiedContentID: capabilitydriver.BasicPitchVerifiedContentID, EntrySHA256: capabilitydriver.BasicPitchModelSHA256,
-			BundleDir: root, AbsolutePath: filepath.Join(root, filepath.FromSlash(capabilitydriver.BasicPitchEntry)), DeclaredFiles: []string{"LICENSE", "NOTICE", capabilitydriver.BasicPitchEntry}}},
+		ExactBindings: []capabilitydriver.InvocationExactBinding{{RequirementID: capabilitydriver.BasicPitchRequirementID, VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("a", 64),
+			BundleDir: root, AbsolutePath: filepath.Join(root, "basic_pitch", "saved_models", "icassp_2022", "nmp.onnx"), DeclaredFiles: []string{"LICENSE", "NOTICE", "basic_pitch/saved_models/icassp_2022/nmp.onnx"}}},
 		DependencySources: []capabilitydriver.InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: BasicPitchConsumerID, CanonicalRoot: profileRoot, SelectedSourceRecordID: "profile-source", Version: identity.ProfileDigest,
 			Hashes: map[string]string{"profile_digest": identity.ProfileDigest, "driver_bundle_sha256": identity.DriverBundleDigest}}},
 		Request: &runtimev1.MusicTranscribeScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "owned-source"},

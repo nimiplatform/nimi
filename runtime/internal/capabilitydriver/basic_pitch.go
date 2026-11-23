@@ -1,7 +1,6 @@
 package capabilitydriver
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -17,19 +16,14 @@ import (
 )
 
 const (
-	BasicPitchConsumerID        = "music.basic-pitch.python"
-	BasicPitchProtocol          = "nimi-basic-pitch-onnx/1"
-	BasicPitchImplementationID  = "local.music.transcribe.basic-pitch.onnx-cpu"
-	BasicPitchDriverID          = "nimi.runtime.driver.python.basic-pitch"
-	BasicPitchDriverDialect     = "python/basic-pitch-onnx/music-transcribe/v1"
-	BasicPitchRecipeID          = "basic-pitch.onnx-cpu.v1"
-	BasicPitchRequirementID     = "music.model"
-	BasicPitchEntry             = "basic_pitch/saved_models/icassp_2022/nmp.onnx"
-	BasicPitchModelSHA256       = "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec" // pragma: allowlist secret -- public official ONNX file digest
-	BasicPitchVerifiedContentID = "sha256:24b5e2a22dbb7575cb3cdd999ac96f24eb5cac6a38df6fc32446fe3a5c96763a"
+	BasicPitchConsumerID       = "music.basic-pitch.python"
+	BasicPitchProtocol         = "nimi-basic-pitch-onnx/1"
+	BasicPitchImplementationID = "local.music.transcribe.basic-pitch.onnx-cpu"
+	BasicPitchDriverID         = "nimi.runtime.driver.python.basic-pitch"
+	BasicPitchDriverDialect    = "python/basic-pitch-onnx/music-transcribe/v2"
+	BasicPitchRecipeID         = "basic-pitch.onnx-cpu.v1"
+	BasicPitchRequirementID    = "music.model"
 )
-
-var basicPitchFiles = map[string]int64{"LICENSE": 11384, "NOTICE": 1034, BasicPitchEntry: 230444}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.basic-pitch-onnx-note-events
 type BasicPitchDriver struct{}
@@ -62,26 +56,86 @@ func (BasicPitchDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapab
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 	constraints, _ := structpb.NewStruct(map[string]any{"asset_kind": "music", "model_family": "basic-pitch", "artifact_role": "music_model", "format": "onnx"})
-	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: BasicPitchRequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: "music", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "Basic Pitch ONNX with license and NOTICE"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: BasicPitchRequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: "music", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE, CompatibilityConstraints: constraints, DisplayLabel: "Basic Pitch ONNX model"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
-func (BasicPitchDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
-	if input.Binding == nil || input.Binding.GetVerifiedContentId() != BasicPitchVerifiedContentID || input.Entry.RelativePath != BasicPitchEntry || len(input.Files) != len(basicPitchFiles) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
+
+func basicPitchUniqueONNXFileFact(input ModelAssetBindingInput) (ModelAssetFileFact, bool) {
+	files := input.Files
+	if len(files) == 0 && strings.TrimSpace(input.Entry.RelativePath) != "" {
+		files = []ModelAssetFileFact{input.Entry}
 	}
-	for _, file := range input.Files {
-		if basicPitchFiles[file.RelativePath] != file.SizeBytes || file.SizeBytes <= 0 {
-			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
+	var match ModelAssetFileFact
+	found := false
+	for _, file := range files {
+		if strings.ToLower(filepath.Ext(file.RelativePath)) != ".onnx" {
+			continue
 		}
+		if found || file.SizeBytes <= 0 {
+			return ModelAssetFileFact{}, false
+		}
+		match, found = file, true
+	}
+	return match, found
+}
+
+func basicPitchResolveONNXModelPath(binding InvocationExactBinding) (string, error) {
+	if !filepath.IsAbs(binding.BundleDir) || filepath.Clean(binding.BundleDir) != binding.BundleDir {
+		return "", fmt.Errorf("model bundle directory is invalid")
+	}
+	var match string
+	if len(binding.DeclaredFiles) > 0 {
+		for _, relative := range binding.DeclaredFiles {
+			if strings.ToLower(filepath.Ext(relative)) != ".onnx" {
+				continue
+			}
+			if match != "" {
+				return "", fmt.Errorf("model bundle contains multiple ONNX files")
+			}
+			cleanRel := filepath.Clean(filepath.FromSlash(relative))
+			if filepath.IsAbs(cleanRel) || cleanRel == "." || cleanRel == ".." || strings.HasPrefix(cleanRel, ".."+string(filepath.Separator)) {
+				return "", fmt.Errorf("model ONNX relative path is unsafe")
+			}
+			match = filepath.Join(binding.BundleDir, cleanRel)
+		}
+	} else if filepath.IsAbs(binding.AbsolutePath) && strings.ToLower(filepath.Ext(binding.AbsolutePath)) == ".onnx" {
+		match = filepath.Clean(binding.AbsolutePath)
+	}
+	if match == "" {
+		return "", fmt.Errorf("model bundle does not contain a unique ONNX file")
+	}
+	rel, err := filepath.Rel(binding.BundleDir, match)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("resolved ONNX path escapes bundle root")
+	}
+	return match, nil
+}
+
+func (BasicPitchDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	invalid := runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	if input.RecipeID != BasicPitchRecipeID || input.Binding == nil {
+		return ModelAssetBindingProjection{}, invalid
+	}
+	onnxFile, ok := basicPitchUniqueONNXFileFact(input)
+	if !ok {
+		return ModelAssetBindingProjection{}, invalid
 	}
 	var model onnxModel
-	if err := json.Unmarshal(input.Entry.FormatProbe, &model); err != nil || !basicPitchModelInterface(model) {
-		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	if err := json.Unmarshal(onnxFile.FormatProbe, &model); err != nil || !basicPitchModelInterface(model) {
+		return ModelAssetBindingProjection{}, invalid
 	}
-	descriptor := ModelAssetDescriptor{Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC, Family: "basic-pitch", Engine: "python", ArtifactRoles: []string{"music_model"}, FormatProbe: append([]byte(nil), input.Entry.FormatProbe...)}
+	descriptor := ModelAssetDescriptor{Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC, Family: "basic-pitch", Engine: "python", ArtifactRoles: []string{"music_model"}, FormatProbe: append([]byte(nil), onnxFile.FormatProbe...)}
 	return validatedModelAssetBindingProjection(input, descriptor, 0, (BasicPitchDriver{}).ValidateBinding)
 }
 func (BasicPitchDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
-	if requirement == nil || binding == nil || requirement.GetRequirementId() != BasicPitchRequirementID || binding.GetRequirementId() != BasicPitchRequirementID || binding.GetVerifiedContentId() != BasicPitchVerifiedContentID || asset.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC || asset.Family != "basic-pitch" || asset.Engine != "python" {
+	if requirement == nil || binding == nil || requirement.GetRequirementId() != BasicPitchRequirementID || binding.GetRequirementId() != BasicPitchRequirementID ||
+		binding.GetModelAssetId() == "" || binding.GetModelAssetId() != asset.ModelAssetID ||
+		binding.GetVerifiedContentId() == "" || binding.GetVerifiedContentId() != asset.VerifiedContentID ||
+		binding.GetEntrySha256() == "" || binding.GetEntrySha256() != asset.EntrySHA256 ||
+		asset.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC || asset.Family != "basic-pitch" || asset.Engine != "python" {
+		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	var model onnxModel
+	if err := json.Unmarshal(asset.FormatProbe, &model); err != nil || !basicPitchModelInterface(model) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -99,29 +153,17 @@ func (BasicPitchDriver) MusicInputCapabilities() *runtimev1.MusicInputCapabiliti
 	return &runtimev1.MusicInputCapabilities{Transcription: []*runtimev1.MusicTranscriptionInputProfile{{Formats: []string{"midi", "timeline"}, Parts: []string{"note-events"}, MaxDurationSeconds: 600, MaxSourceBytes: 512 << 20, SupportsRange: true}}}
 }
 func (BasicPitchDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	if input.Entry && input.RelativePath == BasicPitchEntry {
-		return 230444
+	if strings.ToLower(filepath.Ext(input.RelativePath)) == ".onnx" {
+		return MaxAssetFormatProbeBytes
 	}
-	// The common owner admits a positive bounded probe for every declared file,
-	// including retained rights files which need no tensor-structure metadata.
+	// Non-ONNX companion files (such as LICENSE/NOTICE) need no tensor metadata.
 	return 4
 }
 func (BasicPitchDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
-	if !input.Entry || input.RelativePath != BasicPitchEntry {
+	if strings.ToLower(filepath.Ext(input.RelativePath)) != ".onnx" {
 		return nil, nil
 	}
-	if size != 230444 {
-		return nil, fmt.Errorf("Basic Pitch ONNX size is not admitted")
-	}
-	data := make([]byte, size)
-	if _, err := source.ReadAt(data, 0); err != nil {
-		return nil, err
-	}
-	hash := sha256.Sum256(data)
-	if hex.EncodeToString(hash[:]) != BasicPitchModelSHA256 {
-		return nil, fmt.Errorf("Basic Pitch ONNX content is not admitted")
-	}
-	return probeONNXModel(bytes.NewReader(data), int64(len(data)))
+	return probeONNXModel(source, size)
 }
 
 func basicPitchModelInterface(model onnxModel) bool {
@@ -150,17 +192,14 @@ func (BasicPitchDriver) PlanMusicTranscriptionInvocation(input MusicTranscriptio
 	if input.RecipeID != BasicPitchRecipeID || !musicStructIsEmpty(input.PortableConfig) {
 		return bad(InvocationFailureInvalidConfig, "recipe or options are invalid")
 	}
-	if len(input.ExactBindings) != 1 || input.ExactBindings[0].RequirementID != BasicPitchRequirementID || input.ExactBindings[0].VerifiedContentID != BasicPitchVerifiedContentID || strings.TrimPrefix(input.ExactBindings[0].EntrySHA256, "sha256:") != BasicPitchModelSHA256 {
-		return bad(InvocationFailureInvalidBinding, "requires the exact ONNX and rights bundle")
+	if len(input.ExactBindings) != 1 || input.ExactBindings[0].RequirementID != BasicPitchRequirementID ||
+		strings.TrimSpace(input.ExactBindings[0].VerifiedContentID) == "" || strings.TrimSpace(input.ExactBindings[0].EntrySHA256) == "" {
+		return bad(InvocationFailureInvalidBinding, "requires a verified ONNX model binding")
 	}
 	binding := cloneInvocationExactBindings(input.ExactBindings)[0]
-	if !filepath.IsAbs(binding.BundleDir) || filepath.Clean(binding.AbsolutePath) != filepath.Join(binding.BundleDir, filepath.FromSlash(BasicPitchEntry)) || len(binding.DeclaredFiles) != 3 {
-		return bad(InvocationFailureInvalidBinding, "model entry or declaration is invalid")
-	}
-	for _, name := range binding.DeclaredFiles {
-		if _, ok := basicPitchFiles[name]; !ok {
-			return bad(InvocationFailureInvalidBinding, "model declaration is invalid")
-		}
+	modelPath, err := basicPitchResolveONNXModelPath(binding)
+	if err != nil {
+		return bad(InvocationFailureInvalidBinding, err.Error())
 	}
 	r := input.Request
 	if r == nil || len(r.GetRequestedParts()) != 1 || r.GetRequestedParts()[0] != runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_NOTE_EVENTS || len(r.GetRequestedFormats()) < 1 || len(r.GetRequestedFormats()) > 2 {
@@ -216,7 +255,7 @@ func (BasicPitchDriver) PlanMusicTranscriptionInvocation(input MusicTranscriptio
 	plan.transcription = &musicTranscriptionPlan{sourcePath: input.SourcePath, scorePath: filepath.Join(input.StagingDir, "notes.mid"), eventsPath: filepath.Join(input.StagingDir, "notes.json"), request: request, sourceInfo: capturedInfo, normalize: func(_ []byte, events []byte) (*MusicTranscriptionOutput, error) {
 		return normalizeBasicPitchNotes(request, capturedInfo, events)
 	}}
-	plan.cliArgs = []string{pythonPlan.ScriptPath, "--model", binding.AbsolutePath, "--audio", input.SourcePath, "--output", plan.transcription.eventsPath}
+	plan.cliArgs = []string{pythonPlan.ScriptPath, "--model", modelPath, "--audio", input.SourcePath, "--output", plan.transcription.eventsPath}
 	return plan, nil
 }
 

@@ -38,13 +38,13 @@ loadout_recipes:
     capability_contract: music.transcribe
     implementation_id: local.music.transcribe.basic-pitch.onnx-cpu
     driver_id: nimi.runtime.driver.python.basic-pitch
-    driver_dialect: python/basic-pitch-onnx/music-transcribe/v1
+    driver_dialect: python/basic-pitch-onnx/music-transcribe/v2
     default_options: {}
     supported_features: []
     custody: []
     slot_metadata:
       - slot_id: music.model
-        display_label: Basic Pitch ONNX with license and NOTICE
+        display_label: Basic Pitch ONNX model
         recommended_variant_ids: [local.music.basic-pitch.onnx.f32.cpu]
         model_contract:
           format: onnx

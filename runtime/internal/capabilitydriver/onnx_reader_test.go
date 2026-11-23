@@ -126,6 +126,26 @@ func TestONNXReaderCrossesWindowWithoutMaskingShortSource(t *testing.T) {
 	}
 }
 
+func TestONNXProbeRejectsExternalTensorInFunctionDefaultAttribute(t *testing.T) {
+	base := readerONNXFixture(1)
+	// TensorProto with data_location = EXTERNAL (1) inside FunctionProto.attribute_proto (field 11).
+	extTensor := protowire.AppendVarint(protowire.AppendTag(nil, 14, protowire.VarintType), 1)
+	attr := appendONNXBytes(nil, 5, extTensor)
+	fn := appendONNXBytes(nil, 11, attr)
+	withFnAttr := appendONNXBytes(append([]byte(nil), base...), 25, fn)
+	if _, err := probeONNXModel(bytes.NewReader(withFnAttr), int64(len(withFnAttr))); err == nil {
+		t.Fatal("ONNX FunctionProto.attribute_proto external tensor was admitted")
+	}
+	// External tensor inside a subgraph embedded in FunctionProto.attribute_proto.
+	subgraph := appendONNXBytes(nil, 5, extTensor)
+	graphAttr := appendONNXBytes(nil, 6, subgraph)
+	fnGraph := appendONNXBytes(nil, 11, graphAttr)
+	withFnSubgraph := appendONNXBytes(append([]byte(nil), base...), 25, fnGraph)
+	if _, err := probeONNXModel(bytes.NewReader(withFnSubgraph), int64(len(withFnSubgraph))); err == nil {
+		t.Fatal("ONNX FunctionProto.attribute_proto subgraph external tensor was admitted")
+	}
+}
+
 func BenchmarkONNXMetadataReader(b *testing.B) {
 	data := readerONNXFixture(1024)
 	name := filepath.Join(b.TempDir(), "metadata.onnx")

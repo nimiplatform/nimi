@@ -62,10 +62,15 @@ func TestBasicPitchNotesUseOneRangeOffsetAndTheSameMIDISequence(t *testing.T) {
 func TestBasicPitchInvocationCapturesNativeInterpreterAndExactProfile(t *testing.T) {
 	root := t.TempDir()
 	profileRoot := filepath.Join(root, "profile")
+	const (
+		testContentID = "sha256:24b5e2a22dbb7575cb3cdd999ac96f24eb5cac6a38df6fc32446fe3a5c96763a"
+		testModelSHA  = "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec"
+		testModelRel  = "basic_pitch/saved_models/icassp_2022/nmp.onnx"
+	)
 	input := MusicTranscriptionInvocationInput{
 		LoadoutID: "basic-pitch-test", RecipeID: BasicPitchRecipeID,
-		ExactBindings: []InvocationExactBinding{{RequirementID: BasicPitchRequirementID, VerifiedContentID: BasicPitchVerifiedContentID, EntrySHA256: BasicPitchModelSHA256,
-			BundleDir: root, AbsolutePath: filepath.Join(root, filepath.FromSlash(BasicPitchEntry)), DeclaredFiles: []string{"LICENSE", "NOTICE", BasicPitchEntry}}},
+		ExactBindings: []InvocationExactBinding{{RequirementID: BasicPitchRequirementID, VerifiedContentID: testContentID, EntrySHA256: testModelSHA,
+			BundleDir: root, AbsolutePath: filepath.Join(root, filepath.FromSlash(testModelRel)), DeclaredFiles: []string{"LICENSE", "NOTICE", testModelRel}}},
 		DependencySources: []InvocationExactDependencySource{{DependencyFamily: "python.package-set", ConsumerScope: BasicPitchConsumerID, CanonicalRoot: profileRoot, SelectedSourceRecordID: "exact-source", Version: "exact-profile",
 			Hashes: map[string]string{"profile_digest": "exact-profile", "driver_bundle_sha256": strings.Repeat("a", 64)}}},
 		Request: &runtimev1.MusicTranscribeScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "owned-source"},
@@ -137,7 +142,7 @@ func TestBasicPitchProfileHasOnlyImplementedOutputAndHostCombinations(t *testing
 	for _, part := range []runtimev1.MusicTranscriptionPart{runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_LEAD_SHEET, runtimev1.MusicTranscriptionPart_MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT} {
 		root := t.TempDir()
 		_, err := d.PlanMusicTranscriptionInvocation(MusicTranscriptionInvocationInput{RecipeID: BasicPitchRecipeID,
-			ExactBindings: []InvocationExactBinding{{RequirementID: BasicPitchRequirementID, VerifiedContentID: BasicPitchVerifiedContentID, EntrySHA256: BasicPitchModelSHA256, BundleDir: root, AbsolutePath: filepath.Join(root, filepath.FromSlash(BasicPitchEntry)), DeclaredFiles: []string{"LICENSE", "NOTICE", BasicPitchEntry}}},
+			ExactBindings: []InvocationExactBinding{{RequirementID: BasicPitchRequirementID, VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("a", 64), BundleDir: root, AbsolutePath: filepath.Join(root, "custom_pitch.onnx"), DeclaredFiles: []string{"LICENSE", "custom_pitch.onnx"}}},
 			Request:       &runtimev1.MusicTranscribeScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "source"}, RequestedFormats: []runtimev1.MusicTranscriptionFormat{runtimev1.MusicTranscriptionFormat_MUSIC_TRANSCRIPTION_FORMAT_MIDI}, RequestedParts: []runtimev1.MusicTranscriptionPart{part}}})
 		if err == nil || !strings.Contains(err.Error(), "only note-events MIDI and timeline") {
 			t.Fatal("unsupported part did not receive the exact unsupported-composition failure")
