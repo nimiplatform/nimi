@@ -1,11 +1,11 @@
 // Shared PC Body security policy enforcing Plan Packet v2.1 Gates 2, 3, 4, and 5:
-//   - Strict path normalization rejecting @, file://, \\?\, NTFS ADS, Bidi, trailing dots/spaces
-//   - Shared isSensitivePath() across read, write, edit, grep, and glob
-//   - Case-folded control-plane file wall forcing allow_once
-//   - Free Shell minimal environment allowlist + .env* secret canary extraction & redaction
+//   - Strict path normalization rejecting @, file://, \\?\, NTFS ADS, Bidi, trailing dots/spaces (pre-trim)
+//   - Shared isSensitivePath() across read, write, edit, delete, grep, glob, and workspace-files
+//   - Case-folded control-plane file wall (at any depth, normalized against workspaceRoot) forcing allow_once
+//   - Free Shell minimal environment allowlist + recursive .env* secret canary extraction & streaming redaction
 // @nimi-authority: rule.nimi.harness.security-gates.workspace-execution-env
 import { readdir, readFile } from 'node:fs/promises';
-import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 const BIDI_CONTROL_RE = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu;
 const CONTROL_CHAR_RE = /[\x00-\x1f\x7f]/u;
@@ -18,42 +18,78 @@ const BENIGN_ENV_LITERALS = new Set([
   'info', 'debug', 'warn', 'warning', 'error', 'trace', 'silent',
 ]);
 
+const CANARY_IGNORED_DIRS = new Set(['.git', 'node_modules', 'dist', '.next', 'target', 'build']);
+const MAX_CANARY_WALK_DEPTH = 4;
+const MAX_CANARY_WALK_DIRS = 500;
+
 export function sanitizeBidi(text: string): string {
   return text.replace(BIDI_CONTROL_RE, '');
 }
 
 /**
- * Validates and resolves a candidate path strictly inside workspaceRoot,
- * eliminating path-utils / isInsideWorkspace parsing divergence on Windows & POSIX.
+ * Truncates UTF-8 text strictly by byte budget (never splitting a multi-byte
+ * scalar value), optionally preserving the tail for shell/log diagnostics.
+ */
+export function truncateUtf8Bytes(text: string, maxBytes: number, keepTail = false): string {
+  if (maxBytes <= 0 || !text) return '';
+  const buf = Buffer.from(text, 'utf8');
+  if (buf.byteLength <= maxBytes) return text;
+  if (!keepTail) {
+    let end = maxBytes;
+    while (end > 0 && (buf[end] & 0xc0) === 0x80) end -= 1;
+    return buf.subarray(0, end).toString('utf8');
+  }
+  let start = buf.byteLength - maxBytes;
+  while (start < buf.byteLength && (buf[start] & 0xc0) === 0x80) start += 1;
+  return buf.subarray(start).toString('utf8');
+}
+
+/**
+ * Validates raw workspace path input BEFORE trimming so Windows trailing-space
+ * and trailing-dot canonicalization bypasses (e.g. ".env ", "package.json ")
+ * are rejected unconditionally.
  */
 export function validateRawWorkspacePathInput(rawPath: string): void {
-  if (typeof rawPath !== 'string' || !rawPath.trim()) {
+  if (typeof rawPath !== 'string' || rawPath.length === 0 || !rawPath.trim()) {
     throw new Error('Workspace path must be a non-empty string.');
   }
-  const trimmed = rawPath.trim();
   if (CONTROL_CHAR_RE.test(rawPath) || BIDI_CONTROL_RE.test(rawPath)) {
     throw new Error('Workspace path contains forbidden control or Bidi characters.');
   }
-  if (trimmed.startsWith('@')) {
+  // Reject leading/trailing whitespace BEFORE trimming (NTFS strips trailing spaces!).
+  if (rawPath !== rawPath.trim()) {
+    throw new Error('Workspace path must not contain leading or trailing whitespace.');
+  }
+  if (rawPath.startsWith('@')) {
     throw new Error('Workspace paths starting with "@" are forbidden.');
   }
-  if (/^file:\/\//i.test(trimmed)) {
+  if (/^file:/i.test(rawPath)) {
     throw new Error('file:// URI paths are forbidden.');
   }
-  if (trimmed.startsWith('\\\\?\\') || trimmed.startsWith('\\\\.\\') || trimmed.startsWith('//?/')) {
-    throw new Error('Win32 extended/device path prefixes are forbidden.');
+  if (
+    rawPath.startsWith('\\\\?\\')
+    || rawPath.startsWith('\\\\.\\')
+    || rawPath.startsWith('\\??\\')
+    || rawPath.startsWith('//?/')
+    || rawPath.startsWith('\\\\')
+  ) {
+    throw new Error('Win32 extended, UNC, or device path prefixes are forbidden.');
   }
   // Reject NTFS Alternate Data Streams (any ':' other than a single Windows drive letter prefix like C:\).
-  const withoutDrive = /^[A-Za-z]:[\\/]/.test(trimmed) ? trimmed.slice(2) : trimmed;
+  const withoutDrive = /^[A-Za-z]:[\\/]/.test(rawPath) ? rawPath.slice(2) : rawPath;
   if (withoutDrive.includes(':')) {
     throw new Error('Colons and NTFS Alternate Data Streams are forbidden in workspace paths.');
   }
-  // Reject trailing dots or spaces in any path segment (Windows canonicalization bypass).
+  // Reject trailing dots or spaces in any raw path segment (Windows canonicalization bypass).
   const segments = withoutDrive.split(/[\\/]+/);
   for (const segment of segments) {
     if (!segment || segment === '.' || segment === '..') continue;
     if (segment.endsWith('.') || segment.endsWith(' ')) {
       throw new Error(`Invalid trailing dot or space in path segment "${segment}".`);
+    }
+    const stem = segment.split('.')[0]?.toUpperCase() ?? '';
+    if (/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(stem)) {
+      throw new Error(`Windows reserved device name "${segment}" is forbidden.`);
     }
   }
 }
@@ -66,46 +102,69 @@ export function resolveSafeWorkspacePath(workspaceRoot: string, rawPath: string)
   const root = resolve(workspaceRoot);
   const candidate = isAbsolute(rawPath) ? resolve(rawPath) : resolve(root, rawPath);
   const rel = relative(root, candidate);
-  if (rel.startsWith('..') || isAbsolute(rel)) {
+  if (rel === '..' || rel.startsWith('..' + sep) || rel.startsWith('../') || isAbsolute(rel)) {
     throw new Error(`Path "${rawPath}" escapes the active workspace root.`);
   }
-  const relativePosix = rel.split(sep).join('/');
+  const relativePosix = rel ? rel.split(sep).join('/') : '';
   return { absolutePath: candidate, relativePosix };
+}
+
+function normalizePosixForPolicy(rawPath: string, workspaceRoot?: string): string {
+  const cleaned = sanitizeBidi(rawPath).trim();
+  if (!cleaned) return '';
+  let target = cleaned;
+  if (workspaceRoot && isAbsolute(cleaned)) {
+    const rel = relative(resolve(workspaceRoot), resolve(cleaned));
+    if (rel && rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel)) {
+      target = rel;
+    }
+  }
+  // Collapse redundant ./ and normalize backslashes; reject/preserve segments faithfully.
+  const parts = target
+    .replace(/\\/g, '/')
+    .split('/')
+    .map(p => p.trim())
+    .filter(p => p.length > 0 && p !== '.');
+  return parts.join('/').toLowerCase();
 }
 
 /**
  * Gate 3: Shared sensitive-file hard-deny matcher used uniformly by read, write,
- * edit, delete, glob, and grep. Blocks .env*, private keys, SSH/cloud credentials.
+ * edit, delete, glob, grep, and workspace-files. Blocks .env*, private keys, SSH/cloud credentials.
  */
-export function isSensitivePath(relativePosixPath: string): boolean {
-  const norm = relativePosixPath.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+export function isSensitivePath(rawPath: string, workspaceRoot?: string): boolean {
+  const norm = normalizePosixForPolicy(rawPath, workspaceRoot);
   if (!norm) return false;
   const parts = norm.split('/').filter(Boolean);
   const name = parts[parts.length - 1] ?? '';
 
-  // Deny any path inside .ssh, .aws, .gnupg, .kube
+  // Deny any path inside .ssh, .aws, .gnupg, .kube at ANY depth.
   if (parts.some(p => p === '.ssh' || p === '.aws' || p === '.gnupg' || p === '.kube')) {
     return true;
   }
-  // Deny .env and .env.* (except explicit .env.example / .env.sample / .env.template)
-  if (name === '.env' || (name.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(name))) {
+  // Deny .env and .env.* (except explicit .env.example / .env.sample / .env.template).
+  // Strip trailing dots/spaces defensively in case caller skipped validateRawWorkspacePathInput.
+  const canonicalName = name.replace(/[. ]+$/g, '');
+  if (
+    canonicalName === '.env'
+    || (canonicalName.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(canonicalName))
+  ) {
     return true;
   }
-  // Deny key material, certificates with private keys, token files
-  if (/\.(?:pem|key|p12|pfx|jks|keystore|kdbx|ppk)$/i.test(name)) {
+  if (/\.(?:pem|key|p12|pfx|jks|keystore|kdbx|ppk)$/i.test(canonicalName)) {
     return true;
   }
   if (
-    name === '.npmrc'
-    || name === '.pypirc'
-    || name === '.netrc'
-    || name === '_netrc'
-    || name === 'credentials.json'
-    || name === 'service-account.json'
-    || name.startsWith('id_rsa')
-    || name.startsWith('id_ed25519')
-    || name.startsWith('id_ecdsa')
-    || /^secrets?\.(?:json|ya?ml|toml|txt|ini)$/i.test(name)
+    canonicalName === '.npmrc'
+    || canonicalName === '.pypirc'
+    || canonicalName === '.netrc'
+    || canonicalName === '_netrc'
+    || canonicalName === 'credentials.json'
+    || canonicalName === 'service-account.json'
+    || canonicalName.startsWith('id_rsa')
+    || canonicalName.startsWith('id_ed25519')
+    || canonicalName.startsWith('id_ecdsa')
+    || /^secrets?\.(?:json|ya?ml|toml|txt|ini)$/i.test(canonicalName)
   ) {
     return true;
   }
@@ -113,16 +172,18 @@ export function isSensitivePath(relativePosixPath: string): boolean {
 }
 
 /**
- * Gate 3: Windows case-folded control-plane file wall. Mutations targeting these
- * files ALWAYS require explicit allow_once approval, even under workspace-edit mode.
+ * Gate 3: Windows case-folded control-plane file wall (checked at ANY depth and
+ * normalized against workspaceRoot). Mutations targeting these files ALWAYS
+ * require explicit allow_once approval, even under workspace-edit mode.
  */
-export function isControlPlanePath(relativePosixPath: string): boolean {
-  const norm = relativePosixPath.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+export function isControlPlanePath(rawPath: string, workspaceRoot?: string): boolean {
+  const norm = normalizePosixForPolicy(rawPath, workspaceRoot);
   if (!norm) return false;
   const parts = norm.split('/').filter(Boolean);
-  const name = parts[parts.length - 1] ?? '';
+  const name = (parts[parts.length - 1] ?? '').replace(/[. ]+$/g, '');
 
-  if (parts[0] === '.git' || parts[0] === '.github' || parts[0] === '.husky' || parts[0] === '.vscode') {
+  // Check control-plane directories at ANY depth (catches ./.git/config AND sub/.git/hooks/*).
+  if (parts.some(p => p === '.git' || p === '.github' || p === '.husky' || p === '.vscode')) {
     return true;
   }
   if (
@@ -186,6 +247,21 @@ export function buildMinimalShellEnv(sourceEnv: NodeJS.ProcessEnv = process.env)
   return out;
 }
 
+const CALLER_ENV_OVERRIDE_ALLOWLIST = new Set([
+  'TERM', 'CI', 'NO_COLOR', 'FORCE_COLOR', 'TZ', 'LANG', 'LC_ALL', 'PAGER', 'GIT_PAGER', 'GIT_TERMINAL_PROMPT',
+]);
+
+export function filterSafeCallerEnvOverrides(overrides?: Record<string, string>): Record<string, string> {
+  if (!overrides) return {};
+  const safe: Record<string, string> = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    if (typeof v === 'string' && CALLER_ENV_OVERRIDE_ALLOWLIST.has(k.toUpperCase())) {
+      safe[k] = v;
+    }
+  }
+  return safe;
+}
+
 function shannonEntropy(value: string): number {
   if (!value.length) return 0;
   const counts = new Map<string, number>();
@@ -212,44 +288,58 @@ function shouldTrackEnvCanary(key: string, rawVal: string): boolean {
 }
 
 /**
- * Gate 4 Layer 3: Reads workspace `.env*` files strictly in memory right before
- * executing an approved Free Shell command and extracts high-risk/high-entropy
- * secret values + Base64/URL-encoded variants for stdout/stderr canary redaction.
+ * Gate 4 Layer 3: Walks workspace root and bounded subdirectories strictly in
+ * memory right before executing an approved Free Shell command, extracting
+ * high-risk/high-entropy `.env*` secret values + Base64/URL-encoded variants.
  * The caller MUST wipe the returned array on process exit.
  */
 export async function extractWorkspaceEnvCanarySecrets(workspaceRoot: string): Promise<string[]> {
   const secrets = new Set<string>();
-  let entries;
-  try {
-    entries = await readdir(workspaceRoot, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const lower = entry.name.toLowerCase();
-    if (lower !== '.env' && !(lower.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(lower))) {
+  const queue: Array<{ dir: string; depth: number }> = [{ dir: resolve(workspaceRoot), depth: 0 }];
+  let visitedDirs = 0;
+
+  while (queue.length > 0 && visitedDirs < MAX_CANARY_WALK_DIRS) {
+    const current = queue.shift()!;
+    visitedDirs += 1;
+    let entries;
+    try {
+      entries = await readdir(current.dir, { withFileTypes: true });
+    } catch {
       continue;
     }
-    try {
-      const content = await readFile(join(workspaceRoot, entry.name), 'utf8');
-      for (const line of content.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-        const eq = trimmed.indexOf('=');
-        if (eq <= 0) continue;
-        const key = trimmed.slice(0, eq).replace(/^export\s+/i, '').trim();
-        const rawVal = trimmed.slice(eq + 1).trim();
-        if (!shouldTrackEnvCanary(key, rawVal)) continue;
-        const val = rawVal.replace(/^(['"])(.*)\1$/, '$2');
-        secrets.add(val);
-        const b64 = Buffer.from(val, 'utf8').toString('base64');
-        if (b64.length >= 12) secrets.add(b64);
-        const urlEnc = encodeURIComponent(val);
-        if (urlEnc !== val && urlEnc.length >= 12) secrets.add(urlEnc);
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        if (current.depth < MAX_CANARY_WALK_DEPTH && !CANARY_IGNORED_DIRS.has(entry.name.toLowerCase())) {
+          queue.push({ dir: join(current.dir, entry.name), depth: current.depth + 1 });
+        }
+        continue;
       }
-    } catch {
-      // Ignore unreadable env files; never fail open on redaction.
+      if (!entry.isFile()) continue;
+      const lower = entry.name.toLowerCase();
+      if (lower !== '.env' && !(lower.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(lower))) {
+        continue;
+      }
+      try {
+        const content = await readFile(join(current.dir, entry.name), 'utf8');
+        for (const line of content.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eq = trimmed.indexOf('=');
+          if (eq <= 0) continue;
+          const key = trimmed.slice(0, eq).replace(/^export\s+/i, '').trim();
+          const rawVal = trimmed.slice(eq + 1).trim();
+          if (!shouldTrackEnvCanary(key, rawVal)) continue;
+          const val = rawVal.replace(/^(['"])(.*)\1$/, '$2');
+          secrets.add(val);
+          const b64 = Buffer.from(val, 'utf8').toString('base64');
+          if (b64.length >= 12) secrets.add(b64);
+          const urlEnc = encodeURIComponent(val);
+          if (urlEnc !== val && urlEnc.length >= 12) secrets.add(urlEnc);
+        }
+      } catch {
+        // Ignore unreadable env files; never fail open on redaction.
+      }
     }
   }
   return [...secrets].sort((a, b) => b.length - a.length);
@@ -264,4 +354,38 @@ export function redactCanarySecrets(text: string, canarySecrets: readonly string
     }
   }
   return result;
+}
+
+/**
+ * Sliding-window streaming canary redactor preventing secret leaks split across
+ * adjacent stdout/stderr chunks.
+ */
+export class StreamingCanaryRedactor {
+  private buffer = '';
+  private readonly overlap: number;
+
+  constructor(private readonly secrets: readonly string[]) {
+    this.overlap = secrets.reduce((max, s) => Math.max(max, s.length), 0);
+  }
+
+  push(chunk: string): string {
+    if (!chunk) return '';
+    if (this.secrets.length === 0) return chunk;
+    const combined = redactCanarySecrets(this.buffer + chunk, this.secrets);
+    const keep = Math.max(0, this.overlap - 1);
+    if (combined.length <= keep) {
+      this.buffer = combined;
+      return '';
+    }
+    const emitLen = combined.length - keep;
+    const out = combined.slice(0, emitLen);
+    this.buffer = combined.slice(emitLen);
+    return out;
+  }
+
+  flush(): string {
+    const out = redactCanarySecrets(this.buffer, this.secrets);
+    this.buffer = '';
+    return out;
+  }
 }

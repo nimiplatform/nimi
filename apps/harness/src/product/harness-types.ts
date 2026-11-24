@@ -10,6 +10,8 @@ export type ReasoningChoice = { value: string; label: string };
 export type HarnessSessionSummary = {
   id: string;
   title: string;
+  workSessionRef?: string;
+  agentBinding?: string;
   status: SessionStatus;
   hasPendingDecision: boolean;
   pinned: boolean;

@@ -6,8 +6,8 @@ use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{
@@ -33,15 +33,18 @@ use windows_sys::Win32::System::JobObjects::{
 };
 use windows_sys::Win32::System::Pipes::CreatePipe;
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, GetExitCodeProcess, ResumeThread, TerminateProcess, WaitForSingleObject,
-    CREATE_NO_WINDOW, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT, PROCESS_INFORMATION,
-    STARTF_USESTDHANDLES, STARTUPINFOW,
+    CreateProcessW, DeleteProcThreadAttributeList, GetExitCodeProcess,
+    InitializeProcThreadAttributeList, ResumeThread, TerminateProcess, UpdateProcThreadAttribute,
+    WaitForSingleObject, CREATE_NO_WINDOW, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
+    EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
+    PROC_THREAD_ATTRIBUTE_HANDLE_LIST, STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 
 use crate::harness_security::{
-    sha256_hex, validate_relative_workspace_path, HarnessJobProcessRequest, HarnessJobProcessResult,
-    HarnessSecureDeleteRequest, HarnessSecureDeleteResult, HarnessSecureReadResult,
-    HarnessSecureWriteRequest, HarnessSecureWriteResult, HarnessSecurityError, HarnessVerifiedPath,
+    is_sensitive_relative_path, sha256_hex, validate_relative_workspace_path,
+    HarnessJobProcessRequest, HarnessJobProcessResult, HarnessSecureDeleteRequest,
+    HarnessSecureDeleteResult, HarnessSecureReadResult, HarnessSecureWriteRequest,
+    HarnessSecureWriteResult, HarnessSecurityError, HarnessVerifiedPath,
 };
 
 const JOB_EXIT_POLL_TIMEOUT_MS: u64 = 5_000;
@@ -58,8 +61,8 @@ pub struct HarnessRunningJob {
     job: OwnedHandle,
     process: OwnedHandle,
     killed: Arc<AtomicBool>,
-    stdout_thread: Mutex<Option<JoinHandle<PipeReadOutcome>>>,
-    stderr_thread: Mutex<Option<JoinHandle<PipeReadOutcome>>>,
+    stdout_rx: Mutex<Option<mpsc::Receiver<PipeReadOutcome>>>,
+    stderr_rx: Mutex<Option<mpsc::Receiver<PipeReadOutcome>>>,
 }
 
 // SAFETY: OwnedHandle wraps exclusive Windows kernel handles valid across threads.
@@ -308,7 +311,11 @@ fn terminate_and_drain_job(job: &OwnedHandle) -> Result<u32, HarnessSecurityErro
     }
 }
 
-fn spawn_pipe_drainer(handle: OwnedHandle, max_bytes: usize) -> JoinHandle<PipeReadOutcome> {
+fn spawn_pipe_drainer(
+    handle: OwnedHandle,
+    max_bytes: usize,
+) -> mpsc::Receiver<PipeReadOutcome> {
+    let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let mut collected = Vec::new();
         let mut truncated = false;
@@ -339,14 +346,27 @@ fn spawn_pipe_drainer(handle: OwnedHandle, max_bytes: usize) -> JoinHandle<PipeR
                 truncated = true;
             }
         }
-        PipeReadOutcome {
+        let _ = tx.send(PipeReadOutcome {
             bytes: collected,
             truncated,
-        }
-    })
+        });
+    });
+    rx
 }
 
-// @nimi-authority: rule.nimi.harness.assistant.p-harn-002
+fn resolve_windows_executable(raw: &str) -> PathBuf {
+    let trimmed = raw.trim();
+    if trimmed.eq_ignore_ascii_case("powershell.exe") || trimmed.eq_ignore_ascii_case("powershell") {
+        let sys_root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".to_string());
+        let candidate = PathBuf::from(&sys_root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        if candidate.is_file() {
+            return candidate;
+        }
+    }
+    PathBuf::from(trimmed)
+}
+
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 pub fn spawn_job_process(
     request: HarnessJobProcessRequest,
 ) -> Result<HarnessRunningJob, HarnessSecurityError> {
@@ -374,7 +394,7 @@ pub fn spawn_job_process(
     let stdin_nul = open_inheritable_nul_stdin()?;
 
     let env_block = build_explicit_unicode_env_block(&request.env)?;
-    let exe_path = PathBuf::from(&request.executable);
+    let exe_path = resolve_windows_executable(&request.executable);
     let mut command_line = build_windows_command_line(&exe_path, &request.args)
         .encode_utf16()
         .collect::<Vec<_>>();
@@ -386,12 +406,60 @@ pub fn spawn_job_process(
     };
     let current_dir = wide_null_terminated(work_dir.as_os_str())?;
 
-    let mut startup: STARTUPINFOW = unsafe { zeroed() };
-    startup.cb = size_of::<STARTUPINFOW>() as u32;
-    startup.dwFlags = STARTF_USESTDHANDLES;
-    startup.hStdInput = stdin_nul.as_raw_handle().cast();
-    startup.hStdOutput = stdout_write.as_raw_handle().cast();
-    startup.hStdError = stderr_write.as_raw_handle().cast();
+    // Restrict handle inheritance strictly to the three stdio handles via PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
+    let mut inherited_handles: [HANDLE; 3] = [
+        stdin_nul.as_raw_handle().cast(),
+        stdout_write.as_raw_handle().cast(),
+        stderr_write.as_raw_handle().cast(),
+    ];
+    let mut attr_size: usize = 0;
+    unsafe {
+        InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attr_size);
+    }
+    if attr_size == 0 {
+        return Err(win32_err(
+            "process-spawn-failed",
+            "InitializeProcThreadAttributeList(size)",
+            unsafe { GetLastError() },
+        ));
+    }
+    let mut attr_storage = vec![0_u64; attr_size.div_ceil(size_of::<u64>())];
+    let attr_list: LPPROC_THREAD_ATTRIBUTE_LIST = attr_storage.as_mut_ptr().cast();
+    if unsafe { InitializeProcThreadAttributeList(attr_list, 1, 0, &mut attr_size) } == 0 {
+        return Err(win32_err(
+            "process-spawn-failed",
+            "InitializeProcThreadAttributeList",
+            unsafe { GetLastError() },
+        ));
+    }
+    let attr_updated = unsafe {
+        UpdateProcThreadAttribute(
+            attr_list,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST as usize,
+            inherited_handles.as_mut_ptr().cast::<c_void>(),
+            size_of::<[HANDLE; 3]>(),
+            std::ptr::null_mut(),
+            std::ptr::null(),
+        )
+    };
+    if attr_updated == 0 {
+        let code = unsafe { GetLastError() };
+        unsafe { DeleteProcThreadAttributeList(attr_list) };
+        return Err(win32_err(
+            "process-spawn-failed",
+            "UpdateProcThreadAttribute(HANDLE_LIST)",
+            code,
+        ));
+    }
+
+    let mut startup_ex: STARTUPINFOEXW = unsafe { zeroed() };
+    startup_ex.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+    startup_ex.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startup_ex.StartupInfo.hStdInput = inherited_handles[0];
+    startup_ex.StartupInfo.hStdOutput = inherited_handles[1];
+    startup_ex.StartupInfo.hStdError = inherited_handles[2];
+    startup_ex.lpAttributeList = attr_list;
 
     let mut info: PROCESS_INFORMATION = unsafe { zeroed() };
     let created = unsafe {
@@ -402,14 +470,18 @@ pub fn spawn_job_process(
             command_line.as_mut_ptr(),
             std::ptr::null(),
             std::ptr::null(),
-            1, // inherit stdout/stderr/nul-stdin handles only
-            CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW,
+            1, // strictly scoped by PROC_THREAD_ATTRIBUTE_HANDLE_LIST above
+            CREATE_SUSPENDED
+                | CREATE_UNICODE_ENVIRONMENT
+                | CREATE_NO_WINDOW
+                | EXTENDED_STARTUPINFO_PRESENT,
             env_block.as_ptr().cast::<c_void>(),
             current_dir.as_ptr(),
-            &startup,
+            &startup_ex.StartupInfo,
             &mut info,
         )
     };
+    unsafe { DeleteProcThreadAttributeList(attr_list) };
     // Close child ends in parent immediately so pipe EOF tracks child + grandchild exit.
     drop(stdout_write);
     drop(stderr_write);
@@ -455,8 +527,8 @@ pub fn spawn_job_process(
         ));
     }
 
-    let stdout_thread = spawn_pipe_drainer(stdout_read, max_output);
-    let stderr_thread = spawn_pipe_drainer(stderr_read, max_output);
+    let stdout_rx = spawn_pipe_drainer(stdout_read, max_output);
+    let stderr_rx = spawn_pipe_drainer(stderr_read, max_output);
 
     if unsafe { ResumeThread(thread_owned.as_raw_handle().cast()) } == u32::MAX {
         let code = unsafe { GetLastError() };
@@ -470,8 +542,8 @@ pub fn spawn_job_process(
         job: job_owned,
         process: process_owned,
         killed: Arc::new(AtomicBool::new(false)),
-        stdout_thread: Mutex::new(Some(stdout_thread)),
-        stderr_thread: Mutex::new(Some(stderr_thread)),
+        stdout_rx: Mutex::new(Some(stdout_rx)),
+        stderr_rx: Mutex::new(Some(stderr_rx)),
     })
 }
 
@@ -536,22 +608,28 @@ pub fn wait_job_process(
     // Always clean up any orphaned grandchildren inside the Job Object so 0 active processes remain.
     let active_processes_remaining = terminate_and_drain_job(&job.job)?;
 
+    // Never block indefinitely if a stubborn grandchild still holds pipe handles open.
+    let drain_timeout = if active_processes_remaining > 0 {
+        Duration::from_millis(500)
+    } else {
+        Duration::from_secs(5)
+    };
     let stdout_out = job
-        .stdout_thread
+        .stdout_rx
         .lock()
         .ok()
         .and_then(|mut g| g.take())
-        .and_then(|h| h.join().ok())
+        .and_then(|rx| rx.recv_timeout(drain_timeout).ok())
         .unwrap_or(PipeReadOutcome {
             bytes: Vec::new(),
             truncated: false,
         });
     let stderr_out = job
-        .stderr_thread
+        .stderr_rx
         .lock()
         .ok()
         .and_then(|mut g| g.take())
-        .and_then(|h| h.join().ok())
+        .and_then(|rx| rx.recv_timeout(drain_timeout).ok())
         .unwrap_or(PipeReadOutcome {
             bytes: Vec::new(),
             truncated: false,
@@ -817,16 +895,43 @@ fn write_snapshot_file(snapshot_path: &str, bytes: &[u8]) -> Result<(), HarnessS
     Ok(())
 }
 
+fn canonical_relative_posix_win(canonical_root: &str, candidate_final: &str) -> Result<String, HarnessSecurityError> {
+    let root_trimmed = canonical_root.trim_end_matches('\\');
+    let cand_trimmed = candidate_final.trim_end_matches('\\');
+    let root_lower = root_trimmed.to_lowercase();
+    let cand_lower = cand_trimmed.to_lowercase();
+    if cand_lower == root_lower {
+        return Ok(String::new());
+    }
+    let prefix_lower = format!("{root_lower}\\");
+    if !cand_lower.starts_with(&prefix_lower) {
+        return Err(HarnessSecurityError::new(
+            "workspace-escape",
+            "resolved handle final path escapes canonical workspace root",
+        ));
+    }
+    // Extract exact casing suffix after canonical root prefix.
+    let suffix = &cand_trimmed[root_trimmed.len() + 1..];
+    Ok(suffix.replace('\\', "/"))
+}
+
 fn verify_open_file_handle(
     handle: HANDLE,
     canonical_root: &str,
     expect_directory: bool,
-) -> Result<(String, BY_HANDLE_FILE_INFORMATION), HarnessSecurityError> {
+) -> Result<(String, String, BY_HANDLE_FILE_INFORMATION), HarnessSecurityError> {
     let final_path = final_path_from_handle(handle)?;
     if !is_within_workspace_root(canonical_root, &final_path) {
         return Err(HarnessSecurityError::new(
             "workspace-escape",
             "resolved handle final path escapes canonical workspace root",
+        ));
+    }
+    let canonical_rel = canonical_relative_posix_win(canonical_root, &final_path)?;
+    if !expect_directory && is_sensitive_relative_path(&canonical_rel) {
+        return Err(HarnessSecurityError::new(
+            "sensitive-path-rejected",
+            format!("handle resolved to protected sensitive file '{canonical_rel}'"),
         ));
     }
     let info = file_info_from_handle(handle)?;
@@ -854,10 +959,10 @@ fn verify_open_file_handle(
             ));
         }
     }
-    Ok((final_path, info))
+    Ok((final_path, canonical_rel, info))
 }
 
-// @nimi-authority: rule.nimi.harness.assistant.p-harn-002
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 pub fn verify_workspace_path(
     workspace_root: &Path,
     relative_path: &str,
@@ -901,13 +1006,13 @@ pub fn verify_workspace_path(
         ));
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(handle.cast()) };
-    let (final_path, info) =
+    let (final_path, canonical_rel, info) =
         verify_open_file_handle(owned.as_raw_handle().cast(), &canonical_root, expect_directory)?;
     let size_bytes = ((info.nFileSizeHigh as u64) << 32) | (info.nFileSizeLow as u64);
     Ok(HarnessVerifiedPath {
         canonical_workspace_root: canonical_root,
         final_path,
-        relative_path: segments.join("/"),
+        relative_path: canonical_rel,
         is_directory: (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
         size_bytes,
         n_number_of_links: info.nNumberOfLinks,
@@ -953,7 +1058,7 @@ pub fn secure_read_file(
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(handle.cast()) };
     let raw = owned.as_raw_handle().cast();
-    let (final_path, info) = verify_open_file_handle(raw, &canonical_root, false)?;
+    let (final_path, _canonical_rel, info) = verify_open_file_handle(raw, &canonical_root, false)?;
     let content = read_all_from_handle(raw, max_bytes)?;
     let sha256 = sha256_hex(&content);
     Ok(HarnessSecureReadResult {
@@ -969,6 +1074,13 @@ pub fn secure_write_file(
     request: HarnessSecureWriteRequest,
 ) -> Result<HarnessSecureWriteResult, HarnessSecurityError> {
     let segments = validate_relative_workspace_path(&request.relative_path, false)?;
+    let lexical_rel = segments.join("/");
+    if is_sensitive_relative_path(&lexical_rel) {
+        return Err(HarnessSecurityError::new(
+            "sensitive-path-rejected",
+            format!("write to sensitive file '{lexical_rel}' is blocked"),
+        ));
+    }
     let canonical_root = canonicalize_workspace_root(Path::new(&request.workspace_root))?;
     ensure_no_reparse_points_in_chain(&canonical_root, &segments, false)?;
 
@@ -993,7 +1105,7 @@ pub fn secure_write_file(
     if existing_handle != INVALID_HANDLE_VALUE && !existing_handle.is_null() {
         let owned = unsafe { OwnedHandle::from_raw_handle(existing_handle.cast()) };
         let raw = owned.as_raw_handle().cast();
-        let (final_path, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
+        let (final_path, _canonical_rel, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
         let existing_bytes = read_all_from_handle(raw, 64 * 1024 * 1024)?;
         let existing_sha = sha256_hex(&existing_bytes);
 
@@ -1094,7 +1206,7 @@ pub fn secure_write_file(
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(new_handle.cast()) };
     let raw = owned.as_raw_handle().cast();
-    let (final_path, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
+    let (final_path, _canonical_rel, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
     write_all_to_handle(raw, &request.content)?;
     Ok(HarnessSecureWriteResult {
         final_path,
@@ -1143,7 +1255,7 @@ pub fn secure_delete_file(
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(handle.cast()) };
     let raw = owned.as_raw_handle().cast();
-    let (final_path, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
+    let (final_path, _canonical_rel, _info) = verify_open_file_handle(raw, &canonical_root, false)?;
     let existing_bytes = read_all_from_handle(raw, 64 * 1024 * 1024)?;
     let existing_sha = sha256_hex(&existing_bytes);
 

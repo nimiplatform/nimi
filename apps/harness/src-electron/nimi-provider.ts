@@ -5,6 +5,12 @@ import type { NimiLocalAppTextTurnInput } from '@nimiplatform/sdk/app';
 import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import { isNimiError } from '@nimiplatform/sdk/types';
 import type { NimiElectronAppBusinessServices } from '@nimiplatform/kit/shell/electron/main';
+import {
+  logicalAgentModelId,
+  type BodyStepMessage,
+  type BodyStepToolDef,
+  type HarnessBodySymbiosisClient,
+} from './body-symbiosis.js';
 
 type Message = NimiGenerateTextRequest['messages'][number];
 type TurnItem = NonNullable<Message['turnItems']>[number];
@@ -72,6 +78,237 @@ export function buildReasoningOptions(
     effort: selectedEffort as Extract<ReasoningOptions, { effort: string }>['effort'],
     presentation,
   };
+}
+
+/**
+ * Canonical v2.1 Brain-Body Symbiosis provider for pi-durable.
+ * Routes every inference step through Runtime AgentSessionService.StreamLocalAgentBodyStep:
+ *   - Logical Model ID: `local-agent:<agentBinding>` (stable across Home model switches)
+ *   - ZERO Body-authored `role: 'system'` messages (Runtime owns authoritative system prompt)
+ *   - Tool-returned images stay strictly under `role: 'tool'` provenance
+ *   - Transient `toolCallActivity` heartbeats reset idle timers without entering durable `partial`
+ * @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
+ */
+export function nimiBodySymbiosisProvider(options: {
+  symbiosis: HarnessBodySymbiosisClient;
+  agentHandle: string;
+  agentBinding: string;
+  workSessionRef: string;
+  label: string;
+  workspaceName: () => string;
+  permissionMode: () => string;
+  contextWindow?: number;
+  onBudgetUpdated?: (budgetTokens: number) => void;
+}) {
+  const modelId = logicalAgentModelId(options.agentBinding);
+  const model: Model<'nimi-text'> = {
+    api: 'nimi-text',
+    provider: 'nimi',
+    id: modelId,
+    name: options.label,
+    baseUrl: '',
+    input: ['text', 'image'],
+    reasoning: true,
+    contextWindow: options.contextWindow ?? options.symbiosis.getEffectiveContextBudgetTokens(),
+    maxTokens: 0,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  };
+
+  const stream: ProviderStreams['stream'] = (selected, context, streamOptions) => {
+    const events = createAssistantMessageEventStream();
+    const output: AssistantMessage = {
+      api: selected.api,
+      provider: selected.provider,
+      model: selected.id,
+      role: 'assistant',
+      timestamp: Date.now(),
+      content: [],
+      stopReason: 'pending',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { ...model.cost, total: 0 } },
+      diagnostics: [
+        { type: 'nimi.usage-unreported', timestamp: Date.now() },
+        { type: 'nimi.cost-unreported', timestamp: Date.now() },
+        { type: 'nimi.cache-usage-unreported', timestamp: Date.now() },
+      ],
+    };
+
+    void (async () => {
+      try {
+        const { workingMessages, tools } = translateContextToBodyStep(context, streamOptions?.signal);
+        let finish: 'stop' | 'length' | 'toolUse' | undefined;
+        let textIndex: number | undefined;
+        let thinkingIndex: number | undefined;
+        events.push({ type: 'start', partial: output });
+
+        for await (const ev of options.symbiosis.streamInferenceStep({
+          agentHandle: options.agentHandle,
+          agentBinding: options.agentBinding,
+          workSessionRef: options.workSessionRef,
+          workingMessages,
+          tools,
+          workspaceName: options.workspaceName(),
+          permissionMode: options.permissionMode(),
+          toolNames: tools.map(t => t.name),
+        }, streamOptions?.signal)) {
+          switch (ev.kind) {
+            case 'textDelta': {
+              if (ev.effectiveContextBudgetTokens && ev.effectiveContextBudgetTokens > 0) {
+                model.contextWindow = ev.effectiveContextBudgetTokens;
+                options.onBudgetUpdated?.(ev.effectiveContextBudgetTokens);
+              }
+              if (textIndex === undefined) {
+                textIndex = output.content.length;
+                output.content[textIndex] = { type: 'text', text: '' };
+                events.push({ type: 'text_start', contentIndex: textIndex, partial: output });
+              }
+              const item = output.content[textIndex];
+              if (item.type === 'text') {
+                item.text += ev.textDelta;
+                events.push({ type: 'text_delta', contentIndex: textIndex, delta: ev.textDelta, partial: output });
+              }
+              break;
+            }
+            case 'reasoningSummaryDelta': {
+              if (ev.effectiveContextBudgetTokens && ev.effectiveContextBudgetTokens > 0) {
+                model.contextWindow = ev.effectiveContextBudgetTokens;
+                options.onBudgetUpdated?.(ev.effectiveContextBudgetTokens);
+              }
+              if (thinkingIndex === undefined) {
+                thinkingIndex = output.content.length;
+                output.content[thinkingIndex] = { type: 'thinking', thinking: '' };
+                events.push({ type: 'thinking_start', contentIndex: thinkingIndex, partial: output });
+              }
+              const item = output.content[thinkingIndex];
+              if (item.type === 'thinking') {
+                item.thinking += ev.reasoningSummaryDelta;
+                events.push({ type: 'thinking_delta', contentIndex: thinkingIndex, delta: ev.reasoningSummaryDelta, partial: output });
+              }
+              break;
+            }
+            case 'toolCallActivity':
+              // Transient liveness heartbeat only: intentionally NEVER appended into durable output.content!
+              break;
+            case 'toolCall': {
+              const parsedArgs = parseBodyToolCallArgs(ev.argumentsJson);
+              const index = output.content.length;
+              const toolCall = { type: 'toolCall' as const, id: ev.callId, name: ev.name, arguments: parsedArgs };
+              output.content[index] = toolCall;
+              events.push({ type: 'toolcall_start', contentIndex: index, partial: output });
+              events.push({ type: 'toolcall_end', contentIndex: index, toolCall, partial: output });
+              break;
+            }
+            case 'done': {
+              if (ev.effectiveContextBudgetTokens > 0) {
+                model.contextWindow = ev.effectiveContextBudgetTokens;
+                options.onBudgetUpdated?.(ev.effectiveContextBudgetTokens);
+              }
+              if (ev.usageInputTokens > 0 || ev.usageOutputTokens > 0) {
+                output.usage.input = ev.usageInputTokens;
+                output.usage.output = ev.usageOutputTokens;
+                output.usage.totalTokens = ev.usageInputTokens + ev.usageOutputTokens;
+                output.diagnostics = output.diagnostics?.filter(item => item.type !== 'nimi.usage-unreported');
+              }
+              if (ev.finishReason === 'tool_calls' || ev.finishReason === 'tool-calls' || ev.finishReason === 'toolUse') {
+                finish = 'toolUse';
+              } else if (ev.finishReason === 'length') {
+                finish = 'length';
+              } else {
+                finish = 'stop';
+              }
+              break;
+            }
+            case 'failed':
+              throw new Error(ev.message || 'Runtime Body step failed.');
+          }
+        }
+
+        if (!finish) {
+          throw new Error('Runtime Body step stream closed before terminal done event.');
+        }
+        for (const [index, item] of output.content.entries()) {
+          if (item.type === 'text') events.push({ type: 'text_end', contentIndex: index, content: item.text, partial: output });
+          if (item.type === 'thinking') events.push({ type: 'thinking_end', contentIndex: index, content: item.thinking, partial: output });
+        }
+        output.stopReason = finish;
+        events.push({ type: 'done', reason: finish, message: output });
+      } catch (error) {
+        output.stopReason = streamOptions?.signal?.aborted ? 'aborted' : 'error';
+        output.errorMessage = error instanceof Error ? error.message : String(error);
+        events.push({ type: 'error', reason: output.stopReason, error: output });
+      } finally {
+        events.end(output);
+      }
+    })();
+
+    return events;
+  };
+
+  return createProvider({
+    id: 'nimi',
+    name: 'Nimi Runtime Brain',
+    models: [model],
+    auth: { apiKey: { name: 'Protected Nimi Body Lease', resolve: async () => ({ auth: {} }) } },
+    api: { stream, streamSimple: stream },
+  });
+}
+
+function parseBodyToolCallArgs(rawJson: string): NimiJsonObject {
+  const parsed: unknown = JSON.parse(rawJson || '{}');
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Runtime returned non-object tool call arguments.');
+  }
+  return { ...(parsed as NimiJsonObject) };
+}
+
+function translateContextToBodyStep(
+  context: TranscriptContext,
+  signal?: AbortSignal,
+): { workingMessages: BodyStepMessage[]; tools: BodyStepToolDef[] } {
+  const workingMessages: BodyStepMessage[] = [];
+  const toolsMap = new Map<string, BodyStepToolDef>();
+
+  for (const message of context.messages) {
+    signal?.throwIfAborted();
+    if (message.role === 'system') {
+      // NEVER forward Body system prompt text; ONLY collect declared tool specs!
+      for (const tool of message.toolsAdded ?? []) {
+        toolsMap.set(tool.name, {
+          name: tool.name,
+          description: tool.description,
+          inputSchemaJson: JSON.stringify(tool.parameters ?? { type: 'object', properties: {} }),
+        });
+      }
+      for (const tool of message.toolsRemoved ?? []) {
+        toolsMap.delete(tool.name);
+      }
+      continue;
+    }
+    if (message.role === 'user') {
+      workingMessages.push({
+        role: 'user',
+        contentJson: JSON.stringify(message.content),
+      });
+      continue;
+    }
+    if (message.role === 'assistant') {
+      workingMessages.push({
+        role: 'assistant',
+        contentJson: JSON.stringify(message.content),
+      });
+      continue;
+    }
+    if (message.role === 'toolResult') {
+      // Keep tool text & image parts strictly under role: 'tool' provenance (NEVER role: 'user').
+      workingMessages.push({
+        role: 'tool',
+        contentJson: JSON.stringify(message.content),
+        toolCallId: message.toolCallId,
+        toolName: message.toolName,
+        isError: Boolean(message.isError),
+      });
+    }
+  }
+  return { workingMessages, tools: [...toolsMap.values()] };
 }
 
 export function nimiProvider(

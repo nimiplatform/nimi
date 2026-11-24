@@ -13,12 +13,15 @@ import {
   redactCanarySecrets,
   resolveSafeWorkspacePath,
   sanitizeBidi,
+  StreamingCanaryRedactor,
+  truncateUtf8Bytes,
 } from '../dist-electron/security-policy.js';
 import {
   SecureWorkspaceExecutionEnv,
   WorkspaceWriteCoordinator,
 } from '../dist-electron/secure-workspace-env.js';
 import {
+  decodeBodyStepStreamEvent,
   HarnessBodySymbiosisClient,
   logicalAgentModelId,
 } from '../dist-electron/body-symbiosis.js';
@@ -47,31 +50,50 @@ test('FT-10: openDurableFullStorage verifies WAL + synchronous=FULL (2) via read
   }
 });
 
-test('FT-11 & FT-12: Gates 2 & 3 path guards, sensitive hard-deny, control-plane wall, and Bidi sanitization', () => {
+test('FT-11 & FT-12: Gates 2 & 3 path guards, trailing-space/sub-.git/..notes.md, sensitive hard-deny, control-plane wall, streaming redactor & UTF-8 byte truncation', () => {
   const root = process.platform === 'win32' ? 'D:\\work\\demo' : '/tmp/work/demo';
-  for (const bad of ['@secret.txt', 'file:///etc/passwd', '\\\\?\\C:\\Windows', 'note.txt:ads', 'foo./bar.ts', '../outside.txt']) {
+  for (const bad of ['@secret.txt', 'file:///etc/passwd', '\\\\?\\C:\\Windows', 'note.txt:ads', 'foo./bar.ts', '../outside.txt', '.env ', 'package.json ', 'CON', 'dir/nul.txt']) {
     assert.throws(() => resolveSafeWorkspacePath(root, bad), `expected reject for ${bad}`);
   }
   assert.equal(resolveSafeWorkspacePath(root, 'src/app.ts').relativePosix, 'src/app.ts');
+  // Legitimate filenames starting with ".." MUST NOT be false-blocked as parent traversal.
+  assert.equal(resolveSafeWorkspacePath(root, '..notes.md').relativePosix, '..notes.md');
 
   // Gate 3 sensitive hard-deny
-  for (const sens of ['.env', '.env.local', 'sub/.env.production', 'keys/id_rsa', 'cert.pem', 'tls.key', '.ssh/config', '.npmrc']) {
+  for (const sens of ['.env', '.env ', '.env.local', 'sub/.env.production', 'keys/id_rsa', 'cert.pem', 'tls.key', '.ssh/config', '.npmrc']) {
     assert.equal(isSensitivePath(sens), true, `expected sensitive deny for ${sens}`);
   }
   assert.equal(isSensitivePath('.env.example'), false);
   assert.equal(isSensitivePath('src/index.ts'), false);
 
-  // Gate 3 control-plane file wall (case-folded)
-  for (const cp of ['.git/config', '.GITHUB/workflows/ci.yml', 'PACKAGE.JSON', 'vitest.config.ts', 'tsconfig.json', 'Makefile', 'deploy.PS1', 'build.rs']) {
+  // Gate 3 control-plane file wall (case-folded, normalized at ANY depth!)
+  for (const cp of ['.git/config', './.git/config', 'sub/.git/hooks/pre-commit', '.GITHUB/workflows/ci.yml', 'PACKAGE.JSON', 'vitest.config.ts', 'tsconfig.json', 'Makefile', 'deploy.PS1', 'build.rs']) {
     assert.equal(isControlPlanePath(cp), true, `expected control-plane match for ${cp}`);
   }
+  assert.equal(isControlPlanePath(join(root, '.git', 'config'), root), true);
   assert.equal(isControlPlanePath('src/components/Button.tsx'), false);
 
   // Bidi stripping
   assert.equal(sanitizeBidi('safe\u202eevil\u202c.ts'), 'safeevil.ts');
+
+  // Cross-chunk streaming canary redaction
+  const secret = 'sk_live_split_secret_987654321';
+  const redactor = new StreamingCanaryRedactor([secret]);
+  const out1 = redactor.push('prefix sk_live_split_');
+  const out2 = redactor.push('secret_987654321 suffix');
+  const out3 = redactor.flush();
+  const joined = out1 + out2 + out3;
+  assert.ok(!joined.includes(secret));
+  assert.ok(joined.includes('[REDACTED_WORKSPACE_SECRET]'));
+
+  // Exact UTF-8 byte truncation without corrupting multi-byte CJK scalars
+  const cjk = '你好世界测试内容';
+  const truncated = truncateUtf8Bytes(cjk, 7);
+  assert.ok(Buffer.byteLength(truncated, 'utf8') <= 7);
+  assert.equal(truncated, '你好');
 });
 
-test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, hardlink reject, spill redirect, inheritEnv:false, .env canary redaction & Windows Job Object grandchild 0-residue', async () => {
+test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot persistence/delete-restore conflict, native fail-closed, hardlink reject, spill redirect, inheritEnv:false, .env canary redaction & Windows Job Object grandchild 0-residue', async () => {
   const baseDir = await mkdtemp(join(tmpdir(), 'nimi-harness-gates-'));
   const workspace = join(baseDir, 'repo');
   const dataRoot = join(baseDir, 'data');
@@ -82,11 +104,33 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
     await mkdir(dataRoot, { recursive: true });
     await mkdir(outsideDir, { recursive: true });
 
-    // Seed .env with a secret canary and normal benign vars.
+    // Fork 4: Missing native host MUST fail closed on Windows/macOS (NO silent fallback!).
+    if (process.platform === 'win32' || process.platform === 'darwin') {
+      const failClosedEnv = new SecureWorkspaceExecutionEnv({
+        sessionId: 'sess-fail-closed',
+        workspaceRoot: workspace,
+        explicitDevWorkspace: true,
+        dataRoot,
+        securityHost: null,
+      });
+      const readDenied = await failClosedEnv.readTextFile('hello.txt', context);
+      assert.equal(readDenied.ok, false);
+      const execDenied = await failClosedEnv.exec('echo hi', { timeout: 5 }, context);
+      assert.equal(execDenied.ok, false);
+    }
+
+    // Seed .env (root + nested subdir) with secret canaries and normal benign vars.
     const canarySecret = 'sk_live_canary_998877665544332211';
+    const nestedSecret = 'ghp_nested_subdir_secret_77665544';
     const canaryB64 = Buffer.from(canarySecret, 'utf8').toString('base64');
     await writeFile(join(workspace, '.env'), `NODE_ENV=production\nAPI_SECRET_KEY=${canarySecret}\n`, 'utf8');
+    await mkdir(join(workspace, 'services', 'api'), { recursive: true });
+    await writeFile(join(workspace, 'services', 'api', '.env.local'), `GITHUB_TOKEN=${nestedSecret}\n`, 'utf8');
     await writeFile(join(workspace, 'hello.txt'), 'original-v1', 'utf8');
+
+    const extracted = await extractWorkspaceEnvCanarySecrets(workspace);
+    assert.ok(extracted.includes(canarySecret));
+    assert.ok(extracted.includes(nestedSecret));
 
     const env = new SecureWorkspaceExecutionEnv({
       sessionId: 'sess-sec-1',
@@ -99,23 +143,40 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
     const readEnvRes = await env.readTextFile('.env', context);
     assert.equal(readEnvRes.ok, false);
 
-    // Gate 6: Typed write creates pre-write snapshot -> restorePreWriteSnapshot recovers original-v1!
+    // Gate 6: Typed write persists snapshot index across restart -> restorePreWriteSnapshot recovers original-v1!
     const writeRes = await env.writeFile('hello.txt', 'modified-v2', context);
     assert.equal(writeRes.ok, true);
     assert.equal(await readFile(join(workspace, 'hello.txt'), 'utf8'), 'modified-v2');
-    const snaps = env.getSnapshots();
+
+    // Simulate Harness process restart: reload persisted snapshots & recentAiEdits from disk!
+    const restartedEnv = new SecureWorkspaceExecutionEnv({
+      sessionId: 'sess-sec-1',
+      workspaceRoot: workspace,
+      explicitDevWorkspace: true,
+      dataRoot,
+    });
+    const snaps = restartedEnv.getSnapshots();
     assert.equal(snaps.length, 1);
     assert.equal(snaps[0].relativePath, 'hello.txt');
+    assert.equal(restartedEnv.getRecentAiEditedFiles().length, 1);
 
     // External modification causes restore conflict (fail closed)!
     await writeFile(join(workspace, 'hello.txt'), 'external-edit-v3', 'utf8');
-    await assert.rejects(() => env.restorePreWriteSnapshot(snaps[0].snapshotId));
+    await assert.rejects(() => restartedEnv.restorePreWriteSnapshot(snaps[0].snapshotId));
 
     // When disk matches afterSha256, restore succeeds atomically!
     await writeFile(join(workspace, 'hello.txt'), 'modified-v2', 'utf8');
-    const restored = await env.restorePreWriteSnapshot(snaps[0].snapshotId);
+    const restored = await restartedEnv.restorePreWriteSnapshot(snaps[0].snapshotId);
     assert.equal(restored.restored, true);
     assert.equal(await readFile(join(workspace, 'hello.txt'), 'utf8'), 'original-v1');
+
+    // Delete snapshot restore MUST fail closed if user created a new file at the deleted path!
+    const delRes = await restartedEnv.remove('hello.txt', undefined, context);
+    assert.equal(delRes.ok, true);
+    const delSnap = restartedEnv.getSnapshots().at(-1);
+    assert.equal(delSnap?.afterSha256, null);
+    await writeFile(join(workspace, 'hello.txt'), 'user-created-new-file', 'utf8');
+    await assert.rejects(() => restartedEnv.restorePreWriteSnapshot(delSnap.snapshotId));
 
     // Gate 2: NTFS Hardlink escape (nNumberOfLinks > 1) MUST be rejected on Windows via compiled Rust addon!
     if (process.platform === 'win32') {
@@ -131,17 +192,18 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
     assert.equal(spillFile.ok, true);
     assert.ok(resolve(spillFile.value).startsWith(resolve(join(dataRoot, 'spill'))));
 
-    // Gate 4 Layer 1: Non-dev workspace refuses string shell!
+    // Gate 4 Layer 1: Non-dev workspace refuses string shell AND interpreter array exec!
     const nonDevEnv = new SecureWorkspaceExecutionEnv({
       sessionId: 'sess-nondev',
       workspaceRoot: workspace,
       explicitDevWorkspace: false,
       dataRoot,
     });
-    const deniedShell = await nonDevEnv.exec('echo blocked', undefined, context);
-    assert.equal(deniedShell.ok, false);
+    assert.equal((await nonDevEnv.exec('echo blocked', undefined, context)).ok, false);
+    assert.equal((await nonDevEnv.exec(['node', '-e', 'console.log(1)'], undefined, context)).ok, false);
 
     // Gate 4 Layers 1 & 3: inheritEnv: false (parent env not leaked) + .env canary redaction (raw + base64)!
+    // NOTE: options.timeout is in SECONDS matching pi-durable ShellExecOptions!
     process.env.NIMI_SUPER_SECRET_PARENT_LEAK = 'LEAKED_PARENT_VALUE_999';
     let capturedOut = '';
     try {
@@ -149,7 +211,7 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
         ? `Write-Output "PARENT=$env:NIMI_SUPER_SECRET_PARENT_LEAK RAW=${canarySecret} B64=${canaryB64} ENV=production"`
         : `echo "PARENT=$NIMI_SUPER_SECRET_PARENT_LEAK RAW=${canarySecret} B64=${canaryB64} ENV=production"`;
       const execRes = await env.exec(cmd, {
-        timeout: 15_000,
+        timeout: 15,
         onOutput: text => { capturedOut += text; },
       }, context);
       assert.equal(execRes.ok, true);
@@ -162,11 +224,11 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
     assert.ok(capturedOut.includes('[REDACTED_WORKSPACE_SECRET]'), `Expected redaction marker in stdout: ${capturedOut}`);
     assert.ok(capturedOut.includes('ENV=production'), `Benign literal should NOT be false-positive redacted: ${capturedOut}`);
 
-    // Gate 1 (Windows Live Win32 Job Object): Grandchild process MUST have 0 residue after timeout!
+    // Gate 1 (Windows Live Win32 Job Object): Grandchild process MUST have 0 residue after timeout (seconds)!
     if (process.platform === 'win32') {
       const pidFile = join(workspace, 'grandchild.pid');
       const spawnGrandchildCmd = `$p = Start-Process powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden; Set-Content -Path '${pidFile}' -Value $p.Id; Start-Sleep -Seconds 30`;
-      const timeoutRes = await env.exec(spawnGrandchildCmd, { timeout: 1_500 }, context);
+      const timeoutRes = await env.exec(spawnGrandchildCmd, { timeout: 1.5 }, context);
       assert.equal(timeoutRes.ok, false);
       assert.equal(timeoutRes.error.code, 'timeout');
       const rawPid = await readFile(pidFile, 'utf8').catch(() => '');
@@ -193,8 +255,29 @@ test('FT-13 & FT-14: Gates 1, 2, 4, 6, 7 — Real NTFS write/snapshot/restore, h
   }
 });
 
-test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections, enforces AuthorizeBodySideEffect fail-closed, retries beforeCompact, and uses logical Model ID', async () => {
+test('FT-19..22: HarnessBodySymbiosisClient decodes protobuf-ts payload oneof, enforces acked===true, drains tombstones BEFORE projections, enforces AuthorizeBodySideEffect fail-closed, retries beforeCompact, and streams inference', async () => {
   assert.equal(logicalAgentModelId('agent-alpha'), 'local-agent:agent-alpha');
+
+  // Verify canonical protobuf-ts oneof decoding!
+  const decodedDone = decodeBodyStepStreamEvent({
+    eventIndex: 2,
+    effectiveContextBudgetTokens: 96_000,
+    payload: {
+      oneofKind: 'done',
+      done: {
+        finishReason: 'stop',
+        usageInputTokens: '420',
+        usageOutputTokens: '80',
+        stepMac: 'mac-step-1',
+        compactionSummary: 'Summary via protobuf-ts oneof',
+        postCompactionMac: 'mac-post-1',
+        effectiveContextBudgetTokens: 96_000,
+      },
+    },
+  });
+  assert.equal(decodedDone?.kind, 'done');
+  assert.equal(decodedDone?.compactionSummary, 'Summary via protobuf-ts oneof');
+  assert.equal(decodedDone?.usageInputTokens, 420);
 
   const events = [];
   let compactionAttempts = 0;
@@ -204,7 +287,7 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
     async registerBodyCarrier() {
       events.push('register');
       return {
-        leaseEpoch: 7,
+        leaseEpoch: '7',
         heartbeatIntervalMs: 60_000,
         pendingTombstones: [
           { outboxId: 'ob-purge-1', commandKind: 3, workSessionRef: 'ws-old', agentBinding: 'agent-alpha' },
@@ -215,7 +298,7 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
         ],
       };
     },
-    async heartbeatBodyCarrier() { return { alive: true, leaseEpoch: 7 }; },
+    async heartbeatBodyCarrier() { return { renewed: true, leaseEpoch: '7' }; },
     async unregisterBodyCarrier() { events.push('unregister'); return { unregistered: true }; },
     async subscribeBodyOutbox() {
       return (async function* () { /* idle live stream */ })();
@@ -233,20 +316,32 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
       events.push(`proj:${req.workSessionRef}:seq=${req.projectionSeq}`);
       return { applied: true, acceptedProjectionSeq: req.projectionSeq };
     },
-    async streamLocalAgentBodyStep() {
+    async streamLocalAgentBodyStep(req) {
+      if (req.purpose === 1) {
+        return (async function* () {
+          yield { eventIndex: 0, effectiveContextBudgetTokens: 128_000, payload: { oneofKind: 'textDelta', textDelta: 'Hello ' } };
+          yield { eventIndex: 1, effectiveContextBudgetTokens: 128_000, payload: { oneofKind: 'toolCallActivity', toolCallActivity: { callId: 'c1', toolName: 'read', argumentsDeltaBytes: 12, accumulatedBytes: 12 } } };
+          yield { eventIndex: 2, effectiveContextBudgetTokens: 128_000, payload: { oneofKind: 'done', done: { finishReason: 'stop', usageInputTokens: '10', usageOutputTokens: '5', stepMac: 'm1', compactionSummary: '', postCompactionMac: '', effectiveContextBudgetTokens: 128_000 } } };
+        })();
+      }
       compactionAttempts += 1;
       if (compactionAttempts === 1) {
         throw new Error('transient network hiccup');
       }
       return (async function* () {
         yield {
+          eventIndex: 0,
           effectiveContextBudgetTokens: 128_000,
-          done: {
-            compactionSummary: 'Verified compacted summary',
-            postCompactionMac: 'mac-abc-123',
-            usageInputTokens: 500,
-            usageOutputTokens: 100,
-            effectiveContextBudgetTokens: 128_000,
+          payload: {
+            oneofKind: 'done',
+            done: {
+              finishReason: 'stop',
+              compactionSummary: 'Verified compacted summary',
+              postCompactionMac: 'mac-abc-123',
+              usageInputTokens: '500',
+              usageOutputTokens: '100',
+              effectiveContextBudgetTokens: 128_000,
+            },
           },
         };
       })();
@@ -270,7 +365,6 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
 
   await symbiosis.start(controller.signal);
 
-  // Assert STRICT tombstone-first ordering BEFORE projection reconciliation & NEW_INTENT!
   assert.deepEqual(events, [
     'register',
     'purge:ws-old',
@@ -281,6 +375,19 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
     'intent:ob-intent-1',
     'ack:ob-intent-1',
   ]);
+
+  // Stream inference via StreamLocalAgentBodyStep (purpose=1)
+  const stepKinds = [];
+  for await (const ev of symbiosis.streamInferenceStep({
+    agentHandle: 'handle-alpha',
+    agentBinding: 'agent-alpha',
+    workSessionRef: 'ws-live',
+    workingMessages: [{ role: 'user', contentJson: '"hi"' }],
+    tools: [],
+  })) {
+    stepKinds.push(ev.kind);
+  }
+  assert.deepEqual(stepKinds, ['textDelta', 'toolCallActivity', 'done']);
 
   // AuthorizeBodySideEffect allows when valid and throws fail-closed when invalidated!
   await symbiosis.authorizeSideEffect({
@@ -302,7 +409,7 @@ test('FT-19..22: HarnessBodySymbiosisClient drains tombstones BEFORE projections
     /memory_read_set_invalidated/,
   );
 
-  // Compaction executes 2 bounded retries and updates dynamic effectiveContextBudgetTokens!
+  // Compaction executes 2 bounded retries and decodes protobuf-ts payload.oneofKind === 'done'!
   const compacted = await symbiosis.executeCompactionWithRetries({
     workSessionRef: 'ws-live',
     agentBinding: 'agent-alpha',

@@ -74,6 +74,7 @@ export function SessionSidebar({
   const { preference, cyclePreference } = useAppTheme();
   const { session: appSession, snapshot: access } = useNimiAppSession();
   const [query, setQuery] = useState('');
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingId, setEditingId] = useState<string>();
   const [editTitle, setEditTitle] = useState('');
@@ -86,8 +87,16 @@ export function SessionSidebar({
     }
   }, [activeDestination, activeSessionId]);
 
+  const partnerBindings = Array.from(
+    new Set(sessions.map(item => item.agentBinding?.trim()).filter((v): v is string => Boolean(v))),
+  );
+  const effectivePartnerFilter = partnerFilter === 'all' || partnerBindings.includes(partnerFilter)
+    ? partnerFilter
+    : 'all';
+
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const filtered = sessions
+    .filter(item => effectivePartnerFilter === 'all' || item.agentBinding === effectivePartnerFilter)
     .filter(item => !normalizedQuery || item.title.toLocaleLowerCase().includes(normalizedQuery)
       || (item.workspaceLabel?.toLocaleLowerCase().includes(normalizedQuery) ?? false))
     .slice()
@@ -313,6 +322,21 @@ export function SessionSidebar({
             </button>
           )}
         </div>
+        {partnerBindings.length > 1 && (
+          <div className="harness-sidebar__partner-filter" style={{ marginTop: 6 }}>
+            <select
+              className="harness-input harness-input--search"
+              aria-label={t('sidebar.partnerFilterLabel')}
+              value={effectivePartnerFilter}
+              onChange={e => setPartnerFilter(e.target.value)}
+            >
+              <option value="all">{t('sidebar.partnerFilterAll')}</option>
+              {partnerBindings.map(binding => (
+                <option key={binding} value={binding}>{binding}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <nav className="harness-sidebar__list" aria-label={t('sidebar.title')}>

@@ -170,6 +170,7 @@ const diffPreviewSchema = {
     path: { type: 'string' },
     content: { type: 'string' },
     command: { type: 'string' },
+    truncated: { type: 'boolean' },
     replacements: {
       type: 'array',
       items: {
@@ -188,11 +189,19 @@ const decisionView = {
   properties: {
     state: { type: 'string', enum: ['none', 'open-on-pc', 'review'] },
     taskId,
+    callId: { type: 'string' },
     revision,
     tool: { type: 'string' },
+    reason: { type: 'string' },
     title: { type: 'string' },
     summary: { type: 'string' },
     argumentsJson: { type: 'string', maxLength: 32768 },
+    allowSessionPermitted: { type: 'boolean' },
+    isControlPlane: { type: 'boolean' },
+    isFreeShell: { type: 'boolean' },
+    remoteApprovalAllowed: { type: 'boolean' },
+    expiresAt: nonNegativeInt,
+    recentAiEditedWarning: { type: 'array', items: { type: 'string' } },
     diffPreview: diffPreviewSchema,
   },
   required: ['state'],

@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "build:electron": "tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
+    "build:prepared": "pnpm run build && pnpm run build:electron",
     "test": "pnpm run build:electron && node --test test/*.test.mjs",
     "test:app": "pnpm run build:electron && node --test test/*.test.mjs",
     "build:electron:production": "node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs"

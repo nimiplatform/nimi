@@ -1,9 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, dialog, shell, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';
+import { app, dialog, shell, BrowserWindow, ipcMain, Menu, protocol, session, utilityProcess, webContents } from 'electron';
 import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';
 import type { openHarness as OpenHarness, PermissionMode } from './harness.js';
+import { HarnessBodySymbiosisClient } from './body-symbiosis.js';
+import { EngineWorkerHostClient } from './engine-worker.js';
 
 declare const __NIMI_ELECTRON_PRODUCTION__: boolean;
 
@@ -33,9 +36,17 @@ const IS_PRODUCTION_BUNDLE = typeof __NIMI_ELECTRON_PRODUCTION__ !== 'undefined'
   && __NIMI_ELECTRON_PRODUCTION__;
 const singleInstanceLock = app.requestSingleInstanceLock();
 if (!singleInstanceLock) {
-  app.quit();
+  app.exit(0);
+  process.exit(0);
 }
-app.on('second-instance', () => {
+let pendingDeepLinkWorkSessionRef: string | undefined = extractWorkSessionRefArg(process.argv);
+let focusDeepLinkHandler: ((workSessionRef: string) => void) | undefined;
+app.on('second-instance', (_event, commandLine) => {
+  const deepLinkRef = extractWorkSessionRefArg(commandLine);
+  if (deepLinkRef) {
+    pendingDeepLinkWorkSessionRef = deepLinkRef;
+    focusDeepLinkHandler?.(deepLinkRef);
+  }
   const existing = BrowserWindow.getAllWindows()[0];
   if (existing && !existing.isDestroyed()) {
     if (existing.isMinimized()) existing.restore();
@@ -58,6 +69,8 @@ let resettingRenderer = false;
 let quitting = false;
 let account = new AbortController();
 let harness: ReturnType<typeof OpenHarness> | undefined;
+let symbiosis: HarnessBodySymbiosisClient | undefined;
+let engineWorker: EngineWorkerHostClient | undefined;
 let retiringHarness = Promise.resolve();
 
 app.setName('Nimi Harness');
@@ -75,6 +88,36 @@ registerNimiElectronAppAssetProtocolScheme(protocol);
 void app.whenReady().then(async () => {
   if (process.platform === 'darwin' && !IS_PRODUCTION_BUNDLE && windowIcon) app.dock?.setIcon(windowIcon);
   const [{ serveSessions }, { openHarness }] = await Promise.all([import('./session-provider.js'), import('./harness.js')]);
+  const harnessDataRoot = path.join(app.getPath('userData'), 'harness');
+
+  // Spawn dedicated Electron utilityProcess for off-main-thread SQLite durability & hash I/O (Gate 7).
+  const engineWorkerPath = path.join(currentDir, 'engine-worker.js');
+  if (existsSync(engineWorkerPath)) {
+    try {
+      const forked = utilityProcess.fork(engineWorkerPath, [], { serviceName: 'nimi-harness-engine' });
+      engineWorker = new EngineWorkerHostClient(forked);
+      void engineWorker.request({ kind: 'ping' }).catch(() => {});
+    } catch (error) {
+      process.stderr.write(`[nimi-harness-worker] ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+  }
+
+  const notifyRendererViewChanged = () => {
+    if (account.signal.aborted || quitting) return;
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed() && isAllowedElectronRendererUrl(window.webContents.getURL(), allowedRendererUrls)) {
+        window.webContents.send('harness:view-changed');
+      }
+    }
+  };
+
+  focusDeepLinkHandler = (workSessionRef: string) => {
+    void getHarness()
+      .then(h => h.selectByWorkSessionRef(workSessionRef))
+      .then(selected => { if (selected) notifyRendererViewChanged(); })
+      .catch(() => {});
+  };
+
   const bridge = registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,
@@ -86,12 +129,75 @@ void app.whenReady().then(async () => {
       void serveSessions(services.integration, getHarness, signal).catch(error => {
         if (!signal.aborted) process.stderr.write(`[nimi-harness-integration] ${error instanceof Error ? error.message : String(error)}\n`);
       });
+      void startBodySymbiosis(services, signal).catch(error => {
+        if (!signal.aborted) process.stderr.write(`[nimi-harness-symbiosis] ${error instanceof Error ? error.message : String(error)}\n`);
+      });
     },
     onSessionInvalidated: () => {
       void closeHarness().catch(reportHarnessCloseFailure);
       resetAccountScopedRenderer();
     },
   });
+
+  async function resolvePersistentDeviceId(storage: typeof bridge.services.storage, signal: AbortSignal): Promise<string> {
+    try {
+      const existing = (await storage.readJson('harness-device-id.json')).value;
+      if (typeof existing === 'string' && /^[A-Za-z0-9._-]{8,128}$/.test(existing)) {
+        return existing;
+      }
+    } catch {
+      // Missing device id; allocate one durably under account storage.
+    }
+    signal.throwIfAborted();
+    const created = `pc-${randomUUID()}`;
+    await storage.writeJson('harness-device-id.json', created).catch(() => {});
+    return created;
+  }
+
+  async function startBodySymbiosis(services: typeof bridge.services, signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return;
+    const deviceId = await resolvePersistentDeviceId(services.storage, signal);
+    signal.throwIfAborted();
+    const client = new HarnessBodySymbiosisClient({
+      deviceId,
+      client: services.agentSession,
+      handlers: {
+        onPurgeSession: async (workSessionRef) => {
+          await (await getHarness()).handleBodyPurgeSession(workSessionRef);
+          notifyRendererViewChanged();
+        },
+        onPurgeAgent: async (agentBinding) => {
+          await (await getHarness()).handleBodyPurgeAgent(agentBinding);
+          notifyRendererViewChanged();
+        },
+        onInvalidateMemory: async (workSessionRef) => {
+          await (await getHarness()).handleBodyInvalidateMemory(workSessionRef);
+          notifyRendererViewChanged();
+        },
+        onNewIntent: async (env) => {
+          await (await getHarness()).handleBodyNewIntent(env);
+          notifyRendererViewChanged();
+        },
+        onReconcileAfterTombstones: async () => (await getHarness()).listBodyProjectionsForReconcile(),
+        onLeaseLost: (reason) => {
+          process.stderr.write(`[nimi-harness-symbiosis] lease lost: ${reason}\n`);
+          notifyRendererViewChanged();
+        },
+      },
+    });
+    symbiosis = client;
+    if (harness) {
+      const active = await harness.catch(() => undefined);
+      active?.attachSymbiosis(client);
+    }
+    await client.start(signal);
+    if (pendingDeepLinkWorkSessionRef) {
+      const ref = pendingDeepLinkWorkSessionRef;
+      pendingDeepLinkWorkSessionRef = undefined;
+      focusDeepLinkHandler?.(ref);
+    }
+  }
+
   function getHarness(): ReturnType<typeof OpenHarness> {
     if (harness) return harness;
     const signal = account.signal;
@@ -103,14 +209,13 @@ void app.whenReady().then(async () => {
         // Coalesce rapid stream deltas to a crisp 60ms frame cadence without IPC flooding.
         queued = setTimeout(() => {
           queued = undefined;
-          if (signal.aborted || quitting) return;
-          for (const window of BrowserWindow.getAllWindows()) {
-            if (!window.isDestroyed() && isAllowedElectronRendererUrl(window.webContents.getURL(), allowedRendererUrls)) {
-              window.webContents.send('harness:view-changed');
-            }
-          }
+          notifyRendererViewChanged();
         }, 60);
         queued.unref();
+      }, {
+        dataRoot: harnessDataRoot,
+        symbiosis,
+        requireSymbiosis: true,
       });
     });
     harness = pending;
@@ -260,8 +365,8 @@ void app.whenReady().then(async () => {
     if (allowForSession !== undefined && (typeof allowForSession !== 'boolean' || (allowForSession && !allow))) {
       throw new Error('Session allowlist applies only to allowed actions.');
     }
-    if (revision !== undefined && (typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision))) {
-      throw new Error('Invalid decision revision.');
+    if (typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision)) {
+      throw new Error('Decision revision is required to prevent stale approvals.');
     }
     await (await getHarness()).decide(sessionId, id, allow, feedback?.trim(), allowForSession === true, revision);
   });
@@ -331,13 +436,33 @@ function closeHarness(): Promise<void> {
   account.abort();
   account = new AbortController();
   const previous = harness;
+  const prevSymbiosis = symbiosis;
   harness = undefined;
+  symbiosis = undefined;
   const closing = retiringHarness.then(async () => {
+    await prevSymbiosis?.stop().catch(() => undefined);
     const opened = await previous?.catch(() => undefined);
     await opened?.close();
+    if (quitting) {
+      engineWorker?.close();
+      engineWorker = undefined;
+    }
   });
   retiringHarness = closing;
   return closing;
+}
+
+function extractWorkSessionRefArg(argv: readonly string[]): string | undefined {
+  const prefix = '--work-session=';
+  for (const arg of argv) {
+    if (typeof arg === 'string' && arg.startsWith(prefix)) {
+      const ref = arg.slice(prefix.length).trim();
+      if (ref && ref.length <= 128 && !/[\x00-\x1f]/u.test(ref)) {
+        return ref;
+      }
+    }
+  }
+  return undefined;
 }
 
 function reportHarnessCloseFailure(error: unknown): void {

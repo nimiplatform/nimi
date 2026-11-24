@@ -1,5 +1,6 @@
 schema_version: 1
 app_id: nimi.harness
+version: 0.3.0
 display_name: Nimi Harness
 metadata:
   icon: assets/app-icon.png
@@ -8,6 +9,8 @@ app_access:
   - agent.configure
   - agent.body.pc
   - agent.trigger.delegate
+  - integration.provide
+  - integration.consume
   - app.activity
 local_development:
   electron:

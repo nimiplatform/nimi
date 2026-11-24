@@ -101,40 +101,76 @@ try {
     define: { __NIMI_ELECTRON_PRODUCTION__: 'true' },
     logLevel: 'silent',
   });
+  await build({
+    entryPoints: [path.join(appRoot, 'src-electron/engine-worker.ts')],
+    outfile: path.join(appRoot, 'dist-electron/engine-worker.js'),
+    bundle: true,
+    platform: 'node',
+    target: 'node22',
+    format: 'esm',
+    packages: 'external',
+    external: ['electron'],
+    define: { __NIMI_ELECTRON_PRODUCTION__: 'true' },
+    logLevel: 'silent',
+  });
 
   await realpath(path.join(appRoot, 'dist', 'index.html'));
   await realpath(path.join(appRoot, 'dist-electron', 'preload.cjs'));
+  await realpath(path.join(appRoot, 'dist-electron', 'engine-worker.js'));
 
-  await mkdir(path.join(productionSourceRoot, 'dist-electron'), { recursive: true });
-  await copyFile(path.join(appRoot, 'package.json'), path.join(productionSourceRoot, 'package.json'));
-  const dependencyLock = parseYaml(await readFile(path.join(appRoot, 'pnpm-lock.yaml'), 'utf8'));
-  await writeFile(path.join(productionSourceRoot, 'pnpm-lock.yaml'), stringifyYaml(rebaseLocalPackagePaths(dependencyLock, appRoot, productionSourceRoot)));
-  try {
-    const workspace = parseYaml(await readFile(path.join(appRoot, 'pnpm-workspace.yaml'), 'utf8'));
-    await writeFile(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), stringifyYaml({ ...rebaseLocalPackagePaths(workspace, appRoot, productionSourceRoot), packages: ['.'] }));
-  } catch (cause) {
-    if (cause.code !== 'ENOENT') throw cause;
-    // Staging sits inside the project: keep pnpm from adopting an enclosing workspace.
-    await writeFile(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), stringifyYaml({ packages: ['.'] }));
+  const repoRootCandidate = path.resolve(appRoot, '../..');
+  const useWorkspaceDeploy = await hasFile(path.join(repoRootCandidate, 'pnpm-workspace.yaml'))
+    && !(await hasFile(path.join(appRoot, 'pnpm-lock.yaml')));
+  if (useWorkspaceDeploy) {
+    await deployWorkspaceProductionDependencies(repoRootCandidate, appPackage.name, productionSourceRoot);
+    await rm(path.join(productionSourceRoot, 'src'), { recursive: true, force: true });
+    await rm(path.join(productionSourceRoot, 'src-electron'), { recursive: true, force: true });
+    await rm(path.join(productionSourceRoot, 'test'), { recursive: true, force: true });
+    await rm(path.join(productionSourceRoot, 'scripts'), { recursive: true, force: true });
+    await rm(path.join(productionSourceRoot, 'dist'), { recursive: true, force: true });
+    await rm(path.join(productionSourceRoot, 'dist-electron'), { recursive: true, force: true });
+    await mkdir(path.join(productionSourceRoot, 'dist-electron'), { recursive: true });
+    await cp(path.join(appRoot, 'dist'), path.join(productionSourceRoot, 'dist'), { recursive: true, force: false });
+    await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));
+    await copyFile(path.join(appRoot, 'dist-electron', 'engine-worker.js'), path.join(productionSourceRoot, 'dist-electron', 'engine-worker.js'));
+    await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));
+    await copyFile(icons.png, path.join(productionSourceRoot, 'dist-electron', 'app-icon.png'));
+    await copyFile(icons.macPng, path.join(productionSourceRoot, 'dist-electron', 'app-icon-macos.png'));
+    await copyFile(icons.ico, path.join(productionSourceRoot, 'dist-electron', 'app-icon.ico'));
+  } else {
+    await mkdir(path.join(productionSourceRoot, 'dist-electron'), { recursive: true });
+    await copyFile(path.join(appRoot, 'package.json'), path.join(productionSourceRoot, 'package.json'));
+    const dependencyLock = parseYaml(await readFile(path.join(appRoot, 'pnpm-lock.yaml'), 'utf8'));
+    await writeFile(path.join(productionSourceRoot, 'pnpm-lock.yaml'), stringifyYaml(rebaseLocalPackagePaths(dependencyLock, appRoot, productionSourceRoot)));
+    try {
+      const workspace = parseYaml(await readFile(path.join(appRoot, 'pnpm-workspace.yaml'), 'utf8'));
+      await writeFile(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), stringifyYaml({ ...rebaseLocalPackagePaths(workspace, appRoot, productionSourceRoot), packages: ['.'] }));
+    } catch (cause) {
+      if (cause.code !== 'ENOENT') throw cause;
+      // Staging sits inside the project: keep pnpm from adopting an enclosing workspace.
+      await writeFile(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), stringifyYaml({ packages: ['.'] }));
+    }
+    try {
+      await cp(path.join(appRoot, 'patches'), path.join(productionSourceRoot, 'patches'), { recursive: true, force: false });
+    } catch (cause) {
+      if (cause.code !== 'ENOENT') throw cause;
+    }
+    await cp(path.join(appRoot, 'dist'), path.join(productionSourceRoot, 'dist'), { recursive: true, force: false });
+    await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));
+    await copyFile(path.join(appRoot, 'dist-electron', 'engine-worker.js'), path.join(productionSourceRoot, 'dist-electron', 'engine-worker.js'));
+    await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));
+    await copyFile(icons.png, path.join(productionSourceRoot, 'dist-electron', 'app-icon.png'));
+    await copyFile(icons.macPng, path.join(productionSourceRoot, 'dist-electron', 'app-icon-macos.png'));
+    await copyFile(icons.ico, path.join(productionSourceRoot, 'dist-electron', 'app-icon.ico'));
+    await installProductionDependencies(productionSourceRoot);
   }
-  try {
-    await cp(path.join(appRoot, 'patches'), path.join(productionSourceRoot, 'patches'), { recursive: true, force: false });
-  } catch (cause) {
-    if (cause.code !== 'ENOENT') throw cause;
-  }
-  await cp(path.join(appRoot, 'dist'), path.join(productionSourceRoot, 'dist'), { recursive: true, force: false });
-  await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));
-  await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));
-  await copyFile(icons.png, path.join(productionSourceRoot, 'dist-electron', 'app-icon.png'));
-  await copyFile(icons.macPng, path.join(productionSourceRoot, 'dist-electron', 'app-icon-macos.png'));
-  await copyFile(icons.ico, path.join(productionSourceRoot, 'dist-electron', 'app-icon.ico'));
-  await installProductionDependencies(productionSourceRoot);
 
   const productionManifestPath = path.join(productionSourceRoot, 'package.json');
   const productionManifest = JSON.parse(await readFile(productionManifestPath, 'utf8'));
   delete productionManifest.devDependencies;
+  delete productionManifest.scripts;
   await writeFile(productionManifestPath, `${JSON.stringify(productionManifest, null, 2)}\n`);
-  await rm(path.join(productionSourceRoot, 'pnpm-lock.yaml'));
+  await rm(path.join(productionSourceRoot, 'pnpm-lock.yaml'), { force: true });
   await rm(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), { force: true });
   await rm(path.join(productionSourceRoot, 'patches'), { recursive: true, force: true });
 
@@ -204,6 +240,39 @@ try {
   const cleanupTasks = [rm(stagingRoot, { recursive: true, force: true })];
   if (!packageCompleted) cleanupTasks.push(rm(outputRoot, { recursive: true, force: true }));
   await Promise.all(cleanupTasks);
+}
+
+async function hasFile(filePath) {
+  try {
+    await realpath(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function deployWorkspaceProductionDependencies(repoRoot, packageName, targetRoot) {
+  const args = ['--filter', packageName, '--config.node-linker=hoisted', '--ignore-scripts', 'deploy', '--prod', '--legacy', targetRoot];
+  const commandShell = MACOS_BUILD ? 'pnpm' : process.env.ComSpec || 'cmd.exe';
+  const commandArguments = MACOS_BUILD
+    ? args
+    : ['/d', '/s', '/c', `pnpm ${args.map((arg) => (arg.includes(' ') ? `"${arg}"` : arg)).join(' ')}`];
+  await new Promise((resolve, reject) => {
+    const child = spawn(commandShell, commandArguments, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      windowsHide: true,
+    });
+    child.once('error', reject);
+    child.once('exit', (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`pnpm workspace production deploy failed (${signal || `exit ${String(code)}`}).`));
+    });
+  });
 }
 
 async function installProductionDependencies(projectRoot) {

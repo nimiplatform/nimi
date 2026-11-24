@@ -1,6 +1,7 @@
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readdir, realpath, rmdir, stat, unlink, type FileHandle } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { isSensitivePath, validateRawWorkspacePathInput } from './security-policy.js';
 
 const importLimit = 32 * 1024 * 1024;
 const previewLimit = 128 * 1024;
@@ -99,15 +100,33 @@ export function resultReference(workspace: string, path: unknown): string | unde
   return rel.split(/[\\/]/).join('/');
 }
 
-async function resolveItem(workspace: string, ref: string) {
+async function resolveItem(workspace: string, ref: string, allowSensitiveRoot = false) {
   if (typeof ref !== 'string' || isAbsolute(ref) || ref.includes('\\') || /[\x00-\x1f]/u.test(ref)
     || (ref !== '' && ref.split('/').some(part => !part || part === '.' || part === '..' || part.includes(':')))) {
     throw new Error('Invalid session file reference.');
   }
+  if (ref !== '') {
+    validateRawWorkspacePathInput(ref);
+  }
   if (!(await lstat(workspace)).isDirectory()) throw new Error('Session workspace unavailable.');
   const root = await realpath(workspace);
+  if (ref !== '' && !allowSensitiveRoot && isSensitivePath(ref, root)) {
+    throw new Error(`Access to sensitive file "${ref}" is blocked by Harness security policy.`);
+  }
+  let probe = root;
+  if (ref !== '') {
+    for (const seg of ref.split('/')) {
+      probe = join(probe, seg);
+      const segInfo = await lstat(probe);
+      if (segInfo.isSymbolicLink()) throw new Error('Choose a file inside this workspace.');
+    }
+  }
   const path = join(root, ref);
   if (await realpath(path) !== path) throw new Error('Choose a file inside this workspace.');
+  const relPosix = relative(root, path).split(sep).join('/');
+  if (relPosix && !allowSensitiveRoot && isSensitivePath(relPosix, root)) {
+    throw new Error(`Access to sensitive file "${relPosix}" is blocked by Harness security policy.`);
+  }
   return path;
 }
 
@@ -137,8 +156,14 @@ export async function copyMaterial(workspace: string, name: string, bytes: Uint8
 
 export async function listWorkspace(workspace: string, folder: string, offset: number, signal: AbortSignal) {
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid file list position.');
-  const path = await resolveItem(workspace, folder);
-  const entries = (await readdir(path, { withFileTypes: true })).filter(item => item.isDirectory() || item.isFile());
+  const path = await resolveItem(workspace, folder, true);
+  const root = await realpath(workspace);
+  const entries = (await readdir(path, { withFileTypes: true })).filter(item => {
+    if (item.isSymbolicLink()) return false;
+    if (!item.isDirectory() && !item.isFile()) return false;
+    const ref = folder ? folder + '/' + item.name : item.name;
+    return !isSensitivePath(ref, root);
+  });
   entries.sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name));
   signal.throwIfAborted();
   const slice = entries.slice(offset, offset + 100);
@@ -149,7 +174,7 @@ export async function listWorkspace(workspace: string, folder: string, offset: n
     let size: number | undefined;
     try {
       const info = await lstat(join(path, item.name));
-      if (info.isFile()) size = info.size;
+      if (info.isFile() && info.nlink === 1) size = info.size;
     } catch { /* ignore transient stat failures */ }
     return { name: item.name, ref, directory: false as const, ...(size !== undefined ? { size } : {}) };
   }));
@@ -161,7 +186,8 @@ export async function workspaceFile(workspace: string, ref: string, signal: Abor
   if (!ref) throw new Error('Choose a file.');
   const path = await resolveItem(workspace, ref);
   const info = await lstat(path);
-  if (!info.isFile()) throw new Error('Choose a regular workspace file.');
+  if (info.isSymbolicLink() || !info.isFile()) throw new Error('Choose a regular workspace file.');
+  if (info.nlink > 1) throw new Error('Hardlinked files are blocked by Harness security policy.');
   signal.throwIfAborted();
   return { path, info };
 }
@@ -176,7 +202,7 @@ export async function previewWorkspaceFile(workspace: string, ref: string, signa
   const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || stat.dev !== info.dev || stat.ino !== info.ino) throw new Error('The file changed. Open it again.');
+    if (!stat.isFile() || stat.nlink > 1 || stat.dev !== info.dev || stat.ino !== info.ino) throw new Error('The file changed or is a hardlink. Open it again.');
     if (imageType) {
       if (stat.size > importLimit) return { ...meta, size: stat.size, format: 'file' as const, message: 'Images over 32 MiB can be opened from their folder.' };
       const bytes = await readRange(file, 0, stat.size, signal);

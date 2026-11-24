@@ -1,4 +1,7 @@
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { constants } from 'node:fs';
 import { lstat, open, readdir, realpath } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import { bool, int, obj, opt, str } from '@earendil-works/pi-schema';
@@ -90,19 +93,31 @@ async function resolveWorkspaceTarget(workspace: string, subPath?: string): Prom
     throw new Error('Search path must stay inside the session workspace.');
   }
   const relPosix = toPosixRelative(root, candidate);
-  if (isSensitivePath(relPosix)) {
+  if (isSensitivePath(relPosix, root)) {
     throw new Error(`Access to sensitive path "${relPosix}" is blocked by Harness security policy.`);
+  }
+  // Walk every intermediate segment with lstat to reject symlinks anywhere in the path.
+  let probe = root;
+  for (const seg of relPosix.split('/').filter(Boolean)) {
+    probe = join(probe, seg);
+    const segInfo = await lstat(probe);
+    if (segInfo.isSymbolicLink()) {
+      throw new Error('Search path must not traverse symbolic links.');
+    }
   }
   const info = await lstat(candidate);
   if (info.isSymbolicLink()) {
     throw new Error('Search path must not traverse symbolic links.');
+  }
+  if (info.isFile() && info.nlink > 1) {
+    throw new Error('Hardlinked files are blocked by Harness security policy.');
   }
   const real = await realpath(candidate);
   if (real !== root && !real.startsWith(rootPrefix)) {
     throw new Error('Search path must stay inside the session workspace.');
   }
   const realRelPosix = toPosixRelative(root, real);
-  if (isSensitivePath(realRelPosix)) {
+  if (isSensitivePath(realRelPosix, root)) {
     throw new Error(`Access to sensitive path "${realRelPosix}" is blocked by Harness security policy.`);
   }
   return { root, target: real, isFile: info.isFile() };
@@ -112,20 +127,92 @@ function toPosixRelative(root: string, filePath: string): string {
   return relative(root, filePath).split(sep).join('/');
 }
 
-function isDisallowedHost(hostname: string): boolean {
-  const lower = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+function isDisallowedIP(ip: string): boolean {
+  const lower = ip.toLowerCase().replace(/^\[|\]$/g, '');
   if (!lower) return true;
-  if (lower === 'localhost' || lower.endsWith('.local') || lower.endsWith('.localhost')) return true;
-  if (lower === '::1' || lower === '0:0:0:0:0:0:0:1' || lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
+  // Unwrap IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1 or ::ffff:7f00:1)
+  const v4MappedDotted = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(lower);
+  if (v4MappedDotted) return isDisallowedIP(v4MappedDotted[1]);
+  const v4MappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(lower);
+  if (v4MappedHex) {
+    const hi = parseInt(v4MappedHex[1], 16);
+    const lo = parseInt(v4MappedHex[2], 16);
+    return isDisallowedIP(`${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`);
+  }
   const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(lower);
   if (ipv4) {
     const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
     if (a === 0 || a === 10 || a === 127) return true;
-    if (a === 169 && b === 254) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // RFC 6598 CGNAT
+    if (a === 169 && b === 254) return true; // Link-local / cloud metadata
     if (a === 192 && b === 168) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a >= 224) return true; // Multicast / reserved
+    return false;
+  }
+  if (
+    lower === '::'
+    || lower === '::1'
+    || lower === '0:0:0:0:0:0:0:0'
+    || lower === '0:0:0:0:0:0:0:1'
+    || lower.startsWith('fe8')
+    || lower.startsWith('fe9')
+    || lower.startsWith('fea')
+    || lower.startsWith('feb')
+    || lower.startsWith('fc')
+    || lower.startsWith('fd')
+    || lower.startsWith('ff')
+  ) {
+    return true;
   }
   return false;
+}
+
+function isDisallowedHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!lower) return true;
+  if (
+    lower === 'localhost'
+    || lower.endsWith('.local')
+    || lower.endsWith('.localhost')
+    || lower.endsWith('.internal')
+  ) {
+    return true;
+  }
+  if (isIP(lower)) {
+    return isDisallowedIP(lower);
+  }
+  // Reject non-dotted integer / hex / octal IPv4 obfuscations (e.g. 2130706433, 0x7f000001).
+  if (/^(?:0x[0-9a-f]+|0[0-7]+|\d+)$/i.test(lower)) {
+    return true;
+  }
+  return false;
+}
+
+async function assertPublicFetchTarget(parsed: URL, allowLoopback: boolean): Promise<void> {
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only http:// and https:// URLs are supported.');
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('URLs with embedded credentials are not allowed.');
+  }
+  if (allowLoopback) return;
+  if (isDisallowedHost(parsed.hostname)) {
+    throw new Error('Fetching local or private network addresses is blocked.');
+  }
+  if (!isIP(parsed.hostname.replace(/^\[|\]$/g, ''))) {
+    const records = await dnsLookup(parsed.hostname, { all: true }).catch(() => {
+      throw new Error(`Unable to resolve host "${parsed.hostname}".`);
+    });
+    if (!records.length) {
+      throw new Error(`Unable to resolve host "${parsed.hostname}".`);
+    }
+    for (const rec of records) {
+      if (isDisallowedIP(rec.address)) {
+        throw new Error('Fetching local or private network addresses is blocked.');
+      }
+    }
+  }
 }
 
 export type SearchToolsOptions = {
@@ -294,9 +381,11 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
             }
             let handle;
             try {
-              handle = await open(filePath, 'r');
+              const relCheck = toPosixRelative(root, filePath);
+              if (isSensitivePath(relCheck, root)) continue;
+              handle = await open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
               const info = await handle.stat();
-              if (!info.isFile() || info.size === 0 || info.size > MAX_GREP_FILE_BYTES) continue;
+              if (!info.isFile() || info.nlink > 1 || info.size === 0 || info.size > MAX_GREP_FILE_BYTES) continue;
               const probeLen = Math.min(4096, info.size);
               const probe = Buffer.allocUnsafe(probeLen);
               const { bytesRead } = await handle.read(probe, 0, probeLen, 0);
@@ -363,36 +452,32 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
           } catch {
             throw new Error('Provide a valid HTTP or HTTPS URL.');
           }
-          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            throw new Error('Only http:// and https:// URLs are supported.');
-          }
-          if (parsed.username || parsed.password) {
-            throw new Error('URLs with embedded credentials are not allowed.');
-          }
-          if (!options.allowLoopbackFetch && isDisallowedHost(parsed.hostname)) {
-            throw new Error('Fetching local or private network addresses is blocked.');
-          }
+          await assertPublicFetchTarget(parsed, Boolean(options.allowLoopbackFetch));
           const byteLimit = Math.max(1024, Math.min(MAX_FETCH_BYTES, maxBytes ?? DEFAULT_FETCH_BYTES));
           const timeout = Math.max(1000, Math.min(MAX_FETCH_TIMEOUT_MS, timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS));
           const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(timeout)]);
 
-          const response = await fetchFn(parsed.toString(), {
-            method: 'GET',
-            redirect: 'follow',
-            signal: requestSignal,
-            headers: {
-              Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
-            },
-          });
-          if (!options.allowLoopbackFetch && response.url) {
-            try {
-              const finalUrl = new URL(response.url);
-              if ((finalUrl.protocol !== 'http:' && finalUrl.protocol !== 'https:') || isDisallowedHost(finalUrl.hostname)) {
-                throw new Error('Redirect to a disallowed address was blocked.');
-              }
-            } catch (error) {
-              if (error instanceof Error && error.message.includes('disallowed')) throw error;
+          let currentUrl = parsed;
+          let response!: Response;
+          for (let hop = 0; hop <= 5; hop++) {
+            response = await fetchFn(currentUrl.toString(), {
+              method: 'GET',
+              redirect: 'manual',
+              signal: requestSignal,
+              headers: {
+                Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
+              },
+            });
+            if (response.status >= 300 && response.status < 400) {
+              const location = response.headers.get('location');
+              if (!location) break;
+              if (hop === 5) throw new Error('Too many redirects while fetching URL.');
+              const nextUrl = new URL(location, currentUrl);
+              await assertPublicFetchTarget(nextUrl, Boolean(options.allowLoopbackFetch));
+              currentUrl = nextUrl;
+              continue;
             }
+            break;
           }
 
           const contentType = response.headers.get('content-type') ?? 'application/octet-stream';

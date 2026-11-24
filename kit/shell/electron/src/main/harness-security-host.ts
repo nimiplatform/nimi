@@ -162,7 +162,7 @@ function loadBinding(injected?: NimiElectronHarnessSecurityBinding): NimiElectro
   return candidate as unknown as NimiElectronHarnessSecurityBinding;
 }
 
-// @nimi-authority: rule.nimi.harness.assistant.p-harn-002
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 /** Host-only native Win32 Job Object and NTFS handle-security facade for Harness main/utilityProcess. */
 export function createNimiElectronHarnessSecurityHost(
   injectedBinding?: NimiElectronHarnessSecurityBinding,

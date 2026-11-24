@@ -7,6 +7,7 @@ import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import { obj, str } from '@earendil-works/pi-schema';
 import type { NimiElectronAppBusinessServices } from '@nimiplatform/kit/shell/electron/main';
 import { workspaceFile } from './workspace-files.js';
+import { isSensitivePath, validateRawWorkspacePathInput } from './security-policy.js';
 
 type Assets = NimiElectronAppBusinessServices['storage']['assets'];
 const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -96,15 +97,19 @@ export function sessionFileTools(assets: Assets, workspace: string | (() => stri
         if (!filename || basename(filename) !== filename || /[/\\:\x00-\x1f]/.test(filename) || filename === '.' || filename === '..') {
           throw new Error('Choose one file in the top level of this session’s workspace.');
         }
+        validateRawWorkspacePathInput(filename);
         const dir = resolveWorkspace();
-        // Read the opened regular file; do not follow a workspace link to an unrelated result.
+        if (isSensitivePath(filename, dir)) {
+          throw new Error(`Sharing sensitive file "${filename}" is blocked by Harness security policy.`);
+        }
+        // Read the opened regular file; do not follow a workspace link or hardlink.
         const path = join(dir, filename);
         const before = await lstat(path);
-        if (!before.isFile()) throw new Error('Choose a regular file.');
+        if (before.isSymbolicLink() || !before.isFile() || before.nlink > 1) throw new Error('Choose a regular non-hardlinked file.');
         const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
         try {
           const stat = await file.stat();
-          if (!stat.isFile() || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) throw new Error('Choose a nonempty regular file up to 32 MiB.');
+          if (!stat.isFile() || stat.nlink > 1 || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) throw new Error('Choose a nonempty regular file up to 32 MiB.');
           const id = randomUUID();
           async function* bounded() {
             let offset = 0;

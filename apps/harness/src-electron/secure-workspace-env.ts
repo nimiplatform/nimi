@@ -1,18 +1,19 @@
 // SecureWorkspaceExecutionEnv replaces pi-durable's NodeExecutionEnv with all
 // 7 v2.1 PC Body Security Gates:
-//   Gate 1: Rust Win32 Job Object process supervision (zero grandchild residue)
-//   Gate 2: Handle-level NTFS file ops (GetFinalPathNameByHandleW + nNumberOfLinks == 1 + CAS)
-//   Gate 3: Control-plane file wall + shared isSensitivePath() across read/write/edit/grep/glob
-//   Gate 4: Free Shell minimal env allowlist (inheritEnv: false) + .env* canary secret redaction
-//   Gate 6: Overlapping workspace write mutex + typed pre-write snapshots & atomic restore
-//   Gate 7: Redirected Spill directory (2 GiB / 14d LRU) + 256 KiB frame ceiling
+//   Gate 1: Rust Win32 Job Object / POSIX process-group supervision (zero grandchild residue)
+//   Gate 2: Handle-level NTFS/POSIX file ops (GetFinalPathNameByHandleW + nNumberOfLinks == 1 + CAS)
+//   Gate 3: Control-plane file wall + shared isSensitivePath() across read/write/edit/delete/grep/glob
+//   Gate 4: Free Shell minimal env allowlist (inheritEnv: false) + recursive .env* canary redaction
+//   Gate 6: Overlapping workspace write mutex + persistent pre-write snapshots & conflict-checked restore
+//   Gate 7: Redirected Spill directory (2 GiB / 14d recursive LRU) + 256 KiB UTF-8 byte frame ceiling
+// Fail-closed invariant (Fork 4): on Windows & macOS, missing native security host NEVER silently falls back.
 // @nimi-authority: rule.nimi.harness.security-gates.workspace-execution-env
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { mkdir, readdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import { mkdir, readdir, readFile, rm, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Context } from '@earendil-works/chord/context';
 import {
@@ -44,15 +45,25 @@ import {
 import {
   buildMinimalShellEnv,
   extractWorkspaceEnvCanarySecrets,
+  filterSafeCallerEnvOverrides,
   isControlPlanePath,
   isSensitivePath,
   redactCanarySecrets,
   resolveSafeWorkspacePath,
+  StreamingCanaryRedactor,
+  truncateUtf8Bytes,
 } from './security-policy.js';
 
 export const SPILL_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GiB
 export const SPILL_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
-export const MAX_CONTROL_FRAME_BYTES = 256 * 1024; // 256 KiB
+export const MAX_CONTROL_FRAME_BYTES = 256 * 1024; // 256 KiB (UTF-8 bytes)
+
+const INTERPRETER_EXECUTABLES = new Set([
+  'sh', 'bash', 'zsh', 'dash', 'ksh', 'fish', 'csh',
+  'cmd', 'cmd.exe', 'powershell', 'powershell.exe', 'pwsh', 'pwsh.exe',
+  'node', 'node.exe', 'deno', 'deno.exe', 'bun', 'bun.exe',
+  'python', 'python.exe', 'python3', 'python3.exe', 'ruby', 'perl', 'php', 'wscript', 'cscript',
+]);
 
 export interface PreWriteSnapshotRecord {
   readonly snapshotId: string;
@@ -72,6 +83,11 @@ export interface RecentAiEditRecord {
   readonly isControlPlane: boolean;
   readonly editedAt: number;
 }
+
+type PersistedEnvIndex = {
+  snapshots: PreWriteSnapshotRecord[];
+  recentAiEdits: RecentAiEditRecord[];
+};
 
 /**
  * Gate 6: Overlapping canonical workspace write mutex.
@@ -113,7 +129,6 @@ export class WorkspaceWriteCoordinator {
     if (this.isFrozen(key)) {
       throw new FileError('permission_denied', 'Workspace writes are frozen until active child processes finish terminating.', workspaceRoot);
     }
-    // Wait for any overlapping active write lock to complete.
     for (;;) {
       const blocking: Promise<void>[] = [];
       for (const [held, promise] of this.activeLocks.entries()) {
@@ -123,6 +138,9 @@ export class WorkspaceWriteCoordinator {
       }
       if (blocking.length === 0) break;
       await Promise.all(blocking);
+    }
+    if (this.isFrozen(key)) {
+      throw new FileError('permission_denied', 'Workspace writes are frozen until active child processes finish terminating.', workspaceRoot);
     }
     let release!: () => void;
     const gate = new Promise<void>(r => { release = r; });
@@ -146,10 +164,30 @@ export interface SecureWorkspaceExecutionEnvOptions {
   readonly securityHost?: NimiElectronHarnessSecurityHost | null;
   readonly writeCoordinator?: WorkspaceWriteCoordinator;
   readonly authorizeSideEffect?: (input: { actionKind: string; relativePath: string; payloadHash: string }) => Promise<void>;
+  /**
+   * Test-only opt-in allowing non-native Node fs/spawn fallback when running
+   * isolated unit tests without the native addon. Production MUST leave false.
+   */
+  readonly allowInsecureTestFallback?: boolean;
+}
+
+function toFileError(error: unknown, path?: string): FileError {
+  if (error instanceof FileError) return error;
+  const reason = (error as { reasonCode?: unknown })?.reasonCode;
+  const msg = error instanceof Error ? error.message : String(error);
+  if (reason === 'not-found' || /\bnot-found\b/i.test(msg)) {
+    return new FileError('not_found', msg, path);
+  }
+  return new FileError('permission_denied', msg, path);
 }
 
 function sha256Bytes(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+function resolveWindowsPowerShellAbsolutePath(): string {
+  const sysRoot = process.env.SystemRoot || process.env.SYSTEMROOT || 'C:\\Windows';
+  return join(sysRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 }
 
 function hasHarnessSecurityExports(candidate: unknown): candidate is NimiElectronHarnessSecurityBinding {
@@ -168,7 +206,6 @@ function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | 
   if (injected !== undefined) return injected;
   if (process.platform !== 'win32' && process.platform !== 'darwin') return null;
 
-  // 1. Packaged / installed optional native binding from @nimiplatform/kit.
   const packageName = process.platform === 'win32'
     ? '@nimiplatform/kit-protected-local-win32-x64'
     : '@nimiplatform/kit-protected-local-darwin-arm64';
@@ -182,7 +219,6 @@ function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | 
     // Fall through to workspace-built native addon if present.
   }
 
-  // 2. Monorepo / source-dev compiled protected-local-node addon.
   const artifact = process.platform === 'win32'
     ? 'nimi_shell_protected_local_node.dll'
     : 'libnimi_shell_protected_local_node.dylib';
@@ -208,6 +244,11 @@ function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | 
   return null;
 }
 
+function extractContextAbortSignal(ctx: Context): AbortSignal | undefined {
+  const candidate = ctx as unknown as { abortSignal?: AbortSignal; signal?: AbortSignal };
+  return candidate?.abortSignal ?? candidate?.signal;
+}
+
 export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   readonly id: string;
   cwd: string;
@@ -216,7 +257,9 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   private readonly explicitDevWorkspace: boolean;
   private readonly spillDir: string;
   private readonly snapshotDir: string;
+  private readonly indexPath: string;
   private readonly nativeHost: NimiElectronHarnessSecurityHost | null;
+  private readonly allowInsecureFallback: boolean;
   private readonly coordinator: WorkspaceWriteCoordinator;
   private readonly authorizeSideEffect?: SecureWorkspaceExecutionEnvOptions['authorizeSideEffect'];
   private readonly inner: NodeExecutionEnv;
@@ -232,10 +275,67 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     this.explicitDevWorkspace = options.explicitDevWorkspace;
     this.spillDir = join(resolve(options.dataRoot), 'spill');
     this.snapshotDir = join(resolve(options.dataRoot), 'snapshots', options.sessionId);
+    this.indexPath = join(this.snapshotDir, 'index.json');
     this.nativeHost = tryLoadNativeSecurityHost(options.securityHost);
+    this.allowInsecureFallback = Boolean(options.allowInsecureTestFallback);
     this.coordinator = options.writeCoordinator ?? sharedWorkspaceWriteCoordinator;
     this.authorizeSideEffect = options.authorizeSideEffect;
     this.inner = new NodeExecutionEnv({ cwd: this.workspaceRoot });
+    this.loadPersistedIndexSync();
+  }
+
+  private loadPersistedIndexSync(): void {
+    try {
+      if (!existsSync(this.indexPath)) return;
+      const raw = readFileSync(this.indexPath, 'utf8');
+      const parsed = JSON.parse(raw) as Partial<PersistedEnvIndex>;
+      if (Array.isArray(parsed.snapshots)) {
+        for (const item of parsed.snapshots) {
+          if (item && typeof item.snapshotId === 'string' && typeof item.relativePath === 'string') {
+            this.snapshots.push(item);
+          }
+        }
+      }
+      if (Array.isArray(parsed.recentAiEdits)) {
+        for (const edit of parsed.recentAiEdits) {
+          if (edit && typeof edit.relativePath === 'string') {
+            this.recentAiEdits.set(edit.relativePath.toLowerCase(), edit);
+          }
+        }
+      }
+    } catch {
+      // Corrupt or missing snapshot index starts empty without crashing boot.
+    }
+  }
+
+  private async persistIndex(): Promise<void> {
+    await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
+    const payload: PersistedEnvIndex = {
+      snapshots: this.snapshots.slice(-256),
+      recentAiEdits: [...this.recentAiEdits.values()].slice(-256),
+    };
+    const tmpPath = `${this.indexPath}.${randomUUID()}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(payload), { encoding: 'utf8', mode: 0o600 });
+    // Atomic rename replacement on POSIX; on Windows unlink+rename or writeFile fallback.
+    try {
+      const { rename } = await import('node:fs/promises');
+      await rename(tmpPath, this.indexPath);
+    } catch {
+      await writeFile(this.indexPath, JSON.stringify(payload), { encoding: 'utf8', mode: 0o600 });
+      await unlink(tmpPath).catch(() => {});
+    }
+  }
+
+  private requireNativeHostOrFailClosed(operation: string): NimiElectronHarnessSecurityHost | null {
+    if (this.nativeHost) return this.nativeHost;
+    if (this.allowInsecureFallback) return null;
+    if (process.platform === 'win32' || process.platform === 'darwin') {
+      throw new FileError(
+        'permission_denied',
+        `Native Harness security host is unavailable on ${process.platform}; refusing ${operation} fail-closed.`,
+      );
+    }
+    return null;
   }
 
   getSnapshots(): readonly PreWriteSnapshotRecord[] {
@@ -252,44 +352,61 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   private resolveGuardedPath(rawPath: string, allowSensitive = false): { absolutePath: string; relativePosix: string } {
     const resolved = resolveSafeWorkspacePath(this.workspaceRoot, rawPath);
-    if (!allowSensitive && isSensitivePath(resolved.relativePosix)) {
+    if (!allowSensitive && isSensitivePath(resolved.relativePosix, this.workspaceRoot)) {
       throw new FileError('permission_denied', `Access to sensitive file "${resolved.relativePosix}" is blocked by Harness security policy.`, rawPath);
     }
     return resolved;
   }
 
-  private async enforceSpillQuota(): Promise<void> {
+  private async enforceSpillQuota(pendingBytes = 0): Promise<void> {
     await mkdir(this.spillDir, { recursive: true, mode: 0o700 });
     const now = Date.now();
-    let entries;
-    try {
-      entries = await readdir(this.spillDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
     const files: { path: string; size: number; mtimeMs: number }[] = [];
+    const dirs: string[] = [];
     let totalBytes = 0;
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const full = join(this.spillDir, entry.name);
+
+    const walk = async (dir: string): Promise<void> => {
+      let entries;
       try {
-        const info = await stat(full);
-        if (now - info.mtimeMs > SPILL_MAX_AGE_MS) {
-          await unlink(full).catch(() => {});
+        entries = await readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const full = join(dir, entry.name);
+        if (entry.isSymbolicLink()) continue;
+        if (entry.isDirectory()) {
+          await walk(full);
+          dirs.push(full);
           continue;
         }
-        files.push({ path: full, size: info.size, mtimeMs: info.mtimeMs });
-        totalBytes += info.size;
-      } catch {
-        // Ignore raced deletions.
+        if (!entry.isFile()) continue;
+        try {
+          const info = await stat(full);
+          if (now - info.mtimeMs > SPILL_MAX_AGE_MS) {
+            await unlink(full).catch(() => {});
+            continue;
+          }
+          files.push({ path: full, size: info.size, mtimeMs: info.mtimeMs });
+          totalBytes += info.size;
+        } catch {
+          // Ignore raced deletions.
+        }
+      }
+    };
+    await walk(this.spillDir);
+
+    const budget = Math.max(0, SPILL_MAX_BYTES - Math.max(0, pendingBytes));
+    if (totalBytes > budget) {
+      files.sort((a, b) => a.mtimeMs - b.mtimeMs);
+      for (const file of files) {
+        if (totalBytes <= budget) break;
+        await unlink(file.path).catch(() => {});
+        totalBytes -= file.size;
       }
     }
-    if (totalBytes <= SPILL_MAX_BYTES) return;
-    files.sort((a, b) => a.mtimeMs - b.mtimeMs);
-    for (const file of files) {
-      if (totalBytes <= SPILL_MAX_BYTES) break;
-      await unlink(file.path).catch(() => {});
-      totalBytes -= file.size;
+    for (const dir of dirs) {
+      await rmdir(dir).catch(() => {});
     }
   }
 
@@ -299,13 +416,13 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       throw new FileError('not_found', `Pre-write snapshot "${snapshotId}" not found.`);
     }
     const record = this.snapshots[index];
+    const native = this.requireNativeHostOrFailClosed('restorePreWriteSnapshot');
     return this.coordinator.withWriteLock(this.workspaceRoot, async () => {
       if (record.afterSha256 !== null) {
-        // Verify disk file has not been modified externally since our edit!
         let currentSha: string | null = null;
         try {
-          if (this.nativeHost) {
-            const read = await this.nativeHost.secureReadFile({
+          if (native) {
+            const read = await native.secureReadFile({
               workspaceRoot: this.workspaceRoot,
               relativePath: record.relativePath,
             });
@@ -324,11 +441,36 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             record.relativePath,
           );
         }
+      } else {
+        // File was deleted by AI: verify no new user file now exists at that path before restoring!
+        let stillExists = false;
+        try {
+          if (native) {
+            await native.verifyWorkspacePath({
+              workspaceRoot: this.workspaceRoot,
+              relativePath: record.relativePath,
+              expectDirectory: false,
+            });
+            stillExists = true;
+          } else {
+            await stat(record.absolutePath);
+            stillExists = true;
+          }
+        } catch {
+          stillExists = false;
+        }
+        if (stillExists) {
+          throw new FileError(
+            'permission_denied',
+            `Cannot restore deleted file "${record.relativePath}": a newer file now exists at this path.`,
+            record.relativePath,
+          );
+        }
       }
 
       if (!record.existedBefore) {
-        if (this.nativeHost) {
-          await this.nativeHost.secureDeleteFile({
+        if (native) {
+          await native.secureDeleteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: record.relativePath,
             ...(record.afterSha256 ? { preconditionSha256: record.afterSha256 } : {}),
@@ -338,8 +480,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         }
       } else {
         const snapshotBytes = await readFile(record.snapshotPath);
-        if (this.nativeHost) {
-          await this.nativeHost.secureWriteFile({
+        if (native) {
+          await native.secureWriteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: record.relativePath,
             content: snapshotBytes,
@@ -352,6 +494,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       }
 
       this.snapshots[index] = { ...record, restoredAt: Date.now() };
+      await this.persistIndex();
       return { restored: true, relativePath: record.relativePath };
     });
   }
@@ -378,8 +521,9 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   async readBinaryFile(path: string, _context: Context): Promise<Result<Uint8Array, FileError>> {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
-      if (this.nativeHost) {
-        const res = await this.nativeHost.secureReadFile({
+      const native = this.requireNativeHostOrFailClosed('readBinaryFile');
+      if (native) {
+        const res = await native.secureReadFile({
           workspaceRoot: this.workspaceRoot,
           relativePath: relativePosix,
         });
@@ -388,7 +532,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       const bytes = await readFile(absolutePath);
       return ok(Uint8Array.from(bytes));
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', error instanceof Error ? error.message : String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -407,11 +551,27 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async openTextLineReader(path: string, context: Context): Promise<Result<TextLineReader, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
-      if (this.nativeHost) {
-        const { relativePosix } = this.resolveGuardedPath(path);
-        await this.nativeHost.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, expectDirectory: false });
+      const { relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('openTextLineReader');
+      if (native) {
+        // Read via handle-level native security host so TOCTOU/symlink/hardlink/8.3 checks are atomic.
+        const res = await native.secureReadFile({
+          workspaceRoot: this.workspaceRoot,
+          relativePath: relativePosix,
+        });
+        const text = Buffer.from(res.contentBase64, 'base64').toString('utf8');
+        const lines = text.length === 0 ? [] : text.split(/\r?\n/);
+        let idx = 0;
+        const reader: TextLineReader = {
+          async nextLine() {
+            if (idx >= lines.length) return ok(null);
+            return ok(lines[idx++] ?? null);
+          },
+          async close() { /* memory backed */ },
+        } as unknown as TextLineReader;
+        return ok(reader);
       }
+      const { absolutePath } = this.resolveGuardedPath(path);
       return this.inner.openTextLineReader(absolutePath, context);
     } catch (error) {
       return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
@@ -420,10 +580,35 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async openBinaryReader(path: string, options: { noFollow?: boolean } | undefined, context: Context): Promise<Result<BinaryReader, FileError>> {
     try {
-      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
-      if (this.nativeHost) {
-        await this.nativeHost.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, expectDirectory: false });
+      const { relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('openBinaryReader');
+      if (native) {
+        const res = await native.secureReadFile({
+          workspaceRoot: this.workspaceRoot,
+          relativePath: relativePosix,
+        });
+        const data = Uint8Array.from(Buffer.from(res.contentBase64, 'base64'));
+        let offset = 0;
+        const reader: BinaryReader = {
+          async read(buf: Uint8Array) {
+            if (offset >= data.byteLength) return ok(0);
+            const count = Math.min(buf.byteLength, data.byteLength - offset);
+            buf.set(data.subarray(offset, offset + count), 0);
+            offset += count;
+            return ok(count);
+          },
+          async readChunk(size = 65536) {
+            if (offset >= data.byteLength) return ok(null);
+            const end = Math.min(data.byteLength, offset + size);
+            const chunk = data.subarray(offset, end);
+            offset = end;
+            return ok(chunk);
+          },
+          async close() { /* memory backed */ },
+        } as unknown as BinaryReader;
+        return ok(reader);
       }
+      const { absolutePath } = this.resolveGuardedPath(path);
       return this.inner.openBinaryReader(absolutePath, { ...options, noFollow: true }, context);
     } catch (error) {
       return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
@@ -433,6 +618,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   async writeFile(path: string, content: string | Uint8Array, _context: Context): Promise<Result<void, FileError>> {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('writeFile');
       const bytes = typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content);
       const afterSha = sha256Bytes(bytes);
 
@@ -447,8 +633,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         let existedBefore = false;
         let beforeSha: string | null = null;
 
-        if (this.nativeHost) {
-          const result = await this.nativeHost.secureWriteFile({
+        if (native) {
+          const result = await native.secureWriteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: relativePosix,
             content: bytes,
@@ -484,9 +670,10 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         });
         this.recentAiEdits.set(relativePosix.toLowerCase(), {
           relativePath: relativePosix,
-          isControlPlane: isControlPlanePath(relativePosix),
+          isControlPlane: isControlPlanePath(relativePosix, this.workspaceRoot),
           editedAt: Date.now(),
         });
+        await this.persistIndex();
       });
 
       return ok(undefined);
@@ -513,7 +700,12 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async flushFile(path: string, context: Context): Promise<Result<void, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('flushFile');
+      if (native) {
+        await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, expectDirectory: false });
+        return ok(undefined);
+      }
       return this.inner.flushFile(absolutePath, context);
     } catch (error) {
       return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
@@ -524,12 +716,38 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     try {
       const src = this.resolveGuardedPath(sourcePath);
       const dst = this.resolveGuardedPath(destinationPath);
+      const native = this.requireNativeHostOrFailClosed('renameFile');
       if (this.authorizeSideEffect) {
         await this.authorizeSideEffect({
           actionKind: 'file_rename',
           relativePath: dst.relativePosix,
           payloadHash: sha256Bytes(Buffer.from(`${src.relativePosix}->${dst.relativePosix}`)),
         });
+      }
+      if (native) {
+        await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+          const read = await native.secureReadFile({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: src.relativePosix,
+          });
+          const bytes = Buffer.from(read.contentBase64, 'base64');
+          await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
+          const snapshotId = randomUUID();
+          const snapshotPath = join(this.snapshotDir, `${snapshotId}.bak`);
+          await native.secureWriteFile({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: dst.relativePosix,
+            content: bytes,
+            allowCreate: true,
+            snapshotPath,
+          });
+          await native.secureDeleteFile({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: src.relativePosix,
+            preconditionSha256: read.sha256,
+          });
+        });
+        return ok(undefined);
       }
       return await this.coordinator.withWriteLock(this.workspaceRoot, () =>
         this.inner.renameFile(src.absolutePath, dst.absolutePath, context),
@@ -541,10 +759,27 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async fileInfo(path: string, context: Context): Promise<Result<FileInfo, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('fileInfo');
+      if (native) {
+        if (!relativePosix) {
+          await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: '.', expectDirectory: true });
+        } else {
+          try {
+            await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, expectDirectory: false });
+          } catch (firstErr) {
+            const firstReason = (firstErr as { reasonCode?: unknown })?.reasonCode;
+            if (firstReason === 'is-directory') {
+              await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, expectDirectory: true });
+            } else {
+              throw firstErr;
+            }
+          }
+        }
+      }
       return this.inner.fileInfo(absolutePath, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -555,7 +790,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       if (!listed.ok) return listed;
       return ok(listed.value.filter(item => {
         const rel = relative(this.workspaceRoot, item.path).split(sep).join('/');
-        return !isSensitivePath(rel);
+        return !isSensitivePath(rel, this.workspaceRoot);
       }));
     } catch (error) {
       return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
@@ -569,7 +804,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       if (!innerEnv.listFiles) return err(new FileError('not_supported', 'listFiles unavailable'));
       const listed = await innerEnv.listFiles(absolutePath, options, context);
       if (!listed.ok) return listed;
-      const filtered: FileListEntry[] = listed.value.entries.filter((entry: FileListEntry) => !isSensitivePath(entry.path));
+      const filtered: FileListEntry[] = listed.value.entries.filter((entry: FileListEntry) => !isSensitivePath(entry.path, this.workspaceRoot));
       return ok({ entries: filtered, truncated: listed.value.truncated });
     } catch (error) {
       return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
@@ -596,10 +831,40 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async canonicalPath(path: string, context: Context): Promise<Result<string, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('canonicalPath');
+      if (native) {
+        if (!relativePosix) {
+          const verifiedRoot = await native.verifyWorkspacePath({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: '.',
+            expectDirectory: true,
+          });
+          return ok(verifiedRoot.finalPath);
+        }
+        try {
+          const verified = await native.verifyWorkspacePath({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: relativePosix,
+            expectDirectory: false,
+          });
+          return ok(verified.finalPath);
+        } catch (firstErr) {
+          const firstReason = (firstErr as { reasonCode?: unknown })?.reasonCode;
+          if (firstReason === 'is-directory') {
+            const verifiedDir = await native.verifyWorkspacePath({
+              workspaceRoot: this.workspaceRoot,
+              relativePath: relativePosix,
+              expectDirectory: true,
+            });
+            return ok(verifiedDir.finalPath);
+          }
+          throw firstErr;
+        }
+      }
       return this.inner.canonicalPath(absolutePath, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -626,6 +891,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   async remove(path: string, options: { recursive?: boolean; force?: boolean } | undefined, _context: Context): Promise<Result<void, FileError>> {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('remove');
       if (this.authorizeSideEffect) {
         await this.authorizeSideEffect({
           actionKind: 'file_delete',
@@ -637,8 +903,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
         const snapshotId = randomUUID();
         const snapshotPath = join(this.snapshotDir, `${snapshotId}.bak`);
-        if (this.nativeHost && !options?.recursive) {
-          const del = await this.nativeHost.secureDeleteFile({
+        if (native && !options?.recursive) {
+          const del = await native.secureDeleteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: relativePosix,
             snapshotPath,
@@ -654,7 +920,16 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             afterSha256: null,
             createdAt: Date.now(),
           });
+          await this.persistIndex();
         } else {
+          if (native && options?.recursive) {
+            // Verify target directory is strictly inside canonical workspace with no reparse points before recursive rm.
+            await native.verifyWorkspacePath({
+              workspaceRoot: this.workspaceRoot,
+              relativePath: relativePosix,
+              expectDirectory: true,
+            });
+          }
           try {
             const info = await stat(absolutePath);
             if (info.isFile()) {
@@ -671,6 +946,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
                 afterSha256: null,
                 createdAt: Date.now(),
               });
+              await this.persistIndex();
             }
           } catch {
             // File may already be missing when force=true.
@@ -697,7 +973,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     }
   }
 
-  /** Gate 7: Redirect all temp spill files strictly into `<dataRoot>/spill/` with 2 GiB / 14d LRU. */
+  /** Gate 7: Redirect all temp spill files strictly into `<dataRoot>/spill/` with 2 GiB / 14d recursive LRU. */
   async createTempFile(options: { prefix?: string; suffix?: string } | undefined, _context: Context): Promise<Result<string, FileError>> {
     try {
       await this.enforceSpillQuota();
@@ -714,9 +990,11 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
   /**
    * Gates 1 & 4: Executes an approved shell/process command inside a supervised
    * OS Job Object (Win32) or POSIX process group, enforcing:
-   *   - Explicit dev workspace required for string shell commands
-   *   - inheritEnv: false (strict minimal environment allowlist)
-   *   - .env* secret canary extraction & stdout/stderr redaction wiped on exit
+   *   - Explicit dev workspace required for string shell AND interpreter array commands
+   *   - Fail-closed when native Job Object / process-group host is unavailable on Windows/macOS
+   *   - inheritEnv: false (strict minimal environment allowlist + safe caller subset only)
+   *   - Recursive .env* secret canary extraction & cross-chunk redaction wiped on exit
+   *   - pi-durable timeout is in SECONDS -> converted to ms; uses context.abortSignal
    *   - Workspace write freeze on abort/timeout until ActiveProcesses == 0
    */
   async exec(
@@ -725,19 +1003,32 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     context: Context,
   ): Promise<Result<ShellExecResult, ExecutionError>> {
     const isStringShell = typeof command === 'string';
-    if (isStringShell && !this.explicitDevWorkspace) {
-      return err(new ExecutionError('shell_unavailable', 'Free shell commands are only permitted inside an explicitly bound development workspace.'));
+    if (!isStringShell && command.length === 0) {
+      return err(new ExecutionError('spawn_error', 'Command must not be empty.'));
     }
-    const execCwd = options?.cwd ? resolveSafeWorkspacePath(this.workspaceRoot, options.cwd).absolutePath : this.workspaceRoot;
-    const minimalEnv = buildMinimalShellEnv();
-    // Gate 4 Layer 1: Never inherit parent env; merge only explicit safe caller overrides (never secrets).
-    if (options?.env) {
-      for (const [k, v] of Object.entries(options.env)) {
-        if (typeof v === 'string' && !/^(?:LD_|DYLD_|NODE_OPTIONS|ELECTRON_RUN_AS_NODE)/i.test(k)) {
-          minimalEnv[k] = v;
-        }
-      }
+    const execExeBase = isStringShell ? '' : basename(command[0] ?? '').toLowerCase();
+    if ((isStringShell || INTERPRETER_EXECUTABLES.has(execExeBase)) && !this.explicitDevWorkspace) {
+      return err(new ExecutionError('shell_unavailable', 'Free shell and interpreter commands are only permitted inside an explicitly bound development workspace.'));
     }
+
+    let native: NimiElectronHarnessSecurityHost | null;
+    try {
+      native = this.requireNativeHostOrFailClosed('exec');
+    } catch (error) {
+      return err(new ExecutionError('shell_unavailable', error instanceof Error ? error.message : String(error)));
+    }
+
+    let execCwd: string;
+    try {
+      execCwd = options?.cwd ? resolveSafeWorkspacePath(this.workspaceRoot, options.cwd).absolutePath : this.workspaceRoot;
+    } catch (error) {
+      return err(new ExecutionError('spawn_error', error instanceof Error ? error.message : String(error)));
+    }
+
+    const minimalEnv: Record<string, string> = {
+      ...buildMinimalShellEnv(),
+      ...filterSafeCallerEnvOverrides(options?.env),
+    };
 
     const commandSummary = isStringShell ? command : command.join(' ');
     if (this.authorizeSideEffect) {
@@ -752,19 +1043,31 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       }
     }
 
-    // Gate 4 Layer 3: Extract .env* canary secrets strictly in memory; wipe in finally!
+    // Gate 4 Layer 3: Extract recursive .env* canary secrets strictly in memory; wipe in finally!
     const canarySecrets = await extractWorkspaceEnvCanarySecrets(this.workspaceRoot);
-    const timeoutMs = Math.max(100, Math.min(options?.timeout ?? 120_000, 600_000));
+    // pi-durable ShellExecOptions.timeout is specified in SECONDS (convert to ms cleanly!).
+    const timeoutSeconds = typeof options?.timeout === 'number' && Number.isFinite(options.timeout) && options.timeout > 0
+      ? options.timeout
+      : 120;
+    const timeoutMs = Math.max(100, Math.min(Math.round(timeoutSeconds * 1000), 600_000));
 
     try {
       const { executable, args } = isStringShell
         ? (process.platform === 'win32'
-          ? { executable: 'powershell.exe', args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${command}`] }
+          ? {
+            executable: resolveWindowsPowerShellAbsolutePath(),
+            args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${command}`],
+          }
           : { executable: '/bin/sh', args: ['-c', command] })
-        : { executable: command[0], args: command.slice(1) };
+        : {
+          executable: process.platform === 'win32' && /^(?:powershell(?:\.exe)?)$/i.test(command[0] ?? '')
+            ? resolveWindowsPowerShellAbsolutePath()
+            : command[0],
+          args: command.slice(1),
+        };
 
-      if (this.nativeHost) {
-        const spawned = await this.nativeHost.spawnJobProcess({
+      if (native) {
+        const spawned = await native.spawnJobProcess({
           executable,
           args,
           workingDirectory: execCwd,
@@ -777,17 +1080,21 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         const onAbort = () => {
           aborted = true;
           this.coordinator.freezeWorkspace(this.workspaceRoot);
-          void this.nativeHost!.killJobProcess({ jobId: spawned.jobId }).then(k => {
+          void native!.killJobProcess({ jobId: spawned.jobId }).then(k => {
             if (k.activeProcessesRemaining === 0) {
               this.coordinator.unfreezeWorkspace(this.workspaceRoot);
             }
           }).catch(() => {});
         };
-        const abortSignal = (context as { signal?: AbortSignal })?.signal;
-        abortSignal?.addEventListener('abort', onAbort, { once: true });
+        const abortSignal = extractContextAbortSignal(context);
+        if (abortSignal?.aborted) {
+          onAbort();
+        } else {
+          abortSignal?.addEventListener('abort', onAbort, { once: true });
+        }
         try {
-          const result = await this.nativeHost.waitJobProcess({ jobId: spawned.jobId, timeoutMs });
-          if (result.timedOut || result.killed) {
+          const result = await native.waitJobProcess({ jobId: spawned.jobId, timeoutMs });
+          if (result.timedOut || result.killed || result.activeProcessesRemaining > 0) {
             this.coordinator.freezeWorkspace(this.workspaceRoot);
             if (result.activeProcessesRemaining === 0) {
               this.coordinator.unfreezeWorkspace(this.workspaceRoot);
@@ -796,19 +1103,28 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           const cleanStdout = redactCanarySecrets(result.stdoutUtf8, canarySecrets);
           const cleanStderr = redactCanarySecrets(result.stderrUtf8, canarySecrets);
           let spillPath: string | undefined;
-          const totalBytes = Buffer.byteLength(cleanStdout, 'utf8') + Buffer.byteLength(cleanStderr, 'utf8');
+          const combinedText = cleanStdout + (cleanStderr ? `\n${cleanStderr}` : '');
+          const totalBytes = Buffer.byteLength(combinedText, 'utf8');
           if (options?.spill && totalBytes > options.spill.afterBytes) {
+            await this.enforceSpillQuota(totalBytes);
             const temp = await this.createTempFile({ prefix: 'exec-', suffix: '.log' }, context);
             if (temp.ok) {
-              await writeFile(temp.value, cleanStdout + (cleanStderr ? `\n${cleanStderr}` : ''), 'utf8');
+              await writeFile(temp.value, combinedText, { encoding: 'utf8', mode: 0o600 });
+              await this.enforceSpillQuota();
               spillPath = temp.value;
             }
           }
           if (cleanStdout && options?.onOutput) {
-            options.onOutput(cleanStdout.slice(0, MAX_CONTROL_FRAME_BYTES), context, { stream: 'stdout' });
+            options.onOutput(truncateUtf8Bytes(cleanStdout, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stdout' });
           }
           if (cleanStderr && options?.onOutput) {
-            options.onOutput(cleanStderr.slice(0, MAX_CONTROL_FRAME_BYTES), context, { stream: 'stderr' });
+            options.onOutput(truncateUtf8Bytes(cleanStderr, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stderr' });
+          }
+          if (result.activeProcessesRemaining > 0) {
+            return err(new ExecutionError(
+              'timeout',
+              `Workspace writes remain frozen: ${result.activeProcessesRemaining} child process(es) did not terminate.`,
+            ));
           }
           if (aborted) return err(new ExecutionError('aborted', 'Command aborted and process tree terminated.'));
           if (result.timedOut) {
@@ -823,7 +1139,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         }
       }
 
-      // Non-Windows POSIX process-group fallback with inheritEnv: false + canary redaction.
+      // Test-only / Linux POSIX process-group path with streaming cross-chunk canary redaction.
       return await new Promise<Result<ShellExecResult, ExecutionError>>(resolvePromise => {
         const child = spawn(executable, args, {
           cwd: execCwd,
@@ -831,44 +1147,70 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           detached: process.platform !== 'win32',
           stdio: ['ignore', 'pipe', 'pipe'],
         });
+        const stdoutRedactor = new StreamingCanaryRedactor(canarySecrets);
+        const stderrRedactor = new StreamingCanaryRedactor(canarySecrets);
         let stdout = '';
         let stderr = '';
         let settled = false;
-        const finish = (res: Result<ShellExecResult, ExecutionError>) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          resolvePromise(res);
-        };
+        const abortSignal = extractContextAbortSignal(context);
         const killTree = () => {
           try {
             if (child.pid && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL');
             else child.kill('SIGKILL');
           } catch { /* already exited */ }
         };
+        const finish = (res: Result<ShellExecResult, ExecutionError>) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          abortSignal?.removeEventListener('abort', onAbort);
+          resolvePromise(res);
+        };
+        const onAbort = () => {
+          killTree();
+          finish(err(new ExecutionError('aborted', 'Command aborted and process tree terminated.')));
+        };
+        abortSignal?.addEventListener('abort', onAbort, { once: true });
         const timer = setTimeout(() => {
           killTree();
           finish(err(new ExecutionError('timeout', `Command timed out after ${timeoutMs}ms.`)));
         }, timeoutMs);
         child.stdout?.on('data', (chunk: Buffer) => {
-          const text = redactCanarySecrets(new TextDecoder('utf-8', { fatal: false }).decode(chunk), canarySecrets);
-          stdout += text;
-          options?.onOutput?.(text.slice(0, MAX_CONTROL_FRAME_BYTES), context, { stream: 'stdout' });
+          const piece = stdoutRedactor.push(new TextDecoder('utf-8', { fatal: false }).decode(chunk));
+          if (piece) {
+            stdout += piece;
+            options?.onOutput?.(truncateUtf8Bytes(piece, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stdout' });
+          }
         });
         child.stderr?.on('data', (chunk: Buffer) => {
-          const text = redactCanarySecrets(new TextDecoder('utf-8', { fatal: false }).decode(chunk), canarySecrets);
-          stderr += text;
-          options?.onOutput?.(text.slice(0, MAX_CONTROL_FRAME_BYTES), context, { stream: 'stderr' });
+          const piece = stderrRedactor.push(new TextDecoder('utf-8', { fatal: false }).decode(chunk));
+          if (piece) {
+            stderr += piece;
+            options?.onOutput?.(truncateUtf8Bytes(piece, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stderr' });
+          }
         });
         child.on('error', e => finish(err(new ExecutionError('spawn_error', e.message, e))));
         child.on('close', code => {
+          const tailOut = stdoutRedactor.flush();
+          if (tailOut) {
+            stdout += tailOut;
+            options?.onOutput?.(truncateUtf8Bytes(tailOut, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stdout' });
+          }
+          const tailErr = stderrRedactor.flush();
+          if (tailErr) {
+            stderr += tailErr;
+            options?.onOutput?.(truncateUtf8Bytes(tailErr, MAX_CONTROL_FRAME_BYTES, true), context, { stream: 'stderr' });
+          }
           void (async () => {
             let spillPath: string | undefined;
-            const totalBytes = Buffer.byteLength(stdout, 'utf8') + Buffer.byteLength(stderr, 'utf8');
+            const combinedText = stdout + (stderr ? `\n${stderr}` : '');
+            const totalBytes = Buffer.byteLength(combinedText, 'utf8');
             if (options?.spill && totalBytes > options.spill.afterBytes) {
+              await this.enforceSpillQuota(totalBytes);
               const temp = await this.createTempFile({ prefix: 'exec-', suffix: '.log' }, context);
               if (temp.ok) {
-                await writeFile(temp.value, stdout + (stderr ? `\n${stderr}` : ''), 'utf8');
+                await writeFile(temp.value, combinedText, { encoding: 'utf8', mode: 0o600 });
+                await this.enforceSpillQuota();
                 spillPath = temp.value;
               }
             }
@@ -877,7 +1219,6 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         });
       });
     } finally {
-      // Wipe in-memory canary secret patterns immediately upon process completion!
       canarySecrets.fill('');
       canarySecrets.length = 0;
     }

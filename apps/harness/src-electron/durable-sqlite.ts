@@ -1,7 +1,7 @@
 // Durable WAL + synchronous=FULL SQLite opener for apps/harness (pi-durable@1.6.0).
 // Explicitly verifies PRAGMA journal_mode == 'wal' and PRAGMA synchronous == 2 (FULL)
 // by readback before handing the database to SqliteStorage.open().
-// @nimi-authority: rule.nimi.harness.assistant.p-harn-002
+// @nimi-authority: rule.nimi.harness.assistant.symbiosis-and-durability
 import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
