@@ -343,6 +343,31 @@ export interface CognitionMemoryRelationshipCommitted {
     boundedFact: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.CognitionMemorySessionPointerCommitted
+ */
+export interface CognitionMemorySessionPointerCommitted {
+    /**
+     * @generated from protobuf field: string work_session_ref = 1
+     */
+    workSessionRef: string;
+    /**
+     * @generated from protobuf field: string scope_tag = 2
+     */
+    scopeTag: string;
+    /**
+     * @generated from protobuf field: string slot_key = 3
+     */
+    slotKey: string;
+    /**
+     * @generated from protobuf field: string topic_summary = 4
+     */
+    topicSummary: string;
+    /**
+     * @generated from protobuf field: string body_kind = 5
+     */
+    bodyKind: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
  */
 export interface CognitionMemoryCommittedEventEnvelope {
@@ -419,6 +444,12 @@ export interface CognitionMemoryCommittedEventEnvelope {
          * @generated from protobuf field: nimi.runtime.v1.CognitionMemoryRelationshipCommitted relationship_committed = 24
          */
         relationshipCommitted: CognitionMemoryRelationshipCommitted;
+    } | {
+        oneofKind: "sessionPointerCommitted";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.CognitionMemorySessionPointerCommitted session_pointer_committed = 25
+         */
+        sessionPointerCommitted: CognitionMemorySessionPointerCommitted;
     } | {
         oneofKind: undefined;
     };
@@ -585,6 +616,14 @@ export interface CognitionMemoryHit {
      * @generated from protobuf field: string source_explanation = 10
      */
     sourceExplanation: string;
+    /**
+     * @generated from protobuf field: string scope_tag = 11
+     */
+    scopeTag: string;
+    /**
+     * @generated from protobuf field: string slot_key = 12
+     */
+    slotKey: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CognitionMemoryRecallRequest
@@ -626,6 +665,10 @@ export interface CognitionMemoryRecallRequest {
      * @generated from protobuf field: bool include_recent_life = 9
      */
     includeRecentLife: boolean;
+    /**
+     * @generated from protobuf field: repeated string scope_tags = 10
+     */
+    scopeTags: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CognitionMemoryRecallResponse
@@ -948,6 +991,14 @@ export interface AgentMemoryItem {
      * @generated from protobuf field: string source_explanation = 7
      */
     sourceExplanation: string;
+    /**
+     * @generated from protobuf field: string scope_tag = 8
+     */
+    scopeTag: string;
+    /**
+     * @generated from protobuf field: string slot_key = 9
+     */
+    slotKey: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentMemoryProjection
@@ -2650,6 +2701,85 @@ class CognitionMemoryRelationshipCommitted$Type extends MessageType<CognitionMem
  */
 export const CognitionMemoryRelationshipCommitted = new CognitionMemoryRelationshipCommitted$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class CognitionMemorySessionPointerCommitted$Type extends MessageType<CognitionMemorySessionPointerCommitted> {
+    constructor() {
+        super("nimi.runtime.v1.CognitionMemorySessionPointerCommitted", [
+            { no: 1, name: "work_session_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "scope_tag", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "slot_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "topic_summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "body_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CognitionMemorySessionPointerCommitted>): CognitionMemorySessionPointerCommitted {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.workSessionRef = "";
+        message.scopeTag = "";
+        message.slotKey = "";
+        message.topicSummary = "";
+        message.bodyKind = "";
+        if (value !== undefined)
+            reflectionMergePartial<CognitionMemorySessionPointerCommitted>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CognitionMemorySessionPointerCommitted): CognitionMemorySessionPointerCommitted {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string work_session_ref */ 1:
+                    message.workSessionRef = reader.string();
+                    break;
+                case /* string scope_tag */ 2:
+                    message.scopeTag = reader.string();
+                    break;
+                case /* string slot_key */ 3:
+                    message.slotKey = reader.string();
+                    break;
+                case /* string topic_summary */ 4:
+                    message.topicSummary = reader.string();
+                    break;
+                case /* string body_kind */ 5:
+                    message.bodyKind = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CognitionMemorySessionPointerCommitted, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string work_session_ref = 1; */
+        if (message.workSessionRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.workSessionRef);
+        /* string scope_tag = 2; */
+        if (message.scopeTag !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.scopeTag);
+        /* string slot_key = 3; */
+        if (message.slotKey !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.slotKey);
+        /* string topic_summary = 4; */
+        if (message.topicSummary !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.topicSummary);
+        /* string body_kind = 5; */
+        if (message.bodyKind !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.bodyKind);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CognitionMemorySessionPointerCommitted
+ */
+export const CognitionMemorySessionPointerCommitted = new CognitionMemorySessionPointerCommitted$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class CognitionMemoryCommittedEventEnvelope$Type extends MessageType<CognitionMemoryCommittedEventEnvelope> {
     constructor() {
         super("nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope", [
@@ -2667,7 +2797,8 @@ class CognitionMemoryCommittedEventEnvelope$Type extends MessageType<CognitionMe
             { no: 21, name: "turn_terminal", kind: "message", oneof: "fact", T: () => CognitionMemoryTurnTerminal },
             { no: 22, name: "activity_terminal", kind: "message", oneof: "fact", T: () => CognitionMemoryActivityTerminal },
             { no: 23, name: "correction_committed", kind: "message", oneof: "fact", T: () => CognitionMemoryCorrectionCommitted },
-            { no: 24, name: "relationship_committed", kind: "message", oneof: "fact", T: () => CognitionMemoryRelationshipCommitted }
+            { no: 24, name: "relationship_committed", kind: "message", oneof: "fact", T: () => CognitionMemoryRelationshipCommitted },
+            { no: 25, name: "session_pointer_committed", kind: "message", oneof: "fact", T: () => CognitionMemorySessionPointerCommitted }
         ]);
     }
     create(value?: PartialMessage<CognitionMemoryCommittedEventEnvelope>): CognitionMemoryCommittedEventEnvelope {
@@ -2746,6 +2877,12 @@ class CognitionMemoryCommittedEventEnvelope$Type extends MessageType<CognitionMe
                         relationshipCommitted: CognitionMemoryRelationshipCommitted.internalBinaryRead(reader, reader.uint32(), options, (message.fact as any).relationshipCommitted)
                     };
                     break;
+                case /* nimi.runtime.v1.CognitionMemorySessionPointerCommitted session_pointer_committed */ 25:
+                    message.fact = {
+                        oneofKind: "sessionPointerCommitted",
+                        sessionPointerCommitted: CognitionMemorySessionPointerCommitted.internalBinaryRead(reader, reader.uint32(), options, (message.fact as any).sessionPointerCommitted)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2803,6 +2940,9 @@ class CognitionMemoryCommittedEventEnvelope$Type extends MessageType<CognitionMe
         /* nimi.runtime.v1.CognitionMemoryRelationshipCommitted relationship_committed = 24; */
         if (message.fact.oneofKind === "relationshipCommitted")
             CognitionMemoryRelationshipCommitted.internalBinaryWrite(message.fact.relationshipCommitted, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.CognitionMemorySessionPointerCommitted session_pointer_committed = 25; */
+        if (message.fact.oneofKind === "sessionPointerCommitted")
+            CognitionMemorySessionPointerCommitted.internalBinaryWrite(message.fact.sessionPointerCommitted, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3225,7 +3365,9 @@ class CognitionMemoryHit$Type extends MessageType<CognitionMemoryHit> {
             { no: 7, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 8, name: "subjects", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CognitionMemorySubjectRef },
             { no: 9, name: "sources", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CognitionMemorySourceRef },
-            { no: 10, name: "source_explanation", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "source_explanation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "scope_tag", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "slot_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CognitionMemoryHit>): CognitionMemoryHit {
@@ -3236,6 +3378,8 @@ class CognitionMemoryHit$Type extends MessageType<CognitionMemoryHit> {
         message.subjects = [];
         message.sources = [];
         message.sourceExplanation = "";
+        message.scopeTag = "";
+        message.slotKey = "";
         if (value !== undefined)
             reflectionMergePartial<CognitionMemoryHit>(this, message, value);
         return message;
@@ -3274,6 +3418,12 @@ class CognitionMemoryHit$Type extends MessageType<CognitionMemoryHit> {
                     break;
                 case /* string source_explanation */ 10:
                     message.sourceExplanation = reader.string();
+                    break;
+                case /* string scope_tag */ 11:
+                    message.scopeTag = reader.string();
+                    break;
+                case /* string slot_key */ 12:
+                    message.slotKey = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3317,6 +3467,12 @@ class CognitionMemoryHit$Type extends MessageType<CognitionMemoryHit> {
         /* string source_explanation = 10; */
         if (message.sourceExplanation !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.sourceExplanation);
+        /* string scope_tag = 11; */
+        if (message.scopeTag !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.scopeTag);
+        /* string slot_key = 12; */
+        if (message.slotKey !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.slotKey);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3339,7 +3495,8 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
             { no: 6, name: "subject_scope", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CognitionMemorySubjectRef },
             { no: 7, name: "limit", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 8, name: "capabilities", kind: "message", T: () => CognitionMemoryCapabilitySnapshot },
-            { no: 9, name: "include_recent_life", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 9, name: "include_recent_life", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "scope_tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CognitionMemoryRecallRequest>): CognitionMemoryRecallRequest {
@@ -3349,6 +3506,7 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
         message.subjectScope = [];
         message.limit = 0;
         message.includeRecentLife = false;
+        message.scopeTags = [];
         if (value !== undefined)
             reflectionMergePartial<CognitionMemoryRecallRequest>(this, message, value);
         return message;
@@ -3384,6 +3542,9 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
                     break;
                 case /* bool include_recent_life */ 9:
                     message.includeRecentLife = reader.bool();
+                    break;
+                case /* repeated string scope_tags */ 10:
+                    message.scopeTags.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3424,6 +3585,9 @@ class CognitionMemoryRecallRequest$Type extends MessageType<CognitionMemoryRecal
         /* bool include_recent_life = 9; */
         if (message.includeRecentLife !== false)
             writer.tag(9, WireType.Varint).bool(message.includeRecentLife);
+        /* repeated string scope_tags = 10; */
+        for (let i = 0; i < message.scopeTags.length; i++)
+            writer.tag(10, WireType.LengthDelimited).string(message.scopeTags[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4384,7 +4548,9 @@ class AgentMemoryItem$Type extends MessageType<AgentMemoryItem> {
             { no: 4, name: "lifecycle", kind: "enum", T: () => ["nimi.runtime.v1.CognitionMemoryLifecycle", CognitionMemoryLifecycle, "COGNITION_MEMORY_LIFECYCLE_"] },
             { no: 5, name: "occurred_at", kind: "message", T: () => Timestamp },
             { no: 6, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 7, name: "source_explanation", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "source_explanation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "scope_tag", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "slot_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentMemoryItem>): AgentMemoryItem {
@@ -4394,6 +4560,8 @@ class AgentMemoryItem$Type extends MessageType<AgentMemoryItem> {
         message.epistemicStatus = 0;
         message.lifecycle = 0;
         message.sourceExplanation = "";
+        message.scopeTag = "";
+        message.slotKey = "";
         if (value !== undefined)
             reflectionMergePartial<AgentMemoryItem>(this, message, value);
         return message;
@@ -4423,6 +4591,12 @@ class AgentMemoryItem$Type extends MessageType<AgentMemoryItem> {
                     break;
                 case /* string source_explanation */ 7:
                     message.sourceExplanation = reader.string();
+                    break;
+                case /* string scope_tag */ 8:
+                    message.scopeTag = reader.string();
+                    break;
+                case /* string slot_key */ 9:
+                    message.slotKey = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4457,6 +4631,12 @@ class AgentMemoryItem$Type extends MessageType<AgentMemoryItem> {
         /* string source_explanation = 7; */
         if (message.sourceExplanation !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.sourceExplanation);
+        /* string scope_tag = 8; */
+        if (message.scopeTag !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.scopeTag);
+        /* string slot_key = 9; */
+        if (message.slotKey !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.slotKey);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

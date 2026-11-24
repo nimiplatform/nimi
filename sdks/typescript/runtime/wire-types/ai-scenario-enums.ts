@@ -69,11 +69,41 @@ export enum AiVideoPixelFormat {
   RGB8 = 1,
 }
 
+export enum AlarmDeliveryReceiptState {
+  UNSPECIFIED = 0,
+  PENDING = 1,
+  REJECTED = 2,
+  PROVIDER_ACCEPTED = 3,
+  EFFECT_UNKNOWN = 4,
+}
+
+export enum AlarmKind {
+  UNSPECIFIED = 0,
+  AT = 1,
+  DELAY = 2,
+  CRON = 3,
+  APP_DELEGATION = 4,
+}
+
 export enum AudioInstrumentPartKind {
   UNSPECIFIED = 0,
   DRUMS = 1,
   BASS = 2,
   OTHER = 3,
+}
+
+export enum BodyOutboxCommandKind {
+  UNSPECIFIED = 0,
+  NEW_INTENT = 1,
+  INVALIDATE_MEMORY = 2,
+  PURGE_SESSION = 3,
+  PURGE_AGENT = 4,
+}
+
+export enum BodyStepPurpose {
+  UNSPECIFIED = 0,
+  INFERENCE = 1,
+  COMPACTION = 2,
 }
 
 export enum CanonicalChannelMode {
@@ -438,6 +468,13 @@ export enum ResponseFormatKind {
   TEXT = 1,
   JSON_OBJECT = 2,
   JSON_SCHEMA = 3,
+}
+
+export enum RouteAndSubmitOutcome {
+  UNSPECIFIED = 0,
+  ACCEPTED = 1,
+  AMBIGUOUS_CANDIDATES = 2,
+  DEFERRED_BODY_OFFLINE = 3,
 }
 
 export enum RoutePolicy {

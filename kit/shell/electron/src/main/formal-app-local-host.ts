@@ -54,18 +54,18 @@ import {
 import type { NimiElectronAppActivityOpenLaunchTarget, RuntimeGrpcBridgeStream } from './types.js';
 import { takeElectronLocalAppCommandClosers } from './local-app-commands.js';
 
-type FormalAppProfile = 'desktop' | 'avatar' | 'zhiyu';
+type FormalAppProfile = 'desktop' | 'avatar' | 'zhiyu' | 'harness';
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
 /** Installed Home main only; the native carrier verifies the actual Home process.
  * App declarations and sessions remain Runtime-owned. */
 export function createNimiElectronBundledAppLocalHostOwner(input: {
-  readonly appId: 'nimi.avatar' | 'nimi.zhiyu';
+  readonly appId: 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
   readonly revealInOs?: (path: string) => Promise<void> | void;
 }): Pick<NimiElectronFormalAppLocalHostOwner, 'host' | 'shutdown'> {
   const owner = createNimiElectronFormalAppLocalHostOwner({
     ...input,
-    profile: input.appId === 'nimi.avatar' ? 'avatar' : 'zhiyu',
+    profile: input.appId === 'nimi.avatar' ? 'avatar' : input.appId === 'nimi.harness' ? 'harness' : 'zhiyu',
     control: createNimiElectronDesktopControlHost(),
   });
   return { host: owner.host, shutdown: () => owner.shutdown() };
@@ -124,7 +124,7 @@ export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
 // commands as every ordinary App. The profile transport never becomes a
 // renderer Runtime proxy or a second product client.
 export function createNimiElectronFormalAppLocalHost(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -133,7 +133,7 @@ export function createNimiElectronFormalAppLocalHost(input: {
 }
 
 export function createNimiElectronFormalAppLocalHostOwner(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -183,6 +183,12 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   const ai = createNimiLocalAppAIConsumptionRuntimeClient(runtime);
   const aiConfig = createNimiLocalAppAIConfigRuntimeClient({ appId: input.appId, runtime });
   const pullStreams = new Map<string, PullStream>();
+  const agentSessionStreams = new Map<string, {
+    readonly queue: Array<{ readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }>;
+    readonly waiters: Array<(item: { readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }) => void>;
+    readonly cancel: () => void;
+    closed: boolean;
+  }>();
   const assetReads = new Map<string, FormalAssetRead>();
   const assetWrites = new Map<string, FormalAssetWrite>();
   const voiceTranscriptions = new Map<string, AbortController>();
@@ -246,6 +252,14 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       // this final owner cleanup for a concurrent close that had already left
       // its scope but had not yet removed the underlying Runtime resource.
       const streams = [...pullStreams.entries()];
+      for (const [id, stream] of [...agentSessionStreams.entries()]) {
+        stream.closed = true;
+        agentSessionStreams.delete(id);
+        stream.cancel();
+        while (stream.waiters.length > 0) {
+          stream.waiters.shift()?.({ done: true });
+        }
+      }
       const reads = [...assetReads.values()];
       assetReads.clear();
       assetWrites.clear();
@@ -1229,6 +1243,104 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     agentMemoryForget: (record) => configure.memory.forget(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentMemorySwitch: (record) => configure.memory.setEnabled(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentMemoryDelete: (record) => configure.memory.deleteAll(record as never) as Promise<NimiElectronLocalAppRecord>,
+    async agentSessionUnary(req) {
+      if (!req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
+        throw new NimiElectronLocalAppHostError('local-app-operation-unsupported', false);
+      }
+      const profile = input.profile;
+      const invoke = profile !== 'desktop'
+        ? () => input.control.bundledAppUnary({
+            appId: bundledAppIdForProfile(profile),
+            methodId: req.methodId,
+            requestBytes: req.requestBytes,
+            timeoutMs: req.timeoutMs,
+          })
+        : () => input.control.accountProductUnary({
+            methodId: req.methodId,
+            requestBytes: req.requestBytes,
+            timeoutMs: req.timeoutMs,
+          });
+      return trackOperation(invoke);
+    },
+    async agentSessionStreamOpen(req) {
+      if (!req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
+        throw new NimiElectronLocalAppHostError('local-app-operation-unsupported', false);
+      }
+      const raw = input.profile !== 'desktop'
+        ? input.control.bundledAppServerStream({
+            appId: bundledAppIdForProfile(input.profile),
+            methodId: req.methodId,
+            requestBytes: req.requestBytes,
+            timeoutMs: req.timeoutMs,
+          })
+        : input.control.accountProductServerStream({
+            methodId: req.methodId,
+            requestBytes: req.requestBytes,
+            timeoutMs: req.timeoutMs,
+          });
+      trackStream(raw);
+      const streamId = `formal-agent-session-${++streamSequence}`;
+      const state: {
+        readonly queue: Array<{ readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }>;
+        readonly waiters: Array<(item: { readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }) => void>;
+        readonly cancel: () => void;
+        closed: boolean;
+      } = {
+        queue: [],
+        waiters: [],
+        cancel: () => raw.cancel(),
+        closed: false,
+      };
+      const push = (item: { readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }) => {
+        if (state.waiters.length > 0) {
+          state.waiters.shift()?.(item);
+        } else {
+          state.queue.push(item);
+        }
+      };
+      agentSessionStreams.set(streamId, state);
+      raw.start({
+        onData: (chunk) => push({ done: false, chunk }),
+        onEnd: () => {
+          state.closed = true;
+          push({ done: true });
+        },
+        onError: (error) => {
+          state.closed = true;
+          push({ error });
+        },
+      });
+      return { streamId };
+    },
+    async agentSessionStreamNext(req) {
+      const state = agentSessionStreams.get(req.streamId);
+      if (!state) throw new NimiElectronLocalAppHostError('not-found', false);
+      const item = state.queue.length > 0
+        ? state.queue.shift()!
+        : await new Promise<{ readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }>((resolve) => {
+            state.waiters.push(resolve);
+          });
+      if ('error' in item) {
+        agentSessionStreams.delete(req.streamId);
+        throw item.error;
+      }
+      if (item.done) {
+        agentSessionStreams.delete(req.streamId);
+        return { completed: true };
+      }
+      return { completed: false, chunk: item.chunk };
+    },
+    async agentSessionStreamClose(req) {
+      const state = agentSessionStreams.get(req.streamId);
+      if (!state) return { closed: false };
+      state.closed = true;
+      agentSessionStreams.delete(req.streamId);
+      state.cancel();
+      while (state.waiters.length > 0) {
+        state.waiters.shift()?.({ done: true });
+      }
+      return { closed: true };
+    },
   };
 
   // @nimi-authority: rule.nimi.runtime.agent-participation.r197
@@ -1811,6 +1923,14 @@ function isFormalSessionInvalid(error: unknown): error is NimiElectronLocalAppHo
   ].includes(error.reasonCode);
 }
 
+function bundledAppIdForProfile(
+  profile: Exclude<FormalAppProfile, 'desktop'>,
+): 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness' {
+  if (profile === 'avatar') return 'nimi.avatar';
+  if (profile === 'harness') return 'nimi.harness';
+  return 'nimi.zhiyu';
+}
+
 function profileTransport(
   control: NimiElectronDesktopControlHost,
   profile: FormalAppProfile,
@@ -1819,10 +1939,10 @@ function profileTransport(
   trackStream: FormalStreamTracker,
 ): Parameters<typeof createNimiHostRuntimeTypedClient>[0] {
   const unary = profile !== 'desktop'
-    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductUnary']>[0]) => control.bundledAppUnary({ ...request, appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu' })
+    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductUnary']>[0]) => control.bundledAppUnary({ ...request, appId: bundledAppIdForProfile(profile) })
     : (request: Parameters<NimiElectronDesktopControlHost['accountProductUnary']>[0]) => control.accountProductUnary(request);
   const serverStream = profile !== 'desktop'
-    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.bundledAppServerStream({ ...request, appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu' })
+    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.bundledAppServerStream({ ...request, appId: bundledAppIdForProfile(profile) })
     : (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.accountProductServerStream(request);
   return {
     async unary(request) {
@@ -1910,7 +2030,7 @@ async function writeFormalAsset(
   const codec = getRuntimeWireCodec(methodId);
   const requestFrames = frames.map((frame) => codec.encodeRequest(frame));
   const response = profile !== 'desktop'
-    ? await control.bundledAppClientStream({ appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu', methodId, requestFrames, timeoutMs: 120_000 })
+    ? await control.bundledAppClientStream({ appId: bundledAppIdForProfile(profile), methodId, requestFrames, timeoutMs: 120_000 })
     : await control.accountProductClientStream({ methodId, requestFrames, timeoutMs: 120_000 });
   return codec.decodeResponse(response) as WriteLocalAppAssetResponse;
 }

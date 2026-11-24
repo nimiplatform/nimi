@@ -26,6 +26,12 @@ use std::pin::Pin;
 pub enum LocalAppReasonCode {
     AgentBusy,
     AgentTurnNotActive,
+    AgentSessionNotFound,
+    AgentSessionConflict,
+    AgentSessionLedgerInvalid,
+    AgentSessionMemoryInvalidated,
+    AgentBodyLeaseConflict,
+    AgentAlarmBudgetExceeded,
     ActionExecuted,
     ProtectedCarrierRequired,
     RuntimeServiceUnavailable,
@@ -164,6 +170,12 @@ impl LocalAppReasonCode {
         match self {
             Self::AgentBusy => "agent-busy",
             Self::AgentTurnNotActive => "agent-turn-not-active",
+            Self::AgentSessionNotFound => "agent-session-not-found",
+            Self::AgentSessionConflict => "agent-session-conflict",
+            Self::AgentSessionLedgerInvalid => "agent-session-ledger-invalid",
+            Self::AgentSessionMemoryInvalidated => "agent-session-memory-invalidated",
+            Self::AgentBodyLeaseConflict => "agent-body-lease-conflict",
+            Self::AgentAlarmBudgetExceeded => "agent-alarm-budget-exceeded",
             Self::ActionExecuted => "action-executed",
             Self::ProtectedCarrierRequired => "protected-carrier-required",
             Self::RuntimeServiceUnavailable => "runtime-service-unavailable",
@@ -2619,7 +2631,34 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
         request: LocalAppAgentMemoryDeleteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_session_unary(
+        &self,
+        request: LocalAppAgentSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_session_stream(
+        &self,
+        request: LocalAppAgentSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppAgentSessionStreamReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalAppAgentSessionRequest {
+    pub method_id: String,
+    pub request_bytes: Vec<u8>,
+    pub timeout: Option<std::time::Duration>,
+}
+
+pub type LocalAppAgentSessionStreamReceiver =
+    tokio::sync::mpsc::Receiver<Result<Vec<u8>, LocalAppOperationError>>;
 
 pub type LocalAppSessionFuture<'a> = Pin<
     Box<

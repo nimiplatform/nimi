@@ -28,6 +28,7 @@ import { createRuntimeElectronIpcTransport, type RuntimeElectronIpcTransportOpti
 import {
   RUNTIME_ACCOUNT_METHODS,
   RUNTIME_AGENT_METHODS,
+  RUNTIME_AGENT_SESSION_METHODS,
   RUNTIME_AI_METHODS,
   RUNTIME_APP_MESSAGE_METHODS,
   RUNTIME_ARTIFACT_METHODS,
@@ -42,6 +43,7 @@ import {
   RUNTIME_SCHEDULING_METHODS,
   type RuntimeAccountModule,
   type RuntimeAgentModule,
+  type RuntimeAgentSessionModule,
   type RuntimeAiModule,
   type RuntimeAppMessageModule,
   type RuntimeArtifactModule,
@@ -76,6 +78,7 @@ export type { CoreTransport, CoreClientOptions };
 export {
   RUNTIME_ACCOUNT_METHODS,
   RUNTIME_AGENT_METHODS,
+  RUNTIME_AGENT_SESSION_METHODS,
   RUNTIME_AI_METHODS,
   RUNTIME_APP_MESSAGE_METHODS,
   RUNTIME_ARTIFACT_METHODS,
@@ -92,6 +95,7 @@ export {
 export type {
   RuntimeAccountModule,
   RuntimeAgentModule,
+  RuntimeAgentSessionModule,
   RuntimeAiModule,
   RuntimeAppMessageModule,
   RuntimeArtifactModule,

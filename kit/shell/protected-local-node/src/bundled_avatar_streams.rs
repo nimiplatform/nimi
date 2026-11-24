@@ -31,7 +31,7 @@ enum StreamSlot {
     Open(SharedStream),
 }
 type Registry = HashMap<String, StreamSlot>;
-const MAX_BUNDLED_AVATAR_STREAMS: usize = 8;
+const MAX_BUNDLED_AVATAR_STREAMS: usize = 24;
 static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 

@@ -154,6 +154,39 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: AppOperationIDAppActivityOpen, class: AuthorityClassAppAccess, domain: "app.activity"},
 		{id: AppOperationIDAppActivityOpenRequestSubscribe, class: AuthorityClassAppAccess, domain: "app.activity"},
 		{id: AppOperationIDAppActivityOpenRequestComplete, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAgentSessionRouteSubmit, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionSplitRedirect, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionGet, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionList, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionUpdate, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionDelete, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionOverviewWatch, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionBrainEventsSubscribe, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentSessionBrainTurnStop, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDAgentBodyPCRegister, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCHeartbeat, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCUnregister, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCOutboxSubscribe, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCOutboxAck, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCSideEffectAuthorize, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCStepStream, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyPCProjectionReport, class: AuthorityClassAppAccess, domain: "agent.body.pc"},
+		{id: AppOperationIDAgentBodyAppRegister, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppHeartbeat, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppUnregister, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppOutboxSubscribe, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppOutboxAck, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppSideEffectAuthorize, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppProjectionReport, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentTriggerAlarmCreate, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
+		{id: AppOperationIDAgentTriggerAlarmList, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
+		{id: AppOperationIDAgentTriggerAlarmUpdate, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
+		{id: AppOperationIDAgentTriggerAlarmDelete, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
+	}
+	for _, domain := range []string{"agent.body.pc", "agent.body.app", "agent.trigger.delegate"} {
+		if !IsSupportedDomain(domain) {
+			t.Fatalf("expected closed static domain %q to be supported", domain)
+		}
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("canonical App operation map = %#v, want %#v", got, want)

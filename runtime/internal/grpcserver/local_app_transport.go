@@ -146,6 +146,27 @@ const (
 	protectedSubscribeAppActivityOpenRequests     = "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"
 	protectedCompleteAppActivityOpenRequest       = "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest"
 	protectedResolveAppActivityOpenLaunch         = "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch"
+	protectedAgentSessionRouteSubmitMethod        = "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput"
+	protectedAgentSessionSplitRedirectMethod      = "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput"
+	protectedAgentSessionGetMethod                = "/nimi.runtime.v1.AgentSessionService/GetSession"
+	protectedAgentSessionListMethod               = "/nimi.runtime.v1.AgentSessionService/ListSessions"
+	protectedAgentSessionUpdateMethod             = "/nimi.runtime.v1.AgentSessionService/UpdateSession"
+	protectedAgentSessionDeleteMethod             = "/nimi.runtime.v1.AgentSessionService/DeleteSession"
+	protectedAgentSessionOverviewWatchMethod      = "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview"
+	protectedAgentSessionBrainEventsMethod        = "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents"
+	protectedAgentSessionBrainTurnStopMethod      = "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn"
+	protectedAgentBodyRegisterMethod              = "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier"
+	protectedAgentBodyHeartbeatMethod             = "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier"
+	protectedAgentBodyUnregisterMethod            = "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier"
+	protectedAgentBodyOutboxSubscribeMethod       = "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox"
+	protectedAgentBodyOutboxAckMethod             = "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox"
+	protectedAgentBodySideEffectAuthorizeMethod   = "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect"
+	protectedAgentBodyStepStreamMethod            = "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep"
+	protectedAgentBodyProjectionReportMethod      = "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection"
+	protectedAgentTriggerAlarmCreateMethod        = "/nimi.runtime.v1.AgentSessionService/CreateAlarm"
+	protectedAgentTriggerAlarmListMethod          = "/nimi.runtime.v1.AgentSessionService/ListAlarms"
+	protectedAgentTriggerAlarmUpdateMethod        = "/nimi.runtime.v1.AgentSessionService/UpdateAlarm"
+	protectedAgentTriggerAlarmDeleteMethod        = "/nimi.runtime.v1.AgentSessionService/DeleteAlarm"
 )
 
 type protectedLocalAppAdmission interface {
@@ -272,8 +293,25 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedPutAppActivityMethod:                 localAppSessionMethodPolicy(),
 	protectedListAppActivitiesMethod:              localAppSessionMethodPolicy(),
 	protectedMarkAppActivityReadMethod:            localAppSessionMethodPolicy(),
-	protectedCompleteAppActivityOpenRequest:       localAppSessionMethodPolicy(),
-	protectedResolveAppActivityOpenLaunch:         localAppSessionMethodPolicy(),
+	protectedCompleteAppActivityOpenRequest:     localAppSessionMethodPolicy(),
+	protectedResolveAppActivityOpenLaunch:       localAppSessionMethodPolicy(),
+	protectedAgentSessionRouteSubmitMethod:      localAppSessionMethodPolicy(),
+	protectedAgentSessionSplitRedirectMethod:    localAppSessionMethodPolicy(),
+	protectedAgentSessionGetMethod:              localAppSessionMethodPolicy(),
+	protectedAgentSessionListMethod:             localAppSessionMethodPolicy(),
+	protectedAgentSessionUpdateMethod:           localAppSessionMethodPolicy(),
+	protectedAgentSessionDeleteMethod:           localAppSessionMethodPolicy(),
+	protectedAgentSessionBrainTurnStopMethod:    localAppSessionMethodPolicy(),
+	protectedAgentBodyRegisterMethod:            localAppSessionMethodPolicy(),
+	protectedAgentBodyHeartbeatMethod:           localAppSessionMethodPolicy(),
+	protectedAgentBodyUnregisterMethod:          localAppSessionMethodPolicy(),
+	protectedAgentBodyOutboxAckMethod:           localAppSessionMethodPolicy(),
+	protectedAgentBodySideEffectAuthorizeMethod: localAppSessionMethodPolicy(),
+	protectedAgentBodyProjectionReportMethod:    localAppSessionMethodPolicy(),
+	protectedAgentTriggerAlarmCreateMethod:      localAppSessionMethodPolicy(),
+	protectedAgentTriggerAlarmListMethod:        localAppSessionMethodPolicy(),
+	protectedAgentTriggerAlarmUpdateMethod:      localAppSessionMethodPolicy(),
+	protectedAgentTriggerAlarmDeleteMethod:      localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -290,6 +328,10 @@ var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPo
 	protectedSubscribeAppActivityChangesMethod:  localAppSessionMethodPolicy(),
 	protectedOpenAppActivityMethod:              localAppSessionMethodPolicy(),
 	protectedSubscribeAppActivityOpenRequests:   localAppSessionMethodPolicy(),
+	protectedAgentSessionOverviewWatchMethod:    localAppSessionMethodPolicy(),
+	protectedAgentSessionBrainEventsMethod:      localAppSessionMethodPolicy(),
+	protectedAgentBodyOutboxSubscribeMethod:     localAppSessionMethodPolicy(),
+	protectedAgentBodyStepStreamMethod:          localAppSessionMethodPolicy(),
 }
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
@@ -467,9 +509,11 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 
 type protectedLocalAppServerStream struct {
 	grpc.ServerStream
-	ctx        context.Context
-	connection *protectedlocal.LocalAppConnection
-	method     string
+	ctx               context.Context
+	connection        *protectedlocal.LocalAppConnection
+	method            string
+	admission         protectedLocalAppAdmission
+	deferredAuthorize bool
 }
 
 func (stream *protectedLocalAppServerStream) Context() context.Context { return stream.ctx }
@@ -480,6 +524,18 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 	}
 	if protectedLocalAppRequestHasCallerAssertionForMethod(stream.ctx, message, stream.method) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if stream.deferredAuthorize {
+		if stream.admission == nil {
+			return protectedLocalAppUnavailable()
+		}
+		ingress := protectedLocalAppStreamIngressForRequest(stream.method, message)
+		authorizedContext, err := stream.admission.AuthorizeLocalAppIngress(stream.ctx, ingress)
+		if err != nil {
+			return err
+		}
+		stream.ctx = authorizedContext
+		stream.deferredAuthorize = false
 	}
 	if err := authorizeProtectedLocalAppRealtimeResource(stream.ctx, stream.connection, stream.method, message); err != nil {
 		return err
@@ -514,6 +570,16 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 		if protectedLocalAppMetadataHasCallerAssertion(protectedContext) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
+		if info.FullMethod == protectedAgentBodyOutboxSubscribeMethod {
+			return handler(service, &protectedLocalAppServerStream{
+				ServerStream:      stream,
+				ctx:               protectedContext,
+				connection:        connection,
+				method:            info.FullMethod,
+				admission:         admission,
+				deferredAuthorize: true,
+			})
+		}
 		authorizedContext, err := admission.AuthorizeLocalAppIngress(
 			protectedContext,
 			protectedLocalAppStreamIngress(info.FullMethod),
@@ -546,6 +612,58 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentWorkToolResultSubmit
 	case protectedAgentWorkCancelMethod:
 		return localappop.IngressAgentWorkCancel
+	case protectedAgentSessionRouteSubmitMethod:
+		return localappop.IngressAgentSessionRouteSubmit
+	case protectedAgentSessionSplitRedirectMethod:
+		return localappop.IngressAgentSessionSplitRedirect
+	case protectedAgentSessionGetMethod:
+		return localappop.IngressAgentSessionGet
+	case protectedAgentSessionListMethod:
+		return localappop.IngressAgentSessionList
+	case protectedAgentSessionUpdateMethod:
+		return localappop.IngressAgentSessionUpdate
+	case protectedAgentSessionDeleteMethod:
+		return localappop.IngressAgentSessionDelete
+	case protectedAgentSessionBrainTurnStopMethod:
+		return localappop.IngressAgentSessionBrainTurnStop
+	case protectedAgentBodyRegisterMethod:
+		if r, ok := request.(*runtimev1.RegisterBodyCarrierRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppRegister
+		}
+		return localappop.IngressAgentBodyPCRegister
+	case protectedAgentBodyHeartbeatMethod:
+		if r, ok := request.(*runtimev1.HeartbeatBodyCarrierRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppHeartbeat
+		}
+		return localappop.IngressAgentBodyPCHeartbeat
+	case protectedAgentBodyUnregisterMethod:
+		if r, ok := request.(*runtimev1.UnregisterBodyCarrierRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppUnregister
+		}
+		return localappop.IngressAgentBodyPCUnregister
+	case protectedAgentBodyOutboxAckMethod:
+		if r, ok := request.(*runtimev1.AckBodyOutboxRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppOutboxAck
+		}
+		return localappop.IngressAgentBodyPCOutboxAck
+	case protectedAgentBodySideEffectAuthorizeMethod:
+		if r, ok := request.(*runtimev1.AuthorizeBodySideEffectRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppSideEffectAuthorize
+		}
+		return localappop.IngressAgentBodyPCSideEffectAuthorize
+	case protectedAgentBodyProjectionReportMethod:
+		if r, ok := request.(*runtimev1.ReportBodySessionProjectionRequest); ok && strings.HasPrefix(strings.TrimSpace(r.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppProjectionReport
+		}
+		return localappop.IngressAgentBodyPCProjectionReport
+	case protectedAgentTriggerAlarmCreateMethod:
+		return localappop.IngressAgentTriggerAlarmCreate
+	case protectedAgentTriggerAlarmListMethod:
+		return localappop.IngressAgentTriggerAlarmList
+	case protectedAgentTriggerAlarmUpdateMethod:
+		return localappop.IngressAgentTriggerAlarmUpdate
+	case protectedAgentTriggerAlarmDeleteMethod:
+		return localappop.IngressAgentTriggerAlarmDelete
 	case protectedIntegrationCatalogListMethod:
 		return localappop.IngressIntegrationCatalogList
 	case protectedIntegrationConnectionListMethod:
@@ -826,6 +944,15 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedMarkAppActivityReadMethod, protectedCompleteAppActivityOpenRequest,
 		protectedResolveAppActivityOpenLaunch:
 		return true
+	case protectedAgentSessionRouteSubmitMethod, protectedAgentSessionSplitRedirectMethod,
+		protectedAgentSessionGetMethod, protectedAgentSessionListMethod,
+		protectedAgentSessionUpdateMethod, protectedAgentSessionDeleteMethod,
+		protectedAgentSessionBrainTurnStopMethod,
+		protectedAgentBodyRegisterMethod, protectedAgentBodyHeartbeatMethod, protectedAgentBodyUnregisterMethod,
+		protectedAgentBodyOutboxAckMethod, protectedAgentBodySideEffectAuthorizeMethod, protectedAgentBodyProjectionReportMethod,
+		protectedAgentTriggerAlarmCreateMethod, protectedAgentTriggerAlarmListMethod,
+		protectedAgentTriggerAlarmUpdateMethod, protectedAgentTriggerAlarmDeleteMethod:
+		return true
 	case protectedListRealmChatsMethod, protectedOpenRealmRealtimeChannelMethod, protectedAckRealmRealtimeEventsMethod,
 		protectedCloseRealmRealtimeSubscriptionMethod, protectedCloseRealmRealtimeChannelMethod:
 		return true
@@ -920,9 +1047,27 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 		return localappop.IngressAppActivityOpen
 	case protectedSubscribeAppActivityOpenRequests:
 		return localappop.IngressAppActivityOpenRequestSubscribe
+	case protectedAgentSessionOverviewWatchMethod:
+		return localappop.IngressAgentSessionOverviewWatch
+	case protectedAgentSessionBrainEventsMethod:
+		return localappop.IngressAgentSessionBrainEventsSubscribe
+	case protectedAgentBodyOutboxSubscribeMethod:
+		return localappop.IngressAgentBodyPCOutboxSubscribe
+	case protectedAgentBodyStepStreamMethod:
+		return localappop.IngressAgentBodyPCStepStream
 	default:
 		return localappop.IngressUnknown
 	}
+}
+
+func protectedLocalAppStreamIngressForRequest(method string, message any) localappop.Ingress {
+	if method == protectedAgentBodyOutboxSubscribeMethod {
+		if req, ok := message.(*runtimev1.SubscribeBodyOutboxRequest); ok && strings.HasPrefix(strings.TrimSpace(req.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppOutboxSubscribe
+		}
+		return localappop.IngressAgentBodyPCOutboxSubscribe
+	}
+	return protectedLocalAppStreamIngress(method)
 }
 
 func protectedLocalAppRequestHasCallerAssertion(ctx context.Context, request any) bool {

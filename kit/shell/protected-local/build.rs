@@ -91,6 +91,7 @@ fn main() {
     let local_runtime_proto = proto_root.join("runtime/v1/local_runtime.proto");
     let integration_proto = proto_root.join("runtime/v1/integration.proto");
     let agent_work_proto = proto_root.join("runtime/v1/agent_work.proto");
+    let agent_session_proto = proto_root.join("runtime/v1/agent_session.proto");
     let app_activity_proto = proto_root.join("runtime/v1/app_activity.proto");
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("vendored protoc");
     std::env::set_var("PROTOC", protoc);
@@ -114,6 +115,7 @@ fn main() {
                 app_activity_proto,
                 integration_proto,
                 agent_work_proto,
+                agent_session_proto,
             ],
             &[proto_root.clone()],
         )

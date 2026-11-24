@@ -3865,3 +3865,219 @@ pub async fn local_app_conversation_follow_up_cancel(input:NativeConversationFol
  let expected_revision=match decimal_revision(&input.expected_revision,false){Ok(v)=>v,Err(e)=>return NativeJsonOutcome::error(e)};
  invoke_agent(|session|async move{session.conversation_follow_up_cancel(LocalAppConversationFollowUpCancelRequest{agent_handle:input.agent_handle,conversation_anchor_id:input.conversation_anchor_id,task_id:input.task_id,expected_revision}).await}).await
 }
+
+type AgentSessionStreamRegistry = HashMap<String, Arc<AgentSessionStream>>;
+struct AgentSessionStream {
+    receiver: Mutex<Option<LocalAppAgentSessionStreamReceiver>>,
+    close_tx: watch::Sender<bool>,
+}
+static AGENT_SESSION_STREAMS: OnceLock<Mutex<AgentSessionStreamRegistry>> = OnceLock::new();
+static AGENT_SESSION_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
+const MAX_AGENT_SESSION_STREAMS: usize = 16;
+
+fn agent_session_streams() -> &'static Mutex<AgentSessionStreamRegistry> {
+    AGENT_SESSION_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+#[napi(js_name = "localAppAgentSessionUnary")]
+pub async fn local_app_agent_session_unary(
+    input: NativeLocalAppAgentSessionInput,
+) -> NativeBytesOutcome {
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => {
+            return NativeBytesOutcome::error_with_metadata(
+                error.reason_code().as_str(),
+                error.retryable(),
+                error.reason_metadata(),
+            );
+        }
+    };
+    match session
+        .agent_session_unary(LocalAppAgentSessionRequest {
+            method_id: input.method_id,
+            request_bytes: input.request_bytes.to_vec(),
+            timeout,
+        })
+        .await
+    {
+        Ok(bytes) => NativeBytesOutcome::success(bytes),
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            NativeBytesOutcome::error_with_metadata(
+                error.reason_code().as_str(),
+                error.retryable(),
+                error.reason_metadata(),
+            )
+        }
+    }
+}
+
+#[napi(js_name = "localAppAgentSessionStreamOpen")]
+pub async fn local_app_agent_session_stream_open(
+    input: NativeLocalAppAgentSessionInput,
+) -> NativeJsonOutcome {
+    {
+        let registry = agent_session_streams().lock().await;
+        if registry.len() >= MAX_AGENT_SESSION_STREAMS {
+            return NativeJsonOutcome::error(LocalAppOperationError::new(
+                LocalAppReasonCode::ResourceExhausted,
+                false,
+            ));
+        }
+    }
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    let receiver = match session
+        .agent_session_stream(LocalAppAgentSessionRequest {
+            method_id: input.method_id,
+            request_bytes: input.request_bytes.to_vec(),
+            timeout,
+        })
+        .await
+    {
+        Ok(receiver) => receiver,
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            return NativeJsonOutcome::error(error);
+        }
+    };
+    let stream_id = format!(
+        "agent-session-{}",
+        AGENT_SESSION_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
+    let (close_tx, _) = watch::channel(false);
+    let stream = Arc::new(AgentSessionStream {
+        receiver: Mutex::new(Some(receiver)),
+        close_tx,
+    });
+    let mut registry = agent_session_streams().lock().await;
+    if registry.len() >= MAX_AGENT_SESSION_STREAMS {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::ResourceExhausted,
+            false,
+        ));
+    }
+    registry.insert(stream_id.clone(), stream);
+    NativeJsonOutcome::success(json!({ "streamId": stream_id }))
+}
+
+#[napi(js_name = "localAppAgentSessionStreamNext")]
+pub async fn local_app_agent_session_stream_next(
+    input: NativeLocalAppAgentSessionStreamInput,
+) -> NativeBundledAvatarStreamNextOutcome {
+    let stream_id = input.stream_id;
+    let stream = agent_session_streams()
+        .lock()
+        .await
+        .get(stream_id.as_str())
+        .cloned();
+    let Some(stream) = stream else {
+        return NativeBundledAvatarStreamNextOutcome {
+            status: "error".to_string(),
+            value: None,
+            completed: None,
+            reason_code: Some("not-found".to_string()),
+            retryable: Some(false),
+            reason_metadata: None,
+        };
+    };
+    let mut close_rx = stream.close_tx.subscribe();
+    if *close_rx.borrow() {
+        agent_session_streams().lock().await.remove(stream_id.as_str());
+        return NativeBundledAvatarStreamNextOutcome {
+            status: "ok".to_string(),
+            value: None,
+            completed: Some(true),
+            reason_code: None,
+            retryable: None,
+            reason_metadata: None,
+        };
+    }
+    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+        return NativeBundledAvatarStreamNextOutcome {
+            status: "error".to_string(),
+            value: None,
+            completed: None,
+            reason_code: Some("runtime-service-untrusted".to_string()),
+            retryable: Some(false),
+            reason_metadata: None,
+        };
+    };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        agent_session_streams().lock().await.remove(stream_id.as_str());
+        return NativeBundledAvatarStreamNextOutcome {
+            status: "ok".to_string(),
+            value: None,
+            completed: Some(true),
+            reason_code: None,
+            retryable: None,
+            reason_metadata: None,
+        };
+    };
+    let next = tokio::select! {
+        biased;
+        changed = close_rx.changed() => { let _ = changed; None }
+        item = receiver.recv() => item,
+    };
+    drop(receiver_slot);
+    match next {
+        Some(Ok(bytes)) => NativeBundledAvatarStreamNextOutcome {
+            status: "ok".to_string(),
+            value: Some(napi::bindgen_prelude::Buffer::from(bytes)),
+            completed: Some(false),
+            reason_code: None,
+            retryable: None,
+            reason_metadata: None,
+        },
+        Some(Err(error)) => {
+            agent_session_streams().lock().await.remove(stream_id.as_str());
+            NativeBundledAvatarStreamNextOutcome {
+                status: "error".to_string(),
+                value: None,
+                completed: None,
+                reason_code: Some(error.reason_code().as_str().to_string()),
+                retryable: Some(error.retryable()),
+                reason_metadata: (!error.reason_metadata().is_empty())
+                    .then(|| json!(error.reason_metadata())),
+            }
+        }
+        None => {
+            agent_session_streams().lock().await.remove(stream_id.as_str());
+            NativeBundledAvatarStreamNextOutcome {
+                status: "ok".to_string(),
+                value: None,
+                completed: Some(true),
+                reason_code: None,
+                retryable: None,
+                reason_metadata: None,
+            }
+        }
+    }
+}
+
+#[napi(js_name = "localAppAgentSessionStreamClose")]
+pub async fn local_app_agent_session_stream_close(
+    input: NativeLocalAppAgentSessionStreamInput,
+) -> NativeJsonOutcome {
+    let stream = agent_session_streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str());
+    let closed = stream.is_some();
+    if let Some(stream) = stream {
+        stream.close_tx.send_replace(true);
+        stream.receiver.lock().await.take();
+    }
+    NativeJsonOutcome::success(json!({ "closed": closed }))
+}

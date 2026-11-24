@@ -7,6 +7,7 @@ import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, Comple
 import type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, ListLocalAppSharedLocalAgentAIConfigOptionsRequest, ListLocalAppSharedLocalAgentAIConfigOptionsResponse, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, UpdateLocalAppAgentAutonomyRequest, UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse } from "./runtime-protobuf/runtime/v1/agent_configure";
 import type { GetLocalAppEmbodimentSnapshotRequest, GetLocalAppEmbodimentSnapshotResponse, LocalAppEmbodimentEvent, SubscribeLocalAppEmbodimentEventsRequest } from "./runtime-protobuf/runtime/v1/agent_embodiment";
 import type { AppendLocalAppAgentRealtimeInputRequest, AppendLocalAppAgentRealtimeInputResponse, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, CancelLocalAppConversationFollowUpRequest, CancelLocalAppConversationFollowUpResponse, CloseLocalAppAgentRealtimeRequest, CloseLocalAppAgentRealtimeResponse, ConnectLocalAppCharacterSourceRequest, ConnectLocalAppCharacterSourceResponse, DeletePortableAIProfileRequest, DeletePortableAIProfileResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppAgentIntroductionRequest, GetLocalAppAgentIntroductionResponse, GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentManagerSnapshotResponse, GetLocalAppAgentRealtimeStatusRequest, GetLocalAppAgentRealtimeStatusResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, ImportPortableAIProfileRequest, ImportPortableAIProfileResponse, InterruptLocalAppAgentRealtimeOutputRequest, InterruptLocalAppAgentRealtimeOutputResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListLocalAppCharacterSourcesRequest, ListLocalAppCharacterSourcesResponse, ListPortableAIProfilesRequest, ListPortableAIProfilesResponse, ListSharedLocalAgentAIConfigOptionsRequest, ListSharedLocalAgentAIConfigOptionsResponse, LocalAppAgentRealtimeEvent, LocalAppConversationEvent, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppAgentRealtimeRequest, OpenLocalAppAgentRealtimeResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, ReadConversationArtifactRequest, ReadConversationArtifactResponse, ReadLocalAppConversationArtifactRequest, ReadLocalAppConversationArtifactResponse, ReadLocalAppConversationMessageRequest, ReadLocalAppConversationMessageResponse, RenderLocalAppConversationVoiceRequest, RenderLocalAppConversationVoiceResponse, ResolveDesktopAgentReferenceRequest, ResolveDesktopAgentReferenceResponse, ResolveLocalAppAvatarHostTargetRequest, ResolveLocalAppAvatarHostTargetResponse, RevalidateLocalAppAvatarHostTargetRequest, RevalidateLocalAppAvatarHostTargetResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubscribeLocalAppAgentRealtimeEventsRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, TranscribeAgentVoiceInputRequest, TranscribeAgentVoiceInputResponse, TranscribeLocalAppConversationVoiceRequest, TranscribeLocalAppConversationVoiceResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UploadLocalAppConversationAttachmentRequest, UploadLocalAppConversationAttachmentResponse } from "./runtime-protobuf/runtime/v1/agent_service";
+import type { AckBodyOutboxRequest, AckBodyOutboxResponse, AuthorizeBodySideEffectRequest, AuthorizeBodySideEffectResponse, BodyOutboxEnvelope, BodyStepStreamEvent, BrainSessionEventEnvelope, CreateAlarmRequest, CreateAlarmResponse, DeleteAlarmRequest, DeleteAlarmResponse, DeleteSessionRequest, DeleteSessionResponse, GetSessionRequest, GetSessionResponse, HeartbeatBodyCarrierRequest, HeartbeatBodyCarrierResponse, ListAlarmsRequest, ListAlarmsResponse, ListSessionsRequest, ListSessionsResponse, RegisterBodyCarrierRequest, RegisterBodyCarrierResponse, ReportBodySessionProjectionRequest, ReportBodySessionProjectionResponse, RouteAndSubmitInputRequest, RouteAndSubmitInputResponse, SessionOverviewDelta, SplitOrRedirectInputRequest, SplitOrRedirectInputResponse, StopBrainSessionTurnRequest, StopBrainSessionTurnResponse, StreamLocalAgentBodyStepRequest, SubscribeBodyOutboxRequest, SubscribeBrainSessionEventsRequest, UnregisterBodyCarrierRequest, UnregisterBodyCarrierResponse, UpdateAlarmRequest, UpdateAlarmResponse, UpdateSessionRequest, UpdateSessionResponse, WatchSessionOverviewRequest } from "./runtime-protobuf/runtime/v1/agent_session";
 import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 import type { GetLocalAppAgentUtopiaSnapshotRequest, GetLocalAppAgentUtopiaSnapshotResponse, UpdateLocalAppAgentUtopiaSettingsRequest, UpdateLocalAppAgentUtopiaSettingsResponse } from "./runtime-protobuf/runtime/v1/agent_utopia";
 import type { CancelLocalAppAgentWorkRequest, CancelLocalAppAgentWorkResponse, GetLocalAppAgentWorkRequest, GetLocalAppAgentWorkResponse, GetLocalAppAgentWorkStatusRequest, GetLocalAppAgentWorkStatusResponse, ListLocalAppAgentWorkReferencesRequest, ListLocalAppAgentWorkReferencesResponse, ListLocalAppAgentWorkToolCallsRequest, ListLocalAppAgentWorkToolCallsResponse, LocalAppAgentWorkEvent, StartLocalAppAgentWorkRequest, StartLocalAppAgentWorkResponse, SubmitLocalAppAgentWorkToolResultRequest, SubmitLocalAppAgentWorkToolResultResponse, SubscribeLocalAppAgentWorkEventsRequest } from "./runtime-protobuf/runtime/v1/agent_work";
@@ -47,6 +48,7 @@ export type { GetLocalAppEmbodimentSnapshotRequest, GetLocalAppEmbodimentSnapsho
 export type { LocalAppAgentLifeActivity, LocalAppAgentLifeFrame, LocalAppAgentLifeProjection } from "./runtime-protobuf/runtime/v1/agent_life";
 export type { AgentPresentationAssetMaterial, AgentPresentationEventDetail, AgentPresentationProfile, AgentPresentationProfilePatch, AgentResourcePackSelection, ClearAgentPresentationProfile } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export type { AgentAutonomyConfig, AgentAutonomyState, AgentBudgetEventDetail, AgentConversationSummary, AgentEvent, AgentHookEventDetail, AgentLifecycleEventDetail, AgentPostureProjection, AgentProactiveEventDetail, AgentProactiveInterruptibilityProjection, AgentStateClearDyadicContext, AgentStateClearWorldContext, AgentStateEventDetail, AgentStateMutation, AgentStateProjection, AgentStatePutAttribute, AgentStateRemoveAttribute, AgentStateSetDyadicContext, AgentStateSetStatusText, AgentStateSetWorldContext, AppendLocalAppAgentRealtimeInputRequest, AppendLocalAppAgentRealtimeInputResponse, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, CancelLocalAppConversationFollowUpRequest, CancelLocalAppConversationFollowUpResponse, CloseLocalAppAgentRealtimeRequest, CloseLocalAppAgentRealtimeResponse, ConnectLocalAppCharacterSourceRequest, ConnectLocalAppCharacterSourceResponse, ConversationAnchor, ConversationAnchorSnapshot, DeletePortableAIProfileRequest, DeletePortableAIProfileResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppAgentIntroductionRequest, GetLocalAppAgentIntroductionResponse, GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentManagerSnapshotResponse, GetLocalAppAgentRealtimeStatusRequest, GetLocalAppAgentRealtimeStatusResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, HookExecutionOutcome, HookIntent, HookTriggerDetail, HookTriggerEventChatEndedDetail, HookTriggerEventUserIdleDetail, HookTriggerTimeDetail, ImportPortableAIProfileRequest, ImportPortableAIProfileResponse, InterruptLocalAppAgentRealtimeOutputRequest, InterruptLocalAppAgentRealtimeOutputResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListLocalAppCharacterSourcesRequest, ListLocalAppCharacterSourcesResponse, ListPortableAIProfilesRequest, ListPortableAIProfilesResponse, ListSharedLocalAgentAIConfigOptionsRequest, ListSharedLocalAgentAIConfigOptionsResponse, LocalAgentRecord, LocalAppAgentIntroduction, LocalAppAgentIntroductionTopic, LocalAppAgentManagerActionAvailability, LocalAppAgentManagerContextProjection, LocalAppAgentManagerSnapshot, LocalAppAgentManagerSourceProjection, LocalAppAgentRealtimeAudioFrameInput, LocalAppAgentRealtimeAudioFrameOutput, LocalAppAgentRealtimeCaptureStopped, LocalAppAgentRealtimeEvent, LocalAppAgentRealtimeInputAccepted, LocalAppAgentRealtimeOutputTrackStatus, LocalAppAgentRealtimeSpeechStatus, LocalAppAgentRealtimeTerminal, LocalAppAgentRealtimeTextInput, LocalAppAgentRealtimeTextOutput, LocalAppAgentRealtimeTranscript, LocalAppAgentReference, LocalAppCharacterSource, LocalAppConversationAction, LocalAppConversationActionEvent, LocalAppConversationArtifactPart, LocalAppConversationArtifactReady, LocalAppConversationEvent, LocalAppConversationFollowUp, LocalAppConversationInputArtifactRef, LocalAppConversationInputPart, LocalAppConversationLiveAction, LocalAppConversationLiveTool, LocalAppConversationMessage, LocalAppConversationMessageCommitted, LocalAppConversationMessagePart, LocalAppConversationMessageWindow, LocalAppConversationQuote, LocalAppConversationQuoteIntent, LocalAppConversationReasoningStatus, LocalAppConversationSnapshot, LocalAppConversationState, LocalAppConversationTextDelta, LocalAppConversationTextPart, LocalAppConversationTurn, LocalAppConversationTurnAccepted, LocalAppConversationTurnCompleted, LocalAppConversationTurnFailed, LocalAppConversationTurnInterrupted, LocalAppConversationTurnStarted, LocalAppConversationVoice, LocalAppConversationVoiceEvent, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppAgentRealtimeRequest, OpenLocalAppAgentRealtimeResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PortableAIProfileRecord, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, ReadConversationArtifactRequest, ReadConversationArtifactResponse, ReadLocalAppConversationArtifactRequest, ReadLocalAppConversationArtifactResponse, ReadLocalAppConversationMessageRequest, ReadLocalAppConversationMessageResponse, RenderLocalAppConversationVoiceRequest, RenderLocalAppConversationVoiceResponse, ResolveDesktopAgentReferenceRequest, ResolveDesktopAgentReferenceResponse, ResolveLocalAppAvatarHostTargetRequest, ResolveLocalAppAvatarHostTargetResponse, RevalidateLocalAppAvatarHostTargetRequest, RevalidateLocalAppAvatarHostTargetResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubscribeLocalAppAgentRealtimeEventsRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, TranscribeAgentVoiceInputRequest, TranscribeAgentVoiceInputResponse, TranscribeLocalAppConversationVoiceRequest, TranscribeLocalAppConversationVoiceResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UploadLocalAppConversationAttachmentRequest, UploadLocalAppConversationAttachmentResponse } from "./runtime-protobuf/runtime/v1/agent_service";
+export type { AckBodyOutboxRequest, AckBodyOutboxResponse, AuthorizeBodySideEffectRequest, AuthorizeBodySideEffectResponse, BodyAdvisoryContext, BodyOutboxEnvelope, BodyStepDone, BodyStepFailure, BodyStepStreamEvent, BodyToolCall, BodyToolCallActivity, BodyToolDefinition, BodyWorkingMessage, BrainSessionEventEnvelope, CreateAlarmRequest, CreateAlarmResponse, DeleteAlarmRequest, DeleteAlarmResponse, DeleteSessionRequest, DeleteSessionResponse, GetSessionRequest, GetSessionResponse, HeartbeatBodyCarrierRequest, HeartbeatBodyCarrierResponse, ListAlarmsRequest, ListAlarmsResponse, ListSessionsRequest, ListSessionsResponse, PendingAttentionInput, PendingAttentionRecord, RegisterBodyCarrierRequest, RegisterBodyCarrierResponse, ReportBodySessionProjectionRequest, ReportBodySessionProjectionResponse, RouteAndSubmitInputRequest, RouteAndSubmitInputResponse, SessionAlarmRecord, SessionOverviewDelta, SessionRouteCandidate, SplitOrRedirectInputRequest, SplitOrRedirectInputResponse, StopBrainSessionTurnRequest, StopBrainSessionTurnResponse, StreamLocalAgentBodyStepRequest, SubscribeBodyOutboxRequest, SubscribeBrainSessionEventsRequest, UnregisterBodyCarrierRequest, UnregisterBodyCarrierResponse, UpdateAlarmRequest, UpdateAlarmResponse, UpdateSessionRequest, UpdateSessionResponse, WatchSessionOverviewRequest, WorkSessionRecord } from "./runtime-protobuf/runtime/v1/agent_session";
 export type { AgentConversationContextSummary, AgentSourceCognitionSummary, AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentTurnContextSummary, AgentTurnContextTruncationSummary, CharacterSourceRefV3, LocalAgentSourceContextStatus, LocalAgentSourceCoverageSectionStatus, MaterializeRealmSourceRequest, MaterializeRealmSourceResponse, PersonaCharacterSourceRefV3, WorldCharacterSourceRefV3, WorldEntityRefV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 export type { GetLocalAppAgentUtopiaSnapshotRequest, GetLocalAppAgentUtopiaSnapshotResponse, LocalAppUtopiaActivateHabitatChange, LocalAppUtopiaActiveEvent, LocalAppUtopiaActivitySpec, LocalAppUtopiaApplyTuningChange, LocalAppUtopiaCustomEventTrigger, LocalAppUtopiaEventMutation, LocalAppUtopiaEventPresetSpec, LocalAppUtopiaFrame, LocalAppUtopiaHabitatSpec, LocalAppUtopiaParameterCondition, LocalAppUtopiaParameterEntry, LocalAppUtopiaParameterOption, LocalAppUtopiaParameterSpec, LocalAppUtopiaPersonalQuarterSpec, LocalAppUtopiaPlaceOccupancy, LocalAppUtopiaPlaceSpec, LocalAppUtopiaPresetEventTrigger, LocalAppUtopiaRelocationSummary, LocalAppUtopiaResident, LocalAppUtopiaRestoreDefaultChange, LocalAppUtopiaSharedActivity, LocalAppUtopiaSolitudeChange, UpdateLocalAppAgentUtopiaSettingsRequest, UpdateLocalAppAgentUtopiaSettingsResponse } from "./runtime-protobuf/runtime/v1/agent_utopia";
 export type { CancelLocalAppAgentWorkRequest, CancelLocalAppAgentWorkResponse, GetLocalAppAgentWorkRequest, GetLocalAppAgentWorkResponse, GetLocalAppAgentWorkStatusRequest, GetLocalAppAgentWorkStatusResponse, ListLocalAppAgentWorkReferencesRequest, ListLocalAppAgentWorkReferencesResponse, ListLocalAppAgentWorkToolCallsRequest, ListLocalAppAgentWorkToolCallsResponse, LocalAppAgentWorkEvent, LocalAppAgentWorkExecution, LocalAppAgentWorkInput, LocalAppAgentWorkReference, LocalAppAgentWorkSource, LocalAppAgentWorkTool, LocalAppAgentWorkToolCall, StartLocalAppAgentWorkRequest, StartLocalAppAgentWorkResponse, SubmitLocalAppAgentWorkToolResultRequest, SubmitLocalAppAgentWorkToolResultResponse, SubscribeLocalAppAgentWorkEventsRequest } from "./runtime-protobuf/runtime/v1/agent_work";
@@ -59,7 +61,7 @@ export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifa
 export type { AuditEventRecord, AuditExportChunk, DesktopAIActivitySnapshot, DesktopAICloudAttempt, DesktopAICostEstimate, DesktopAIExecution, DesktopAIExecutionModel, DesktopAIModelUsage, DesktopAISourceCoverage, DesktopAIUsageGroup, DesktopAIUsageSummary, DesktopAIUsageTotals, DesktopAuditEventProjection, ExportAuditEventsRequest, GetDesktopAIActivitySnapshotRequest, GetDesktopAIActivitySnapshotResponse, GetDesktopAIUsageSummaryRequest, GetDesktopAIUsageSummaryResponse, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAICloudHistoryRequest, ListDesktopAICloudHistoryResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeDesktopAIActivityRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, RebindLocalAppSessionRequest, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, WaitLocalAppSessionEndRequest, WaitLocalAppSessionEndResponse } from "./runtime-protobuf/runtime/v1/auth";
 export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudConnectorOptions, AIConfigCloudConnectorOptionsQuery, AIConfigCloudConnectorProjection, AIConfigCloudIntent, AIConfigCloudResourceProjection, AIConfigCloudTargetOptions, AIConfigCloudTargetOptionsQuery, AIConfigCloudTargetProjection, AIConfigEffectiveSelection, AIConfigLocalIntent, AIConfigLocalLoadoutOptions, AIConfigLocalLoadoutOptionsQuery, AIConfigLocalResourceProjection, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, AppAIConfigDirectory, AppAIConfigPresetVoiceOption, AppAIConfigPresetVoiceOptions, AppAIConfigPresetVoiceOptionsQuery, AppAIConfigRecord, AppAIConfigRecordEdit, CapabilityImplementationIdentity, CommitLoadoutRequest, CommitLoadoutResponse, DeleteLoadoutRequest, DeleteLoadoutResponse, DesktopConnectorReference, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLoadoutRequest, GetLoadoutResponse, GetMachineLoadoutsRequest, GetMachineLoadoutsResponse, ListAppAIConfigOptionsRequest, ListAppAIConfigOptionsResponse, ListDesktopConnectorReferencesRequest, ListDesktopConnectorReferencesResponse, ListLoadoutRecipesRequest, ListLoadoutRecipesResponse, Loadout, LoadoutEffectiveInputIdentity, LoadoutEffectiveModelAxisIdentity, LoadoutImpactProjection, LoadoutModelAxis, LoadoutModelAxisInput, LoadoutRecipeContextFit, LoadoutRecipeCustodyDescriptor, LoadoutRecipeCustodyReference, LoadoutRecipeDescriptor, LoadoutRecipeOfferDescriptor, LoadoutRecipeSlotDescriptor, LoadoutSelection, LocalCapabilityRequirement, MachineLoadouts, ModelAssetExactBinding, MusicGenerationInputProfile, MusicInputCapabilities, MusicTranscriptionInputProfile, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, PrepareLoadoutRequest, PrepareLoadoutResponse, ReasoningInputCapabilities, SelectLoadoutRequest, SelectLoadoutResponse, SpeechInputCapabilities, TextBehaviorCapabilityProjection, TextReplayCarrierFormat, TextReplayCompatibility, ToolUseCapabilityProjection, UpdateLoadoutRequest, UpdateLoadoutResponse, VoiceConvertInputProfile, VoiceReferenceInputCapabilities } from "./runtime-protobuf/runtime/v1/capability_configuration";
-export type { AgentMemoryItem, AgentMemoryProjection, CognitionMemoryActivityTerminal, CognitionMemoryAiJobRequest, CognitionMemoryAiJobResult, CognitionMemoryApplyCutoffRequest, CognitionMemoryApplyCutoffResponse, CognitionMemoryArtifactPart, CognitionMemoryBankBindingRef, CognitionMemoryBankRef, CognitionMemoryCapabilitySnapshot, CognitionMemoryCommitRequest, CognitionMemoryCommitResponse, CognitionMemoryCommittedEventEnvelope, CognitionMemoryCorrectionCommitted, CognitionMemoryDeleteBankRequest, CognitionMemoryDeleteBankResponse, CognitionMemoryEnsureBankRequest, CognitionMemoryEnsureBankResponse, CognitionMemoryEventRef, CognitionMemoryEventStatus, CognitionMemoryForgetRequest, CognitionMemoryForgetResponse, CognitionMemoryFrontiers, CognitionMemoryHit, CognitionMemoryInspectRequest, CognitionMemoryInspectResponse, CognitionMemoryInspectStatusRequest, CognitionMemoryInspectStatusResponse, CognitionMemoryLifecycleCutoffRef, CognitionMemoryMessageCommitted, CognitionMemoryMessagePart, CognitionMemoryOperationRef, CognitionMemoryRecallRequest, CognitionMemoryRecallResponse, CognitionMemoryRef, CognitionMemoryRelationshipCommitted, CognitionMemorySourceRef, CognitionMemorySubjectRef, CognitionMemoryTextPart, CognitionMemoryTranscriptionPart, CognitionMemoryTurnTerminal, CorrectLocalAppAgentMemoryRequest, CorrectLocalAppAgentMemoryResponse, DeleteAllLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryResponse, ForgetLocalAppAgentMemoryRequest, ForgetLocalAppAgentMemoryResponse, InspectLocalAppAgentMemoryRequest, InspectLocalAppAgentMemoryResponse, MemoryEmbeddingCloudBindingRef, MemoryEmbeddingProfile, SetLocalAppAgentMemoryEnabledRequest, SetLocalAppAgentMemoryEnabledResponse } from "./runtime-protobuf/runtime/v1/cognition_memory";
+export type { AgentMemoryItem, AgentMemoryProjection, CognitionMemoryActivityTerminal, CognitionMemoryAiJobRequest, CognitionMemoryAiJobResult, CognitionMemoryApplyCutoffRequest, CognitionMemoryApplyCutoffResponse, CognitionMemoryArtifactPart, CognitionMemoryBankBindingRef, CognitionMemoryBankRef, CognitionMemoryCapabilitySnapshot, CognitionMemoryCommitRequest, CognitionMemoryCommitResponse, CognitionMemoryCommittedEventEnvelope, CognitionMemoryCorrectionCommitted, CognitionMemoryDeleteBankRequest, CognitionMemoryDeleteBankResponse, CognitionMemoryEnsureBankRequest, CognitionMemoryEnsureBankResponse, CognitionMemoryEventRef, CognitionMemoryEventStatus, CognitionMemoryForgetRequest, CognitionMemoryForgetResponse, CognitionMemoryFrontiers, CognitionMemoryHit, CognitionMemoryInspectRequest, CognitionMemoryInspectResponse, CognitionMemoryInspectStatusRequest, CognitionMemoryInspectStatusResponse, CognitionMemoryLifecycleCutoffRef, CognitionMemoryMessageCommitted, CognitionMemoryMessagePart, CognitionMemoryOperationRef, CognitionMemoryRecallRequest, CognitionMemoryRecallResponse, CognitionMemoryRef, CognitionMemoryRelationshipCommitted, CognitionMemorySessionPointerCommitted, CognitionMemorySourceRef, CognitionMemorySubjectRef, CognitionMemoryTextPart, CognitionMemoryTranscriptionPart, CognitionMemoryTurnTerminal, CorrectLocalAppAgentMemoryRequest, CorrectLocalAppAgentMemoryResponse, DeleteAllLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryResponse, ForgetLocalAppAgentMemoryRequest, ForgetLocalAppAgentMemoryResponse, InspectLocalAppAgentMemoryRequest, InspectLocalAppAgentMemoryResponse, MemoryEmbeddingCloudBindingRef, MemoryEmbeddingProfile, SetLocalAppAgentMemoryEnabledRequest, SetLocalAppAgentMemoryEnabledResponse } from "./runtime-protobuf/runtime/v1/cognition_memory";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, UsageStats } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorAzureDeployment, ConnectorAzureDeployments, ConnectorBedrockInvocation, ConnectorBedrockInvocations, ConnectorCheck, ConnectorMediaStorageUpdate, ConnectorModelDescriptor, ConnectorOAuthRegistration, ConnectorOSSStorage, ConnectorOSSStorageInput, ConnectorSVGAuthor, ConnectorSVGAuthorUpdate, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -83,6 +85,7 @@ export { LocalAppEmbodimentEventKind, LocalAppEmbodimentVoicePhase } from "./run
 export { LocalAppAgentLifePhase } from "./runtime-protobuf/runtime/v1/agent_life";
 export { AgentPresentationAssetRole, AgentPresentationBackendKind, AgentPresentationEventFamily, AgentVoiceTimingPhase } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export { AgentAutonomyMode, AgentEventType, AgentExecutionState, AgentLifecycleStatus, AgentProactiveDeliveryChannel, AgentProactiveEffectClass, AgentProactiveEventFamily, AgentProactiveFrequencyCapState, AgentProactiveOptInState, AgentProactiveQuietHoursState, AgentProactiveSuppressionReason, AgentProactiveTriggerSource, AgentStateEventFamily, AgentTrackType, ConversationAnchorStatus, HookAdmissionState, HookEffect, HookTriggerFamily, LocalAppAgentIntroductionTopicKind, LocalAppAgentManagerActionAvailabilityState, LocalAppAgentManagerActionUnavailableReason, LocalAppAgentManagerProductAction, LocalAppConversationActionStatus, LocalAppConversationLiveChildLifecycle, LocalAppConversationMediaKind, LocalAppConversationMessageRole, LocalAppConversationReasoningState, LocalAppConversationTurnPhase, LocalAppConversationTurnStatus, LocalAppConversationVoiceState } from "./runtime-protobuf/runtime/v1/agent_service";
+export { AlarmDeliveryReceiptState, AlarmKind, BodyOutboxCommandKind, BodyStepPurpose, RouteAndSubmitOutcome } from "./runtime-protobuf/runtime/v1/agent_session";
 export { AgentContextProjectionReasonCode, AgentConversationSummaryStatus, AgentLocalSourceContextSchemaVersion, AgentLocalSourceContextState, AgentLocalSourceCoverageSection, AgentLocalSourceCoverageState, AgentLocalSourceSnapshotSchemaVersion, AgentSourceCognitionStatus, AgentTurnContextCompilerSchemaVersion, AgentTurnContextLaneId, AgentTurnContextLaneState, AgentTurnContextManifestSchemaVersion, AgentTurnContextState, AgentTurnContextSummarySchemaVersion, AgentTurnContextTruncationReason, CharacterSourceKindV3, RealmSourceMaterializationReasonCode, WorldEntityRefKindV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 export { LocalAppAgentWorkState } from "./runtime-protobuf/runtime/v1/agent_work";
 export { AiVideoPixelFormat, AudioInstrumentPartKind, CanonicalChannelMode, ChatContentPartType, ExecutionInterruptionCause, ExecutionMode, ExecutionResubmitDisposition, FaceSwapNoFacePolicy, FinishReason, ImageControlType, Modal, MusicGenerationTermination, MusicScoreConditioning, MusicScoreFormat, MusicScoreOrigin, MusicTranscriptionCompleteness, MusicTranscriptionFormat, MusicTranscriptionPart, ReasoningActivation, ReasoningEffort, ReasoningPresentation, ResponseFormatKind, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioJobStopOutcome, ScenarioJobSubmissionOutcome, ScenarioType, SpeechAlignmentUnit, SpeechDiarizationStatus, SpeechTimingMode, SpeechTranscriptStatus, StreamEventType, TextEmbedPurpose, TextSourceType, VideoContentRole, VideoContentType, VideoMode, VisionLocateGeometry, VoiceConversionLengthRelation, VoiceConvertSourceKind, WorldImageProjection } from "./runtime-protobuf/runtime/v1/ai";
@@ -111,6 +114,237 @@ export { VoiceAssetPersistence, VoiceAssetStatus, VoiceCreationSource, VoiceOutp
 
 export class RuntimeTypedClient {
   constructor(private readonly core: CoreClient) {}
+
+  async ackBodyOutbox(request: AckBodyOutboxRequest, options: RuntimeTypedCallOptions = {}): Promise<AckBodyOutboxResponse> {
+    return this.core.unary<AckBodyOutboxResponse, AckBodyOutboxRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async authorizeBodySideEffect(request: AuthorizeBodySideEffectRequest, options: RuntimeTypedCallOptions = {}): Promise<AuthorizeBodySideEffectResponse> {
+    return this.core.unary<AuthorizeBodySideEffectResponse, AuthorizeBodySideEffectRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async createAlarm(request: CreateAlarmRequest, options: RuntimeTypedCallOptions = {}): Promise<CreateAlarmResponse> {
+    return this.core.unary<CreateAlarmResponse, CreateAlarmRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/CreateAlarm",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async deleteAlarm(request: DeleteAlarmRequest, options: RuntimeTypedCallOptions = {}): Promise<DeleteAlarmResponse> {
+    return this.core.unary<DeleteAlarmResponse, DeleteAlarmRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/DeleteAlarm",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async deleteSession(request: DeleteSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<DeleteSessionResponse> {
+    return this.core.unary<DeleteSessionResponse, DeleteSessionRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/DeleteSession",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getSession(request: GetSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<GetSessionResponse> {
+    return this.core.unary<GetSessionResponse, GetSessionRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/GetSession",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async heartbeatBodyCarrier(request: HeartbeatBodyCarrierRequest, options: RuntimeTypedCallOptions = {}): Promise<HeartbeatBodyCarrierResponse> {
+    return this.core.unary<HeartbeatBodyCarrierResponse, HeartbeatBodyCarrierRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listAlarms(request: ListAlarmsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListAlarmsResponse> {
+    return this.core.unary<ListAlarmsResponse, ListAlarmsRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/ListAlarms",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listSessions(request: ListSessionsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListSessionsResponse> {
+    return this.core.unary<ListSessionsResponse, ListSessionsRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/ListSessions",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async registerBodyCarrier(request: RegisterBodyCarrierRequest, options: RuntimeTypedCallOptions = {}): Promise<RegisterBodyCarrierResponse> {
+    return this.core.unary<RegisterBodyCarrierResponse, RegisterBodyCarrierRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async reportBodySessionProjection(request: ReportBodySessionProjectionRequest, options: RuntimeTypedCallOptions = {}): Promise<ReportBodySessionProjectionResponse> {
+    return this.core.unary<ReportBodySessionProjectionResponse, ReportBodySessionProjectionRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async routeAndSubmitInput(request: RouteAndSubmitInputRequest, options: RuntimeTypedCallOptions = {}): Promise<RouteAndSubmitInputResponse> {
+    return this.core.unary<RouteAndSubmitInputResponse, RouteAndSubmitInputRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async splitOrRedirectInput(request: SplitOrRedirectInputRequest, options: RuntimeTypedCallOptions = {}): Promise<SplitOrRedirectInputResponse> {
+    return this.core.unary<SplitOrRedirectInputResponse, SplitOrRedirectInputRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async stopBrainSessionTurn(request: StopBrainSessionTurnRequest, options: RuntimeTypedCallOptions = {}): Promise<StopBrainSessionTurnResponse> {
+    return this.core.unary<StopBrainSessionTurnResponse, StopBrainSessionTurnRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  streamLocalAgentBodyStep(request: StreamLocalAgentBodyStepRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<BodyStepStreamEvent> {
+    return this.core.serverStream<BodyStepStreamEvent, StreamLocalAgentBodyStepRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeBodyOutbox(request: SubscribeBodyOutboxRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<BodyOutboxEnvelope> {
+    return this.core.serverStream<BodyOutboxEnvelope, SubscribeBodyOutboxRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeBrainSessionEvents(request: SubscribeBrainSessionEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<BrainSessionEventEnvelope> {
+    return this.core.serverStream<BrainSessionEventEnvelope, SubscribeBrainSessionEventsRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async unregisterBodyCarrier(request: UnregisterBodyCarrierRequest, options: RuntimeTypedCallOptions = {}): Promise<UnregisterBodyCarrierResponse> {
+    return this.core.unary<UnregisterBodyCarrierResponse, UnregisterBodyCarrierRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateAlarm(request: UpdateAlarmRequest, options: RuntimeTypedCallOptions = {}): Promise<UpdateAlarmResponse> {
+    return this.core.unary<UpdateAlarmResponse, UpdateAlarmRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/UpdateAlarm",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateSession(request: UpdateSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<UpdateSessionResponse> {
+    return this.core.unary<UpdateSessionResponse, UpdateSessionRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/UpdateSession",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  watchSessionOverview(request: WatchSessionOverviewRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<SessionOverviewDelta> {
+    return this.core.serverStream<SessionOverviewDelta, WatchSessionOverviewRequest>({
+      methodId: "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
 
   async beginLogin(request: BeginLoginRequest, options: RuntimeTypedCallOptions = {}): Promise<BeginLoginResponse> {
     return this.core.unary<BeginLoginResponse, BeginLoginRequest>({

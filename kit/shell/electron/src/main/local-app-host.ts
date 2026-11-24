@@ -178,6 +178,10 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentMemoryForget',
   'localAppAgentMemorySwitch',
   'localAppAgentMemoryDelete',
+  'localAppAgentSessionUnary',
+  'localAppAgentSessionStreamOpen',
+  'localAppAgentSessionStreamNext',
+  'localAppAgentSessionStreamClose',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -293,6 +297,12 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'agent-utopia-revision-conflict',
   'agent-busy',
   'agent-turn-not-active',
+  'agent-session-not-found',
+  'agent-session-conflict',
+  'agent-session-ledger-invalid',
+  'agent-session-memory-invalidated',
+  'agent-body-lease-conflict',
+  'agent-alarm-budget-exceeded',
   'agent-presentation-asset-type-invalid',
   'agent-presentation-asset-too-large',
   'agent-presentation-asset-structure-invalid',
@@ -590,6 +600,22 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentMemoryForget: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentMemorySwitch: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentMemoryDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentSessionUnary: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Buffer;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeLocalAppBytesOutcome>;
+  readonly localAppAgentSessionStreamOpen: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Buffer;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentSessionStreamNext: (input: {
+    readonly streamId: string;
+  }) => Promise<NativeLocalAppBytesOutcome>;
+  readonly localAppAgentSessionStreamClose: (input: {
+    readonly streamId: string;
+  }) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -748,6 +774,22 @@ export type NimiElectronLocalAppHost = {
   readonly agentMemoryForget: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentMemorySwitch: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentMemoryDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentSessionUnary: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<Uint8Array>;
+  readonly agentSessionStreamOpen: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<{ readonly streamId: string }>;
+  readonly agentSessionStreamNext: (input: {
+    readonly streamId: string;
+  }) => Promise<{ readonly completed: true } | { readonly completed: false; readonly chunk: Uint8Array }>;
+  readonly agentSessionStreamClose: (input: {
+    readonly streamId: string;
+  }) => Promise<{ readonly closed: boolean }>;
 };
 
 export type NimiElectronLocalAppMaintenanceFailure = {
@@ -787,7 +829,7 @@ const LOCAL_APP_NATIVE_CLEANUP_METHODS: ReadonlySet<string> = new Set([
   'localAppAssetWriteAbort', 'localAppAssetReadClose',
   'localAppTextTurnStreamClose', 'localAppScenarioJobStreamClose',
   'localAppConversationVoiceTranscribeCancel', 'localAppConversationStreamClose',
-  'localAppRealtimeStreamClose',
+  'localAppRealtimeStreamClose', 'localAppAgentSessionStreamClose',
 ]);
 
 export class NimiElectronLocalAppHostError extends Error {
@@ -1739,6 +1781,79 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentMemorySwitch(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemorySwitch(input)); }
   agentMemoryDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemoryDelete(input)); }
 
+  async agentSessionUnary(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): Promise<Uint8Array> {
+    const methodId = exactText(input.methodId);
+    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !isNimiLocalAppByteView(input.requestBytes)) {
+      throw untrustedRuntimeError();
+    }
+    const requestBytes = Buffer.from(input.requestBytes.buffer, input.requestBytes.byteOffset, input.requestBytes.byteLength);
+    const outcome = await this.binding.localAppAgentSessionUnary({
+      methodId,
+      requestBytes,
+      ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
+    });
+    if (outcome?.status === 'error') {
+      const reasonCode = typeof outcome.reasonCode === 'string' ? outcome.reasonCode : '';
+      if (!ADMITTED_REASON_CODES.has(reasonCode) || typeof outcome.retryable !== 'boolean') {
+        throw untrustedRuntimeError();
+      }
+      throw new NimiElectronLocalAppHostError(reasonCode, outcome.retryable, validateReasonMetadata(outcome.reasonMetadata, reasonCode));
+    }
+    if (outcome?.status !== 'ok' || !isNimiLocalAppByteView(outcome.value)) {
+      throw untrustedRuntimeError();
+    }
+    return exactNimiLocalAppBytes(outcome.value);
+  }
+
+  async agentSessionStreamOpen(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): Promise<{ readonly streamId: string }> {
+    const methodId = exactText(input.methodId);
+    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !isNimiLocalAppByteView(input.requestBytes)) {
+      throw untrustedRuntimeError();
+    }
+    const requestBytes = Buffer.from(input.requestBytes.buffer, input.requestBytes.byteOffset, input.requestBytes.byteLength);
+    const result = await invokeRecord(() => this.binding.localAppAgentSessionStreamOpen({
+      methodId,
+      requestBytes,
+      ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
+    }));
+    return Object.freeze({ streamId: exactText(result.streamId) });
+  }
+
+  async agentSessionStreamNext(input: {
+    readonly streamId: string;
+  }): Promise<{ readonly completed: true } | { readonly completed: false; readonly chunk: Uint8Array }> {
+    const streamId = exactText(input.streamId);
+    const outcome = await this.binding.localAppAgentSessionStreamNext({ streamId });
+    if (outcome?.status === 'error') {
+      const reasonCode = typeof outcome.reasonCode === 'string' ? outcome.reasonCode : '';
+      if (!ADMITTED_REASON_CODES.has(reasonCode) || typeof outcome.retryable !== 'boolean') {
+        throw untrustedRuntimeError();
+      }
+      throw new NimiElectronLocalAppHostError(reasonCode, outcome.retryable, validateReasonMetadata(outcome.reasonMetadata, reasonCode));
+    }
+    if (outcome?.status !== 'ok') throw untrustedRuntimeError();
+    if (outcome.completed === true) return Object.freeze({ completed: true });
+    if (outcome.completed !== false || !isNimiLocalAppByteView(outcome.value)) throw untrustedRuntimeError();
+    return Object.freeze({ completed: false, chunk: exactNimiLocalAppBytes(outcome.value) });
+  }
+
+  async agentSessionStreamClose(input: {
+    readonly streamId: string;
+  }): Promise<{ readonly closed: boolean }> {
+    const streamId = exactText(input.streamId);
+    const result = await invokeRecord(() => this.binding.localAppAgentSessionStreamClose({ streamId }));
+    if (typeof result.closed !== 'boolean') throw untrustedRuntimeError();
+    return Object.freeze({ closed: result.closed });
+  }
+
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -2150,6 +2265,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentMemoryForget(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryForget(input); }
   agentMemorySwitch(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemorySwitch(input); }
   agentMemoryDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryDelete(input); }
+  agentSessionUnary(input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }): Promise<Uint8Array> { return this.resolve().agentSessionUnary(input); }
+  agentSessionStreamOpen(input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }): Promise<{ readonly streamId: string }> { return this.resolve().agentSessionStreamOpen(input); }
+  agentSessionStreamNext(input: { readonly streamId: string }): Promise<{ readonly completed: true } | { readonly completed: false; readonly chunk: Uint8Array }> { return this.resolve().agentSessionStreamNext(input); }
+  agentSessionStreamClose(input: { readonly streamId: string }): Promise<{ readonly closed: boolean }> { return this.resolve().agentSessionStreamClose(input); }
 
 }
 

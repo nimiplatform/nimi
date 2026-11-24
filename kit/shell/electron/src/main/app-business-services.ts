@@ -1,5 +1,6 @@
 import {
   createNimiLocalAppAIConsumptionClient,
+  createNimiLocalAppAgentSessionClient,
   createNimiLocalAppAgentWorkClient,
   createNimiLocalAppIntegrationClient,
   createNimiLocalAppActivityClient,
@@ -8,6 +9,7 @@ import {
   createNimiAppRuntimeStorageClient,
   createNimiLocalAppAssetsClient,
   type NimiLocalAppAIConsumptionClient,
+  type NimiLocalAppAgentSessionClient,
   type NimiLocalAppAssetBody,
   type NimiLocalAppClient,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -20,6 +22,7 @@ import {
 /** SDK clients for App-owned Node work running inside the verified App Host. */
 export type NimiElectronAppBusinessServices = Pick<NimiLocalAppClient, 'aiConfig' | 'storage' | 'agentWork' | 'integration' | 'activity'> & {
   readonly ai: NimiLocalAppAIConsumptionClient;
+  readonly agentSession: NimiLocalAppAgentSessionClient;
   readonly realm: Pick<NimiLocalAppClient['realm'], 'worldCore'>;
 };
 
@@ -206,6 +209,35 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
   });
   const services: NimiElectronAppBusinessServices = Object.freeze({
     ai,
+    agentSession: createNimiLocalAppAgentSessionClient({
+      agentSessionUnary: async (input) => {
+        const expected = generation;
+        check(expected);
+        const bytes = await host.agentSessionUnary(input);
+        check(expected);
+        return bytes;
+      },
+      agentSessionStreamOpen: async (input) => {
+        const expected = generation;
+        check(expected);
+        const opened = await host.agentSessionStreamOpen(input);
+        check(expected);
+        const closeStream = async () => {
+          resources.delete(closeStream);
+          await host.agentSessionStreamClose({ streamId: opened.streamId }).catch(() => undefined);
+        };
+        resources.add(closeStream);
+        return opened;
+      },
+      agentSessionStreamNext: async (input) => {
+        const expected = generation;
+        check(expected);
+        const next = await host.agentSessionStreamNext(input);
+        check(expected);
+        return next;
+      },
+      agentSessionStreamClose: async (input) => host.agentSessionStreamClose(input),
+    }),
     agentWork: createNimiLocalAppAgentWorkClient({
       listReferences: async () => (await request('agentWorkReferenceList')).references,
       start: input => request('agentWorkStart', input),

@@ -210,3 +210,45 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/GetSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/ListSessions
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/UpdateSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/DeleteSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/WatchSessionOverview
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/AckBodyOutbox
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/CreateAlarm
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/ListAlarms
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/UpdateAlarm
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.AgentSessionService/DeleteAlarm
+    posture: protected_origin_required

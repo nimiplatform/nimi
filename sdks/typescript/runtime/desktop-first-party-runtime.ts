@@ -153,6 +153,20 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
     | 'submitDelegatedApprovalDecision'>;
+  readonly sessions: Pick<DesktopAccountProductRuntimeMethods,
+    | 'routeAndSubmitInput'
+    | 'splitOrRedirectInput'
+    | 'getSession'
+    | 'listSessions'
+    | 'updateSession'
+    | 'deleteSession'
+    | 'watchSessionOverview'
+    | 'subscribeBrainSessionEvents'
+    | 'stopBrainSessionTurn'
+    | 'createAlarm'
+    | 'listAlarms'
+    | 'updateAlarm'
+    | 'deleteAlarm'>;
   readonly connectors: Pick<DesktopAccountProductRuntimeMethods,
     | 'listModelCatalogProviders'
     | 'listCatalogProviderModels'
@@ -564,6 +578,21 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       appAIConfig,
       profiles,
       agents: accountAgents,
+      sessions: Object.freeze({
+        routeAndSubmitInput: protectedGenerated.routeAndSubmitInput.bind(protectedGenerated),
+        splitOrRedirectInput: protectedGenerated.splitOrRedirectInput.bind(protectedGenerated),
+        getSession: protectedGenerated.getSession.bind(protectedGenerated),
+        listSessions: protectedGenerated.listSessions.bind(protectedGenerated),
+        updateSession: protectedGenerated.updateSession.bind(protectedGenerated),
+        deleteSession: protectedGenerated.deleteSession.bind(protectedGenerated),
+        watchSessionOverview: protectedGenerated.watchSessionOverview.bind(protectedGenerated),
+        subscribeBrainSessionEvents: protectedGenerated.subscribeBrainSessionEvents.bind(protectedGenerated),
+        stopBrainSessionTurn: protectedGenerated.stopBrainSessionTurn.bind(protectedGenerated),
+        createAlarm: protectedGenerated.createAlarm.bind(protectedGenerated),
+        listAlarms: protectedGenerated.listAlarms.bind(protectedGenerated),
+        updateAlarm: protectedGenerated.updateAlarm.bind(protectedGenerated),
+        deleteAlarm: protectedGenerated.deleteAlarm.bind(protectedGenerated),
+      }),
       connectors: Object.freeze({
         listModelCatalogProviders: runtime.connectors.listModelCatalogProviders,
         listCatalogProviderModels: runtime.connectors.listCatalogProviderModels,

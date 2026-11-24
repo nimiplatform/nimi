@@ -265,6 +265,19 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationConnectionSetup
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup
       - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup
+      - method_id: /nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput
+      - method_id: /nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput
+      - method_id: /nimi.runtime.v1.AgentSessionService/GetSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/ListSessions
+      - method_id: /nimi.runtime.v1.AgentSessionService/UpdateSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/DeleteSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/WatchSessionOverview
+      - method_id: /nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents
+      - method_id: /nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn
+      - method_id: /nimi.runtime.v1.AgentSessionService/CreateAlarm
+      - method_id: /nimi.runtime.v1.AgentSessionService/ListAlarms
+      - method_id: /nimi.runtime.v1.AgentSessionService/UpdateAlarm
+      - method_id: /nimi.runtime.v1.AgentSessionService/DeleteAlarm
   - profile_id: bundled_avatar_v1
     identity_class: avatar
     app_id: nimi.avatar
@@ -506,3 +519,40 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity
       - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests
       - method_id: /nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest
+      - method_id: /nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput
+      - method_id: /nimi.runtime.v1.AgentSessionService/GetSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/ListSessions
+  - profile_id: bundled_harness_v1
+    identity_class: app
+    app_id: nimi.harness
+    native_profile_marker: harness-v1
+    methods:
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
+      - method_id: /nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput
+      - method_id: /nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput
+      - method_id: /nimi.runtime.v1.AgentSessionService/GetSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/ListSessions
+      - method_id: /nimi.runtime.v1.AgentSessionService/UpdateSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/DeleteSession
+      - method_id: /nimi.runtime.v1.AgentSessionService/WatchSessionOverview
+      - method_id: /nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents
+      - method_id: /nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn
+      - method_id: /nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier
+      - method_id: /nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier
+      - method_id: /nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier
+      - method_id: /nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox
+      - method_id: /nimi.runtime.v1.AgentSessionService/AckBodyOutbox
+      - method_id: /nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect
+      - method_id: /nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep
+      - method_id: /nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection
+      - method_id: /nimi.runtime.v1.AgentSessionService/CreateAlarm
+      - method_id: /nimi.runtime.v1.AgentSessionService/ListAlarms
+      - method_id: /nimi.runtime.v1.AgentSessionService/UpdateAlarm
+      - method_id: /nimi.runtime.v1.AgentSessionService/DeleteAlarm

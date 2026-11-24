@@ -1410,6 +1410,8 @@ mod tests {
                     nanos: 0,
                 }),
                 source_explanation: "committed fact".to_string(),
+                scope_tag: String::new(),
+                slot_key: String::new(),
             }],
             current_count: 0,
             superseded_count: 0,

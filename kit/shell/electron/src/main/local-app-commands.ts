@@ -58,6 +58,8 @@ type RendererLocalAppHostMethod = Exclude<
   | 'conversationStreamNext' | 'conversationStreamClose'
   | 'realtimeStreamNext' | 'realtimeStreamClose'
   | 'activityStreamNext' | 'activityStreamClose'
+  | 'agentSessionUnary' | 'agentSessionStreamOpen'
+  | 'agentSessionStreamNext' | 'agentSessionStreamClose'
   | 'textTurnStreamNext' | 'textTurnStreamClose'
   | 'scenarioJobStreamNext' | 'scenarioJobStreamClose'
 >;

@@ -227,6 +227,14 @@ message CognitionMemoryRelationshipCommitted {
   string bounded_fact = 2;
 }
 
+message CognitionMemorySessionPointerCommitted {
+  string work_session_ref = 1;
+  string scope_tag = 2;
+  string slot_key = 3;
+  string topic_summary = 4;
+  string body_kind = 5;
+}
+
 message CognitionMemoryCommittedEventEnvelope {
   uint32 contract_version = 1;
   CognitionMemoryBankBindingRef bank_binding = 2;
@@ -244,6 +252,7 @@ message CognitionMemoryCommittedEventEnvelope {
     CognitionMemoryActivityTerminal activity_terminal = 22;
     CognitionMemoryCorrectionCommitted correction_committed = 23;
     CognitionMemoryRelationshipCommitted relationship_committed = 24;
+    CognitionMemorySessionPointerCommitted session_pointer_committed = 25;
   }
 }
 
@@ -298,6 +307,8 @@ message CognitionMemoryHit {
   repeated CognitionMemorySubjectRef subjects = 8;
   repeated CognitionMemorySourceRef sources = 9;
   string source_explanation = 10;
+  string scope_tag = 11;
+  string slot_key = 12;
 }
 
 message CognitionMemoryRecallRequest {
@@ -310,6 +321,7 @@ message CognitionMemoryRecallRequest {
   uint32 limit = 7;
   CognitionMemoryCapabilitySnapshot capabilities = 8;
   bool include_recent_life = 9;
+  repeated string scope_tags = 10;
 }
 
 message CognitionMemoryRecallResponse {
@@ -415,6 +427,8 @@ message AgentMemoryItem {
   google.protobuf.Timestamp occurred_at = 5;
   google.protobuf.Timestamp updated_at = 6;
   string source_explanation = 7;
+  string scope_tag = 8;
+  string slot_key = 9;
 }
 
 message AgentMemoryProjection {

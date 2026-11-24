@@ -23,6 +23,7 @@ surfaces:
   - RuntimeIntegrationService
   - RuntimeArtifactService
   - RuntimeAgentService
+  - AgentSessionService
   - RuntimeDevelopmentService
 authority_pending_methods: []
 services:
@@ -986,3 +987,111 @@ services:
         authority_status: admitted_local_app
         transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup
+  - name: AgentSessionService
+    source_rule: K-RPC-002
+    methods:
+      - name: RouteAndSubmitInput
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput
+      - name: SplitOrRedirectInput
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput
+      - name: GetSession
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/GetSession
+      - name: ListSessions
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/ListSessions
+      - name: UpdateSession
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/UpdateSession
+      - name: DeleteSession
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/DeleteSession
+      - name: WatchSessionOverview
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/WatchSessionOverview
+      - name: SubscribeBrainSessionEvents
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents
+      - name: StopBrainSessionTurn
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn
+      - name: RegisterBodyCarrier
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier
+      - name: HeartbeatBodyCarrier
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier
+      - name: UnregisterBodyCarrier
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier
+      - name: SubscribeBodyOutbox
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox
+      - name: AckBodyOutbox
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/AckBodyOutbox
+      - name: AuthorizeBodySideEffect
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect
+      - name: StreamLocalAgentBodyStep
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep
+      - name: ReportBodySessionProjection
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection
+      - name: CreateAlarm
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/CreateAlarm
+      - name: ListAlarms
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/ListAlarms
+      - name: UpdateAlarm
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/UpdateAlarm
+      - name: DeleteAlarm
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.AgentSessionService/DeleteAlarm

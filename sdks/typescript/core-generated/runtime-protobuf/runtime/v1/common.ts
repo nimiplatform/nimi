@@ -1624,7 +1624,31 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AGENT_UTOPIA_REVISION_CONFLICT = 777;
      */
-    AGENT_UTOPIA_REVISION_CONFLICT = 777
+    AGENT_UTOPIA_REVISION_CONFLICT = 777,
+    /**
+     * @generated from protobuf enum value: AGENT_SESSION_NOT_FOUND = 778;
+     */
+    AGENT_SESSION_NOT_FOUND = 778,
+    /**
+     * @generated from protobuf enum value: AGENT_SESSION_CONFLICT = 779;
+     */
+    AGENT_SESSION_CONFLICT = 779,
+    /**
+     * @generated from protobuf enum value: AGENT_SESSION_LEDGER_INVALID = 780;
+     */
+    AGENT_SESSION_LEDGER_INVALID = 780,
+    /**
+     * @generated from protobuf enum value: AGENT_SESSION_MEMORY_INVALIDATED = 781;
+     */
+    AGENT_SESSION_MEMORY_INVALIDATED = 781,
+    /**
+     * @generated from protobuf enum value: AGENT_BODY_LEASE_CONFLICT = 782;
+     */
+    AGENT_BODY_LEASE_CONFLICT = 782,
+    /**
+     * @generated from protobuf enum value: AGENT_ALARM_BUDGET_EXCEEDED = 783;
+     */
+    AGENT_ALARM_BUDGET_EXCEEDED = 783
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

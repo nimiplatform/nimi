@@ -53,7 +53,11 @@ func protectedDesktopStreamMethodAllowed(method string) bool {
 		method == protectedIntegrationSnapshotsMethod ||
 		method == "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges" ||
 		method == "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity" ||
-		method == "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"
+		method == "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests" ||
+		method == protectedAgentSessionOverviewWatchMethod ||
+		method == protectedAgentSessionBrainEventsMethod ||
+		method == protectedAgentBodyOutboxSubscribeMethod ||
+		method == protectedAgentBodyStepStreamMethod
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {

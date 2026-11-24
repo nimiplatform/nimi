@@ -75,7 +75,9 @@ pub(crate) async fn invoke(
             false,
         ));
     };
-    if profile.kind != BundledAvatarMethodKind::Unary || !timeout_allowed(request.timeout) {
+    if profile.kind != BundledAvatarMethodKind::Unary
+        || !timeout_allowed(profile.method_id, request.timeout)
+    {
         return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
@@ -107,7 +109,9 @@ pub(crate) async fn open_stream(
             false,
         ));
     };
-    if profile.kind != BundledAvatarMethodKind::ServerStream || !timeout_allowed(request.timeout) {
+    if profile.kind != BundledAvatarMethodKind::ServerStream
+        || !timeout_allowed(profile.method_id, request.timeout)
+    {
         return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
@@ -136,7 +140,7 @@ pub(crate) async fn invoke_client_stream(
     };
     if profile.method_id != "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
         || profile.kind != BundledAvatarMethodKind::ServerStream
-        || !timeout_allowed(request.timeout)
+        || !timeout_allowed(profile.method_id, request.timeout)
     {
         return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
@@ -155,6 +159,27 @@ pub(crate) async fn invoke_client_stream(
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-fn timeout_allowed(timeout: Option<Duration>) -> bool {
+pub(crate) fn is_long_lived_agent_session_stream(method_id: &str) -> bool {
+    matches!(
+        method_id,
+        "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview"
+            | "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox"
+            | "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents"
+    )
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub(crate) fn is_body_step_stream(method_id: &str) -> bool {
+    method_id == "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep"
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+fn timeout_allowed(method_id: &str, timeout: Option<Duration>) -> bool {
+    if is_long_lived_agent_session_stream(method_id) {
+        return timeout.is_none_or(|value| !value.is_zero());
+    }
+    if is_body_step_stream(method_id) {
+        return timeout.is_none_or(|value| !value.is_zero() && value <= Duration::from_secs(600));
+    }
     timeout.is_none_or(|value| !value.is_zero() && value <= Duration::from_secs(300))
 }

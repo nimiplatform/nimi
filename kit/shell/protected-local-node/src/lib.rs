@@ -23,6 +23,7 @@ use nimi_shell_protected_local::{
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentSessionRequest, LocalAppAgentSessionStreamReceiver,
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
@@ -141,6 +142,7 @@ mod account_events;
 mod bundled_avatar_streams;
 mod first_party_client_stream;
 mod first_party_streams;
+mod harness_security;
 mod local_app;
 mod native_types;
 mod projection;
@@ -148,6 +150,7 @@ pub use account_events::*;
 pub use bundled_avatar_streams::*;
 pub use first_party_client_stream::*;
 pub use first_party_streams::*;
+pub use harness_security::*;
 pub use local_app::*;
 pub use native_types::*;
 use projection::*;

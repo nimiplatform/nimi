@@ -15,6 +15,174 @@ export interface RuntimeMethodDescriptor {
 
 export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
   {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox",
+    "service": "AgentSessionService",
+    "method": "AckBodyOutbox",
+    "kind": "unary",
+    "requestType": "AckBodyOutboxRequest",
+    "responseType": "AckBodyOutboxResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect",
+    "service": "AgentSessionService",
+    "method": "AuthorizeBodySideEffect",
+    "kind": "unary",
+    "requestType": "AuthorizeBodySideEffectRequest",
+    "responseType": "AuthorizeBodySideEffectResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/CreateAlarm",
+    "service": "AgentSessionService",
+    "method": "CreateAlarm",
+    "kind": "unary",
+    "requestType": "CreateAlarmRequest",
+    "responseType": "CreateAlarmResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/DeleteAlarm",
+    "service": "AgentSessionService",
+    "method": "DeleteAlarm",
+    "kind": "unary",
+    "requestType": "DeleteAlarmRequest",
+    "responseType": "DeleteAlarmResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/DeleteSession",
+    "service": "AgentSessionService",
+    "method": "DeleteSession",
+    "kind": "unary",
+    "requestType": "DeleteSessionRequest",
+    "responseType": "DeleteSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/GetSession",
+    "service": "AgentSessionService",
+    "method": "GetSession",
+    "kind": "unary",
+    "requestType": "GetSessionRequest",
+    "responseType": "GetSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier",
+    "service": "AgentSessionService",
+    "method": "HeartbeatBodyCarrier",
+    "kind": "unary",
+    "requestType": "HeartbeatBodyCarrierRequest",
+    "responseType": "HeartbeatBodyCarrierResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/ListAlarms",
+    "service": "AgentSessionService",
+    "method": "ListAlarms",
+    "kind": "unary",
+    "requestType": "ListAlarmsRequest",
+    "responseType": "ListAlarmsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/ListSessions",
+    "service": "AgentSessionService",
+    "method": "ListSessions",
+    "kind": "unary",
+    "requestType": "ListSessionsRequest",
+    "responseType": "ListSessionsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier",
+    "service": "AgentSessionService",
+    "method": "RegisterBodyCarrier",
+    "kind": "unary",
+    "requestType": "RegisterBodyCarrierRequest",
+    "responseType": "RegisterBodyCarrierResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection",
+    "service": "AgentSessionService",
+    "method": "ReportBodySessionProjection",
+    "kind": "unary",
+    "requestType": "ReportBodySessionProjectionRequest",
+    "responseType": "ReportBodySessionProjectionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput",
+    "service": "AgentSessionService",
+    "method": "RouteAndSubmitInput",
+    "kind": "unary",
+    "requestType": "RouteAndSubmitInputRequest",
+    "responseType": "RouteAndSubmitInputResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput",
+    "service": "AgentSessionService",
+    "method": "SplitOrRedirectInput",
+    "kind": "unary",
+    "requestType": "SplitOrRedirectInputRequest",
+    "responseType": "SplitOrRedirectInputResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn",
+    "service": "AgentSessionService",
+    "method": "StopBrainSessionTurn",
+    "kind": "unary",
+    "requestType": "StopBrainSessionTurnRequest",
+    "responseType": "StopBrainSessionTurnResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep",
+    "service": "AgentSessionService",
+    "method": "StreamLocalAgentBodyStep",
+    "kind": "server_stream",
+    "requestType": "StreamLocalAgentBodyStepRequest",
+    "responseType": "BodyStepStreamEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox",
+    "service": "AgentSessionService",
+    "method": "SubscribeBodyOutbox",
+    "kind": "server_stream",
+    "requestType": "SubscribeBodyOutboxRequest",
+    "responseType": "BodyOutboxEnvelope"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents",
+    "service": "AgentSessionService",
+    "method": "SubscribeBrainSessionEvents",
+    "kind": "server_stream",
+    "requestType": "SubscribeBrainSessionEventsRequest",
+    "responseType": "BrainSessionEventEnvelope"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier",
+    "service": "AgentSessionService",
+    "method": "UnregisterBodyCarrier",
+    "kind": "unary",
+    "requestType": "UnregisterBodyCarrierRequest",
+    "responseType": "UnregisterBodyCarrierResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/UpdateAlarm",
+    "service": "AgentSessionService",
+    "method": "UpdateAlarm",
+    "kind": "unary",
+    "requestType": "UpdateAlarmRequest",
+    "responseType": "UpdateAlarmResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/UpdateSession",
+    "service": "AgentSessionService",
+    "method": "UpdateSession",
+    "kind": "unary",
+    "requestType": "UpdateSessionRequest",
+    "responseType": "UpdateSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview",
+    "service": "AgentSessionService",
+    "method": "WatchSessionOverview",
+    "kind": "server_stream",
+    "requestType": "WatchSessionOverviewRequest",
+    "responseType": "SessionOverviewDelta"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "service": "RuntimeAccountService",
     "method": "BeginLogin",

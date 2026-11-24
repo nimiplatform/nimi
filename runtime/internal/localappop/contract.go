@@ -238,6 +238,34 @@ const (
 	IngressAppActivityOpenRequestComplete
 	IngressAgentUtopiaSnapshotGet
 	IngressAgentUtopiaSettingsUpdate
+	IngressAgentSessionRouteSubmit
+	IngressAgentSessionSplitRedirect
+	IngressAgentSessionGet
+	IngressAgentSessionList
+	IngressAgentSessionUpdate
+	IngressAgentSessionDelete
+	IngressAgentSessionOverviewWatch
+	IngressAgentSessionBrainEventsSubscribe
+	IngressAgentSessionBrainTurnStop
+	IngressAgentBodyPCRegister
+	IngressAgentBodyPCHeartbeat
+	IngressAgentBodyPCUnregister
+	IngressAgentBodyPCOutboxSubscribe
+	IngressAgentBodyPCOutboxAck
+	IngressAgentBodyPCSideEffectAuthorize
+	IngressAgentBodyPCStepStream
+	IngressAgentBodyPCProjectionReport
+	IngressAgentBodyAppRegister
+	IngressAgentBodyAppHeartbeat
+	IngressAgentBodyAppUnregister
+	IngressAgentBodyAppOutboxSubscribe
+	IngressAgentBodyAppOutboxAck
+	IngressAgentBodyAppSideEffectAuthorize
+	IngressAgentBodyAppProjectionReport
+	IngressAgentTriggerAlarmCreate
+	IngressAgentTriggerAlarmList
+	IngressAgentTriggerAlarmUpdate
+	IngressAgentTriggerAlarmDelete
 )
 
 const (
@@ -376,6 +404,34 @@ const (
 	OperationAppActivityOpenRequestComplete
 	OperationAgentUtopiaSnapshotGet
 	OperationAgentUtopiaSettingsUpdate
+	OperationAgentSessionRouteSubmit
+	OperationAgentSessionSplitRedirect
+	OperationAgentSessionGet
+	OperationAgentSessionList
+	OperationAgentSessionUpdate
+	OperationAgentSessionDelete
+	OperationAgentSessionOverviewWatch
+	OperationAgentSessionBrainEventsSubscribe
+	OperationAgentSessionBrainTurnStop
+	OperationAgentBodyPCRegister
+	OperationAgentBodyPCHeartbeat
+	OperationAgentBodyPCUnregister
+	OperationAgentBodyPCOutboxSubscribe
+	OperationAgentBodyPCOutboxAck
+	OperationAgentBodyPCSideEffectAuthorize
+	OperationAgentBodyPCStepStream
+	OperationAgentBodyPCProjectionReport
+	OperationAgentBodyAppRegister
+	OperationAgentBodyAppHeartbeat
+	OperationAgentBodyAppUnregister
+	OperationAgentBodyAppOutboxSubscribe
+	OperationAgentBodyAppOutboxAck
+	OperationAgentBodyAppSideEffectAuthorize
+	OperationAgentBodyAppProjectionReport
+	OperationAgentTriggerAlarmCreate
+	OperationAgentTriggerAlarmList
+	OperationAgentTriggerAlarmUpdate
+	OperationAgentTriggerAlarmDelete
 )
 
 const (
@@ -406,6 +462,34 @@ const (
 	AppOperationIDIntegrationConnectionSetupGet    = "runtime.integration.connection.setup.get"
 	AppOperationIDIntegrationConnectionSetupSubmit = "runtime.integration.connection.setup.submit"
 	AppOperationIDIntegrationConnectionSetupCancel = "runtime.integration.connection.setup.cancel"
+	AppOperationIDAgentSessionRouteSubmit          = "runtime.agent.session.route-submit"
+	AppOperationIDAgentSessionSplitRedirect        = "runtime.agent.session.split-redirect"
+	AppOperationIDAgentSessionGet                  = "runtime.agent.session.get"
+	AppOperationIDAgentSessionList                 = "runtime.agent.session.list"
+	AppOperationIDAgentSessionUpdate               = "runtime.agent.session.update"
+	AppOperationIDAgentSessionDelete               = "runtime.agent.session.delete"
+	AppOperationIDAgentSessionOverviewWatch        = "runtime.agent.session.overview.watch"
+	AppOperationIDAgentSessionBrainEventsSubscribe = "runtime.agent.session.brain-events.subscribe"
+	AppOperationIDAgentSessionBrainTurnStop        = "runtime.agent.session.brain-turn.stop"
+	AppOperationIDAgentBodyPCRegister              = "runtime.agent.body.pc.register"
+	AppOperationIDAgentBodyPCHeartbeat             = "runtime.agent.body.pc.heartbeat"
+	AppOperationIDAgentBodyPCUnregister            = "runtime.agent.body.pc.unregister"
+	AppOperationIDAgentBodyPCOutboxSubscribe       = "runtime.agent.body.pc.outbox.subscribe"
+	AppOperationIDAgentBodyPCOutboxAck             = "runtime.agent.body.pc.outbox.ack"
+	AppOperationIDAgentBodyPCSideEffectAuthorize   = "runtime.agent.body.pc.side-effect.authorize"
+	AppOperationIDAgentBodyPCStepStream            = "runtime.agent.body.pc.step.stream"
+	AppOperationIDAgentBodyPCProjectionReport      = "runtime.agent.body.pc.projection.report"
+	AppOperationIDAgentBodyAppRegister             = "runtime.agent.body.app.register"
+	AppOperationIDAgentBodyAppHeartbeat            = "runtime.agent.body.app.heartbeat"
+	AppOperationIDAgentBodyAppUnregister           = "runtime.agent.body.app.unregister"
+	AppOperationIDAgentBodyAppOutboxSubscribe      = "runtime.agent.body.app.outbox.subscribe"
+	AppOperationIDAgentBodyAppOutboxAck            = "runtime.agent.body.app.outbox.ack"
+	AppOperationIDAgentBodyAppSideEffectAuthorize  = "runtime.agent.body.app.side-effect.authorize"
+	AppOperationIDAgentBodyAppProjectionReport     = "runtime.agent.body.app.projection.report"
+	AppOperationIDAgentTriggerAlarmCreate          = "runtime.agent.trigger.alarm.create"
+	AppOperationIDAgentTriggerAlarmList            = "runtime.agent.trigger.alarm.list"
+	AppOperationIDAgentTriggerAlarmUpdate          = "runtime.agent.trigger.alarm.update"
+	AppOperationIDAgentTriggerAlarmDelete          = "runtime.agent.trigger.alarm.delete"
 )
 
 type contractRow struct {
@@ -557,6 +641,34 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAppActivityOpen, OperationAppActivityOpen, AppOperationIDAppActivityOpen, AuthorityClassAppAccess, "app.activity"},
 	{IngressAppActivityOpenRequestSubscribe, OperationAppActivityOpenRequestSubscribe, AppOperationIDAppActivityOpenRequestSubscribe, AuthorityClassAppAccess, "app.activity"},
 	{IngressAppActivityOpenRequestComplete, OperationAppActivityOpenRequestComplete, AppOperationIDAppActivityOpenRequestComplete, AuthorityClassAppAccess, "app.activity"},
+	{IngressAgentSessionRouteSubmit, OperationAgentSessionRouteSubmit, AppOperationIDAgentSessionRouteSubmit, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionSplitRedirect, OperationAgentSessionSplitRedirect, AppOperationIDAgentSessionSplitRedirect, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionGet, OperationAgentSessionGet, AppOperationIDAgentSessionGet, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionList, OperationAgentSessionList, AppOperationIDAgentSessionList, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionUpdate, OperationAgentSessionUpdate, AppOperationIDAgentSessionUpdate, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionDelete, OperationAgentSessionDelete, AppOperationIDAgentSessionDelete, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionOverviewWatch, OperationAgentSessionOverviewWatch, AppOperationIDAgentSessionOverviewWatch, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionBrainEventsSubscribe, OperationAgentSessionBrainEventsSubscribe, AppOperationIDAgentSessionBrainEventsSubscribe, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentSessionBrainTurnStop, OperationAgentSessionBrainTurnStop, AppOperationIDAgentSessionBrainTurnStop, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentBodyPCRegister, OperationAgentBodyPCRegister, AppOperationIDAgentBodyPCRegister, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCHeartbeat, OperationAgentBodyPCHeartbeat, AppOperationIDAgentBodyPCHeartbeat, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCUnregister, OperationAgentBodyPCUnregister, AppOperationIDAgentBodyPCUnregister, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCOutboxSubscribe, OperationAgentBodyPCOutboxSubscribe, AppOperationIDAgentBodyPCOutboxSubscribe, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCOutboxAck, OperationAgentBodyPCOutboxAck, AppOperationIDAgentBodyPCOutboxAck, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCSideEffectAuthorize, OperationAgentBodyPCSideEffectAuthorize, AppOperationIDAgentBodyPCSideEffectAuthorize, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCStepStream, OperationAgentBodyPCStepStream, AppOperationIDAgentBodyPCStepStream, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyPCProjectionReport, OperationAgentBodyPCProjectionReport, AppOperationIDAgentBodyPCProjectionReport, AuthorityClassAppAccess, "agent.body.pc"},
+	{IngressAgentBodyAppRegister, OperationAgentBodyAppRegister, AppOperationIDAgentBodyAppRegister, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppHeartbeat, OperationAgentBodyAppHeartbeat, AppOperationIDAgentBodyAppHeartbeat, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppUnregister, OperationAgentBodyAppUnregister, AppOperationIDAgentBodyAppUnregister, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppOutboxSubscribe, OperationAgentBodyAppOutboxSubscribe, AppOperationIDAgentBodyAppOutboxSubscribe, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppOutboxAck, OperationAgentBodyAppOutboxAck, AppOperationIDAgentBodyAppOutboxAck, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppSideEffectAuthorize, OperationAgentBodyAppSideEffectAuthorize, AppOperationIDAgentBodyAppSideEffectAuthorize, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppProjectionReport, OperationAgentBodyAppProjectionReport, AppOperationIDAgentBodyAppProjectionReport, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentTriggerAlarmCreate, OperationAgentTriggerAlarmCreate, AppOperationIDAgentTriggerAlarmCreate, AuthorityClassAppAccess, "agent.trigger.delegate"},
+	{IngressAgentTriggerAlarmList, OperationAgentTriggerAlarmList, AppOperationIDAgentTriggerAlarmList, AuthorityClassAppAccess, "agent.trigger.delegate"},
+	{IngressAgentTriggerAlarmUpdate, OperationAgentTriggerAlarmUpdate, AppOperationIDAgentTriggerAlarmUpdate, AuthorityClassAppAccess, "agent.trigger.delegate"},
+	{IngressAgentTriggerAlarmDelete, OperationAgentTriggerAlarmDelete, AppOperationIDAgentTriggerAlarmDelete, AuthorityClassAppAccess, "agent.trigger.delegate"},
 }
 
 type Classification struct {

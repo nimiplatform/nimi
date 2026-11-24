@@ -30,6 +30,7 @@ const REQUIRED_PROFILE_IDENTITIES = Object.freeze({
   desktop_account_product_v1: 'account',
   bundled_avatar_v1: 'avatar',
   bundled_zhiyu_v1: 'app',
+  bundled_harness_v1: 'app',
 });
 const FORMAL_APP_SESSION_METHODS = new Set([
   '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
@@ -143,7 +144,7 @@ function validateAndBuildModel(registry, rpcRegistry) {
   for (const field of ACCOUNT_CALLER_FIELDS) {
     requireString(avatar.accountCaller[field], `bundled_avatar_v1 account_caller.${field}`);
   }
-  for (const [profileId, appId] of [['bundled_avatar_v1', 'nimi.avatar'], ['bundled_zhiyu_v1', 'nimi.zhiyu']]) {
+  for (const [profileId, appId] of [['bundled_avatar_v1', 'nimi.avatar'], ['bundled_zhiyu_v1', 'nimi.zhiyu'], ['bundled_harness_v1', 'nimi.harness']]) {
     if (profiles.find(profile => profile.profileId === profileId)?.appId !== appId) throw new Error(`${profileId} app_id must be ${appId}`);
   }
   return { profiles };
@@ -190,7 +191,14 @@ function renderOutputs(model) {
 }
 
 function bundledProfiles(model) {
-  return model.profiles.filter(profile => profile.profileId === 'bundled_avatar_v1' || profile.profileId === 'bundled_zhiyu_v1');
+  return model.profiles.filter(profile => profile.profileId === 'bundled_avatar_v1' || profile.profileId === 'bundled_zhiyu_v1' || profile.profileId === 'bundled_harness_v1');
+}
+
+function rustBundledAppVariant(appId) {
+  if (appId === 'nimi.avatar') return 'Avatar';
+  if (appId === 'nimi.zhiyu') return 'Zhiyu';
+  if (appId === 'nimi.harness') return 'Harness';
+  throw new Error(`unsupported bundled app id: ${appId}`);
 }
 
 function renderGoBundledApps(model) {
@@ -214,19 +222,19 @@ function renderRustBundledApps(model) {
   return formatRust(`${generatedHeader()}
 use crate::first_party_profiles_generated::{BundledAvatarMethodKind, BundledAvatarMethodProfile, bundled_avatar_method_profile, BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BundledApp { Avatar, Zhiyu }
+pub enum BundledApp { Avatar, Zhiyu, Harness }
 impl BundledApp {
   pub fn from_app_id(app_id: &str) -> Option<Self> { match app_id {
-${profiles.map(profile => `${JSON.stringify(profile.appId)} => Some(Self::${profile.appId === 'nimi.avatar' ? 'Avatar' : 'Zhiyu'}),`).join('\n')}
+${profiles.map(profile => `${JSON.stringify(profile.appId)} => Some(Self::${rustBundledAppVariant(profile.appId)}),`).join('\n')}
     _ => None,
   } }
-  pub const fn app_id(self) -> &'static str { match self { Self::Avatar => BUNDLED_AVATAR_APP_ID, Self::Zhiyu => "nimi.zhiyu" } }
+  pub const fn app_id(self) -> &'static str { match self { Self::Avatar => BUNDLED_AVATAR_APP_ID, Self::Zhiyu => "nimi.zhiyu", Self::Harness => "nimi.harness" } }
   pub const fn marker(self) -> &'static str { match self {
-${profiles.map(profile => `Self::${profile.appId === 'nimi.avatar' ? 'Avatar' : 'Zhiyu'} => ${profile.appId === 'nimi.avatar' ? 'BUNDLED_AVATAR_NATIVE_PROFILE_MARKER' : JSON.stringify(profile.nativeProfileMarker)},`).join('\n')}
+${profiles.map(profile => `Self::${rustBundledAppVariant(profile.appId)} => ${profile.appId === 'nimi.avatar' ? 'BUNDLED_AVATAR_NATIVE_PROFILE_MARKER' : JSON.stringify(profile.nativeProfileMarker)},`).join('\n')}
   } }
   pub fn method_profile(self, method_id: &str) -> Option<BundledAvatarMethodProfile> { match self {
 Self::Avatar => bundled_avatar_method_profile(method_id),
-${profiles.filter(profile => profile.appId !== 'nimi.avatar').map(profile => `Self::Zhiyu => match method_id {
+${profiles.filter(profile => profile.appId !== 'nimi.avatar').map(profile => `Self::${rustBundledAppVariant(profile.appId)} => match method_id {
 ${profile.methods.map(method => `${JSON.stringify(method.methodId)} => Some(BundledAvatarMethodProfile { method_id: ${JSON.stringify(method.methodId)}, kind: BundledAvatarMethodKind::${method.kind === 'unary' ? 'Unary' : 'ServerStream'}, capability: ${JSON.stringify(method.capability ?? '')} }),`).join('\n')}
 _ => None,
 },`).join('\n')}
@@ -237,7 +245,7 @@ _ => None,
 
 function renderElectronBundledApps(model) {
   return `${generatedHeader()}
-export type NimiElectronBundledAppId = 'nimi.avatar' | 'nimi.zhiyu';
+export type NimiElectronBundledAppId = 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
 const methods: Record<NimiElectronBundledAppId, Readonly<Record<string, 'unary' | 'server_stream'>>> = {
 ${bundledProfiles(model).map(profile => `${JSON.stringify(profile.appId)}: {
 ${profile.methods.map(method => `${JSON.stringify(method.methodId)}: ${JSON.stringify(method.kind)},`).join('\n')}
@@ -261,7 +269,7 @@ function renderGoProfiles(model) {
   const profileMethodRows = model.profiles.map((profile) => `\tcase ${JSON.stringify(profile.profileId)}:\n\t\treturn []FirstPartyProfileMethodEntry{\n${profile.methods.map((method) => `\t\t\t{MethodID: ${JSON.stringify(method.methodId)}, Kind: FirstPartyMethod${method.kind === 'unary' ? 'Unary' : 'ServerStream'}},`).join('\n')}\n\t\t}`).join('\n');
   const machine = profileById(model, 'desktop_machine_product_v1');
   const account = profileById(model, 'desktop_account_product_v1');
-  const source = `${generatedHeader()}\npackage protectedlocal\n\ntype FirstPartyMethodKind string\n\nconst (\n\tFirstPartyMethodUnary FirstPartyMethodKind = "unary"\n\tFirstPartyMethodServerStream FirstPartyMethodKind = "server_stream"\n\tDesktopMachineProductProfileID = ${JSON.stringify(machine.profileId)}\n\tDesktopMachineProductNativeMarker = ${JSON.stringify(machine.nativeProfileMarker)}\n\tDesktopAccountProductProfileID = ${JSON.stringify(account.profileId)}\n\tDesktopAccountProductNativeMarker = ${JSON.stringify(account.nativeProfileMarker)}\n)\n\ntype FirstPartyProfileMethodEntry struct {\n\tMethodID string\n\tKind FirstPartyMethodKind\n}\n\nfunc FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, bool) {\n\tswitch profileID {\n${profileCases}\n\t}\n\treturn "", false\n}\n\nfunc FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {\n\tswitch profileID {\n${profileMethodRows}\n\tdefault:\n\t\treturn nil\n\t}\n}\n\nfunc IsFirstPartyProtectedProfileMethod(methodID string) bool {\n\tif _, ok := FirstPartyProfileMethod("desktop_machine_product_v1", methodID); ok {\n\t\treturn true\n\t}\n\tif _, ok := FirstPartyProfileMethod("desktop_account_product_v1", methodID); ok {\n\t\treturn true\n\t}\n\tif _, ok := FirstPartyProfileMethod("bundled_avatar_v1", methodID); ok {\n\t\treturn true\n\t}\n\t_, ok := FirstPartyProfileMethod("bundled_zhiyu_v1", methodID)\n\treturn ok\n}\n`;
+  const source = `${generatedHeader()}\npackage protectedlocal\n\ntype FirstPartyMethodKind string\n\nconst (\n\tFirstPartyMethodUnary FirstPartyMethodKind = "unary"\n\tFirstPartyMethodServerStream FirstPartyMethodKind = "server_stream"\n\tDesktopMachineProductProfileID = ${JSON.stringify(machine.profileId)}\n\tDesktopMachineProductNativeMarker = ${JSON.stringify(machine.nativeProfileMarker)}\n\tDesktopAccountProductProfileID = ${JSON.stringify(account.profileId)}\n\tDesktopAccountProductNativeMarker = ${JSON.stringify(account.nativeProfileMarker)}\n)\n\ntype FirstPartyProfileMethodEntry struct {\n\tMethodID string\n\tKind FirstPartyMethodKind\n}\n\nfunc FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, bool) {\n\tswitch profileID {\n${profileCases}\n\t}\n\treturn "", false\n}\n\nfunc FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {\n\tswitch profileID {\n${profileMethodRows}\n\tdefault:\n\t\treturn nil\n\t}\n}\n\nfunc IsFirstPartyProtectedProfileMethod(methodID string) bool {\n\tif _, ok := FirstPartyProfileMethod("desktop_machine_product_v1", methodID); ok {\n\t\treturn true\n\t}\n\tif _, ok := FirstPartyProfileMethod("desktop_account_product_v1", methodID); ok {\n\t\treturn true\n\t}\n\tif _, ok := FirstPartyProfileMethod("bundled_avatar_v1", methodID); ok {\n\t\treturn true\n\t}\n\tif _, ok := FirstPartyProfileMethod("bundled_zhiyu_v1", methodID); ok {\n\t\treturn true\n\t}\n\t_, ok := FirstPartyProfileMethod("bundled_harness_v1", methodID)\n\treturn ok\n}\n`;
   return execFileSync('gofmt', { input: source, encoding: 'utf8' });
 }
 

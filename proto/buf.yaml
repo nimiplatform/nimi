@@ -22,6 +22,7 @@ lint:
       - runtime/v1/app_activity.proto
       - runtime/v1/integration.proto
       - runtime/v1/agent_work.proto
+      - runtime/v1/agent_session.proto
       - runtime/v1/agent_life.proto
       - runtime/v1/capability_configuration.proto
       - runtime/v1/agent_service.proto
@@ -53,6 +54,7 @@ lint:
       - runtime/v1/ai.proto
       - runtime/v1/ai_realtime.proto
       - runtime/v1/agent_service.proto
+      - runtime/v1/agent_session.proto
       - runtime/v1/app.proto
       - runtime/v1/audit.proto
       - runtime/v1/auth.proto

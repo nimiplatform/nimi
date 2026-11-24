@@ -497,6 +497,26 @@ const (
 	AIVIDEOPIXELFORMATRGB8        AiVideoPixelFormat = "AI_VIDEO_PIXEL_FORMAT_RGB8"
 )
 
+type AlarmDeliveryReceiptState string
+
+const (
+	ALARMDELIVERYRECEIPTSTATEUNSPECIFIED      AlarmDeliveryReceiptState = "ALARM_DELIVERY_RECEIPT_STATE_UNSPECIFIED"
+	ALARMDELIVERYRECEIPTSTATEPENDING          AlarmDeliveryReceiptState = "ALARM_DELIVERY_RECEIPT_STATE_PENDING"
+	ALARMDELIVERYRECEIPTSTATEREJECTED         AlarmDeliveryReceiptState = "ALARM_DELIVERY_RECEIPT_STATE_REJECTED"
+	ALARMDELIVERYRECEIPTSTATEPROVIDERACCEPTED AlarmDeliveryReceiptState = "ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED"
+	ALARMDELIVERYRECEIPTSTATEEFFECTUNKNOWN    AlarmDeliveryReceiptState = "ALARM_DELIVERY_RECEIPT_STATE_EFFECT_UNKNOWN"
+)
+
+type AlarmKind string
+
+const (
+	ALARMKINDUNSPECIFIED   AlarmKind = "ALARM_KIND_UNSPECIFIED"
+	ALARMKINDAT            AlarmKind = "ALARM_KIND_AT"
+	ALARMKINDDELAY         AlarmKind = "ALARM_KIND_DELAY"
+	ALARMKINDCRON          AlarmKind = "ALARM_KIND_CRON"
+	ALARMKINDAPPDELEGATION AlarmKind = "ALARM_KIND_APP_DELEGATION"
+)
+
 type AppActivityChangeKind string
 
 const (
@@ -649,6 +669,24 @@ const (
 	AUDIOINSTRUMENTPARTKINDDRUMS       AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_DRUMS"
 	AUDIOINSTRUMENTPARTKINDBASS        AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_BASS"
 	AUDIOINSTRUMENTPARTKINDOTHER       AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_OTHER"
+)
+
+type BodyOutboxCommandKind string
+
+const (
+	BODYOUTBOXCOMMANDKINDUNSPECIFIED      BodyOutboxCommandKind = "BODY_OUTBOX_COMMAND_KIND_UNSPECIFIED"
+	BODYOUTBOXCOMMANDKINDNEWINTENT        BodyOutboxCommandKind = "BODY_OUTBOX_COMMAND_KIND_NEW_INTENT"
+	BODYOUTBOXCOMMANDKINDINVALIDATEMEMORY BodyOutboxCommandKind = "BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY"
+	BODYOUTBOXCOMMANDKINDPURGESESSION     BodyOutboxCommandKind = "BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION"
+	BODYOUTBOXCOMMANDKINDPURGEAGENT       BodyOutboxCommandKind = "BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT"
+)
+
+type BodyStepPurpose string
+
+const (
+	BODYSTEPPURPOSEUNSPECIFIED BodyStepPurpose = "BODY_STEP_PURPOSE_UNSPECIFIED"
+	BODYSTEPPURPOSEINFERENCE   BodyStepPurpose = "BODY_STEP_PURPOSE_INFERENCE"
+	BODYSTEPPURPOSECOMPACTION  BodyStepPurpose = "BODY_STEP_PURPOSE_COMPACTION"
 )
 
 type CallerKind string
@@ -1993,6 +2031,12 @@ const (
 	AGENTCONVERSATIONCONTEXTREVISIONCONFLICT        ReasonCode = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
 	APPSTORAGECONTENTCONFLICT                       ReasonCode = "APP_STORAGE_CONTENT_CONFLICT"
 	AGENTUTOPIAREVISIONCONFLICT                     ReasonCode = "AGENT_UTOPIA_REVISION_CONFLICT"
+	AGENTSESSIONNOTFOUND                            ReasonCode = "AGENT_SESSION_NOT_FOUND"
+	AGENTSESSIONCONFLICT                            ReasonCode = "AGENT_SESSION_CONFLICT"
+	AGENTSESSIONLEDGERINVALID                       ReasonCode = "AGENT_SESSION_LEDGER_INVALID"
+	AGENTSESSIONMEMORYINVALIDATED                   ReasonCode = "AGENT_SESSION_MEMORY_INVALIDATED"
+	AGENTBODYLEASECONFLICT                          ReasonCode = "AGENT_BODY_LEASE_CONFLICT"
+	AGENTALARMBUDGETEXCEEDED                        ReasonCode = "AGENT_ALARM_BUDGET_EXCEEDED"
 )
 
 type ReasoningActivation string
@@ -2068,6 +2112,15 @@ const (
 	RESPONSEFORMATKINDTEXT        ResponseFormatKind = "RESPONSE_FORMAT_KIND_TEXT"
 	RESPONSEFORMATKINDJSONOBJECT  ResponseFormatKind = "RESPONSE_FORMAT_KIND_JSON_OBJECT"
 	RESPONSEFORMATKINDJSONSCHEMA  ResponseFormatKind = "RESPONSE_FORMAT_KIND_JSON_SCHEMA"
+)
+
+type RouteAndSubmitOutcome string
+
+const (
+	ROUTEANDSUBMITOUTCOMEUNSPECIFIED         RouteAndSubmitOutcome = "ROUTE_AND_SUBMIT_OUTCOME_UNSPECIFIED"
+	ROUTEANDSUBMITOUTCOMEACCEPTED            RouteAndSubmitOutcome = "ROUTE_AND_SUBMIT_OUTCOME_ACCEPTED"
+	ROUTEANDSUBMITOUTCOMEAMBIGUOUSCANDIDATES RouteAndSubmitOutcome = "ROUTE_AND_SUBMIT_OUTCOME_AMBIGUOUS_CANDIDATES"
+	ROUTEANDSUBMITOUTCOMEDEFERREDBODYOFFLINE RouteAndSubmitOutcome = "ROUTE_AND_SUBMIT_OUTCOME_DEFERRED_BODY_OFFLINE"
 )
 
 type RoutePolicy string
@@ -2594,6 +2647,20 @@ type Ack struct {
 	ActionHint string     `json:"action_hint,omitempty"`
 }
 
+type AckBodyOutboxRequest struct {
+	OutboxId            string `json:"outbox_id,omitempty"`
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64  `json:"lease_epoch,omitempty"`
+	ResultState         string `json:"result_state,omitempty"`
+	PayloadHash         string `json:"payload_hash,omitempty"`
+}
+
+type AckBodyOutboxResponse struct {
+	Acked    bool   `json:"acked,omitempty"`
+	OutboxId string `json:"outbox_id,omitempty"`
+}
+
 type AckRealmRealtimeEventsRequest struct {
 	ChannelId      string `json:"channel_id,omitempty"`
 	SubscriptionId string `json:"subscription_id,omitempty"`
@@ -2709,6 +2776,8 @@ type AgentMemoryItem struct {
 	OccurredAt        string                         `json:"occurred_at,omitempty"`
 	UpdatedAt         string                         `json:"updated_at,omitempty"`
 	SourceExplanation string                         `json:"source_explanation,omitempty"`
+	ScopeTag          string                         `json:"scope_tag,omitempty"`
+	SlotKey           string                         `json:"slot_key,omitempty"`
 }
 
 type AgentMemoryProjection struct {
@@ -3611,6 +3680,24 @@ type AuditExportChunk struct {
 	MimeType string `json:"mime_type,omitempty"`
 }
 
+type AuthorizeBodySideEffectRequest struct {
+	WorkSessionRef      string `json:"work_session_ref,omitempty"`
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64  `json:"lease_epoch,omitempty"`
+	CallId              string `json:"call_id,omitempty"`
+	ToolName            string `json:"tool_name,omitempty"`
+	PayloadHash         string `json:"payload_hash,omitempty"`
+	ActionKind          string `json:"action_kind,omitempty"`
+}
+
+type AuthorizeBodySideEffectResponse struct {
+	Authorized         bool   `json:"authorized,omitempty"`
+	DenyReason         string `json:"deny_reason,omitempty"`
+	MemoryInvalidated  bool   `json:"memory_invalidated,omitempty"`
+	WorkSessionDeleted bool   `json:"work_session_deleted,omitempty"`
+}
+
 type BeginLoginRequest struct {
 	Caller          *AccountCaller `json:"caller,omitempty"`
 	RedirectUri     string         `json:"redirect_uri,omitempty"`
@@ -3643,6 +3730,88 @@ type BindLocalAppProcessResponse struct {
 	LaunchId     []byte     `json:"launch_id,omitempty"`
 	BindDeadline string     `json:"bind_deadline,omitempty"`
 	ReasonCode   ReasonCode `json:"reason_code,omitempty"`
+}
+
+type BodyAdvisoryContext struct {
+	WorkspaceName  string   `json:"workspace_name,omitempty"`
+	PermissionMode string   `json:"permission_mode,omitempty"`
+	ToolNames      []string `json:"tool_names,omitempty"`
+}
+
+type BodyOutboxEnvelope struct {
+	OutboxId            string                `json:"outbox_id,omitempty"`
+	DeviceId            string                `json:"device_id,omitempty"`
+	CapabilityNamespace string                `json:"capability_namespace,omitempty"`
+	WorkSessionRef      string                `json:"work_session_ref,omitempty"`
+	CommandKind         BodyOutboxCommandKind `json:"command_kind,omitempty"`
+	PayloadJson         string                `json:"payload_json,omitempty"`
+	CreatedAt           string                `json:"created_at,omitempty"`
+	AgentBinding        string                `json:"agent_binding,omitempty"`
+}
+
+type BodyStepDone struct {
+	FinishReason                 string `json:"finish_reason,omitempty"`
+	UsageInputTokens             int64  `json:"usage_input_tokens,omitempty"`
+	UsageOutputTokens            int64  `json:"usage_output_tokens,omitempty"`
+	StepMac                      string `json:"step_mac,omitempty"`
+	CompactionSummary            string `json:"compaction_summary,omitempty"`
+	PostCompactionMac            string `json:"post_compaction_mac,omitempty"`
+	EffectiveContextBudgetTokens uint32 `json:"effective_context_budget_tokens,omitempty"`
+}
+
+type BodyStepFailure struct {
+	ReasonCode        ReasonCode `json:"reason_code,omitempty"`
+	Message           string     `json:"message,omitempty"`
+	MemoryInvalidated bool       `json:"memory_invalidated,omitempty"`
+}
+
+type BodyStepStreamEvent struct {
+	EventIndex                   uint32                `json:"event_index,omitempty"`
+	EffectiveContextBudgetTokens uint32                `json:"effective_context_budget_tokens,omitempty"`
+	TextDelta                    string                `json:"text_delta,omitempty"`
+	ReasoningSummaryDelta        string                `json:"reasoning_summary_delta,omitempty"`
+	ToolCallActivity             *BodyToolCallActivity `json:"tool_call_activity,omitempty"`
+	ToolCall                     *BodyToolCall         `json:"tool_call,omitempty"`
+	Done                         *BodyStepDone         `json:"done,omitempty"`
+	Failed                       *BodyStepFailure      `json:"failed,omitempty"`
+}
+
+type BodyToolCall struct {
+	CallId        string `json:"call_id,omitempty"`
+	Name          string `json:"name,omitempty"`
+	ArgumentsJson string `json:"arguments_json,omitempty"`
+}
+
+type BodyToolCallActivity struct {
+	CallId              string `json:"call_id,omitempty"`
+	ToolName            string `json:"tool_name,omitempty"`
+	ArgumentsDeltaBytes uint32 `json:"arguments_delta_bytes,omitempty"`
+	AccumulatedBytes    uint32 `json:"accumulated_bytes,omitempty"`
+}
+
+type BodyToolDefinition struct {
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	InputSchemaJson string `json:"input_schema_json,omitempty"`
+}
+
+type BodyWorkingMessage struct {
+	Role        string `json:"role,omitempty"`
+	ContentJson string `json:"content_json,omitempty"`
+	ToolCallId  string `json:"tool_call_id,omitempty"`
+	ToolName    string `json:"tool_name,omitempty"`
+	IsError     bool   `json:"is_error,omitempty"`
+	OutboxId    string `json:"outbox_id,omitempty"`
+}
+
+type BrainSessionEventEnvelope struct {
+	WorkSessionRef        string `json:"work_session_ref,omitempty"`
+	Seq                   int64  `json:"seq,omitempty"`
+	EventId               string `json:"event_id,omitempty"`
+	EventType             string `json:"event_type,omitempty"`
+	PayloadJson           string `json:"payload_json,omitempty"`
+	CreatedAt             string `json:"created_at,omitempty"`
+	MovedToWorkSessionRef string `json:"moved_to_work_session_ref,omitempty"`
 }
 
 type CancelAppPackageJobRequest struct {
@@ -4023,21 +4192,22 @@ type CognitionMemoryCommitResponse struct {
 }
 
 type CognitionMemoryCommittedEventEnvelope struct {
-	ContractVersion       uint32                                `json:"contract_version,omitempty"`
-	BankBinding           *CognitionMemoryBankBindingRef        `json:"bank_binding,omitempty"`
-	Bank                  *CognitionMemoryBankRef               `json:"bank,omitempty"`
-	Event                 *CognitionMemoryEventRef              `json:"event,omitempty"`
-	DeliverySequence      uint64                                `json:"delivery_sequence,omitempty"`
-	Operation             *CognitionMemoryOperationRef          `json:"operation,omitempty"`
-	Subjects              []CognitionMemorySubjectRef           `json:"subjects,omitempty"`
-	Sources               []CognitionMemorySourceRef            `json:"sources,omitempty"`
-	CommittedAt           string                                `json:"committed_at,omitempty"`
-	LifecycleCutoff       *CognitionMemoryLifecycleCutoffRef    `json:"lifecycle_cutoff,omitempty"`
-	MessageCommitted      *CognitionMemoryMessageCommitted      `json:"message_committed,omitempty"`
-	TurnTerminal          *CognitionMemoryTurnTerminal          `json:"turn_terminal,omitempty"`
-	ActivityTerminal      *CognitionMemoryActivityTerminal      `json:"activity_terminal,omitempty"`
-	CorrectionCommitted   *CognitionMemoryCorrectionCommitted   `json:"correction_committed,omitempty"`
-	RelationshipCommitted *CognitionMemoryRelationshipCommitted `json:"relationship_committed,omitempty"`
+	ContractVersion         uint32                                  `json:"contract_version,omitempty"`
+	BankBinding             *CognitionMemoryBankBindingRef          `json:"bank_binding,omitempty"`
+	Bank                    *CognitionMemoryBankRef                 `json:"bank,omitempty"`
+	Event                   *CognitionMemoryEventRef                `json:"event,omitempty"`
+	DeliverySequence        uint64                                  `json:"delivery_sequence,omitempty"`
+	Operation               *CognitionMemoryOperationRef            `json:"operation,omitempty"`
+	Subjects                []CognitionMemorySubjectRef             `json:"subjects,omitempty"`
+	Sources                 []CognitionMemorySourceRef              `json:"sources,omitempty"`
+	CommittedAt             string                                  `json:"committed_at,omitempty"`
+	LifecycleCutoff         *CognitionMemoryLifecycleCutoffRef      `json:"lifecycle_cutoff,omitempty"`
+	MessageCommitted        *CognitionMemoryMessageCommitted        `json:"message_committed,omitempty"`
+	TurnTerminal            *CognitionMemoryTurnTerminal            `json:"turn_terminal,omitempty"`
+	ActivityTerminal        *CognitionMemoryActivityTerminal        `json:"activity_terminal,omitempty"`
+	CorrectionCommitted     *CognitionMemoryCorrectionCommitted     `json:"correction_committed,omitempty"`
+	RelationshipCommitted   *CognitionMemoryRelationshipCommitted   `json:"relationship_committed,omitempty"`
+	SessionPointerCommitted *CognitionMemorySessionPointerCommitted `json:"session_pointer_committed,omitempty"`
 }
 
 type CognitionMemoryCorrectionCommitted struct {
@@ -4114,6 +4284,8 @@ type CognitionMemoryHit struct {
 	Subjects          []CognitionMemorySubjectRef    `json:"subjects,omitempty"`
 	Sources           []CognitionMemorySourceRef     `json:"sources,omitempty"`
 	SourceExplanation string                         `json:"source_explanation,omitempty"`
+	ScopeTag          string                         `json:"scope_tag,omitempty"`
+	SlotKey           string                         `json:"slot_key,omitempty"`
 }
 
 type CognitionMemoryInspectRequest struct {
@@ -4179,6 +4351,7 @@ type CognitionMemoryRecallRequest struct {
 	Limit             uint32                             `json:"limit,omitempty"`
 	Capabilities      *CognitionMemoryCapabilitySnapshot `json:"capabilities,omitempty"`
 	IncludeRecentLife bool                               `json:"include_recent_life,omitempty"`
+	ScopeTags         []string                           `json:"scope_tags,omitempty"`
 }
 
 type CognitionMemoryRecallResponse struct {
@@ -4193,6 +4366,14 @@ type CognitionMemoryRef struct {
 type CognitionMemoryRelationshipCommitted struct {
 	RelationshipKind string `json:"relationship_kind,omitempty"`
 	BoundedFact      string `json:"bounded_fact,omitempty"`
+}
+
+type CognitionMemorySessionPointerCommitted struct {
+	WorkSessionRef string `json:"work_session_ref,omitempty"`
+	ScopeTag       string `json:"scope_tag,omitempty"`
+	SlotKey        string `json:"slot_key,omitempty"`
+	TopicSummary   string `json:"topic_summary,omitempty"`
+	BodyKind       string `json:"body_kind,omitempty"`
 }
 
 type CognitionMemorySourceRef struct {
@@ -4463,6 +4644,28 @@ type CorrectLocalAppAgentMemoryResponse struct {
 	Projection        *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
+type CreateAlarmRequest struct {
+	AgentHandle          string    `json:"agent_handle,omitempty"`
+	TargetWorkSessionRef string    `json:"target_work_session_ref,omitempty"`
+	AlarmKind            AlarmKind `json:"alarm_kind,omitempty"`
+	FireAt               string    `json:"fire_at,omitempty"`
+	DelaySeconds         int64     `json:"delay_seconds,omitempty"`
+	CronExpr             string    `json:"cron_expr,omitempty"`
+	TimeZone             string    `json:"time_zone,omitempty"`
+	SourceObjectId       string    `json:"source_object_id,omitempty"`
+	SourceObjectVersion  string    `json:"source_object_version,omitempty"`
+	TemplateTitle        string    `json:"template_title,omitempty"`
+	TemplateBody         string    `json:"template_body,omitempty"`
+	TemplatePayloadJson  string    `json:"template_payload_json,omitempty"`
+	RequiresLlm          bool      `json:"requires_llm,omitempty"`
+	DeliveryChannels     []string  `json:"delivery_channels,omitempty"`
+	ExpiresAt            string    `json:"expires_at,omitempty"`
+}
+
+type CreateAlarmResponse struct {
+	Alarm *SessionAlarmRecord `json:"alarm,omitempty"`
+}
+
 type CreateConnectorRequest struct {
 	Provider            string                       `json:"provider,omitempty"`
 	Endpoint            string                       `json:"endpoint,omitempty"`
@@ -4582,6 +4785,16 @@ type DelegatedToolAllowlistEntry struct {
 	ExpectedSensitivityClass SensitivityClass `json:"expected_sensitivity_class,omitempty"`
 }
 
+type DeleteAlarmRequest struct {
+	AlarmId         string `json:"alarm_id,omitempty"`
+	ExpectedVersion int64  `json:"expected_version,omitempty"`
+}
+
+type DeleteAlarmResponse struct {
+	AlarmId string `json:"alarm_id,omitempty"`
+	Deleted bool   `json:"deleted,omitempty"`
+}
+
 type DeleteAllLocalAppAgentMemoryRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	Confirmed   bool   `json:"confirmed,omitempty"`
@@ -4642,6 +4855,19 @@ type DeletePortableAIProfileRequest struct {
 }
 
 type DeletePortableAIProfileResponse struct {
+}
+
+type DeleteSessionRequest struct {
+	WorkSessionRef string `json:"work_session_ref,omitempty"`
+	Confirmed      bool   `json:"confirmed,omitempty"`
+}
+
+type DeleteSessionResponse struct {
+	WorkSessionRef       string `json:"work_session_ref,omitempty"`
+	Deleted              bool   `json:"deleted,omitempty"`
+	BodyPurgePending     bool   `json:"body_purge_pending,omitempty"`
+	OutboxId             string `json:"outbox_id,omitempty"`
+	ForgottenMemoryCount uint32 `json:"forgotten_memory_count,omitempty"`
 }
 
 type DeleteVoiceAssetRequest struct {
@@ -5434,6 +5660,17 @@ type GetScenarioJobResponse struct {
 	ObservationIssue *ScenarioJobObservationIssue `json:"observation_issue,omitempty"`
 }
 
+type GetSessionRequest struct {
+	WorkSessionRef      string `json:"work_session_ref,omitempty"`
+	IncludeRecentEvents bool   `json:"include_recent_events,omitempty"`
+	MaxEvents           uint32 `json:"max_events,omitempty"`
+}
+
+type GetSessionResponse struct {
+	WorkSessionRecord *WorkSessionRecord          `json:"work_session_record,omitempty"`
+	RecentEvents      []BrainSessionEventEnvelope `json:"recent_events,omitempty"`
+}
+
 type GetSharedLocalAgentAIConfigRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 }
@@ -5451,6 +5688,19 @@ type GetVoiceAssetRequest struct {
 
 type GetVoiceAssetResponse struct {
 	Asset *VoiceAsset `json:"asset,omitempty"`
+}
+
+type HeartbeatBodyCarrierRequest struct {
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64  `json:"lease_epoch,omitempty"`
+	InstanceId          string `json:"instance_id,omitempty"`
+}
+
+type HeartbeatBodyCarrierResponse struct {
+	Alive           bool   `json:"alive,omitempty"`
+	LeaseEpoch      int64  `json:"lease_epoch,omitempty"`
+	NextHeartbeatMs uint32 `json:"next_heartbeat_ms,omitempty"`
 }
 
 type HookExecutionOutcome struct {
@@ -5794,6 +6044,16 @@ type ListAgentsRequest struct {
 type ListAgentsResponse struct {
 	Agents        []LocalAgentRecord `json:"agents,omitempty"`
 	NextPageToken string             `json:"next_page_token,omitempty"`
+}
+
+type ListAlarmsRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	TargetWorkSessionRef string `json:"target_work_session_ref,omitempty"`
+	IncludeInactive      bool   `json:"include_inactive,omitempty"`
+}
+
+type ListAlarmsResponse struct {
+	Alarms []SessionAlarmRecord `json:"alarms,omitempty"`
 }
 
 type ListAppAIConfigOptionsRequest struct {
@@ -6222,6 +6482,22 @@ type ListScenarioProfilesRequest struct {
 
 type ListScenarioProfilesResponse struct {
 	Profiles []ScenarioProfile `json:"profiles,omitempty"`
+}
+
+type ListSessionsRequest struct {
+	AgentHandle     string   `json:"agent_handle,omitempty"`
+	IncludeArchived bool     `json:"include_archived,omitempty"`
+	SearchQuery     string   `json:"search_query,omitempty"`
+	SessionKinds    []string `json:"session_kinds,omitempty"`
+	StatusFilter    string   `json:"status_filter,omitempty"`
+	PageSize        uint32   `json:"page_size,omitempty"`
+	PageToken       string   `json:"page_token,omitempty"`
+}
+
+type ListSessionsResponse struct {
+	Items             []WorkSessionRecord `json:"items,omitempty"`
+	NextPageToken     string              `json:"next_page_token,omitempty"`
+	TotalVisibleCount uint32              `json:"total_visible_count,omitempty"`
 }
 
 type ListSharedLocalAgentAIConfigOptionsRequest struct {
@@ -8337,6 +8613,25 @@ type PeekSchedulingResponse struct {
 	TargetJudgements   []SchedulingTargetJudgement  `json:"target_judgements,omitempty"`
 }
 
+type PendingAttentionInput struct {
+	AttentionId   string `json:"attention_id,omitempty"`
+	AttentionKind string `json:"attention_kind,omitempty"`
+	TrustScope    string `json:"trust_scope,omitempty"`
+	SummaryJson   string `json:"summary_json,omitempty"`
+	ExpiresAt     string `json:"expires_at,omitempty"`
+}
+
+type PendingAttentionRecord struct {
+	AttentionId    string `json:"attention_id,omitempty"`
+	WorkSessionRef string `json:"work_session_ref,omitempty"`
+	AgentBinding   string `json:"agent_binding,omitempty"`
+	AttentionKind  string `json:"attention_kind,omitempty"`
+	TrustScope     string `json:"trust_scope,omitempty"`
+	SummaryJson    string `json:"summary_json,omitempty"`
+	ExpiresAt      string `json:"expires_at,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
+}
+
 type PersonaCharacterSourceRefV3 struct {
 	Kind           CharacterSourceKindV3 `json:"kind,omitempty"`
 	Id             string                `json:"id,omitempty"`
@@ -8884,6 +9179,21 @@ type RebindLocalAppProcessResponse struct {
 type ReconcileProductControlFirstRunSetupStateRequest struct {
 }
 
+type RegisterBodyCarrierRequest struct {
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	InstanceId          string `json:"instance_id,omitempty"`
+	CapabilitiesJson    string `json:"capabilities_json,omitempty"`
+}
+
+type RegisterBodyCarrierResponse struct {
+	LeaseEpoch          int64                `json:"lease_epoch,omitempty"`
+	CapabilityNamespace string               `json:"capability_namespace,omitempty"`
+	PendingTombstones   []BodyOutboxEnvelope `json:"pending_tombstones,omitempty"`
+	PendingIntents      []BodyOutboxEnvelope `json:"pending_intents,omitempty"`
+	HeartbeatIntervalMs uint32               `json:"heartbeat_interval_ms,omitempty"`
+}
+
 type RegisterExternalPrincipalRequest struct {
 	AppId                 string                `json:"app_id,omitempty"`
 	ExternalPrincipalId   string                `json:"external_principal_id,omitempty"`
@@ -9061,6 +9371,30 @@ type ReplaceProductControlDataRootRequest struct {
 	ExpectedRootActivationId string `json:"expected_root_activation_id,omitempty"`
 }
 
+type ReportBodySessionProjectionRequest struct {
+	WorkSessionRef        string                 `json:"work_session_ref,omitempty"`
+	DeviceId              string                 `json:"device_id,omitempty"`
+	CapabilityNamespace   string                 `json:"capability_namespace,omitempty"`
+	LeaseEpoch            int64                  `json:"lease_epoch,omitempty"`
+	ProjectionSeq         int64                  `json:"projection_seq,omitempty"`
+	Status                string                 `json:"status,omitempty"`
+	Title                 string                 `json:"title,omitempty"`
+	WorkspaceRoot         string                 `json:"workspace_root,omitempty"`
+	PermissionMode        string                 `json:"permission_mode,omitempty"`
+	LatestReceiptJson     string                 `json:"latest_receipt_json,omitempty"`
+	PendingAttention      *PendingAttentionInput `json:"pending_attention,omitempty"`
+	ClearPendingAttention bool                   `json:"clear_pending_attention,omitempty"`
+	MilestoneKind         string                 `json:"milestone_kind,omitempty"`
+	TopicSummary          string                 `json:"topic_summary,omitempty"`
+	DeliverablePaths      []string               `json:"deliverable_paths,omitempty"`
+}
+
+type ReportBodySessionProjectionResponse struct {
+	Applied              bool  `json:"applied,omitempty"`
+	CurrentProjectionSeq int64 `json:"current_projection_seq,omitempty"`
+	StaleIgnored         bool  `json:"stale_ignored,omitempty"`
+}
+
 type RequestPresenceVerificationRequest struct {
 	Caller     *AccountCaller `json:"caller,omitempty"`
 	Purpose    string         `json:"purpose,omitempty"`
@@ -9204,6 +9538,38 @@ type RevealLocalAppAssetResponse struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
+}
+
+type RouteAndSubmitInputRequest struct {
+	AgentHandle            string   `json:"agent_handle,omitempty"`
+	RequestId              string   `json:"request_id,omitempty"`
+	Text                   string   `json:"text,omitempty"`
+	ExplicitWorkSessionRef string   `json:"explicit_work_session_ref,omitempty"`
+	EntrySurface           string   `json:"entry_surface,omitempty"`
+	WorkspaceRoot          string   `json:"workspace_root,omitempty"`
+	WorkspaceWritable      bool     `json:"workspace_writable,omitempty"`
+	AttachmentPaths        []string `json:"attachment_paths,omitempty"`
+	CardSourceSessionRef   string   `json:"card_source_session_ref,omitempty"`
+	CardSourceMaxSeq       int64    `json:"card_source_max_seq,omitempty"`
+	HandoffBriefText       string   `json:"handoff_brief_text,omitempty"`
+	ReplyToMessageRef      string   `json:"reply_to_message_ref,omitempty"`
+	DelegationObjectId     string   `json:"delegation_object_id,omitempty"`
+	SelectedCandidateRef   string   `json:"selected_candidate_ref,omitempty"`
+	TrustTierHint          string   `json:"trust_tier_hint,omitempty"`
+}
+
+type RouteAndSubmitInputResponse struct {
+	Outcome                 RouteAndSubmitOutcome   `json:"outcome,omitempty"`
+	ResolvedWorkSessionRef  string                  `json:"resolved_work_session_ref,omitempty"`
+	RouteReason             string                  `json:"route_reason,omitempty"`
+	SessionKind             string                  `json:"session_kind,omitempty"`
+	OwnerBodyKind           string                  `json:"owner_body_kind,omitempty"`
+	EffectivePermissionMode string                  `json:"effective_permission_mode,omitempty"`
+	OutboxId                string                  `json:"outbox_id,omitempty"`
+	Candidates              []SessionRouteCandidate `json:"candidates,omitempty"`
+	Deduplicated            bool                    `json:"deduplicated,omitempty"`
+	PromotedHandoffTurns    int32                   `json:"promoted_handoff_turns,omitempty"`
+	WorkSessionRecord       *WorkSessionRecord      `json:"work_session_record,omitempty"`
 }
 
 type RuntimeHealthEvent struct {
@@ -9470,6 +9836,48 @@ type SendLocalAppConversationTurnResponse struct {
 	TurnId string `json:"turn_id,omitempty"`
 }
 
+type SessionAlarmRecord struct {
+	AlarmId              string                    `json:"alarm_id,omitempty"`
+	AgentBinding         string                    `json:"agent_binding,omitempty"`
+	TargetWorkSessionRef string                    `json:"target_work_session_ref,omitempty"`
+	AlarmKind            AlarmKind                 `json:"alarm_kind,omitempty"`
+	CronExpr             string                    `json:"cron_expr,omitempty"`
+	TimeZone             string                    `json:"time_zone,omitempty"`
+	SourcePublisher      string                    `json:"source_publisher,omitempty"`
+	SourceObjectId       string                    `json:"source_object_id,omitempty"`
+	SourceObjectVersion  string                    `json:"source_object_version,omitempty"`
+	TemplateTitle        string                    `json:"template_title,omitempty"`
+	TemplateBody         string                    `json:"template_body,omitempty"`
+	TemplatePayloadJson  string                    `json:"template_payload_json,omitempty"`
+	RequiresLlm          bool                      `json:"requires_llm,omitempty"`
+	DeliveryChannels     []string                  `json:"delivery_channels,omitempty"`
+	Status               string                    `json:"status,omitempty"`
+	UnackStreak          int32                     `json:"unack_streak,omitempty"`
+	NextFireAt           string                    `json:"next_fire_at,omitempty"`
+	Version              int64                     `json:"version,omitempty"`
+	ExpiresAt            string                    `json:"expires_at,omitempty"`
+	LastReceiptState     AlarmDeliveryReceiptState `json:"last_receipt_state,omitempty"`
+	LastDeliveryAt       string                    `json:"last_delivery_at,omitempty"`
+}
+
+type SessionOverviewDelta struct {
+	OverviewSeq            uint64                   `json:"overview_seq,omitempty"`
+	FullBaseline           bool                     `json:"full_baseline,omitempty"`
+	UpsertedSessions       []WorkSessionRecord      `json:"upserted_sessions,omitempty"`
+	RemovedWorkSessionRefs []string                 `json:"removed_work_session_refs,omitempty"`
+	AttentionItems         []PendingAttentionRecord `json:"attention_items,omitempty"`
+	CarrierOnline          bool                     `json:"carrier_online,omitempty"`
+}
+
+type SessionRouteCandidate struct {
+	WorkSessionRef string  `json:"work_session_ref,omitempty"`
+	Title          string  `json:"title,omitempty"`
+	SessionKind    string  `json:"session_kind,omitempty"`
+	OwnerBodyKind  string  `json:"owner_body_kind,omitempty"`
+	UpdatedAt      string  `json:"updated_at,omitempty"`
+	Score          float64 `json:"score,omitempty"`
+}
+
 type SetAgentPresentationProfileRequest struct {
 	Context          *AgentRequestContext             `json:"context,omitempty"`
 	AgentId          string                           `json:"agent_id,omitempty"`
@@ -9675,6 +10083,24 @@ type SpeechTranscriptionAudioSource struct {
 	AudioChunks *AudioChunks `json:"audio_chunks,omitempty"`
 }
 
+type SplitOrRedirectInputRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	SourceWorkSessionRef string `json:"source_work_session_ref,omitempty"`
+	SourceEventSeq       int64  `json:"source_event_seq,omitempty"`
+	TargetWorkSessionRef string `json:"target_work_session_ref,omitempty"`
+	TargetSessionKind    string `json:"target_session_kind,omitempty"`
+	WorkspaceRoot        string `json:"workspace_root,omitempty"`
+	WorkspaceWritable    bool   `json:"workspace_writable,omitempty"`
+	Title                string `json:"title,omitempty"`
+	RequestId            string `json:"request_id,omitempty"`
+}
+
+type SplitOrRedirectInputResponse struct {
+	TargetWorkSessionRef string             `json:"target_work_session_ref,omitempty"`
+	OutboxId             string             `json:"outbox_id,omitempty"`
+	WorkSessionRecord    *WorkSessionRecord `json:"work_session_record,omitempty"`
+}
+
 type StartAppPackageInstallRequest struct {
 	ApprovedTargetSelector []byte `json:"approved_target_selector,omitempty"`
 }
@@ -9770,6 +10196,31 @@ type StatLocalAppAssetRequest struct {
 type StatLocalAppAssetResponse struct {
 	Asset      *LocalAppAssetRecord `json:"asset,omitempty"`
 	ReasonCode ReasonCode           `json:"reason_code,omitempty"`
+}
+
+type StopBrainSessionTurnRequest struct {
+	WorkSessionRef  string `json:"work_session_ref,omitempty"`
+	ExpectedTurnRef string `json:"expected_turn_ref,omitempty"`
+}
+
+type StopBrainSessionTurnResponse struct {
+	WorkSessionRef string `json:"work_session_ref,omitempty"`
+	Stopped        bool   `json:"stopped,omitempty"`
+}
+
+type StreamLocalAgentBodyStepRequest struct {
+	AgentHandle         string               `json:"agent_handle,omitempty"`
+	AgentBinding        string               `json:"agent_binding,omitempty"`
+	WorkSessionRef      string               `json:"work_session_ref,omitempty"`
+	DeviceId            string               `json:"device_id,omitempty"`
+	CapabilityNamespace string               `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64                `json:"lease_epoch,omitempty"`
+	Purpose             BodyStepPurpose      `json:"purpose,omitempty"`
+	Tools               []BodyToolDefinition `json:"tools,omitempty"`
+	WorkingMessages     []BodyWorkingMessage `json:"working_messages,omitempty"`
+	BodyAdvisoryContext *BodyAdvisoryContext `json:"body_advisory_context,omitempty"`
+	KeptTailMessages    []BodyWorkingMessage `json:"kept_tail_messages,omitempty"`
+	StepRequestId       string               `json:"step_request_id,omitempty"`
 }
 
 type StreamLocalAppTextTurnEvent struct {
@@ -9956,6 +10407,17 @@ type SubscribeAppMessagesRequest struct {
 	FromAppIds           []string `json:"from_app_ids,omitempty"`
 	LocalAgentRef        string   `json:"local_agent_ref,omitempty"`
 	ConversationAnchorId string   `json:"conversation_anchor_id,omitempty"`
+}
+
+type SubscribeBodyOutboxRequest struct {
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64  `json:"lease_epoch,omitempty"`
+}
+
+type SubscribeBrainSessionEventsRequest struct {
+	WorkSessionRef string `json:"work_session_ref,omitempty"`
+	AfterSeq       int64  `json:"after_seq,omitempty"`
 }
 
 type SubscribeDesktopAIActivityRequest struct {
@@ -10315,6 +10777,17 @@ type TranscribeLocalAppConversationVoiceResponse struct {
 	Text string `json:"text,omitempty"`
 }
 
+type UnregisterBodyCarrierRequest struct {
+	DeviceId            string `json:"device_id,omitempty"`
+	CapabilityNamespace string `json:"capability_namespace,omitempty"`
+	LeaseEpoch          int64  `json:"lease_epoch,omitempty"`
+	InstanceId          string `json:"instance_id,omitempty"`
+}
+
+type UnregisterBodyCarrierResponse struct {
+	Unregistered bool `json:"unregistered,omitempty"`
+}
+
 type UnregisterIntegrationProviderRequest struct {
 	TargetRef string `json:"target_ref,omitempty"`
 }
@@ -10331,6 +10804,26 @@ type UpdateAgentStateRequest struct {
 
 type UpdateAgentStateResponse struct {
 	State *AgentStateProjection `json:"state,omitempty"`
+}
+
+type UpdateAlarmRequest struct {
+	AlarmId             string   `json:"alarm_id,omitempty"`
+	ExpectedVersion     int64    `json:"expected_version,omitempty"`
+	Status              *string  `json:"status,omitempty"`
+	FireAt              *string  `json:"fire_at,omitempty"`
+	CronExpr            *string  `json:"cron_expr,omitempty"`
+	TimeZone            *string  `json:"time_zone,omitempty"`
+	SourceObjectVersion *string  `json:"source_object_version,omitempty"`
+	TemplateTitle       *string  `json:"template_title,omitempty"`
+	TemplateBody        *string  `json:"template_body,omitempty"`
+	TemplatePayloadJson *string  `json:"template_payload_json,omitempty"`
+	RequiresLlm         *bool    `json:"requires_llm,omitempty"`
+	DeliveryChannels    []string `json:"delivery_channels,omitempty"`
+	ResetUnackStreak    bool     `json:"reset_unack_streak,omitempty"`
+}
+
+type UpdateAlarmResponse struct {
+	Alarm *SessionAlarmRecord `json:"alarm,omitempty"`
 }
 
 type UpdateConnectorRequest struct {
@@ -10409,6 +10902,19 @@ type UpdateLocalAppAgentUtopiaSettingsResponse struct {
 	ParameterValues     []LocalAppUtopiaParameterEntry `json:"parameter_values,omitempty"`
 	OpenPlaceIds        []string                       `json:"open_place_ids,omitempty"`
 	ActiveEvents        []LocalAppUtopiaActiveEvent    `json:"active_events,omitempty"`
+}
+
+type UpdateSessionRequest struct {
+	WorkSessionRef string  `json:"work_session_ref,omitempty"`
+	Title          *string `json:"title,omitempty"`
+	Status         *string `json:"status,omitempty"`
+	Archived       *bool   `json:"archived,omitempty"`
+	PermissionMode *string `json:"permission_mode,omitempty"`
+	WorkspaceRoot  *string `json:"workspace_root,omitempty"`
+}
+
+type UpdateSessionResponse struct {
+	WorkSessionRecord *WorkSessionRecord `json:"work_session_record,omitempty"`
 }
 
 type UploadArtifactChunk struct {
@@ -10719,6 +11225,38 @@ type VoiceV2VInput struct {
 type WatchLocalTransfersRequest struct {
 }
 
+type WatchSessionOverviewRequest struct {
+	AgentHandle      string `json:"agent_handle,omitempty"`
+	IncludeArchived  bool   `json:"include_archived,omitempty"`
+	AfterOverviewSeq uint64 `json:"after_overview_seq,omitempty"`
+}
+
+type WorkSessionRecord struct {
+	WorkSessionRef       string `json:"work_session_ref,omitempty"`
+	AgentBinding         string `json:"agent_binding,omitempty"`
+	SessionKind          string `json:"session_kind,omitempty"`
+	OwnerBodyKind        string `json:"owner_body_kind,omitempty"`
+	DeviceId             string `json:"device_id,omitempty"`
+	PublisherScopeKey    string `json:"publisher_scope_key,omitempty"`
+	ParentSessionRef     string `json:"parent_session_ref,omitempty"`
+	ForkedFromSessionRef string `json:"forked_from_session_ref,omitempty"`
+	ForkedAtSeq          int64  `json:"forked_at_seq,omitempty"`
+	IsPrimaryCompanion   bool   `json:"is_primary_companion,omitempty"`
+	IsGeneralInbox       bool   `json:"is_general_inbox,omitempty"`
+	Title                string `json:"title,omitempty"`
+	Status               string `json:"status,omitempty"`
+	TrustTier            string `json:"trust_tier,omitempty"`
+	WorkspaceRoot        string `json:"workspace_root,omitempty"`
+	PermissionMode       string `json:"permission_mode,omitempty"`
+	LatestReceiptJson    string `json:"latest_receipt_json,omitempty"`
+	ProjectionSeq        int64  `json:"projection_seq,omitempty"`
+	HeadSeq              int64  `json:"head_seq,omitempty"`
+	CreatedAt            string `json:"created_at,omitempty"`
+	UpdatedAt            string `json:"updated_at,omitempty"`
+	ArchivedAt           string `json:"archived_at,omitempty"`
+	BodyPurgePending     bool   `json:"body_purge_pending,omitempty"`
+}
+
 type WorkspaceMembershipProjection struct {
 	WorkspaceId        string                   `json:"workspace_id,omitempty"`
 	MembershipState    WorkspaceMembershipState `json:"membership_state,omitempty"`
@@ -10893,6 +11431,174 @@ func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, erro
 	}
 	_ = responseType
 	return out, nil
+}
+
+func (c RuntimeTypedClient) AckBodyOutbox(ctx context.Context, request AckBodyOutboxRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AckBodyOutboxResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox", request, metadata, timeoutMS)
+	if err != nil {
+		return AckBodyOutboxResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AckBodyOutboxResponse](raw, "AckBodyOutboxResponse")
+}
+
+func (c RuntimeTypedClient) AuthorizeBodySideEffect(ctx context.Context, request AuthorizeBodySideEffectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AuthorizeBodySideEffectResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect", request, metadata, timeoutMS)
+	if err != nil {
+		return AuthorizeBodySideEffectResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AuthorizeBodySideEffectResponse](raw, "AuthorizeBodySideEffectResponse")
+}
+
+func (c RuntimeTypedClient) CreateAlarm(ctx context.Context, request CreateAlarmRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateAlarmResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/CreateAlarm", request, metadata, timeoutMS)
+	if err != nil {
+		return CreateAlarmResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CreateAlarmResponse](raw, "CreateAlarmResponse")
+}
+
+func (c RuntimeTypedClient) DeleteAlarm(ctx context.Context, request DeleteAlarmRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteAlarmResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/DeleteAlarm", request, metadata, timeoutMS)
+	if err != nil {
+		return DeleteAlarmResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeleteAlarmResponse](raw, "DeleteAlarmResponse")
+}
+
+func (c RuntimeTypedClient) DeleteSession(ctx context.Context, request DeleteSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/DeleteSession", request, metadata, timeoutMS)
+	if err != nil {
+		return DeleteSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeleteSessionResponse](raw, "DeleteSessionResponse")
+}
+
+func (c RuntimeTypedClient) GetSession(ctx context.Context, request GetSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/GetSession", request, metadata, timeoutMS)
+	if err != nil {
+		return GetSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetSessionResponse](raw, "GetSessionResponse")
+}
+
+func (c RuntimeTypedClient) HeartbeatBodyCarrier(ctx context.Context, request HeartbeatBodyCarrierRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HeartbeatBodyCarrierResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier", request, metadata, timeoutMS)
+	if err != nil {
+		return HeartbeatBodyCarrierResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[HeartbeatBodyCarrierResponse](raw, "HeartbeatBodyCarrierResponse")
+}
+
+func (c RuntimeTypedClient) ListAlarms(ctx context.Context, request ListAlarmsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAlarmsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/ListAlarms", request, metadata, timeoutMS)
+	if err != nil {
+		return ListAlarmsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListAlarmsResponse](raw, "ListAlarmsResponse")
+}
+
+func (c RuntimeTypedClient) ListSessions(ctx context.Context, request ListSessionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListSessionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/ListSessions", request, metadata, timeoutMS)
+	if err != nil {
+		return ListSessionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListSessionsResponse](raw, "ListSessionsResponse")
+}
+
+func (c RuntimeTypedClient) RegisterBodyCarrier(ctx context.Context, request RegisterBodyCarrierRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterBodyCarrierResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier", request, metadata, timeoutMS)
+	if err != nil {
+		return RegisterBodyCarrierResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RegisterBodyCarrierResponse](raw, "RegisterBodyCarrierResponse")
+}
+
+func (c RuntimeTypedClient) ReportBodySessionProjection(ctx context.Context, request ReportBodySessionProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReportBodySessionProjectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection", request, metadata, timeoutMS)
+	if err != nil {
+		return ReportBodySessionProjectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReportBodySessionProjectionResponse](raw, "ReportBodySessionProjectionResponse")
+}
+
+func (c RuntimeTypedClient) RouteAndSubmitInput(ctx context.Context, request RouteAndSubmitInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RouteAndSubmitInputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput", request, metadata, timeoutMS)
+	if err != nil {
+		return RouteAndSubmitInputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RouteAndSubmitInputResponse](raw, "RouteAndSubmitInputResponse")
+}
+
+func (c RuntimeTypedClient) SplitOrRedirectInput(ctx context.Context, request SplitOrRedirectInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SplitOrRedirectInputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput", request, metadata, timeoutMS)
+	if err != nil {
+		return SplitOrRedirectInputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SplitOrRedirectInputResponse](raw, "SplitOrRedirectInputResponse")
+}
+
+func (c RuntimeTypedClient) StopBrainSessionTurn(ctx context.Context, request StopBrainSessionTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopBrainSessionTurnResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn", request, metadata, timeoutMS)
+	if err != nil {
+		return StopBrainSessionTurnResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StopBrainSessionTurnResponse](raw, "StopBrainSessionTurnResponse")
+}
+
+func (c RuntimeTypedClient) StreamLocalAgentBodyStep(ctx context.Context, request StreamLocalAgentBodyStepRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[BodyStepStreamEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[BodyStepStreamEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeBodyOutbox(ctx context.Context, request SubscribeBodyOutboxRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[BodyOutboxEnvelope], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[BodyOutboxEnvelope]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeBrainSessionEvents(ctx context.Context, request SubscribeBrainSessionEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[BrainSessionEventEnvelope], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[BrainSessionEventEnvelope]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) UnregisterBodyCarrier(ctx context.Context, request UnregisterBodyCarrierRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnregisterBodyCarrierResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier", request, metadata, timeoutMS)
+	if err != nil {
+		return UnregisterBodyCarrierResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UnregisterBodyCarrierResponse](raw, "UnregisterBodyCarrierResponse")
+}
+
+func (c RuntimeTypedClient) UpdateAlarm(ctx context.Context, request UpdateAlarmRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAlarmResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/UpdateAlarm", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateAlarmResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateAlarmResponse](raw, "UpdateAlarmResponse")
+}
+
+func (c RuntimeTypedClient) UpdateSession(ctx context.Context, request UpdateSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.AgentSessionService/UpdateSession", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateSessionResponse](raw, "UpdateSessionResponse")
+}
+
+func (c RuntimeTypedClient) WatchSessionOverview(ctx context.Context, request WatchSessionOverviewRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[SessionOverviewDelta], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[SessionOverviewDelta]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) BeginLogin(ctx context.Context, request BeginLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginLoginResponse, error) {

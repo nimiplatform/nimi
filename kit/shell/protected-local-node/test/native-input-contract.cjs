@@ -357,6 +357,42 @@ async function main() {
       `${name} must not retain selectedAgentHandle as a compatibility alias`,
     );
   }
+
+  for (const name of [
+    'localAppAgentSessionUnary',
+    'localAppAgentSessionStreamOpen',
+    'localAppAgentSessionStreamNext',
+    'localAppAgentSessionStreamClose',
+    'harnessRunJobProcess',
+    'harnessSpawnJobProcess',
+    'harnessWaitJobProcess',
+    'harnessKillJobProcess',
+    'harnessVerifyWorkspacePath',
+    'harnessSecureReadFile',
+    'harnessSecureWriteFile',
+    'harnessSecureDeleteFile',
+  ]) {
+    assert.equal(typeof addon[name], 'function', `${name} export is missing`);
+  }
+  const badAgentSessionClose = await addon.localAppAgentSessionStreamClose({ streamId: 'nonexistent-stream' });
+  assert.equal(badAgentSessionClose?.status, 'ok');
+  assert.equal(badAgentSessionClose?.value?.closed, false);
+
+  for (const badPath of ['@src/index.ts', 'file:///C:/Windows/win.ini', 'foo.txt:Zone.Identifier', '../escape.env', 'trailing.']) {
+    const res = await addon.harnessVerifyWorkspacePath({
+      workspaceRoot: crateRoot,
+      relativePath: badPath,
+      expectDirectory: false,
+    });
+    assert.equal(res?.status, 'error', `harnessVerifyWorkspacePath must reject ${badPath}`);
+  }
+  const goodPath = await addon.harnessVerifyWorkspacePath({
+    workspaceRoot: crateRoot,
+    relativePath: 'Cargo.toml',
+    expectDirectory: false,
+  });
+  assert.equal(goodPath?.status, 'ok', 'harnessVerifyWorkspacePath must accept workspace Cargo.toml');
+  assert.equal(goodPath?.value?.nNumberOfLinks, 1);
 }
 
 main().catch((error) => {

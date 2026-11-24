@@ -33,7 +33,7 @@ enum StreamSlot {
     Open(SharedStream),
 }
 type Registry = HashMap<String, StreamSlot>;
-const MAX_FIRST_PARTY_PRODUCT_STREAMS: usize = 16;
+const MAX_FIRST_PARTY_PRODUCT_STREAMS: usize = 32;
 static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -179,11 +179,27 @@ where
         >,
     >,
 {
+    let method_id = input.method_id.trim();
     let timeout = input
         .timeout_ms
         .map(u64::from)
         .map(std::time::Duration::from_millis);
-    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
+    let long_lived_agent_session = matches!(
+        method_id,
+        "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview"
+            | "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox"
+            | "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents"
+    );
+    let body_step_stream =
+        method_id == "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep";
+    let timeout_invalid = if long_lived_agent_session {
+        timeout.is_some_and(|value| value.is_zero())
+    } else if body_step_stream {
+        timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(600))
+    } else {
+        timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300))
+    };
+    if timeout_invalid {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     }
     // Stale-control cleanup drains every old stream slot, so a fresh open must

@@ -579,6 +579,12 @@ pub enum ReasonCode {
     AgentConversationContextRevisionConflict = 775,
     AppStorageContentConflict = 776,
     AgentUtopiaRevisionConflict = 777,
+    AgentSessionNotFound = 778,
+    AgentSessionConflict = 779,
+    AgentSessionLedgerInvalid = 780,
+    AgentSessionMemoryInvalidated = 781,
+    AgentBodyLeaseConflict = 782,
+    AgentAlarmBudgetExceeded = 783,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -996,6 +1002,12 @@ impl ReasonCode {
             }
             Self::AppStorageContentConflict => "APP_STORAGE_CONTENT_CONFLICT",
             Self::AgentUtopiaRevisionConflict => "AGENT_UTOPIA_REVISION_CONFLICT",
+            Self::AgentSessionNotFound => "AGENT_SESSION_NOT_FOUND",
+            Self::AgentSessionConflict => "AGENT_SESSION_CONFLICT",
+            Self::AgentSessionLedgerInvalid => "AGENT_SESSION_LEDGER_INVALID",
+            Self::AgentSessionMemoryInvalidated => "AGENT_SESSION_MEMORY_INVALIDATED",
+            Self::AgentBodyLeaseConflict => "AGENT_BODY_LEASE_CONFLICT",
+            Self::AgentAlarmBudgetExceeded => "AGENT_ALARM_BUDGET_EXCEEDED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1482,6 +1494,14 @@ impl ReasonCode {
             }
             "APP_STORAGE_CONTENT_CONFLICT" => Some(Self::AppStorageContentConflict),
             "AGENT_UTOPIA_REVISION_CONFLICT" => Some(Self::AgentUtopiaRevisionConflict),
+            "AGENT_SESSION_NOT_FOUND" => Some(Self::AgentSessionNotFound),
+            "AGENT_SESSION_CONFLICT" => Some(Self::AgentSessionConflict),
+            "AGENT_SESSION_LEDGER_INVALID" => Some(Self::AgentSessionLedgerInvalid),
+            "AGENT_SESSION_MEMORY_INVALIDATED" => {
+                Some(Self::AgentSessionMemoryInvalidated)
+            }
+            "AGENT_BODY_LEASE_CONFLICT" => Some(Self::AgentBodyLeaseConflict),
+            "AGENT_ALARM_BUDGET_EXCEEDED" => Some(Self::AgentAlarmBudgetExceeded),
             _ => None,
         }
     }
@@ -22437,6 +22457,19 @@ pub struct CognitionMemoryRelationshipCommitted {
     #[prost(string, tag = "2")]
     pub bounded_fact: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemorySessionPointerCommitted {
+    #[prost(string, tag = "1")]
+    pub work_session_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub scope_tag: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub slot_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub topic_summary: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub body_kind: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CognitionMemoryCommittedEventEnvelope {
     #[prost(uint32, tag = "1")]
@@ -22461,7 +22494,7 @@ pub struct CognitionMemoryCommittedEventEnvelope {
     pub lifecycle_cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
     #[prost(
         oneof = "cognition_memory_committed_event_envelope::Fact",
-        tags = "20, 21, 22, 23, 24"
+        tags = "20, 21, 22, 23, 24, 25"
     )]
     pub fact: ::core::option::Option<cognition_memory_committed_event_envelope::Fact>,
 }
@@ -22479,6 +22512,8 @@ pub mod cognition_memory_committed_event_envelope {
         CorrectionCommitted(super::CognitionMemoryCorrectionCommitted),
         #[prost(message, tag = "24")]
         RelationshipCommitted(super::CognitionMemoryRelationshipCommitted),
+        #[prost(message, tag = "25")]
+        SessionPointerCommitted(super::CognitionMemorySessionPointerCommitted),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -22565,6 +22600,10 @@ pub struct CognitionMemoryHit {
     pub sources: ::prost::alloc::vec::Vec<CognitionMemorySourceRef>,
     #[prost(string, tag = "10")]
     pub source_explanation: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub scope_tag: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub slot_key: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CognitionMemoryRecallRequest {
@@ -22586,6 +22625,8 @@ pub struct CognitionMemoryRecallRequest {
     pub capabilities: ::core::option::Option<CognitionMemoryCapabilitySnapshot>,
     #[prost(bool, tag = "9")]
     pub include_recent_life: bool,
+    #[prost(string, repeated, tag = "10")]
+    pub scope_tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CognitionMemoryRecallResponse {
@@ -22754,6 +22795,10 @@ pub struct AgentMemoryItem {
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(string, tag = "7")]
     pub source_explanation: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub scope_tag: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub slot_key: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentMemoryProjection {

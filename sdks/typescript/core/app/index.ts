@@ -560,3 +560,9 @@ export { createNimiAppCharacterDiscoveryClient, createNimiAppCharacterDiscoveryR
 export type { NimiAppCharacterSourceRef, NimiAppCharacterSource, NimiAppCharacterQuery, NimiAppCharacterConnectInput, NimiAppCharacterDiscoveryClient, NimiAppCharacterDiscoveryShell } from './local-app-character-discovery.js';
 
 export { projectCapture as validateNimiAppTextConfigCapture } from './local-app-runtime-platform-ai.js';
+export {
+  createNimiLocalAppAgentSessionClient,
+  type NimiLocalAppAgentSessionClient,
+  type NimiLocalAppAgentSessionShell,
+  type NimiLocalAppAgentSessionStreamNext,
+} from './local-app-agent-session.js';

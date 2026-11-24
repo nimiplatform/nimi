@@ -1668,6 +1668,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAgentMemoryDelete: record('localAppAgentMemoryDelete', {
       outcome: 'deleted', affectedMemoryIds: [], projection: null,
     }),
+    localAppAgentSessionUnary: async () => ({ status: 'ok' as const, value: Buffer.alloc(0) }),
+    localAppAgentSessionStreamOpen: record('localAppAgentSessionStreamOpen', { streamId: 'agent-session-1' }),
+    localAppAgentSessionStreamNext: async () => ({ status: 'ok' as const, value: null, completed: true }),
+    localAppAgentSessionStreamClose: record('localAppAgentSessionStreamClose', { closed: true }),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
     localAppStorageRemoveJson: record('localAppStorageRemoveJson', { removed: false }),

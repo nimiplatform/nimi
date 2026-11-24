@@ -1,0 +1,557 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/common.proto";
+
+// AgentSessionService defines the protected Multi-Session, Brain-Body symbiosis,
+// and deterministic alarm / directed trigger delegation wire contract.
+// All RPCs are strictly Unary or ServerStream (zero bidi_stream).
+// Account and App principals are derived exclusively from the verified protected
+// connection; requests never carry reserved account_id, app_id, session_id, or
+// snapshot_id caller assertions.
+
+enum RouteAndSubmitOutcome {
+  ROUTE_AND_SUBMIT_OUTCOME_UNSPECIFIED = 0;
+  ROUTE_AND_SUBMIT_OUTCOME_ACCEPTED = 1;
+  ROUTE_AND_SUBMIT_OUTCOME_AMBIGUOUS_CANDIDATES = 2;
+  ROUTE_AND_SUBMIT_OUTCOME_DEFERRED_BODY_OFFLINE = 3;
+}
+
+enum BodyStepPurpose {
+  BODY_STEP_PURPOSE_UNSPECIFIED = 0;
+  BODY_STEP_PURPOSE_INFERENCE = 1;
+  BODY_STEP_PURPOSE_COMPACTION = 2;
+}
+
+enum BodyOutboxCommandKind {
+  BODY_OUTBOX_COMMAND_KIND_UNSPECIFIED = 0;
+  BODY_OUTBOX_COMMAND_KIND_NEW_INTENT = 1;
+  BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY = 2;
+  BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION = 3;
+  BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT = 4;
+}
+
+enum AlarmKind {
+  ALARM_KIND_UNSPECIFIED = 0;
+  ALARM_KIND_AT = 1;
+  ALARM_KIND_DELAY = 2;
+  ALARM_KIND_CRON = 3;
+  ALARM_KIND_APP_DELEGATION = 4;
+}
+
+enum AlarmDeliveryReceiptState {
+  ALARM_DELIVERY_RECEIPT_STATE_UNSPECIFIED = 0;
+  ALARM_DELIVERY_RECEIPT_STATE_PENDING = 1;
+  ALARM_DELIVERY_RECEIPT_STATE_REJECTED = 2;
+  ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED = 3;
+  ALARM_DELIVERY_RECEIPT_STATE_EFFECT_UNKNOWN = 4;
+}
+
+message WorkSessionRecord {
+  string work_session_ref = 1;
+  string agent_binding = 2;
+  string session_kind = 3;
+  string owner_body_kind = 4;
+  string device_id = 5;
+  string publisher_scope_key = 6;
+  string parent_session_ref = 7;
+  string forked_from_session_ref = 8;
+  int64 forked_at_seq = 9;
+  bool is_primary_companion = 10;
+  bool is_general_inbox = 11;
+  string title = 12;
+  string status = 13;
+  string trust_tier = 14;
+  string workspace_root = 15;
+  string permission_mode = 16;
+  string latest_receipt_json = 17;
+  int64 projection_seq = 18;
+  int64 head_seq = 19;
+  string created_at = 20;
+  string updated_at = 21;
+  string archived_at = 22;
+  bool body_purge_pending = 23;
+}
+
+message SessionRouteCandidate {
+  string work_session_ref = 1;
+  string title = 2;
+  string session_kind = 3;
+  string owner_body_kind = 4;
+  string updated_at = 5;
+  double score = 6;
+}
+
+message PendingAttentionRecord {
+  string attention_id = 1;
+  string work_session_ref = 2;
+  string agent_binding = 3;
+  string attention_kind = 4;
+  string trust_scope = 5;
+  string summary_json = 6;
+  string expires_at = 7;
+  string updated_at = 8;
+}
+
+message PendingAttentionInput {
+  string attention_id = 1;
+  string attention_kind = 2;
+  string trust_scope = 3;
+  string summary_json = 4;
+  string expires_at = 5;
+}
+
+message RouteAndSubmitInputRequest {
+  string agent_handle = 1;
+  string request_id = 2;
+  string text = 3;
+  string explicit_work_session_ref = 4;
+  string entry_surface = 5;
+  string workspace_root = 6;
+  bool workspace_writable = 7;
+  repeated string attachment_paths = 8;
+  string card_source_session_ref = 9;
+  int64 card_source_max_seq = 10;
+  string handoff_brief_text = 11;
+  string reply_to_message_ref = 12;
+  string delegation_object_id = 13;
+  string selected_candidate_ref = 14;
+  string trust_tier_hint = 15;
+}
+
+message RouteAndSubmitInputResponse {
+  RouteAndSubmitOutcome outcome = 1;
+  string resolved_work_session_ref = 2;
+  string route_reason = 3;
+  string session_kind = 4;
+  string owner_body_kind = 5;
+  string effective_permission_mode = 6;
+  string outbox_id = 7;
+  repeated SessionRouteCandidate candidates = 8;
+  bool deduplicated = 9;
+  int32 promoted_handoff_turns = 10;
+  WorkSessionRecord work_session_record = 11;
+}
+
+message SplitOrRedirectInputRequest {
+  string agent_handle = 1;
+  string source_work_session_ref = 2;
+  int64 source_event_seq = 3;
+  string target_work_session_ref = 4;
+  string target_session_kind = 5;
+  string workspace_root = 6;
+  bool workspace_writable = 7;
+  string title = 8;
+  string request_id = 9;
+}
+
+message SplitOrRedirectInputResponse {
+  string target_work_session_ref = 1;
+  string outbox_id = 2;
+  WorkSessionRecord work_session_record = 3;
+}
+
+message GetSessionRequest {
+  string work_session_ref = 1;
+  bool include_recent_events = 2;
+  uint32 max_events = 3;
+}
+
+message GetSessionResponse {
+  WorkSessionRecord work_session_record = 1;
+  repeated BrainSessionEventEnvelope recent_events = 2;
+}
+
+message ListSessionsRequest {
+  string agent_handle = 1;
+  bool include_archived = 2;
+  string search_query = 3;
+  repeated string session_kinds = 4;
+  string status_filter = 5;
+  uint32 page_size = 6;
+  string page_token = 7;
+}
+
+message ListSessionsResponse {
+  repeated WorkSessionRecord items = 1;
+  string next_page_token = 2;
+  uint32 total_visible_count = 3;
+}
+
+message UpdateSessionRequest {
+  string work_session_ref = 1;
+  optional string title = 2;
+  optional string status = 3;
+  optional bool archived = 4;
+  optional string permission_mode = 5;
+  optional string workspace_root = 6;
+}
+
+message UpdateSessionResponse {
+  WorkSessionRecord work_session_record = 1;
+}
+
+message DeleteSessionRequest {
+  string work_session_ref = 1;
+  bool confirmed = 2;
+}
+
+message DeleteSessionResponse {
+  string work_session_ref = 1;
+  bool deleted = 2;
+  bool body_purge_pending = 3;
+  string outbox_id = 4;
+  uint32 forgotten_memory_count = 5;
+}
+
+message WatchSessionOverviewRequest {
+  string agent_handle = 1;
+  bool include_archived = 2;
+  uint64 after_overview_seq = 3;
+}
+
+message SessionOverviewDelta {
+  uint64 overview_seq = 1;
+  bool full_baseline = 2;
+  repeated WorkSessionRecord upserted_sessions = 3;
+  repeated string removed_work_session_refs = 4;
+  repeated PendingAttentionRecord attention_items = 5;
+  bool carrier_online = 6;
+}
+
+message SubscribeBrainSessionEventsRequest {
+  string work_session_ref = 1;
+  int64 after_seq = 2;
+}
+
+message BrainSessionEventEnvelope {
+  string work_session_ref = 1;
+  int64 seq = 2;
+  string event_id = 3;
+  string event_type = 4;
+  string payload_json = 5;
+  string created_at = 6;
+  string moved_to_work_session_ref = 7;
+}
+
+message StopBrainSessionTurnRequest {
+  string work_session_ref = 1;
+  string expected_turn_ref = 2;
+}
+
+message StopBrainSessionTurnResponse {
+  string work_session_ref = 1;
+  bool stopped = 2;
+}
+
+message BodyOutboxEnvelope {
+  string outbox_id = 1;
+  string device_id = 2;
+  string capability_namespace = 3;
+  string work_session_ref = 4;
+  BodyOutboxCommandKind command_kind = 5;
+  string payload_json = 6;
+  string created_at = 7;
+  string agent_binding = 8;
+}
+
+message RegisterBodyCarrierRequest {
+  string device_id = 1;
+  string capability_namespace = 2;
+  string instance_id = 3;
+  string capabilities_json = 4;
+}
+
+message RegisterBodyCarrierResponse {
+  int64 lease_epoch = 1;
+  string capability_namespace = 2;
+  repeated BodyOutboxEnvelope pending_tombstones = 3;
+  repeated BodyOutboxEnvelope pending_intents = 4;
+  uint32 heartbeat_interval_ms = 5;
+}
+
+message HeartbeatBodyCarrierRequest {
+  string device_id = 1;
+  string capability_namespace = 2;
+  int64 lease_epoch = 3;
+  string instance_id = 4;
+}
+
+message HeartbeatBodyCarrierResponse {
+  bool alive = 1;
+  int64 lease_epoch = 2;
+  uint32 next_heartbeat_ms = 3;
+}
+
+message UnregisterBodyCarrierRequest {
+  string device_id = 1;
+  string capability_namespace = 2;
+  int64 lease_epoch = 3;
+  string instance_id = 4;
+}
+
+message UnregisterBodyCarrierResponse {
+  bool unregistered = 1;
+}
+
+message SubscribeBodyOutboxRequest {
+  string device_id = 1;
+  string capability_namespace = 2;
+  int64 lease_epoch = 3;
+}
+
+message AckBodyOutboxRequest {
+  string outbox_id = 1;
+  string device_id = 2;
+  string capability_namespace = 3;
+  int64 lease_epoch = 4;
+  string result_state = 5;
+  string payload_hash = 6;
+}
+
+message AckBodyOutboxResponse {
+  bool acked = 1;
+  string outbox_id = 2;
+}
+
+message AuthorizeBodySideEffectRequest {
+  string work_session_ref = 1;
+  string device_id = 2;
+  string capability_namespace = 3;
+  int64 lease_epoch = 4;
+  string call_id = 5;
+  string tool_name = 6;
+  string payload_hash = 7;
+  string action_kind = 8;
+}
+
+message AuthorizeBodySideEffectResponse {
+  bool authorized = 1;
+  string deny_reason = 2;
+  bool memory_invalidated = 3;
+  bool work_session_deleted = 4;
+}
+
+message BodyToolDefinition {
+  string name = 1;
+  string description = 2;
+  string input_schema_json = 3;
+}
+
+message BodyWorkingMessage {
+  string role = 1;
+  string content_json = 2;
+  string tool_call_id = 3;
+  string tool_name = 4;
+  bool is_error = 5;
+  string outbox_id = 6;
+}
+
+message BodyAdvisoryContext {
+  string workspace_name = 1;
+  string permission_mode = 2;
+  repeated string tool_names = 3;
+}
+
+message StreamLocalAgentBodyStepRequest {
+  string agent_handle = 1;
+  string agent_binding = 2;
+  string work_session_ref = 3;
+  string device_id = 4;
+  string capability_namespace = 5;
+  int64 lease_epoch = 6;
+  BodyStepPurpose purpose = 7;
+  repeated BodyToolDefinition tools = 8;
+  repeated BodyWorkingMessage working_messages = 9;
+  BodyAdvisoryContext body_advisory_context = 10;
+  repeated BodyWorkingMessage kept_tail_messages = 11;
+  string step_request_id = 12;
+}
+
+message BodyToolCallActivity {
+  string call_id = 1;
+  string tool_name = 2;
+  uint32 arguments_delta_bytes = 3;
+  uint32 accumulated_bytes = 4;
+}
+
+message BodyToolCall {
+  string call_id = 1;
+  string name = 2;
+  string arguments_json = 3;
+}
+
+message BodyStepDone {
+  string finish_reason = 1;
+  int64 usage_input_tokens = 2;
+  int64 usage_output_tokens = 3;
+  string step_mac = 4;
+  string compaction_summary = 5;
+  string post_compaction_mac = 6;
+  uint32 effective_context_budget_tokens = 7;
+}
+
+message BodyStepFailure {
+  ReasonCode reason_code = 1;
+  string message = 2;
+  bool memory_invalidated = 3;
+}
+
+message BodyStepStreamEvent {
+  uint32 event_index = 1;
+  uint32 effective_context_budget_tokens = 2;
+  oneof payload {
+    string text_delta = 10;
+    string reasoning_summary_delta = 11;
+    BodyToolCallActivity tool_call_activity = 12;
+    BodyToolCall tool_call = 13;
+    BodyStepDone done = 14;
+    BodyStepFailure failed = 15;
+  }
+}
+
+message ReportBodySessionProjectionRequest {
+  string work_session_ref = 1;
+  string device_id = 2;
+  string capability_namespace = 3;
+  int64 lease_epoch = 4;
+  int64 projection_seq = 5;
+  string status = 6;
+  string title = 7;
+  string workspace_root = 8;
+  string permission_mode = 9;
+  string latest_receipt_json = 10;
+  PendingAttentionInput pending_attention = 11;
+  bool clear_pending_attention = 12;
+  string milestone_kind = 13;
+  string topic_summary = 14;
+  repeated string deliverable_paths = 15;
+}
+
+message ReportBodySessionProjectionResponse {
+  bool applied = 1;
+  int64 current_projection_seq = 2;
+  bool stale_ignored = 3;
+}
+
+message SessionAlarmRecord {
+  string alarm_id = 1;
+  string agent_binding = 2;
+  string target_work_session_ref = 3;
+  AlarmKind alarm_kind = 4;
+  string cron_expr = 5;
+  string time_zone = 6;
+  string source_publisher = 7;
+  string source_object_id = 8;
+  string source_object_version = 9;
+  string template_title = 10;
+  string template_body = 11;
+  string template_payload_json = 12;
+  bool requires_llm = 13;
+  repeated string delivery_channels = 14;
+  string status = 15;
+  int32 unack_streak = 16;
+  string next_fire_at = 17;
+  int64 version = 18;
+  string expires_at = 19;
+  AlarmDeliveryReceiptState last_receipt_state = 20;
+  string last_delivery_at = 21;
+}
+
+message CreateAlarmRequest {
+  string agent_handle = 1;
+  string target_work_session_ref = 2;
+  AlarmKind alarm_kind = 3;
+  string fire_at = 4;
+  int64 delay_seconds = 5;
+  string cron_expr = 6;
+  string time_zone = 7;
+  string source_object_id = 8;
+  string source_object_version = 9;
+  string template_title = 10;
+  string template_body = 11;
+  string template_payload_json = 12;
+  bool requires_llm = 13;
+  repeated string delivery_channels = 14;
+  string expires_at = 15;
+}
+
+message CreateAlarmResponse {
+  SessionAlarmRecord alarm = 1;
+}
+
+message ListAlarmsRequest {
+  string agent_handle = 1;
+  string target_work_session_ref = 2;
+  bool include_inactive = 3;
+}
+
+message ListAlarmsResponse {
+  repeated SessionAlarmRecord alarms = 1;
+}
+
+message UpdateAlarmRequest {
+  string alarm_id = 1;
+  int64 expected_version = 2;
+  optional string status = 3;
+  optional string fire_at = 4;
+  optional string cron_expr = 5;
+  optional string time_zone = 6;
+  optional string source_object_version = 7;
+  optional string template_title = 8;
+  optional string template_body = 9;
+  optional string template_payload_json = 10;
+  optional bool requires_llm = 11;
+  repeated string delivery_channels = 12;
+  bool reset_unack_streak = 13;
+}
+
+message UpdateAlarmResponse {
+  SessionAlarmRecord alarm = 1;
+}
+
+message DeleteAlarmRequest {
+  string alarm_id = 1;
+  int64 expected_version = 2;
+}
+
+message DeleteAlarmResponse {
+  string alarm_id = 1;
+  bool deleted = 2;
+}
+
+service AgentSessionService {
+  // 1. Unified routing and pre-session atomic idempotent submission
+  rpc RouteAndSubmitInput(RouteAndSubmitInputRequest) returns (RouteAndSubmitInputResponse);
+  rpc SplitOrRedirectInput(SplitOrRedirectInputRequest) returns (SplitOrRedirectInputResponse);
+
+  // 2. Reader-scoped session queries and cascading deletion
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc UpdateSession(UpdateSessionRequest) returns (UpdateSessionResponse);
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+  rpc WatchSessionOverview(WatchSessionOverviewRequest) returns (stream SessionOverviewDelta);
+
+  // 3. Brain-native session streaming and cancellation
+  rpc SubscribeBrainSessionEvents(SubscribeBrainSessionEventsRequest) returns (stream BrainSessionEventEnvelope);
+  rpc StopBrainSessionTurn(StopBrainSessionTurnRequest) returns (StopBrainSessionTurnResponse);
+
+  // 4. Brain <-> Body symbiosis protocol (agent.body.pc / agent.body.app, zero bidi_stream)
+  rpc RegisterBodyCarrier(RegisterBodyCarrierRequest) returns (RegisterBodyCarrierResponse);
+  rpc HeartbeatBodyCarrier(HeartbeatBodyCarrierRequest) returns (HeartbeatBodyCarrierResponse);
+  rpc UnregisterBodyCarrier(UnregisterBodyCarrierRequest) returns (UnregisterBodyCarrierResponse);
+  rpc SubscribeBodyOutbox(SubscribeBodyOutboxRequest) returns (stream BodyOutboxEnvelope);
+  rpc AckBodyOutbox(AckBodyOutboxRequest) returns (AckBodyOutboxResponse);
+  rpc AuthorizeBodySideEffect(AuthorizeBodySideEffectRequest) returns (AuthorizeBodySideEffectResponse);
+  rpc StreamLocalAgentBodyStep(StreamLocalAgentBodyStepRequest) returns (stream BodyStepStreamEvent);
+  rpc ReportBodySessionProjection(ReportBodySessionProjectionRequest) returns (ReportBodySessionProjectionResponse);
+
+  // 5. Deterministic alarms and authorized App trigger delegations (agent.trigger.delegate)
+  rpc CreateAlarm(CreateAlarmRequest) returns (CreateAlarmResponse);
+  rpc ListAlarms(ListAlarmsRequest) returns (ListAlarmsResponse);
+  rpc UpdateAlarm(UpdateAlarmRequest) returns (UpdateAlarmResponse);
+  rpc DeleteAlarm(DeleteAlarmRequest) returns (DeleteAlarmResponse);
+}

@@ -4,6 +4,7 @@ use crate::{
 
 };
 mod agent_configure;
+mod agent_session;
 mod agent_work;
 mod app_activity;
 mod app_ai_config;
@@ -64,6 +65,7 @@ use crate::{
     LocalAppAgentMemoryCorrectRequest, LocalAppAgentMemoryDeleteRequest,
     LocalAppAgentMemoryForgetRequest, LocalAppAgentMemoryInspectRequest,
     LocalAppAgentMemorySwitchRequest, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentSessionRequest, LocalAppAgentSessionStreamReceiver,
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
@@ -1931,6 +1933,33 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             agent_configure::memory_delete(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_session_unary(
+        &self,
+        request: LocalAppAgentSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_session::invoke_unary(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_session_stream(
+        &self,
+        request: LocalAppAgentSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppAgentSessionStreamReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_session::open_stream(self.checked_channel()?, request).await
         })
     }
 }

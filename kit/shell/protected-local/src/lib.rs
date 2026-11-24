@@ -20,6 +20,10 @@ mod first_party_product;
 mod first_party_profiles_generated;
 mod grpc_limits;
 mod grpc_status;
+pub mod harness_security;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod windows_harness_security;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod host_profile;
 mod installed_app;
@@ -162,6 +166,7 @@ pub use carrier::{
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentSessionRequest, LocalAppAgentSessionStreamReceiver,
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,

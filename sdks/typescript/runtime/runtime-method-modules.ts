@@ -212,8 +212,33 @@ export const RUNTIME_ARTIFACT_METHODS = [
   'putArtifact',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
+export const RUNTIME_AGENT_SESSION_METHODS = [
+  'routeAndSubmitInput',
+  'splitOrRedirectInput',
+  'getSession',
+  'listSessions',
+  'updateSession',
+  'deleteSession',
+  'watchSessionOverview',
+  'subscribeBrainSessionEvents',
+  'stopBrainSessionTurn',
+  'registerBodyCarrier',
+  'heartbeatBodyCarrier',
+  'unregisterBodyCarrier',
+  'subscribeBodyOutbox',
+  'ackBodyOutbox',
+  'authorizeBodySideEffect',
+  'streamLocalAgentBodyStep',
+  'reportBodySessionProjection',
+  'createAlarm',
+  'listAlarms',
+  'updateAlarm',
+  'deleteAlarm',
+] as const satisfies readonly RuntimeTypedMethodName[];
+
 export type RuntimeAccountModule = RuntimeMethodModule<typeof RUNTIME_ACCOUNT_METHODS>;
 export type RuntimeAgentModule = RuntimeMethodModule<typeof RUNTIME_AGENT_METHODS>;
+export type RuntimeAgentSessionModule = RuntimeMethodModule<typeof RUNTIME_AGENT_SESSION_METHODS>;
 export type RuntimeAiModule = RuntimeMethodModule<typeof RUNTIME_AI_METHODS>;
 export type RuntimeSchedulingModule = RuntimeMethodModule<typeof RUNTIME_SCHEDULING_METHODS>;
 export type RuntimeAiRealtimeModule = RuntimeMethodModule<typeof RUNTIME_AI_REALTIME_METHODS>;

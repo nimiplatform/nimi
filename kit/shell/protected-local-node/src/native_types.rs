@@ -842,3 +842,68 @@ pub struct NativeConversationFollowUpInput {
     pub task_id: String,
     pub expected_revision: String,
 }
+
+#[napi(object)]
+pub struct NativeLocalAppAgentSessionInput {
+    pub method_id: String,
+    pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeLocalAppAgentSessionStreamInput {
+    pub stream_id: String,
+}
+
+#[napi(object)]
+pub struct NativeHarnessJobProcessInput {
+    pub executable: String,
+    pub args: Vec<String>,
+    pub working_directory: String,
+    pub env: Option<JsonValue>,
+    pub timeout_ms: Option<u32>,
+    pub max_output_bytes: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeHarnessJobWaitInput {
+    pub job_id: String,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeHarnessJobKillInput {
+    pub job_id: String,
+}
+
+#[napi(object)]
+pub struct NativeHarnessVerifyPathInput {
+    pub workspace_root: String,
+    pub relative_path: String,
+    pub expect_directory: Option<bool>,
+}
+
+#[napi(object)]
+pub struct NativeHarnessSecureReadInput {
+    pub workspace_root: String,
+    pub relative_path: String,
+    pub max_bytes: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeHarnessSecureWriteInput {
+    pub workspace_root: String,
+    pub relative_path: String,
+    pub content: Buffer,
+    pub precondition_sha256: Option<String>,
+    pub allow_create: Option<bool>,
+    pub snapshot_path: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeHarnessSecureDeleteInput {
+    pub workspace_root: String,
+    pub relative_path: String,
+    pub precondition_sha256: Option<String>,
+    pub snapshot_path: Option<String>,
+}

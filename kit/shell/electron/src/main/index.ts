@@ -31,6 +31,21 @@ export {
   type NimiElectronLocalAppHost,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
+export {
+  createNimiElectronHarnessSecurityHost,
+  type NimiElectronHarnessSecurityBinding,
+  type NimiElectronHarnessSecurityHost,
+  type NimiHarnessJobProcessInput,
+  type NimiHarnessJobProcessResult,
+  type NimiHarnessKillJobResult,
+  type NimiHarnessSecureDeleteInput,
+  type NimiHarnessSecureDeleteResult,
+  type NimiHarnessSecureReadResult,
+  type NimiHarnessSecureWriteInput,
+  type NimiHarnessSecureWriteResult,
+  type NimiHarnessSpawnedJob,
+  type NimiHarnessVerifiedPath,
+} from './harness-security-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
 export {
 } from './oauth.js';

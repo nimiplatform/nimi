@@ -472,3 +472,9 @@ export { createNimiAppCharacterDiscoveryRuntimeClient, validateNimiAppCharacterQ
 export type { NimiAppCharacterDiscoveryShell } from '@nimiplatform/sdk/app';
 
 export { validateAIConfigEdit, validateAIConfigRecord } from '@nimiplatform/sdk/ai';
+export {
+  createNimiLocalAppAgentSessionClient,
+  type NimiLocalAppAgentSessionClient,
+  type NimiLocalAppAgentSessionShell,
+  type NimiLocalAppAgentSessionStreamNext,
+} from '@nimiplatform/sdk/app';
