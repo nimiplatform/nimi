@@ -1,0 +1,14 @@
+schema_version: 1
+app_id: nimi.harness
+display_name: Nimi Harness
+metadata:
+  icon: assets/app-icon.png
+app_access:
+  - agent.local
+  - agent.configure
+  - agent.body.pc
+  - agent.trigger.delegate
+  - app.activity
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1509

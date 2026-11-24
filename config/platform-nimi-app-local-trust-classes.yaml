@@ -14,6 +14,7 @@ scope:
     - local_first_party_app
     - independent_first_party_avatar
     - shipped_bundled_zhiyu
+    - shipped_bundled_harness
 closed_trust_classes: &nimi_app_local_trust_class_rows
   - trust_class: local_development
     mutability: mutable_supervised_project
@@ -38,6 +39,8 @@ bundled_component_disposition:
   avatar: bundled_owner_admitted_caller_preserved
   zhiyu_shipped: bundled_owner_admitted_caller_preserved
   zhiyu_integration_build: isolated_local_development_registered_app_subject
+  harness_shipped: bundled_owner_admitted_caller_preserved
+  harness_integration_build: isolated_local_development_registered_app_subject
   desktop: protected_control_and_account_shell_not_a_third_party_class
 hard_constraints:
   - caller_or_request_cannot_select_trust_class

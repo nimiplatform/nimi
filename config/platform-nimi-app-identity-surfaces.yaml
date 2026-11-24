@@ -122,3 +122,21 @@ apps:
     npm_package: "@nimiplatform/zhiyu"
     product_status: bundled-formal-app-with-isolated-development-integration
     source_rule: P-NAPP-012
+
+  - source_root: apps/harness
+    product_surface: harness-formal-pc-body-app
+    canonical_app_id: nimi.harness
+    sdk_app_id: nimi.harness
+    runtime_app_id: nimi.harness
+    runtime_caller_mode: formal-app-session
+    principal_posture: registered_release_eas
+    development_integration_profile:
+      trust_class: local_development
+      principal_posture: isolated_local_development
+      shipped_identity_inheritance: forbidden
+    native_shell: none
+    native_bundle_identifier: null
+    native_bundle_identifier_required: false
+    npm_package: "@nimiplatform/harness"
+    product_status: bundled-formal-app-with-isolated-development-integration
+    source_rule: P-NAPP-012
