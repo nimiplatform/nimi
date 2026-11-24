@@ -39,6 +39,8 @@ type OwnerPort interface {
 	FindMemoryRefsBySource(context.Context, string, string, string, string) ([]string, error)
 	ReceiveNoOpCutoff(context.Context, string, string, string, string, string, uint64) (memoryv1.CommitResult, error)
 	NeutralizePendingReceiptsBySource(context.Context, string, string, string, string) (int64, error)
+	RecordSessionCutoff(context.Context, string, string, string) error
+	IsSessionCutoff(context.Context, string, string, string) (bool, error)
 }
 
 func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
@@ -67,6 +69,20 @@ func (a *OwnerAdapter) NeutralizePendingReceiptsBySource(ctx context.Context, bi
 		return 0, err
 	}
 	return a.core.NeutralizePendingReceiptsBySource(ctx, bindingRef, bankRef, sourceKind, sourceValue)
+}
+
+func (a *OwnerAdapter) RecordSessionCutoff(ctx context.Context, bindingRef, bankRef, workSessionRef string) error {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return err
+	}
+	return a.core.RecordSessionCutoff(ctx, bindingRef, workSessionRef)
+}
+
+func (a *OwnerAdapter) IsSessionCutoff(ctx context.Context, bindingRef, bankRef, workSessionRef string) (bool, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return false, err
+	}
+	return a.core.IsSessionCutoff(ctx, bindingRef, workSessionRef)
 }
 
 type OwnerBindingResolver func(context.Context, string) (Binding, error)

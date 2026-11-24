@@ -131,7 +131,7 @@ func (c *Core) ensureFTSCurrent(ctx context.Context, bankRef string) error {
 // The V1 Remember plan uses only identity, lifecycle and text. Provenance is
 // validated by Core at commit; it is not loaded per row for this lexical plan.
 func (c *Core) rememberInputs(ctx context.Context, bankRef string) ([]Memory, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref,content,lifecycle FROM memories WHERE bank_ref=? AND lifecycle=? ORDER BY updated_at DESC,memory_ref`, bankRef, LifecycleCurrent)
+	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref,content,lifecycle,scope_tag FROM memories WHERE bank_ref=? AND lifecycle=? ORDER BY updated_at DESC,memory_ref`, bankRef, LifecycleCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (c *Core) rememberInputs(ctx context.Context, bankRef string) ([]Memory, er
 	var items []Memory
 	for rows.Next() {
 		var item Memory
-		if err := rows.Scan(&item.MemoryRef, &item.Content, &item.Lifecycle); err != nil {
+		if err := rows.Scan(&item.MemoryRef, &item.Content, &item.Lifecycle, &item.ScopeTag); err != nil {
 			return nil, err
 		}
 		items = append(items, item)

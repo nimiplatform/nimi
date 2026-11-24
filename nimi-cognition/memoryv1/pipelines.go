@@ -374,7 +374,7 @@ func (c *Core) loadCustody(ctx context.Context, operationID string) (CommitReque
 func (c *Core) terminalDecision(ctx context.Context, operationID string) (DecisionResult, bool, error) {
 	var outcome Outcome
 	var raw []byte
-	err := c.db.QueryRowContext(ctx, `SELECT outcome, result_json FROM memory_operations WHERE operation_id = ? AND operation_kind = 'commit'`, operationID).Scan(&outcome, &raw)
+	err := c.db.QueryRowContext(ctx, `SELECT outcome, result_json FROM memory_operations WHERE operation_id = ? AND operation_kind IN ('commit', 'cutoff_noop')`, operationID).Scan(&outcome, &raw)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return DecisionResult{}, false, contractError(OutcomeInvalid, "unknown_operation")

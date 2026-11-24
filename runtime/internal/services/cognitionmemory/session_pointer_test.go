@@ -189,3 +189,191 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 		t.Fatalf("expected tainted channel_external source to be rejected, committed=%v err=%v", taintedCommitted, err)
 	}
 }
+
+func TestSessionPointerAuditRecoveryScopeTagAndCutoffFences(t *testing.T) {
+	ctx := context.Background()
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	const agentRef = "agent-session-recovery"
+	_ = createTestBinding(t, backend, store, agentRef, true)
+	owner, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open Cognition owner: %v", err)
+	}
+	t.Cleanup(func() { _ = owner.Close() })
+	authorize := func(context.Context, Binding) error { return nil }
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	bridge := NewBridge(store, ownerPort, authorize)
+	facade := NewFacade(store, ownerPort, bridge, authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	baseTime := time.Date(2026, 11, 24, 15, 0, 0, 0, time.UTC)
+
+	// 1. Scope-tag isolation: a session_pointer row and a global_fact row with identical
+	//    content MUST NOT deduplicate each other during rememberInputs.
+	committed, err := facade.CommitSessionPointer(ctx, agentRef, "ws_scope_001", "initial_goal", "I prefer dark roast coffee", "os.pc.workspace", baseTime)
+	if err != nil || !committed {
+		t.Fatalf("commit session pointer: committed=%v err=%v", committed, err)
+	}
+	binding, err := store.BindingForAgent(ctx, agentRef)
+	if err != nil {
+		t.Fatalf("BindingForAgent: %v", err)
+	}
+	msgOpID := "cmop_" + ulid.Make().String()
+	msgEnv := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: msgOpID},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "conversation", Value: "conv-1"}},
+		CommittedAt: timestamppb.New(baseTime.Add(1 * time.Minute)),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_MessageCommitted{
+			MessageCommitted: &runtimev1.CognitionMemoryMessageCommitted{
+				Actor:        runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER,
+				Conversation: &runtimev1.CognitionMemorySourceRef{Kind: "conversation", Value: "conv-1"},
+				Message:      &runtimev1.CognitionMemorySourceRef{Kind: "message", Value: "msg-1"},
+				Parts: []*runtimev1.CognitionMemoryMessagePart{{
+					Part: &runtimev1.CognitionMemorySourceRef{Kind: "part", Value: "part-1"},
+					Content: &runtimev1.CognitionMemoryMessagePart_Text{
+						Text: &runtimev1.CognitionMemoryTextPart{Text: "I prefer dark roast coffee"},
+					},
+				}},
+			},
+		},
+	}
+	if err := store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := store.EnqueueCommittedEventTx(tx, agentRef, msgEnv)
+		return err
+	}); err != nil {
+		t.Fatalf("enqueue global_fact message: %v", err)
+	}
+	if drained, err := bridge.DrainOne(ctx, agentRef); err != nil || !drained.Drained {
+		t.Fatalf("drain global_fact message: %+v err=%v", drained, err)
+	}
+	rem, err := facade.ProcessRemember(ctx, agentRef, msgOpID)
+	if err != nil || rem.Outcome != memoryv1.OutcomeAdmitted {
+		t.Fatalf("expected global_fact message to be admitted independently of session_pointer with identical text, got %+v err=%v", rem, err)
+	}
+
+	// 2. Crash recovery between owner.Commit and store.AcknowledgeReceived:
+	//    Enqueue an event, deliver directly to owner.Commit WITHOUT calling AcknowledgeReceived,
+	//    then run ForgetSessionLineage -> ReceiveNoOpCutoff MUST convert pending commit custody
+	//    without OutcomeConflict and advance frontier cleanly!
+	crashOpID := "cmop_" + ulid.Make().String()
+	crashEvtID := "cmevt_" + ulid.Make().String()
+	crashEnv := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: crashEvtID},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: crashOpID},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "session", Value: "ws_crash_002"}},
+		CommittedAt: timestamppb.New(baseTime.Add(2 * time.Minute)),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_SessionPointerCommitted{
+			SessionPointerCommitted: &runtimev1.CognitionMemorySessionPointerCommitted{
+				WorkSessionRef: "ws_crash_002",
+				ScopeTag:       memoryv1.ScopeTagSessionPointer,
+				SlotKey:        "session_ref:ws_crash_002",
+				TopicSummary:   "Crash window pointer before ACK",
+				BodyKind:       "os.pc.workspace",
+			},
+		},
+	}
+	var crashItem OutboxItem
+	if err := store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var enqErr error
+		crashItem, enqErr = store.EnqueueCommittedEventTx(tx, agentRef, crashEnv)
+		return enqErr
+	}); err != nil {
+		t.Fatalf("enqueue crash event: %v", err)
+	}
+	// Simulate owner.Commit succeeding while process crashes before store.AcknowledgeReceived.
+	commitEnv := crashItem.Envelope
+	commitEnv.LifecycleCutoff = &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: binding.LifecycleRef}
+	if _, err := ownerPort.Commit(ctx, &runtimev1.CognitionMemoryCommitRequest{Envelope: commitEnv}); err != nil {
+		t.Fatalf("simulated direct owner.Commit: %v", err)
+	}
+	// Also simulate in-flight MarkProcessing on that receipt before DeleteSession arrives!
+	if _, err := owner.MarkProcessing(ctx, crashOpID); err != nil {
+		t.Fatalf("MarkProcessing on crashOpID: %v", err)
+	}
+	if _, _, err := facade.ForgetSessionLineage(ctx, agentRef, "ws_crash_002"); err != nil {
+		t.Fatalf("ForgetSessionLineage after commit-without-ACK crash MUST recover cleanly: %v", err)
+	}
+
+	// 3. Late CommitSessionPointer after ForgetSessionLineage MUST be blocked by deleted_session_cutoffs!
+	resurrected, err := facade.CommitSessionPointer(ctx, agentRef, "ws_crash_002", "completed", "Late milestone after DeleteSession", "os.pc.workspace", baseTime.Add(5*time.Minute))
+	if err != nil || resurrected {
+		t.Fatalf("late CommitSessionPointer after DeleteSession MUST NOT resurrect: committed=%v err=%v", resurrected, err)
+	}
+
+	// 4. Non-head neutralized outbox row: seq=N live message + seq=N+1 deleted session.
+	//    DeleteSession neutralizes seq=N+1; draining seq=N then seq=N+1 settles seq=N+1 as
+	//    cutoff_noop (OutcomeNoEffect), and calling ProcessRemember on cutoff_noop returns
+	//    OutcomeNoEffect rather than OutcomeInvalid(unknown_operation).
+	liveOpID := "cmop_" + ulid.Make().String()
+	liveEnv := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: liveOpID},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "conversation", Value: "conv-2"}},
+		CommittedAt: timestamppb.New(baseTime.Add(10 * time.Minute)),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_MessageCommitted{
+			MessageCommitted: &runtimev1.CognitionMemoryMessageCommitted{
+				Actor:        runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER,
+				Conversation: &runtimev1.CognitionMemorySourceRef{Kind: "conversation", Value: "conv-2"},
+				Message:      &runtimev1.CognitionMemorySourceRef{Kind: "message", Value: "msg-2"},
+				Parts: []*runtimev1.CognitionMemoryMessagePart{{
+					Part: &runtimev1.CognitionMemorySourceRef{Kind: "part", Value: "part-2"},
+					Content: &runtimev1.CognitionMemoryMessagePart_Text{
+						Text: &runtimev1.CognitionMemoryTextPart{Text: "I prefer jasmine green tea"},
+					},
+				}},
+			},
+		},
+	}
+	nonHeadOpID := "cmop_" + ulid.Make().String()
+	nonHeadEnv := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: nonHeadOpID},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "session", Value: "ws_nonhead_003"}},
+		CommittedAt: timestamppb.New(baseTime.Add(11 * time.Minute)),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_SessionPointerCommitted{
+			SessionPointerCommitted: &runtimev1.CognitionMemorySessionPointerCommitted{
+				WorkSessionRef: "ws_nonhead_003",
+				ScopeTag:       memoryv1.ScopeTagSessionPointer,
+				SlotKey:        "session_ref:ws_nonhead_003",
+				TopicSummary:   "Non-head deleted session",
+				BodyKind:       "os.pc.workspace",
+			},
+		},
+	}
+	if err := store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := store.EnqueueCommittedEventTx(tx, agentRef, liveEnv); err != nil {
+			return err
+		}
+		_, err := store.EnqueueCommittedEventTx(tx, agentRef, nonHeadEnv)
+		return err
+	}); err != nil {
+		t.Fatalf("enqueue live + non-head events: %v", err)
+	}
+	if _, _, err := facade.ForgetSessionLineage(ctx, agentRef, "ws_nonhead_003"); err != nil {
+		t.Fatalf("ForgetSessionLineage for non-head session: %v", err)
+	}
+	// Drain seq=N (live)
+	d1, err := bridge.DrainOne(ctx, agentRef)
+	if err != nil || !d1.Drained || d1.OperationID != liveOpID {
+		t.Fatalf("drain live head item: %+v err=%v", d1, err)
+	}
+	if _, err := facade.ProcessRemember(ctx, agentRef, liveOpID); err != nil {
+		t.Fatalf("ProcessRemember live item: %v", err)
+	}
+	// Drain seq=N+1 (neutralized non-head cutoff_noop)
+	d2, err := bridge.DrainOne(ctx, agentRef)
+	if err != nil || !d2.Drained || d2.OperationID != nonHeadOpID || d2.Outcome != memoryv1.OutcomeNoEffect {
+		t.Fatalf("drain non-head neutralized item: %+v err=%v", d2, err)
+	}
+	// Calling ProcessRemember on cutoff_noop MUST succeed as OutcomeNoEffect (never unknown_operation)!
+	noopRes, err := facade.ProcessRemember(ctx, agentRef, nonHeadOpID)
+	if err != nil || noopRes.Outcome != memoryv1.OutcomeNoEffect {
+		t.Fatalf("ProcessRemember on cutoff_noop must return OutcomeNoEffect, got %+v err=%v", noopRes, err)
+	}
+}

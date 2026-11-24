@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/oklog/ulid/v2"
@@ -588,6 +589,15 @@ func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedE
 		if !validRef(fact.GetWorkSessionRef()) || !validCommittedContent(fact.GetTopicSummary()) {
 			return fmt.Errorf("enqueue cognition memory event: invalid session pointer fact")
 		}
+		if scopeTag := strings.TrimSpace(fact.GetScopeTag()); scopeTag != "" && scopeTag != memoryv1.ScopeTagSessionPointer {
+			return fmt.Errorf("enqueue cognition memory event: invalid session pointer scope tag")
+		}
+		if slotKey := fact.GetSlotKey(); slotKey != "" && !validRef(slotKey) {
+			return fmt.Errorf("enqueue cognition memory event: invalid session pointer slot key")
+		}
+		if bodyKind := fact.GetBodyKind(); bodyKind != "" && (!utf8.ValidString(bodyKind) || len(bodyKind) > 128 || isTaintedSessionPointerSource(bodyKind)) {
+			return fmt.Errorf("enqueue cognition memory event: invalid session pointer body kind")
+		}
 	default:
 		return fmt.Errorf("enqueue cognition memory event: unsupported fact")
 	}
@@ -680,6 +690,61 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 		}
 		n, _ := res.RowsAffected()
 		neutralized = n
+
+		// Also inspect remaining pending envelopes for this agent so multi-source
+		// rows where ("session", workSessionRef) is not Sources[0] (or carried on
+		// SessionPointerCommitted) are equally neutralized.
+		rows, err := tx.QueryContext(ctx, `
+			SELECT o.operation_id, o.payload
+			FROM runtime_cognition_memory_outbox o
+			JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
+			WHERE s.local_agent_ref = ? AND o.state = 'pending' AND o.payload IS NOT NULL`,
+			localAgentRef,
+		)
+		if err != nil {
+			return fmt.Errorf("neutralize session cognition outbox: scan pending: %w", err)
+		}
+		var extraOps []string
+		for rows.Next() {
+			var opID string
+			var payload []byte
+			if scanErr := rows.Scan(&opID, &payload); scanErr != nil {
+				_ = rows.Close()
+				return fmt.Errorf("neutralize session cognition outbox: scan row: %w", scanErr)
+			}
+			var env runtimev1.CognitionMemoryCommittedEventEnvelope
+			if proto.Unmarshal(payload, &env) != nil {
+				continue
+			}
+			matched := env.GetSessionPointerCommitted() != nil && env.GetSessionPointerCommitted().GetWorkSessionRef() == workSessionRef
+			if !matched {
+				for _, src := range env.GetSources() {
+					if src.GetKind() == "session" && src.GetValue() == workSessionRef {
+						matched = true
+						break
+					}
+				}
+			}
+			if matched {
+				extraOps = append(extraOps, opID)
+			}
+		}
+		if closeErr := rows.Close(); closeErr != nil {
+			return fmt.Errorf("neutralize session cognition outbox: close scan: %w", closeErr)
+		}
+		for _, opID := range extraOps {
+			extraRes, execErr := tx.ExecContext(ctx, `
+				UPDATE runtime_cognition_memory_outbox
+				SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL
+				WHERE operation_id = ? AND state = 'pending'`,
+				opID,
+			)
+			if execErr != nil {
+				return fmt.Errorf("neutralize session cognition outbox: update multi-source row: %w", execErr)
+			}
+			added, _ := extraRes.RowsAffected()
+			neutralized += added
+		}
 		return nil
 	})
 	return neutralized, err

@@ -98,6 +98,15 @@ func (f *Facade) CommitSessionPointer(
 	if !binding.Enabled || binding.AdoptionRequired {
 		return false, nil
 	}
+	if binding.BankRef != "" {
+		cutOff, cutoffErr := f.owner.IsSessionCutoff(ctx, binding.BindingRef, binding.BankRef, workSessionRef)
+		if cutoffErr != nil {
+			return false, cutoffErr
+		}
+		if cutOff {
+			return false, nil
+		}
+	}
 	if err := f.authorize(ctx, binding); err != nil {
 		return false, err
 	}
@@ -142,7 +151,7 @@ func (f *Facade) CommitSessionPointer(
 			break
 		}
 		if drained.Outcome != memoryv1.OutcomeNoEffect {
-			if _, err := f.ProcessRemember(ctx, localAgentRef, drained.OperationID); err != nil {
+			if _, err := f.processRememberLocked(ctx, localAgentRef, drained.OperationID); err != nil {
 				return false, fmt.Errorf("commit session pointer remember: %w", err)
 			}
 		}
@@ -214,7 +223,14 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		return 0, neutralized, err
 	}
 
-	// Step 2: Neutralize any already-received, not-yet-remembered receipts in Cognition.
+	// Step 1.5: Persist irreversible session deletion cutoff inside memory.db
+	// so late CommitSessionPointer calls or in-flight receipts can never
+	// resurrect this deleted session.
+	if err := f.owner.RecordSessionCutoff(ctx, binding.BindingRef, binding.BankRef, workSessionRef); err != nil {
+		return 0, neutralized, err
+	}
+
+	// Step 2: Neutralize any already-received or processing receipts in Cognition.
 	neutralizedReceipts, err := f.owner.NeutralizePendingReceiptsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
 	if err != nil {
 		return 0, neutralized, err
@@ -239,20 +255,23 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 	if err != nil {
 		return 0, neutralized, err
 	}
-	if len(refs) == 0 {
+	clearThrottle := func() {
 		f.pointerThrottleMu.Lock()
 		delete(f.pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})
 		f.pointerThrottleMu.Unlock()
+	}
+	if len(refs) == 0 {
+		_ = f.store.disposeSettledOutboxCopies(ctx, localAgentRef)
+		clearThrottle()
 		return 0, neutralized, nil
 	}
 
-	// Step 5: Exact Forget through canonical Facade.Forget.
-	outcome, err := f.Forget(ctx, localAgentRef, refs, true)
+	// Step 5: Exact Forget through canonical Facade.forgetLocked.
+	outcome, err := f.forgetLocked(ctx, localAgentRef, refs, true)
 	if err != nil {
 		return 0, neutralized, err
 	}
-	f.pointerThrottleMu.Lock()
-	delete(f.pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})
-	f.pointerThrottleMu.Unlock()
+	_ = f.store.disposeSettledOutboxCopies(ctx, localAgentRef)
+	clearThrottle()
 	return uint32(len(outcome.AffectedMemoryRefs)), neutralized, nil
 }

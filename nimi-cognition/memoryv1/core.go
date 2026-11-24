@@ -62,6 +62,10 @@ func Open(rootDir string, opts ...Option) (*Core, error) {
 		return nil, fmt.Errorf("memory core: open store: %w", err)
 	}
 	db.SetMaxOpenConns(1)
+	if _, err := db.Exec(`PRAGMA busy_timeout = 5000`); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("memory core: configure busy timeout: %w", err)
+	}
 	core := &Core{db: db, now: time.Now, newRef: randomOpaqueRef}
 	for _, opt := range opts {
 		opt(core)
@@ -282,6 +286,12 @@ func (c *Core) initialize() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS deleted_session_cutoffs (
+			binding_ref TEXT NOT NULL,
+			work_session_ref TEXT NOT NULL,
+			deleted_at TEXT NOT NULL,
+			PRIMARY KEY(binding_ref, work_session_ref)
+		)`,
 	}
 	for _, statement := range statements {
 		if _, err := tx.Exec(statement); err != nil {
@@ -335,6 +345,65 @@ func (c *Core) FindMemoryRefsBySource(ctx context.Context, bankRef, sourceKind, 
 		return nil, err
 	}
 	return refs, nil
+}
+
+// RecordSessionCutoff persists an irreversible deletion fence for
+// (bindingRef, workSessionRef) inside memory.db so late session-pointer writes
+// or in-flight receipts can never resurrect a deleted session.
+func (c *Core) RecordSessionCutoff(ctx context.Context, bindingRef, workSessionRef string) error {
+	if !validOpaqueRef(bindingRef) || !validOpaqueRef(workSessionRef) {
+		return contractError(OutcomeInvalid, "session_cutoff_input")
+	}
+	_, err := c.db.ExecContext(ctx, `
+		INSERT INTO deleted_session_cutoffs(binding_ref, work_session_ref, deleted_at)
+		VALUES(?, ?, ?)
+		ON CONFLICT(binding_ref, work_session_ref) DO NOTHING`,
+		bindingRef, workSessionRef, formatTime(c.now()),
+	)
+	if err != nil {
+		return fmt.Errorf("record session cutoff: %w", err)
+	}
+	return nil
+}
+
+// IsSessionCutoff reports whether workSessionRef has been irreversibly cut off
+// for bindingRef.
+func (c *Core) IsSessionCutoff(ctx context.Context, bindingRef, workSessionRef string) (bool, error) {
+	if !validOpaqueRef(bindingRef) || !validOpaqueRef(workSessionRef) {
+		return false, contractError(OutcomeInvalid, "session_cutoff_input")
+	}
+	var exists int
+	err := c.db.QueryRowContext(ctx, `SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?`, bindingRef, workSessionRef).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect session cutoff: %w", err)
+	}
+	return true, nil
+}
+
+func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRequest) (bool, error) {
+	sessionRefs := make([]string, 0, 2)
+	for _, src := range request.Sources {
+		if src.Kind == "session" && strings.TrimSpace(src.Value) != "" {
+			sessionRefs = append(sessionRefs, strings.TrimSpace(src.Value))
+		}
+	}
+	if request.Fact.SessionPointer != nil && strings.TrimSpace(request.Fact.SessionPointer.WorkSessionRef) != "" {
+		sessionRefs = append(sessionRefs, strings.TrimSpace(request.Fact.SessionPointer.WorkSessionRef))
+	}
+	for _, ref := range sessionRefs {
+		var exists int
+		err := tx.QueryRowContext(ctx, `SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?`, request.BindingRef, ref).Scan(&exists)
+		if err == nil {
+			return true, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return false, err
+		}
+	}
+	return false, nil
 }
 
 func randomOpaqueRef(prefix string) (string, error) {

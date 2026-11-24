@@ -246,6 +246,9 @@ func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef
 		if !drained.Drained {
 			break
 		}
+		if drained.Outcome == memoryv1.OutcomeNoEffect {
+			continue
+		}
 		if _, err := s.cognitionMemoryFacade.ProcessRemember(ctx, localAgentRef, drained.OperationID); err != nil {
 			return err
 		}

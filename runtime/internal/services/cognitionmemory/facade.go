@@ -82,6 +82,7 @@ type Projection struct {
 	Outcome          memoryv1.Outcome
 	Enabled          bool
 	AdoptionRequired bool
+	LifecycleRef     string
 	Items            []memoryv1.Memory
 	CurrentCount     int
 	SupersededCount  int
@@ -102,7 +103,11 @@ func (f *Facade) InspectBinding(ctx context.Context, localAgentRef string) (Proj
 	if err := f.authorize(ctx, binding); err != nil {
 		return Projection{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	projection := Projection{Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}
+	projection := Projection{
+		Enabled:          binding.Enabled,
+		AdoptionRequired: binding.AdoptionRequired,
+		LifecycleRef:     binding.LifecycleRef,
+	}
 	if binding.BankRef == "" {
 		projection.Outcome = memoryv1.OutcomeUnconfigured
 		return projection, nil
@@ -132,7 +137,20 @@ func NewFacade(store *Store, owner OwnerPort, bridge *Bridge, authorize DrainAut
 	return &Facade{store: store, owner: owner, bridge: bridge, authorize: authorize, capabilities: capabilities}
 }
 
+func (f *Facade) lockAgent(localAgentRef string) func() {
+	if f == nil || f.bridge == nil {
+		return func() {}
+	}
+	return f.bridge.lockAgent(localAgentRef)
+}
+
 func (f *Facade) ProcessRemember(ctx context.Context, localAgentRef, operationID string) (memoryv1.DecisionResult, error) {
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
+	return f.processRememberLocked(ctx, localAgentRef, operationID)
+}
+
+func (f *Facade) processRememberLocked(ctx context.Context, localAgentRef, operationID string) (memoryv1.DecisionResult, error) {
 	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(localAgentRef) || !validRef(operationID) {
 		return memoryv1.DecisionResult{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("process cognition memory Remember: invalid input")
 	}
@@ -223,6 +241,8 @@ func (f *Facade) ResumeLifecycle(ctx context.Context, localAgentRef string) erro
 // Callers run this outside the cross-Agent lifecycle admission lock.
 // cleanupErr reports ordinary disposal debt; only err blocks derived work.
 func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) (cleanupErr, err error) {
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
 	// Ordinary cleanup debt is reported independently; it must not stop
 	// canonical Remember processing or a new, unrelated index build.
 	cleanupErr = errors.Join(f.store.DisposeAgentEmbeddingPayloads(ctx, localAgentRef, false), f.store.disposeSettledOutboxCopies(ctx, localAgentRef))
@@ -241,7 +261,7 @@ func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) (clean
 		return cleanupErr, err
 	}
 	for _, event := range pending {
-		if _, err := f.ProcessRemember(ctx, localAgentRef, event.OperationID); err != nil {
+		if _, err := f.processRememberLocked(ctx, localAgentRef, event.OperationID); err != nil {
 			return cleanupErr, err
 		}
 	}
@@ -413,6 +433,13 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 			}
 			break
 		}
+		if drained.Outcome == memoryv1.OutcomeNoEffect {
+			if drained.OperationID == operationID {
+				decision = memoryv1.DecisionResult{Outcome: memoryv1.OutcomeNoEffect, OperationID: operationID}
+				break
+			}
+			continue
+		}
 		decision, err = f.ProcessRemember(ctx, localAgentRef, drained.OperationID)
 		if err != nil && (!decision.Outcome.TerminalRemember() || decision.OperationID != drained.OperationID) {
 			return MutationOutcome{Outcome: decision.Outcome}, err
@@ -434,6 +461,12 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 }
 
 func (f *Facade) Forget(ctx context.Context, localAgentRef string, memoryRefs []string, confirmed bool) (MutationOutcome, error) {
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
+	return f.forgetLocked(ctx, localAgentRef, memoryRefs, confirmed)
+}
+
+func (f *Facade) forgetLocked(ctx context.Context, localAgentRef string, memoryRefs []string, confirmed bool) (MutationOutcome, error) {
 	if !confirmed || len(memoryRefs) == 0 {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("forget cognition memory: exact confirmed targets are required")
 	}

@@ -102,6 +102,15 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 	if receiptLifecycle != currentLifecycle {
 		plan = MutationPlan{Outcome: OutcomeNoEffect}
 	}
+	if plan.Outcome == OutcomeAdmitted {
+		sessionCutOff, err := requestHasSessionCutoffTx(ctx, tx, request)
+		if err != nil {
+			return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: inspect session cutoff: %w", err)
+		}
+		if sessionCutOff {
+			plan = MutationPlan{Outcome: OutcomeNoEffect}
+		}
+	}
 	if err := validatePlanAgainstEventTx(ctx, tx, request, plan); err != nil {
 		if staleCorrectionTarget(err, request, plan) || staleConflictTarget(err, plan) {
 			plan = MutationPlan{Outcome: OutcomeNoEffect}
@@ -190,8 +199,19 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 				}
 			}
 			for _, source := range request.Sources {
-				if _, err := tx.ExecContext(ctx, `INSERT INTO memory_lineage(memory_ref, ref_type, ref_kind, ref_value) VALUES(?, 'source', ?, ?)`, memoryRef, source.Kind, source.Value); err != nil {
+				if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO memory_lineage(memory_ref, ref_type, ref_kind, ref_value) VALUES(?, 'source', ?, ?)`, memoryRef, source.Kind, source.Value); err != nil {
 					return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: insert source lineage: %w", err)
+				}
+			}
+			if mutation.Kind == MutationCorrection && mutation.TargetMemoryRef != "" {
+				if _, err := tx.ExecContext(ctx, `
+					INSERT OR IGNORE INTO memory_lineage(memory_ref, ref_type, ref_kind, ref_value)
+					SELECT ?, 'source', ref_kind, ref_value
+					FROM memory_lineage
+					WHERE memory_ref = ? AND ref_type = 'source' AND ref_kind = 'session'`,
+					memoryRef, mutation.TargetMemoryRef,
+				); err != nil {
+					return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: preserve session lineage on correction: %w", err)
 				}
 			}
 			result.AffectedMemoryRefs = append(result.AffectedMemoryRefs, memoryRef)
