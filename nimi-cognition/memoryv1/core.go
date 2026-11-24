@@ -21,7 +21,7 @@ import (
 
 const (
 	storeFilename = "cognition-memory-v1.sqlite3"
-	schemaVersion = 4
+	schemaVersion = 5
 )
 
 type Core struct {
@@ -84,7 +84,7 @@ func (c *Core) validateExistingStore() error {
 	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("memory core: inspect existing schema version: %w", err)
 	}
-	if version != schemaVersion {
+	if version != 4 && version != schemaVersion {
 		return contractError(OutcomeUnsupported, "schema_version")
 	}
 	checks := []string{
@@ -95,6 +95,9 @@ func (c *Core) validateExistingStore() error {
 		`SELECT operation_id,binding_ref,bank_ref,event_ref,delivery_sequence,request_key,lifecycle_ref,outcome,payload,committed_at,terminal_at FROM memory_receipts LIMIT 0`,
 		`SELECT memory_ref,bank_ref,content,epistemic_status,lifecycle,occurred_at,updated_at,source_explanation,event_ref,supersedes_ref FROM memories LIMIT 0`,
 		`SELECT memory_ref,ref_type,ref_kind,ref_value FROM memory_lineage LIMIT 0`,
+	}
+	if version == schemaVersion {
+		checks = append(checks, `SELECT scope_tag,slot_key FROM memories LIMIT 0`)
 	}
 	for _, query := range checks {
 		rows, err := c.db.Query(query)
@@ -132,7 +135,7 @@ func (c *Core) initialize() error {
 	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("memory core: inspect schema version: %w", err)
 	}
-	if version != 0 && version != schemaVersion {
+	if version != 0 && version != 4 && version != schemaVersion {
 		return contractError(OutcomeUnsupported, "schema_version")
 	}
 	tx, err := c.db.Begin()
@@ -140,6 +143,19 @@ func (c *Core) initialize() error {
 		return fmt.Errorf("memory core: begin schema: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Controlled incremental migration v4 -> v5: add scope_tag & slot_key columns
+	// and active single-slot unique index before running idempotent DDL.
+	if version == 4 {
+		for _, alter := range []string{
+			`ALTER TABLE memories ADD COLUMN scope_tag TEXT NOT NULL DEFAULT 'global_fact'`,
+			`ALTER TABLE memories ADD COLUMN slot_key TEXT NOT NULL DEFAULT ''`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`,
+		} {
+			if _, err := tx.Exec(alter); err != nil {
+				return fmt.Errorf("memory core: migrate schema v4->v5: %w", err)
+			}
+		}
+	}
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS memory_banks (
 			bank_ref TEXT PRIMARY KEY,
@@ -201,9 +217,12 @@ func (c *Core) initialize() error {
 			updated_at TEXT NOT NULL,
 			source_explanation TEXT NOT NULL,
 			event_ref TEXT NOT NULL,
-			supersedes_ref TEXT
+			supersedes_ref TEXT,
+			scope_tag TEXT NOT NULL DEFAULT 'global_fact',
+			slot_key TEXT NOT NULL DEFAULT ''
 		)`,
 		`CREATE INDEX IF NOT EXISTS memories_bank_lifecycle_idx ON memories(bank_ref, lifecycle, updated_at)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`,
 		`CREATE TABLE IF NOT EXISTS memory_lineage (
 			memory_ref TEXT NOT NULL REFERENCES memories(memory_ref) ON DELETE CASCADE,
 			ref_type TEXT NOT NULL CHECK (ref_type IN ('subject', 'source')),
@@ -257,7 +276,7 @@ func (c *Core) initialize() error {
 	if _, err := tx.Exec(`UPDATE memory_operation_routes SET ai_disposition = 'pending', outcome = 'conflict' WHERE ai_disposition = 'retained' AND operation_kind = 'recall'`); err != nil {
 		return err
 	}
-	if version == 0 {
+	if version == 0 || version == 4 {
 		if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
 			return fmt.Errorf("memory core: set schema version: %w", err)
 		}
@@ -266,6 +285,39 @@ func (c *Core) initialize() error {
 		return fmt.Errorf("memory core: commit schema: %w", err)
 	}
 	return nil
+}
+
+// FindMemoryRefsBySource returns all non-forgotten memory_ref values in bankRef
+// whose memory_lineage links to (ref_type='source', ref_kind=sourceKind, ref_value=sourceValue).
+func (c *Core) FindMemoryRefsBySource(ctx context.Context, bankRef, sourceKind, sourceValue string) ([]string, error) {
+	if !validOpaqueRef(bankRef) || strings.TrimSpace(sourceKind) == "" || strings.TrimSpace(sourceValue) == "" {
+		return nil, contractError(OutcomeInvalid, "lineage_source_query")
+	}
+	rows, err := c.db.QueryContext(ctx, `
+		SELECT DISTINCT m.memory_ref
+		FROM memories m
+		JOIN memory_lineage l ON l.memory_ref = m.memory_ref
+		WHERE m.bank_ref = ? AND m.lifecycle <> ?
+		  AND l.ref_type = 'source' AND l.ref_kind = ? AND l.ref_value = ?
+		ORDER BY m.memory_ref`,
+		bankRef, LifecycleForgotten, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find memory refs by source: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var refs []string
+	for rows.Next() {
+		var ref string
+		if err := rows.Scan(&ref); err != nil {
+			return nil, fmt.Errorf("scan memory ref by source: %w", err)
+		}
+		refs = append(refs, ref)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return refs, nil
 }
 
 func randomOpaqueRef(prefix string) (string, error) {

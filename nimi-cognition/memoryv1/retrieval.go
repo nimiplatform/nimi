@@ -22,6 +22,7 @@ type RecallRequest struct {
 	Subject           TypedRef
 	Query             string
 	Limit             int
+	ScopeTags         []string
 	Capabilities      CapabilitySnapshot
 }
 
@@ -38,6 +39,7 @@ type recallRouteRequest struct {
 	Subject           TypedRef
 	Query             string
 	Limit             int
+	ScopeTags         []string
 }
 
 type AIEmbeddingRequest struct {
@@ -158,7 +160,7 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if descriptor.Name == PipelineRecallEmbedding {
 		revision = "embedding-1"
 	}
-	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit}}); err != nil {
+	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit, ScopeTags: request.ScopeTags}}); err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: descriptor.Name}, err
 	}
 	var result RecallResult
@@ -263,7 +265,15 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallFTS}, err
 	}
 	_ = version
-	rows, err := tx.QueryContext(ctx, `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref FROM memory_fts JOIN memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ? ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`, request.BankRef, query, request.BankRef, LifecycleCurrent, request.Limit)
+	ftsSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key FROM memory_fts JOIN memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ?`
+	ftsArgs := []any{request.BankRef, query, request.BankRef, LifecycleCurrent}
+	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
+		ftsSQL += ` AND ` + scopeClause
+		ftsArgs = append(ftsArgs, scopeArgs...)
+	}
+	ftsSQL += ` ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`
+	ftsArgs = append(ftsArgs, request.Limit)
+	rows, err := tx.QueryContext(ctx, ftsSQL, ftsArgs...)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, fmt.Errorf("recall memory fts: query: %w", err)
 	}
@@ -490,7 +500,13 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallEmbedding}, err
 	}
 	_ = version
-	rows, err := tx.QueryContext(ctx, `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, v.vector_json FROM memory_vector_items v JOIN memories m ON m.memory_ref = v.memory_ref WHERE v.generation_ref = ? AND m.bank_ref = ? AND m.lifecycle = ?`, generationRef, request.BankRef, LifecycleCurrent)
+	vecSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key, v.vector_json FROM memory_vector_items v JOIN memories m ON m.memory_ref = v.memory_ref WHERE v.generation_ref = ? AND m.bank_ref = ? AND m.lifecycle = ?`
+	vecArgs := []any{generationRef, request.BankRef, LifecycleCurrent}
+	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
+		vecSQL += ` AND ` + scopeClause
+		vecArgs = append(vecArgs, scopeArgs...)
+	}
+	rows, err := tx.QueryContext(ctx, vecSQL, vecArgs...)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: load vectors: %w", err)
 	}
@@ -503,7 +519,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		// Borrow this row's bytes: validation, decoding and scoring finish before
 		// Next, and retained hits contain no references to the vector buffer.
 		var vectorRaw sql.RawBytes
-		if err := rows.Scan(&item.memory.MemoryRef, &item.memory.BankRef, &item.memory.Content, &item.memory.EpistemicStatus, &item.memory.Lifecycle, &occurredAt, &updatedAt, &item.memory.SourceExplanation, &item.memory.EventRef, &vectorRaw); err != nil {
+		if err := rows.Scan(&item.memory.MemoryRef, &item.memory.BankRef, &item.memory.Content, &item.memory.EpistemicStatus, &item.memory.Lifecycle, &occurredAt, &updatedAt, &item.memory.SourceExplanation, &item.memory.EventRef, &item.memory.ScopeTag, &item.memory.SlotKey, &vectorRaw); err != nil {
 			_ = rows.Close()
 			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: scan vector: %w", err)
 		}
@@ -651,13 +667,42 @@ func compatibleEmbeddingGenerationTx(ctx context.Context, tx *sql.Tx, bankRef st
 	return version, generationRef, nil
 }
 
+func scopeTagFilterClause(column string, scopeTags []string) (string, []any) {
+	if len(scopeTags) == 0 {
+		return "", nil
+	}
+	var cleaned []string
+	seen := make(map[string]struct{}, len(scopeTags))
+	for _, raw := range scopeTags {
+		tag := strings.TrimSpace(raw)
+		if tag == "" {
+			continue
+		}
+		if _, dup := seen[tag]; dup {
+			continue
+		}
+		seen[tag] = struct{}{}
+		cleaned = append(cleaned, tag)
+	}
+	if len(cleaned) == 0 {
+		return "", nil
+	}
+	placeholders := make([]string, len(cleaned))
+	args := make([]any, len(cleaned))
+	for i, tag := range cleaned {
+		placeholders[i] = "?"
+		args[i] = tag
+	}
+	return column + ` IN (` + strings.Join(placeholders, ",") + `)`, args
+}
+
 func scanMemories(rows *sql.Rows) ([]Memory, error) {
 	defer func() { _ = rows.Close() }()
 	var result []Memory
 	for rows.Next() {
 		var item Memory
 		var occurredAt, updatedAt string
-		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef); err != nil {
+		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef, &item.ScopeTag, &item.SlotKey); err != nil {
 			return nil, err
 		}
 		var err error

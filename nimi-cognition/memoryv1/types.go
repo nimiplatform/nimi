@@ -60,14 +60,20 @@ const (
 	LifecycleForgotten  Lifecycle = "forgotten"
 )
 
+const (
+	ScopeTagGlobalFact     = "global_fact"
+	ScopeTagSessionPointer = "session_pointer"
+)
+
 type EventKind string
 
 const (
-	EventKindMessage      EventKind = "message_committed"
-	EventKindTurnTerminal EventKind = "turn_terminal"
-	EventKindActivity     EventKind = "activity_terminal"
-	EventKindCorrection   EventKind = "correction_committed"
-	EventKindRelationship EventKind = "relationship_committed"
+	EventKindMessage        EventKind = "message_committed"
+	EventKindTurnTerminal   EventKind = "turn_terminal"
+	EventKindActivity       EventKind = "activity_terminal"
+	EventKindCorrection     EventKind = "correction_committed"
+	EventKindRelationship   EventKind = "relationship_committed"
+	EventKindSessionPointer EventKind = "session_pointer_committed"
 )
 
 type ActorRole string
@@ -147,13 +153,26 @@ type RelationshipFact struct {
 	BoundedFact      string `json:"bounded_fact"`
 }
 
+// SessionPointerFact commits a single-slot bounded pointer for a Runtime work
+// session (Schema v5). Committing the same (bank_ref, slot_key) atomically
+// supersedes the prior active pointer row.
+// @nimi-authority: rule.nimi.cognition.memory.r003
+type SessionPointerFact struct {
+	WorkSessionRef string `json:"work_session_ref"`
+	ScopeTag       string `json:"scope_tag"`
+	SlotKey        string `json:"slot_key"`
+	TopicSummary   string `json:"topic_summary"`
+	BodyKind       string `json:"body_kind"`
+}
+
 type CommittedFact struct {
-	Kind         EventKind             `json:"kind"`
-	Message      *MessageFact          `json:"message,omitempty"`
-	Turn         *TurnTerminalFact     `json:"turn,omitempty"`
-	Activity     *ActivityTerminalFact `json:"activity,omitempty"`
-	Correction   *CorrectionFact       `json:"correction,omitempty"`
-	Relationship *RelationshipFact     `json:"relationship,omitempty"`
+	Kind           EventKind             `json:"kind"`
+	Message        *MessageFact          `json:"message,omitempty"`
+	Turn           *TurnTerminalFact     `json:"turn,omitempty"`
+	Activity       *ActivityTerminalFact `json:"activity,omitempty"`
+	Correction     *CorrectionFact       `json:"correction,omitempty"`
+	Relationship   *RelationshipFact     `json:"relationship,omitempty"`
+	SessionPointer *SessionPointerFact   `json:"session_pointer,omitempty"`
 }
 
 type EnsureBankRequest struct {
@@ -209,6 +228,8 @@ type MemoryMutation struct {
 	EpistemicStatus   EpistemicStatus
 	OccurredAt        time.Time
 	SourceExplanation string
+	ScopeTag          string
+	SlotKey           string
 }
 
 type MutationPlan struct {
@@ -232,6 +253,8 @@ type Memory struct {
 	UpdatedAt         time.Time
 	SourceExplanation string
 	EventRef          string
+	ScopeTag          string
+	SlotKey           string
 	Subjects          []TypedRef
 	Sources           []TypedRef
 }

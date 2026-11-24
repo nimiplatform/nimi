@@ -116,6 +116,31 @@ func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationP
 			return MutationPlan{Outcome: OutcomeRejected}, nil
 		}
 		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: fact.BoundedFact, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed relationship event"}), nil
+	case EventKindSessionPointer:
+		fact := request.Fact.SessionPointer
+		if fact == nil || forbiddenMemoryContent(fact.TopicSummary) {
+			return MutationPlan{Outcome: OutcomeRejected}, nil
+		}
+		scopeTag := strings.TrimSpace(fact.ScopeTag)
+		if scopeTag == "" {
+			scopeTag = ScopeTagSessionPointer
+		}
+		slotKey := strings.TrimSpace(fact.SlotKey)
+		if slotKey == "" {
+			slotKey = "session_ref:" + strings.TrimSpace(fact.WorkSessionRef)
+		}
+		return MutationPlan{
+			Outcome: OutcomeAdmitted,
+			Mutations: []MemoryMutation{{
+				Kind:              MutationRemember,
+				Content:           strings.TrimSpace(fact.TopicSummary),
+				EpistemicStatus:   EpistemicExplicit,
+				OccurredAt:        request.CommittedAt,
+				SourceExplanation: fmt.Sprintf("Session pointer (%s) for %s", strings.TrimSpace(fact.BodyKind), strings.TrimSpace(fact.WorkSessionRef)),
+				ScopeTag:          scopeTag,
+				SlotKey:           slotKey,
+			}},
+		}, nil
 	case EventKindActivity:
 		fact := request.Fact.Activity
 		if err := validateCommittedFact(request.Fact); err != nil {

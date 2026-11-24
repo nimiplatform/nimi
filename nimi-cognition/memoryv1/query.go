@@ -138,7 +138,7 @@ func (c *Core) ListMemories(ctx context.Context, bankRef string, includeHistory 
 	if bankState != "active" {
 		return nil, contractError(OutcomeConflict, "bank_deleted")
 	}
-	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref FROM memories WHERE bank_ref = ?`
+	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM memories WHERE bank_ref = ?`
 	if includeHistory {
 		query += ` AND lifecycle <> 'forgotten'`
 	} else {
@@ -153,7 +153,7 @@ func (c *Core) ListMemories(ctx context.Context, bankRef string, includeHistory 
 	for rows.Next() {
 		var item Memory
 		var occurredAt, updatedAt string
-		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef); err != nil {
+		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef, &item.ScopeTag, &item.SlotKey); err != nil {
 			return nil, fmt.Errorf("list memories: scan: %w", err)
 		}
 		item.OccurredAt, err = parseTime(occurredAt)
@@ -207,7 +207,7 @@ func (c *Core) ListMemoriesPage(ctx context.Context, request MemoryPageRequest) 
 	if bankState != "active" {
 		return MemoryPage{}, contractError(OutcomeConflict, "bank_deleted")
 	}
-	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref FROM memories WHERE bank_ref = ? AND lifecycle <> 'forgotten'`
+	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM memories WHERE bank_ref = ? AND lifecycle <> 'forgotten'`
 	args := []any{request.BankRef}
 	if request.AfterUpdatedAt != "" {
 		query += ` AND (updated_at < ? OR (updated_at = ? AND memory_ref > ?))`
@@ -223,7 +223,7 @@ func (c *Core) ListMemoriesPage(ctx context.Context, request MemoryPageRequest) 
 	for rows.Next() {
 		var item Memory
 		var occurredAt, updatedAt string
-		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef); err != nil {
+		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef, &item.ScopeTag, &item.SlotKey); err != nil {
 			_ = rows.Close()
 			return MemoryPage{}, fmt.Errorf("list memory page: scan: %w", err)
 		}

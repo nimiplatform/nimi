@@ -216,6 +216,8 @@ func committedFactContainsForbiddenMemory(fact CommittedFact) bool {
 		return fact.Correction != nil && forbiddenMemoryContent(fact.Correction.CorrectedContent)
 	case EventKindRelationship:
 		return fact.Relationship != nil && forbiddenMemoryContent(fact.Relationship.BoundedFact)
+	case EventKindSessionPointer:
+		return fact.SessionPointer != nil && forbiddenMemoryContent(fact.SessionPointer.TopicSummary)
 	}
 	return false
 }
@@ -254,7 +256,7 @@ func validateCommitRequest(request CommitRequest) error {
 
 func validateCommittedFact(fact CommittedFact) error {
 	count := 0
-	for _, present := range []bool{fact.Message != nil, fact.Turn != nil, fact.Activity != nil, fact.Correction != nil, fact.Relationship != nil} {
+	for _, present := range []bool{fact.Message != nil, fact.Turn != nil, fact.Activity != nil, fact.Correction != nil, fact.Relationship != nil, fact.SessionPointer != nil} {
 		if present {
 			count++
 		}
@@ -314,6 +316,10 @@ func validateCommittedFact(fact CommittedFact) error {
 	case EventKindRelationship:
 		if fact.Relationship == nil || !validOpaqueRef(fact.Relationship.RelationshipKind) || !validContent(fact.Relationship.BoundedFact) {
 			return contractError(OutcomeInvalid, "relationship_fact")
+		}
+	case EventKindSessionPointer:
+		if fact.SessionPointer == nil || !validOpaqueRef(fact.SessionPointer.WorkSessionRef) || !validContent(fact.SessionPointer.TopicSummary) {
+			return contractError(OutcomeInvalid, "session_pointer_fact")
 		}
 	default:
 		return contractError(OutcomeUnsupported, "event_kind")

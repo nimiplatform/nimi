@@ -142,7 +142,35 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 			if occurredAt.IsZero() {
 				occurredAt = request.CommittedAt.UTC()
 			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO memories(memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, supersedes_ref) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''))`, memoryRef, request.BankRef, mutation.Content, mutation.EpistemicStatus, insertLifecycle, formatTime(occurredAt), formatTime(now), mutation.SourceExplanation, request.EventRef, supersedesRef); err != nil {
+			scopeTag := strings.TrimSpace(mutation.ScopeTag)
+			if scopeTag == "" {
+				scopeTag = ScopeTagGlobalFact
+			}
+			slotKey := strings.TrimSpace(mutation.SlotKey)
+			// Single-slot atomic supersede: if a current memory already occupies
+			// (bank_ref, slot_key), supersede it and evict it from derived indexes
+			// in the same transaction before inserting the replacement.
+			if insertLifecycle == LifecycleCurrent && slotKey != "" {
+				var priorSlotRef string
+				slotErr := tx.QueryRowContext(ctx, `SELECT memory_ref FROM memories WHERE bank_ref = ? AND slot_key = ? AND lifecycle = ?`, request.BankRef, slotKey, LifecycleCurrent).Scan(&priorSlotRef)
+				if slotErr == nil && priorSlotRef != "" {
+					if _, err := tx.ExecContext(ctx, `UPDATE memories SET lifecycle = ?, updated_at = ? WHERE memory_ref = ? AND bank_ref = ?`, LifecycleSuperseded, formatTime(now), priorSlotRef, request.BankRef); err != nil {
+						return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: supersede slot: %w", err)
+					}
+					if _, err := tx.ExecContext(ctx, `DELETE FROM memory_fts WHERE bank_ref = ? AND memory_ref = ?`, request.BankRef, priorSlotRef); err != nil {
+						return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: evict superseded slot fts: %w", err)
+					}
+					if _, err := tx.ExecContext(ctx, `DELETE FROM memory_vector_items WHERE memory_ref = ?`, priorSlotRef); err != nil {
+						return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: evict superseded slot vector: %w", err)
+					}
+					if supersedesRef == "" {
+						supersedesRef = priorSlotRef
+					}
+				} else if slotErr != nil && !errors.Is(slotErr, sql.ErrNoRows) {
+					return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: inspect active slot: %w", slotErr)
+				}
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO memories(memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, supersedes_ref, scope_tag, slot_key) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?)`, memoryRef, request.BankRef, mutation.Content, mutation.EpistemicStatus, insertLifecycle, formatTime(occurredAt), formatTime(now), mutation.SourceExplanation, request.EventRef, supersedesRef, scopeTag, slotKey); err != nil {
 				return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: insert memory: %w", err)
 			}
 			for _, subject := range request.Subjects {
