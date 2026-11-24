@@ -198,6 +198,20 @@ function errorReasonCode(error: unknown): string | undefined {
   return reasonCode || undefined;
 }
 
+function errorRetryAfterSeconds(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const details = (error as { readonly details?: unknown }).details;
+  if (!details || typeof details !== 'object') return undefined;
+  const record = details as Record<string, unknown>;
+  const metadata = record.reasonMetadata && typeof record.reasonMetadata === 'object'
+    ? (record.reasonMetadata as Record<string, unknown>)
+    : undefined;
+  const raw = record.retryAfterSeconds ?? record.retry_after_seconds ?? metadata?.retry_after_seconds;
+  const parsed = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/u.test(raw.trim()) ? Number(raw.trim()) : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.min(86400, Math.ceil(parsed));
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Unknown error');
 }
@@ -1552,7 +1566,13 @@ export async function runRuntimeSetupPreparation(
         expectedContentId: item.offer.expectedContentId ?? installed.modelAsset.contentId,
       });
     } catch (error) {
-      const failure: RuntimeSetupRunnerFailure = { stage: 'install', reasonCode: errorReasonCode(error), message: errorMessage(error) };
+      const retryAfterSeconds = errorRetryAfterSeconds(error);
+      const failure: RuntimeSetupRunnerFailure = {
+        stage: 'install',
+        reasonCode: errorReasonCode(error),
+        message: errorMessage(error),
+        ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
+      };
       failTask(store, taskId, 'failed', failure);
       return failed(failure);
     }

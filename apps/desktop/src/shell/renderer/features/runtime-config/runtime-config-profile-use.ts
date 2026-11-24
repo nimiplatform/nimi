@@ -41,7 +41,6 @@ export type RuntimeSetupProfileUseCandidateInput = {
    * recommendation.
    */
   readonly pendingAxes: readonly RuntimeSetupTaskPendingAxis[];
-  readonly displayName: string;
   readonly provenance: Readonly<Record<string, string>>;
 };
 
@@ -154,7 +153,6 @@ export function planRuntimeSetupProfileUse(input: {
         : []
     ));
     const needsAcquisition = pendingAxes.length > 0;
-    const recipeTitle = transferCapability.recipe?.title ?? transferCapability.recipeId;
     result.push(Object.freeze({
       capabilityContract,
       route: 'local' as const,
@@ -166,7 +164,6 @@ export function planRuntimeSetupProfileUse(input: {
         options: profileCapability.loadout.options,
         axes: Object.freeze(axes),
         pendingAxes: Object.freeze(pendingAxes),
-        displayName: `${input.profile.title} · ${recipeTitle}`,
         provenance: Object.freeze({ source_profile_id: input.profile.profileId }),
       }),
     }));

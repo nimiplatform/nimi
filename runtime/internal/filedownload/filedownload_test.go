@@ -544,3 +544,84 @@ func TestDownloadExactRetryScheduleCapsHTTPAttempts(t *testing.T) {
 		t.Fatalf("HTTP attempts = %d, want 1 initial + 2 scheduled retries", got)
 	}
 }
+
+func TestParseRetryAfterHeaders(t *testing.T) {
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name   string
+		header http.Header
+		want   time.Duration
+	}{
+		{
+			name:   "retry-after seconds",
+			header: http.Header{"Retry-After": []string{"45"}},
+			want:   45 * time.Second,
+		},
+		{
+			name:   "retry-after http date",
+			header: http.Header{"Retry-After": []string{now.Add(90 * time.Second).Format(http.TimeFormat)}},
+			want:   90 * time.Second,
+		},
+		{
+			name:   "hf ietf ratelimit header",
+			header: http.Header{"Ratelimit": []string{`"api";r=0;t=123, "resolvers";r=0;t=45`}},
+			want:   123 * time.Second,
+		},
+		{
+			name:   "max across retry-after and ratelimit",
+			header: http.Header{"Retry-After": []string{"15"}, "Ratelimit": []string{`"api";r=0;t=60`}},
+			want:   60 * time.Second,
+		},
+		{
+			name:   "invalid values ignored",
+			header: http.Header{"Retry-After": []string{"not-a-date"}, "Ratelimit": []string{`"api";r=0;t=0`}},
+			want:   0,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ParseRetryAfter(tc.header, now); got != tc.want {
+				t.Fatalf("ParseRetryAfter() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestDownloadHTTP429ReturnsRateLimitAndPreservesPartial(t *testing.T) {
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		w.Header().Set("RateLimit", `"resolvers";r=0;t=37`)
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	dest := filepath.Join(t.TempDir(), "weights.bin")
+	partial := dest + ".download"
+	if err := os.WriteFile(partial, []byte("partial-prefix"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Download(context.Background(), Options{
+		URL:         server.URL,
+		DestPath:    dest,
+		Client:      server.Client(),
+		MaxAttempts: 5,
+		RetryDelays: []time.Duration{0, 0, 0},
+		PreservePartialOnError: func(cause error) bool {
+			return !errors.Is(cause, ErrHashMismatch)
+		},
+	})
+	var rateLimit *RateLimitError
+	if !errors.As(err, &rateLimit) || !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("download error = %v, want RateLimitError", err)
+	}
+	if rateLimit.RetryAfter != 37*time.Second {
+		t.Fatalf("RetryAfter = %v, want 37s", rateLimit.RetryAfter)
+	}
+	if got := atomic.LoadInt32(&requests); got != 1 {
+		t.Fatalf("HTTP attempts = %d, want 1 (no immediate retry storm on 429)", got)
+	}
+	if data, readErr := os.ReadFile(partial); readErr != nil || string(data) != "partial-prefix" {
+		t.Fatalf("partial file was not preserved: data=%q err=%v", string(data), readErr)
+	}
+}

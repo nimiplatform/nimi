@@ -10,6 +10,7 @@ import type {
 import { parseNimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import {
+  classifyRuntimeConfigLoadoutExportPortability,
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
   isRuntimeConfigAIProfileCapabilityReady,
@@ -1332,4 +1333,70 @@ test('AIProfile plan matches duplicate contentId assets by declared entry and fi
     assert.equal(imageCap?.axes[0]?.state, 'matched');
     assert.equal(imageCap?.axes[0]?.modelAssetId, 'asset-right-entry');
   }
+});
+
+test('export portability distinguishes auto-downloadable, local-only, uncataloged multi-file, and cataloged multi-file loadouts', () => {
+  const singleHf = {
+    ...asset({ id: 'asset-single-hf', contentId: A, hash: A }),
+    provenance: { source_repo: 'org/single', source_revision: 'a'.repeat(40) },
+  };
+  const localOnly = {
+    ...asset({ id: 'asset-local-only', contentId: B, hash: B }),
+    provenance: { source_kind: 'local_import' },
+  };
+  const multiBundleId = `sha256:${'d'.repeat(64)}`;
+  const entryHash = `sha256:${'e'.repeat(64)}`;
+  const uncatalogedMulti = {
+    ...asset({ id: 'asset-multi-uncataloged', contentId: multiBundleId, hash: entryHash }),
+    entry: 'part-00001-of-00002.gguf',
+    files: [
+      { relativePath: 'part-00001-of-00002.gguf', sha256: 'e'.repeat(64), sizeBytes: 100, nonExecutableContent: false },
+      { relativePath: 'part-00002-of-00002.gguf', sha256: 'f'.repeat(64), sizeBytes: 100, nonExecutableContent: false },
+    ],
+    totalSizeBytes: 200,
+    provenance: { source_repo: 'org/multi', source_revision: 'b'.repeat(40) },
+  };
+  const loadoutWith = (modelAssetId: string, expectedContentId: string): NimiMachineLoadout => ({
+    ...committedLoadout('text.generate', `loadout-${modelAssetId}`),
+    modelAxes: [{
+      slotId: 'main.gguf',
+      displayLabel: 'Main',
+      modelAssetId,
+      expectedContentId,
+      recipeCompatible: true,
+      reasons: [],
+      presence: 'required',
+      conditionalFeatures: [],
+      resolution: 'configured',
+    }],
+  });
+
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(singleHf.modelAssetId, A), assets: [singleHf], verifiedAssets: [] }),
+    { status: 'auto-downloadable', manualSlotIds: [], reason: 'all-downloadable' },
+  );
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(localOnly.modelAssetId, B), assets: [localOnly], verifiedAssets: [] }),
+    { status: 'manual-import-required', manualSlotIds: ['main.gguf'], reason: 'missing-source' },
+  );
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(uncatalogedMulti.modelAssetId, multiBundleId), assets: [uncatalogedMulti], verifiedAssets: [] }),
+    { status: 'manual-import-required', manualSlotIds: ['main.gguf'], reason: 'uncataloged-multifile' },
+  );
+  const catalogedVerified = [{
+    templateId: 'catalog.multi.v1',
+    assetId: 'catalog.multi.v1',
+    title: 'Multi bundle',
+    repo: 'org/multi',
+    revision: 'b'.repeat(40),
+    entry: 'part-00001-of-00002.gguf',
+    contentId: multiBundleId,
+    files: ['part-00001-of-00002.gguf', 'part-00002-of-00002.gguf'],
+    hashes: { 'part-00001-of-00002.gguf': 'e'.repeat(64), 'part-00002-of-00002.gguf': 'f'.repeat(64) },
+    totalSizeBytes: 200,
+  }] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(uncatalogedMulti.modelAssetId, multiBundleId), assets: [uncatalogedMulti], verifiedAssets: catalogedVerified }),
+    { status: 'auto-downloadable', manualSlotIds: [], reason: 'all-downloadable' },
+  );
 });

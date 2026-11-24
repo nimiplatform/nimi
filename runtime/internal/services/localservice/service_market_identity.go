@@ -51,6 +51,7 @@ type catalogOffer struct {
 	hostRequirements *runtimev1.LocalHostRequirements
 	featuredOrdinal  *int32
 	editorialReason  string
+	checkpointLayout string
 }
 
 func newModelAssetOfferRef(identity modelAssetOfferIdentity) (string, error) {
@@ -165,7 +166,13 @@ func (offer catalogOffer) clone() catalogOffer {
 }
 
 func (s *Service) projectMarketCandidate(offer catalogOffer) *runtimev1.ModelAssetMarketCandidate {
-	installedModelAssetID := s.catalogOfferInstalledAssetID(offer)
+	observed := offer
+	if offer.format == "safetensors" && len(offer.files) == 0 && offer.hashes[offer.entryPath] != "" && !isHFWeightShard(offer.entryPath) {
+		// Observe an exact local distribution without declaring the remote
+		// file independently installable before its checkpoint review.
+		observed.files = []string{offer.entryPath}
+	}
+	installedModelAssetID := s.catalogOfferInstalledAssetID(observed)
 	result := &runtimev1.ModelAssetMarketCandidate{
 		OfferRef:          offer.offerRef,
 		SourceLabel:       offer.identity.sourceKind,

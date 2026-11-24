@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -145,9 +146,15 @@ type Service struct {
 	jobLifetimeCtx                            context.Context
 	jobLifetimeCancel                         context.CancelFunc
 
-	hfCatalogSearch               hfCatalogSearchFunc
-	hfCatalogVariants             hfCatalogVariantsFunc
-	hfDownloadBaseURL             string
+	hfCatalogSearch         hfCatalogSearchFunc
+	hfCatalogVariants       hfCatalogVariantsFunc
+	hfCatalogEndpoint       string
+	hfDownloadBaseURL       string
+	hfHTTPClientOnce        sync.Once
+	hfHTTPClientInstance    *http.Client
+	hfCacheMu               sync.Mutex
+	hfVariantsCache         map[string]hfVariantsCacheEntry
+	hfCheckpointLayoutCache map[string]hfCheckpointLayoutCacheEntry
 	githubReleaseDownloadBaseURL  string
 	artifactDownloadTimeout       time.Duration
 	artifactDownloadMaxBodyBytes  int64
@@ -325,8 +332,6 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		heldModelInstallPlans:        make(map[string]heldModelInstallPlan),
 		modelInstallPlanNow:          time.Now,
 		capabilityDrivers:            capabilityDrivers,
-		hfCatalogSearch:              defaultHFCatalogSearch,
-		hfCatalogVariants:            defaultHFCatalogVariants,
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
 		githubReleaseDownloadBaseURL: defaultGitHubReleaseDownloadBaseURL,
 		artifactDownloadTimeout:      localArtifactDownloadTimeout,

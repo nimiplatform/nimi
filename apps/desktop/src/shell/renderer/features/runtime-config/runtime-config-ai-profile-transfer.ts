@@ -89,6 +89,68 @@ type Loadouts = Pick<NimiMachineLoadoutClient,
   'listRecipes' | 'prepare' | 'commit' | 'select'
 >;
 
+export type RuntimeConfigLoadoutExportPortability = {
+  readonly status: 'auto-downloadable' | 'manual-import-required';
+  readonly manualSlotIds: readonly string[];
+  readonly reason: 'all-downloadable' | 'missing-source' | 'uncataloged-multifile';
+};
+
+/**
+ * Projects whether a recipient can download every bound model file of a shared
+ * Loadout automatically on a fresh device, following the exact same rule as
+ * `planRuntimeConfigAIProfileTransfer` (`rule.nimi.runtime.local-compute.r028`).
+ */
+// @nimi-authority: rule.nimi.runtime.local-compute.r028
+export function classifyRuntimeConfigLoadoutExportPortability(input: {
+  readonly loadout: NimiMachineLoadout;
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+}): RuntimeConfigLoadoutExportPortability {
+  const assetsById = new Map(input.assets.map((asset) => [asset.modelAssetId, asset]));
+  const manualSlotIds: string[] = [];
+  let sawMissingSource = false;
+  let sawUncatalogedMultifile = false;
+  for (const axis of input.loadout.modelAxes) {
+    if (axis.resolution === 'not-configured') continue;
+    if (axis.presence === 'optional-conditional' && !axis.modelAssetId) continue;
+    const asset = axis.modelAssetId ? assetsById.get(axis.modelAssetId) : undefined;
+    if (!asset || asset.contentId !== axis.expectedContentId) {
+      manualSlotIds.push(axis.slotId);
+      sawMissingSource = true;
+      continue;
+    }
+    const entry = asset.files.find((file) => file.relativePath === asset.entry) ?? asset.files[0];
+    const repo = textFact(asset.provenance?.source_repo);
+    const revision = textFact(asset.provenance?.source_revision);
+    if (!entry || !repo || !revision) {
+      manualSlotIds.push(axis.slotId);
+      sawMissingSource = true;
+      continue;
+    }
+    const entryHash = exactSHA256(entry.sha256, `${input.loadout.displayName}: ${axis.slotId}`);
+    if (asset.contentId !== entryHash) {
+      const descriptor = verifiedDescriptorForPortableSource(
+        { repo, revision, file: entry.relativePath, sizeBytes: asset.totalSizeBytes },
+        entryHash,
+        asset.contentId,
+        input.verifiedAssets,
+      );
+      if (!descriptor?.templateId) {
+        manualSlotIds.push(axis.slotId);
+        sawUncatalogedMultifile = true;
+      }
+    }
+  }
+  if (manualSlotIds.length === 0) {
+    return Object.freeze({ status: 'auto-downloadable' as const, manualSlotIds: Object.freeze([]), reason: 'all-downloadable' as const });
+  }
+  return Object.freeze({
+    status: 'manual-import-required' as const,
+    manualSlotIds: Object.freeze(manualSlotIds),
+    reason: sawUncatalogedMultifile && !sawMissingSource ? 'uncataloged-multifile' as const : 'missing-source' as const,
+  });
+}
+
 // @nimi-authority: rule.nimi.runtime.local-compute.r028
 export function exportRuntimeConfigAIProfileFromLoadouts(input: {
   readonly profileId: string;

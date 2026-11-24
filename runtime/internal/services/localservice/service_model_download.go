@@ -1019,7 +1019,7 @@ func isRetryableManagedModelDownloadError(err error) bool {
 	if err == nil || errors.Is(err, errModelDownloadHashMismatch) || errors.Is(err, errLocalTransferCancelled) {
 		return false
 	}
-	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, filedownload.ErrTransientAttemptsExhausted) {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, filedownload.ErrTransientAttemptsExhausted) || errors.Is(err, filedownload.ErrRateLimited) {
 		return true
 	}
 	var pathErr *os.PathError

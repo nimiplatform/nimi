@@ -31,6 +31,18 @@
   "checkSyncFailed": "Check & Sync could not start",
   "checkSyncRerun": "Run Check & Sync again",
   "checkSyncModelOfflineConversion": "This model's local data needs offline conversion before it can be used. Local models stay limited until then; everything else keeps working.",
+  "checkSyncSummaryChecked": "{{count}} checked",
+  "checkSyncSummaryAdopted": "{{count}} re-registered from disk",
+  "checkSyncSummaryRebased": "{{count}} path-updated",
+  "checkSyncSummaryRebuilt": "{{count}} rebuilt",
+  "checkSyncSummaryAttention": "{{count}} need attention",
+  "checkSyncSummaryUnchanged": "{{count}} unchanged",
+  "checkSyncUnchangedToggle": "Show {{count}} unchanged items",
+  "checkSyncResourceChange": {
+    "adopted": "Re-registered from existing files on disk",
+    "rebased": "Updated path to active data root",
+    "rebuilt": "Rebuilt from existing local state"
+  },
   "checkSyncTechnicalDetails": "Technical details",
   "checkSyncOwnerState": {
     "pending": "Waiting",

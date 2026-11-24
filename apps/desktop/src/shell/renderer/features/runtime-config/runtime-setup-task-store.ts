@@ -150,6 +150,7 @@ export type RuntimeSetupTaskFailure = {
   readonly stage: RuntimeSetupTaskStage;
   readonly reasonCode?: string;
   readonly message: string;
+  readonly retryAfterSeconds?: number;
   readonly machineSelected?: boolean;
   readonly ownerSaveState?: 'not-saved' | 'unknown';
 };
@@ -360,10 +361,17 @@ function normalizeFailure(raw: unknown): RuntimeSetupTaskFailure | undefined {
   const record = raw as Record<string, unknown>;
   const message = normalizeText(record.message);
   if (!message) return undefined;
+  const retryAfter = typeof record.retryAfterSeconds === 'number'
+    && Number.isInteger(record.retryAfterSeconds)
+    && record.retryAfterSeconds > 0
+    && record.retryAfterSeconds <= 86400
+    ? record.retryAfterSeconds
+    : undefined;
   return {
     stage: normalizeText(record.stage) as RuntimeSetupTaskStage || 'restart-recovery',
     ...(normalizeText(record.reasonCode) ? { reasonCode: normalizeText(record.reasonCode) } : {}),
     message,
+    ...(retryAfter !== undefined ? { retryAfterSeconds: retryAfter } : {}),
     ...(record.machineSelected === true ? { machineSelected: true } : {}),
     ...(record.ownerSaveState === 'not-saved' || record.ownerSaveState === 'unknown'
       ? { ownerSaveState: record.ownerSaveState } : {}),

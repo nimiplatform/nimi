@@ -34,6 +34,7 @@ import type {
   NimiRuntimeModelAssetMarketCandidate,
   NimiRuntimeRecommendationApplicability,
 } from '@nimiplatform/sdk/runtime';
+import { isNimiError } from '@nimiplatform/sdk/types';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { ModelAboutCard } from './runtime-config-model-card';
@@ -337,15 +338,19 @@ export function RecommendPage(props: RecommendPageProps) {
 
       {showSearch ? (
         <div className="space-y-4">
-          {huggingFaceUnavailable ? (
-            <InlineAlert tone="warning">
-              {t('runtimeConfig.recommend.hfSearchUnavailable', {
-                defaultValue: 'Hugging Face is unavailable. Search is limited to the local catalog.',
-              })}
+          {huggingFaceUnavailable || searchQuery.isError ? (
+            <InlineAlert tone={searchQuery.isError ? 'danger' : 'warning'}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>{searchQuery.isError
+                  ? t('runtimeConfig.recommend.searchFailed', { defaultValue: 'Catalog search failed.' })
+                  : t('runtimeConfig.recommend.hfSearchUnavailable', {
+                    defaultValue: 'Hugging Face is unavailable. Search is limited to the local catalog.',
+                  })}</span>
+                <Button size="sm" tone="secondary" disabled={searchQuery.isFetching} onClick={() => { void searchQuery.refetch(); }}>
+                  {t('Common.retry', { defaultValue: 'Retry' })}
+                </Button>
+              </div>
             </InlineAlert>
-          ) : null}
-          {searchQuery.isError ? (
-            <InlineAlert tone="danger">{t('runtimeConfig.recommend.searchFailed', { defaultValue: 'Catalog search failed.' })}</InlineAlert>
           ) : null}
           {searchQuery.isPending ? (
             <ModelMarketLoadingState />
@@ -632,13 +637,13 @@ function MarketCandidateDetail(props: {
       setPlan(await client.resolveOfferInstallPlan(props.candidate.offerRef));
     } catch (reason) {
       setPlan(null);
-      setError(errorMessage(reason));
+      setError(formatInstallPlanError(reason, t));
     } finally {
       setBusy(false);
     }
   };
   const install = async () => {
-    if (!plan) return;
+    if (!plan?.installAvailable) return;
     setBusy(true);
     try {
       const result = await props.model.installResolvedModelPlan(plan);
@@ -647,20 +652,24 @@ function MarketCandidateDetail(props: {
       }
       if (result.status === 'failed') {
         setPlan(null);
-        setError(errorMessage(result.error));
+        setError(formatInstallPlanError(result.error, t));
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ['model-market'] });
       props.onBack();
     } catch (reason) {
       setPlan(null);
-      setError(errorMessage(reason));
+      setError(formatInstallPlanError(reason, t));
     } finally {
       setBusy(false);
     }
   };
 
   const candidate = props.candidate;
+  const reviewCheckpoint = candidate.sourceLabel === 'huggingface'
+    && candidate.format === 'safetensors'
+    && !candidate.installable
+    && !isNumberedWeightShard(candidate.variantLabel);
   return (
     <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
@@ -672,7 +681,7 @@ function MarketCandidateDetail(props: {
         actions={(
           <ModelInstallAction
             installed={candidate.installed}
-            installable={candidate.installable}
+            installable={candidate.installable || reviewCheckpoint}
             plan={plan}
             busy={busy}
             runtimeWritesDisabled={props.model.runtimeWritesDisabled}
@@ -691,7 +700,10 @@ function MarketCandidateDetail(props: {
             <ModelAboutCard offerRef={candidate.offerRef} />
             <InstallPlanPanel
               installed={candidate.installed}
-              installable={candidate.installable}
+              installable={candidate.installable || (reviewCheckpoint && (!plan || plan.installAvailable))}
+              onImport={candidate.format === 'safetensors' || (candidate.sourceLabel === 'huggingface' && candidate.format === 'gguf')
+                ? props.model.onOpenModelImport : undefined}
+              importDisabled={props.model.runtimeWritesDisabled}
               plan={plan}
               error={error}
               busy={busy}
@@ -897,7 +909,7 @@ export function ModelInstallAction(props: {
       </Button>
     );
   }
-  if (!props.installable) {
+  if (!props.installable || (props.plan && !props.plan.installAvailable)) {
     return null;
   }
   if (props.plan) {
@@ -920,6 +932,8 @@ export function ModelInstallAction(props: {
 export function InstallPlanPanel(props: {
   readonly installed: boolean;
   readonly installable: boolean;
+  readonly onImport?: () => void;
+  readonly importDisabled?: boolean;
   readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
   readonly error: string;
   readonly busy: boolean;
@@ -943,7 +957,7 @@ export function InstallPlanPanel(props: {
         ) : null}
       </div>
       {props.error ? <InlineAlert tone="danger">{props.error}</InlineAlert> : null}
-      {plan ? (
+      {plan?.installAvailable ? (
         <div className="space-y-2 text-xs text-[var(--nimi-text-secondary)]">
           <p className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.installPlanReady', { defaultValue: 'Install plan ready' })}</p>
           <dl className="space-y-1.5">
@@ -955,6 +969,10 @@ export function InstallPlanPanel(props: {
               value={plan.totalSizeBytes ? formatBytes(plan.totalSizeBytes) : t('runtimeConfig.local.unknownDownloadSize')}
             />
             <PlanRow label={t('runtimeConfig.recommend.planFiles', { defaultValue: 'File count' })} value={String(plan.files.length)} />
+            <PlanRow
+              label={t('runtimeConfig.recommend.planHostRecipeLabel', { defaultValue: 'Host recipe' })}
+              value={formatHostRecipeCompatibility(plan.warnings, t)}
+            />
             {plan.license ? <PlanRow label={t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' })} value={plan.license} /> : null}
           </dl>
           {plan.files.length > 0 ? (
@@ -972,13 +990,24 @@ export function InstallPlanPanel(props: {
             </details>
           ) : null}
           {plan.warnings.length > 0 ? (
-            <p className="text-[var(--nimi-status-warning)]">
-              {t('runtimeConfig.recommend.planWarnings', { defaultValue: 'Warnings' })}: {plan.warnings.join(' · ')}
-            </p>
+            <InlineAlert tone="warning" data-testid="install-plan-warnings">
+              <ul className="space-y-1 text-xs">
+                {plan.warnings.map((warning) => (
+                  <li key={warning}>{formatInstallPlanWarning(warning, t)}</li>
+                ))}
+              </ul>
+            </InlineAlert>
           ) : null}
         </div>
       ) : null}
-      {!props.installable ? (
+      {!props.installable && props.onImport ? (
+        <div className="space-y-2">
+          <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.manualImportHint')}</p>
+          <Button size="sm" tone="secondary" disabled={props.importDisabled} onClick={props.onImport}>
+            {t('runtimeConfig.recommend.openModelImport', { defaultValue: 'Open Model Library Import' })}
+          </Button>
+        </div>
+      ) : !props.installable ? (
         <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.notInstallable', { defaultValue: 'This offer is not installable.' })}</p>
       ) : null}
     </Surface>
@@ -1025,6 +1054,56 @@ function candidateSpecEntries(candidate: NimiRuntimeModelAssetMarketCandidate, t
     { key: 'author', label: t('runtimeConfig.recommend.specAuthor', { defaultValue: 'Author' }), value: candidate.author },
     { key: 'source', label: t('runtimeConfig.recommend.specSource', { defaultValue: 'Source' }), value: candidate.sourceLabel },
   ];
+}
+
+const NUMBERED_WEIGHT_SHARD_PATTERN = /-([0-9]+)-of-([0-9]+)\.(gguf|gguf_file|safetensors)$/iu;
+
+function isNumberedWeightShard(entry: string): boolean {
+  const match = NUMBERED_WEIGHT_SHARD_PATTERN.exec(entry.trim());
+  if (!match) return false;
+  const part = match[1]?.replace(/^0+/u, '') ?? '';
+  const total = match[2]?.replace(/^0+/u, '') ?? '';
+  return part !== '1' || total !== '1';
+}
+
+function formatHostRecipeCompatibility(warnings: readonly string[], t: TFunction): string {
+  if (warnings.includes('WARN_NO_HOST_RECIPE_SD1')) {
+    return t('runtimeConfig.recommend.planHostRecipeNoSd1', { defaultValue: 'No SD 1.x recipe on this host (file storage only)' });
+  }
+  if (warnings.includes('WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED')) {
+    return t('runtimeConfig.recommend.planHostRecipeUnverified', { defaultValue: 'Checked when creating a configuration (community file)' });
+  }
+  return t('runtimeConfig.recommend.planHostRecipeSupported', { defaultValue: 'Supported by host recipes' });
+}
+
+function formatInstallPlanWarning(code: string, t: TFunction): string {
+  switch (code) {
+    case 'WARN_NO_HOST_RECIPE_SD1':
+      return t('runtimeConfig.recommend.warningNoHostRecipeSd1', {
+        defaultValue: 'This is a single-file SD 1.x checkpoint. It can be verified and saved to the Model Library, but this host has no SD 1.x execution recipe yet, so it cannot generate images in Lab.',
+      });
+    case 'WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED':
+      return t('runtimeConfig.recommend.warningCommunityRecipeUnverified', {
+        defaultValue: 'Community model files are verified for integrity and SHA-256 on download; whether a local recipe can run them is checked when creating a configuration.',
+      });
+    case 'WARN_GPU_REQUIRED':
+      return t('runtimeConfig.recommend.warningGpuRequired', { defaultValue: 'A compatible GPU is recommended or required for this model.' });
+    case 'WARN_PYTHON_REQUIRED':
+      return t('runtimeConfig.recommend.warningPythonRequired', { defaultValue: 'A Python runtime environment is required for this model.' });
+    case 'WARN_NPU_REQUIRED':
+      return t('runtimeConfig.recommend.warningNpuRequired', { defaultValue: 'A ready NPU backend is required for this model.' });
+    default:
+      return code;
+  }
+}
+
+function formatInstallPlanError(error: unknown, t: TFunction): string {
+  if (isNimiError(error) && error.reasonCode === 'AI_PROVIDER_RATE_LIMITED') {
+    return t('runtimeConfig.setupTask.hfRateLimited', {
+      defaultValue: 'Hugging Face rate limit reached. Wait for the reset window to pass, then retry.',
+    });
+  }
+  return errorMessage(error);
 }
 
 function errorMessage(error: unknown): string {

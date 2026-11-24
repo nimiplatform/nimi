@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isRuntimeProfileRunning, runRuntimeProfileTasks } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
+import { getRuntimeProfileRateLimitWait, isRuntimeProfileRunning, runRuntimeProfileTasks, stopRuntimeProfileRun } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
 import { reviewCurrentLocalSetup } from '../src/shell/renderer/features/runtime-config/runtime-setup-current-review.js';
 
 import type {
@@ -119,6 +119,145 @@ test('Profile group stop leaves completed effects intact and never starts stoppe
   assert.equal(store.getTask(done)?.status, 'done');
   assert.equal(store.getTask(stopped)?.status, 'stopped');
   assert.equal(calls.length, 0);
+});
+
+test('Profile group retries only rate-limited tasks after reset window, stops on hash mismatch, and honors Stop immediately', async () => {
+  // 1) Rate-limited task waits the reported window and succeeds on retry without re-downloading done tasks.
+  {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const state = baseState();
+    const basePorts = createPorts(state, calls);
+    let resolveCount = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async (offerRef) => {
+          resolveCount += 1;
+          if (resolveCount === 1) {
+            throw createNimiError({
+              message: 'rate limited',
+              reasonCode: 'AI_PROVIDER_RATE_LIMITED',
+              actionHint: 'retry_after_rate_limit_window',
+              retryable: true,
+              source: 'runtime',
+              details: { retryAfterSeconds: 12 },
+            });
+          }
+          return basePorts.install.resolveOfferInstallPlan(offerRef);
+        },
+      },
+    };
+    const alreadyDone = await createAppTask(store);
+    store.updateTask(alreadyDone, () => ({ status: 'done', draft: { profileUseId: 'group-rl-resume' } }));
+    const limited = await createAppTask(store);
+    store.updateTask(limited, () => ({ draft: { profileUseId: 'group-rl-resume' } }));
+    const plan = await reachReview(store, limited, ports);
+    const waits: number[] = [];
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [alreadyDone, limited],
+      ports,
+      plans: { [limited]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: {
+        maxAttempts: 2,
+        sleep: async (ms) => { waits.push(ms); },
+      },
+    });
+    assert.deepEqual(waits, [12_000]);
+    assert.equal(store.getTask(alreadyDone)?.status, 'done');
+    assert.equal(store.getTask(limited)?.status, 'prepared');
+    assert.equal(resolveCount, 2);
+  }
+
+  // 2) Hash mismatch never auto-retries.
+  {
+    const store = makeStore();
+    const basePorts = createPorts(baseState(), []);
+    let attempts = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async () => {
+          attempts += 1;
+          throw createNimiError({
+            message: 'hash mismatch',
+            reasonCode: 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH',
+            retryable: false,
+            source: 'runtime',
+          });
+        },
+      },
+    };
+    const task = await createAppTask(store);
+    store.updateTask(task, () => ({ draft: { profileUseId: 'group-hash-stop' } }));
+    const plan = await reachReview(store, task, ports);
+    const waits: number[] = [];
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [task],
+      ports,
+      plans: { [task]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: { maxAttempts: 2, sleep: async (ms) => { waits.push(ms); } },
+    });
+    assert.deepEqual(waits, []);
+    assert.equal(attempts, 1);
+    assert.equal(store.getTask(task)?.status, 'failed');
+    assert.equal(store.getTask(task)?.failure?.reasonCode, 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH');
+  }
+
+  // 3) Stopping during rate-limit cooldown cancels immediately with zero further requests.
+  {
+    const store = makeStore();
+    const basePorts = createPorts(baseState(), []);
+    let attempts = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async () => {
+          attempts += 1;
+          throw createNimiError({
+            message: 'rate limited',
+            reasonCode: 'AI_PROVIDER_RATE_LIMITED',
+            retryable: true,
+            source: 'runtime',
+            details: { retryAfterSeconds: 45 },
+          });
+        },
+      },
+    };
+    const task = await createAppTask(store);
+    store.updateTask(task, () => ({ draft: { profileUseId: 'group-rl-stop' } }));
+    const plan = await reachReview(store, task, ports);
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [task],
+      ports,
+      plans: { [task]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: {
+        maxAttempts: 2,
+        sleep: async (_ms, signal) => {
+          stopRuntimeProfileRun('group-rl-stop');
+          store.stopTask(task);
+          assert.equal(signal.aborted, true);
+        },
+      },
+    });
+    assert.equal(attempts, 1);
+    assert.equal(getRuntimeProfileRateLimitWait('group-rl-stop'), undefined);
+    assert.equal(isRuntimeProfileRunning('group-rl-stop'), false);
+    assert.equal(store.getTask(task)?.status, 'failed');
+    assert.equal(store.getTask(task)?.failure?.reasonCode, 'AI_PROVIDER_RATE_LIMITED');
+  }
 });
 
 function createMemoryStorage() {

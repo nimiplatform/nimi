@@ -8,6 +8,10 @@ func sdxlControlNetTensorContract(contract string, probe []byte) bool {
 	if !ok {
 		return false
 	}
+	return matchesSDXLTensors(contract, tensors)
+}
+
+func matchesSDXLTensors(contract string, tensors map[string]safetensorsTensorFact) bool {
 	var expected map[string][]int64
 	switch contract {
 	case "sdxl-base-checkpoint":
@@ -26,12 +30,7 @@ func sdxlControlNetTensorContract(contract string, probe []byte) bool {
 	default:
 		return false
 	}
-	for name, shape := range expected {
-		if !slices.Equal(tensors[name].Shape, shape) {
-			return false
-		}
-	}
-	return true
+	return matchTensorShapes(tensors, expected)
 }
 
 func validSDXLControlType(value string) bool {

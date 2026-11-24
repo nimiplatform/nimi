@@ -2,13 +2,21 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { RuntimeSetupTaskFailure } from './runtime-setup-task-store.js';
 
-export type RuntimeSetupFailureNotice = Pick<RuntimeSetupTaskFailure, 'message' | 'reasonCode'>;
+export type RuntimeSetupFailureNotice = Pick<RuntimeSetupTaskFailure, 'message' | 'reasonCode' | 'retryAfterSeconds'>;
 
 // Desktop's protected Runtime carrier reports only the typed reason, so a
 // Runtime failure's message is usually the bare reason code. Reasons a person
 // can act on get plain guidance instead; null keeps the reported text.
-function setupFailureGuidance(reasonCode: string | undefined, t: TFunction): string | null {
-  switch (reasonCode) {
+function setupFailureGuidance(failure: RuntimeSetupFailureNotice, t: TFunction): string | null {
+  switch (failure.reasonCode) {
+    case 'AI_PROVIDER_RATE_LIMITED':
+      return failure.retryAfterSeconds && failure.retryAfterSeconds > 0
+        ? t('runtimeConfig.setupTask.hfRateLimitedWithSeconds', { seconds: failure.retryAfterSeconds })
+        : t('runtimeConfig.setupTask.hfRateLimited');
+    case 'AI_LOCAL_HF_SEARCH_FAILED':
+      return t('runtimeConfig.setupTask.hfSourceUnavailable');
+    case 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH':
+      return t('runtimeConfig.setupTask.modelHashMismatch');
     case 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND':
       return t('runtimeConfig.setupTask.modelFilesMissing', {
         defaultValue: 'The files for this model could not be found. They may have been deleted or moved. You can download or import them again, or choose another model.',
@@ -24,7 +32,7 @@ function setupFailureGuidance(reasonCode: string | undefined, t: TFunction): str
 
 /** One line for compact surfaces: the guidance when there is one, otherwise the reported text. */
 export function runtimeSetupFailureText(failure: RuntimeSetupFailureNotice, t: TFunction): string {
-  return setupFailureGuidance(failure.reasonCode, t) ?? failure.message;
+  return setupFailureGuidance(failure, t) ?? failure.message;
 }
 
 /**
@@ -35,7 +43,7 @@ export function runtimeSetupFailureText(failure: RuntimeSetupFailureNotice, t: T
 export function RuntimeSetupFailureMessage(props: { readonly failure: RuntimeSetupFailureNotice }) {
   const { t } = useTranslation();
   const { message, reasonCode } = props.failure;
-  const guidance = setupFailureGuidance(reasonCode, t);
+  const guidance = setupFailureGuidance(props.failure, t);
   if (!guidance) {
     return <div>{reasonCode && reasonCode !== message ? `${message} (${reasonCode})` : message}</div>;
   }

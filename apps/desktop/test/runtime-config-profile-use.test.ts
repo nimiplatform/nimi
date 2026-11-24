@@ -92,7 +92,6 @@ test('a fully matched local capability yields an exact candidate input', () => {
     options: { steps: 30 },
     axes: [{ slotId: 'main.diffusion', modelAssetId: 'asset-1', expectedContentId: CONTENT }],
     pendingAxes: [],
-    displayName: 'Shared setup · Image recipe',
     provenance: { source_profile_id: 'profile.shared-1' },
   });
 });

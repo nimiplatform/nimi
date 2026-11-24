@@ -3,29 +3,255 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 const (
-	hfCatalogEndpoint     = "https://huggingface.co/api/models"
-	hfCatalogTimeout      = 20 * time.Second
-	hfCatalogDefaultLimit = 50
-	hfCatalogMinLimit     = 1
-	hfCatalogMaxLimit     = 80
-	hfCatalogMaxBodyBytes = 4 << 20
+	hfCatalogEndpoint          = "https://huggingface.co/api/models"
+	hfCatalogTimeout           = 20 * time.Second
+	hfCatalogDefaultLimit      = 50
+	hfCatalogMinLimit          = 1
+	hfCatalogMaxLimit          = 80
+	hfCatalogMaxBodyBytes      = 4 << 20
+	hfCatalogUserAgent         = "nimi-runtime/0.1"
+	hfImmutableCacheTTL        = 5 * time.Minute
+	hfImmutableCacheMaxEntries = 64
 )
 
+var errHFRepoNotFound = errors.New("hf repo not found")
+
+type hfVariantsCacheEntry struct {
+	variants  []hfCatalogVariant
+	expiresAt time.Time
+}
+
+type hfCheckpointLayoutCacheEntry struct {
+	layout    capabilitydriver.DiffusionCheckpointLayout
+	expiresAt time.Time
+}
+
+func (s *Service) hfHTTPClient() *http.Client {
+	s.hfHTTPClientOnce.Do(func() {
+		s.hfHTTPClientInstance = &http.Client{Timeout: hfCatalogTimeout}
+	})
+	return s.hfHTTPClientInstance
+}
+
+func (s *Service) hfCatalogEndpointURL() string {
+	s.mu.RLock()
+	endpoint := strings.TrimSpace(s.hfCatalogEndpoint)
+	s.mu.RUnlock()
+	return defaultString(endpoint, hfCatalogEndpoint)
+}
+
+func hfRateLimitedRPCError(err error, retryAfter time.Duration, message string) error {
+	retryable := true
+	metadata := map[string]string{}
+	if seconds := int64(math.Ceil(retryAfter.Seconds())); seconds > 0 {
+		metadata["retry_after_seconds"] = strconv.FormatInt(seconds, 10)
+	}
+	return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, err, grpcerr.ReasonOptions{
+		ActionHint: "retry_after_rate_limit_window",
+		Retryable:  &retryable,
+		Message:    message,
+		Metadata:   metadata,
+	})
+}
+
+func hfCatalogRPCError(err error, message string) error {
+	var rateLimit *filedownload.RateLimitError
+	if errors.As(err, &rateLimit) {
+		return hfRateLimitedRPCError(err, rateLimit.RetryAfter, message)
+	}
+	return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: message})
+}
+
+func cloneHFCatalogVariants(items []hfCatalogVariant) []hfCatalogVariant {
+	if len(items) == 0 {
+		return nil
+	}
+	cloned := make([]hfCatalogVariant, len(items))
+	for i, item := range items {
+		item.Files = append([]string(nil), item.Files...)
+		item.Hashes = cloneStringMap(item.Hashes)
+		item.Categories = append([]string(nil), item.Categories...)
+		item.Capabilities = append([]string(nil), item.Capabilities...)
+		item.Tags = append([]string(nil), item.Tags...)
+		cloned[i] = item
+	}
+	return cloned
+}
+
+func (s *Service) getCachedHFVariants(key string, now time.Time) ([]hfCatalogVariant, bool) {
+	s.hfCacheMu.Lock()
+	defer s.hfCacheMu.Unlock()
+	entry, ok := s.hfVariantsCache[key]
+	if !ok {
+		return nil, false
+	}
+	if !now.Before(entry.expiresAt) {
+		delete(s.hfVariantsCache, key)
+		return nil, false
+	}
+	return cloneHFCatalogVariants(entry.variants), true
+}
+
+func (s *Service) putCachedHFVariants(key string, variants []hfCatalogVariant, now time.Time) {
+	s.hfCacheMu.Lock()
+	defer s.hfCacheMu.Unlock()
+	if s.hfVariantsCache == nil {
+		s.hfVariantsCache = make(map[string]hfVariantsCacheEntry)
+	}
+	if len(s.hfVariantsCache) >= hfImmutableCacheMaxEntries {
+		var oldestKey string
+		var oldestTime time.Time
+		for k, v := range s.hfVariantsCache {
+			if !now.Before(v.expiresAt) {
+				delete(s.hfVariantsCache, k)
+				continue
+			}
+			if oldestKey == "" || v.expiresAt.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = v.expiresAt
+			}
+		}
+		if len(s.hfVariantsCache) >= hfImmutableCacheMaxEntries && oldestKey != "" {
+			delete(s.hfVariantsCache, oldestKey)
+		}
+	}
+	s.hfVariantsCache[key] = hfVariantsCacheEntry{
+		variants:  cloneHFCatalogVariants(variants),
+		expiresAt: now.Add(hfImmutableCacheTTL),
+	}
+}
+
+func (s *Service) getCachedHFCheckpointLayout(key string, now time.Time) (capabilitydriver.DiffusionCheckpointLayout, bool) {
+	s.hfCacheMu.Lock()
+	defer s.hfCacheMu.Unlock()
+	entry, ok := s.hfCheckpointLayoutCache[key]
+	if !ok {
+		return capabilitydriver.DiffusionCheckpointLayoutNone, false
+	}
+	if !now.Before(entry.expiresAt) {
+		delete(s.hfCheckpointLayoutCache, key)
+		return capabilitydriver.DiffusionCheckpointLayoutNone, false
+	}
+	return entry.layout, true
+}
+
+func (s *Service) putCachedHFCheckpointLayout(key string, layout capabilitydriver.DiffusionCheckpointLayout, now time.Time) {
+	s.hfCacheMu.Lock()
+	defer s.hfCacheMu.Unlock()
+	if s.hfCheckpointLayoutCache == nil {
+		s.hfCheckpointLayoutCache = make(map[string]hfCheckpointLayoutCacheEntry)
+	}
+	if len(s.hfCheckpointLayoutCache) >= hfImmutableCacheMaxEntries {
+		var oldestKey string
+		var oldestTime time.Time
+		for k, v := range s.hfCheckpointLayoutCache {
+			if !now.Before(v.expiresAt) {
+				delete(s.hfCheckpointLayoutCache, k)
+				continue
+			}
+			if oldestKey == "" || v.expiresAt.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = v.expiresAt
+			}
+		}
+		if len(s.hfCheckpointLayoutCache) >= hfImmutableCacheMaxEntries && oldestKey != "" {
+			delete(s.hfCheckpointLayoutCache, oldestKey)
+		}
+	}
+	s.hfCheckpointLayoutCache[key] = hfCheckpointLayoutCacheEntry{
+		layout:    layout,
+		expiresAt: now.Add(hfImmutableCacheTTL),
+	}
+}
+
 var hfCommitRevisionPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+var hfNumberedWeightFile = regexp.MustCompile(`(?i)-([0-9]+)-of-([0-9]+)\.(gguf|gguf_file|safetensors)$`)
+
+func isHFWeightShard(entry string) bool {
+	parts := hfNumberedWeightFile.FindStringSubmatch(entry)
+	return len(parts) > 0 && (strings.TrimLeft(parts[1], "0") != "1" || strings.TrimLeft(parts[2], "0") != "1")
+}
+
+// Resolve only the variant the user is reviewing. A model listing can contain
+// hundreds of component files; browsing it must never fetch their weights.
+// @nimi-authority: rule.nimi.runtime.local-compute.r015
+func (s *Service) resolveSingleFileCheckpoint(ctx context.Context, identity modelAssetOfferIdentity, variant *hfCatalogVariant) error {
+	hash := normalizeExactSHA256Hex(variant.SHA256)
+	if hash == "" || variant.SizeBytes < 10 || isHFWeightShard(variant.Entry) {
+		return nil
+	}
+	base := defaultString(s.hfDownloadBaseURL, defaultHFDownloadBaseURL)
+	cacheKey := strings.Join([]string{base, identity.locator, identity.revision, variant.Entry, strconv.FormatInt(variant.SizeBytes, 10), hash}, "\x00")
+	now := time.Now()
+	layout, cached := s.getCachedHFCheckpointLayout(cacheKey, now)
+	if !cached {
+		source, err := buildHFResolveURL(base, identity.locator, identity.revision, variant.Entry)
+		if err != nil {
+			return err
+		}
+		size := variant.SizeBytes
+		end := min(size, int64(capabilitydriver.MaxAssetFormatProbeBytes)) - 1
+		requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
+		defer cancel()
+		req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, source, nil)
+		if err != nil {
+			return fmt.Errorf("build checkpoint header request: %w", err)
+		}
+		req.Header.Set("User-Agent", hfCatalogUserAgent)
+		req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", end))
+		req.Header.Set("Accept-Encoding", "identity")
+		resp, err := s.hfHTTPClient().Do(req)
+		if err != nil {
+			return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "checkpoint header could not be read"})
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusTooManyRequests {
+			rateErr := &filedownload.RateLimitError{
+				StatusCode: resp.StatusCode,
+				RetryAfter: filedownload.ParseRetryAfter(resp.Header, time.Now()),
+			}
+			return hfRateLimitedRPCError(rateErr, rateErr.RetryAfter, "checkpoint header review rate limited")
+		}
+		partial := resp.StatusCode == http.StatusPartialContent && resp.Header.Get("Content-Range") == fmt.Sprintf("bytes 0-%d/%d", end, size)
+		full := resp.StatusCode == http.StatusOK && resp.ContentLength == size
+		if !partial && !full {
+			return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, grpcerr.ReasonOptions{Message: "checkpoint header response did not match the pinned file"})
+		}
+		layout, err = capabilitydriver.ProbeStandaloneDiffusionCheckpoint(io.LimitReader(resp.Body, end+1), size)
+		if err != nil {
+			return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "checkpoint header read did not complete"})
+		}
+		s.putCachedHFCheckpointLayout(cacheKey, layout, time.Now())
+	}
+	if layout == capabilitydriver.DiffusionCheckpointLayoutNone {
+		return nil
+	}
+	variant.Files = []string{variant.Entry}
+	variant.Hashes = map[string]string{variant.Entry: hash}
+	variant.CheckpointLayout = string(layout)
+	return nil
+}
 
 type hfCatalogSearchRequest struct {
 	Query          string
@@ -54,9 +280,10 @@ type hfCatalogVariant struct {
 	ModelType    string
 	License      string
 	Tags         []string
-	Downloads    int64
-	Likes        int64
-	LastModified string
+	Downloads        int64
+	Likes            int64
+	LastModified     string
+	CheckpointLayout string
 }
 
 type hfModelSearchEntry struct {
@@ -94,28 +321,56 @@ type hfModelSiblingLFS struct {
 	Sha256 string `json:"sha256"`
 }
 
+func (s *Service) hasCustomHFCatalogSearch() bool {
+	s.mu.RLock()
+	custom := s.hfCatalogSearch != nil
+	s.mu.RUnlock()
+	return custom
+}
+
 func (s *Service) searchHFCatalog(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 	s.mu.RLock()
 	searchFn := s.hfCatalogSearch
 	s.mu.RUnlock()
-	if searchFn == nil {
-		searchFn = defaultHFCatalogSearch
+	if searchFn != nil {
+		return searchFn(ctx, req)
 	}
-	return searchFn(ctx, req)
+	return fetchHFCatalogSearch(ctx, s.hfHTTPClient(), s.hfCatalogEndpointURL(), req)
 }
 
 func (s *Service) listHFCatalogVariants(ctx context.Context, repo string, revision string) ([]hfCatalogVariant, error) {
 	s.mu.RLock()
 	variantsFn := s.hfCatalogVariants
 	s.mu.RUnlock()
-	if variantsFn == nil {
-		variantsFn = defaultHFCatalogVariants
+	if variantsFn != nil {
+		return variantsFn(ctx, repo, revision)
 	}
-	return variantsFn(ctx, repo, revision)
+	endpoint := s.hfCatalogEndpointURL()
+	normalizedRepo, repoErr := normalizeHFRepo(repo)
+	normalizedRev := strings.ToLower(strings.TrimSpace(revision))
+	cacheable := repoErr == nil && hfCommitRevisionPattern.MatchString(normalizedRev)
+	cacheKey := endpoint + "\x00" + normalizedRepo + "\x00" + normalizedRev
+	if cacheable {
+		if cached, ok := s.getCachedHFVariants(cacheKey, time.Now()); ok {
+			return cached, nil
+		}
+	}
+	variants, err := fetchHFCatalogVariantsWithClient(ctx, s.hfHTTPClient(), endpoint, repo, revision)
+	if err != nil {
+		return nil, err
+	}
+	if cacheable {
+		s.putCachedHFVariants(cacheKey, variants, time.Now())
+	}
+	return variants, nil
 }
 
 func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
-	u, err := hfCatalogSearchURL(req)
+	return fetchHFCatalogSearch(ctx, &http.Client{Timeout: hfCatalogTimeout}, hfCatalogEndpoint, req)
+}
+
+func fetchHFCatalogSearch(ctx context.Context, client *http.Client, endpoint string, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+	u, err := hfCatalogSearchURLAt(endpoint, req)
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +380,19 @@ func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]
 	if err != nil {
 		return nil, fmt.Errorf("build hf request: %w", err)
 	}
-	resp, err := (&http.Client{Timeout: hfCatalogTimeout}).Do(httpReq)
+	httpReq.Header.Set("User-Agent", hfCatalogUserAgent)
+	resp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("hf request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, &filedownload.RateLimitError{
+			StatusCode: resp.StatusCode,
+			RetryAfter: filedownload.ParseRetryAfter(resp.Header, time.Now()),
+		}
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("hf request status=%d", resp.StatusCode)
 	}
@@ -152,6 +414,10 @@ func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]
 }
 
 func hfCatalogSearchURL(req hfCatalogSearchRequest) (*url.URL, error) {
+	return hfCatalogSearchURLAt(hfCatalogEndpoint, req)
+}
+
+func hfCatalogSearchURLAt(endpoint string, req hfCatalogSearchRequest) (*url.URL, error) {
 	query, err := normalizeHFSearchQuery(req.Query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errHfRepoInvalid, err)
@@ -184,9 +450,78 @@ func hfCatalogSearchURL(req hfCatalogSearchRequest) (*url.URL, error) {
 	}
 	params.Set("limit", fmt.Sprintf("%d", limit))
 
-	u, _ := url.Parse(hfCatalogEndpoint)
+	u, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("%w: endpoint is invalid", errHfRepoInvalid)
+	}
 	u.RawQuery = params.Encode()
 	return u, nil
+}
+
+func fetchHFRepoHeadRevision(
+	ctx context.Context,
+	client *http.Client,
+	endpoint string,
+	repoRaw string,
+	revisionRaw string,
+) (*runtimev1.LocalCatalogModelDescriptor, error) {
+	repo, err := normalizeHFRepo(repoRaw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errHfRepoInvalid, err)
+	}
+	base, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil || base.Scheme == "" || base.Host == "" {
+		return nil, fmt.Errorf("%w: endpoint is invalid", errHfRepoInvalid)
+	}
+	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + repo
+	if trimmedRev := strings.TrimSpace(revisionRaw); trimmedRev != "" && !strings.EqualFold(trimmedRev, "main") {
+		base.Path += "/revision/" + url.PathEscape(trimmedRev)
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
+	defer cancel()
+	httpReq, err := http.NewRequestWithContext(requestCtx, http.MethodGet, base.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("build hf repo request: %w", err)
+	}
+	httpReq.Header.Set("User-Agent", hfCatalogUserAgent)
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("hf repo request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, &filedownload.RateLimitError{
+			StatusCode: resp.StatusCode,
+			RetryAfter: filedownload.ParseRetryAfter(resp.Header, time.Now()),
+		}
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, errHFRepoNotFound
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("hf repo request status=%d", resp.StatusCode)
+	}
+	var details hfModelDetails
+	if err := json.NewDecoder(io.LimitReader(resp.Body, hfCatalogMaxBodyBytes)).Decode(&details); err != nil {
+		return nil, fmt.Errorf("decode hf repo response: %w", err)
+	}
+	resolvedRevision := strings.ToLower(strings.TrimSpace(details.Sha))
+	if !hfCommitRevisionPattern.MatchString(resolvedRevision) {
+		return nil, fmt.Errorf("hf repo response is missing immutable revision")
+	}
+	capabilities := inferCapabilitiesFromHF(details.PipelineTag, details.Tags)
+	kind := inferAssetKindFromCapabilities(capabilities)
+	return &runtimev1.LocalCatalogModelDescriptor{
+		ItemId:       "hf_" + slug(repo),
+		Source:       "huggingface",
+		Title:        defaultString(strings.TrimSpace(details.ModelID), defaultString(strings.TrimSpace(details.ID), repo)),
+		ModelId:      repo,
+		Repo:         repo,
+		Revision:     resolvedRevision,
+		Capabilities: capabilities,
+		License:      hfCatalogLicense(details.CardData, details.Tags),
+		ModelType:    catalogModelTypeForAssetKind(kind),
+	}, nil
 }
 
 func capabilityForMarketCategory(category string) string {
@@ -207,6 +542,10 @@ func defaultHFCatalogVariants(ctx context.Context, repoRaw string, revisionRaw s
 }
 
 func fetchHFCatalogVariants(ctx context.Context, endpoint string, repoRaw string, revisionRaw string) ([]hfCatalogVariant, error) {
+	return fetchHFCatalogVariantsWithClient(ctx, &http.Client{Timeout: hfCatalogTimeout}, endpoint, repoRaw, revisionRaw)
+}
+
+func fetchHFCatalogVariantsWithClient(ctx context.Context, client *http.Client, endpoint string, repoRaw string, revisionRaw string) ([]hfCatalogVariant, error) {
 	u, _, revision, err := hfCatalogVariantsURLAt(endpoint, repoRaw, revisionRaw)
 	if err != nil {
 		return nil, err
@@ -218,12 +557,19 @@ func fetchHFCatalogVariants(ctx context.Context, endpoint string, repoRaw string
 	if err != nil {
 		return nil, fmt.Errorf("build hf variants request: %w", err)
 	}
-	resp, err := (&http.Client{Timeout: hfCatalogTimeout}).Do(httpReq)
+	httpReq.Header.Set("User-Agent", hfCatalogUserAgent)
+	resp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("hf variants request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, &filedownload.RateLimitError{
+			StatusCode: resp.StatusCode,
+			RetryAfter: filedownload.ParseRetryAfter(resp.Header, time.Now()),
+		}
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("hf variants request status=%d", resp.StatusCode)
 	}
@@ -482,9 +828,11 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []hfCatalogVarian
 			sizeBytes = sibling.Lfs.Size
 			sha256 = strings.TrimSpace(sibling.Lfs.Sha256)
 		}
-		if format == "gguf" && sibling.Lfs != nil {
+		if format == "gguf" && sibling.Lfs != nil && !isHFWeightShard(entry) {
 			files = []string{entry}
-			hashes = hfCatalogFileHashes(details.Siblings)
+			if digest := normalizeExactSHA256Hex(sha256); digest != "" {
+				hashes = map[string]string{entry: digest}
+			}
 		}
 		variants = append(variants, hfCatalogVariant{
 			Filename:  entry,
@@ -527,20 +875,6 @@ func hfCatalogLicense(card map[string]any, tags []string) string {
 		license = value
 	}
 	return defaultString(license, "unknown")
-}
-
-func hfCatalogFileHashes(siblings []hfModelSibling) map[string]string {
-	hashes := make(map[string]string)
-	for _, sibling := range siblings {
-		path, ok := normalizeHFFilePath(sibling.Rfilename)
-		if !ok || sibling.Lfs == nil {
-			continue
-		}
-		if hash := normalizeExactSHA256Hex(sibling.Lfs.Sha256); hash != "" {
-			hashes[path] = hash
-		}
-	}
-	return hashes
 }
 
 func variantFormatForEntry(entry string) string {

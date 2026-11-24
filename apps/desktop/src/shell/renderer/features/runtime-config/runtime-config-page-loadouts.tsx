@@ -420,7 +420,7 @@ export function SavedConfigsView(props: {
     }
   }, [beginCreate, props.navigationContext, recipes, selectCreateRecipe]);
 
-  const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string) => void) => {
+  const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string, cause: unknown) => void) => {
     if (busy) return;
     setBusy(key);
     try {
@@ -430,8 +430,8 @@ export function SavedConfigsView(props: {
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.loadouts.saved') });
     } catch (error) {
       const message = errorMessage(error);
-      setTechnicalError(message);
-      onError?.(message);
+      if (onError) onError(message, error);
+      else setTechnicalError(message);
     } finally {
       setBusy('');
     }
@@ -489,6 +489,11 @@ export function SavedConfigsView(props: {
       if (items.some((item) => !item.installed)) {
         setPendingInstall({ recipe, items, loadout: created });
       }
+    }, (message, cause) => {
+      const explanation = isNimiError(cause) && cause.reasonCode === 'AI_LOADOUT_MODEL_CONTRACT_FAILED'
+        ? t('runtimeConfig.localModels.validation.incompatible')
+        : t('runtimeConfig.loadouts.createFailed');
+      setCreateFormError(`${explanation} (${message})`);
     });
   }, [assets, createAxes, createContextSize, createContextValidation.valid, customDisplayName, displayName, loadoutsClient, preselectedNeedsManualSlot, recommendations, run, selectedRecipe, t]);
 
@@ -1144,11 +1149,11 @@ export function SavedConfigsView(props: {
                       defaultValue: '{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.',
                     })}</p>
                   </InlineAlert>
-                ) : (
+                ) : !createFormError ? (
                   <InlineAlert tone="success">
                     <p>{t('runtimeConfig.loadouts.readySummary')}</p>
                   </InlineAlert>
-                )}
+                ) : null}
                 {recommendations.length > 0 ? (
                   <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                     {t('runtimeConfig.loadouts.downloadEstimateDisclaimer')}

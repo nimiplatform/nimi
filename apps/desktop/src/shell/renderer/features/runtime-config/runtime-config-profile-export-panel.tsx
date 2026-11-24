@@ -14,7 +14,11 @@ import { capabilityModelIdentity } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { downloadRuntimeConfigProfileArtifact } from './runtime-config-profile-presentation.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
-import { exportRuntimeConfigAIProfileFromLoadouts } from './runtime-config-ai-profile-transfer.js';
+import {
+  classifyRuntimeConfigLoadoutExportPortability,
+  exportRuntimeConfigAIProfileFromLoadouts,
+  type RuntimeConfigLoadoutExportPortability,
+} from './runtime-config-ai-profile-transfer.js';
 import { buildRuntimeConfigShareInventory, defaultRuntimeConfigShareChoice, includedRuntimeConfigShareLoadouts, resolveRuntimeConfigShareChoices, runtimeConfigShareFileName, type RuntimeConfigShareBlockReason, type RuntimeConfigShareChoices, type RuntimeConfigShareInventory, type RuntimeConfigShareUse } from './runtime-config-profile-share-model.js';
 import type { RuntimeConfigLoadoutNavigationContext } from './runtime-config-panel-types.js';
 
@@ -25,7 +29,11 @@ type ShareExportFailure = { readonly detail: string };
 type ShareExportDone = {
   readonly title: string;
   readonly fileName: string;
-  readonly included: readonly { readonly capabilityContract: string; readonly model: string }[];
+  readonly included: readonly {
+    readonly capabilityContract: string;
+    readonly model: string;
+    readonly portability: RuntimeConfigLoadoutExportPortability;
+  }[];
 };
 
 /**
@@ -60,8 +68,8 @@ export function ProfileExportPanel(props: {
   const previousShareable = useRef<ReadonlySet<string> | null>(null);
 
   useEffect(() => {
-    shareDraft = { title, choices };
-  }, [title, choices]);
+    shareDraft = done ? { title: '', choices: {} } : { title, choices };
+  }, [title, choices, done]);
 
   const reload = useCallback(async () => {
     setLoadError('');
@@ -110,6 +118,10 @@ export function ProfileExportPanel(props: {
     (loadout: NimiMachineLoadout) => capabilityModelIdentity(loadout, recipes, catalog, assets).shortTitle || loadout.displayName,
     [assets, catalog, recipes],
   );
+  const portabilityFor = useCallback(
+    (loadout: NimiMachineLoadout) => classifyRuntimeConfigLoadoutExportPortability({ loadout, assets, verifiedAssets: catalog }),
+    [assets, catalog],
+  );
   const useLabel = useCallback((id: string) => displayRuntimeConfigCapabilityLabel(id, t), [t]);
 
   const exportNow = () => {
@@ -130,7 +142,11 @@ export function ProfileExportPanel(props: {
       setDone({
         title: resolvedTitle,
         fileName,
-        included: included.map((loadout) => ({ capabilityContract: loadout.capabilityContract, model: modelName(loadout) })),
+        included: included.map((loadout) => ({
+          capabilityContract: loadout.capabilityContract,
+          model: modelName(loadout),
+          portability: portabilityFor(loadout),
+        })),
       });
     } catch (error) {
       setExportFailure({ detail: exportErrorMessage(error) });
@@ -160,7 +176,13 @@ export function ProfileExportPanel(props: {
         done={done}
         useLabel={useLabel}
         t={t}
-        onExportAgain={() => setDone(null)}
+        onExportAgain={() => {
+          setTitle('');
+          setChoices({});
+          setInventory(null);
+          setDone(null);
+          setRetryNonce(value => value + 1);
+        }}
       />
     );
   }
@@ -246,6 +268,7 @@ export function ProfileExportPanel(props: {
                       choice={choices[use.capabilityContract] ?? null}
                       expanded={expandedUse === use.capabilityContract}
                       modelName={modelName}
+                      portabilityFor={portabilityFor}
                       useLabel={useLabel}
                       t={t}
                       onToggleExpanded={() => setExpandedUse((current) => (current === use.capabilityContract ? null : use.capabilityContract))}
@@ -383,6 +406,7 @@ function ShareableUseRow(props: {
   readonly choice: string | null;
   readonly expanded: boolean;
   readonly modelName: (loadout: NimiMachineLoadout) => string;
+  readonly portabilityFor: (loadout: NimiMachineLoadout) => RuntimeConfigLoadoutExportPortability;
   readonly useLabel: (id: string) => string;
   readonly t: Translate;
   readonly onToggleExpanded: () => void;
@@ -391,6 +415,7 @@ function ShareableUseRow(props: {
   const { use, choice, t } = props;
   const Icon = capabilityIcon(use.capabilityContract);
   const chosen = use.exportable.find((candidate) => candidate.loadout.loadoutId === choice) ?? null;
+  const chosenPortability = chosen ? props.portabilityFor(chosen.loadout) : null;
   const canChange = use.exportable.length > 1;
   const inputId = `runtime-profile-share-${use.capabilityContract}`;
   return (
@@ -409,12 +434,13 @@ function ShareableUseRow(props: {
         </span>
         <label htmlFor={inputId} className="min-w-0 flex-1 cursor-pointer">
           <span className="block text-sm font-semibold text-[var(--nimi-text-primary)]">{props.useLabel(use.capabilityContract)}</span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
             {chosen ? (
               <>
                 {chosen.current ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" /> : null}
                 {props.modelName(chosen.loadout)}
                 {chosen.current ? ` · ${t('runtimeConfig.profiles.share.currentInUse', { defaultValue: 'in use' })}` : ''}
+                {chosenPortability ? <ExportPortabilityTag portability={chosenPortability} t={t} /> : null}
               </>
             ) : t('runtimeConfig.profiles.share.leftOut', { defaultValue: 'Left out of the file' })}
           </span>
@@ -448,13 +474,14 @@ function ShareableUseRow(props: {
                     onChange={() => props.onChange(candidate.loadout.loadoutId)}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
                       {props.modelName(candidate.loadout)}
                       {candidate.current ? (
                         <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--nimi-status-success)]">
                           {t('runtimeConfig.profiles.share.currentInUse', { defaultValue: 'in use' })}
                         </span>
                       ) : null}
+                      <ExportPortabilityTag portability={props.portabilityFor(candidate.loadout)} t={t} />
                     </span>
                     <span className="block text-xs text-[var(--nimi-text-muted)]">{candidate.loadout.displayName}</span>
                   </span>
@@ -487,6 +514,34 @@ function BlockReason(props: { readonly reason: RuntimeConfigShareBlockReason; re
         </details>
       ) : null}
     </div>
+  );
+}
+
+function ExportPortabilityTag(props: {
+  readonly portability: RuntimeConfigLoadoutExportPortability;
+  readonly t: Translate;
+}) {
+  const { portability, t } = props;
+  if (portability.status === 'auto-downloadable') {
+    return (
+      <span
+        data-export-portability="auto-downloadable"
+        className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-info)]"
+      >
+        {t('runtimeConfig.profiles.share.portabilityAutoDownload', { defaultValue: 'Auto-downloadable' })}
+      </span>
+    );
+  }
+  const label = portability.reason === 'uncataloged-multifile'
+    ? t('runtimeConfig.profiles.share.portabilityManualMultiFile', { defaultValue: 'Multi-file: recipient must import folder' })
+    : t('runtimeConfig.profiles.share.portabilityManualImport', { defaultValue: 'Recipient must import model file' });
+  return (
+    <span
+      data-export-portability="manual-import-required"
+      className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning)]"
+    >
+      {label}
+    </span>
   );
 }
 
@@ -538,12 +593,15 @@ function ShareDonePanel(props: {
             {t('runtimeConfig.profiles.share.doneIncludes', { defaultValue: 'Contains {{count}} use(s)', count: done.included.length })}
           </p>
           {done.included.map((item) => (
-            <p key={item.capabilityContract} className="text-sm text-[var(--nimi-text-primary)]">
-              {props.useLabel(item.capabilityContract)} → <strong className="font-semibold">{item.model}</strong>
+            <p key={item.capabilityContract} className="flex flex-wrap items-center gap-2 text-sm text-[var(--nimi-text-primary)]">
+              <span>
+                {props.useLabel(item.capabilityContract)} → <strong className="font-semibold">{item.model}</strong>
+              </span>
+              <ExportPortabilityTag portability={item.portability} t={t} />
             </p>
           ))}
           <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.profiles.share.doneNoModelFiles', { defaultValue: 'Only the setup is included, not the model files for {{models}}. If they are missing on the other computer, Nimi offers the download when that setup is used.', models })}
+            {t('runtimeConfig.profiles.share.doneNoModelFiles', { models })}
           </p>
         </div>
       </Surface>
@@ -574,7 +632,7 @@ function ShareDonePanel(props: {
 const NEXT_STEP_DEFAULTS = {
   next1: 'Choose “Import setup file” in Nimi. This only saves the setup to their library; nothing downloads and nothing in use changes.',
   next2: 'Find “{{title}}” in the library and choose Use.',
-  next3: 'Nimi checks that computer and, if {{models}} is missing, shows the download size and waits for their confirmation.',
+  next3: 'Nimi checks which files are already on the device. Confirm downloads for missing files with an available source. Import any remaining files in the model library.',
   next4: 'Once prepared, they confirm once more and the use switches to this setup.',
 } as const;
 

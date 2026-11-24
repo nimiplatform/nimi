@@ -48,7 +48,12 @@ func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerif
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r020
 func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
-	query := strings.ToLower(strings.TrimSpace(req.GetQuery()))
+	normalized, err := normalizeHFSearchQuery(req.GetQuery())
+	if err != nil {
+		cause := fmt.Errorf("%w: %v", errHfRepoInvalid, err)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, cause, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
+	}
+	query := strings.ToLower(normalized)
 	category := strings.ToLower(strings.TrimSpace(req.GetCategory()))
 	if query == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -170,7 +175,7 @@ func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCa
 			if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
 				return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, err, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
 			}
-			return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog variant lookup failed"})
+			return nil, hfCatalogRPCError(err, "catalog variant lookup failed")
 		}
 		for _, variant := range variants {
 			offer, err := catalogOfferFromHFVariant(locator, variant.Revision, variant)
@@ -338,6 +343,9 @@ func catalogOfferFromHFVariant(repo string, revision string, variant hfCatalogVa
 	totalSizeBytes := variant.SizeBytes
 	if len(variant.Files) == 0 {
 		totalSizeBytes = 0
+		if variant.Format == "safetensors" && hash != "" {
+			hashes = map[string]string{variant.Entry: hash}
+		}
 	}
 	for _, file := range variant.Files {
 		if file == strings.TrimSpace(variant.Entry) && hashes[file] == "" && hash != "" {
@@ -360,9 +368,10 @@ func catalogOfferFromHFVariant(repo string, revision string, variant hfCatalogVa
 		totalSizeBytes: totalSizeBytes,
 		license:        defaultString(strings.TrimSpace(variant.License), "unknown"),
 		tags:           normalizeStringSlice(variant.Tags),
-		downloads:      variant.Downloads,
-		likes:          variant.Likes,
-		lastModified:   strings.TrimSpace(variant.LastModified),
+		downloads:        variant.Downloads,
+		likes:            variant.Likes,
+		lastModified:     strings.TrimSpace(variant.LastModified),
+		checkpointLayout: strings.TrimSpace(variant.CheckpointLayout),
 	}, nil
 }
 

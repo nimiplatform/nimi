@@ -739,7 +739,6 @@ function ProfileUsePanel(props: {
           recipeId: plan.candidate.recipeId,
           options: plan.candidate.options,
           axes: plan.candidate.axes,
-          displayName: plan.candidate.displayName,
           provenance: plan.candidate.provenance,
         });
         if (created.status === 'ok') {
