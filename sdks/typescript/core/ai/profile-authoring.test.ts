@@ -519,6 +519,27 @@ test('equivalence digest sorts loadout axes canonically and setLocalCapability c
     machine,
   });
   assert.equal(preview.decision.kind, 'reuse-equivalent');
+
+  // Home exposes the bound Loadout options a second time as portableConfig.
+  const saved = machine.loadouts[0]!;
+  const projected = { ...saved, portableConfig: { gpuLayers: 99, contextSize: 4096 } };
+  const candidates = { loadouts: [
+    projected,
+    { ...projected, loadoutId: 'different-driver', portableConfig: { contextSize: 2048 } },
+    { ...projected, loadoutId: 'different-loadout', loadout: { ...saved.loadout!, options: {} } },
+  ], selections: [] };
+  const comparison = { profile, capabilityContract: 'text.generate', machine: candidates };
+  const { decision } = deriveNimiAIProfileLocalConfigurationPreview({ ...comparison, recipe: TEXT_RECIPE });
+  assert.equal(decision.kind, 'reuse-equivalent');
+  assert.deepEqual(decision.matches.map(match => match.loadoutId), [saved.loadoutId]);
+  assert.deepEqual(deriveNimiAIProfileSelectionMismatchPreview(comparison).branches[1].loadoutIds, [saved.loadoutId]);
+
+  const explicitProfile = { ...profile, capabilities: {
+    'text.generate': { ...textCap, driverPortableConfig: {} },
+  } };
+  assert.equal(deriveNimiAIProfileLocalConfigurationPreview({
+    ...comparison, profile: explicitProfile, recipe: TEXT_RECIPE,
+  }).decision.kind, 'add-new');
 });
 
 test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', () => {

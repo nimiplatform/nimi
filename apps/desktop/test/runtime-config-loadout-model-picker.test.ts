@@ -190,7 +190,7 @@ test('returned draft auto-selects the offer installed during the market detour',
   const axes = resolveLoadoutReturnedDraftAxes(recipe, {
     slotId: 'main.gguf',
     autoSelectOfferRef: 'offer:q6',
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8', 'companion.mmproj': 'asset-mm' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8', 'companion.mmproj': 'asset-mm' } },
   });
   assert.equal(axes['main.gguf'], 'asset-q6');
   assert.equal(axes['companion.mmproj'], 'asset-mm');
@@ -204,12 +204,12 @@ test('returned draft auto-selects the offer installed during the market detour',
   const kept = resolveLoadoutReturnedDraftAxes(noInstallRecipe, {
     slotId: 'main.gguf',
     autoSelectOfferRef: 'offer:q6',
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8' } },
   });
   assert.equal(kept['main.gguf'], 'asset-q8');
 
   const withoutOfferRef = resolveLoadoutReturnedDraftAxes(recipe, {
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8' } },
   });
   assert.equal(withoutOfferRef['main.gguf'], 'asset-q8');
 });

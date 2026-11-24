@@ -135,8 +135,7 @@ export function SavedConfigsView(props: {
   const [preselectedAssetId, setPreselectedAssetId] = useState('');
   const [preselectedNeedsManualSlot, setPreselectedNeedsManualSlot] = useState(false);
   const [recipeId, setRecipeId] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [createNameEdited, setCreateNameEdited] = useState(false);
+  const [customDisplayName, setCustomDisplayName] = useState<string>();
   const [createAxes, setCreateAxes] = useState<Record<string, string>>({});
   const [createContextSize, setCreateContextSize] = useState('');
   const [createContextEdited, setCreateContextEdited] = useState(false);
@@ -286,8 +285,7 @@ export function SavedConfigsView(props: {
 
   const beginCreate = useCallback((capability?: string, nextPreselectedAssetId = '') => {
     setRecipeId('');
-    setDisplayName('');
-    setCreateNameEdited(false);
+    setCustomDisplayName(undefined);
     setCreateAxes({});
     setCreateContextSize('');
     setCreateContextEdited(false);
@@ -308,8 +306,7 @@ export function SavedConfigsView(props: {
   const selectCreateCapability = useCallback((capability: string) => {
     setCreateCapability(capability);
     setRecipeId('');
-    setDisplayName('');
-    setCreateNameEdited(false);
+    setCustomDisplayName(undefined);
     setCreateAxes({});
     setCreateContextSize('');
     setCreateContextEdited(false);
@@ -319,12 +316,14 @@ export function SavedConfigsView(props: {
     setCreateStep(2);
   }, []);
 
-  const deriveCreateDefaultName = useCallback((recipe: NimiLoadoutRecipe, axesMap: Readonly<Record<string, string>>) => {
-    const axes = Object.entries(axesMap)
+  const displayName = useMemo(() => {
+    if (customDisplayName !== undefined) return customDisplayName;
+    if (!selectedRecipe) return '';
+    const axes = Object.entries(createAxes)
       .filter(([, assetId]) => Boolean(assetId))
       .map(([slotId, modelAssetId]) => ({ slotId, modelAssetId }));
-    return deriveLoadoutDefaultDisplayName(recipe, axes, verifiedAssets, assets);
-  }, [assets, verifiedAssets]);
+    return deriveLoadoutDefaultDisplayName(selectedRecipe, axes, verifiedAssets, assets);
+  }, [assets, createAxes, customDisplayName, selectedRecipe, verifiedAssets]);
 
   const selectCreateRecipe = useCallback((recipe: NimiLoadoutRecipe, explicitPreselectedAssetId?: string) => {
     setRecipeId(recipe.recipeId);
@@ -366,14 +365,13 @@ export function SavedConfigsView(props: {
     }
     setPreselectedNeedsManualSlot(needsManualSlot);
     setCreateAxes(initialAxes);
-    setDisplayName(deriveCreateDefaultName(recipe, initialAxes));
-    setCreateNameEdited(false);
+    setCustomDisplayName(undefined);
     setCreateContextSize(resolveLoadoutCreateContextOption(recipe, initialAxes));
     setCreateContextEdited(false);
     setPickerSlotId(null);
     setCreateStep(3);
     setShowCreate(true);
-  }, [assets, deriveCreateDefaultName, preselectedAssetId, t]);
+  }, [assets, preselectedAssetId, t]);
 
   useEffect(() => {
     const context = props.navigationContext;
@@ -403,8 +401,7 @@ export function SavedConfigsView(props: {
     if (context.draft) {
       setRecipeId(recipe.recipeId);
       setCreateCapability(recipe.capabilityContract);
-      setDisplayName(context.draft.displayName);
-      setCreateNameEdited(true);
+      setCustomDisplayName(context.draft.customDisplayName);
       const returnedAxes = resolveLoadoutReturnedDraftAxes(recipe, context);
       setCreateAxes(returnedAxes);
       if (context.draft.contextSizeEdited) {
@@ -482,7 +479,7 @@ export function SavedConfigsView(props: {
         displayName: name,
         modelAxes,
         provenance: {
-          [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: createNameEdited ? 'user' : 'auto',
+          [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: customDisplayName === undefined ? 'auto' : 'user',
         },
       });
       const created = await loadoutsClient.commit(prepared.prepareId, false);
@@ -493,7 +490,7 @@ export function SavedConfigsView(props: {
         setPendingInstall({ recipe, items, loadout: created });
       }
     });
-  }, [assets, createAxes, createContextSize, createContextValidation.valid, createNameEdited, displayName, loadoutsClient, preselectedNeedsManualSlot, recommendations, run, selectedRecipe, t]);
+  }, [assets, createAxes, createContextSize, createContextValidation.valid, customDisplayName, displayName, loadoutsClient, preselectedNeedsManualSlot, recommendations, run, selectedRecipe, t]);
 
   const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => {
     const items = recommendedInstallItems(recipe, loadout ? modelAssetIdsForLoadout(loadout) : {});
@@ -1055,10 +1052,7 @@ export function SavedConfigsView(props: {
                   <span>{t('runtimeConfig.loadouts.name')}</span>
                   <TextField
                     value={displayName}
-                    onChange={(event) => {
-                      setCreateNameEdited(true);
-                      setDisplayName(event.currentTarget.value);
-                    }}
+                    onChange={(event) => setCustomDisplayName(event.currentTarget.value)}
                   />
                 </label>
                 {selectedRecipe.slots.map((slot) => (
@@ -1090,9 +1084,6 @@ export function SavedConfigsView(props: {
                     setPreselectedNeedsManualSlot(false);
                     setCreateAxes((current) => {
                       const next = { ...current, [pickerSlotId]: modelAssetId };
-                      if (!createNameEdited && selectedRecipe) {
-                        setDisplayName(deriveCreateDefaultName(selectedRecipe, next));
-                      }
                       if (!createContextEdited && selectedRecipe) {
                         setCreateContextSize(resolveLoadoutCreateContextOption(selectedRecipe, next));
                       }
@@ -1110,7 +1101,7 @@ export function SavedConfigsView(props: {
                       slotId: slot.slotId,
                       candidate: offer.candidate,
                       draft: {
-                        displayName,
+                        customDisplayName,
                         modelAssetIds: { ...createAxes },
                         contextSize: createContextSize,
                         contextSizeEdited: createContextEdited,

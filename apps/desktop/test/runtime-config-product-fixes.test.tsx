@@ -456,6 +456,83 @@ function setupReviewFixture(recipeCount = 1) {
   return { store, task, ports, writes };
 }
 
+test('returning from the model market refreshes an automatic loadout name and preserves a typed name', async () => {
+  await withRenderer(async ui => {
+    const { SavedConfigsView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js');
+    const { LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY } = await import('../src/shell/renderer/features/runtime-config/runtime-config-loadout-model-display.js');
+    const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+    const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+    type Props = React.ComponentProps<typeof SavedConfigsView>;
+    const queryClient = new QueryClient();
+    let installed = false;
+    const recipe = (): import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe => ({
+      recipeId: 'text', title: 'Text recipe', capabilityContract: 'text.generate', revision: 'r1',
+      implementation: { implementationId: 'local.text', driverId: 'text', driverDialect: 'text/v1' },
+      defaultOptions: {}, recommendedOptions: {}, implementationSupportedFeatures: [], applicability: 'supported', reasons: [],
+      slots: [{ slotId: 'main.gguf', displayLabel: 'Model', presence: 'required',
+        applicability: 'supported', reasons: [], modelContract: {}, conditionalFeatures: [],
+        recommendedContentIds: [], recommendedVariantIds: [], offers: [{
+          applicability: 'supported', reasons: [], installedModelAssetId: installed ? 'asset-q6' : undefined,
+          candidate: { offerRef: 'offer-q6', title: 'gemma-4-e2b-it-local (Q6_K)', variantLabel: 'gemma-4-E2B-it-Q6_K.gguf',
+            description: '', installable: true, installed, sourceLabel: 'Catalog', verified: true, tags: [], categories: [] },
+        }] }],
+    });
+    const prepared: import('@nimiplatform/sdk/runtime').NimiPrepareLoadoutInput[] = [];
+    const loadouts = {
+      get: async () => ({ loadouts: [], selections: [], selectionRevisions: {} }),
+      listRecipes: async () => [recipe()],
+      prepare: async (input: typeof prepared[number]) => { prepared.push(input); return { prepareId: 'proposal' }; },
+      commit: async () => ({ loadoutId: 'saved' }),
+    };
+    const sdk = {
+      machineProduct: () => ({ local: { loadouts } }),
+      localEnvironmentRpc: () => ({
+        listModelAssets: async () => ({ assets: installed ? [{
+          modelAssetId: 'asset-q6', contentId: 'sha256:' + 'a'.repeat(64), contentVerified: true, files: [],
+          displayName: 'gemma-4-e2b-it-local (Q6_K)', entry: 'gemma-4-E2B-it-Q6_K.gguf',
+        }] : [] }),
+        listVerifiedAssets: async () => ({ assets: [] }),
+      }),
+    };
+    const nameField = () => ui.document.querySelector<HTMLInputElement>('[role="dialog"] label input')!;
+    const win = ui.document.defaultView!;
+    win.HTMLElement.prototype.scrollIntoView = () => {};
+    for (const typedName of [undefined, 'My setup']) {
+      let market: Parameters<Props['onOpenModelMarket']>[0] | undefined;
+      const render = (navigationContext: Props['navigationContext']) => ui.render(
+        <QueryClientProvider client={queryClient}><TooltipProvider>
+          <SavedConfigsView initialCreate capabilityContract="text.generate" navigationContext={navigationContext}
+            onBack={() => {}} onOpenModelMarket={context => { market = context; }} />
+        </TooltipProvider></QueryClientProvider>, sdk);
+      installed = false;
+      await render(null);
+      await ui.click('[data-testid="create-recipe:text"]');
+      assert.equal(nameField().value, 'Text recipe');
+      if (typedName !== undefined) {
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(nameField(), typedName);
+          nameField().dispatchEvent(new win.Event('input', { bubbles: true }));
+        });
+      }
+      await ui.click('[data-testid="loadout-model-card:main.gguf"] button');
+      await ui.click('[data-testid="loadout-model-picker:inspect:offer-q6"]');
+      assert.ok(market?.kind === 'slot');
+      await ui.render(<></>);
+      installed = true;
+      await render({ ...market, autoSelectOfferRef: market.candidate.offerRef });
+      assert.equal(nameField().value, typedName ?? 'Gemma 4 2B · Q6');
+      const save = [...ui.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+        .find(button => button.textContent === 'runtimeConfig.loadouts.commit');
+      assert.ok(save);
+      await act(async () => save.click());
+      const input = prepared.pop();
+      assert.equal(input?.displayName, typedName ?? 'Gemma 4 2B · Q6');
+      assert.equal(input?.provenance?.[LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY], typedName === undefined ? 'auto' : 'user');
+      await ui.render(<></>);
+    }
+  });
+});
+
 test('one supported recipe opens a review in place without selecting or downloading, even when ready', async () => {
   await withRenderer(async ui => {
     const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');

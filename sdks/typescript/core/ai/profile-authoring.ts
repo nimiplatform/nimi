@@ -699,7 +699,7 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
       loadout.implementation,
       capability.implementation!,
     ))
-    .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout) === equivalenceDigest)
+    .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout, capability) === equivalenceDigest)
     .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId));
   const sameSource = equivalent.length > 0
     ? []
@@ -808,7 +808,7 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
         localCapability.implementation!,
       ))
       .filter((loadout) => (
-        localConfigurationDigestFromMachineLoadout(loadout)
+        localConfigurationDigestFromMachineLoadout(loadout, localCapability)
           === localConfigurationDigestFromProfile(capabilityContract, localCapability)
       ))
       .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId))
@@ -1193,6 +1193,7 @@ function localConfigurationDigestFromProfile(
 
 function localConfigurationDigestFromMachineLoadout(
   loadout: NimiAIProfileAuthoringMachineLoadoutProjection,
+  profileCapability: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
 ): NimiAIProfileEquivalenceDigest {
   const implementation = normalizeImplementation(
     loadout.implementation,
@@ -1208,12 +1209,17 @@ function localConfigurationDigestFromMachineLoadout(
       loadout.portableConfig,
       `${loadout.capabilityContract} machine portableConfig`,
     );
+  // Home also projects the Loadout options as driver config. When the Profile
+  // omits separate driver settings, those same options are already compared below.
+  const optionsAlreadyCompared = profileCapability.driverPortableConfig === undefined
+    && loadout.loadout !== undefined
+    && canonicalJson(portableConfig) === canonicalJson(loadout.loadout.options);
   return digestCanonical(
     'nimi.loadout.portable-content/v1',
     {
       capabilityContract: loadout.capabilityContract,
       implementation: implementationContent(implementation),
-      driverPortableConfig: portableConfig,
+      driverPortableConfig: optionsAlreadyCompared ? {} : portableConfig,
       loadout: loadout.loadout ? canonicalLoadoutEquivalence(loadout.loadout) : null,
       supportedFeatures,
     },
