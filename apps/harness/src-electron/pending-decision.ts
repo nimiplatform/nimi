@@ -119,19 +119,43 @@ function buildDecisionMetadata(
   return { title: `Allow ${sanitizeBidi(tool)}`, summary: sanitizeBidi(tool), isControlPlane: controlPlane, isFreeShell: freeShell, isPcOnlyOutbound };
 }
 
+export function sanitizeDecisionArgsForDisplay(args: Record<string, unknown>): Record<string, unknown> {
+  const visit = (value: unknown): unknown => {
+    if (typeof value === 'string') return sanitizeBidi(value);
+    if (Array.isArray(value)) return value.map(visit);
+    if (value && typeof value === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        out[sanitizeBidi(k)] = visit(v);
+      }
+      return out;
+    }
+    return value;
+  };
+  return visit(args) as Record<string, unknown>;
+}
+
 // Gate 5: Trusted approval card directly derived from durable pi-durable toolCall payload.
 // Revision hash & 32 KiB cap are computed strictly on RAW canonical argumentsJson BEFORE Bidi stripping;
-// remote approval requires <= 32 KiB, 100% untruncated diff, non-control-plane, non-shell, non-outbound.
+// remote approval requires <= 32 KiB, 100% untruncated diff, zero hidden Bidi/zero-width chars,
+// non-control-plane, non-shell, and non-outbound.
 export async function readPendingDecision(
   tx: Tx,
   sessionId: string,
   decisionSignal: string,
-  options?: { recentAiEditedPaths?: readonly string[]; nowMs?: number; allowLargeLocal?: boolean; workspaceRoot?: string },
+  options?: {
+    taskId?: number;
+    recentAiEditedPaths?: readonly string[];
+    nowMs?: number;
+    allowLargeLocal?: boolean;
+    workspaceRoot?: string;
+  },
 ): Promise<PendingDecision> {
   const live = await tx.doc(LiveDoc, ROOT_CONVERSATION_ID);
   const nowMs = options?.nowMs ?? Date.now();
   for (const slot of live.tools ?? []) {
     if (!slot.taskId || slot.status !== 'sleeping') continue;
+    if (options?.taskId !== undefined && slot.taskId !== options.taskId) continue;
     const task = await tx.task(slot.taskId);
     if (!task || task.kind !== ToolTask.definition.name || task.abortRequested || task.state.status !== 'sleeping'
       || !task.state.signals?.some(wait => wait.signal === decisionSignal && wait.key === 'decision')) continue;
@@ -149,6 +173,7 @@ export async function readPendingDecision(
     // Bind revision CAS strictly to RAW canonical arguments bytes (never post-sanitization!).
     const revision = createHash('sha256').update(JSON.stringify([sessionId, task.id, call.id, call.name, rawArgumentsJson])).digest('hex');
     const displayArgumentsJson = sanitizeBidi(rawArgumentsJson);
+    const hasHiddenBidi = displayArgumentsJson !== rawArgumentsJson || sanitizeBidi(call.name) !== call.name;
     const meta = buildDecisionMetadata(call.name, (call.arguments ?? {}) as Record<string, unknown>, options?.workspaceRoot);
     const createdAt = typeof message?.timestamp === 'number' && message.timestamp > 0
       ? message.timestamp
@@ -158,6 +183,7 @@ export async function readPendingDecision(
     const expiresAt = createdAt + DEFAULT_APPROVAL_TTL_MS;
     const allowSessionPermitted = !meta.isControlPlane && !meta.isFreeShell;
     const remoteApprovalAllowed = !exceedsRemoteCap
+      && !hasHiddenBidi
       && !meta.isControlPlane
       && !meta.isFreeShell
       && !meta.isPcOnlyOutbound
@@ -170,7 +196,7 @@ export async function readPendingDecision(
       state: 'review',
       taskId: task.id,
       callId: call.id,
-      tool: call.name,
+      tool: sanitizeBidi(call.name),
       revision,
       title: meta.title,
       summary: meta.summary,

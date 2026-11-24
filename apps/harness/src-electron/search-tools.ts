@@ -1,6 +1,8 @@
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { constants } from 'node:fs';
 import { lstat, open, readdir, realpath } from 'node:fs/promises';
+import * as http from 'node:http';
+import * as https from 'node:https';
 import { isIP } from 'node:net';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
@@ -127,45 +129,83 @@ function toPosixRelative(root: string, filePath: string): string {
   return relative(root, filePath).split(sep).join('/');
 }
 
-function isDisallowedIP(ip: string): boolean {
-  const lower = ip.toLowerCase().replace(/^\[|\]$/g, '');
-  if (!lower) return true;
-  // Unwrap IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1 or ::ffff:7f00:1)
-  const v4MappedDotted = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(lower);
-  if (v4MappedDotted) return isDisallowedIP(v4MappedDotted[1]);
-  const v4MappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(lower);
-  if (v4MappedHex) {
-    const hi = parseInt(v4MappedHex[1], 16);
-    const lo = parseInt(v4MappedHex[2], 16);
-    return isDisallowedIP(`${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`);
+function expandIpv6Groups(raw: string): number[] | null {
+  const clean = raw.toLowerCase().replace(/^\[|\]$/g, '').split('%')[0] ?? '';
+  if (!clean.includes(':')) return null;
+  let normalized = clean;
+  const v4Tail = /:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(normalized);
+  if (v4Tail) {
+    const octets = [Number(v4Tail[1]), Number(v4Tail[2]), Number(v4Tail[3]), Number(v4Tail[4])];
+    if (octets.some(o => o > 255)) return null;
+    const hi = ((octets[0] << 8) | octets[1]).toString(16);
+    const lo = ((octets[2] << 8) | octets[3]).toString(16);
+    normalized = normalized.slice(0, v4Tail.index + 1) + `${hi}:${lo}`;
   }
+  const halves = normalized.split('::');
+  if (halves.length > 2) return null;
+  const left = halves[0] ? halves[0].split(':') : [];
+  const right = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const missing = halves.length === 2 ? 8 - (left.length + right.length) : 0;
+  if (missing < 0 || (halves.length === 1 && left.length !== 8)) return null;
+  const parts = [...left, ...Array<string>(missing).fill('0'), ...right];
+  if (parts.length !== 8) return null;
+  const nums: number[] = [];
+  for (const part of parts) {
+    if (!/^[0-9a-f]{1,4}$/.test(part)) return null;
+    nums.push(parseInt(part, 16));
+  }
+  return nums;
+}
+
+function isDisallowedIP(ip: string): boolean {
+  const lower = ip.toLowerCase().replace(/^\[|\]$/g, '').split('%')[0] ?? '';
+  if (!lower) return true;
   const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(lower);
   if (ipv4) {
-    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    const [a, b, c] = [Number(ipv4[1]), Number(ipv4[2]), Number(ipv4[3])];
+    if (a > 255 || b > 255 || c > 255 || Number(ipv4[4]) > 255) return true;
     if (a === 0 || a === 10 || a === 127) return true;
     if (a === 100 && b >= 64 && b <= 127) return true; // RFC 6598 CGNAT
     if (a === 169 && b === 254) return true; // Link-local / cloud metadata
     if (a === 192 && b === 168) return true;
+    if (a === 192 && b === 0 && c === 0) return true; // IETF protocol assignments
+    if (a === 198 && (b === 18 || b === 19)) return true; // Benchmarking
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a >= 224) return true; // Multicast / reserved
     return false;
   }
-  if (
-    lower === '::'
-    || lower === '::1'
-    || lower === '0:0:0:0:0:0:0:0'
-    || lower === '0:0:0:0:0:0:0:1'
-    || lower.startsWith('fe8')
-    || lower.startsWith('fe9')
-    || lower.startsWith('fea')
-    || lower.startsWith('feb')
-    || lower.startsWith('fc')
-    || lower.startsWith('fd')
-    || lower.startsWith('ff')
-  ) {
-    return true;
+  const g = expandIpv6Groups(lower);
+  if (g) {
+    const isAllZeroPrefix = g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0;
+    // Unspecified (::), Loopback (::1), IPv4-mapped (::ffff:0:0/96), IPv4-compatible (::/96)
+    if (isAllZeroPrefix && g[5] === 0) {
+      if (g[6] === 0 && (g[7] === 0 || g[7] === 1)) return true;
+      const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
+      return isDisallowedIP(v4);
+    }
+    if (isAllZeroPrefix && g[5] === 0xffff) {
+      const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
+      return isDisallowedIP(v4);
+    }
+    // NAT64 well-known (64:ff9b::/96) and local-use (64:ff9b:1::/48)
+    if (g[0] === 0x0064 && g[1] === 0xff9b && (g[2] === 0x0001 || (g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0))) {
+      const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
+      return isDisallowedIP(v4);
+    }
+    // 6to4 (2002::/16) embeds IPv4 in groups 1 & 2
+    if (g[0] === 0x2002) {
+      const v4 = `${(g[1] >> 8) & 255}.${g[1] & 255}.${(g[2] >> 8) & 255}.${g[2] & 255}`;
+      return isDisallowedIP(v4);
+    }
+    // Teredo (2001:0000::/32)
+    if (g[0] === 0x2001 && g[1] === 0x0000) return true;
+    // Link-local (fe80::/10), ULA (fc00::/7), Multicast (ff00::/8)
+    if ((g[0] & 0xffc0) === 0xfe80) return true;
+    if ((g[0] & 0xfe00) === 0xfc00) return true;
+    if ((g[0] & 0xff00) === 0xff00) return true;
+    return false;
   }
-  return false;
+  return true;
 }
 
 function isDisallowedHost(hostname: string): boolean {
@@ -189,35 +229,166 @@ function isDisallowedHost(hostname: string): boolean {
   return false;
 }
 
-async function assertPublicFetchTarget(parsed: URL, allowLoopback: boolean): Promise<void> {
+type PinnedTarget = { address: string; family: 4 | 6 };
+type DnsLookupFn = (hostname: string) => Promise<readonly { address: string; family: number }[]>;
+
+async function resolvePinnedFetchTarget(
+  parsed: URL,
+  allowLoopback: boolean,
+  dnsLookupFn?: DnsLookupFn | null,
+): Promise<PinnedTarget> {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Only http:// and https:// URLs are supported.');
   }
   if (parsed.username || parsed.password) {
     throw new Error('URLs with embedded credentials are not allowed.');
   }
-  if (allowLoopback) return;
-  if (isDisallowedHost(parsed.hostname)) {
+  const bareHost = parsed.hostname.replace(/^\[|\]$/g, '');
+  if (!allowLoopback && isDisallowedHost(parsed.hostname)) {
     throw new Error('Fetching local or private network addresses is blocked.');
   }
-  if (!isIP(parsed.hostname.replace(/^\[|\]$/g, ''))) {
-    const records = await dnsLookup(parsed.hostname, { all: true }).catch(() => {
-      throw new Error(`Unable to resolve host "${parsed.hostname}".`);
-    });
-    if (!records.length) {
-      throw new Error(`Unable to resolve host "${parsed.hostname}".`);
+  const ipVer = isIP(bareHost);
+  if (ipVer === 4 || ipVer === 6) {
+    if (!allowLoopback && isDisallowedIP(bareHost)) {
+      throw new Error('Fetching local or private network addresses is blocked.');
     }
-    for (const rec of records) {
-      if (isDisallowedIP(rec.address)) {
-        throw new Error('Fetching local or private network addresses is blocked.');
-      }
+    return { address: bareHost, family: ipVer };
+  }
+  if (dnsLookupFn === null) {
+    // Only reachable when a unit test supplies a mock fetchImpl without a mock DNS resolver.
+    return { address: bareHost, family: 4 };
+  }
+  const lookup = dnsLookupFn ?? ((host: string) => dnsLookup(host, { all: true }));
+  const records = await lookup(bareHost).catch(() => {
+    throw new Error(`Unable to resolve host "${parsed.hostname}".`);
+  });
+  if (!records.length) {
+    throw new Error(`Unable to resolve host "${parsed.hostname}".`);
+  }
+  for (const rec of records) {
+    if (!allowLoopback && isDisallowedIP(rec.address)) {
+      throw new Error('Fetching local or private network addresses is blocked.');
     }
   }
+  const first = records[0];
+  return { address: first.address, family: first.family === 6 ? 6 : 4 };
+}
+
+type PinnedHttpResponse = {
+  status: number;
+  headers: Record<string, string | undefined>;
+  body: Buffer;
+  truncatedByBytes: boolean;
+  url: string;
+};
+
+/**
+ * Performs an IP-pinned HTTP/HTTPS GET connecting directly to the already-validated
+ * IP address (preventing DNS rebinding TOCTOU between lookup and socket connect)
+ * while preserving the original Host header and TLS SNI servername.
+ */
+function pinnedHttpGet(
+  parsed: URL,
+  pinned: PinnedTarget,
+  byteLimit: number,
+  signal: AbortSignal,
+): Promise<PinnedHttpResponse> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    signal.throwIfAborted();
+    const isHttps = parsed.protocol === 'https:';
+    const mod = isHttps ? https : http;
+    const defaultPort = isHttps ? 443 : 80;
+    const port = parsed.port ? Number(parsed.port) : defaultPort;
+    const hostHeader = parsed.host;
+    const servername = parsed.hostname.replace(/^\[|\]$/g, '');
+    const pathAndQuery = `${parsed.pathname || '/'}${parsed.search || ''}`;
+
+    const req = mod.request(
+      {
+        host: pinned.address,
+        family: pinned.family,
+        port,
+        method: 'GET',
+        path: pathAndQuery,
+        headers: {
+          Host: hostHeader,
+          Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
+        },
+        ...(isHttps ? { servername } : {}),
+      },
+      res => {
+        const status = res.statusCode ?? 0;
+        const headers: Record<string, string | undefined> = {};
+        for (const [k, v] of Object.entries(res.headers)) {
+          headers[k.toLowerCase()] = Array.isArray(v) ? v.join(', ') : v;
+        }
+        // On redirect, drain immediately and return status + Location without buffering body.
+        if (status >= 300 && status < 400) {
+          res.resume();
+          cleanup();
+          resolvePromise({ status, headers, body: Buffer.alloc(0), truncatedByBytes: false, url: parsed.toString() });
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let totalBytes = 0;
+        let truncatedByBytes = false;
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolvePromise({
+            status,
+            headers,
+            body: Buffer.concat(chunks),
+            truncatedByBytes,
+            url: parsed.toString(),
+          });
+        };
+        res.on('data', (chunk: Buffer) => {
+          if (settled) return;
+          const remaining = byteLimit - totalBytes;
+          if (chunk.byteLength > remaining) {
+            if (remaining > 0) chunks.push(chunk.subarray(0, remaining));
+            totalBytes += Math.max(0, remaining);
+            truncatedByBytes = true;
+            res.destroy();
+            finish();
+            return;
+          }
+          chunks.push(chunk);
+          totalBytes += chunk.byteLength;
+        });
+        res.on('end', finish);
+        res.on('close', finish);
+        res.on('error', err => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          rejectPromise(err);
+        });
+      },
+    );
+
+    const onAbort = () => {
+      req.destroy(signal.reason instanceof Error ? signal.reason : new Error('Request aborted.'));
+    };
+    const cleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    req.on('error', err => {
+      cleanup();
+      rejectPromise(err);
+    });
+    req.end();
+  });
 }
 
 export type SearchToolsOptions = {
   allowLoopbackFetch?: boolean;
   fetchImpl?: typeof fetch;
+  dnsLookupImpl?: DnsLookupFn;
 };
 
 export function searchTools(workspace: string | (() => string), account: AbortSignal, options: SearchToolsOptions = {}) {
@@ -249,7 +420,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
 
           if (isFile) {
             const rel = toPosixRelative(root, target);
-            if (matcher.test(rel)) matches.push(rel);
+            if (!isSensitivePath(rel, root) && matcher.test(rel)) matches.push(rel);
           } else {
             const queue: string[] = [target];
             while (queue.length > 0 && !truncated) {
@@ -276,7 +447,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
                 } else if (entry.isFile()) {
                   const relFromTarget = toPosixRelative(target, full);
                   const relFromRoot = toPosixRelative(root, full);
-                  if (isSensitivePath(relFromRoot)) continue;
+                  if (isSensitivePath(relFromRoot, root)) continue;
                   if (matcher.test(relFromTarget) || matcher.test(relFromRoot)) {
                     matches.push(relFromRoot);
                     if (matches.length >= maxMatches) {
@@ -356,7 +527,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
                 } else if (entry.isFile()) {
                   const relFromTarget = toPosixRelative(target, full);
                   const relFromRoot = toPosixRelative(root, full);
-                  if (isSensitivePath(relFromRoot)) continue;
+                  if (isSensitivePath(relFromRoot, root)) continue;
                   if (!fileMatcher || fileMatcher.test(relFromTarget) || fileMatcher.test(relFromRoot) || fileMatcher.test(entry.name)) {
                     filesToScan.push(full);
                     if (filesToScan.length >= MAX_GREP_FILES) {
@@ -373,6 +544,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
           let outputBytes = 0;
           const formattedLines: string[] = [];
 
+          const rootPrefix = root.endsWith(sep) ? root : root + sep;
           for (const filePath of filesToScan) {
             signal.throwIfAborted();
             if (matches.length >= maxMatches || outputBytes >= MAX_GREP_OUTPUT_BYTES) {
@@ -383,7 +555,11 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
             try {
               const relCheck = toPosixRelative(root, filePath);
               if (isSensitivePath(relCheck, root)) continue;
-              handle = await open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+              const realFile = await realpath(filePath);
+              if (realFile !== root && !realFile.startsWith(rootPrefix)) continue;
+              const realRel = toPosixRelative(root, realFile);
+              if (isSensitivePath(realRel, root)) continue;
+              handle = await open(realFile, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
               const info = await handle.stat();
               if (!info.isFile() || info.nlink > 1 || info.size === 0 || info.size > MAX_GREP_FILE_BYTES) continue;
               const probeLen = Math.min(4096, info.size);
@@ -394,7 +570,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
               const fullBuffer = info.size <= probeLen
                 ? probe.subarray(0, bytesRead)
                 : await handle.readFile({ signal });
-              const rel = toPosixRelative(root, filePath);
+              const rel = realRel;
               const lines = fullBuffer.toString('utf8').split(/\r?\n/);
               for (let index = 0; index < lines.length; index++) {
                 const lineText = lines[index];
@@ -452,66 +628,99 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
           } catch {
             throw new Error('Provide a valid HTTP or HTTPS URL.');
           }
-          await assertPublicFetchTarget(parsed, Boolean(options.allowLoopbackFetch));
           const byteLimit = Math.max(1024, Math.min(MAX_FETCH_BYTES, maxBytes ?? DEFAULT_FETCH_BYTES));
           const timeout = Math.max(1000, Math.min(MAX_FETCH_TIMEOUT_MS, timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS));
           const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(timeout)]);
-
           let currentUrl = parsed;
-          let response!: Response;
-          for (let hop = 0; hop <= 5; hop++) {
-            response = await fetchFn(currentUrl.toString(), {
-              method: 'GET',
-              redirect: 'manual',
-              signal: requestSignal,
-              headers: {
-                Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
-              },
-            });
-            if (response.status >= 300 && response.status < 400) {
-              const location = response.headers.get('location');
-              if (!location) break;
-              if (hop === 5) throw new Error('Too many redirects while fetching URL.');
-              const nextUrl = new URL(location, currentUrl);
-              await assertPublicFetchTarget(nextUrl, Boolean(options.allowLoopbackFetch));
-              currentUrl = nextUrl;
-              continue;
-            }
-            break;
-          }
-
-          const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
-          const chunks: Uint8Array[] = [];
+          let finalUrl = parsed.toString();
+          let status = 0;
+          let contentType = 'application/octet-stream';
+          let rawBuffer: Buffer = Buffer.alloc(0);
           let totalBytes = 0;
           let truncatedByBytes = false;
-          if (response.body) {
-            const reader = response.body.getReader();
-            try {
-              for (;;) {
-                requestSignal.throwIfAborted();
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (!value) continue;
-                const remaining = byteLimit - totalBytes;
-                if (value.byteLength > remaining) {
-                  chunks.push(value.subarray(0, remaining));
-                  totalBytes += remaining;
-                  truncatedByBytes = true;
-                  await reader.cancel().catch(() => {});
-                  break;
-                }
-                chunks.push(value);
-                totalBytes += value.byteLength;
+
+          if (options.fetchImpl) {
+            // Test-injected fetch implementation: still enforce full SSRF validation on every hop.
+            const testDns = options.dnsLookupImpl ?? null;
+            let response!: Response;
+            for (let hop = 0; hop <= 5; hop++) {
+              await resolvePinnedFetchTarget(currentUrl, Boolean(options.allowLoopbackFetch), testDns);
+              response = await fetchFn(currentUrl.toString(), {
+                method: 'GET',
+                redirect: 'manual',
+                signal: requestSignal,
+                headers: {
+                  Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
+                },
+              });
+              if (response.status >= 300 && response.status < 400) {
+                const location = response.headers.get('location');
+                if (!location) break;
+                if (hop === 5) throw new Error('Too many redirects while fetching URL.');
+                const nextUrl = new URL(location, currentUrl);
+                await resolvePinnedFetchTarget(nextUrl, Boolean(options.allowLoopbackFetch), testDns);
+                currentUrl = nextUrl;
+                continue;
               }
-            } finally {
-              reader.releaseLock();
+              break;
             }
+            status = response.status;
+            finalUrl = response.url || currentUrl.toString();
+            contentType = response.headers.get('content-type') ?? 'application/octet-stream';
+            const chunks: Uint8Array[] = [];
+            if (response.body) {
+              const reader = response.body.getReader();
+              try {
+                for (;;) {
+                  requestSignal.throwIfAborted();
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  if (!value) continue;
+                  const remaining = byteLimit - totalBytes;
+                  if (value.byteLength > remaining) {
+                    chunks.push(value.subarray(0, remaining));
+                    totalBytes += remaining;
+                    truncatedByBytes = true;
+                    await reader.cancel().catch(() => {});
+                    break;
+                  }
+                  chunks.push(value);
+                  totalBytes += value.byteLength;
+                }
+              } finally {
+                reader.releaseLock();
+              }
+            }
+            rawBuffer = Buffer.concat(chunks.map(c => Buffer.from(c.buffer, c.byteOffset, c.byteLength)));
+          } else {
+            // Production path: resolve DNS once per hop and connect directly to the pinned IP
+            // (eliminating DNS rebinding TOCTOU between validation and TCP connect).
+            let pinnedRes!: PinnedHttpResponse;
+            for (let hop = 0; hop <= 5; hop++) {
+              const pinned = await resolvePinnedFetchTarget(currentUrl, Boolean(options.allowLoopbackFetch));
+              pinnedRes = await pinnedHttpGet(currentUrl, pinned, byteLimit, requestSignal);
+              if (pinnedRes.status >= 300 && pinnedRes.status < 400) {
+                const location = pinnedRes.headers['location'];
+                if (!location) break;
+                if (hop === 5) throw new Error('Too many redirects while fetching URL.');
+                currentUrl = new URL(location, currentUrl);
+                continue;
+              }
+              break;
+            }
+            status = pinnedRes.status;
+            finalUrl = pinnedRes.url;
+            contentType = pinnedRes.headers['content-type'] ?? 'application/octet-stream';
+            rawBuffer = pinnedRes.body;
+            totalBytes = rawBuffer.byteLength;
+            truncatedByBytes = pinnedRes.truncatedByBytes;
           }
-          const rawText = Buffer.concat(chunks.map(c => Buffer.from(c.buffer, c.byteOffset, c.byteLength))).toString('utf8');
+
+          const rawText = rawBuffer.toString('utf8');
           const preview = textPreview(rawText, 16384);
           const payload = {
-            url: response.url || parsed.toString(),
-            status: response.status,
+            url: finalUrl,
+            status,
             contentType,
             bytesRead: totalBytes,
             truncated: truncatedByBytes || preview.truncated,

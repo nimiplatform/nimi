@@ -124,7 +124,7 @@ export async function buildSupervisedAppElectronProduction({ repoRoot, consumer 
       electronVersion: electronPackage.version,
       out: packageOutput, tmpdir: path.join(staging, 'packager'),
       overwrite: false, prune: false, quiet: true, derefSymlinks: true,
-      asar: { unpack: '**/*.{node,dylib,dll}' },
+      asar: { unpack: '*.{node,dylib,dll}' },
       ...(isMac ? { extraResource: [path.join(staging, 'nimi-native')] } : {}),
       afterExtract: [async ({ buildPath }) => {
         // --inspect-brk takes effect before App main can reject it. Disable

@@ -4,10 +4,10 @@
 //   - Case-folded control-plane file wall (at any depth, normalized against workspaceRoot) forcing allow_once
 //   - Free Shell minimal environment allowlist + recursive .env* secret canary extraction & streaming redaction
 // @nimi-authority: rule.nimi.harness.security-gates.workspace-execution-env
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
-const BIDI_CONTROL_RE = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu;
+const BIDI_CONTROL_RE = /[\u061c\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/gu;
 const CONTROL_CHAR_RE = /[\x00-\x1f\x7f]/u;
 
 const SENSITIVE_KEY_NAME_RE = /(?:KEY|SECRET|TOKEN|PASS|PWD|AUTH|CRED|PRIVATE|DSN|COOKIE|JWT)/i;
@@ -21,6 +21,7 @@ const BENIGN_ENV_LITERALS = new Set([
 const CANARY_IGNORED_DIRS = new Set(['.git', 'node_modules', 'dist', '.next', 'target', 'build']);
 const MAX_CANARY_WALK_DEPTH = 4;
 const MAX_CANARY_WALK_DIRS = 500;
+const MAX_CANARY_ENV_FILE_BYTES = 512 * 1024;
 
 export function sanitizeBidi(text: string): string {
   return text.replace(BIDI_CONTROL_RE, '');
@@ -142,12 +143,13 @@ export function isSensitivePath(rawPath: string, workspaceRoot?: string): boolea
   if (parts.some(p => p === '.ssh' || p === '.aws' || p === '.gnupg' || p === '.kube')) {
     return true;
   }
-  // Deny .env and .env.* (except explicit .env.example / .env.sample / .env.template).
+  // Deny .env, .envrc, and .env* (except explicit .env.example / .env.sample / .env.template).
   // Strip trailing dots/spaces defensively in case caller skipped validateRawWorkspacePathInput.
   const canonicalName = name.replace(/[. ]+$/g, '');
   if (
     canonicalName === '.env'
-    || (canonicalName.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(canonicalName))
+    || canonicalName === '.envrc'
+    || (canonicalName.startsWith('.env') && !['.env.example', '.env.sample', '.env.template'].includes(canonicalName))
   ) {
     return true;
   }
@@ -231,32 +233,45 @@ export function safeGitArgs(args: readonly string[]): string[] {
  */
 export function buildMinimalShellEnv(sourceEnv: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const allowlist = process.platform === 'win32'
-    ? ['PATH', 'Path', 'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP', 'WINDIR']
+    ? ['PATH', 'SystemRoot', 'ComSpec', 'PATHEXT', 'TEMP', 'TMP', 'WINDIR']
     : ['PATH', 'HOME', 'USER', 'TMPDIR', 'SHELL', 'TERM'];
   const out: Record<string, string> = {
     LANG: 'C.UTF-8',
     LC_ALL: 'C.UTF-8',
     NO_COLOR: '1',
   };
+  const sourceByUpper = new Map<string, string>();
+  for (const [k, v] of Object.entries(sourceEnv)) {
+    if (typeof v === 'string' && v.length > 0 && !sourceByUpper.has(k.toUpperCase())) {
+      sourceByUpper.set(k.toUpperCase(), v);
+    }
+  }
+  const seenUpper = new Set<string>(Object.keys(out).map(k => k.toUpperCase()));
   for (const key of allowlist) {
-    const val = sourceEnv[key];
+    const upper = key.toUpperCase();
+    if (seenUpper.has(upper)) continue;
+    const val = sourceByUpper.get(upper);
     if (typeof val === 'string' && val.length > 0) {
-      out[key === 'Path' ? 'PATH' : key] = val;
+      out[key] = val;
+      seenUpper.add(upper);
     }
   }
   return out;
 }
 
 const CALLER_ENV_OVERRIDE_ALLOWLIST = new Set([
-  'TERM', 'CI', 'NO_COLOR', 'FORCE_COLOR', 'TZ', 'LANG', 'LC_ALL', 'PAGER', 'GIT_PAGER', 'GIT_TERMINAL_PROMPT',
+  'TERM', 'CI', 'NO_COLOR', 'FORCE_COLOR', 'TZ', 'LANG', 'LC_ALL', 'GIT_TERMINAL_PROMPT',
 ]);
 
 export function filterSafeCallerEnvOverrides(overrides?: Record<string, string>): Record<string, string> {
   if (!overrides) return {};
   const safe: Record<string, string> = {};
+  const seenUpper = new Set<string>();
   for (const [k, v] of Object.entries(overrides)) {
-    if (typeof v === 'string' && CALLER_ENV_OVERRIDE_ALLOWLIST.has(k.toUpperCase())) {
-      safe[k] = v;
+    const upper = k.toUpperCase();
+    if (typeof v === 'string' && CALLER_ENV_OVERRIDE_ALLOWLIST.has(upper) && !seenUpper.has(upper)) {
+      safe[upper] = v;
+      seenUpper.add(upper);
     }
   }
   return safe;
@@ -276,8 +291,20 @@ function shannonEntropy(value: string): number {
   return entropy;
 }
 
-function shouldTrackEnvCanary(key: string, rawVal: string): boolean {
-  const val = rawVal.trim().replace(/^(['"])(.*)\1$/, '$2');
+function parseEnvCanaryValue(rawVal: string): string {
+  const trimmed = rawVal.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('"') || trimmed.startsWith("'")) {
+    const quote = trimmed[0];
+    const closeIdx = trimmed.indexOf(quote, 1);
+    return closeIdx > 0 ? trimmed.slice(1, closeIdx) : trimmed.slice(1);
+  }
+  // Strip inline unquoted `# comment` suffix before checking value/entropy.
+  const commentIdx = trimmed.search(/\s+#/);
+  return (commentIdx >= 0 ? trimmed.slice(0, commentIdx) : trimmed).trim();
+}
+
+function shouldTrackEnvCanary(key: string, val: string): boolean {
   if (val.length < 8) return false;
   const lower = val.toLowerCase();
   if (BENIGN_ENV_LITERALS.has(lower)) return false;
@@ -290,7 +317,7 @@ function shouldTrackEnvCanary(key: string, rawVal: string): boolean {
 /**
  * Gate 4 Layer 3: Walks workspace root and bounded subdirectories strictly in
  * memory right before executing an approved Free Shell command, extracting
- * high-risk/high-entropy `.env*` secret values + Base64/URL-encoded variants.
+ * high-risk/high-entropy `.env*` / `.envrc` secret values + Base64/URL-encoded variants.
  * The caller MUST wipe the returned array on process exit.
  */
 export async function extractWorkspaceEnvCanarySecrets(workspaceRoot: string): Promise<string[]> {
@@ -317,20 +344,26 @@ export async function extractWorkspaceEnvCanarySecrets(workspaceRoot: string): P
       }
       if (!entry.isFile()) continue;
       const lower = entry.name.toLowerCase();
-      if (lower !== '.env' && !(lower.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(lower))) {
+      if (
+        lower !== '.env'
+        && lower !== '.envrc'
+        && !(lower.startsWith('.env') && !['.env.example', '.env.sample', '.env.template'].includes(lower))
+      ) {
         continue;
       }
       try {
-        const content = await readFile(join(current.dir, entry.name), 'utf8');
+        const filePath = join(current.dir, entry.name);
+        const info = await stat(filePath);
+        if (!info.isFile() || info.size <= 0 || info.size > MAX_CANARY_ENV_FILE_BYTES) continue;
+        const content = await readFile(filePath, 'utf8');
         for (const line of content.split(/\r?\n/)) {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith('#')) continue;
           const eq = trimmed.indexOf('=');
           if (eq <= 0) continue;
           const key = trimmed.slice(0, eq).replace(/^export\s+/i, '').trim();
-          const rawVal = trimmed.slice(eq + 1).trim();
-          if (!shouldTrackEnvCanary(key, rawVal)) continue;
-          const val = rawVal.replace(/^(['"])(.*)\1$/, '$2');
+          const val = parseEnvCanaryValue(trimmed.slice(eq + 1));
+          if (!shouldTrackEnvCanary(key, val)) continue;
           secrets.add(val);
           const b64 = Buffer.from(val, 'utf8').toString('base64');
           if (b64.length >= 12) secrets.add(b64);

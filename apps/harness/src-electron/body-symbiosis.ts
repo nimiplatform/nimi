@@ -70,6 +70,27 @@ export interface BodyCompactionOutput {
   readonly effectiveContextBudgetTokens: number;
 }
 
+export interface BodyPendingAttention {
+  readonly attentionId: string;
+  readonly attentionKind: string;
+  readonly summaryJson: string;
+  readonly expiresAt: string;
+}
+
+export interface BodyProjectionInput {
+  readonly workSessionRef: string;
+  readonly status: string;
+  readonly title?: string;
+  readonly workspaceRoot?: string;
+  readonly permissionMode?: string;
+  readonly latestReceiptJson?: string;
+  readonly milestoneKind?: string;
+  readonly topicSummary?: string;
+  readonly deliverablePaths?: readonly string[];
+  readonly pendingAttention?: BodyPendingAttention;
+  readonly clearPendingAttention?: boolean;
+}
+
 export interface BodyOutboxHandlers {
   onPurgeSession(workSessionRef: string, outboxId: string): Promise<void>;
   onPurgeAgent(agentBinding: string, outboxId: string): Promise<void>;
@@ -80,14 +101,7 @@ export interface BodyOutboxHandlers {
     agentBinding: string;
     payloadJson: string;
   }): Promise<void>;
-  onReconcileAfterTombstones(): Promise<readonly {
-    workSessionRef: string;
-    status: string;
-    title: string;
-    workspaceRoot?: string;
-    permissionMode?: string;
-    latestReceiptJson?: string;
-  }[]>;
+  onReconcileAfterTombstones(): Promise<readonly BodyProjectionInput[]>;
   onLeaseLost?: (reason: string) => void;
 }
 
@@ -218,9 +232,13 @@ export class HarnessBodySymbiosisClient {
   private projectionSeq = 0;
   private heartbeatTimer?: ReturnType<typeof setInterval>;
   private running = false;
+  private stopped = false;
   private tombstonesDrained = false;
   private effectiveContextBudgetTokens = 64_000;
   private consecutiveHeartbeatFailures = 0;
+  private projectionChain: Promise<void> = Promise.resolve();
+  private readyResolve?: () => void;
+  private readyPromise: Promise<void>;
 
   constructor(options: {
     deviceId: string;
@@ -232,6 +250,11 @@ export class HarnessBodySymbiosisClient {
     this.instanceId = options.instanceId ?? randomUUID();
     this.client = options.client;
     this.handlers = options.handlers;
+    this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
+  }
+
+  getAgentSessionClient(): NimiLocalAppAgentSessionClient {
+    return this.client;
   }
 
   getDeviceId(): string {
@@ -254,6 +277,17 @@ export class HarnessBodySymbiosisClient {
     return this.effectiveContextBudgetTokens;
   }
 
+  async waitUntilReady(timeoutMs = 15_000): Promise<void> {
+    if (this.isReadyForProjections()) return;
+    await Promise.race([
+      this.readyPromise,
+      new Promise<void>((_resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Harness PC body symbiosis lease did not become ready in time.')), timeoutMs);
+        timer.unref?.();
+      }),
+    ]);
+  }
+
   /**
    * Executes the strict v2.1 startup handshake:
    *   1. RegisterBodyCarrier -> receive (lease_epoch, pendingTombstones, pendingIntents)
@@ -263,6 +297,13 @@ export class HarnessBodySymbiosisClient {
    */
   async start(signal: AbortSignal): Promise<void> {
     if (this.running) return;
+    this.stopped = false;
+    await this.registerAndDrain(signal);
+    void this.consumeOutboxStreamWithReconnect(signal);
+  }
+
+  private async registerAndDrain(signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted();
     const reg = await this.client.registerBodyCarrier({
       deviceId: this.deviceId,
       capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
@@ -275,61 +316,69 @@ export class HarnessBodySymbiosisClient {
       heartbeatIntervalMs?: number;
     };
 
-    this.leaseEpoch = Number(reg.leaseEpoch ?? 0);
-    if (!Number.isSafeInteger(this.leaseEpoch) || this.leaseEpoch <= 0) {
+    const nextEpoch = Number(reg.leaseEpoch ?? 0);
+    if (!Number.isSafeInteger(nextEpoch) || nextEpoch <= 0) {
       throw new Error('Runtime rejected Body carrier registration (invalid lease_epoch).');
     }
+    this.leaseEpoch = nextEpoch;
+    this.projectionSeq = 0;
     this.running = true;
     this.tombstonesDrained = false;
     this.consecutiveHeartbeatFailures = 0;
 
-    // Step 2: Drain ALL tombstones strictly BEFORE projection reconciliation or new intents.
-    for (const env of reg.pendingTombstones ?? []) {
-      signal.throwIfAborted();
-      await this.handleEnvelopeAndAck(env);
+    try {
+      // Step 2: Drain ALL tombstones strictly BEFORE projection reconciliation or new intents.
+      for (const env of reg.pendingTombstones ?? []) {
+        signal.throwIfAborted();
+        await this.handleEnvelopeAndAck(env);
+      }
+      this.tombstonesDrained = true;
+      this.readyResolve?.();
+
+      // Step 3: Startup reconciliation via strictly monotonic (lease_epoch, projection_seq).
+      const reconciled = await this.handlers.onReconcileAfterTombstones();
+      for (const item of reconciled) {
+        signal.throwIfAborted();
+        await this.reportProjection(item);
+      }
+
+      // Step 4: Drain initial pending intents.
+      for (const env of reg.pendingIntents ?? []) {
+        signal.throwIfAborted();
+        await this.handleEnvelopeAndAck(env);
+      }
+
+      // Step 5: Start 10s in-memory heartbeat with lease-loss detection.
+      if (this.heartbeatTimer) {
+        clearInterval(this.heartbeatTimer);
+      }
+      const intervalMs = Math.max(2_000, Number(reg.heartbeatIntervalMs ?? 10_000));
+      this.heartbeatTimer = setInterval(() => {
+        if (!this.running || signal.aborted) return;
+        void this.client.heartbeatBodyCarrier({
+          deviceId: this.deviceId,
+          capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
+          leaseEpoch: String(this.leaseEpoch),
+          instanceId: this.instanceId,
+        } as never).then(resp => {
+          const parsed = resp as unknown as { alive?: boolean; renewed?: boolean };
+          if (parsed?.alive === false || parsed?.renewed === false) {
+            this.handleLeaseLost('Runtime reported lease epoch superseded.');
+          } else {
+            this.consecutiveHeartbeatFailures = 0;
+          }
+        }).catch(err => {
+          this.consecutiveHeartbeatFailures += 1;
+          if (this.consecutiveHeartbeatFailures >= 3) {
+            this.handleLeaseLost(err instanceof Error ? err.message : 'Body carrier heartbeat lost.');
+          }
+        });
+      }, intervalMs);
+      this.heartbeatTimer.unref?.();
+    } catch (error) {
+      await this.stop().catch(() => {});
+      throw error;
     }
-    this.tombstonesDrained = true;
-
-    // Step 3: Startup reconciliation via strictly monotonic (lease_epoch, projection_seq).
-    const reconciled = await this.handlers.onReconcileAfterTombstones();
-    for (const item of reconciled) {
-      signal.throwIfAborted();
-      await this.reportProjection(item);
-    }
-
-    // Step 4: Drain initial pending intents.
-    for (const env of reg.pendingIntents ?? []) {
-      signal.throwIfAborted();
-      await this.handleEnvelopeAndAck(env);
-    }
-
-    // Step 5: Start 10s in-memory heartbeat with lease-loss detection.
-    const intervalMs = Math.max(2_000, Number(reg.heartbeatIntervalMs ?? 10_000));
-    this.heartbeatTimer = setInterval(() => {
-      if (!this.running || signal.aborted) return;
-      void this.client.heartbeatBodyCarrier({
-        deviceId: this.deviceId,
-        capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
-        leaseEpoch: String(this.leaseEpoch),
-        instanceId: this.instanceId,
-      } as never).then(resp => {
-        const renewed = (resp as unknown as { renewed?: boolean })?.renewed;
-        if (renewed === false) {
-          this.handleLeaseLost('Runtime reported lease epoch superseded.');
-        } else {
-          this.consecutiveHeartbeatFailures = 0;
-        }
-      }).catch(err => {
-        this.consecutiveHeartbeatFailures += 1;
-        if (this.consecutiveHeartbeatFailures >= 3) {
-          this.handleLeaseLost(err instanceof Error ? err.message : 'Body carrier heartbeat lost.');
-        }
-      });
-    }, intervalMs);
-    this.heartbeatTimer.unref?.();
-
-    // Step 6: Subscribe long-lived outbox stream (exempt from 300s cap).
-    void this.consumeOutboxStream(signal);
   }
 
   private handleLeaseLost(reason: string): void {
@@ -340,22 +389,50 @@ export class HarnessBodySymbiosisClient {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = undefined;
     }
+    this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
     this.handlers.onLeaseLost?.(reason);
   }
 
-  private async consumeOutboxStream(signal: AbortSignal): Promise<void> {
-    try {
-      const stream = await this.client.subscribeBodyOutbox({
-        deviceId: this.deviceId,
-        capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
-        leaseEpoch: String(this.leaseEpoch),
-      } as never);
-      for await (const env of stream as AsyncIterable<Record<string, unknown>>) {
-        if (!this.running || signal.aborted) break;
-        await this.handleEnvelopeAndAck(env);
+  private async consumeOutboxStreamWithReconnect(signal: AbortSignal): Promise<void> {
+    let backoffMs = 1_000;
+    while (!this.stopped && !signal.aborted) {
+      try {
+        if (!this.running || this.leaseEpoch <= 0) {
+          await this.registerAndDrain(signal);
+        }
+        const stream = await this.client.subscribeBodyOutbox({
+          deviceId: this.deviceId,
+          capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
+          leaseEpoch: String(this.leaseEpoch),
+        } as never, { signal } as never);
+        backoffMs = 1_000;
+        for await (const env of stream as AsyncIterable<Record<string, unknown>>) {
+          if (!this.running || this.stopped || signal.aborted) break;
+          try {
+            await this.handleEnvelopeAndAck(env);
+          } catch (envErr) {
+            const msg = envErr instanceof Error ? envErr.message : String(envErr);
+            if (/AGENT_BODY_LEASE_CONFLICT|FAILED_PRECONDITION/i.test(msg)) {
+              throw envErr;
+            }
+            // Do NOT ACK failed/unknown envelopes; keep the outbox subscription alive
+            // so Runtime can redeliver retriable commands without starving subsequent items.
+          }
+        }
+      } catch (err) {
+        if (this.stopped || signal.aborted) break;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/AGENT_BODY_LEASE_CONFLICT|FAILED_PRECONDITION/i.test(msg)) {
+          this.handleLeaseLost(msg);
+        }
       }
-    } catch {
-      // Stream disconnects cleanly on abort or daemon restart; AuthorizeBodySideEffect remains fail-closed.
+      if (this.stopped || signal.aborted) break;
+      await new Promise<void>(resolve => {
+        const timer = setTimeout(resolve, backoffMs);
+        timer.unref?.();
+        signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+      });
+      backoffMs = Math.min(15_000, backoffMs * 2);
     }
   }
 
@@ -373,8 +450,10 @@ export class HarnessBodySymbiosisClient {
       await this.handlers.onPurgeAgent(agentBinding, outboxId);
     } else if (kind === 2 || kind === 'BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY') {
       await this.handlers.onInvalidateMemory(workSessionRef, outboxId);
-    } else {
+    } else if (kind === 1 || kind === 'BODY_OUTBOX_COMMAND_KIND_NEW_INTENT') {
       await this.handlers.onNewIntent({ outboxId, workSessionRef, agentBinding, payloadJson });
+    } else {
+      throw new Error(`Unsupported body outbox command kind "${String(kind)}" for outbox "${outboxId}".`);
     }
 
     const ackResp = await this.client.ackBodyOutbox({
@@ -425,34 +504,40 @@ export class HarnessBodySymbiosisClient {
     }
   }
 
-  async reportProjection(input: {
-    workSessionRef: string;
-    status: string;
-    title?: string;
-    workspaceRoot?: string;
-    permissionMode?: string;
-    latestReceiptJson?: string;
-    milestoneKind?: string;
-    topicSummary?: string;
-    deliverablePaths?: readonly string[];
-  }): Promise<void> {
-    if (!this.isReadyForProjections()) return;
-    this.projectionSeq += 1;
-    await this.client.reportBodySessionProjection({
-      workSessionRef: input.workSessionRef,
-      deviceId: this.deviceId,
-      capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
-      leaseEpoch: String(this.leaseEpoch),
-      projectionSeq: String(this.projectionSeq),
-      status: input.status,
-      ...(input.title ? { title: input.title } : {}),
-      ...(input.workspaceRoot ? { workspaceRoot: input.workspaceRoot } : {}),
-      ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
-      ...(input.latestReceiptJson ? { latestReceiptJson: input.latestReceiptJson } : {}),
-      ...(input.milestoneKind ? { milestoneKind: input.milestoneKind } : {}),
-      ...(input.topicSummary ? { topicSummary: input.topicSummary } : {}),
-      ...(input.deliverablePaths ? { deliverablePaths: [...input.deliverablePaths] } : {}),
-    } as never);
+  async reportProjection(input: BodyProjectionInput): Promise<void> {
+    if (!this.isReadyForProjections() || !input.workSessionRef.trim()) return;
+    const run = this.projectionChain.then(async () => {
+      if (!this.isReadyForProjections()) return;
+      this.projectionSeq += 1;
+      const seq = this.projectionSeq;
+      await this.client.reportBodySessionProjection({
+        workSessionRef: input.workSessionRef,
+        deviceId: this.deviceId,
+        capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
+        leaseEpoch: String(this.leaseEpoch),
+        projectionSeq: String(seq),
+        status: input.status,
+        ...(input.title ? { title: input.title } : {}),
+        ...(input.workspaceRoot ? { workspaceRoot: input.workspaceRoot } : {}),
+        ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
+        ...(input.latestReceiptJson ? { latestReceiptJson: input.latestReceiptJson } : {}),
+        ...(input.milestoneKind ? { milestoneKind: input.milestoneKind } : {}),
+        ...(input.topicSummary ? { topicSummary: input.topicSummary } : {}),
+        ...(input.deliverablePaths ? { deliverablePaths: [...input.deliverablePaths] } : {}),
+        ...(input.pendingAttention ? {
+          pendingAttention: {
+            attentionId: input.pendingAttention.attentionId,
+            workSessionRef: input.workSessionRef,
+            attentionKind: input.pendingAttention.attentionKind,
+            summaryJson: input.pendingAttention.summaryJson,
+            expiresAt: input.pendingAttention.expiresAt,
+          },
+        } : {}),
+        ...(input.clearPendingAttention ? { clearPendingAttention: true } : {}),
+      } as never);
+    });
+    this.projectionChain = run.catch(() => {});
+    return run;
   }
 
   /**

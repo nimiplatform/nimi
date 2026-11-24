@@ -1,12 +1,15 @@
-import { randomUUID } from 'node:crypto';
+// Thin Electron main UI / dialog / shell / Runtime-bridge supervisor for Nimi Harness.
+// All heavy engine work (openHarness, pi-durable@1.6.0 SQLite WAL+FULL,
+// SecureWorkspaceExecutionEnv, HarnessBodySymbiosisClient, serveSessions)
+// executes strictly inside the dedicated Electron utilityProcess (engine-worker.ts).
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, dialog, shell, BrowserWindow, ipcMain, Menu, protocol, session, utilityProcess, webContents } from 'electron';
 import { configureNimiElectronAppHostProfile } from '@nimiplatform/kit/shell/electron/host-profile';
-import type { openHarness as OpenHarness, PermissionMode } from './harness.js';
-import { HarnessBodySymbiosisClient } from './body-symbiosis.js';
-import { EngineWorkerHostClient } from './engine-worker.js';
+import type { PermissionMode } from './harness.js';
+import { HarnessEngineWorkerClient } from './engine-worker.js';
 
 declare const __NIMI_ELECTRON_PRODUCTION__: boolean;
 
@@ -67,11 +70,9 @@ const rendererUrl = developmentRendererUrl || productionRendererUrl;
 const allowedRendererUrls = [rendererUrl];
 let resettingRenderer = false;
 let quitting = false;
-let account = new AbortController();
-let harness: ReturnType<typeof OpenHarness> | undefined;
-let symbiosis: HarnessBodySymbiosisClient | undefined;
-let engineWorker: EngineWorkerHostClient | undefined;
-let retiringHarness = Promise.resolve();
+let accountGeneration = 0;
+let engineWorker: HarnessEngineWorkerClient | undefined;
+let closingWorker = Promise.resolve();
 
 app.setName('Nimi Harness');
 if (process.platform === 'win32') {
@@ -87,23 +88,10 @@ registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
   if (process.platform === 'darwin' && !IS_PRODUCTION_BUNDLE && windowIcon) app.dock?.setIcon(windowIcon);
-  const [{ serveSessions }, { openHarness }] = await Promise.all([import('./session-provider.js'), import('./harness.js')]);
   const harnessDataRoot = path.join(app.getPath('userData'), 'harness');
 
-  // Spawn dedicated Electron utilityProcess for off-main-thread SQLite durability & hash I/O (Gate 7).
-  const engineWorkerPath = path.join(currentDir, 'engine-worker.js');
-  if (existsSync(engineWorkerPath)) {
-    try {
-      const forked = utilityProcess.fork(engineWorkerPath, [], { serviceName: 'nimi-harness-engine' });
-      engineWorker = new EngineWorkerHostClient(forked);
-      void engineWorker.request({ kind: 'ping' }).catch(() => {});
-    } catch (error) {
-      process.stderr.write(`[nimi-harness-worker] ${error instanceof Error ? error.message : String(error)}\n`);
-    }
-  }
-
   const notifyRendererViewChanged = () => {
-    if (account.signal.aborted || quitting) return;
+    if (quitting) return;
     for (const window of BrowserWindow.getAllWindows()) {
       if (!window.isDestroyed() && isAllowedElectronRendererUrl(window.webContents.getURL(), allowedRendererUrls)) {
         window.webContents.send('harness:view-changed');
@@ -111,151 +99,120 @@ void app.whenReady().then(async () => {
     }
   };
 
+  const notifyRendererFocusSession = (workSessionRef: string) => {
+    if (quitting) return;
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed() && isAllowedElectronRendererUrl(window.webContents.getURL(), allowedRendererUrls)) {
+        window.webContents.send('harness:focus-session', workSessionRef);
+      }
+    }
+  };
+
+  // Spawn dedicated Electron utilityProcess for the full Harness engine (Fork A / Gate 7).
+  const engineWorkerPath = path.join(currentDir, 'engine-worker.js');
+  if (!existsSync(engineWorkerPath)) {
+    throw new Error(`Harness engine worker entry is missing: ${engineWorkerPath}`);
+  }
+  const forked = utilityProcess.fork(engineWorkerPath, [], { serviceName: 'nimi-harness-engine' });
+  engineWorker = new HarnessEngineWorkerClient(forked, {
+    onViewChanged: notifyRendererViewChanged,
+    onFocusSession: workSessionRef => {
+      notifyRendererFocusSession(workSessionRef);
+      notifyRendererViewChanged();
+    },
+    onLeaseLost: reason => {
+      process.stderr.write(`[nimi-harness-symbiosis] lease lost: ${reason}\n`);
+      notifyRendererViewChanged();
+    },
+    onCrash: code => {
+      if (!quitting) {
+        process.stderr.write(`[nimi-harness-worker] engine process exited unexpectedly (code=${code}); side effects will not be auto-replayed.\n`);
+      }
+    },
+    onLog: text => {
+      process.stderr.write(`${text}\n`);
+    },
+  });
+  void engineWorker.request({ kind: 'ping' }).catch(() => {});
+
+  const callEngine = <T = unknown>(method: string, args: unknown[] = []): Promise<T> => {
+    if (!engineWorker) {
+      return Promise.reject(new Error('Nimi Harness engine process is unavailable.'));
+    }
+    return engineWorker.callEngine<T>(method, args);
+  };
+
   focusDeepLinkHandler = (workSessionRef: string) => {
-    void getHarness()
-      .then(h => h.selectByWorkSessionRef(workSessionRef))
-      .then(selected => { if (selected) notifyRendererViewChanged(); })
+    void callEngine<boolean>('selectByWorkSessionRef', [workSessionRef])
+      .then(selected => {
+        if (selected) {
+          notifyRendererFocusSession(workSessionRef);
+          notifyRendererViewChanged();
+        }
+      })
       .catch(() => {});
   };
 
-  const bridge = registerNimiElectronAppBridge({
+  registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,
     allowedRendererUrls,
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
     onSessionReady: services => {
-      const signal = account.signal;
-      void serveSessions(services.integration, getHarness, signal).catch(error => {
-        if (!signal.aborted) process.stderr.write(`[nimi-harness-integration] ${error instanceof Error ? error.message : String(error)}\n`);
-      });
-      void startBodySymbiosis(services, signal).catch(error => {
-        if (!signal.aborted) process.stderr.write(`[nimi-harness-symbiosis] ${error instanceof Error ? error.message : String(error)}\n`);
-      });
+      accountGeneration += 1;
+      const deepLinkRef = pendingDeepLinkWorkSessionRef;
+      pendingDeepLinkWorkSessionRef = undefined;
+      try {
+        engineWorker?.activateSession(services, {
+          dataRoot: harnessDataRoot,
+          requireSymbiosis: true,
+          ...(deepLinkRef ? { pendingDeepLinkWorkSessionRef: deepLinkRef } : {}),
+        });
+      } catch (error) {
+        process.stderr.write(`[nimi-harness-worker] failed to activate session: ${error instanceof Error ? error.message : String(error)}\n`);
+      }
     },
     onSessionInvalidated: () => {
-      void closeHarness().catch(reportHarnessCloseFailure);
+      accountGeneration += 1;
+      engineWorker?.invalidateSession();
       resetAccountScopedRenderer();
     },
   });
 
-  async function resolvePersistentDeviceId(storage: typeof bridge.services.storage, signal: AbortSignal): Promise<string> {
-    try {
-      const existing = (await storage.readJson('harness-device-id.json')).value;
-      if (typeof existing === 'string' && /^[A-Za-z0-9._-]{8,128}$/.test(existing)) {
-        return existing;
-      }
-    } catch {
-      // Missing device id; allocate one durably under account storage.
-    }
-    signal.throwIfAborted();
-    const created = `pc-${randomUUID()}`;
-    await storage.writeJson('harness-device-id.json', created).catch(() => {});
-    return created;
-  }
-
-  async function startBodySymbiosis(services: typeof bridge.services, signal: AbortSignal): Promise<void> {
-    if (signal.aborted) return;
-    const deviceId = await resolvePersistentDeviceId(services.storage, signal);
-    signal.throwIfAborted();
-    const client = new HarnessBodySymbiosisClient({
-      deviceId,
-      client: services.agentSession,
-      handlers: {
-        onPurgeSession: async (workSessionRef) => {
-          await (await getHarness()).handleBodyPurgeSession(workSessionRef);
-          notifyRendererViewChanged();
-        },
-        onPurgeAgent: async (agentBinding) => {
-          await (await getHarness()).handleBodyPurgeAgent(agentBinding);
-          notifyRendererViewChanged();
-        },
-        onInvalidateMemory: async (workSessionRef) => {
-          await (await getHarness()).handleBodyInvalidateMemory(workSessionRef);
-          notifyRendererViewChanged();
-        },
-        onNewIntent: async (env) => {
-          await (await getHarness()).handleBodyNewIntent(env);
-          notifyRendererViewChanged();
-        },
-        onReconcileAfterTombstones: async () => (await getHarness()).listBodyProjectionsForReconcile(),
-        onLeaseLost: (reason) => {
-          process.stderr.write(`[nimi-harness-symbiosis] lease lost: ${reason}\n`);
-          notifyRendererViewChanged();
-        },
-      },
-    });
-    symbiosis = client;
-    if (harness) {
-      const active = await harness.catch(() => undefined);
-      active?.attachSymbiosis(client);
-    }
-    await client.start(signal);
-    if (pendingDeepLinkWorkSessionRef) {
-      const ref = pendingDeepLinkWorkSessionRef;
-      pendingDeepLinkWorkSessionRef = undefined;
-      focusDeepLinkHandler?.(ref);
-    }
-  }
-
-  function getHarness(): ReturnType<typeof OpenHarness> {
-    if (harness) return harness;
-    const signal = account.signal;
-    const pending = retiringHarness.then(() => {
-      signal.throwIfAborted();
-      let queued: ReturnType<typeof setTimeout> | undefined;
-      return openHarness(bridge.services, signal, () => {
-        if (queued || signal.aborted) return;
-        // Coalesce rapid stream deltas to a crisp 60ms frame cadence without IPC flooding.
-        queued = setTimeout(() => {
-          queued = undefined;
-          notifyRendererViewChanged();
-        }, 60);
-        queued.unref();
-      }, {
-        dataRoot: harnessDataRoot,
-        symbiosis,
-        requireSymbiosis: true,
-      });
-    });
-    harness = pending;
-    void pending.catch(() => { if (harness === pending) harness = undefined; });
-    return pending;
-  }
-
   ipcMain.handle('harness:snapshot', async event => {
     assertHarnessSender(event);
-    return (await getHarness()).snapshot();
+    return callEngine('snapshot');
   });
   ipcMain.handle('harness:import-home', async (event, source: unknown) => {
     assertHarnessSender(event);
-    await (await getHarness()).importHome(source);
+    await callEngine('importHome', [source]);
   });
   ipcMain.handle('harness:import-material', async (event, id: string, name: string, data: Uint8Array) => {
     assertHarnessSender(event);
-    return (await getHarness()).importMaterial(id, name, data);
+    return callEngine('importMaterial', [id, name, data]);
   });
   ipcMain.handle('harness:list-files', async (event, id: string, folder: string, offset: number) => {
     assertHarnessSender(event);
-    return (await getHarness()).listFiles(id, folder, offset);
+    return callEngine('listFiles', [id, folder, offset]);
   });
   ipcMain.handle('harness:preview-file', async (event, id: string, ref: string, page?: number) => {
     assertHarnessSender(event);
-    return (await getHarness()).previewFile(id, ref, page);
+    return callEngine('previewFile', [id, ref, page]);
   });
   ipcMain.handle('harness:reveal-file', async (event, id: string, ref: string) => {
     assertHarnessSender(event);
-    const lifetime = account.signal;
-    const filePath = await (await getHarness()).revealFile(id, ref);
-    lifetime.throwIfAborted();
+    const generation = accountGeneration;
+    const filePath = await callEngine<string>('revealFile', [id, ref]);
+    if (quitting || generation !== accountGeneration) return;
     shell.showItemInFolder(filePath);
   });
   ipcMain.handle('harness:reveal-workspace', async (event, id: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string') throw new Error('Invalid session.');
-    const lifetime = account.signal;
-    const dir = await (await getHarness()).revealWorkspace(id);
-    lifetime.throwIfAborted();
+    const generation = accountGeneration;
+    const dir = await callEngine<string>('revealWorkspace', [id]);
+    if (quitting || generation !== accountGeneration) return;
     await shell.openPath(dir);
   });
   ipcMain.handle('harness:choose-workspace', async event => {
@@ -273,7 +230,7 @@ void app.whenReady().then(async () => {
     if (dir !== null && (typeof dir !== 'string' || !path.isAbsolute(dir) || /[\x00-\x1f]/u.test(dir))) {
       throw new Error('Choose an absolute directory path for the workspace.');
     }
-    await (await getHarness()).setWorkspace(id, dir);
+    await callEngine('setWorkspace', [id, dir]);
   });
   ipcMain.handle('harness:create', async (event, configRef: unknown, workspaceDir?: unknown) => {
     assertHarnessSender(event);
@@ -283,12 +240,12 @@ void app.whenReady().then(async () => {
     if (workspaceDir !== undefined && (typeof workspaceDir !== 'string' || !path.isAbsolute(workspaceDir) || /[\x00-\x1f]/u.test(workspaceDir))) {
       throw new Error('Invalid workspace directory.');
     }
-    await (await getHarness()).create(configRef, workspaceDir);
+    await callEngine('create', [configRef, workspaceDir]);
   });
   ipcMain.handle('harness:select', async (event, id: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string') throw new Error('Invalid session.');
-    await (await getHarness()).select(id);
+    await callEngine('select', [id]);
     const window = BrowserWindow.fromWebContents(event.sender);
     if (window && !window.isDestroyed()) {
       if (window.isMinimized()) window.restore();
@@ -301,50 +258,50 @@ void app.whenReady().then(async () => {
     if (typeof id !== 'string' || typeof title !== 'string' || !title.trim() || title.trim().length > 120) {
       throw new Error('Choose a session name of up to 120 characters.');
     }
-    await (await getHarness()).rename(id, title.trim());
+    await callEngine('rename', [id, title.trim()]);
   });
   ipcMain.handle('harness:delete-session', async (event, id: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string') throw new Error('Invalid session.');
-    await (await getHarness()).deleteSession(id);
+    await callEngine('deleteSession', [id]);
   });
   ipcMain.handle('harness:pin-session', async (event, id: unknown, pinned: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string' || typeof pinned !== 'boolean') throw new Error('Invalid pin update.');
-    await (await getHarness()).pinSession(id, pinned);
+    await callEngine('pinSession', [id, pinned]);
   });
   ipcMain.handle('harness:set-permission-mode', async (event, id: unknown, mode: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string' || (mode !== 'strict' && mode !== 'workspace-edit' && mode !== 'plan-readonly')) {
       throw new Error('Invalid permission mode.');
     }
-    await (await getHarness()).setPermissionMode(id, mode as PermissionMode);
+    await callEngine('setPermissionMode', [id, mode as PermissionMode]);
   });
   ipcMain.handle('harness:set-reasoning-effort', async (event, id: unknown, effort: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string' || (effort !== null && (typeof effort !== 'string' || !effort.trim() || effort.length > 32))) {
       throw new Error('Invalid reasoning effort.');
     }
-    await (await getHarness()).setReasoningEffort(id, effort);
+    await callEngine('setReasoningEffort', [id, effort]);
   });
   ipcMain.handle('harness:export-markdown', async (event, id: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string') throw new Error('Invalid session.');
-    return (await getHarness()).exportMarkdown(id);
+    return callEngine('exportMarkdown', [id]);
   });
   ipcMain.handle('harness:list-integrations', async event => {
     assertHarnessSender(event);
-    return (await getHarness()).listIntegrations();
+    return callEngine('listIntegrations');
   });
   ipcMain.handle('harness:withdraw', async (event, id: unknown, input: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string' || typeof input !== 'number' || !Number.isSafeInteger(input) || input < 1) throw new Error('Invalid queued follow-up.');
-    await (await getHarness()).withdraw(id, input);
+    await callEngine('withdraw', [id, input]);
   });
   ipcMain.handle('harness:instructions', async (event, id: unknown, text: unknown) => {
     assertHarnessSender(event);
     if (typeof id !== 'string' || typeof text !== 'string' || text.length > 4000) throw new Error('Use up to 4,000 characters for session instructions.');
-    await (await getHarness()).setInstructions(id, text.trim());
+    await callEngine('setInstructions', [id, text.trim()]);
   });
   ipcMain.handle('harness:submit', async (event, sessionId: unknown, text: unknown, requestId: unknown, queue: unknown = false) => {
     assertHarnessSender(event);
@@ -352,7 +309,7 @@ void app.whenReady().then(async () => {
       || typeof requestId !== 'string' || !/^[0-9a-f-]{36}$/.test(requestId) || typeof queue !== 'boolean') {
       throw new Error('Invalid task input.');
     }
-    await (await getHarness()).submit(sessionId, text, requestId, queue);
+    await callEngine('submit', [sessionId, text, requestId, queue]);
   });
   ipcMain.handle('harness:decide', async (event, sessionId: unknown, id: unknown, allow: unknown, feedback?: unknown, allowForSession?: unknown, revision?: unknown) => {
     assertHarnessSender(event);
@@ -368,19 +325,19 @@ void app.whenReady().then(async () => {
     if (typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision)) {
       throw new Error('Decision revision is required to prevent stale approvals.');
     }
-    await (await getHarness()).decide(sessionId, id, allow, feedback?.trim(), allowForSession === true, revision);
+    await callEngine('decide', [sessionId, id, allow, feedback?.trim(), allowForSession === true, revision]);
   });
   ipcMain.handle('harness:list-snapshots', async (event, sessionId: unknown) => {
     assertHarnessSender(event);
     if (typeof sessionId !== 'string') throw new Error('Invalid session.');
-    return (await getHarness()).listSnapshots(sessionId);
+    return callEngine('listSnapshots', [sessionId]);
   });
   ipcMain.handle('harness:restore-snapshot', async (event, sessionId: unknown, snapshotId: unknown) => {
     assertHarnessSender(event);
     if (typeof sessionId !== 'string' || typeof snapshotId !== 'string' || !snapshotId.trim()) {
       throw new Error('Invalid snapshot restore request.');
     }
-    return (await getHarness()).restoreSnapshot(sessionId, snapshotId);
+    return callEngine('restoreSnapshot', [sessionId, snapshotId]);
   });
   ipcMain.handle('harness:review-model', async (event, sessionId: unknown, confirmation: unknown, configRef: unknown) => {
     assertHarnessSender(event);
@@ -388,17 +345,17 @@ void app.whenReady().then(async () => {
       throw new Error('Invalid session model selection.');
     }
     if (configRef !== undefined && (typeof configRef !== 'string' || !/^(main|[0-9a-f]{32})$/.test(configRef))) throw new Error('Invalid configuration reference.');
-    return (await getHarness()).reviewModel(sessionId, confirmation, configRef);
+    return callEngine('reviewModel', [sessionId, confirmation, configRef]);
   });
   ipcMain.handle('harness:stop', async (event, sessionId: unknown) => {
     assertHarnessSender(event);
     if (typeof sessionId !== 'string') throw new Error('Invalid session.');
-    await (await getHarness()).stop(sessionId);
+    await callEngine('stop', [sessionId]);
   });
   ipcMain.handle('harness:resume', async (event, sessionId: unknown) => {
     assertHarnessSender(event);
     if (typeof sessionId !== 'string') throw new Error('Invalid session.');
-    await (await getHarness()).resume(sessionId);
+    await callEngine('resume', [sessionId]);
   });
   await createMainWindow();
   app.on('activate', () => {
@@ -413,8 +370,18 @@ app.on('before-quit', event => {
   if (quitting) return;
   quitting = true;
   event.preventDefault();
-  void closeHarness().catch(reportHarnessCloseFailure).finally(() => app.quit());
+  void shutdownWorker().catch(reportHarnessCloseFailure).finally(() => app.quit());
 });
+
+function shutdownWorker(): Promise<void> {
+  const active = engineWorker;
+  engineWorker = undefined;
+  const closing = closingWorker.then(async () => {
+    await active?.shutdown();
+  });
+  closingWorker = closing;
+  return closing;
+}
 
 function readPackageVersion(root: string): string {
   try {
@@ -430,26 +397,6 @@ function assertHarnessSender(event: Electron.IpcMainInvokeEvent): void {
     || !isAllowedElectronRendererUrl(event.senderFrame.url, allowedRendererUrls)) {
     throw new Error('Nimi Harness accepts commands from its main window.');
   }
-}
-
-function closeHarness(): Promise<void> {
-  account.abort();
-  account = new AbortController();
-  const previous = harness;
-  const prevSymbiosis = symbiosis;
-  harness = undefined;
-  symbiosis = undefined;
-  const closing = retiringHarness.then(async () => {
-    await prevSymbiosis?.stop().catch(() => undefined);
-    const opened = await previous?.catch(() => undefined);
-    await opened?.close();
-    if (quitting) {
-      engineWorker?.close();
-      engineWorker = undefined;
-    }
-  });
-  retiringHarness = closing;
-  return closing;
 }
 
 function extractWorkSessionRefArg(argv: readonly string[]): string | undefined {

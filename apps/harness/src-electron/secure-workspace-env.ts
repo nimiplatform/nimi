@@ -11,7 +11,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdir, readdir, readFile, rm, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rm, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,10 +29,12 @@ import {
   type FileListEntry,
   type FileListing,
   type FileWatcher,
+  type LineScan,
   type ListFilesOptions,
   type Result,
   type ShellExecOptions,
   type ShellExecResult,
+  type TextLine,
   type TextLineReader,
   type WatchTarget,
 } from '@earendil-works/pi-durable/env';
@@ -61,9 +63,135 @@ export const MAX_CONTROL_FRAME_BYTES = 256 * 1024; // 256 KiB (UTF-8 bytes)
 const INTERPRETER_EXECUTABLES = new Set([
   'sh', 'bash', 'zsh', 'dash', 'ksh', 'fish', 'csh',
   'cmd', 'cmd.exe', 'powershell', 'powershell.exe', 'pwsh', 'pwsh.exe',
+  'powershell_ise', 'powershell_ise.exe', 'mshta', 'mshta.exe', 'rundll32', 'rundll32.exe', 'regsvr32', 'regsvr32.exe',
   'node', 'node.exe', 'deno', 'deno.exe', 'bun', 'bun.exe',
-  'python', 'python.exe', 'python3', 'python3.exe', 'ruby', 'perl', 'php', 'wscript', 'cscript',
+  'python', 'python.exe', 'python3', 'python3.exe', 'py', 'py.exe',
+  'ruby', 'perl', 'php', 'wscript', 'cscript', 'osascript',
+  'env', 'awk', 'gawk', 'sed', 'xargs', 'find', 'make', 'cmake',
+  'npm', 'npm.cmd', 'npx', 'npx.cmd', 'pnpm', 'pnpm.cmd', 'yarn', 'yarn.cmd',
 ]);
+
+function isDangerousGitCommand(args: readonly string[]): boolean {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? '';
+    const lower = arg.toLowerCase();
+    if (
+      lower === '-c'
+      || lower.startsWith('-c=')
+      || lower === '--config-env'
+      || lower.startsWith('--config-env=')
+      || lower.includes('core.pager')
+      || lower.includes('core.fsmonitor')
+      || lower.includes('core.hookspath')
+      || lower.includes('core.sshcommand')
+      || lower.includes('diff.external')
+      || lower === '--upload-pack'
+      || lower.startsWith('--upload-pack=')
+      || lower === '--receive-pack'
+      || lower.startsWith('--receive-pack=')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const lineScanEncoder = new TextEncoder();
+
+function decodedByteLength(text: string): number {
+  return text === '' ? 0 : lineScanEncoder.encode(text).length;
+}
+
+function scanLineBytes(data: Uint8Array, startLine: number, endLine = Number.POSITIVE_INFINITY): LineScan {
+  if (!Number.isSafeInteger(startLine) || startLine < 0 || !(endLine > startLine)) {
+    throw new RangeError('Invalid line range');
+  }
+  if (endLine !== Number.POSITIVE_INFINITY && !Number.isSafeInteger(endLine)) {
+    throw new RangeError('Invalid line range');
+  }
+  const hasBom = data.length >= 3 && data[0] === 0xef && data[1] === 0xbb && data[2] === 0xbf;
+  let newlines = 0;
+  let lineStart = 0;
+  let start: number | undefined;
+  let end: number | undefined;
+  let firstLineEnd: number | undefined;
+  let lastLineStart: number | undefined;
+  let selectedBytes = 0;
+  let firstLineBytes = 0;
+  let selectionDecoder: TextDecoder | undefined;
+  let firstLineDecoder: TextDecoder | undefined;
+
+  const begin = (pos: number) => {
+    start = pos;
+    if (startLine === endLine - 1) lastLineStart = pos;
+    selectionDecoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+    firstLineDecoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+  };
+  const endFirstLine = (pos: number) => {
+    firstLineEnd = pos;
+    if (firstLineDecoder) {
+      firstLineBytes += decodedByteLength(firstLineDecoder.decode());
+      firstLineDecoder = undefined;
+    }
+  };
+  const endSelection = (pos: number) => {
+    end = pos;
+    if (selectionDecoder) {
+      selectedBytes += decodedByteLength(selectionDecoder.decode());
+      selectionDecoder = undefined;
+    }
+  };
+  const feed = (from: number, to: number) => {
+    if (hasBom && from < 3) from = Math.min(to, 3);
+    if (to <= from) return;
+    const slice = data.subarray(from, to);
+    if (selectionDecoder) {
+      selectedBytes += decodedByteLength(selectionDecoder.decode(slice, { stream: true }));
+    }
+    if (firstLineDecoder) {
+      firstLineBytes += decodedByteLength(firstLineDecoder.decode(slice, { stream: true }));
+    }
+  };
+
+  if (startLine === 0) begin(0);
+  let from = 0;
+  for (let index = data.indexOf(0x0a); index !== -1; index = data.indexOf(0x0a, index + 1)) {
+    feed(from, index);
+    const line = newlines;
+    if (line === startLine) endFirstLine(index);
+    if (line === endLine - 1) endSelection(index);
+    feed(index, index + 1);
+    from = index + 1;
+    newlines++;
+    lineStart = index + 1;
+    if (newlines === startLine) begin(lineStart);
+    if (newlines === endLine - 1) lastLineStart = lineStart;
+  }
+  feed(from, data.length);
+  const size = data.length;
+  if (start === undefined) {
+    return {
+      newlines,
+      start: size,
+      end: size,
+      firstLineEnd: size,
+      lastLineStart: size,
+      selectedBytes: 0,
+      firstLineBytes: 0,
+    };
+  }
+  if (firstLineEnd === undefined) endFirstLine(size);
+  if (end === undefined) endSelection(size);
+  return {
+    newlines,
+    start,
+    end: end ?? size,
+    firstLineEnd: firstLineEnd ?? size,
+    lastLineStart: lastLineStart ?? lineStart,
+    selectedBytes,
+    firstLineBytes,
+  };
+}
 
 export interface PreWriteSnapshotRecord {
   readonly snapshotId: string;
@@ -97,7 +225,7 @@ type PersistedEnvIndex = {
  */
 export class WorkspaceWriteCoordinator {
   private readonly activeLocks = new Map<string, Promise<void>>();
-  private readonly frozenRoots = new Set<string>();
+  private readonly frozenCounts = new Map<string, number>();
 
   private overlaps(a: string, b: string): boolean {
     const normA = resolve(a).toLowerCase();
@@ -109,17 +237,21 @@ export class WorkspaceWriteCoordinator {
   }
 
   freezeWorkspace(workspaceRoot: string): void {
-    this.frozenRoots.add(resolve(workspaceRoot).toLowerCase());
+    const key = resolve(workspaceRoot).toLowerCase();
+    this.frozenCounts.set(key, (this.frozenCounts.get(key) ?? 0) + 1);
   }
 
   unfreezeWorkspace(workspaceRoot: string): void {
-    this.frozenRoots.delete(resolve(workspaceRoot).toLowerCase());
+    const key = resolve(workspaceRoot).toLowerCase();
+    const next = (this.frozenCounts.get(key) ?? 0) - 1;
+    if (next <= 0) this.frozenCounts.delete(key);
+    else this.frozenCounts.set(key, next);
   }
 
   isFrozen(workspaceRoot: string): boolean {
     const target = resolve(workspaceRoot).toLowerCase();
-    for (const frozen of this.frozenRoots) {
-      if (this.overlaps(frozen, target)) return true;
+    for (const [frozen, count] of this.frozenCounts.entries()) {
+      if (count > 0 && this.overlaps(frozen, target)) return true;
     }
     return false;
   }
@@ -195,6 +327,7 @@ function hasHarnessSecurityExports(candidate: unknown): candidate is NimiElectro
   const record = candidate as Record<string, unknown>;
   return typeof record.harnessRunJobProcess === 'function'
     && typeof record.harnessSpawnJobProcess === 'function'
+    && typeof record.harnessWaitJobProcess === 'function'
     && typeof record.harnessKillJobProcess === 'function'
     && typeof record.harnessVerifyWorkspacePath === 'function'
     && typeof record.harnessSecureReadFile === 'function'
@@ -205,6 +338,14 @@ function hasHarnessSecurityExports(candidate: unknown): candidate is NimiElectro
 function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | null): NimiElectronHarnessSecurityHost | null {
   if (injected !== undefined) return injected;
   if (process.platform !== 'win32' && process.platform !== 'darwin') return null;
+
+  // Prefer Kit's canonical loader first: resolves both packaged macOS
+  // Resources/nimi-native/protected-local and unpacked Windows/dev node_modules.
+  try {
+    return createNimiElectronHarnessSecurityHost();
+  } catch {
+    // Fall through to explicit package / local workspace build paths.
+  }
 
   const packageName = process.platform === 'win32'
     ? '@nimiplatform/kit-protected-local-win32-x64'
@@ -488,6 +629,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             ...(record.afterSha256 ? { preconditionSha256: record.afterSha256 } : {}),
             allowCreate: true,
           });
+        } else if (record.afterSha256 === null) {
+          await writeFile(record.absolutePath, snapshotBytes, { flag: 'wx' });
         } else {
           await writeFile(record.absolutePath, snapshotBytes);
         }
@@ -551,7 +694,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async openTextLineReader(path: string, context: Context): Promise<Result<TextLineReader, FileError>> {
     try {
-      const { relativePosix } = this.resolveGuardedPath(path);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
       const native = this.requireNativeHostOrFailClosed('openTextLineReader');
       if (native) {
         // Read via handle-level native security host so TOCTOU/symlink/hardlink/8.3 checks are atomic.
@@ -559,28 +702,40 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           workspaceRoot: this.workspaceRoot,
           relativePath: relativePosix,
         });
-        const text = Buffer.from(res.contentBase64, 'base64').toString('utf8');
-        const lines = text.length === 0 ? [] : text.split(/\r?\n/);
+        const decoded = new TextDecoder('utf-8', { fatal: false }).decode(Buffer.from(res.contentBase64, 'base64'));
+        const lines: TextLine[] = [];
+        if (decoded.length > 0) {
+          let start = 0;
+          for (let i = 0; i < decoded.length; i++) {
+            if (decoded.charCodeAt(i) === 0x0a) {
+              const end = i > start && decoded.charCodeAt(i - 1) === 0x0d ? i - 1 : i;
+              lines.push({ text: decoded.slice(start, end), terminated: true });
+              start = i + 1;
+            }
+          }
+          if (start < decoded.length) {
+            lines.push({ text: decoded.slice(start), terminated: false });
+          }
+        }
         let idx = 0;
         const reader: TextLineReader = {
-          async nextLine() {
-            if (idx >= lines.length) return ok(null);
-            return ok(lines[idx++] ?? null);
+          async readLine(_ctx: Context) {
+            if (idx >= lines.length) return ok(undefined);
+            return ok(lines[idx++]);
           },
-          async close() { /* memory backed */ },
-        } as unknown as TextLineReader;
+          async close(_ctx: Context) { /* memory backed */ },
+        };
         return ok(reader);
       }
-      const { absolutePath } = this.resolveGuardedPath(path);
       return this.inner.openTextLineReader(absolutePath, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
   async openBinaryReader(path: string, options: { noFollow?: boolean } | undefined, context: Context): Promise<Result<BinaryReader, FileError>> {
     try {
-      const { relativePosix } = this.resolveGuardedPath(path);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
       const native = this.requireNativeHostOrFailClosed('openBinaryReader');
       if (native) {
         const res = await native.secureReadFile({
@@ -588,30 +743,45 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           relativePath: relativePosix,
         });
         const data = Uint8Array.from(Buffer.from(res.contentBase64, 'base64'));
-        let offset = 0;
+        let mtimeMs = Date.now();
+        try {
+          mtimeMs = (await stat(absolutePath)).mtimeMs;
+        } catch {
+          // Use snapshot timestamp if path vanished right after handle read.
+        }
+        const fileInfoValue: FileInfo = {
+          name: basename(absolutePath),
+          path: absolutePath,
+          kind: 'file',
+          size: data.byteLength,
+          mtimeMs,
+        };
         const reader: BinaryReader = {
-          async read(buf: Uint8Array) {
-            if (offset >= data.byteLength) return ok(0);
-            const count = Math.min(buf.byteLength, data.byteLength - offset);
-            buf.set(data.subarray(offset, offset + count), 0);
-            offset += count;
-            return ok(count);
+          async info(_ctx: Context) {
+            return ok({ ...fileInfoValue });
           },
-          async readChunk(size = 65536) {
-            if (offset >= data.byteLength) return ok(null);
-            const end = Math.min(data.byteLength, offset + size);
-            const chunk = data.subarray(offset, end);
-            offset = end;
-            return ok(chunk);
+          async read(offset: number, length: number, _ctx: Context) {
+            if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length) || length < 0) {
+              return err(new FileError('invalid', 'Invalid binary read range.', path));
+            }
+            if (offset >= data.byteLength || length === 0) return ok(new Uint8Array(0));
+            const end = Math.min(data.byteLength, offset + length);
+            return ok(data.slice(offset, end));
           },
-          async close() { /* memory backed */ },
-        } as unknown as BinaryReader;
+          async scanLines(scanOptions: { startLine: number; endLine?: number }, _ctx: Context) {
+            try {
+              return ok(scanLineBytes(data, scanOptions.startLine, scanOptions.endLine));
+            } catch (scanErr) {
+              return err(new FileError('invalid', scanErr instanceof Error ? scanErr.message : String(scanErr), path));
+            }
+          },
+          async close(_ctx: Context) { /* memory backed */ },
+        };
         return ok(reader);
       }
-      const { absolutePath } = this.resolveGuardedPath(path);
       return this.inner.openBinaryReader(absolutePath, { ...options, noFollow: true }, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -640,6 +810,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             content: bytes,
             allowCreate: true,
             snapshotPath,
+            snapshotRoot: this.snapshotDir,
           });
           existedBefore = !result.created;
           beforeSha = result.previousSha256;
@@ -678,7 +849,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
       return ok(undefined);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', error instanceof Error ? error.message : String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -708,7 +879,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       }
       return this.inner.flushFile(absolutePath, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -740,11 +911,13 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             content: bytes,
             allowCreate: true,
             snapshotPath,
+            snapshotRoot: this.snapshotDir,
           });
           await native.secureDeleteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: src.relativePosix,
             preconditionSha256: read.sha256,
+            snapshotRoot: this.snapshotDir,
           });
         });
         return ok(undefined);
@@ -753,7 +926,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         this.inner.renameFile(src.absolutePath, dst.absolutePath, context),
       );
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), sourcePath));
+      return err(toFileError(error, sourcePath));
     }
   }
 
@@ -785,47 +958,129 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async listDir(path: string, context: Context): Promise<Result<FileInfo[], FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path, true);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
+      const native = this.requireNativeHostOrFailClosed('listDir');
+      if (native) {
+        await native.verifyWorkspacePath({
+          workspaceRoot: this.workspaceRoot,
+          relativePath: relativePosix || '.',
+          expectDirectory: true,
+        });
+      }
       const listed = await this.inner.listDir(absolutePath, context);
       if (!listed.ok) return listed;
       return ok(listed.value.filter(item => {
+        if (item.kind === 'symlink') return false;
         const rel = relative(this.workspaceRoot, item.path).split(sep).join('/');
         return !isSensitivePath(rel, this.workspaceRoot);
       }));
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
   async listFiles(path: string, options: ListFilesOptions | undefined, context: Context): Promise<Result<FileListing, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path, true);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
+      const native = this.requireNativeHostOrFailClosed('listFiles');
+      if (native) {
+        await native.verifyWorkspacePath({
+          workspaceRoot: this.workspaceRoot,
+          relativePath: relativePosix || '.',
+          expectDirectory: true,
+        });
+      }
       const innerEnv: ExecutionEnv = this.inner;
       if (!innerEnv.listFiles) return err(new FileError('not_supported', 'listFiles unavailable'));
       const listed = await innerEnv.listFiles(absolutePath, options, context);
       if (!listed.ok) return listed;
-      const filtered: FileListEntry[] = listed.value.entries.filter((entry: FileListEntry) => !isSensitivePath(entry.path, this.workspaceRoot));
+      const prefix = relativePosix ? `${relativePosix}/` : '';
+      const filtered: FileListEntry[] = listed.value.entries.filter((entry: FileListEntry) =>
+        entry.kind !== 'symlink' && !isSensitivePath(`${prefix}${entry.path}`, this.workspaceRoot),
+      );
       return ok({ entries: filtered, truncated: listed.value.truncated });
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
   async openDirReader(path: string, context: Context): Promise<Result<DirReader, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path, true);
-      return this.inner.openDirReader(absolutePath, context);
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
+      const native = this.requireNativeHostOrFailClosed('openDirReader');
+      if (native) {
+        await native.verifyWorkspacePath({
+          workspaceRoot: this.workspaceRoot,
+          relativePath: relativePosix || '.',
+          expectDirectory: true,
+        });
+      }
+      const opened = await this.inner.openDirReader(absolutePath, context);
+      if (!opened.ok) return opened;
+      const innerReader = opened.value;
+      const workspaceRoot = this.workspaceRoot;
+      const guarded: DirReader = {
+        async next(maxEntries: number, ctx: Context) {
+          for (;;) {
+            const page = await innerReader.next(maxEntries, ctx);
+            if (!page.ok) return page;
+            const filtered = page.value.entries.filter(item => {
+              if (item.kind === 'symlink') return false;
+              const rel = relative(workspaceRoot, item.path).split(sep).join('/');
+              return !isSensitivePath(rel, workspaceRoot);
+            });
+            if (filtered.length > 0 || page.value.done) {
+              return ok({ entries: filtered, done: page.value.done });
+            }
+          }
+        },
+        close: (ctx: Context) => innerReader.close(ctx),
+      };
+      return ok(guarded);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
   async watch(targets: readonly WatchTarget[], onChange: (change: FileChange) => void, context: Context): Promise<Result<FileWatcher, FileError>> {
     try {
-      const guardedTargets = targets.map(t => ({ ...t, path: this.resolveGuardedPath(t.path, true).absolutePath }));
-      return this.inner.watch(guardedTargets, onChange, context);
+      const native = this.requireNativeHostOrFailClosed('watch');
+      const guardedTargets: WatchTarget[] = [];
+      for (const target of targets) {
+        const resolved = this.resolveGuardedPath(target.path, true);
+        if (native) {
+          try {
+            await native.verifyWorkspacePath({
+              workspaceRoot: this.workspaceRoot,
+              relativePath: resolved.relativePosix || '.',
+              expectDirectory: true,
+            });
+          } catch (verifyErr) {
+            const reason = (verifyErr as { reasonCode?: unknown })?.reasonCode;
+            if (reason !== 'not-found' && reason !== 'not-directory') {
+              throw verifyErr;
+            }
+          }
+        }
+        guardedTargets.push({ ...target, path: resolved.absolutePath });
+      }
+      const workspaceRoot = this.workspaceRoot;
+      const filteredOnChange = (change: FileChange) => {
+        if (change.kind !== 'paths') {
+          onChange(change);
+          return;
+        }
+        const safePaths = change.paths.filter(p => {
+          const rel = relative(workspaceRoot, p).split(sep).join('/');
+          return !rel.startsWith('..') && !isSensitivePath(rel, workspaceRoot);
+        });
+        if (safePaths.length > 0) {
+          onChange({ kind: 'paths', paths: safePaths });
+        }
+      };
+      return this.inner.watch(guardedTargets, filteredOnChange, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error)));
+      return err(toFileError(error));
     }
   }
 
@@ -870,21 +1125,69 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
 
   async exists(path: string, context: Context): Promise<Result<boolean, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
-      return this.inner.exists(absolutePath, context);
+      const resolved = resolveSafeWorkspacePath(this.workspaceRoot, path);
+      // Never disclose existence of sensitive files such as .env or private keys.
+      if (isSensitivePath(resolved.relativePosix, this.workspaceRoot)) {
+        return ok(false);
+      }
+      const native = this.requireNativeHostOrFailClosed('exists');
+      if (native) {
+        if (!resolved.relativePosix) {
+          await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: '.', expectDirectory: true });
+          return ok(true);
+        }
+        try {
+          await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: resolved.relativePosix, expectDirectory: false });
+          return ok(true);
+        } catch (firstErr) {
+          const reason = (firstErr as { reasonCode?: unknown })?.reasonCode;
+          if (reason === 'not-found') return ok(false);
+          if (reason === 'is-directory') {
+            await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: resolved.relativePosix, expectDirectory: true });
+            return ok(true);
+          }
+          throw firstErr;
+        }
+      }
+      return this.inner.exists(resolved.absolutePath, context);
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
   async createDir(path: string, options: { recursive?: boolean } | undefined, context: Context): Promise<Result<void, FileError>> {
     try {
-      const { absolutePath } = this.resolveGuardedPath(path);
-      return await this.coordinator.withWriteLock(this.workspaceRoot, () =>
-        this.inner.createDir(absolutePath, options, context),
-      );
+      const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+      const native = this.requireNativeHostOrFailClosed('createDir');
+      return await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+        // Walk every existing ancestor segment from workspaceRoot downward and reject symlinks/reparse points.
+        const segments = relativePosix ? relativePosix.split('/') : [];
+        let deepestExistingRel = '.';
+        let cursor = this.workspaceRoot;
+        for (let i = 0; i < segments.length; i++) {
+          cursor = join(cursor, segments[i]!);
+          try {
+            const info = await lstat(cursor);
+            if (info.isSymbolicLink()) {
+              throw new FileError('permission_denied', `Refusing createDir across symlink segment "${segments.slice(0, i + 1).join('/')}".`, path);
+            }
+            deepestExistingRel = segments.slice(0, i + 1).join('/');
+          } catch (statErr) {
+            if ((statErr as NodeJS.ErrnoException)?.code === 'ENOENT') break;
+            throw statErr;
+          }
+        }
+        if (native) {
+          await native.verifyWorkspacePath({
+            workspaceRoot: this.workspaceRoot,
+            relativePath: deepestExistingRel,
+            expectDirectory: true,
+          });
+        }
+        return this.inner.createDir(absolutePath, options, context);
+      });
     } catch (error) {
-      return err(error instanceof FileError ? error : new FileError('permission_denied', String(error), path));
+      return err(toFileError(error, path));
     }
   }
 
@@ -908,6 +1211,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             workspaceRoot: this.workspaceRoot,
             relativePath: relativePosix,
             snapshotPath,
+            snapshotRoot: this.snapshotDir,
           });
           this.snapshots.push({
             snapshotId,
@@ -1007,7 +1311,10 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       return err(new ExecutionError('spawn_error', 'Command must not be empty.'));
     }
     const execExeBase = isStringShell ? '' : basename(command[0] ?? '').toLowerCase();
-    if ((isStringShell || INTERPRETER_EXECUTABLES.has(execExeBase)) && !this.explicitDevWorkspace) {
+    const isUnsafeNonDevCommand = isStringShell
+      || INTERPRETER_EXECUTABLES.has(execExeBase)
+      || ((execExeBase === 'git' || execExeBase === 'git.exe') && isDangerousGitCommand(command.slice(1)));
+    if (isUnsafeNonDevCommand && !this.explicitDevWorkspace) {
       return err(new ExecutionError('shell_unavailable', 'Free shell and interpreter commands are only permitted inside an explicitly bound development workspace.'));
     }
 
@@ -1077,12 +1384,25 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         });
         this.activeJobIds.add(spawned.jobId);
         let aborted = false;
+        let workspaceFrozenByJob = false;
+        const markFrozen = () => {
+          if (!workspaceFrozenByJob) {
+            workspaceFrozenByJob = true;
+            this.coordinator.freezeWorkspace(this.workspaceRoot);
+          }
+        };
+        const clearFrozen = () => {
+          if (workspaceFrozenByJob) {
+            workspaceFrozenByJob = false;
+            this.coordinator.unfreezeWorkspace(this.workspaceRoot);
+          }
+        };
         const onAbort = () => {
           aborted = true;
-          this.coordinator.freezeWorkspace(this.workspaceRoot);
+          markFrozen();
           void native!.killJobProcess({ jobId: spawned.jobId }).then(k => {
             if (k.activeProcessesRemaining === 0) {
-              this.coordinator.unfreezeWorkspace(this.workspaceRoot);
+              clearFrozen();
             }
           }).catch(() => {});
         };
@@ -1095,10 +1415,12 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         try {
           const result = await native.waitJobProcess({ jobId: spawned.jobId, timeoutMs });
           if (result.timedOut || result.killed || result.activeProcessesRemaining > 0) {
-            this.coordinator.freezeWorkspace(this.workspaceRoot);
+            markFrozen();
             if (result.activeProcessesRemaining === 0) {
-              this.coordinator.unfreezeWorkspace(this.workspaceRoot);
+              clearFrozen();
             }
+          } else {
+            clearFrozen();
           }
           const cleanStdout = redactCanarySecrets(result.stdoutUtf8, canarySecrets);
           const cleanStderr = redactCanarySecrets(result.stderrUtf8, canarySecrets);

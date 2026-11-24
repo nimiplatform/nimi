@@ -141,6 +141,7 @@ declare global {
       importHome(source: string): Promise<void>;
       snapshot(): Promise<HarnessView>;
       onViewChanged(notify: () => void): () => void;
+      onFocusSession?(notify: (workSessionRef: string) => void): () => void;
       importMaterial(id: string, name: string, data: Uint8Array): Promise<Material>;
       listFiles(id: string, folder: string, offset: number): Promise<{ items: WorkspaceItem[]; next: number | null }>;
       previewFile(id: string, ref: string, page?: number): Promise<FilePreview>;

@@ -122,15 +122,20 @@ export function Conversations({
       }
     }
     const unsubscribe = bridge.onViewChanged(() => { void refresh(); });
+    const unsubscribeFocus = bridge.onFocusSession?.(() => {
+      openConversations();
+      void refresh();
+    });
     document.addEventListener('visibilitychange', refresh);
     void refresh();
     return () => {
       cancelled = true;
       clearTimeout(retry);
       unsubscribe();
+      unsubscribeFocus?.();
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, [bridge, openingSession]);
+  }, [bridge, openingSession, openConversations]);
 
   const act = useCallback(async (action: () => Promise<void>) => {
     try { setError(''); await action(); return true; }

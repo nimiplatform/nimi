@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, open, unlink } from 'node:fs/promises';
-import { basename, extname, join } from 'node:path';
+import { lstat, open, realpath, unlink } from 'node:fs/promises';
+import { basename, extname, join, relative, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import { obj, str } from '@earendil-works/pi-schema';
@@ -35,8 +35,8 @@ export async function publishWorkspaceFile(assets: Assets, workspace: string, se
   const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) {
-      throw new Error('Choose a nonempty regular file up to 32 MiB.');
+    if (!stat.isFile() || stat.nlink > 1 || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) {
+      throw new Error('Choose a nonempty regular non-hardlinked file up to 32 MiB.');
     }
     const id = randomUUID();
     async function* bounded() {
@@ -98,15 +98,24 @@ export function sessionFileTools(assets: Assets, workspace: string | (() => stri
           throw new Error('Choose one file in the top level of this session’s workspace.');
         }
         validateRawWorkspacePathInput(filename);
-        const dir = resolveWorkspace();
-        if (isSensitivePath(filename, dir)) {
+        const realDir = await realpath(resolveWorkspace());
+        if (isSensitivePath(filename, realDir)) {
           throw new Error(`Sharing sensitive file "${filename}" is blocked by Harness security policy.`);
         }
-        // Read the opened regular file; do not follow a workspace link or hardlink.
-        const path = join(dir, filename);
+        // Read the opened regular file; do not follow a workspace link, 8.3 alias, or hardlink.
+        const path = join(realDir, filename);
         const before = await lstat(path);
         if (before.isSymbolicLink() || !before.isFile() || before.nlink > 1) throw new Error('Choose a regular non-hardlinked file.');
-        const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+        const realTarget = await realpath(path);
+        const rootPrefix = realDir.endsWith(sep) ? realDir : realDir + sep;
+        if (!realTarget.startsWith(rootPrefix)) {
+          throw new Error('File resolved outside the active workspace.');
+        }
+        const realRel = relative(realDir, realTarget).split(sep).join('/');
+        if (isSensitivePath(realRel, realDir) || realRel.toLowerCase() !== filename.toLowerCase()) {
+          throw new Error(`Sharing sensitive or aliased file "${filename}" is blocked by Harness security policy.`);
+        }
+        const file = await open(realTarget, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
         try {
           const stat = await file.stat();
           if (!stat.isFile() || stat.nlink > 1 || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) throw new Error('Choose a nonempty regular file up to 32 MiB.');
@@ -124,7 +133,7 @@ export function sessionFileTools(assets: Assets, workspace: string | (() => stri
             const after = await file.stat();
             if (after.size !== stat.size || after.mtimeMs !== stat.mtimeMs) throw new Error('The file changed during publication.');
           }
-          const record = await assets.write({ relativePath: sessionFilePath(sessionId, 'out', id), mediaType: types[extname(filename).toLowerCase()] ?? 'application/octet-stream', body: bounded() });
+          const record = await assets.write({ relativePath: sessionFilePath(sessionId, 'out', id), mediaType: types[extname(realRel).toLowerCase()] ?? 'application/octet-stream', body: bounded() });
           return { output: [{ type: 'text', text: `Download ID: ${id}` }], details: { id, sha256: record.sha256 } };
         } finally { await file.close(); }
       },
