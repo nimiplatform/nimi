@@ -230,7 +230,9 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 // backlog or optional model work. The Runtime lifecycle admission lock covers
 // this phase and the minimum Ensure/Bind handoff.
 func (f *Facade) ResumeLifecycle(ctx context.Context, localAgentRef string) error {
-	if err := f.ResumeCutoff(ctx, localAgentRef); err != nil {
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
+	if err := f.resumeCutoffLocked(ctx, localAgentRef); err != nil {
 		return err
 	}
 	_, _, err := f.resumeForget(ctx, localAgentRef)
@@ -490,6 +492,8 @@ func (f *Facade) forgetLocked(ctx context.Context, localAgentRef string, memoryR
 }
 
 func (f *Facade) SetEnabled(ctx context.Context, localAgentRef string, enabled bool) (MutationOutcome, error) {
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
 	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
@@ -519,6 +523,8 @@ func (f *Facade) DeleteAll(ctx context.Context, localAgentRef string, confirmed 
 	if !confirmed {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("delete all cognition memory: confirmation is required")
 	}
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
 	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
@@ -529,6 +535,15 @@ func (f *Facade) DeleteAll(ctx context.Context, localAgentRef string, confirmed 
 // ResumeCutoff completes only a previously persisted cutoff saga. It creates
 // no new lifecycle operation and is safe to call during startup replay.
 func (f *Facade) ResumeCutoff(ctx context.Context, localAgentRef string) error {
+	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(localAgentRef) {
+		return fmt.Errorf("resume cognition memory cutoff: invalid input")
+	}
+	unlock := f.lockAgent(localAgentRef)
+	defer unlock()
+	return f.resumeCutoffLocked(ctx, localAgentRef)
+}
+
+func (f *Facade) resumeCutoffLocked(ctx context.Context, localAgentRef string) error {
 	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(localAgentRef) {
 		return fmt.Errorf("resume cognition memory cutoff: invalid input")
 	}

@@ -123,7 +123,11 @@ func (c *Core) ReceiveCommittedEvent(ctx context.Context, request CommitRequest)
 		if loadErr != nil {
 			return CommitResult{Outcome: OutcomeUnavailable}, loadErr
 		}
-		return CommitResult{Outcome: OutcomeReceived, BankRef: request.BankRef, EventRef: request.EventRef, OperationID: request.OperationID, DeliverySequence: request.DeliverySequence, ReceivedFrontier: frontiers.Received}, nil
+		replayOutcome := OutcomeReceived
+		if operation.Outcome == OutcomeNoEffect {
+			replayOutcome = OutcomeNoEffect
+		}
+		return CommitResult{Outcome: replayOutcome, BankRef: request.BankRef, EventRef: request.EventRef, OperationID: request.OperationID, DeliverySequence: request.DeliverySequence, ReceivedFrontier: frontiers.Received}, nil
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: inspect operation: %w", err)
 	}
@@ -166,7 +170,7 @@ func (c *Core) ReceiveCommittedEvent(ctx context.Context, request CommitRequest)
 		return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "delivery_gap")
 	}
 	now := formatTime(c.now())
-	sessionCutOff, err := requestHasSessionCutoffTx(ctx, tx, request)
+	sessionCutOff, err := requestHasSessionCutoffTx(ctx, tx, request, nil)
 	if err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: inspect session cutoff: %w", err)
 	}

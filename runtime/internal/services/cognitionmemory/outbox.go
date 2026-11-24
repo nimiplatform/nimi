@@ -65,6 +65,41 @@ type OutboxItem struct {
 
 const cognitionMemoryRootActivationMetaKey = "cognition_memory_root_activation_id"
 
+func deletedSessionMetaKey(localAgentRef, workSessionRef string) string {
+	return "cognition_deleted_session:" + strings.TrimSpace(localAgentRef) + ":" + strings.TrimSpace(workSessionRef)
+}
+
+// RecordDeletedSessionCutoff persists an agent+session deletion cutoff marker
+// in Runtime's own store so even before a Cognition bank is created, late
+// CommitSessionPointer calls can never resurrect the deleted session.
+func (s *Store) RecordDeletedSessionCutoff(ctx context.Context, localAgentRef, workSessionRef string) error {
+	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
+		return nil
+	}
+	now := s.now().UTC().Format(time.RFC3339Nano)
+	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES(?, ?)
+			ON CONFLICT(key) DO NOTHING`, deletedSessionMetaKey(localAgentRef, workSessionRef), now)
+		return err
+	})
+}
+
+// IsDeletedSessionCutoff reports whether workSessionRef was fenced for localAgentRef.
+func (s *Store) IsDeletedSessionCutoff(ctx context.Context, localAgentRef, workSessionRef string) (bool, error) {
+	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
+		return false, nil
+	}
+	var value string
+	err := s.backend.DB().QueryRowContext(ctx, `SELECT value FROM runtime_local_agent_meta WHERE key = ?`, deletedSessionMetaKey(localAgentRef, workSessionRef)).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // FenceRootActivationJobs makes Runtime AI Jobs explicitly non-portable while
 // preserving canonical Memory bindings and the committed-event outbox. The
 // single owner-private activation marker distinguishes an ordinary restart

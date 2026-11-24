@@ -95,6 +95,11 @@ func (f *Facade) CommitSessionPointer(
 		}
 		return false, err
 	}
+	if cutOff, cutoffErr := f.store.IsDeletedSessionCutoff(ctx, localAgentRef, workSessionRef); cutoffErr != nil {
+		return false, cutoffErr
+	} else if cutOff {
+		return false, nil
+	}
 	if !binding.Enabled || binding.AdoptionRequired {
 		return false, nil
 	}
@@ -202,6 +207,13 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		unlock = f.bridge.lockAgent(localAgentRef)
 	}
 	defer unlock()
+
+	// Step 0: Record durable Runtime-side session deletion cutoff FIRST so even if
+	// no Cognition bank exists yet (BankRef == "") or binding rotates later, late
+	// CommitSessionPointer calls can never resurrect this deleted session.
+	if err := f.store.RecordDeletedSessionCutoff(ctx, localAgentRef, workSessionRef); err != nil {
+		return 0, 0, err
+	}
 
 	// Step 1: Neutralize pending outbox rows BEFORE touching canonical memories.
 	neutralized, err := f.store.NeutralizeSessionOutbox(ctx, localAgentRef, workSessionRef)

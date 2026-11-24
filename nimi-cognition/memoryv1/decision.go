@@ -103,7 +103,7 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 		plan = MutationPlan{Outcome: OutcomeNoEffect}
 	}
 	if plan.Outcome == OutcomeAdmitted {
-		sessionCutOff, err := requestHasSessionCutoffTx(ctx, tx, request)
+		sessionCutOff, err := requestHasSessionCutoffTx(ctx, tx, request, plan.Mutations)
 		if err != nil {
 			return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: inspect session cutoff: %w", err)
 		}

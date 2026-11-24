@@ -135,18 +135,25 @@ func (c *Core) initialize() error {
 	if _, err := c.db.Exec(`PRAGMA journal_mode = WAL`); err != nil {
 		return fmt.Errorf("memory core: enable wal: %w", err)
 	}
-	tx, err := c.db.Begin()
+	ctx := context.Background()
+	conn, err := c.db.Conn(ctx)
 	if err != nil {
-		return fmt.Errorf("memory core: begin schema: %w", err)
+		return fmt.Errorf("memory core: acquire schema conn: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
-	// Acquire the SQLite write lock before inspecting user_version so concurrent
-	// connections opening a v4 database serialize v4 -> v5 migration cleanly.
-	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS memory_schema_migration_lock (id INTEGER PRIMARY KEY CHECK (id = 1))`); err != nil {
-		return fmt.Errorf("memory core: acquire migration lock: %w", err)
+	defer func() { _ = conn.Close() }()
+	// Acquire an IMMEDIATE SQLite write transaction upfront so concurrent opens
+	// serialize cleanly under busy_timeout without DEFERRED read->write upgrade deadlocks.
+	if _, err := conn.ExecContext(ctx, `BEGIN IMMEDIATE`); err != nil {
+		return fmt.Errorf("memory core: begin immediate schema: %w", err)
 	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(ctx, `ROLLBACK`)
+		}
+	}()
 	var version int
-	if err := tx.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+	if err := conn.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("memory core: inspect schema version: %w", err)
 	}
 	if version != 0 && version != 4 && version != schemaVersion {
@@ -155,25 +162,25 @@ func (c *Core) initialize() error {
 	// Controlled incremental migration v4 -> v5: add scope_tag & slot_key columns
 	// and active single-slot unique index before running idempotent DDL.
 	if version == 4 {
-		hasScopeTag, err := tableHasColumnTx(tx, "memories", "scope_tag")
+		hasScopeTag, err := connTableHasColumn(ctx, conn, "memories", "scope_tag")
 		if err != nil {
 			return fmt.Errorf("memory core: inspect memories.scope_tag: %w", err)
 		}
 		if !hasScopeTag {
-			if _, err := tx.Exec(`ALTER TABLE memories ADD COLUMN scope_tag TEXT NOT NULL DEFAULT 'global_fact'`); err != nil {
+			if _, err := conn.ExecContext(ctx, `ALTER TABLE memories ADD COLUMN scope_tag TEXT NOT NULL DEFAULT 'global_fact'`); err != nil {
 				return fmt.Errorf("memory core: migrate schema v4->v5 scope_tag: %w", err)
 			}
 		}
-		hasSlotKey, err := tableHasColumnTx(tx, "memories", "slot_key")
+		hasSlotKey, err := connTableHasColumn(ctx, conn, "memories", "slot_key")
 		if err != nil {
 			return fmt.Errorf("memory core: inspect memories.slot_key: %w", err)
 		}
 		if !hasSlotKey {
-			if _, err := tx.Exec(`ALTER TABLE memories ADD COLUMN slot_key TEXT NOT NULL DEFAULT ''`); err != nil {
+			if _, err := conn.ExecContext(ctx, `ALTER TABLE memories ADD COLUMN slot_key TEXT NOT NULL DEFAULT ''`); err != nil {
 				return fmt.Errorf("memory core: migrate schema v4->v5 slot_key: %w", err)
 			}
 		}
-		if _, err := tx.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`); err != nil {
+		if _, err := conn.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`); err != nil {
 			return fmt.Errorf("memory core: migrate schema v4->v5 slot_idx: %w", err)
 		}
 	}
@@ -292,25 +299,32 @@ func (c *Core) initialize() error {
 			deleted_at TEXT NOT NULL,
 			PRIMARY KEY(binding_ref, work_session_ref)
 		)`,
+		`CREATE TABLE IF NOT EXISTS deleted_session_bank_cutoffs (
+			bank_ref TEXT NOT NULL,
+			work_session_ref TEXT NOT NULL,
+			deleted_at TEXT NOT NULL,
+			PRIMARY KEY(bank_ref, work_session_ref)
+		)`,
 	}
 	for _, statement := range statements {
-		if _, err := tx.Exec(statement); err != nil {
+		if _, err := conn.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("memory core: initialize schema: %w", err)
 		}
 	}
 	// An interrupted consumer cannot still be using its execution copy. This
 	// changes only disposition; it never replays an AI request after restart.
-	if _, err := tx.Exec(`UPDATE memory_operation_routes SET ai_disposition = 'pending', outcome = 'conflict' WHERE ai_disposition = 'retained' AND operation_kind = 'recall'`); err != nil {
+	if _, err := conn.ExecContext(ctx, `UPDATE memory_operation_routes SET ai_disposition = 'pending', outcome = 'conflict' WHERE ai_disposition = 'retained' AND operation_kind = 'recall'`); err != nil {
 		return err
 	}
 	if version == 0 || version == 4 {
-		if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
 			return fmt.Errorf("memory core: set schema version: %w", err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if _, err := conn.ExecContext(ctx, `COMMIT`); err != nil {
 		return fmt.Errorf("memory core: commit schema: %w", err)
 	}
+	committed = true
 	return nil
 }
 
@@ -348,32 +362,61 @@ func (c *Core) FindMemoryRefsBySource(ctx context.Context, bankRef, sourceKind, 
 }
 
 // RecordSessionCutoff persists an irreversible deletion fence for
-// (bindingRef, workSessionRef) inside memory.db so late session-pointer writes
-// or in-flight receipts can never resurrect a deleted session.
+// (bindingRef, workSessionRef) and its parent (bankRef, workSessionRef) inside
+// memory.db so late session-pointer writes, binding rotations, or in-flight
+// receipts can never resurrect a deleted session.
 func (c *Core) RecordSessionCutoff(ctx context.Context, bindingRef, workSessionRef string) error {
 	if !validOpaqueRef(bindingRef) || !validOpaqueRef(workSessionRef) {
 		return contractError(OutcomeInvalid, "session_cutoff_input")
 	}
-	_, err := c.db.ExecContext(ctx, `
+	now := formatTime(c.now())
+	tx, err := c.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("record session cutoff: begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO deleted_session_cutoffs(binding_ref, work_session_ref, deleted_at)
 		VALUES(?, ?, ?)
 		ON CONFLICT(binding_ref, work_session_ref) DO NOTHING`,
-		bindingRef, workSessionRef, formatTime(c.now()),
-	)
-	if err != nil {
+		bindingRef, workSessionRef, now,
+	); err != nil {
 		return fmt.Errorf("record session cutoff: %w", err)
+	}
+	var bankRef string
+	err = tx.QueryRowContext(ctx, `SELECT bank_ref FROM memory_bank_bindings WHERE binding_ref = ?`, bindingRef).Scan(&bankRef)
+	if err == nil && strings.TrimSpace(bankRef) != "" {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO deleted_session_bank_cutoffs(bank_ref, work_session_ref, deleted_at)
+			VALUES(?, ?, ?)
+			ON CONFLICT(bank_ref, work_session_ref) DO NOTHING`,
+			bankRef, workSessionRef, now,
+		); err != nil {
+			return fmt.Errorf("record bank session cutoff: %w", err)
+		}
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("record session cutoff: resolve bank: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("record session cutoff: commit: %w", err)
 	}
 	return nil
 }
 
 // IsSessionCutoff reports whether workSessionRef has been irreversibly cut off
-// for bindingRef.
+// for bindingRef or its underlying bank (surviving binding rotations).
 func (c *Core) IsSessionCutoff(ctx context.Context, bindingRef, workSessionRef string) (bool, error) {
 	if !validOpaqueRef(bindingRef) || !validOpaqueRef(workSessionRef) {
 		return false, contractError(OutcomeInvalid, "session_cutoff_input")
 	}
 	var exists int
-	err := c.db.QueryRowContext(ctx, `SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?`, bindingRef, workSessionRef).Scan(&exists)
+	err := c.db.QueryRowContext(ctx, `
+		SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?
+		UNION
+		SELECT 1 FROM deleted_session_bank_cutoffs bc
+		JOIN memory_bank_bindings mb ON mb.bank_ref = bc.bank_ref
+		WHERE mb.binding_ref = ? AND bc.work_session_ref = ?
+		LIMIT 1`, bindingRef, workSessionRef, bindingRef, workSessionRef).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -383,19 +426,65 @@ func (c *Core) IsSessionCutoff(ctx context.Context, bindingRef, workSessionRef s
 	return true, nil
 }
 
-func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRequest) (bool, error) {
-	sessionRefs := make([]string, 0, 2)
+func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRequest, mutations []MemoryMutation) (bool, error) {
+	sessionRefs := make([]string, 0, 4)
+	addRef := func(ref string) {
+		trimmed := strings.TrimSpace(ref)
+		if trimmed == "" {
+			return
+		}
+		for _, existing := range sessionRefs {
+			if existing == trimmed {
+				return
+			}
+		}
+		sessionRefs = append(sessionRefs, trimmed)
+	}
 	for _, src := range request.Sources {
-		if src.Kind == "session" && strings.TrimSpace(src.Value) != "" {
-			sessionRefs = append(sessionRefs, strings.TrimSpace(src.Value))
+		if src.Kind == "session" {
+			addRef(src.Value)
 		}
 	}
-	if request.Fact.SessionPointer != nil && strings.TrimSpace(request.Fact.SessionPointer.WorkSessionRef) != "" {
-		sessionRefs = append(sessionRefs, strings.TrimSpace(request.Fact.SessionPointer.WorkSessionRef))
+	if request.Fact.SessionPointer != nil {
+		addRef(request.Fact.SessionPointer.WorkSessionRef)
+	}
+	// For Correction / Conflict events, inspect target memory_ref session lineage so
+	// late corrections cannot resurrect or mutate memories belonging to a deleted session.
+	targetMemoryRefs := make([]string, 0, 2)
+	if request.Fact.Kind == EventKindCorrection && request.Fact.Correction != nil && strings.TrimSpace(request.Fact.Correction.TargetMemoryRef) != "" {
+		targetMemoryRefs = append(targetMemoryRefs, strings.TrimSpace(request.Fact.Correction.TargetMemoryRef))
+	}
+	for _, mut := range mutations {
+		if strings.TrimSpace(mut.TargetMemoryRef) != "" {
+			targetMemoryRefs = append(targetMemoryRefs, strings.TrimSpace(mut.TargetMemoryRef))
+		}
+	}
+	for _, memRef := range targetMemoryRefs {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT ref_value FROM memory_lineage
+			WHERE memory_ref = ? AND ref_type = 'source' AND ref_kind = 'session'`, memRef)
+		if err != nil {
+			return false, err
+		}
+		for rows.Next() {
+			var sRef string
+			if scanErr := rows.Scan(&sRef); scanErr != nil {
+				_ = rows.Close()
+				return false, scanErr
+			}
+			addRef(sRef)
+		}
+		if err := rows.Close(); err != nil {
+			return false, err
+		}
 	}
 	for _, ref := range sessionRefs {
 		var exists int
-		err := tx.QueryRowContext(ctx, `SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?`, request.BindingRef, ref).Scan(&exists)
+		err := tx.QueryRowContext(ctx, `
+			SELECT 1 FROM deleted_session_cutoffs WHERE binding_ref = ? AND work_session_ref = ?
+			UNION
+			SELECT 1 FROM deleted_session_bank_cutoffs WHERE bank_ref = ? AND work_session_ref = ?
+			LIMIT 1`, request.BindingRef, ref, request.BankRef, ref).Scan(&exists)
 		if err == nil {
 			return true, nil
 		}
@@ -427,8 +516,8 @@ func validOpaqueRef(value string) bool {
 	return strings.TrimSpace(value) == value && value != "" && len(value) <= 512 && utf8.ValidString(value)
 }
 
-func tableHasColumnTx(tx *sql.Tx, table, column string) (bool, error) {
-	rows, err := tx.Query(`PRAGMA table_info(` + table + `)`)
+func connTableHasColumn(ctx context.Context, conn *sql.Conn, table, column string) (bool, error) {
+	rows, err := conn.QueryContext(ctx, `PRAGMA table_info(`+table+`)`)
 	if err != nil {
 		return false, err
 	}

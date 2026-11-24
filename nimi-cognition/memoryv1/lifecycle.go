@@ -70,6 +70,23 @@ func (c *Core) ApplyCutoff(ctx context.Context, request CutoffRequest) (CutoffRe
 	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_frontiers(binding_ref, received_frontier, ready_frontier) VALUES(?, 0, 0)`, request.ReplacementBindingRef); err != nil {
 		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: create replacement frontiers: %w", err)
 	}
+	// Preserve irreversible session deletion cutoffs across binding rotations.
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO deleted_session_bank_cutoffs(bank_ref, work_session_ref, deleted_at)
+		SELECT ?, work_session_ref, deleted_at FROM deleted_session_cutoffs WHERE binding_ref = ?
+		ON CONFLICT(bank_ref, work_session_ref) DO NOTHING`,
+		request.BankRef, request.BindingRef,
+	); err != nil {
+		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: preserve bank session cutoffs: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO deleted_session_cutoffs(binding_ref, work_session_ref, deleted_at)
+		SELECT ?, work_session_ref, deleted_at FROM deleted_session_bank_cutoffs WHERE bank_ref = ?
+		ON CONFLICT(binding_ref, work_session_ref) DO NOTHING`,
+		request.ReplacementBindingRef, request.BankRef,
+	); err != nil {
+		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: migrate binding session cutoffs: %w", err)
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT operation_id FROM memory_receipts WHERE binding_ref = ? AND outcome IN (?, ?)`, request.BindingRef, OutcomeReceived, OutcomeProcessing)
 	if err != nil {
 		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: list pending custody: %w", err)
