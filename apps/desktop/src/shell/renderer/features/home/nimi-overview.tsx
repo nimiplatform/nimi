@@ -250,7 +250,8 @@ export function NimiOverview() {
     queryKey: ['nimi-overview', 'shared-agent-ai-config', ownerUserId],
     queryFn: async () => (await sharedAgentAIConfig.get({ subjectUserId: ownerUserId })).config,
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
-    staleTime: 15_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     retry: false,
   });
   const committedCloudRoute = useMemo(() => {
@@ -370,6 +371,7 @@ export function NimiOverview() {
   const textNeedsSetup = !inventory.isPending
     && !inventory.preparationPending
     && !inventory.isError
+    && !committedCloudRoute.active
     && (effectiveTextState === 'unset' || effectiveTextState === 'attention');
 
   const openApp = (appId: string, entryKey: string) => {
