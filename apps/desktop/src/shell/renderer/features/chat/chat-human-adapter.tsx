@@ -41,6 +41,8 @@ type UseHumanConversationModeHostInput = {
   selectedChatId: string | null;
   setSelectedChatId: (chatId: string | null) => void;
   onOpenThread?: (threadId: string) => void;
+  initialDraftText?: string | null;
+  onConsumeInitialDraft?: () => void;
 };
 
 function formatHumanChatTime(
@@ -283,6 +285,8 @@ export function useHumanConversationModeHost(
       <HumanCanonicalComposer
         selectedChatId={selectedChatId}
         contactAdmission={contactAdmission}
+        initialDraftText={input.initialDraftText}
+        onConsumeInitialDraft={input.onConsumeInitialDraft}
         leadingAvatar={selectedChat ? {
           name: getRealmHumanChatTitle(selectedChat, unknownTitle),
           imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
@@ -326,5 +330,7 @@ export function useHumanConversationModeHost(
     contactAdmission.state,
     contactAdmission.blockedByMe,
     contactAdmission.refresh,
+    input.initialDraftText,
+    input.onConsumeInitialDraft,
   ]);
 }

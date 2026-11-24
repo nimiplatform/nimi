@@ -61,7 +61,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
       exit(code: number) { exits.push(code); },
     },
     localDevelopmentHost: { shutdown: stopLocal }, installedAppHost: undefined,
-    desktopOpenIntentHost: undefined, bundledAvatarHost: undefined, bundledZhiyuHost: undefined, chatAiStoreHost: undefined,
+    desktopOpenIntentHost: undefined, bundledAvatarHost: undefined, bundledZhiyuHost: undefined, bundledHarnessHost: undefined, chatAiStoreHost: undefined,
     systemEntryHost: undefined, connectorAuthAcquisitionHost: undefined,
     registeredRuntimeBridge: bridge, productUpdateHost: undefined,
     DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS: 100,

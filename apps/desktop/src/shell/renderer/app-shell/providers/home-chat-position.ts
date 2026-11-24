@@ -35,6 +35,15 @@ export function useHomeChatPosition() {
     if (!threadId || current.destination.chat.threadId) return;
     refine({ ...current.destination.chat, threadId: threadId ?? undefined });
   }, [entryKey, navigation, refine]);
+  const clearHumanDraft = useCallback(() => {
+    const current = navigation.getSnapshot().current;
+    if (current.key !== entryKey || current.destination.chat?.mode !== 'human' || !current.destination.chat.draft) return;
+    const { draft: _discarded, ...rest } = current.destination.chat;
+    refine(rest);
+  }, [entryKey, navigation, refine]);
   return { mode, targetId: chat?.targetId ?? (mode === 'ai' ? 'ai:assistant' : null), nimiSelection,
-    humanThreadId: mode === 'human' ? chat?.threadId ?? null : null, open, openMode, openTarget, refine, selectNimiThread, resolveHumanThread };
+    humanThreadId: mode === 'human' ? chat?.threadId ?? null : null,
+    humanDraftText: mode === 'human' ? chat?.draft?.text ?? null : null,
+    clearHumanDraft,
+    open, openMode, openTarget, refine, selectNimiThread, resolveHumanThread };
 }

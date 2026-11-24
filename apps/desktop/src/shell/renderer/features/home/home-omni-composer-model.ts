@@ -258,11 +258,16 @@ export function buildRouteAndSubmitRequest(input: {
   readonly attachments: OmniAttachmentState;
   readonly activeLightQa: OmniLightQaCardState | null;
   readonly selectedCandidateRef?: string;
+  readonly promoteToPcWork?: boolean;
 }): RouteAndSubmitInputRequest {
   const explicitWorkSessionRef = input.target.kind === 'session'
     ? input.target.workSessionRef
     : '';
-  const cardSourceSessionRef = input.activeLightQa && !explicitWorkSessionRef && !input.selectedCandidateRef
+  // Only set cardSourceSessionRef when explicitly promoting a light Q&A card to pc_work
+  // (e.g., attaching files/workspace or explicit promotion). Normal turns 2-3 must leave it empty
+  // so Runtime continues general_inbox and auto-promotes on turn 4 with <= 6 turns of handoff history.
+  const shouldPromoteCard = input.promoteToPcWork === true || hasOmniFileContext(input.attachments);
+  const cardSourceSessionRef = input.activeLightQa && !explicitWorkSessionRef && !input.selectedCandidateRef && shouldPromoteCard
     ? input.activeLightQa.workSessionRef
     : '';
   const cardSourceMaxSeq = cardSourceSessionRef && input.activeLightQa
@@ -295,7 +300,11 @@ export function isAmbiguousRouteOutcome(response: RouteAndSubmitInputResponse): 
 export function isLightQaRouteResponse(response: RouteAndSubmitInputResponse): boolean {
   return (
     response.outcome === RouteAndSubmitOutcome.ACCEPTED
-    && (response.sessionKind === 'general_inbox' || response.ownerBodyKind === 'brain_inline')
+    && (
+      response.sessionKind === 'general_inbox'
+      || response.ownerBodyKind === 'brain'
+      || response.ownerBodyKind === 'brain_inline'
+    )
   );
 }
 
@@ -303,6 +312,7 @@ export function isPcWorkRouteResponse(response: RouteAndSubmitInputResponse): bo
   return (
     response.outcome === RouteAndSubmitOutcome.DEFERRED_BODY_OFFLINE
     || response.sessionKind === 'pc_work'
+    || response.ownerBodyKind === 'os.pc.workspace'
     || response.ownerBodyKind === 'pc_harness'
   );
 }
@@ -428,7 +438,11 @@ export function projectSessionOverviewAttention(input: {
 
   if (!input.carrierOnline) {
     for (const session of input.sessions) {
-      if (session.ownerBodyKind === 'pc_harness' && session.status === 'queued_body_offline') {
+      const isPcBody = session.sessionKind === 'pc_work'
+        || session.ownerBodyKind === 'os.pc.workspace'
+        || session.ownerBodyKind === 'pc_harness';
+      const isPendingOffline = session.status === 'queued_body_offline' || session.status === 'active';
+      if (isPcBody && isPendingOffline) {
         result.push({
           id: `session-offline:${session.workSessionRef}`,
           workSessionRef: session.workSessionRef,

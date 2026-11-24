@@ -104,30 +104,46 @@ test('A3 read-only attachments vs writable workspace split and partner mode auto
   assert.equal(withWorkspace.workspaceRoot, 'D:\\repo\\project');
 });
 
-test('FT-02 / A1 pre-session requestId, explicit #session, light Q&A handoff source & disambiguation', () => {
-  const req = buildRouteAndSubmitRequest({
+test('FT-02 / A1 pre-session requestId, turn-2 non-promotion, file promotion, and os.pc.workspace alignment', () => {
+  const activeLightQa = {
+    workSessionRef: 'ws_inbox_1',
+    agentHandle: 'agent_xiaoman',
+    agentDisplayName: '小满',
+    messages: [],
+    lastSeq: 6,
+    streaming: false,
+    turnCount: 2,
+    promotedToSessionRef: null,
+    promotedHandoffTurns: 0,
+    errorMessage: null,
+  };
+
+  // Normal turn 2-3 light Q&A follow-up MUST NOT send cardSourceSessionRef (otherwise Runtime promotes prematurely).
+  const normalFollowUp = buildRouteAndSubmitRequest({
+    requestId: 'req-stable-turn2',
+    text: '再简短一点总结',
+    agentHandle: 'agent_xiaoman',
+    target: { kind: 'auto' },
+    attachments: EMPTY_OMNI_ATTACHMENTS,
+    activeLightQa,
+  });
+  assert.equal(normalFollowUp.requestId, 'req-stable-turn2');
+  assert.equal(normalFollowUp.cardSourceSessionRef, '');
+  assert.equal(normalFollowUp.cardSourceMaxSeq, '0');
+  assert.equal(normalFollowUp.entrySurface, 'home_omni');
+
+  // Attaching a file/workspace or explicitly promoting DOES send cardSourceSessionRef + cardSourceMaxSeq.
+  const promotedReq = buildRouteAndSubmitRequest({
     requestId: 'req-stable-1',
     text: '把上面方案写进 plan.md',
     agentHandle: 'agent_xiaoman',
     target: { kind: 'auto' },
-    attachments: EMPTY_OMNI_ATTACHMENTS,
-    activeLightQa: {
-      workSessionRef: 'ws_inbox_1',
-      agentHandle: 'agent_xiaoman',
-      agentDisplayName: '小满',
-      messages: [],
-      lastSeq: 6,
-      streaming: false,
-      turnCount: 3,
-      promotedToSessionRef: null,
-      promotedHandoffTurns: 0,
-      errorMessage: null,
-    },
+    attachments: addReadOnlyAttachmentPaths(EMPTY_OMNI_ATTACHMENTS, ['D:\\notes\\spec.md']),
+    activeLightQa,
   });
-  assert.equal(req.requestId, 'req-stable-1');
-  assert.equal(req.cardSourceSessionRef, 'ws_inbox_1');
-  assert.equal(req.cardSourceMaxSeq, '6');
-  assert.equal(req.entrySurface, 'home_omni');
+  assert.equal(promotedReq.requestId, 'req-stable-1');
+  assert.equal(promotedReq.cardSourceSessionRef, 'ws_inbox_1');
+  assert.equal(promotedReq.cardSourceMaxSeq, '6');
 
   assert.equal(
     isAmbiguousRouteOutcome({
@@ -148,10 +164,10 @@ test('FT-02 / A1 pre-session requestId, explicit #session, light Q&A handoff sou
     isLightQaRouteResponse({
       outcome: RouteAndSubmitOutcome.ACCEPTED,
       resolvedWorkSessionRef: 'ws_inbox_1',
-      routeReason: 'light_qa_default',
+      routeReason: 'l2_general_inbox_new',
       sessionKind: 'general_inbox',
-      ownerBodyKind: 'brain_inline',
-      effectivePermissionMode: 'plan-readonly',
+      ownerBodyKind: 'brain',
+      effectivePermissionMode: 'readonly',
       outboxId: '',
       candidates: [],
       deduplicated: false,
@@ -161,11 +177,11 @@ test('FT-02 / A1 pre-session requestId, explicit #session, light Q&A handoff sou
   );
   assert.equal(
     isPcWorkRouteResponse({
-      outcome: RouteAndSubmitOutcome.DEFERRED_BODY_OFFLINE,
+      outcome: RouteAndSubmitOutcome.ACCEPTED,
       resolvedWorkSessionRef: 'ws_pc_2',
-      routeReason: 'explicit_workspace',
+      routeReason: 'l2_workspace_new_pc_work',
       sessionKind: 'pc_work',
-      ownerBodyKind: 'pc_harness',
+      ownerBodyKind: 'os.pc.workspace',
       effectivePermissionMode: 'workspace-edit',
       outboxId: 'out-1',
       candidates: [],
@@ -187,7 +203,7 @@ test('FT-02 / A1 pre-session requestId, explicit #session, light Q&A handoff sou
   assert.deepEqual(delta, { kind: 'assistant_delta', text: '三句总结如下：', seq: 7 });
 });
 
-test('Attention projection hides expired approvals and projects Harness-offline work cleanly', () => {
+test('Attention projection hides expired approvals and projects os.pc.workspace Harness-offline work cleanly', () => {
   const nowMs = Date.parse('2026-11-24T12:00:00Z');
   const items = projectSessionOverviewAttention({
     nowMs,
@@ -219,7 +235,7 @@ test('Attention projection hides expired approvals and projects Harness-offline 
         workSessionRef: 'ws-offline',
         agentBinding: 'agent-1',
         sessionKind: 'pc_work',
-        ownerBodyKind: 'pc_harness',
+        ownerBodyKind: 'os.pc.workspace',
         deviceId: '',
         publisherScopeKey: '',
         parentSessionRef: '',
@@ -228,7 +244,7 @@ test('Attention projection hides expired approvals and projects Harness-offline 
         isPrimaryCompanion: false,
         isGeneralInbox: false,
         title: '微信发来合同整理请求',
-        status: 'queued_body_offline',
+        status: 'active',
         trustTier: 'trusted',
         workspaceRoot: '',
         permissionMode: 'plan-readonly',

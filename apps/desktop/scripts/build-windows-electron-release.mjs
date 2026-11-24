@@ -46,6 +46,7 @@ const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
 const avatarRoot = path.join(repoRoot, 'apps', 'avatar');
 const zhiyuRoot = path.join(repoRoot, 'apps', 'zhiyu');
+const harnessRoot = path.join(repoRoot, 'apps', 'harness');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
 const corepackCli = path.join(path.dirname(process.execPath), 'node_modules', 'corepack', 'dist', 'corepack.js');
 
@@ -181,6 +182,7 @@ async function buildLayoutInputs() {
   runPnpm(['--dir', desktopRoot, 'run', 'build:renderer']);
   runPnpm(['--dir', avatarRoot, 'run', 'build:renderer']);
   runPnpm(['--dir', zhiyuRoot, 'run', 'build']);
+  runPnpm(['--dir', harnessRoot, 'run', 'build']);
   runPnpm(['--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit']);
   runLayoutCommand(process.execPath, [
     path.join(scriptRoot, 'bundle-electron-main.mjs'),
@@ -204,13 +206,15 @@ function runPnpm(args) {
 }
 
 async function stageApplicationSource(sourceRoot, packageVersion) {
-  await Promise.all(['dist-electron', 'avatar', 'zhiyu'].map(name => mkdir(path.join(sourceRoot, name), { recursive: true })));
+  await Promise.all(['dist-electron', 'avatar', 'zhiyu', 'harness'].map(name => mkdir(path.join(sourceRoot, name), { recursive: true })));
   await Promise.all([
     stageReleaseTree(path.join(desktopRoot, 'dist'), path.join(sourceRoot, 'dist'), path.join(transactionRoot, 'source-maps', 'dist')),
     stageReleaseTree(path.join(avatarRoot, 'dist'), path.join(sourceRoot, 'avatar', 'dist'), path.join(transactionRoot, 'source-maps', 'avatar', 'dist')),
     stageReleaseTree(path.join(zhiyuRoot, 'dist'), path.join(sourceRoot, 'zhiyu', 'dist'), path.join(transactionRoot, 'source-maps', 'zhiyu', 'dist')),
+    stageReleaseTree(path.join(harnessRoot, 'dist'), path.join(sourceRoot, 'harness', 'dist'), path.join(transactionRoot, 'source-maps', 'harness', 'dist')),
     cp(path.join(avatarRoot, 'NIMI_APP.md'), path.join(sourceRoot, 'avatar', 'NIMI_APP.md')),
     cp(path.join(zhiyuRoot, 'NIMI_APP.md'), path.join(sourceRoot, 'zhiyu', 'NIMI_APP.md')),
+    cp(path.join(harnessRoot, 'NIMI_APP.md'), path.join(sourceRoot, 'harness', 'NIMI_APP.md')),
     cp(path.join(desktopRoot, 'assets'), path.join(sourceRoot, 'assets'), { recursive: true, force: false }),
     cp(path.join(desktopRoot, 'dist-electron', 'entry.js'), path.join(sourceRoot, 'dist-electron', 'entry.js')),
     cp(path.join(desktopRoot, 'dist-electron', 'main.js'), path.join(sourceRoot, 'dist-electron', 'main.js')),
@@ -220,12 +224,21 @@ async function stageApplicationSource(sourceRoot, packageVersion) {
       path.join(sourceRoot, 'dist-electron', 'chat-ai-store-worker.js'),
     ),
     cp(
+      path.join(desktopRoot, 'dist-electron', 'harness-bundled-controller.js'),
+      path.join(sourceRoot, 'dist-electron', 'harness-bundled-controller.js'),
+    ),
+    cp(
+      path.join(desktopRoot, 'dist-electron', 'harness-engine-worker.js'),
+      path.join(sourceRoot, 'dist-electron', 'harness-engine-worker.js'),
+    ),
+    cp(
       path.join(desktopRoot, 'dist-electron', 'local-development-process-guardian.js'),
       path.join(sourceRoot, 'dist-electron', 'local-development-process-guardian.js'),
     ),
     cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(sourceRoot, 'dist-electron', 'preload.cjs')),
     cp(path.join(desktopRoot, 'dist-electron', 'system-entry-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'system-entry-preload.cjs')),
     cp(path.join(desktopRoot, 'dist-electron', 'zhiyu-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'zhiyu-preload.cjs')),
+    cp(path.join(desktopRoot, 'dist-electron', 'harness-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'harness-preload.cjs')),
     cp(path.join(desktopRoot, 'dist-electron', 'managed-web-preload.cjs'), path.join(sourceRoot, 'dist-electron', 'managed-web-preload.cjs')),
   ]);
   await Promise.all([
@@ -351,7 +364,7 @@ function runLayoutCommand(command, args, options = {}) {
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-010
 async function buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevision, transactionRoot, keyFile) {
   const runtimeRoot = path.join(packagedRoot, 'runtime'); await mkdir(runtimeRoot);
-  for (const [name, owner] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot]]) {
+  for (const [name, owner] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot], ['harness', harnessRoot]]) {
     const resource = path.join(runtimeRoot, 'resources/nimi-apps', name); await mkdir(resource, { recursive: true });
     await cp(path.join(owner, 'nimi.app.yaml'), path.join(resource, 'nimi.app.yaml'));
   }

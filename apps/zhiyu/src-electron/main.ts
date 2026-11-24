@@ -20,7 +20,6 @@ import {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createNimiLocalAppAgentSessionClient } from '@nimiplatform/sdk/app';
 import {
   ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL,
   ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL,
@@ -71,9 +70,18 @@ ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, (event, payload) => {
   resourcePackPlacementHost?.acknowledge(payload);
 });
 
+const ZHIYU_HANDOFF_ALLOWED_KEYS = new Set(['agentHandle', 'requestId', 'text', 'handoffBriefText']);
+
 ipcMain.handle('nimi:zhiyu:harness-handoff:submit', async (event, rawPayload: unknown) => {
   const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
-  if (!window || event.sender !== window.webContents || window.webContents.isDestroyed()) {
+  if (
+    !window
+    || event.sender !== window.webContents
+    || window.webContents.isDestroyed()
+    || !event.senderFrame
+    || event.senderFrame !== event.sender.mainFrame
+    || !isAllowedElectronRendererUrl(event.senderFrame.url, allowedRendererUrls())
+  ) {
     throw new Error('zhiyu-handoff-sender-unauthorized');
   }
   if (!registeredAppBridge) {
@@ -82,15 +90,22 @@ ipcMain.handle('nimi:zhiyu:harness-handoff:submit', async (event, rawPayload: un
   const record = rawPayload && typeof rawPayload === 'object' && !Array.isArray(rawPayload)
     ? rawPayload as Record<string, unknown>
     : null;
-  const agentHandle = typeof record?.agentHandle === 'string' ? record.agentHandle.trim() : '';
-  const requestId = typeof record?.requestId === 'string' ? record.requestId.trim() : '';
-  const text = typeof record?.text === 'string' ? record.text.trim() : '';
-  const handoffBriefText = typeof record?.handoffBriefText === 'string' ? record.handoffBriefText.trim() : '';
-  if (!agentHandle || !requestId || !handoffBriefText) {
+  if (!record || Object.keys(record).some((k) => !ZHIYU_HANDOFF_ALLOWED_KEYS.has(k))) {
     throw new Error('zhiyu-handoff-invalid-brief');
   }
-  const client = createNimiLocalAppAgentSessionClient(registeredAppBridge.localAppHost);
-  const res = await client.routeAndSubmitInput({
+  const agentHandle = typeof record.agentHandle === 'string' ? record.agentHandle.trim() : '';
+  const requestId = typeof record.requestId === 'string' ? record.requestId.trim() : '';
+  const text = typeof record.text === 'string' ? record.text.trim() : '';
+  const handoffBriefText = typeof record.handoffBriefText === 'string' ? record.handoffBriefText.trim() : '';
+  if (
+    !agentHandle || agentHandle.length > 256 || /[\x00-\x1f]/u.test(agentHandle)
+    || !requestId || requestId.length > 128 || /[\x00-\x1f]/u.test(requestId)
+    || text.length > 2000 || /\x00/u.test(text)
+    || !handoffBriefText || handoffBriefText.length > 4000 || /\x00/u.test(handoffBriefText)
+  ) {
+    throw new Error('zhiyu-handoff-invalid-brief');
+  }
+  const res = await registeredAppBridge.services.agentSession.routeAndSubmitInput({
     agentHandle,
     requestId,
     text: text || handoffBriefText.slice(0, 200),
@@ -112,6 +127,7 @@ ipcMain.handle('nimi:zhiyu:harness-handoff:submit', async (event, rawPayload: un
     sessionKind: res.sessionKind,
     ownerBodyKind: res.ownerBodyKind,
     deduplicated: res.deduplicated,
+    routeReason: res.routeReason,
   };
 });
 

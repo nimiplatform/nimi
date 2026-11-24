@@ -51,9 +51,12 @@ import {
   type HomeSystemItemMessage,
 } from './home-messages-model.js';
 import { DesktopAIExecutionRoute, type PendingAttentionRecord, type WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
+import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
+import { useHumanChatList } from '../chat/use-human-chat-list.js';
+import { loadHumanContactPage } from '../relationship/human-contact-data.js';
 import { HomePartnersHeroCard } from './home-partners-hero-card.js';
 import { buildHomeQuickJumpItems, HomeQuickJumpModal } from './home-quick-jump-modal.js';
-import { HomeOmniComposer } from './home-omni-composer.js';
+import { HomeOmniComposer, type OmniHumanContactOption } from './home-omni-composer.js';
 import { projectSessionOverviewAttention } from './home-omni-composer-model.js';
 import { BUNDLED_ZHIYU_RECENT_KEY, recordHomeRecentAppOpen } from './home-recent-apps-model.js';
 import { createDesktopAppsLiveBridge } from '../apps/apps-live-bridge.js';
@@ -110,6 +113,9 @@ export function NimiOverview() {
   const primaryRuntime = useHomePrimaryRuntimeQuery();
   const remoteAccess = useHomeRemoteAccessQuery();
 
+  const ownerUserId = String(authUser?.id || '').trim();
+  const realmBaseUrl = String(authUser?.realmEnvironmentId || '').trim();
+
   const [sessionOverview, setSessionOverview] = useState<{
     readonly sessions: readonly WorkSessionRecord[];
     readonly attentionItems: readonly PendingAttentionRecord[];
@@ -117,7 +123,8 @@ export function NimiOverview() {
   }>({ sessions: [], attentionItems: [], carrierOnline: false });
 
   useEffect(() => {
-    if (!isOverviewActive || authStatus !== 'authenticated') return;
+    setSessionOverview({ sessions: [], attentionItems: [], carrierOnline: false });
+    if (!isOverviewActive || authStatus !== 'authenticated' || !ownerUserId) return;
     const controller = new AbortController();
     void (async () => {
       try {
@@ -151,15 +158,84 @@ export function NimiOverview() {
     return () => {
       controller.abort();
     };
-  }, [authStatus, isOverviewActive, sdk]);
+  }, [authStatus, isOverviewActive, ownerUserId, sdk]);
 
-  const ownerUserId = String(authUser?.id || '').trim();
   const agents = useQuery({
     queryKey: localAgentListQueryKey(ownerUserId),
     queryFn: () => fetchLocalAgentList(ownerUserId, sdk),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
     staleTime: 30_000,
   });
+
+  const humanFriendsQuery = useQuery({
+    queryKey: ['nimi-overview', 'human-friends', realmBaseUrl, ownerUserId],
+    queryFn: () => loadHumanContactPage(sdk.realm(), 'friends', '', ''),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
+    staleTime: 30_000,
+    retry: false,
+  });
+  const humanChatsQuery = useHumanChatList(isOverviewActive ? authStatus : 'anonymous');
+  const omniHumanContacts = useMemo<OmniHumanContactOption[]>(() => {
+    const byId = new Map<string, OmniHumanContactOption>();
+    for (const friend of humanFriendsQuery.data?.items ?? []) {
+      const id = String(friend.id || '').trim();
+      if (!id || friend.isDeleted) continue;
+      byId.set(id, {
+        contactId: id,
+        displayName: String(friend.displayName || friend.handle || id).trim(),
+        handle: friend.handle ? String(friend.handle).trim() : null,
+      });
+    }
+    for (const chat of humanChatsQuery.data?.items ?? []) {
+      const other = chat.otherUser;
+      const id = String(other?.id || '').trim();
+      if (!id || byId.has(id) || other?.status === 'SUSPENDED') continue;
+      byId.set(id, {
+        contactId: id,
+        displayName: String(other?.displayName || other?.handle || id).trim(),
+        handle: other?.handle ? String(other.handle).trim() : null,
+      });
+    }
+    return [...byId.values()];
+  }, [humanFriendsQuery.data, humanChatsQuery.data]);
+
+  const sharedAgentAIConfig = useMemo(() => createRuntimeAgentAIConfigAdapter({
+    runtime: {
+      get appId() { return sdk.appId(); },
+      get auth() { return sdk.accountRuntime().auth; },
+      get agent() { return sdk.accountProduct().agents; },
+    },
+    getSubjectUserId: () => ownerUserId,
+    withScopes: sdk.withRuntimeProtectedScopes,
+  }), [ownerUserId, sdk]);
+  const sharedAgentAIConfigQuery = useQuery({
+    queryKey: ['nimi-overview', 'shared-agent-ai-config', ownerUserId],
+    queryFn: async () => (await sharedAgentAIConfig.get({ subjectUserId: ownerUserId })).config,
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
+    staleTime: 15_000,
+    retry: false,
+  });
+  const committedCloudRoute = useMemo(() => {
+    const capabilities = sharedAgentAIConfigQuery.data?.capabilities ?? [];
+    const textIntent = capabilities.find((entry) => entry.capabilityContract === 'text.generate');
+    if (textIntent?.route?.oneofKind !== 'cloud') {
+      return { active: false, modelLabel: null as string | null };
+    }
+    const cloud = textIntent.route.cloud;
+    const fields = cloud.providerModelTarget?.fields;
+    let modelLabel: string | null = null;
+    for (const key of ['modelId', 'model', 'id', 'name']) {
+      const val = fields?.[key]?.kind;
+      if (val && val.oneofKind === 'stringValue' && val.stringValue.trim()) {
+        modelLabel = val.stringValue.trim();
+        break;
+      }
+    }
+    if (!modelLabel && cloud.implementation?.implementationId?.trim()) {
+      modelLabel = cloud.implementation.implementationId.trim();
+    }
+    return { active: true, modelLabel };
+  }, [sharedAgentAIConfigQuery.data]);
 
   const integrationsQuery = useQuery({
     queryKey: ['nimi-overview', 'integration-management'],
@@ -265,10 +341,11 @@ export function NimiOverview() {
   const openDiagnostics = (pane: RuntimeAdvancedDiagnosticsPane) => {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
   };
-  const openHarness = () => {
+  const openHarness = (workSessionRef?: string) => {
+    const normalizedRef = typeof workSessionRef === 'string' && workSessionRef.trim() ? workSessionRef.trim() : undefined;
+    recordHomeRecentAppOpen(messagesAccountKey, 'nimi.harness');
     const harnessEntry = entries.find((entry) => entry.identity.appId === 'nimi.harness');
-    if (harnessEntry) {
-      recordHomeRecentAppOpen(messagesAccountKey, 'nimi.harness');
+    if (harnessEntry && !normalizedRef) {
       const liveBridge = createDesktopAppsLiveBridge();
       const running = harnessEntry.run?.state === 'running';
       if (running) {
@@ -289,15 +366,34 @@ export function NimiOverview() {
         );
         return;
       }
-      openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
-      return;
     }
-    void navigation.push({ id: 'apps' });
+    void invokeChecked(
+      'bundled_harness_open',
+      normalizedRef ? { workSessionRef: normalizedRef } : {},
+      (value) => {
+        if (!value || typeof value !== 'object' || !('opened' in value) || value.opened !== true) {
+          throw new Error('bundled-harness-open-invalid');
+        }
+        return value;
+      },
+    ).catch(() => {
+      if (harnessEntry) {
+        openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
+        return;
+      }
+      emitFeedbackToast({ kind: 'error', message: t('Apps.bundled.openFailed') });
+    });
   };
-  const openHumanChatDraft = (contactId: string, _draftText: string) => {
+  const openHumanChatDraft = (contactId: string, draftText: string) => {
+    const trimmed = draftText.trim();
     void navigation.push({
       id: 'contacts',
-      chat: { mode: 'human', targetId: contactId, contactsSection: 'conversations' },
+      chat: {
+        mode: 'human',
+        targetId: contactId,
+        contactsSection: 'conversations',
+        ...(trimmed ? { draft: { text: trimmed, source: 'home_omni' } } : {}),
+      },
     });
   };
   const openPartnerZhiyu = (localAgentRef: string, draftText?: string) => {
@@ -486,7 +582,7 @@ export function NimiOverview() {
         actionLabel: item.kind === 'body_offline'
           ? t('runtimeConfig.overview.attention.openHarnessAction')
           : t('runtimeConfig.overview.attention.reviewAction'),
-        onAction: () => openHarness(),
+        onAction: () => openHarness(item.workSessionRef),
       });
     }
 
@@ -640,10 +736,15 @@ export function NimiOverview() {
             <HomeOmniComposer
               accountKey={messagesAccountKey}
               partners={agents.data ?? []}
+              humanContacts={omniHumanContacts}
               recentSessions={sessionOverview.sessions}
-              cloudRouteActive={activeExecutions.some(
-                (execution) => execution.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD,
-              )}
+              cloudRouteActive={
+                committedCloudRoute.active
+                || activeExecutions.some(
+                  (execution) => execution.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD,
+                )
+              }
+              cloudModelLabel={committedCloudRoute.modelLabel}
               onOpenHumanChatDraft={openHumanChatDraft}
               onOpenPartnerZhiyu={openPartnerZhiyu}
               onOpenHarness={openHarness}

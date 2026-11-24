@@ -1,5 +1,5 @@
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -37,7 +37,20 @@ export function ChatHumanModeContent({
     selectedChatId,
     setSelectedChatId: homeChat.resolveHumanThread,
     onOpenThread: threadId => homeChat.open({ mode: 'human', threadId }),
+    initialDraftText: homeChat.humanDraftText,
+    onConsumeInitialDraft: homeChat.clearHumanDraft,
   });
+
+  const resolvedTargetRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!storeSelectedTargetId || selectedChatId) {
+      resolvedTargetRef.current = null;
+      return;
+    }
+    if (resolvedTargetRef.current === storeSelectedTargetId) return;
+    resolvedTargetRef.current = storeSelectedTargetId;
+    host.onSelectTarget?.(storeSelectedTargetId);
+  }, [host, selectedChatId, storeSelectedTargetId]);
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(

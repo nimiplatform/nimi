@@ -117,3 +117,39 @@ await build({
   packages: 'external',
   logLevel: 'silent',
 });
+
+const harnessRoot = path.join(appRoot, '../harness');
+await build({
+  absWorkingDir: harnessRoot,
+  entryPoints: [path.join(harnessRoot, 'src-electron/bundled-entry.ts')],
+  outfile: path.join(appRoot, 'dist-electron/harness-bundled-controller.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  external: releaseBuild
+    ? ['electron', 'node:sqlite', '@nimiplatform/kit-protected-local-darwin-arm64', '@nimiplatform/kit-protected-local-win32-x64']
+    : ['electron', 'node:sqlite', '@nimiplatform/*'],
+  define: {
+    __NIMI_ELECTRON_PRODUCTION__: JSON.stringify(releaseBuild),
+  },
+  banner: releaseBuild ? {
+    js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",
+  } : undefined,
+  logLevel: 'silent',
+});
+
+await build({
+  absWorkingDir: harnessRoot,
+  entryPoints: [path.join(harnessRoot, 'src-electron/engine-worker.ts')],
+  outfile: path.join(appRoot, 'dist-electron/harness-engine-worker.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  external: ['electron', 'node:sqlite'],
+  define: {
+    __NIMI_ELECTRON_PRODUCTION__: JSON.stringify(releaseBuild),
+  },
+  logLevel: 'silent',
+});

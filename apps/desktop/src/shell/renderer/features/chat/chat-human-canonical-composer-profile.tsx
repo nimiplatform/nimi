@@ -76,6 +76,8 @@ function HumanAttachmentStrip(props: {
 type HumanCanonicalComposerProps = {
   selectedChatId: string | null;
   contactAdmission: HumanContactAdmission;
+  initialDraftText?: string | null;
+  onConsumeInitialDraft?: () => void;
   leadingAvatar?: {
     avatarMedia?: RealmModel<'MediaDeliveryDto'> | null; avatarResourceId?: string | null;
     name: string; imageUrl?: string | null; fallbackLabel?: string | null;
@@ -214,6 +216,18 @@ function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
       account.current?.dispose(); account.current = null;
     };
   }, [loadAttempt]);
+  const appliedInitialDraftRef = useRef<string | null>(null);
+  useEffect(() => {
+    const incoming = props.initialDraftText?.trim() ? props.initialDraftText : null;
+    if (!ready || !incoming || appliedInitialDraftRef.current === incoming) return;
+    appliedInitialDraftRef.current = incoming;
+    // Prefill from Home Omni-Composer without auto-sending (02 §2.1).
+    const nextText = draft.current.text.trim()
+      ? `${draft.current.text.trimEnd()}\n${incoming}`
+      : incoming;
+    changeText(nextText, true);
+    props.onConsumeInitialDraft?.();
+  }, [ready, props.initialDraftText, props.onConsumeInitialDraft]);
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     let items: PendingAttachment[] = [];
     for (const file of Array.from(event.target.files ?? [])) {

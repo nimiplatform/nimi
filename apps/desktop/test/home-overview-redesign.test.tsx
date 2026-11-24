@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React, { act } from 'react';
+import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { JSDOM } from 'jsdom';
 import {
   DesktopAIExecutionRoute,
   DesktopAIExecutionState,
   type DesktopAIUsageSummary,
 } from '@nimiplatform/sdk/runtime/generated';
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n/index.js';
-import { HomeQuickStartBar } from '../src/shell/renderer/features/home/home-quick-start-bar.js';
+import { validateHomeDestination } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
+import { buildHomeQuickJumpItems } from '../src/shell/renderer/features/home/home-quick-jump-modal.js';
 import { HomeAttentionStrip, type HomeAttentionItem } from '../src/shell/renderer/features/home/home-attention-strip.js';
 import { HomeAmbientStatusStrip } from '../src/shell/renderer/features/home/home-ambient-status-strip.js';
 import { systemEntryDayRange } from '../src/shell/renderer/features/system-entry/system-entry-time.js';
@@ -45,70 +45,65 @@ function makeUsageAI(overrides: Partial<DesktopAIUsageSummary> = {}): SystemEntr
   };
 }
 
-test('HomeQuickStartBar submits typed draft on Enter, ignores Shift+Enter, and opens Nimi Chat on empty submit', async () => {
+test('Home human chat navigation preserves validated draft without auto-sending and Quick Jump deduplicates Harness and Zhiyu', async () => {
   await initI18n();
   await changeLocale('zh');
-  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost/' });
-  const previous = new Map<string, PropertyDescriptor | undefined>();
-  for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'HTMLTextAreaElement', 'Node', 'Event', 'KeyboardEvent'] as const) {
-    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
-    Object.defineProperty(globalThis, key, { value: dom.window[key], configurable: true, writable: true });
-  }
-  const prevAct = (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-  const { createRoot } = await import('react-dom/client');
-  const submittedDrafts: string[] = [];
-  let emptyOpens = 0;
+  const dest = validateHomeDestination({
+    id: 'contacts',
+    chat: {
+      mode: 'human',
+      targetId: 'user-alice',
+      contactsSection: 'conversations',
+      draft: { text: '明天上午十点开会确认一下方案', source: 'home_omni' },
+    },
+  });
+  assert.equal(dest.chat?.targetId, 'user-alice');
+  assert.equal(dest.chat?.draft?.text, '明天上午十点开会确认一下方案');
+  assert.equal(dest.chat?.draft?.source, 'home_omni');
+  assert.throws(() => validateHomeDestination({
+    id: 'contacts',
+    chat: { mode: 'human', targetId: 'user-alice', draft: { text: '   ' } },
+  }), /Invalid chat draft/);
 
-  const root = createRoot(dom.window.document.getElementById('root')!);
-  try {
-    await act(async () => {
-      root.render(
-        <HomeQuickStartBar
-          onSubmitDraft={(text) => submittedDrafts.push(text)}
-          onOpenChat={() => { emptyOpens += 1; }}
-        />,
-      );
-    });
-
-    const input = dom.window.document.querySelector<HTMLTextAreaElement>('[data-testid="home-quick-start-input"]');
-    const submit = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="home-quick-start-submit"]');
-    assert.ok(input && submit);
-
-    // Clicking submit with empty text opens Nimi Chat directly.
-    await act(async () => {
-      submit.click();
-    });
-    assert.equal(emptyOpens, 1);
-    assert.deepEqual(submittedDrafts, []);
-
-    // Setting value and pressing Shift+Enter does not submit.
-    const setter = Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value')?.set;
-    await act(async () => {
-      setter?.call(input, '  帮我总结今天的会议要点  ');
-      input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-    });
-    await act(async () => {
-      input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }));
-    });
-    assert.deepEqual(submittedDrafts, []);
-
-    // Pressing plain Enter hands over the trimmed draft and clears the box.
-    await act(async () => {
-      input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-    });
-    assert.deepEqual(submittedDrafts, ['帮我总结今天的会议要点']);
-    assert.equal(input.value, '');
-  } finally {
-    await act(async () => root.unmount());
-    dom.window.close();
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = prevAct;
-    for (const [key, descriptor] of previous) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else Reflect.deleteProperty(globalThis, key);
-    }
-  }
+  const items = buildHomeQuickJumpItems({
+    t: ((key: string) => key) as never,
+    apps: [
+      {
+        identity: { appId: 'nimi.harness', displayName: 'Nimi Harness', entryKey: 'harness-dev' },
+        localDevelopment: { selector: 'dev-1' },
+      },
+      {
+        identity: { appId: 'nimi.zhiyu', displayName: '织羽', entryKey: 'zhiyu-dev' },
+        localDevelopment: { selector: 'dev-2' },
+      },
+      {
+        identity: { appId: 'example.custom', displayName: 'Custom App', entryKey: 'custom-1' },
+        localDevelopment: { selector: 'dev-3' },
+      },
+    ] as never,
+    partners: [],
+    actions: {
+      onOpenZhiyu: noop,
+      onOpenHarness: noop,
+      onOpenApp: noop,
+      onOpenPartner: noop,
+      onOpenCapability: noop,
+      onOpenExplore: noop,
+      onOpenApps: noop,
+      onOpenModelLibrary: noop,
+      onOpenAIProfiles: noop,
+      onOpenCloud: noop,
+      onOpenConnections: noop,
+      onOpenIntegrations: noop,
+      onOpenDownloads: noop,
+      onOpenAIActivity: noop,
+      onOpenTroubleshooting: noop,
+      onOpenDataStorage: noop,
+    },
+  });
+  const appGroupIds = items.filter((item) => item.group === 'apps').map((item) => item.id);
+  assert.deepEqual(appGroupIds, ['app:harness', 'app:zhiyu', 'app:example.custom']);
 });
 
 test('HomeAttentionStrip collapses to empty markup when idle and enforces caps of 3 attention and 3 active work items', async () => {

@@ -63,6 +63,7 @@ export type HomeChatPosition = {
   readonly contactsSection?: 'conversations' | 'friends' | 'received' | 'sent' | 'blocked';
   readonly targetId?: string;
   readonly threadId?: string;
+  readonly draft?: { readonly text: string; readonly source?: string };
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], contacts: ['chat', 'profileId', 'contactView', 'conversationFilter', 'partnerQuery', 'partner', 'partnerManagerAnchorId', 'partnerManagerSection', 'partnerChat'], explore: ['exploreSection', 'exploreSearchKind', 'search', 'exploreWorldId', 'exploreTopicId', 'worldSearch', 'worldTopicId', 'worldCollection'],
@@ -193,10 +194,25 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
     if (fields.mode !== (id === 'contacts' ? 'human' : 'ai')) throw new Error('Conversation mode does not belong to this destination.');
-    const keys = fields.mode === 'human' ? ['mode', 'targetId', 'threadId', 'contactsSection'] : ['mode', 'targetId', 'threadId'];
+    const keys = fields.mode === 'human' ? ['mode', 'targetId', 'threadId', 'contactsSection', 'draft'] : ['mode', 'targetId', 'threadId'];
     if (Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
-    for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);
+    for (const key of keys) {
+      if (key === 'mode' || key === 'draft' || fields[key] === undefined) continue;
+      normalized[key] = stringRef(fields[key]);
+    }
+    if (fields.draft !== undefined) {
+      const draft = fields.draft as Record<string, unknown>;
+      if (!draft || typeof draft !== 'object' || Array.isArray(draft)
+        || Object.keys(draft).some(key => key !== 'text' && key !== 'source')
+        || typeof draft.text !== 'string' || !draft.text.trim() || [...draft.text].length > 8000 || draft.text.includes('\0')) {
+        throw new Error('Invalid chat draft.');
+      }
+      normalized.draft = {
+        text: draft.text,
+        ...(draft.source === undefined ? {} : { source: stringRef(draft.source) }),
+      };
+    }
     if (normalized.contactsSection !== undefined && !['conversations', 'friends', 'received', 'sent', 'blocked'].includes(normalized.contactsSection as string)) throw new Error('Invalid contacts section.');
     result.chat = normalized;
   }

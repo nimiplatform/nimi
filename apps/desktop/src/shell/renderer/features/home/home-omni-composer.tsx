@@ -86,7 +86,7 @@ function randomRequestId(): string {
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
-// @nimi-authority: rule.nimi.desktop.shell-ui.home-omni-composer
+// @nimi-authority: rule.nimi.desktop.product-surfaces.home-omni-composer
 export function HomeOmniComposer({
   accountKey,
   partners,
@@ -123,6 +123,18 @@ export function HomeOmniComposer({
   const streamAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+    setDraft('');
+    setCaretIndex(0);
+    setTarget({ kind: 'auto' });
+    setAttachments(EMPTY_OMNI_ATTACHMENTS);
+    setPlusMenuOpen(false);
+    setSubmitting(false);
+    setSubmitError(null);
+    setDisambiguation(null);
+    setLightQa(null);
+    setActiveOptionIndex(0);
     setPinnedPartnerHandle(readPinnedPartnerHandle(accountKey));
   }, [accountKey]);
 
@@ -480,6 +492,7 @@ export function HomeOmniComposer({
   useEffect(() => {
     if (!disambiguation) return;
     const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (isComposingRef.current || event.isComposing || event.keyCode === 229) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (document.activeElement === inputRef.current && draft.trim() !== disambiguation.draftText.trim()) return;
       if (event.key === '1' || event.key === '2' || event.key === '3') {
@@ -553,9 +566,13 @@ export function HomeOmniComposer({
 
   const handleDropFiles = (event: DragEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const resolveElectronFilePath = (
+      globalThis as { __NIMI_DESKTOP_FILE_PATH__?: (file: File) => string }
+    ).__NIMI_DESKTOP_FILE_PATH__;
     const droppedPaths: string[] = [];
     for (const file of Array.from(event.dataTransfer.files)) {
-      const pathValue = (file as File & { path?: string }).path || file.name;
+      const electronPath = typeof resolveElectronFilePath === 'function' ? resolveElectronFilePath(file) : '';
+      const pathValue = electronPath || (file as File & { path?: string }).path || file.name;
       if (pathValue) droppedPaths.push(pathValue);
     }
     if (droppedPaths.length === 0) return;

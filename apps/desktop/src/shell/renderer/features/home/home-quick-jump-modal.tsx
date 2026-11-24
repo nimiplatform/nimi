@@ -76,10 +76,11 @@ export function buildHomeQuickJumpItems(input: {
   const { t, apps, partners, actions } = input;
   const capabilityList = input.capabilities?.length ? input.capabilities : QUICK_JUMP_CAPABILITIES;
 
+  const bundledAppIds = new Set<string>(['nimi.zhiyu', ...(actions.onOpenHarness ? ['nimi.harness'] : [])]);
   const installedApps = [
     ...new Map(
       apps
-        .filter((entry) => entry.committedRelease || entry.localDevelopment)
+        .filter((entry) => (entry.committedRelease || entry.localDevelopment) && !bundledAppIds.has(entry.identity.appId))
         .map((entry) => [entry.identity.appId, entry]),
     ).values(),
   ];

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Briefcase, CheckCircle2, ShieldCheck, X } from 'lucide-react';
 import {
   buildEditableHandoffBriefDraft,
@@ -7,6 +7,8 @@ import {
   type ZhiyuHandoffBriefPoint,
   type ZhiyuHandoffSubmitResult,
 } from './zhiyu-harness-handoff';
+
+const EMPTY_TOPIC_HINTS: readonly string[] = [];
 
 export type ZhiyuHarnessHandoffDialogProps = {
   readonly open: boolean;
@@ -23,7 +25,7 @@ export function ZhiyuHarnessHandoffDialog({
   partnerName,
   agentHandle,
   currentDraft,
-  recentTopicHints = [],
+  recentTopicHints = EMPTY_TOPIC_HINTS,
   onClose,
 }: ZhiyuHarnessHandoffDialogProps) {
   const [goal, setGoal] = useState('');
@@ -33,9 +35,12 @@ export function ZhiyuHarnessHandoffDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<ZhiyuHandoffSubmitResult | null>(null);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (!justOpened) return;
     const draft = buildEditableHandoffBriefDraft({
       partnerName,
       currentDraft,
