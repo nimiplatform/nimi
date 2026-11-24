@@ -5,6 +5,7 @@ app_access:
   - realm.data
   - runtime.consume
   - agent.local
+  - agent.session.manage
   - agent.configure
   - agent.utopia.read
   - agent.utopia.manage

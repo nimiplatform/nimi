@@ -9,14 +9,12 @@ use crate::first_party_profiles_generated::{
 pub enum BundledApp {
     Avatar,
     Zhiyu,
-    Harness,
 }
 impl BundledApp {
     pub fn from_app_id(app_id: &str) -> Option<Self> {
         match app_id {
             "nimi.avatar" => Some(Self::Avatar),
             "nimi.zhiyu" => Some(Self::Zhiyu),
-            "nimi.harness" => Some(Self::Harness),
             _ => None,
         }
     }
@@ -24,14 +22,12 @@ impl BundledApp {
         match self {
             Self::Avatar => BUNDLED_AVATAR_APP_ID,
             Self::Zhiyu => "nimi.zhiyu",
-            Self::Harness => "nimi.harness",
         }
     }
     pub const fn marker(self) -> &'static str {
         match self {
             Self::Avatar => BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
             Self::Zhiyu => "zhiyu-v1",
-            Self::Harness => "harness-v1",
         }
     }
     pub fn method_profile(self, method_id: &str) -> Option<BundledAvatarMethodProfile> {
@@ -99,38 +95,6 @@ Self::Zhiyu => match method_id {
 "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput", kind: BundledAvatarMethodKind::Unary, capability: "" }),
 "/nimi.runtime.v1.AgentSessionService/GetSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/GetSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
 "/nimi.runtime.v1.AgentSessionService/ListSessions" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/ListSessions", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-_ => None,
-},
-Self::Harness => match method_id {
-"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/GetSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/GetSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/ListSessions" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/ListSessions", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/UpdateSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/UpdateSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/DeleteSession" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/DeleteSession", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/WatchSessionOverview" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview", kind: BundledAvatarMethodKind::ServerStream, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents", kind: BundledAvatarMethodKind::ServerStream, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox", kind: BundledAvatarMethodKind::ServerStream, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/AckBodyOutbox" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep", kind: BundledAvatarMethodKind::ServerStream, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/CreateAlarm" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/CreateAlarm", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/ListAlarms" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/ListAlarms", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/UpdateAlarm" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/UpdateAlarm", kind: BundledAvatarMethodKind::Unary, capability: "" }),
-"/nimi.runtime.v1.AgentSessionService/DeleteAlarm" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.AgentSessionService/DeleteAlarm", kind: BundledAvatarMethodKind::Unary, capability: "" }),
 _ => None,
 },
   }

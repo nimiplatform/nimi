@@ -116,6 +116,9 @@ func (s *Service) authorizeRemoteAppIngress(ctx context.Context, peer remoteAppP
 	if err != nil {
 		return nil, localAppIngressError(err)
 	}
+	if admission.Domain == localappop.Domain("agent.body.pc") {
+		return nil, remoteAdmissionDenied()
+	}
 	capability, supported := appOperationCapability(admission)
 	if !supported {
 		return nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
@@ -127,7 +130,7 @@ func (s *Service) authorizeRemoteAppIngress(ctx context.Context, peer remoteAppP
 	decision := accountservice.LocalAppCallerDecision{LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), SessionID: info.SessionID,
 		AppID: info.Registration.AppID, AccountID: info.Scope.AccountID, RealmEnvironmentID: info.Scope.RealmEnvironmentID,
 		AccountGeneration: info.AccountGeneration, RuntimeBootEpoch: info.RuntimeInstanceID, ExpiresAt: info.Deadline,
-		Operation: admission.Operation, AuthorityClass: admission.Class, OperationCapability: capability, TrustClass: accountservice.LocalAppTrustClassRemote,
+		Operation: admission.Operation, AuthorityClass: admission.Class, OperationCapability: capability, ActivatedDomains: session.snapshot.DomainsCSV(), TrustClass: accountservice.LocalAppTrustClassRemote,
 		RegistrationHandle: handle, SourceGeneration: info.Registration.SourceGeneration, DeclarationGeneration: info.Registration.DeclarationGeneration,
 		RegisteredAppSubject: info.Registration.RegisteredAppSubject, SessionInvalidated: peer.Done()}
 	// Conversation observations revalidate repeatedly on the same request.

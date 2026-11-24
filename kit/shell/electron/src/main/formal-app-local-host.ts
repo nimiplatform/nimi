@@ -54,18 +54,18 @@ import {
 import type { NimiElectronAppActivityOpenLaunchTarget, RuntimeGrpcBridgeStream } from './types.js';
 import { takeElectronLocalAppCommandClosers } from './local-app-commands.js';
 
-type FormalAppProfile = 'desktop' | 'avatar' | 'zhiyu' | 'harness';
+type FormalAppProfile = 'desktop' | 'avatar' | 'zhiyu';
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
 /** Installed Home main only; the native carrier verifies the actual Home process.
  * App declarations and sessions remain Runtime-owned. */
 export function createNimiElectronBundledAppLocalHostOwner(input: {
-  readonly appId: 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
+  readonly appId: 'nimi.avatar' | 'nimi.zhiyu';
   readonly revealInOs?: (path: string) => Promise<void> | void;
 }): Pick<NimiElectronFormalAppLocalHostOwner, 'host' | 'shutdown'> {
   const owner = createNimiElectronFormalAppLocalHostOwner({
     ...input,
-    profile: input.appId === 'nimi.avatar' ? 'avatar' : input.appId === 'nimi.harness' ? 'harness' : 'zhiyu',
+    profile: input.appId === 'nimi.avatar' ? 'avatar' : 'zhiyu',
     control: createNimiElectronDesktopControlHost(),
   });
   return { host: owner.host, shutdown: () => owner.shutdown() };
@@ -124,7 +124,7 @@ export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
 // commands as every ordinary App. The profile transport never becomes a
 // renderer Runtime proxy or a second product client.
 export function createNimiElectronFormalAppLocalHost(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -133,7 +133,7 @@ export function createNimiElectronFormalAppLocalHost(input: {
 }
 
 export function createNimiElectronFormalAppLocalHostOwner(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -1292,37 +1292,51 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         closed: false,
       };
       const MAX_AGENT_SESSION_QUEUE = 256;
-      const push = (item: { readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }) => {
+      const pushData = (chunk: Uint8Array) => {
+        if (state.closed) return;
         if (state.waiters.length > 0) {
-          state.waiters.shift()?.(item);
-        } else {
-          if (state.queue.length >= MAX_AGENT_SESSION_QUEUE) {
-            state.closed = true;
-            state.cancel();
-            state.queue.length = 0;
-            state.queue.push({ error: new NimiElectronLocalAppHostError('resource-exhausted', true) });
-            return;
-          }
-          state.queue.push(item);
+          state.waiters.shift()?.({ done: false, chunk });
+          return;
         }
+        if (state.queue.length >= MAX_AGENT_SESSION_QUEUE) {
+          pushTerminal({ error: new NimiElectronLocalAppHostError('resource-exhausted', true) }, true);
+          return;
+        }
+        state.queue.push({ done: false, chunk });
+      };
+      const pushTerminal = (
+        item: { readonly done: true } | { readonly error: unknown },
+        cancelTransport: boolean,
+      ) => {
+        if (state.closed) return;
+        state.closed = true;
+        if (cancelTransport) {
+          state.cancel();
+          state.queue.length = 0;
+        }
+        if (state.waiters.length > 0) {
+          while (state.waiters.length > 0) {
+            state.waiters.shift()?.(item);
+          }
+          return;
+        }
+        state.queue.push(item);
       };
       agentSessionStreams.set(streamId, state);
       raw.start({
-        onData: (chunk) => push({ done: false, chunk }),
-        onEnd: () => {
-          state.closed = true;
-          push({ done: true });
-        },
-        onError: (error) => {
-          state.closed = true;
-          push({ error });
-        },
+        onData: (chunk) => pushData(chunk),
+        onEnd: () => pushTerminal({ done: true }, false),
+        onError: (error) => pushTerminal({ error }, false),
       });
       return { streamId };
     },
     async agentSessionStreamNext(req) {
       const state = agentSessionStreams.get(req.streamId);
       if (!state) throw new NimiElectronLocalAppHostError('not-found', false);
+      if (state.queue.length === 0 && state.closed) {
+        agentSessionStreams.delete(req.streamId);
+        return { completed: true };
+      }
       const item = state.queue.length > 0
         ? state.queue.shift()!
         : await new Promise<{ readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }>((resolve) => {
@@ -1933,9 +1947,8 @@ function isFormalSessionInvalid(error: unknown): error is NimiElectronLocalAppHo
 
 function bundledAppIdForProfile(
   profile: Exclude<FormalAppProfile, 'desktop'>,
-): 'nimi.avatar' | 'nimi.zhiyu' | 'nimi.harness' {
+): 'nimi.avatar' | 'nimi.zhiyu' {
   if (profile === 'avatar') return 'nimi.avatar';
-  if (profile === 'harness') return 'nimi.harness';
   return 'nimi.zhiyu';
 }
 

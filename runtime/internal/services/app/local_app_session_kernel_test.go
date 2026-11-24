@@ -890,10 +890,17 @@ func TestProactiveControlOperationsAreUnavailableToAIConsumeOnlyApp(t *testing.T
 	}
 }
 
-func TestAgentSessionFormalAdmissionAndPCTrustClassGate(t *testing.T) {
-	// 1. Ordinary local app with agent.local + agent.body.app + agent.trigger.delegate succeeds on matching domains
-	//    and is denied on agent.body.pc (even if it tries to declare agent.body.pc!).
-	fixture := newLocalAppSessionFixture(t, []string{"agent.local", "agent.body.pc", "agent.body.app", "agent.trigger.delegate"})
+func TestAgentSessionFormalAdmissionZeroPrivilegeDomains(t *testing.T) {
+	// 1. Any local formal App with activated domains is admitted purely by its
+	//    Effective App Access Snapshot without built-in app_id privilege.
+	fixture := newLocalAppSessionFixture(t, []string{
+		"agent.local",
+		"agent.session.manage",
+		"agent.companion",
+		"agent.body.pc",
+		"agent.body.app",
+		"agent.trigger.delegate",
+	})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
 	}
@@ -905,7 +912,9 @@ func TestAgentSessionFormalAdmissionAndPCTrustClassGate(t *testing.T) {
 		{localappop.IngressAgentSessionRouteSubmit, localappop.OperationAgentSessionRouteSubmit, "agent.local"},
 		{localappop.IngressAgentSessionSplitRedirect, localappop.OperationAgentSessionSplitRedirect, "agent.local"},
 		{localappop.IngressAgentSessionOverviewWatch, localappop.OperationAgentSessionOverviewWatch, "agent.local"},
+		{localappop.IngressAgentBodyPCRegister, localappop.OperationAgentBodyPCRegister, "agent.body.pc"},
 		{localappop.IngressAgentBodyAppRegister, localappop.OperationAgentBodyAppRegister, "agent.body.app"},
+		{localappop.IngressAgentBodyAppStepStream, localappop.OperationAgentBodyAppStepStream, "agent.body.app"},
 		{localappop.IngressAgentTriggerAlarmCreate, localappop.OperationAgentTriggerAlarmCreate, "agent.trigger.delegate"},
 	} {
 		ctx, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, item.ingress)
@@ -916,42 +925,24 @@ func TestAgentSessionFormalAdmissionAndPCTrustClassGate(t *testing.T) {
 		if !ok || decision.Operation != item.op || decision.OperationCapability != item.domain {
 			t.Fatalf("unexpected formal decision for %v: %+v", item.ingress, decision)
 		}
+		if !decision.HasActivatedDomain("agent.session.manage") || !decision.HasActivatedDomain("agent.companion") {
+			t.Fatalf("expected activated scope domains on decision, got %v", decision.ActivatedDomains)
+		}
 	}
-	// Non-nimi.harness local app claiming agent.body.pc MUST fail closed with LOCAL_APP_ACCESS_DENIED.
-	_, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, localappop.IngressAgentBodyPCRegister)
-	assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 
-	// 2. App without agent.local / agent.body.app / agent.trigger.delegate is rejected.
+	// 2. Any App without agent.local / agent.body.pc / agent.body.app / agent.trigger.delegate is rejected.
 	minimal := newLocalAppSessionFixture(t, []string{"runtime.consume"})
 	if _, err := minimal.service.OpenLocalAppSessionProjection(minimal.context); err != nil {
 		t.Fatal(err)
 	}
 	for _, ingress := range []localappop.Ingress{
 		localappop.IngressAgentSessionRouteSubmit,
+		localappop.IngressAgentBodyPCRegister,
 		localappop.IngressAgentBodyAppRegister,
+		localappop.IngressAgentBodyAppStepStream,
 		localappop.IngressAgentTriggerAlarmCreate,
 	} {
 		_, err := minimal.service.AuthorizeLocalAppIngress(minimal.context, ingress)
 		assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-
-	// 3. Direct authorizedLocalAppContext TrustClass gate: user_imported spoofing appID=nimi.harness is rejected,
-	//    while BuiltIn and local_development nimi.harness are allowed.
-	pcAdmission := localappop.Admission{
-		Operation: localappop.OperationAgentBodyPCRegister,
-		Class:     localappop.AuthorityClassAppAccess,
-		Domain:    localappop.Domain("agent.body.pc"),
-	}
-	spoofSession := localAppRuntimeSession{
-		appID:      "nimi.harness",
-		trustClass: accountservice.LocalAppTrustClassUserImported,
-	}
-	_, err = fixture.service.authorizedLocalAppContext(fixture.context, pcAdmission, spoofSession)
-	assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
-	verifiedThirdParty := localAppRuntimeSession{
-		appID:      "nimi.harness",
-		trustClass: accountservice.LocalAppTrustClassVerified,
-	}
-	_, err = fixture.service.authorizedLocalAppContext(fixture.context, pcAdmission, verifiedThirdParty)
-	assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 }

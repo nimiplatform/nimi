@@ -290,6 +290,7 @@ pub async fn local_app_session_rebind() -> NativeJsonOutcome {
     }
     let _rebinding = LocalAppRebindGuard;
     let mut cache = LOCAL_APP_SESSION.lock().await;
+    close_all_agent_session_streams().await;
     let transport_lost = cache.invalidated.as_ref().is_some_and(|error| {
         matches!(
             error.reason_code(),
@@ -3874,8 +3875,13 @@ pub async fn local_app_conversation_follow_up_cancel(input:NativeConversationFol
  invoke_agent(|session|async move{session.conversation_follow_up_cancel(LocalAppConversationFollowUpCancelRequest{agent_handle:input.agent_handle,conversation_anchor_id:input.conversation_anchor_id,task_id:input.task_id,expected_revision}).await}).await
 }
 
-type AgentSessionStreamRegistry = HashMap<String, Arc<AgentSessionStream>>;
+type AgentSessionStreamRegistry = HashMap<String, AgentSessionStreamEntry>;
+enum AgentSessionStreamEntry {
+    Reserved,
+    Active(Arc<AgentSessionStream>),
+}
 struct AgentSessionStream {
+    session: Arc<CachedLocalAppSession>,
     receiver: Mutex<Option<LocalAppAgentSessionStreamReceiver>>,
     close_tx: watch::Sender<bool>,
 }
@@ -3889,9 +3895,11 @@ fn agent_session_streams() -> &'static Mutex<AgentSessionStreamRegistry> {
 
 async fn close_all_agent_session_streams() {
     let drained = std::mem::take(&mut *agent_session_streams().lock().await);
-    for (_, stream) in drained {
-        stream.close_tx.send_replace(true);
-        stream.receiver.lock().await.take();
+    for (_, entry) in drained {
+        if let AgentSessionStreamEntry::Active(stream) = entry {
+            stream.close_tx.send_replace(true);
+            stream.receiver.lock().await.take();
+        }
     }
 }
 
@@ -3937,14 +3945,19 @@ pub async fn local_app_agent_session_unary(
 pub async fn local_app_agent_session_stream_open(
     input: NativeLocalAppAgentSessionInput,
 ) -> NativeJsonOutcome {
+    let stream_id = format!(
+        "agent-session-{}",
+        AGENT_SESSION_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
     {
-        let registry = agent_session_streams().lock().await;
+        let mut registry = agent_session_streams().lock().await;
         if registry.len() >= MAX_AGENT_SESSION_STREAMS {
             return NativeJsonOutcome::error(LocalAppOperationError::new(
                 LocalAppReasonCode::ResourceExhausted,
                 false,
             ));
         }
+        registry.insert(stream_id.clone(), AgentSessionStreamEntry::Reserved);
     }
     let timeout = input
         .timeout_ms
@@ -3952,7 +3965,10 @@ pub async fn local_app_agent_session_stream_open(
         .map(std::time::Duration::from_millis);
     let session = match current_or_open_session().await {
         Ok(session) => session,
-        Err(error) => return NativeJsonOutcome::error(error),
+        Err(error) => {
+            agent_session_streams().lock().await.remove(stream_id.as_str());
+            return NativeJsonOutcome::error(error);
+        }
     };
     let receiver = match session
         .agent_session_stream(LocalAppAgentSessionRequest {
@@ -3964,27 +3980,28 @@ pub async fn local_app_agent_session_stream_open(
     {
         Ok(receiver) => receiver,
         Err(error) => {
+            agent_session_streams().lock().await.remove(stream_id.as_str());
             clear_session_on_transport_failure(&session, &error).await;
             return NativeJsonOutcome::error(error);
         }
     };
-    let stream_id = format!(
-        "agent-session-{}",
-        AGENT_SESSION_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
-    );
     let (close_tx, _) = watch::channel(false);
     let stream = Arc::new(AgentSessionStream {
+        session,
         receiver: Mutex::new(Some(receiver)),
         close_tx,
     });
     let mut registry = agent_session_streams().lock().await;
-    if registry.len() >= MAX_AGENT_SESSION_STREAMS {
+    if !matches!(
+        registry.get(stream_id.as_str()),
+        Some(AgentSessionStreamEntry::Reserved)
+    ) {
         return NativeJsonOutcome::error(LocalAppOperationError::new(
-            LocalAppReasonCode::ResourceExhausted,
-            false,
+            LocalAppReasonCode::SessionInvalid,
+            true,
         ));
     }
-    registry.insert(stream_id.clone(), stream);
+    registry.insert(stream_id.clone(), AgentSessionStreamEntry::Active(stream));
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
@@ -3993,11 +4010,10 @@ pub async fn local_app_agent_session_stream_next(
     input: NativeLocalAppAgentSessionStreamInput,
 ) -> NativeBundledAvatarStreamNextOutcome {
     let stream_id = input.stream_id;
-    let stream = agent_session_streams()
-        .lock()
-        .await
-        .get(stream_id.as_str())
-        .cloned();
+    let stream = match agent_session_streams().lock().await.get(stream_id.as_str()) {
+        Some(AgentSessionStreamEntry::Active(stream)) => Some(stream.clone()),
+        _ => None,
+    };
     let Some(stream) = stream else {
         return NativeBundledAvatarStreamNextOutcome {
             status: "error".to_string(),
@@ -4058,6 +4074,7 @@ pub async fn local_app_agent_session_stream_next(
         },
         Some(Err(error)) => {
             agent_session_streams().lock().await.remove(stream_id.as_str());
+            clear_session_on_transport_failure(&stream.session, &error).await;
             NativeBundledAvatarStreamNextOutcome {
                 status: "error".to_string(),
                 value: None,
@@ -4086,12 +4103,12 @@ pub async fn local_app_agent_session_stream_next(
 pub async fn local_app_agent_session_stream_close(
     input: NativeLocalAppAgentSessionStreamInput,
 ) -> NativeJsonOutcome {
-    let stream = agent_session_streams()
+    let entry = agent_session_streams()
         .lock()
         .await
         .remove(input.stream_id.as_str());
-    let closed = stream.is_some();
-    if let Some(stream) = stream {
+    let closed = entry.is_some();
+    if let Some(AgentSessionStreamEntry::Active(stream)) = entry {
         stream.close_tx.send_replace(true);
         stream.receiver.lock().await.take();
     }

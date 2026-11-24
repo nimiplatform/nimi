@@ -138,5 +138,5 @@ apps:
     native_bundle_identifier: null
     native_bundle_identifier_required: false
     npm_package: "@nimiplatform/harness"
-    product_status: bundled-formal-app-with-isolated-development-integration
+    product_status: independent-formal-app
     source_rule: P-NAPP-012

@@ -504,19 +504,6 @@ func (s *Service) authorizedLocalAppContext(ctx context.Context, admission local
 	if !ownerSupported {
 		return nil, localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
 	}
-	// @nimi-authority: rule.nimi.platform.core-protocol.agent-session-operations
-	// agent.body.pc is strictly restricted to Verified BuiltIn core PC body
-	// principals in production, or an explicitly registered local-development
-	// Harness project; user_imported and ordinary verified third-party Apps are
-	// always rejected at admission.
-	if admission.Domain == localappop.Domain("agent.body.pc") {
-		allowedPCPrincipal := session.appID == "nimi.harness" &&
-			(session.trustClass == accountservice.LocalAppTrustClassBuiltIn ||
-				session.trustClass == accountservice.LocalAppTrustClassDevelopment)
-		if !allowedPCPrincipal {
-			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
-		}
-	}
 	registrationHandle, registrationOK := localDevelopmentRegistrationIdentifier(session.registrationHandle)
 	connection, connectionOK := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if !registrationOK || !connectionOK || connection == nil {
@@ -535,6 +522,7 @@ func (s *Service) authorizedLocalAppContext(ctx context.Context, admission local
 		AccountGeneration: session.accountGeneration, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
 		Process: process, DirectPeer: directPeer, ExpiresAt: session.expiresAt,
 		Operation: admission.Operation, AuthorityClass: admission.Class, OperationCapability: capability,
+		ActivatedDomains: session.snapshot.DomainsCSV(),
 		TrustClass: session.trustClass, RegistrationHandle: registrationHandle,
 		SourceGeneration: session.sourceGeneration, DeclarationGeneration: session.declarationGeneration,
 		RegisteredAppSubject: session.registeredAppSubject,
@@ -1029,6 +1017,7 @@ func appOperationCapability(admission localappop.Admission) (string, bool) {
 		localappop.OperationAgentBodyAppOutboxSubscribe,
 		localappop.OperationAgentBodyAppOutboxAck,
 		localappop.OperationAgentBodyAppSideEffectAuthorize,
+		localappop.OperationAgentBodyAppStepStream,
 		localappop.OperationAgentBodyAppProjectionReport,
 		localappop.OperationAgentTriggerAlarmCreate,
 		localappop.OperationAgentTriggerAlarmList,

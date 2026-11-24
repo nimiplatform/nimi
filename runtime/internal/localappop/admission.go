@@ -3,6 +3,7 @@ package localappop
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -48,6 +49,30 @@ func NewEffectiveAppAccessSnapshot(binding SnapshotBinding, declaredDomains []st
 		domains[domain] = struct{}{}
 	}
 	return &EffectiveAppAccessSnapshot{binding: binding, domains: domains, present: true}, nil
+}
+
+// Domains returns a deterministic sorted copy of all activated AppAccess domains
+// carried by this snapshot.
+func (s *EffectiveAppAccessSnapshot) Domains() []string {
+	if s == nil || !s.present || len(s.domains) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(s.domains))
+	for domain := range s.domains {
+		out = append(out, string(domain))
+	}
+	slices.Sort(out)
+	return out
+}
+
+// DomainsCSV returns the canonical sorted comma-separated activated domain list
+// so LocalAppCallerDecision remains comparable and immutable by value.
+func (s *EffectiveAppAccessSnapshot) DomainsCSV() string {
+	domains := s.Domains()
+	if len(domains) == 0 {
+		return ""
+	}
+	return strings.Join(domains, ",")
 }
 
 type CurrentBinding struct {

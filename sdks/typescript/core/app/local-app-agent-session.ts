@@ -101,11 +101,16 @@ export function createNimiLocalAppAgentSessionClient(
             requestBytes,
             ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
           });
-          let closed = false;
-          const closeOnce = () => {
-            if (closed) return Promise.resolve();
-            closed = true;
-            return shell.agentSessionStreamClose({ streamId }).then(() => undefined, () => undefined);
+          let closePromise: Promise<void> | null = null;
+          let completedNormally = false;
+          const closeOnce = (): Promise<void> => {
+            if (completedNormally) return Promise.resolve();
+            if (!closePromise) {
+              closePromise = shell
+                .agentSessionStreamClose({ streamId })
+                .then(() => undefined, () => undefined);
+            }
+            return closePromise;
           };
           const onAbort = () => {
             void closeOnce();
@@ -120,8 +125,11 @@ export function createNimiLocalAppAgentSessionClient(
           try {
             while (!signal?.aborted) {
               const next = await shell.agentSessionStreamNext({ streamId });
-              if (next.completed || signal?.aborted) {
-                closed = true;
+              if (next.completed) {
+                completedNormally = true;
+                return;
+              }
+              if (signal?.aborted) {
                 return;
               }
               yield codec.decodeResponse(next.chunk) as Response;

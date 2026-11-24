@@ -5,6 +5,7 @@ metadata:
   icon: src/shell/assets/app-icon.png
 app_access:
   - agent.local
+  - agent.companion
   - agent.acquire
   - agent.configure
   - app.activity

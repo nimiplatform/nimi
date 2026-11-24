@@ -6,6 +6,7 @@ metadata:
   icon: assets/app-icon.png
 app_access:
   - agent.local
+  - agent.session.manage
   - agent.configure
   - agent.body.pc
   - agent.trigger.delegate

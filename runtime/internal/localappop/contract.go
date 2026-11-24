@@ -261,6 +261,7 @@ const (
 	IngressAgentBodyAppOutboxSubscribe
 	IngressAgentBodyAppOutboxAck
 	IngressAgentBodyAppSideEffectAuthorize
+	IngressAgentBodyAppStepStream
 	IngressAgentBodyAppProjectionReport
 	IngressAgentTriggerAlarmCreate
 	IngressAgentTriggerAlarmList
@@ -427,6 +428,7 @@ const (
 	OperationAgentBodyAppOutboxSubscribe
 	OperationAgentBodyAppOutboxAck
 	OperationAgentBodyAppSideEffectAuthorize
+	OperationAgentBodyAppStepStream
 	OperationAgentBodyAppProjectionReport
 	OperationAgentTriggerAlarmCreate
 	OperationAgentTriggerAlarmList
@@ -485,6 +487,7 @@ const (
 	AppOperationIDAgentBodyAppOutboxSubscribe      = "runtime.agent.body.app.outbox.subscribe"
 	AppOperationIDAgentBodyAppOutboxAck            = "runtime.agent.body.app.outbox.ack"
 	AppOperationIDAgentBodyAppSideEffectAuthorize  = "runtime.agent.body.app.side-effect.authorize"
+	AppOperationIDAgentBodyAppStepStream           = "runtime.agent.body.app.step.stream"
 	AppOperationIDAgentBodyAppProjectionReport     = "runtime.agent.body.app.projection.report"
 	AppOperationIDAgentTriggerAlarmCreate          = "runtime.agent.trigger.alarm.create"
 	AppOperationIDAgentTriggerAlarmList            = "runtime.agent.trigger.alarm.list"
@@ -664,12 +667,21 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentBodyAppOutboxSubscribe, OperationAgentBodyAppOutboxSubscribe, AppOperationIDAgentBodyAppOutboxSubscribe, AuthorityClassAppAccess, "agent.body.app"},
 	{IngressAgentBodyAppOutboxAck, OperationAgentBodyAppOutboxAck, AppOperationIDAgentBodyAppOutboxAck, AuthorityClassAppAccess, "agent.body.app"},
 	{IngressAgentBodyAppSideEffectAuthorize, OperationAgentBodyAppSideEffectAuthorize, AppOperationIDAgentBodyAppSideEffectAuthorize, AuthorityClassAppAccess, "agent.body.app"},
+	{IngressAgentBodyAppStepStream, OperationAgentBodyAppStepStream, AppOperationIDAgentBodyAppStepStream, AuthorityClassAppAccess, "agent.body.app"},
 	{IngressAgentBodyAppProjectionReport, OperationAgentBodyAppProjectionReport, AppOperationIDAgentBodyAppProjectionReport, AuthorityClassAppAccess, "agent.body.app"},
 	{IngressAgentTriggerAlarmCreate, OperationAgentTriggerAlarmCreate, AppOperationIDAgentTriggerAlarmCreate, AuthorityClassAppAccess, "agent.trigger.delegate"},
 	{IngressAgentTriggerAlarmList, OperationAgentTriggerAlarmList, AppOperationIDAgentTriggerAlarmList, AuthorityClassAppAccess, "agent.trigger.delegate"},
 	{IngressAgentTriggerAlarmUpdate, OperationAgentTriggerAlarmUpdate, AppOperationIDAgentTriggerAlarmUpdate, AuthorityClassAppAccess, "agent.trigger.delegate"},
 	{IngressAgentTriggerAlarmDelete, OperationAgentTriggerAlarmDelete, AppOperationIDAgentTriggerAlarmDelete, AuthorityClassAppAccess, "agent.trigger.delegate"},
 }
+
+// Supplemental scope domains that widen non-privileged AgentSessionService
+// visibility or companion routing on operations already admitted under
+// agent.local. They carry no built-in app_id privilege.
+const (
+	DomainAgentSessionManage Domain = "agent.session.manage"
+	DomainAgentCompanion     Domain = "agent.companion"
+)
 
 type Classification struct {
 	Operation Operation
@@ -702,10 +714,14 @@ func ClassifyOperation(operation Operation) (Classification, error) {
 }
 
 // IsSupportedDomain derives declaration support from the canonical operation
-// map rather than maintaining a second domain allowlist.
+// map and its closed scope-widening domains rather than maintaining an open
+// domain list.
 func IsSupportedDomain(value string) bool {
 	if validateContractRows(canonicalAppOperationContract[:]) != nil {
 		return false
+	}
+	if value == string(DomainAgentSessionManage) || value == string(DomainAgentCompanion) {
+		return true
 	}
 	for _, row := range canonicalAppOperationContract {
 		if row.class == AuthorityClassAppAccess && string(row.domain) == value {

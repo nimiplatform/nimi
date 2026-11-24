@@ -177,13 +177,14 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: AppOperationIDAgentBodyAppOutboxSubscribe, class: AuthorityClassAppAccess, domain: "agent.body.app"},
 		{id: AppOperationIDAgentBodyAppOutboxAck, class: AuthorityClassAppAccess, domain: "agent.body.app"},
 		{id: AppOperationIDAgentBodyAppSideEffectAuthorize, class: AuthorityClassAppAccess, domain: "agent.body.app"},
+		{id: AppOperationIDAgentBodyAppStepStream, class: AuthorityClassAppAccess, domain: "agent.body.app"},
 		{id: AppOperationIDAgentBodyAppProjectionReport, class: AuthorityClassAppAccess, domain: "agent.body.app"},
 		{id: AppOperationIDAgentTriggerAlarmCreate, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
 		{id: AppOperationIDAgentTriggerAlarmList, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
 		{id: AppOperationIDAgentTriggerAlarmUpdate, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
 		{id: AppOperationIDAgentTriggerAlarmDelete, class: AuthorityClassAppAccess, domain: "agent.trigger.delegate"},
 	}
-	for _, domain := range []string{"agent.body.pc", "agent.body.app", "agent.trigger.delegate"} {
+	for _, domain := range []string{"agent.session.manage", "agent.companion", "agent.body.pc", "agent.body.app", "agent.trigger.delegate"} {
 		if !IsSupportedDomain(domain) {
 			t.Fatalf("expected closed static domain %q to be supported", domain)
 		}

@@ -191,6 +191,7 @@ type LocalAppCallerDecision struct {
 	Operation             LocalAppOperation
 	AuthorityClass        localappop.AuthorityClass
 	OperationCapability   string
+	ActivatedDomains      string
 	LocalAgentID          string
 	TrustClass            LocalAppTrustClass
 	RegistrationHandle    protectedlocal.Identifier
@@ -199,6 +200,24 @@ type LocalAppCallerDecision struct {
 	ProjectRoot           string
 	RegisteredAppSubject  string
 	SessionInvalidated    <-chan struct{}
+}
+
+// HasActivatedDomain reports whether the caller's verified Effective App Access
+// Snapshot activates the requested closed AppAccess domain.
+func (d LocalAppCallerDecision) HasActivatedDomain(domain string) bool {
+	want := strings.TrimSpace(domain)
+	if want == "" {
+		return false
+	}
+	if strings.TrimSpace(d.ActivatedDomains) != "" {
+		for _, item := range strings.Split(d.ActivatedDomains, ",") {
+			if strings.TrimSpace(item) == want {
+				return true
+			}
+		}
+		return false
+	}
+	return strings.TrimSpace(d.OperationCapability) == want
 }
 
 func (s *Service) SetLocalAppSessionResolver(resolver LocalAppSessionResolver) {

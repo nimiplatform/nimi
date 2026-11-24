@@ -252,8 +252,7 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
         } catch (error) {
           const closer = agentSessionStreamClosers.get(input.streamId);
           if (closer) {
-            resources.delete(closer);
-            agentSessionStreamClosers.delete(input.streamId);
+            await closer();
           }
           throw error;
         }

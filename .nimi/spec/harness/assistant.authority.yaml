@@ -4,8 +4,8 @@ scope: harness.assistant
 units:
   - id: definition.nimi.harness.assistant.core-app
     kind: definition
-    title: Nimi Harness Core App PC Body and activity console
-    meaning: Nimi Harness (apps/harness, canonical App identity nimi.harness) is the preinstalled OS-signed PC Body and multi-session activity console running as an independent supervised Electron process with an internal utilityProcess hosting pi-durable@1.6.0 (WAL FULL SQLite) and SecureWorkspaceExecutionEnv; Runtime remains the sole LocalAgent Brain and persona/context authority while Harness owns local PC tool execution, approvals, crash non-replay, file snapshots, and two fixed views (Tasks & Deliverables and Project Workspace).
+    title: Nimi Harness PC Body and activity console App
+    meaning: Nimi Harness (apps/harness, canonical App identity nimi.harness) is an independent supervised Electron PC Body and multi-session activity console App consuming the non-privileged agent.local, agent.session.manage, and agent.body.pc domains (never bundled inside Desktop and replaceable by any authorized PC Body App), using an internal Electron utilityProcess to host pi-durable@1.6.0 (WAL FULL SQLite) and SecureWorkspaceExecutionEnv; Runtime remains the sole LocalAgent Brain and persona/context authority while Harness owns local PC tool execution, approvals, crash non-replay, file snapshots, and two fixed views (Tasks & Deliverables and Project Workspace).
   - id: rule.nimi.harness.assistant.symbiosis-and-durability
     kind: rule
     title: Harness maintains WAL FULL durability, tombstone-first reconciliation, and official beforeCompact hook

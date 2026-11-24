@@ -1067,6 +1067,12 @@ func protectedLocalAppStreamIngressForRequest(method string, message any) locala
 		}
 		return localappop.IngressAgentBodyPCOutboxSubscribe
 	}
+	if method == protectedAgentBodyStepStreamMethod {
+		if req, ok := message.(*runtimev1.StreamLocalAgentBodyStepRequest); ok && strings.HasPrefix(strings.TrimSpace(req.GetCapabilityNamespace()), "app.") {
+			return localappop.IngressAgentBodyAppStepStream
+		}
+		return localappop.IngressAgentBodyPCStepStream
+	}
 	return protectedLocalAppStreamIngress(method)
 }
 

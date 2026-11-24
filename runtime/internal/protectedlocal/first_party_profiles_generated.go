@@ -817,67 +817,6 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.AgentSessionService/ListSessions":
 			return FirstPartyMethodUnary, true
 		}
-	case "bundled_harness_v1":
-		switch methodID {
-		case "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/GetSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/ListSessions":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/UpdateSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/DeleteSession":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep":
-			return FirstPartyMethodServerStream, true
-		case "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/CreateAlarm":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/ListAlarms":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/UpdateAlarm":
-			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.AgentSessionService/DeleteAlarm":
-			return FirstPartyMethodUnary, true
-		}
 	}
 	return "", false
 }
@@ -1288,38 +1227,6 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.AgentSessionService/GetSession", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.AgentSessionService/ListSessions", Kind: FirstPartyMethodUnary},
 		}
-	case "bundled_harness_v1":
-		return []FirstPartyProfileMethodEntry{
-			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/RouteAndSubmitInput", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/SplitOrRedirectInput", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/GetSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/ListSessions", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/UpdateSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/DeleteSession", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/WatchSessionOverview", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/SubscribeBrainSessionEvents", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/StopBrainSessionTurn", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/RegisterBodyCarrier", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/HeartbeatBodyCarrier", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/UnregisterBodyCarrier", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/SubscribeBodyOutbox", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/AuthorizeBodySideEffect", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep", Kind: FirstPartyMethodServerStream},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/ReportBodySessionProjection", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/CreateAlarm", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/ListAlarms", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/UpdateAlarm", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.AgentSessionService/DeleteAlarm", Kind: FirstPartyMethodUnary},
-		}
 	default:
 		return nil
 	}
@@ -1335,9 +1242,6 @@ func IsFirstPartyProtectedProfileMethod(methodID string) bool {
 	if _, ok := FirstPartyProfileMethod("bundled_avatar_v1", methodID); ok {
 		return true
 	}
-	if _, ok := FirstPartyProfileMethod("bundled_zhiyu_v1", methodID); ok {
-		return true
-	}
-	_, ok := FirstPartyProfileMethod("bundled_harness_v1", methodID)
+	_, ok := FirstPartyProfileMethod("bundled_zhiyu_v1", methodID)
 	return ok
 }
