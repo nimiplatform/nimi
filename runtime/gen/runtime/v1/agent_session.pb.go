@@ -1803,6 +1803,7 @@ type SessionOverviewDelta struct {
 	RemovedWorkSessionRefs []string                  `protobuf:"bytes,4,rep,name=removed_work_session_refs,json=removedWorkSessionRefs,proto3" json:"removed_work_session_refs,omitempty"`
 	AttentionItems         []*PendingAttentionRecord `protobuf:"bytes,5,rep,name=attention_items,json=attentionItems,proto3" json:"attention_items,omitempty"`
 	CarrierOnline          bool                      `protobuf:"varint,6,opt,name=carrier_online,json=carrierOnline,proto3" json:"carrier_online,omitempty"`
+	ActivePcCarrierAppId   string                    `protobuf:"bytes,7,opt,name=active_pc_carrier_app_id,json=activePcCarrierAppId,proto3" json:"active_pc_carrier_app_id,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1877,6 +1878,13 @@ func (x *SessionOverviewDelta) GetCarrierOnline() bool {
 		return x.CarrierOnline
 	}
 	return false
+}
+
+func (x *SessionOverviewDelta) GetActivePcCarrierAppId() string {
+	if x != nil {
+		return x.ActivePcCarrierAppId
+	}
+	return ""
 }
 
 type SubscribeBrainSessionEventsRequest struct {
@@ -4922,14 +4930,15 @@ const file_runtime_v1_agent_session_proto_rawDesc = "" +
 	"\x1bWatchSessionOverviewRequest\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12)\n" +
 	"\x10include_archived\x18\x02 \x01(\bR\x0fincludeArchived\x12,\n" +
-	"\x12after_overview_seq\x18\x03 \x01(\x04R\x10afterOverviewSeq\"\xe3\x02\n" +
+	"\x12after_overview_seq\x18\x03 \x01(\x04R\x10afterOverviewSeq\"\x9b\x03\n" +
 	"\x14SessionOverviewDelta\x12!\n" +
 	"\foverview_seq\x18\x01 \x01(\x04R\voverviewSeq\x12#\n" +
 	"\rfull_baseline\x18\x02 \x01(\bR\ffullBaseline\x12O\n" +
 	"\x11upserted_sessions\x18\x03 \x03(\v2\".nimi.runtime.v1.WorkSessionRecordR\x10upsertedSessions\x129\n" +
 	"\x19removed_work_session_refs\x18\x04 \x03(\tR\x16removedWorkSessionRefs\x12P\n" +
 	"\x0fattention_items\x18\x05 \x03(\v2'.nimi.runtime.v1.PendingAttentionRecordR\x0eattentionItems\x12%\n" +
-	"\x0ecarrier_online\x18\x06 \x01(\bR\rcarrierOnline\"k\n" +
+	"\x0ecarrier_online\x18\x06 \x01(\bR\rcarrierOnline\x126\n" +
+	"\x18active_pc_carrier_app_id\x18\a \x01(\tR\x14activePcCarrierAppId\"k\n" +
 	"\"SubscribeBrainSessionEventsRequest\x12(\n" +
 	"\x10work_session_ref\x18\x01 \x01(\tR\x0eworkSessionRef\x12\x1b\n" +
 	"\tafter_seq\x18\x02 \x01(\x03R\bafterSeq\"\x8d\x02\n" +

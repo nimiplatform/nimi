@@ -16222,6 +16222,7 @@ pub struct SessionOverviewDelta {
     pub removed_work_session_refs: Vec<String>,
     pub attention_items: Vec<Box<PendingAttentionRecord>>,
     pub carrier_online: Option<bool>,
+    pub active_pc_carrier_app_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

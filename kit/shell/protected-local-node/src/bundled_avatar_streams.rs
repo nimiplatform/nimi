@@ -187,6 +187,38 @@ pub async fn desktop_bundled_app_stream_open(
     );
     drop(registry);
     drop(current);
+    struct BundledSlotGuard {
+        stream_id: Option<String>,
+    }
+    impl BundledSlotGuard {
+        fn disarm(&mut self) {
+            self.stream_id = None;
+        }
+    }
+    impl Drop for BundledSlotGuard {
+        fn drop(&mut self) {
+            let Some(stream_id) = self.stream_id.take() else {
+                return;
+            };
+            if let Ok(mut registry) = streams().try_lock() {
+                if matches!(registry.get(stream_id.as_str()), Some(StreamSlot::Opening(_, _))) {
+                    registry.remove(stream_id.as_str());
+                }
+                return;
+            }
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                handle.spawn(async move {
+                    let mut registry = streams().lock().await;
+                    if matches!(registry.get(stream_id.as_str()), Some(StreamSlot::Opening(_, _))) {
+                        registry.remove(stream_id.as_str());
+                    }
+                });
+            }
+        }
+    }
+    let mut slot_guard = BundledSlotGuard {
+        stream_id: Some(stream_id.clone()),
+    };
     let receiver = match control
         .open_bundled_app_stream(BundledAppRuntimeRequest {
             app,
@@ -198,7 +230,6 @@ pub async fn desktop_bundled_app_stream_open(
     {
         Ok(receiver) => receiver,
         Err(error) => {
-            streams().lock().await.remove(stream_id.as_str());
             clear_desktop_control_on_transport_reason(
                 &control,
                 error.reason_code(),
@@ -220,9 +251,11 @@ pub async fn desktop_bundled_app_stream_open(
     });
     let mut registry = streams().lock().await;
     let Some(slot @ StreamSlot::Opening(_, _)) = registry.get_mut(stream_id.as_str()) else {
+        slot_guard.disarm();
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     };
     *slot = StreamSlot::Open(stream, is_agent_session);
+    slot_guard.disarm();
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 

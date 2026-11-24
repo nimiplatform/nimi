@@ -46370,6 +46370,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "active_pc_carrier_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_session.proto"

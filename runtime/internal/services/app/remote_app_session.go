@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/binary"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -100,7 +101,17 @@ func (s *Service) authorizeRemoteAppIngress(ctx context.Context, peer remoteAppP
 	value, exists := s.remoteAppSessions.Load(peer)
 	if !exists {
 		binding := remoteSnapshotBinding(info)
-		snapshot, err := localappop.NewEffectiveAppAccessSnapshot(binding, info.Registration.ActivatedDomains)
+		// Fork C / Remote boundary: remote App sessions NEVER activate agent.body.pc,
+		// so strip it before constructing the effective snapshot rather than only
+		// blocking primary ingress.
+		remoteDomains := make([]string, 0, len(info.Registration.ActivatedDomains))
+		for _, domain := range info.Registration.ActivatedDomains {
+			if strings.TrimSpace(domain) == "agent.body.pc" {
+				continue
+			}
+			remoteDomains = append(remoteDomains, domain)
+		}
+		snapshot, err := localappop.NewEffectiveAppAccessSnapshot(binding, remoteDomains)
 		if err != nil {
 			return nil, localAppIngressError(err)
 		}

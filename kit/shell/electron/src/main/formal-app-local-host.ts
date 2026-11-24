@@ -1244,7 +1244,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     agentMemorySwitch: (record) => configure.memory.setEnabled(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentMemoryDelete: (record) => configure.memory.deleteAll(record as never) as Promise<NimiElectronLocalAppRecord>,
     async agentSessionUnary(req) {
-      if (!req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
+      if (!req || typeof req.methodId !== 'string' || !req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
         throw new NimiElectronLocalAppHostError('local-app-operation-unsupported', false);
       }
       const profile = input.profile;
@@ -1263,7 +1263,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       return trackOperation(invoke);
     },
     async agentSessionStreamOpen(req) {
-      if (!req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
+      if (!req || typeof req.methodId !== 'string' || !req.methodId.startsWith('/nimi.runtime.v1.AgentSessionService/')) {
         throw new NimiElectronLocalAppHostError('local-app-operation-unsupported', false);
       }
       const raw = input.profile !== 'desktop'
@@ -1448,6 +1448,7 @@ function createFormalAppResourceScope(
 ): NimiElectronFormalAppLocalHostResourceScope {
   type PullStreamKind = 'text-turn' | 'scenario-job' | 'conversation' | 'realtime';
   const pullStreams = new Map<string, PullStreamKind>();
+  const scopedAgentSessionStreams = new Set<string>();
   const assetReads = new Set<string>();
   const assetWrites = new Set<string>();
   const voiceTranscriptions = new Set<string>();
@@ -1745,6 +1746,42 @@ function createFormalAppResourceScope(
       agentRealtimeSessions.delete(sessionId);
       return result;
     },
+    async agentSessionStreamOpen(req) {
+      assertOpen();
+      const openingGeneration = resourceGeneration;
+      const result = await host.agentSessionStreamOpen(req);
+      const streamId = requiredText(result.streamId);
+      if (disposed || invalidationInFlight || resourceGeneration !== openingGeneration) {
+        await closeHost.agentSessionStreamClose({ streamId }).catch(() => undefined);
+        throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
+      }
+      scopedAgentSessionStreams.add(streamId);
+      return result;
+    },
+    async agentSessionStreamNext(req) {
+      assertOpen();
+      const streamId = requiredText(req.streamId);
+      if (!scopedAgentSessionStreams.has(streamId)) {
+        throw new NimiElectronLocalAppHostError('not-found', false);
+      }
+      try {
+        const result = await host.agentSessionStreamNext(req);
+        if (result.completed) scopedAgentSessionStreams.delete(streamId);
+        return result;
+      } catch (error) {
+        scopedAgentSessionStreams.delete(streamId);
+        throw error;
+      }
+    },
+    async agentSessionStreamClose(req) {
+      assertOpen();
+      const streamId = requiredText(req.streamId);
+      if (!scopedAgentSessionStreams.has(streamId)) {
+        return { closed: false };
+      }
+      scopedAgentSessionStreams.delete(streamId);
+      return host.agentSessionStreamClose(req);
+    },
   });
 
   const invalidateResources = (): Promise<void> => {
@@ -1752,6 +1789,7 @@ function createFormalAppResourceScope(
     return runBoundedFormalHostOperation(async () => {
       invalidationInFlight ??= (async () => {
         const streams = [...pullStreams.entries()];
+        const agentSessionIds = [...scopedAgentSessionStreams];
         const reads = [...assetReads];
         const writes = [...assetWrites];
         const transcriptions = [...voiceTranscriptions];
@@ -1760,6 +1798,7 @@ function createFormalAppResourceScope(
         const visualSessions = [...videoSessions.values()];
         const agentSessions = [...agentRealtimeSessions.values()];
         pullStreams.clear();
+        scopedAgentSessionStreams.clear();
         assetReads.clear();
         assetWrites.clear();
         voiceTranscriptions.clear();
@@ -1775,6 +1814,7 @@ function createFormalAppResourceScope(
             if (kind === 'conversation') return closeHost.conversationStreamClose({ streamId });
             return closeHost.realtimeStreamClose({ streamId });
           }),
+          ...agentSessionIds.map((streamId) => () => closeHost.agentSessionStreamClose({ streamId })),
           ...reads.map((streamId) => () => closeHost.assetReadClose({ streamId })),
           ...writes.map((streamId) => () => closeHost.assetWriteAbort({ streamId })),
           ...transcriptions.map((requestId) => () => closeHost.conversationVoiceTranscribe({ action: 'cancel', requestId })),

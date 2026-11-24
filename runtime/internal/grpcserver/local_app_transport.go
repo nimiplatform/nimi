@@ -570,7 +570,7 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 		if protectedLocalAppMetadataHasCallerAssertion(protectedContext) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
-		if info.FullMethod == protectedAgentBodyOutboxSubscribeMethod {
+		if info.FullMethod == protectedAgentBodyOutboxSubscribeMethod || info.FullMethod == protectedAgentBodyStepStreamMethod {
 			return handler(service, &protectedLocalAppServerStream{
 				ServerStream:      stream,
 				ctx:               protectedContext,

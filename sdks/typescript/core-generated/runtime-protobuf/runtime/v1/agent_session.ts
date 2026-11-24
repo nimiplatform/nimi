@@ -573,6 +573,10 @@ export interface SessionOverviewDelta {
      * @generated from protobuf field: bool carrier_online = 6
      */
     carrierOnline: boolean;
+    /**
+     * @generated from protobuf field: string active_pc_carrier_app_id = 7
+     */
+    activePcCarrierAppId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubscribeBrainSessionEventsRequest
@@ -3215,7 +3219,8 @@ class SessionOverviewDelta$Type extends MessageType<SessionOverviewDelta> {
             { no: 3, name: "upserted_sessions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => WorkSessionRecord },
             { no: 4, name: "removed_work_session_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "attention_items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => PendingAttentionRecord },
-            { no: 6, name: "carrier_online", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "carrier_online", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "active_pc_carrier_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SessionOverviewDelta>): SessionOverviewDelta {
@@ -3226,6 +3231,7 @@ class SessionOverviewDelta$Type extends MessageType<SessionOverviewDelta> {
         message.removedWorkSessionRefs = [];
         message.attentionItems = [];
         message.carrierOnline = false;
+        message.activePcCarrierAppId = "";
         if (value !== undefined)
             reflectionMergePartial<SessionOverviewDelta>(this, message, value);
         return message;
@@ -3252,6 +3258,9 @@ class SessionOverviewDelta$Type extends MessageType<SessionOverviewDelta> {
                     break;
                 case /* bool carrier_online */ 6:
                     message.carrierOnline = reader.bool();
+                    break;
+                case /* string active_pc_carrier_app_id */ 7:
+                    message.activePcCarrierAppId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3283,6 +3292,9 @@ class SessionOverviewDelta$Type extends MessageType<SessionOverviewDelta> {
         /* bool carrier_online = 6; */
         if (message.carrierOnline !== false)
             writer.tag(6, WireType.Varint).bool(message.carrierOnline);
+        /* string active_pc_carrier_app_id = 7; */
+        if (message.activePcCarrierAppId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.activePcCarrierAppId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

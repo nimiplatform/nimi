@@ -9867,6 +9867,7 @@ type SessionOverviewDelta struct {
 	RemovedWorkSessionRefs []string                 `json:"removed_work_session_refs,omitempty"`
 	AttentionItems         []PendingAttentionRecord `json:"attention_items,omitempty"`
 	CarrierOnline          bool                     `json:"carrier_online,omitempty"`
+	ActivePcCarrierAppId   string                   `json:"active_pc_carrier_app_id,omitempty"`
 }
 
 type SessionRouteCandidate struct {

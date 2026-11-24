@@ -7692,6 +7692,7 @@ class SessionOverviewDelta:
     removed_work_session_refs: tuple[str, ...] = field(default_factory=tuple)
     attention_items: tuple[PendingAttentionRecord, ...] = field(default_factory=tuple)
     carrier_online: bool | None = None
+    active_pc_carrier_app_id: str | None = None
 
 @dataclass(frozen=True)
 class SessionRouteCandidate:

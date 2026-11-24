@@ -39,10 +39,10 @@ export type NimiLocalAppAgentSessionClient = RuntimeAgentSessionModule;
 
 const ADMITTED_AGENT_SESSION_PREFIX = '/nimi.runtime.v1.AgentSessionService/';
 
-function assertAgentSessionMethod(methodId: string): void {
-  if (!methodId.startsWith(ADMITTED_AGENT_SESSION_PREFIX)) {
+function assertAgentSessionMethod(methodId: unknown): asserts methodId is string {
+  if (typeof methodId !== 'string' || !methodId.startsWith(ADMITTED_AGENT_SESSION_PREFIX)) {
     throw createNimiError({
-      message: `Unsupported AgentSessionService method: ${methodId}`,
+      message: `Unsupported AgentSessionService method: ${String(methodId)}`,
       reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
       actionHint: 'use_agent_session_service_method',
       source: 'sdk',
@@ -104,12 +104,11 @@ export function createNimiLocalAppAgentSessionClient(
           let closePromise: Promise<void> | null = null;
           let completedNormally = false;
           const closeOnce = (): Promise<void> => {
+            if (closePromise) return closePromise;
             if (completedNormally) return Promise.resolve();
-            if (!closePromise) {
-              closePromise = shell
-                .agentSessionStreamClose({ streamId })
-                .then(() => undefined, () => undefined);
-            }
+            closePromise = shell
+              .agentSessionStreamClose({ streamId })
+              .then(() => undefined, () => undefined);
             return closePromise;
           };
           const onAbort = () => {

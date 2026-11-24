@@ -220,6 +220,7 @@ message SessionOverviewDelta {
   repeated string removed_work_session_refs = 4;
   repeated PendingAttentionRecord attention_items = 5;
   bool carrier_online = 6;
+  string active_pc_carrier_app_id = 7;
 }
 
 message SubscribeBrainSessionEventsRequest {

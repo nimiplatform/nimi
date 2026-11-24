@@ -3941,6 +3941,44 @@ pub async fn local_app_agent_session_unary(
     }
 }
 
+struct AgentSessionSlotGuard {
+    stream_id: Option<String>,
+}
+
+impl AgentSessionSlotGuard {
+    fn disarm(&mut self) {
+        self.stream_id = None;
+    }
+}
+
+impl Drop for AgentSessionSlotGuard {
+    fn drop(&mut self) {
+        let Some(stream_id) = self.stream_id.take() else {
+            return;
+        };
+        if let Ok(mut registry) = agent_session_streams().try_lock() {
+            if matches!(
+                registry.get(stream_id.as_str()),
+                Some(AgentSessionStreamEntry::Reserved)
+            ) {
+                registry.remove(stream_id.as_str());
+            }
+            return;
+        }
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                let mut registry = agent_session_streams().lock().await;
+                if matches!(
+                    registry.get(stream_id.as_str()),
+                    Some(AgentSessionStreamEntry::Reserved)
+                ) {
+                    registry.remove(stream_id.as_str());
+                }
+            });
+        }
+    }
+}
+
 #[napi(js_name = "localAppAgentSessionStreamOpen")]
 pub async fn local_app_agent_session_stream_open(
     input: NativeLocalAppAgentSessionInput,
@@ -3959,6 +3997,9 @@ pub async fn local_app_agent_session_stream_open(
         }
         registry.insert(stream_id.clone(), AgentSessionStreamEntry::Reserved);
     }
+    let mut slot_guard = AgentSessionSlotGuard {
+        stream_id: Some(stream_id.clone()),
+    };
     let timeout = input
         .timeout_ms
         .map(u64::from)
@@ -3966,7 +4007,6 @@ pub async fn local_app_agent_session_stream_open(
     let session = match current_or_open_session().await {
         Ok(session) => session,
         Err(error) => {
-            agent_session_streams().lock().await.remove(stream_id.as_str());
             return NativeJsonOutcome::error(error);
         }
     };
@@ -3980,7 +4020,6 @@ pub async fn local_app_agent_session_stream_open(
     {
         Ok(receiver) => receiver,
         Err(error) => {
-            agent_session_streams().lock().await.remove(stream_id.as_str());
             clear_session_on_transport_failure(&session, &error).await;
             return NativeJsonOutcome::error(error);
         }
@@ -3996,12 +4035,14 @@ pub async fn local_app_agent_session_stream_open(
         registry.get(stream_id.as_str()),
         Some(AgentSessionStreamEntry::Reserved)
     ) {
+        slot_guard.disarm();
         return NativeJsonOutcome::error(LocalAppOperationError::new(
             LocalAppReasonCode::SessionInvalid,
             true,
         ));
     }
     registry.insert(stream_id.clone(), AgentSessionStreamEntry::Active(stream));
+    slot_guard.disarm();
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
