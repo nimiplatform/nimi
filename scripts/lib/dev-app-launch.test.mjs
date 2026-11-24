@@ -26,7 +26,7 @@ test('supervised workspace Apps forward registration selection without reserving
   assert.throws(() => parseDevAppArguments('desktop', ['--new-registration']));
   assert.throws(() => parseDevAppArguments('lab', ['--new-registration', '--resume', 'dev-project-selected']));
   assert.deepEqual(resolveDevAppLaunch('lab', ['--new-registration'], { platform: 'darwin' }).args.slice(-4), ['--', '--cdp-port', '9335', '--new-registration']);
-  for (const name of ['nimigo', 'nimiday']) {
+  for (const name of ['harness']) {
     const definition = DEV_APP_DEFINITIONS[name];
     const listing = resolveDevAppLaunch(name, ['--list-registrations'], { platform: 'darwin' });
     assert.equal(listing.cdpPort, undefined);
@@ -47,8 +47,7 @@ test('development apps have stable non-conflicting default CDP ports', () => {
       zhiyu: 9334,
       lab: 9335,
       avatar: 9336,
-      nimigo: 9337,
-      nimiday: 9338,
+      harness: 9337,
     },
   );
   const ports = Object.values(DEV_APP_DEFINITIONS).map(({ defaultCdpPort }) => defaultCdpPort);
@@ -177,9 +176,8 @@ test('root package commands route canonical and explicit Electron names through 
   assert.equal(packageDocument.scripts['dev:zhiyu'], 'node scripts/dev-app.mjs zhiyu');
   assert.equal(packageDocument.scripts['dev:lab'], 'node scripts/dev-app.mjs lab');
   assert.equal(packageDocument.scripts['dev:avatar'], 'node scripts/dev-app.mjs avatar');
-  assert.equal(packageDocument.scripts['dev:nimigo'], 'node scripts/dev-app.mjs nimigo');
-  assert.equal(packageDocument.scripts['dev:nimiday'], 'node scripts/dev-app.mjs nimiday');
-  for (const appName of ['desktop', 'zhiyu', 'lab', 'avatar']) {
+  assert.equal(packageDocument.scripts['dev:harness'], 'node scripts/dev-app.mjs harness');
+  for (const appName of ['desktop', 'zhiyu', 'harness', 'lab', 'avatar']) {
     assert.equal(
       packageDocument.scripts[`dev:electron:${appName}`],
       `node scripts/dev-app.mjs ${appName} --electron`,

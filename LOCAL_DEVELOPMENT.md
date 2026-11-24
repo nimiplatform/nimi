@@ -26,8 +26,7 @@
 | `pnpm dev:runtime` | Windows x64 / macOS arm64 本地 Runtime 源码调试 | 独立终端持续前台运行 |
 | `pnpm dev:lab` | 启动 Nimi Lab 能力测试台应用 | 需先启动并登录 Desktop |
 | `pnpm dev:zhiyu` | 启动 织羽 (Zhiyu) AI 伙伴应用 | 需先启动并登录 Desktop |
-| `pnpm dev:nimigo` | 启动 NimiGo 应用 | 需先启动并登录 Desktop |
-| `pnpm dev:nimiday` | 启动 NimiDay 应用 | 需先启动并登录 Desktop |
+| `pnpm dev:harness` | 启动 Nimi Harness 智能助理与 PC 工作台 | 需先启动并登录 Desktop |
 | `pnpm dev:avatar` | 启动独立的桌面 Avatar 悬浮载体 | 与普通 `pnpm dev:desktop` 互斥 |
 | `pnpm dev` / `nimi-app dev --shell electron`（App 工程内） | 启动第三方原生 App | 使用当前已登录并开启 Developer Mode 的匹配 Home |
 
@@ -45,8 +44,7 @@
 - **Zhiyu**：`9334`
 - **Nimi Lab**：`9335`
 - **Avatar**：`9336`
-- **NimiGo**：`9337`
-- **NimiDay**：`9338`
+- **Nimi Harness**：`9337`
 
 ### 自定义与关闭 CDP 端口
 - 指定端口：`pnpm dev:lab --cdp-port 19468`

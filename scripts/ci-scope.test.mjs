@@ -86,10 +86,10 @@ test('native jobs follow their owners; portable Electron host checks follow the 
     'apps/desktop/src-electron/support-logs-host.ts',
     'scripts/doctor-dev.mjs',
   ]) assert.equal(macJobs([file]), true, file);
-  for (const file of ['apps/web/src/view.tsx', 'apps/nimiday/src/nimiday/ui/shell.tsx', 'apps/desktop/AGENTS.md']) {
+  for (const file of ['apps/web/src/view.tsx', 'apps/harness/src/product/conversations.tsx', 'apps/desktop/AGENTS.md']) {
     assert.equal(macJobs([file]), false, file);
   }
-  for (const app of ['utopia', 'nimigo', 'nimiday', 'lab']) {
+  for (const app of ['utopia', 'harness', 'lab']) {
     const files = [`apps/${app}/src-electron/main.ts`];
     assert.ok(selectCiScope(files).workspace_filters.includes(`./apps/${app}`));
     assert.equal(macJobs(files), false);
@@ -162,7 +162,7 @@ test('known check-only and methodology changes do not rebuild product workspaces
     assert.deepEqual(scope.workspace_filters, [], file);
   }
   assert(selectCiScope(['scripts/lib/unknown-build-helper.mjs']).workspace_filters.includes('*'));
-  assert(selectCiScope(['.nimi/spec/nimiday/assistant.authority.yaml']).workspace_filters.includes('*'));
+  assert(selectCiScope(['.nimi/spec/harness/assistant.authority.yaml']).workspace_filters.includes('*'));
 });
 
 test('Windows Runtime and App Tools changes select the native Windows lane', () => {

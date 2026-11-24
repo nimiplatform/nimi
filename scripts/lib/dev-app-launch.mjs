@@ -21,14 +21,9 @@ export const DEV_APP_DEFINITIONS = Object.freeze({
     packageName: '@nimiplatform/avatar',
     defaultCdpPort: 9336,
   }),
-  nimigo: Object.freeze({
-    packageName: '@nimiplatform/nimigo',
+  harness: Object.freeze({
+    packageName: '@nimiplatform/harness',
     defaultCdpPort: 9337,
-    supportsRegistrations: true,
-  }),
-  nimiday: Object.freeze({
-    packageName: '@nimiplatform/nimiday',
-    defaultCdpPort: 9338,
     supportsRegistrations: true,
   }),
 });

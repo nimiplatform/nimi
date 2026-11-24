@@ -127,8 +127,7 @@ pnpm dev:desktop -- --realm official
 ```bash
 pnpm dev:lab       # Nimi Lab 能力测试台
 pnpm dev:zhiyu     # 织羽 (Zhiyu) AI 伙伴
-pnpm dev:nimigo    # NimiGo
-pnpm dev:nimiday   # NimiDay
+pnpm dev:harness   # Nimi Harness 智能助理与 PC 工作台
 ```
 
 *注意：`pnpm dev:avatar` 用于启动独立的桌面 Avatar 浮动窗口，与普通的 `pnpm dev:desktop` 互斥。*

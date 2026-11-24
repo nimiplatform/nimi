@@ -9,8 +9,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 try {
   const [flag, consumer, ...extra] = process.argv.slice(2);
-  if (flag !== '--consumer' || !['nimigo', 'nimiday'].includes(consumer) || extra.length) {
-    throw new Error('usage: build-supervised-app-electron-production.mjs --consumer nimigo|nimiday');
+  if (flag !== '--consumer' || !['harness'].includes(consumer) || extra.length) {
+    throw new Error('usage: build-supervised-app-electron-production.mjs --consumer harness');
   }
   await withWorkspaceSurfaces({ repoRoot, label: `${consumer} production package` }, () => (
     buildSupervisedAppElectronProduction({ repoRoot, consumer })
