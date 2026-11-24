@@ -9,6 +9,7 @@ import {
   createNimiAppRuntimeStorageClient,
   createNimiLocalAppAssetsClient,
   type NimiLocalAppAIConsumptionClient,
+  type NimiLocalAppAgentReference,
   type NimiLocalAppAgentSessionClient,
   type NimiLocalAppAssetBody,
   type NimiLocalAppClient,
@@ -22,6 +23,7 @@ import {
 /** SDK clients for App-owned Node work running inside the verified App Host. */
 export type NimiElectronAppBusinessServices = Pick<NimiLocalAppClient, 'aiConfig' | 'storage' | 'agentWork' | 'integration' | 'activity'> & {
   readonly ai: NimiLocalAppAIConsumptionClient;
+  readonly agents: { readonly listReferences: () => Promise<readonly NimiLocalAppAgentReference[]> };
   readonly agentSession: NimiLocalAppAgentSessionClient;
   readonly realm: Pick<NimiLocalAppClient['realm'], 'worldCore'>;
 };
@@ -210,6 +212,9 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
   const agentSessionStreamClosers = new Map<string, () => Promise<void>>();
   const services: NimiElectronAppBusinessServices = Object.freeze({
     ai,
+    agents: Object.freeze({
+      listReferences: async () => (await request('agentReferenceList')) as unknown as readonly NimiLocalAppAgentReference[],
+    }),
     agentSession: createNimiLocalAppAgentSessionClient({
       agentSessionUnary: async (input) => {
         const expected = generation;

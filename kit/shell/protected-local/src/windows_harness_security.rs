@@ -98,6 +98,40 @@ fn wide_str(value: &str) -> Result<Vec<u16>, HarnessSecurityError> {
     wide_null_terminated(OsStr::new(value))
 }
 
+/// Converts a normalized absolute Windows path into an extended-length (`\\?\`)
+/// path so Win32 `CreateFileW` / directory creation work past the 260-char
+/// `MAX_PATH` limit (e.g. Harness per-session snapshot roots under app user-data).
+fn win32_extended_path(path: &Path) -> PathBuf {
+    let raw = path.to_string_lossy();
+    if raw.starts_with(r"\\?\") || raw.starts_with(r"\\.\") {
+        return path.to_path_buf();
+    }
+    let normalized = raw.replace('/', r"\");
+    let has_dot_component = normalized
+        .split('\\')
+        .any(|seg| seg == "." || seg == "..");
+    if has_dot_component {
+        return path.to_path_buf();
+    }
+    if let Some(unc) = normalized.strip_prefix(r"\\") {
+        return PathBuf::from(format!(r"\\?\UNC\{unc}"));
+    }
+    let bytes = normalized.as_bytes();
+    if bytes.len() >= 3
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && bytes[2] == b'\\'
+    {
+        return PathBuf::from(format!(r"\\?\{normalized}"));
+    }
+    path.to_path_buf()
+}
+
+fn wide_extended_path(path: &Path) -> Result<Vec<u16>, HarnessSecurityError> {
+    let ext = win32_extended_path(path);
+    wide_null_terminated(ext.as_os_str())
+}
+
 fn win32_err(reason: &str, api: &str, code: u32) -> HarnessSecurityError {
     HarnessSecurityError::new(reason, format!("{api} failed with Win32 error {code}"))
 }
@@ -727,7 +761,7 @@ fn is_within_workspace_root(canonical_root: &str, candidate_final: &str) -> bool
 }
 
 fn canonicalize_workspace_root(workspace_root: &Path) -> Result<String, HarnessSecurityError> {
-    let wide = wide_null_terminated(workspace_root.as_os_str())?;
+    let wide = wide_extended_path(workspace_root)?;
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -768,7 +802,7 @@ fn ensure_no_reparse_points_in_chain(
     let mut current = PathBuf::from(canonical_root);
     for seg in segments {
         current.push(seg);
-        let wide = wide_null_terminated(current.as_os_str())?;
+        let wide = wide_extended_path(&current)?;
         let handle = unsafe {
             CreateFileW(
                 wide.as_ptr(),
@@ -910,8 +944,9 @@ fn write_snapshot_file(
         let mut dir = PathBuf::from(&canonical_snap_root);
         for seg in &segments[..segments.len() - 1] {
             dir.push(seg);
-            if !dir.exists() {
-                std::fs::create_dir(&dir)
+            let ext_dir = win32_extended_path(&dir);
+            if !ext_dir.exists() {
+                std::fs::create_dir(&ext_dir)
                     .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
             }
         }
@@ -926,7 +961,7 @@ fn write_snapshot_file(
         anchored_path.push(seg);
     }
 
-    let wide = wide_null_terminated(anchored_path.as_os_str())?;
+    let wide = wide_extended_path(&anchored_path)?;
     let mut created_new = false;
     let existing = unsafe {
         CreateFileW(
@@ -1183,7 +1218,7 @@ pub fn verify_workspace_path(
     for seg in &segments {
         target.push(seg);
     }
-    let wide = wide_null_terminated(target.as_os_str())?;
+    let wide = wide_extended_path(&target)?;
     let flags = FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT;
     let handle = unsafe {
         CreateFileW(
@@ -1239,7 +1274,7 @@ pub fn secure_read_file(
     for seg in &segments {
         target.push(seg);
     }
-    let wide = wide_null_terminated(target.as_os_str())?;
+    let wide = wide_extended_path(&target)?;
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -1296,7 +1331,7 @@ pub fn secure_write_file(
     for seg in &segments {
         target.push(seg);
     }
-    let wide = wide_null_terminated(target.as_os_str())?;
+    let wide = wide_extended_path(&target)?;
 
     if !request.must_not_exist {
         // Try opening existing file exclusively against concurrent writers/renamers/deleters.
@@ -1385,7 +1420,8 @@ pub fn secure_write_file(
         let mut dir = PathBuf::from(&canonical_root);
         for seg in &segments[..segments.len() - 1] {
             dir.push(seg);
-            match std::fs::create_dir(&dir) {
+            let ext_dir = win32_extended_path(&dir);
+            match std::fs::create_dir(&ext_dir) {
                 Ok(()) => {}
                 Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
                 Err(err) => {
@@ -1463,7 +1499,7 @@ pub fn secure_delete_file(
     for seg in &segments {
         target.push(seg);
     }
-    let wide = wide_null_terminated(target.as_os_str())?;
+    let wide = wide_extended_path(&target)?;
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -1784,5 +1820,57 @@ mod tests {
         assert_eq!(tree.active_processes_remaining, 0);
 
         let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    #[test]
+    fn secure_write_and_snapshot_succeed_past_windows_max_path_260_chars() {
+        let base = unique_temp_dir("longpath");
+        let workspace = base.join("ws");
+        std::fs::create_dir_all(&workspace).unwrap();
+        std::fs::write(workspace.join("notes.txt"), b"original-v1").unwrap();
+
+        // Build a deep snapshot directory so the snapshot file exceeds Windows MAX_PATH (260 chars).
+        let mut snap_root = base.clone();
+        for seg in [
+            "app-hosts",
+            "cc78e6ab2bf692bf6961ae48eccbf351",
+            "apps",
+            "4b37ae160005fcfe3a7b0a7ee5089cf5",
+            "user-data",
+            "harness",
+            "4922e3d4-37c1-4654-b9b4-f2b8c9db1b6e",
+            "snapshots",
+            "b213cf0e-ae48-41bd-bcb0-65d4bd16f292",
+        ] {
+            snap_root.push(seg);
+        }
+        std::fs::create_dir_all(win32_extended_path(&snap_root)).unwrap();
+        let snap_path = snap_root.join("11111111-2222-3333-4444-555555555555.bak");
+        assert!(
+            snap_path.to_string_lossy().len() > 260,
+            "test snapshot path must exceed MAX_PATH (got len={})",
+            snap_path.to_string_lossy().len()
+        );
+
+        let written = secure_write_file(HarnessSecureWriteRequest {
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            relative_path: "notes.txt".to_string(),
+            content: b"updated-v2".to_vec(),
+            precondition_sha256: None,
+            allow_create: true,
+            must_not_exist: false,
+            snapshot_path: Some(snap_path.to_string_lossy().into_owned()),
+            snapshot_root: Some(snap_root.to_string_lossy().into_owned()),
+        })
+        .unwrap();
+        assert!(written.snapshot_written);
+        assert_eq!(
+            std::fs::read(win32_extended_path(&snap_path)).unwrap(),
+            b"original-v1"
+        );
+        let read_back = secure_read_file(&workspace, "notes.txt", 1024).unwrap();
+        assert_eq!(read_back.content, b"updated-v2");
+
+        let _ = std::fs::remove_dir_all(win32_extended_path(&base));
     }
 }
