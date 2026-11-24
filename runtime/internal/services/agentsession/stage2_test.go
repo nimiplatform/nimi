@@ -226,7 +226,7 @@ func TestStage2RouterIdempotencyFTSAmbiguityAndFourthTurnPromotion(t *testing.T)
 		t.Fatalf("expected >= 2 candidates, got %d", len(ambResp.GetCandidates()))
 	}
 	// Critical v2.1 invariant: AMBIGUOUS_CANDIDATES MUST NOT write runtime_session_submission!
-	storedSub, err := svc.Store().LookupSubmission(context.Background(), "acct-1", "req-amb-probe")
+	storedSub, err := svc.Store().LookupSubmission(context.Background(), "acct-1", "subj-home", "req-amb-probe", "")
 	if err != nil {
 		t.Fatalf("LookupSubmission: %v", err)
 	}

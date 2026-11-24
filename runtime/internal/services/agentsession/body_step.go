@@ -1,6 +1,7 @@
 package agentsession
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -25,7 +26,8 @@ import (
 const (
 	bodyStepMaxDuration       = 600 * time.Second
 	bodyStepMaxRequestBytes   = 2 * 1024 * 1024
-	maxIssuedToolCallWindow   = 128
+	bodyStepMaxResponseBytes  = 2 * 1024 * 1024
+	maxIssuedToolCallWindow   = 512
 	defaultContextBudgetToken = uint32(64000)
 )
 
@@ -275,11 +277,99 @@ func containsString(list []string, target string) bool {
 	return false
 }
 
+type issuedToolMeta struct {
+	ToolName string `json:"toolName"`
+	ArgsHash string `json:"argsHash"`
+}
+
+func decodeIssuedToolMeta(raw string) map[string]issuedToolMeta {
+	out := make(map[string]issuedToolMeta)
+	if strings.TrimSpace(raw) != "" {
+		_ = json.Unmarshal([]byte(raw), &out)
+	}
+	return out
+}
+
+func mergeIssuedToolMeta(existing map[string]issuedToolMeta, window []string, calls []*runtimev1.BodyToolCall) map[string]issuedToolMeta {
+	if existing == nil {
+		existing = make(map[string]issuedToolMeta)
+	}
+	for _, c := range calls {
+		id := strings.TrimSpace(c.GetCallId())
+		if id == "" {
+			continue
+		}
+		existing[id] = issuedToolMeta{
+			ToolName: strings.TrimSpace(c.GetName()),
+			ArgsHash: sha256HexString(c.GetArgumentsJson()),
+		}
+	}
+	keep := make(map[string]struct{}, len(window))
+	for _, id := range window {
+		keep[id] = struct{}{}
+	}
+	for id := range existing {
+		if _, ok := keep[id]; !ok {
+			delete(existing, id)
+		}
+	}
+	return existing
+}
+
+func isAllowedBodyWorkingRole(role string) bool {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "user", "assistant", "tool", "toolresult":
+		return true
+	default:
+		return false
+	}
+}
+
+func actionKindAllowedByPermissionMode(permissionMode, actionKind string) bool {
+	kind := strings.ToLower(strings.TrimSpace(actionKind))
+	mode := strings.ToLower(strings.TrimSpace(permissionMode))
+	switch kind {
+	case "file_write", "file_edit", "file_delete", "shell_exec", "process_exec":
+		return mode != "readonly" && mode != "companion"
+	default:
+		return true
+	}
+}
+
+func (s *Service) verifyPostCompactionAnchor(ref, postCompactionMAC string, canonicalWorking, explicitKept []*runtimev1.BodyWorkingMessage) bool {
+	if len(canonicalWorking) == 0 {
+		return false
+	}
+	summaryText := extractCompactionSummaryText(canonicalWorking[0])
+	if len(explicitKept) > 0 {
+		canonicalKept := canonicalOrderWorkingMessages(explicitKept)
+		expected := s.computeHMAC([]byte(ref), []byte(summaryText), canonicalizeMessagesBytes(canonicalKept))
+		if !hmac.Equal([]byte(expected), []byte(postCompactionMAC)) {
+			return false
+		}
+		// Bind explicit kept_tail_messages strictly to canonicalWorking[1 : 1+len(canonicalKept)]!
+		if len(canonicalWorking) < 1+len(canonicalKept) {
+			return false
+		}
+		return bytes.Equal(
+			canonicalizeMessagesBytes(canonicalWorking[1:1+len(canonicalKept)]),
+			canonicalizeMessagesBytes(canonicalKept),
+		)
+	}
+	for end := 1; end <= len(canonicalWorking); end++ {
+		expected := s.computeHMAC([]byte(ref), []byte(summaryText), canonicalizeMessagesBytes(canonicalWorking[1:end]))
+		if hmac.Equal([]byte(expected), []byte(postCompactionMAC)) {
+			return true
+		}
+	}
+	return false
+}
+
 // StreamLocalAgentBodyStep enforces the strict Brain-Body symbiosis ledger,
-// rejects system/developer role smuggling, wraps body_advisory_context in a
-// per-turn random-nonce <untrusted_workspace_data> block, qualifies Cognition
-// read sets synchronously, enforces physical-endpoint scheduling, and streams
-// live text/reasoning/ToolCallActivity/toolCall/done frames with a 600s/2MiB cap.
+// rejects non-allowlisted roles (including system/developer), serializes steps
+// per session, wraps body_advisory_context in a per-turn random-nonce block,
+// qualifies Cognition read sets synchronously, enforces physical-endpoint
+// scheduling, buffers tool_call frames until ledger commit, and caps 600s/2MiB.
 // @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
 func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodyStepRequest, stream grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]) error {
 	ctx := stream.Context()
@@ -307,6 +397,9 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	ref := strings.TrimSpace(req.GetWorkSessionRef())
+	unlockStep := s.lockSessionStep(ref)
+	defer unlockStep()
+
 	sess, err := s.store.GetSession(ctx, decision.AccountID, ref)
 	if errors.Is(err, errSessionNotFound) {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
@@ -314,19 +407,21 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
+	if sess.Record.GetOwnerBodyKind() != ns || sess.Record.GetStatus() == "deleted" || sess.Record.GetStatus() == "deleting" {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
+	}
 
-	// 1. Reject forbidden system / developer roles in working_messages & kept_tail_messages.
+	// 1. Strict role allowlist (user / assistant / tool / toolResult ONLY).
 	for _, msg := range append(append([]*runtimev1.BodyWorkingMessage(nil), req.GetWorkingMessages()...), req.GetKeptTailMessages()...) {
 		if msg == nil {
 			continue
 		}
-		role := strings.ToLower(strings.TrimSpace(msg.GetRole()))
-		if role == "system" || role == "developer" {
+		if !isAllowedBodyWorkingRole(msg.GetRole()) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
 	}
 
-	// 2. Load ledger & verify issued_tool_call_ids_window + post_compaction_mac continuity.
+	// 2. Load ledger & verify issued_tool_call_ids_window + last_step_mac + post_compaction_mac continuity.
 	ledger, err := s.store.GetLedger(ctx, decision.AccountID, ref)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -337,10 +432,12 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			AccountID:                    decision.AccountID,
 			AgentBinding:                 sess.Record.GetAgentBinding(),
 			IssuedToolCallIDsJSON:        "[]",
+			IssuedToolArgsJSON:           "{}",
 			EffectiveContextBudgetTokens: defaultContextBudgetToken,
 		}
 	}
 	issuedWindow := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
+	issuedMeta := decodeIssuedToolMeta(ledger.IssuedToolArgsJSON)
 	canonicalWorking := canonicalOrderWorkingMessages(req.GetWorkingMessages())
 	for _, msg := range canonicalWorking {
 		role := strings.ToLower(strings.TrimSpace(msg.GetRole()))
@@ -351,29 +448,24 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			}
 		}
 	}
-	// If the session previously compacted (post_compaction_mac != ""), verify
-	// unconditionally that the compaction summary + kept_tail anchor matches the
-	// signed post_compaction_mac = HMAC(ref || canonical_summary || canonical_kept_tail).
-	if ledger.PostCompactionMAC != "" && req.GetPurpose() != runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION {
-		if len(canonicalWorking) == 0 {
+	// Verify continuity anchor on EVERY step (including subsequent COMPACTION steps):
+	// - Once compacted (PostCompactionMAC != ""), canonicalWorking must begin with the signed compaction summary + kept tail.
+	// - Otherwise, if LastStepMAC != "" and LastCommittedCount > 0, canonicalWorking must extend the previously signed prefix!
+	if ledger.PostCompactionMAC != "" {
+		explicitKept := req.GetKeptTailMessages()
+		if req.GetPurpose() == runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION {
+			// On a new compaction step, req.KeptTailMessages is the NEW tail to keep, so verify the OLD anchor against canonicalWorking prefixes.
+			explicitKept = nil
+		}
+		if !s.verifyPostCompactionAnchor(ref, ledger.PostCompactionMAC, canonicalWorking, explicitKept) {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
-		summaryText := extractCompactionSummaryText(canonicalWorking[0])
-		matched := false
-		if len(req.GetKeptTailMessages()) > 0 {
-			expected := s.computeHMAC([]byte(ref), []byte(summaryText), canonicalizeMessagesBytes(req.GetKeptTailMessages()))
-			matched = hmac.Equal([]byte(expected), []byte(ledger.PostCompactionMAC))
-		} else {
-			// Check whether canonicalWorking[1:end] for any prefix length matches the signed kept tail.
-			for end := 1; end <= len(canonicalWorking); end++ {
-				expected := s.computeHMAC([]byte(ref), []byte(summaryText), canonicalizeMessagesBytes(canonicalWorking[1:end]))
-				if hmac.Equal([]byte(expected), []byte(ledger.PostCompactionMAC)) {
-					matched = true
-					break
-				}
-			}
+	} else if ledger.LastStepMAC != "" && ledger.LastCommittedCount > 0 {
+		if len(canonicalWorking) < ledger.LastCommittedCount {
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
-		if !matched {
+		expectedPrefixMAC := s.computeHMAC([]byte(ref), canonicalizeMessagesBytes(canonicalWorking[:ledger.LastCommittedCount]))
+		if !hmac.Equal([]byte(expectedPrefixMAC), []byte(ledger.LastStepMAC)) {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
 	}
@@ -427,6 +519,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	emitter := &bodyStepStreamEmitter{
+		ctx:          stepCtx,
 		stream:       stream,
 		budgetTokens: budgetTokens,
 	}
@@ -463,15 +556,30 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			return err
 		}
 	} else {
-		// Deterministic offline/unconfigured fallback fails closed rather than pseudo-succeeding.
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 
 	if execResult.ContextBudgetTokens > 0 {
 		budgetTokens = execResult.ContextBudgetTokens
 	}
-	nextIssuedWindow := appendIssuedToolCallIDs(issuedWindow, execResult.IssuedToolCalls)
+	// Merge both executor-returned calls and buffered emitted tool calls so ledger records every issued call.
+	allIssuedCalls := append([]*runtimev1.BodyToolCall(nil), execResult.IssuedToolCalls...)
+	for _, buffered := range emitter.bufferedToolCalls {
+		found := false
+		for _, existing := range allIssuedCalls {
+			if existing.GetCallId() == buffered.GetCallId() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			allIssuedCalls = append(allIssuedCalls, buffered)
+		}
+	}
+	nextIssuedWindow := appendIssuedToolCallIDs(issuedWindow, allIssuedCalls)
+	nextIssuedMeta := mergeIssuedToolMeta(issuedMeta, nextIssuedWindow, allIssuedCalls)
 	issuedJSON, _ := json.Marshal(nextIssuedWindow)
+	issuedMetaJSON, _ := json.Marshal(nextIssuedMeta)
 
 	var (
 		stepMAC           string
@@ -483,18 +591,16 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		postCompactionMAC = s.computeHMAC([]byte(ref), []byte(summaryCanon), keptTailBytes)
 		stepMAC = postCompactionMAC
 		ledger.PostCompactionMAC = postCompactionMAC
+		ledger.LastCommittedCount = 0
 		ledger.CompactionCount++
 	} else {
-		stepMAC = s.computeHMAC(
-			[]byte(ref),
-			[]byte(ledger.LastStepMAC),
-			canonicalizeMessagesBytes(canonicalWorking),
-			[]byte(execResult.AssistantText),
-			issuedJSON,
-		)
+		// Sign the verified canonical prefix so the next turn must extend it intact.
+		stepMAC = s.computeHMAC([]byte(ref), canonicalizeMessagesBytes(canonicalWorking))
+		ledger.LastCommittedCount = len(canonicalWorking)
 	}
 	ledger.LastStepMAC = stepMAC
 	ledger.IssuedToolCallIDsJSON = string(issuedJSON)
+	ledger.IssuedToolArgsJSON = string(issuedMetaJSON)
 	ledger.ReadSetEpoch = readSetEpoch
 	ledger.EffectiveContextBudgetTokens = budgetTokens
 	ledger.UpdatedAt = formatRFC3339(s.now().UTC())
@@ -502,15 +608,20 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 
+	// Flush executable tool_call frames strictly AFTER the ledger transaction commits!
+	if err := emitter.flushBufferedToolCalls(); err != nil {
+		return err
+	}
+
 	return emitter.send(&runtimev1.BodyStepStreamEvent{
 		Payload: &runtimev1.BodyStepStreamEvent_Done{
 			Done: &runtimev1.BodyStepDone{
-				FinishReason:                execResult.FinishReason,
-				UsageInputTokens:            execResult.UsageInputTokens,
-				UsageOutputTokens:           execResult.UsageOutputTokens,
-				StepMac:                     stepMAC,
-				CompactionSummary:           execResult.CompactionSummary,
-				PostCompactionMac:           postCompactionMAC,
+				FinishReason:                 execResult.FinishReason,
+				UsageInputTokens:             execResult.UsageInputTokens,
+				UsageOutputTokens:            execResult.UsageOutputTokens,
+				StepMac:                      stepMAC,
+				CompactionSummary:            execResult.CompactionSummary,
+				PostCompactionMac:            postCompactionMAC,
 				EffectiveContextBudgetTokens: budgetTokens,
 			},
 		},
@@ -518,15 +629,28 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 }
 
 type bodyStepStreamEmitter struct {
-	stream       grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]
-	budgetTokens uint32
-	seq          uint32
+	ctx               context.Context
+	stream            grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]
+	budgetTokens      uint32
+	seq               uint32
+	bytesSent         int
+	bufferedToolCalls []*runtimev1.BodyToolCall
 }
 
 func (e *bodyStepStreamEmitter) send(ev *runtimev1.BodyStepStreamEvent) error {
+	if e.ctx != nil {
+		if err := e.ctx.Err(); err != nil {
+			return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
+	}
 	e.seq++
 	ev.EventIndex = e.seq
 	ev.EffectiveContextBudgetTokens = e.budgetTokens
+	frameBytes := proto.Size(ev)
+	if e.bytesSent+frameBytes > bodyStepMaxResponseBytes {
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE)
+	}
+	e.bytesSent += frameBytes
 	return e.stream.Send(ev)
 }
 
@@ -556,9 +680,24 @@ func (e *bodyStepStreamEmitter) SendToolCallActivity(act textbehavior.ToolCallAc
 }
 
 func (e *bodyStepStreamEmitter) SendToolCall(call *runtimev1.BodyToolCall) error {
-	return e.send(&runtimev1.BodyStepStreamEvent{
-		Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: call},
-	})
+	if call == nil {
+		return nil
+	}
+	// Buffer executable tool_call frames until the ledger commit succeeds.
+	e.bufferedToolCalls = append(e.bufferedToolCalls, call)
+	return nil
+}
+
+func (e *bodyStepStreamEmitter) flushBufferedToolCalls() error {
+	for _, call := range e.bufferedToolCalls {
+		if err := e.send(&runtimev1.BodyStepStreamEvent{
+			Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: call},
+		}); err != nil {
+			return err
+		}
+	}
+	e.bufferedToolCalls = nil
+	return nil
 }
 
 // AuthorizeBodySideEffect is the synchronous fail-closed fence called by the Body
@@ -613,8 +752,21 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 		}, nil
 	}
 
-	// Pending PURGE or INVALIDATE tombstones for this session block all side effects!
-	hasTombstone, err := s.store.HasPendingTombstones(ctx, decision.AccountID, strings.TrimSpace(req.GetDeviceId()), ns, ref)
+	if sess.Record.GetOwnerBodyKind() != ns {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "work_session_namespace_mismatch",
+		}, nil
+	}
+	if !actionKindAllowedByPermissionMode(sess.Record.GetPermissionMode(), req.GetActionKind()) {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "permission_mode_denies_side_effect",
+		}, nil
+	}
+
+	// Pending PURGE or INVALIDATE tombstones for this session or its agent block all side effects!
+	hasTombstone, err := s.store.HasPendingTombstones(ctx, decision.AccountID, strings.TrimSpace(req.GetDeviceId()), ns, ref, sess.Record.GetAgentBinding())
 	if err != nil || hasTombstone {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized:        false,
@@ -623,27 +775,56 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 		}, nil
 	}
 
-	ledger, _ := s.store.GetLedger(ctx, decision.AccountID, ref)
-	if ledger != nil {
-		if callID := strings.TrimSpace(req.GetCallId()); callID != "" {
-			issued := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
-			if len(issued) > 0 && !containsString(issued, callID) {
-				return &runtimev1.AuthorizeBodySideEffectResponse{
-					Authorized: false,
-					DenyReason: "tool_call_not_issued_by_runtime",
-				}, nil
-			}
+	// Fail closed on ledger read errors, missing ledger, missing call_id, or non-issued tool call!
+	ledger, ledgerErr := s.store.GetLedger(ctx, decision.AccountID, ref)
+	if ledgerErr != nil {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "ledger_unavailable",
+		}, nil
+	}
+	if ledger == nil {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "session_ledger_uninitialized",
+		}, nil
+	}
+	callID := strings.TrimSpace(req.GetCallId())
+	if callID == "" {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "missing_tool_call_id",
+		}, nil
+	}
+	issued := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
+	if len(issued) == 0 || !containsString(issued, callID) {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "tool_call_not_issued_by_runtime",
+		}, nil
+	}
+	issuedMeta := decodeIssuedToolMeta(ledger.IssuedToolArgsJSON)
+	if meta, ok := issuedMeta[callID]; ok {
+		if reqTool := strings.TrimSpace(req.GetToolName()); reqTool != "" && meta.ToolName != "" && !strings.EqualFold(reqTool, meta.ToolName) {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "tool_name_mismatch",
+			}, nil
 		}
-		if s.readSetQualifier != nil {
-			valid, _, qErr := s.readSetQualifier(ctx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
-			if qErr != nil || !valid {
-				return &runtimev1.AuthorizeBodySideEffectResponse{
-					Authorized:        false,
-					DenyReason:        "memory_read_set_invalidated",
-					MemoryInvalidated: true,
-				}, nil
-			}
-		}
+	}
+	if s.readSetQualifier == nil {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized: false,
+			DenyReason: "read_set_qualifier_unconfigured",
+		}, nil
+	}
+	valid, _, qErr := s.readSetQualifier(ctx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
+	if qErr != nil || !valid {
+		return &runtimev1.AuthorizeBodySideEffectResponse{
+			Authorized:        false,
+			DenyReason:        "memory_read_set_invalidated",
+			MemoryInvalidated: true,
+		}, nil
 	}
 
 	return &runtimev1.AuthorizeBodySideEffectResponse{
@@ -674,9 +855,12 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
 	}
 
-	resp, updatedRow, err := s.store.ApplyBodyProjection(ctx, decision.AccountID, req, now)
+	resp, updatedRow, err := s.store.ApplyBodyProjection(ctx, decision.AccountID, ns, req, now)
 	if errors.Is(err, errTombstoneFence) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
+	}
+	if errors.Is(err, errBodyNamespaceMismatch) || errors.Is(err, errAttentionScopeConflict) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 	if errors.Is(err, errSessionNotFound) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
@@ -686,7 +870,11 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 	}
 	if resp.GetApplied() && updatedRow != nil {
 		s.notifyOverviewChange(decision.AccountID, []*runtimev1.WorkSessionRecord{updatedRow.Record}, nil)
-		if milestone := strings.TrimSpace(req.GetMilestoneKind()); milestone != "" && s.milestoneHook != nil {
+		// Taint gate: ONLY trusted, non-external sessions may propose Cognition session pointers!
+		if milestone := strings.TrimSpace(req.GetMilestoneKind()); milestone != "" &&
+			s.milestoneHook != nil &&
+			updatedRow.Record.GetTrustTier() == "trusted" &&
+			updatedRow.Record.GetSessionKind() != "channel_external" {
 			_ = s.milestoneHook(
 				ctx,
 				decision.AccountID,

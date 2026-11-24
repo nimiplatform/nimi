@@ -18,9 +18,10 @@ type productControlRuntimeRootHandoff struct {
 	agent        *runtimeagentservice.Service
 	cognition    *cognitionservice.Service
 	backend      *runtimepersistence.Backend
-	appPackages  appPackageRootHandoff
-	appActivity  appPackageRootHandoff
-	integrations appPackageRootHandoff
+	appPackages   appPackageRootHandoff
+	appActivity   appPackageRootHandoff
+	integrations  appPackageRootHandoff
+	agentSessions appPackageRootHandoff
 
 	mu        sync.Mutex
 	prepared  bool
@@ -79,6 +80,11 @@ func (h *productControlRuntimeRootHandoff) CloseRootAdmission(ctx context.Contex
 			return fmt.Errorf("quiesce App activity owner: %w", err)
 		}
 	}
+	if h.agentSessions != nil {
+		if err := h.agentSessions.QuiesceDataRootContext(ctx); err != nil {
+			return fmt.Errorf("quiesce AgentSession owner: %w", err)
+		}
+	}
 	if h.backend != nil {
 		if err := h.backend.Flush(ctx); err != nil {
 			return err
@@ -112,6 +118,9 @@ func (h *productControlRuntimeRootHandoff) AbortRootHandoff() {
 	}
 	if h.appActivity != nil {
 		h.appActivity.ResumeDataRootAfterAbort()
+	}
+	if h.agentSessions != nil {
+		h.agentSessions.ResumeDataRootAfterAbort()
 	}
 	if h.registry != nil {
 		h.registry.AbortRootHandoff()

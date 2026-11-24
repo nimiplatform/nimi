@@ -7,7 +7,6 @@ package agentsession
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -39,14 +38,18 @@ const (
 	LeaseTTL              = 35 * time.Second
 )
 
+type AgentHandleResolver func(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentHandle string) (string, error)
+
 type Options struct {
-	Logger            *slog.Logger
-	Now               func() time.Time
-	Store             *Store
-	DBPath            string
-	LedgerSecret      []byte
-	Scheduler         *scheduler.Scheduler
-	EndpointResolver  func(agentBinding string) string
+	Logger                    *slog.Logger
+	Now                       func() time.Time
+	Store                     *Store
+	DBPath                    string
+	RequirePersistentDB       bool
+	LedgerSecret              []byte
+	Scheduler                 *scheduler.Scheduler
+	EndpointResolver          func(agentBinding string) string
+	AgentHandleResolver       AgentHandleResolver
 	BodyStepExecutor          BodyStepExecutor
 	ReadSetQualifier          ReadSetQualifier
 	MilestoneHook             MilestoneHook
@@ -71,13 +74,23 @@ type carrierLease struct {
 }
 
 type outboxSubscriber struct {
-	ch chan *runtimev1.BodyOutboxEnvelope
+	leaseEpoch int64
+	wakeup     chan struct{}
+	closed     chan struct{}
+	closeOnce  sync.Once
+}
+
+func (sub *outboxSubscriber) close() {
+	sub.closeOnce.Do(func() {
+		close(sub.closed)
+	})
 }
 
 type overviewSubscriber struct {
 	accountID string
 	decision  accountservice.LocalAppCallerDecision
 	agentRef  string
+	seq       uint64
 	ch        chan *runtimev1.SessionOverviewDelta
 }
 
@@ -88,14 +101,15 @@ type brainEventSubscriber struct {
 type Service struct {
 	runtimev1.UnimplementedAgentSessionServiceServer
 
-	logger           *slog.Logger
-	now              func() time.Time
-	store            *Store
-	ownsStore        bool
-	tempDir          string
-	ledgerSecret     []byte
-	scheduler        *scheduler.Scheduler
-	endpointResolver func(agentBinding string) string
+	logger              *slog.Logger
+	now                 func() time.Time
+	store               *Store
+	ownsStore           bool
+	tempDir             string
+	ledgerSecret        []byte
+	scheduler           *scheduler.Scheduler
+	endpointResolver    func(agentBinding string) string
+	agentHandleResolver AgentHandleResolver
 
 	bodyStepExecutor          BodyStepExecutor
 	readSetQualifier          ReadSetQualifier
@@ -111,6 +125,11 @@ type Service struct {
 	overviewSubscribers   map[*overviewSubscriber]struct{}
 	brainEventSubscribers map[string]map[*brainEventSubscriber]struct{}
 	brainTurnCancels      map[string]context.CancelFunc
+	sessionStepLocks      map[string]*sync.Mutex
+	alarmTickerParent     context.Context
+	alarmTickerInterval   time.Duration
+	alarmTickerCancel     context.CancelFunc
+	alarmTickerDone       chan struct{}
 	overviewSeq           uint64
 }
 
@@ -127,6 +146,9 @@ func Open(opts Options) (*Service, error) {
 	if store == nil {
 		dbPath := strings.TrimSpace(opts.DBPath)
 		if dbPath == "" {
+			if opts.RequirePersistentDB {
+				return nil, fmt.Errorf("sessions.db persistent DBPath is required")
+			}
 			dir, err := os.MkdirTemp("", "nimi-agentsession-*")
 			if err != nil {
 				return nil, fmt.Errorf("create temp dir for sessions.db: %w", err)
@@ -147,27 +169,29 @@ func Open(opts Options) (*Service, error) {
 
 	secret := append([]byte(nil), opts.LedgerSecret...)
 	if len(secret) == 0 {
-		secret = make([]byte, 32)
-		if _, err := rand.Read(secret); err != nil {
+		loaded, err := store.LoadOrCreateLedgerSecret(context.Background())
+		if err != nil {
 			if ownsStore {
 				_ = store.Close()
 			}
 			if tempDir != "" {
 				_ = os.RemoveAll(tempDir)
 			}
-			return nil, fmt.Errorf("generate continuity ledger secret: %w", err)
+			return nil, fmt.Errorf("load or persist continuity ledger secret: %w", err)
 		}
+		secret = loaded
 	}
 
 	return &Service{
-		logger:                opts.Logger,
-		now:                   now,
-		store:                 store,
-		ownsStore:             ownsStore,
-		tempDir:               tempDir,
-		ledgerSecret:          secret,
-		scheduler:             opts.Scheduler,
-		endpointResolver:      opts.EndpointResolver,
+		logger:                    opts.Logger,
+		now:                       now,
+		store:                     store,
+		ownsStore:                 ownsStore,
+		tempDir:                   tempDir,
+		ledgerSecret:              secret,
+		scheduler:                 opts.Scheduler,
+		endpointResolver:          opts.EndpointResolver,
+		agentHandleResolver:       opts.AgentHandleResolver,
 		bodyStepExecutor:          opts.BodyStepExecutor,
 		readSetQualifier:          opts.ReadSetQualifier,
 		milestoneHook:             opts.MilestoneHook,
@@ -177,9 +201,10 @@ func Open(opts Options) (*Service, error) {
 		alarmLLMRunner:            opts.AlarmLLMRunner,
 		dailyAlarmLLMBudgetTokens: opts.DailyAlarmLLMBudgetTokens,
 		outboxSubscribers:         make(map[string]map[*outboxSubscriber]struct{}),
-		overviewSubscribers:   make(map[*overviewSubscriber]struct{}),
-		brainEventSubscribers: make(map[string]map[*brainEventSubscriber]struct{}),
-		brainTurnCancels:      make(map[string]context.CancelFunc),
+		overviewSubscribers:       make(map[*overviewSubscriber]struct{}),
+		brainEventSubscribers:     make(map[string]map[*brainEventSubscriber]struct{}),
+		brainTurnCancels:          make(map[string]context.CancelFunc),
+		sessionStepLocks:          make(map[string]*sync.Mutex),
 	}, nil
 }
 
@@ -199,14 +224,24 @@ func (s *Service) Close() error {
 		return nil
 	}
 	s.mu.Lock()
+	alarmCancel := s.alarmTickerCancel
+	alarmDone := s.alarmTickerDone
+	s.alarmTickerCancel = nil
+	s.alarmTickerDone = nil
 	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
 	for ref, cancel := range s.brainTurnCancels {
 		cancels = append(cancels, cancel)
 		delete(s.brainTurnCancels, ref)
 	}
 	s.mu.Unlock()
+	if alarmCancel != nil {
+		alarmCancel()
+	}
 	for _, cancel := range cancels {
 		cancel()
+	}
+	if alarmDone != nil {
+		<-alarmDone
 	}
 	var err error
 	if s.ownsStore && s.store != nil {
@@ -276,6 +311,210 @@ func (s *Service) SetDailyAlarmLLMBudgetTokens(limit int64) {
 	s.mu.Unlock()
 }
 
+func (s *Service) SetAgentHandleResolver(fn AgentHandleResolver) {
+	s.mu.Lock()
+	s.agentHandleResolver = fn
+	s.mu.Unlock()
+}
+
+// StartAlarmTicker launches a cancelable background loop calling TickAlarms
+// on startup and on every interval tick until ctx or Service.Close cancels it.
+func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duration) {
+	if s == nil {
+		return
+	}
+	if parent == nil {
+		parent = context.Background()
+	}
+	if interval <= 0 {
+		interval = 15 * time.Second
+	}
+	ctx, cancel := context.WithCancel(parent)
+	done := make(chan struct{})
+	s.mu.Lock()
+	prevCancel := s.alarmTickerCancel
+	prevDone := s.alarmTickerDone
+	s.alarmTickerParent = parent
+	s.alarmTickerInterval = interval
+	s.alarmTickerCancel = cancel
+	s.alarmTickerDone = done
+	s.mu.Unlock()
+	if prevCancel != nil {
+		prevCancel()
+	}
+	if prevDone != nil {
+		<-prevDone
+	}
+
+	go func() {
+		defer close(done)
+		// Run an immediate startup/wake-merge sweep before waiting for the ticker.
+		_, _ = s.TickAlarms(ctx, s.now().UTC())
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_, _ = s.TickAlarms(ctx, s.now().UTC())
+			}
+		}
+	}()
+}
+
+// QuiesceDataRootContext stops the background alarm loop, cancels in-flight
+// brain turns, and flushes sessions.db WAL before Product Control switches roots.
+func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	alarmCancel := s.alarmTickerCancel
+	alarmDone := s.alarmTickerDone
+	s.alarmTickerCancel = nil
+	s.alarmTickerDone = nil
+	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
+	for ref, cancel := range s.brainTurnCancels {
+		cancels = append(cancels, cancel)
+		delete(s.brainTurnCancels, ref)
+	}
+	s.mu.Unlock()
+	if alarmCancel != nil {
+		alarmCancel()
+	}
+	for _, cancel := range cancels {
+		cancel()
+	}
+	if alarmDone != nil {
+		select {
+		case <-alarmDone:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	if s.store != nil {
+		return s.store.FlushWAL(ctx)
+	}
+	return nil
+}
+
+// ResumeDataRootAfterAbort restarts the alarm ticker if Product Control aborts
+// a data-root handoff.
+func (s *Service) ResumeDataRootAfterAbort() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	parent := s.alarmTickerParent
+	interval := s.alarmTickerInterval
+	active := s.alarmTickerCancel != nil
+	s.mu.Unlock()
+	if !active && parent != nil && parent.Err() == nil && interval > 0 {
+		s.StartAlarmTicker(parent, interval)
+	}
+}
+
+// NotifyDesktopAlarm records a durable desktop pending-attention entry for a
+// fired alarm and broadcasts it to live Home overview subscribers without
+// misusing the public app.activity channel (P-ACTV-002).
+func (s *Service) NotifyDesktopAlarm(
+	ctx context.Context,
+	accountID string,
+	alarm *runtimev1.SessionAlarmRecord,
+	renderedTitle string,
+	renderedBody string,
+) (string, error) {
+	if s == nil || s.store == nil || alarm == nil {
+		return "", fmt.Errorf("desktop alarm notification unavailable")
+	}
+	now := s.now().UTC()
+	attentionID := fmt.Sprintf("alarm_%s_%d", alarm.GetAlarmId(), now.UnixNano())
+	summaryJSON := fmt.Sprintf(`{"alarmId":%q,"title":%q,"body":%q,"alarmKind":%d}`,
+		alarm.GetAlarmId(), renderedTitle, renderedBody, int32(alarm.GetAlarmKind()))
+	att := &runtimev1.PendingAttentionRecord{
+		AttentionId:    attentionID,
+		WorkSessionRef: alarm.GetTargetWorkSessionRef(),
+		AgentBinding:   alarm.GetAgentBinding(),
+		AttentionKind:  "alarm_reminder",
+		TrustScope:     "desktop",
+		SummaryJson:    summaryJSON,
+		ExpiresAt:      formatRFC3339(now.Add(24 * time.Hour)),
+		UpdatedAt:      formatRFC3339(now),
+	}
+	if err := s.store.UpsertPendingAttention(ctx, accountID, att, now); err != nil {
+		return "", err
+	}
+	s.notifyOverviewChange(accountID, nil, nil)
+	return "desktop-attention:" + attentionID, nil
+}
+
+// PurgeAgent cascades LocalAgent termination into sessions.db: cancels active
+// brain turns, marks all agent sessions deleted, cancels all agent alarms,
+// neutralizes pending NEW_INTENTs, and enqueues PURGE_AGENT tombstones.
+func (s *Service) PurgeAgent(ctx context.Context, accountID, agentBinding string) error {
+	if s == nil || s.store == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(agentBinding) == "" {
+		return nil
+	}
+	deletedRefs, purgeEnvs, err := s.store.PurgeAgentSessionsAndAlarms(ctx, strings.TrimSpace(accountID), strings.TrimSpace(agentBinding), s.now().UTC())
+	if err != nil {
+		return err
+	}
+	for _, ref := range deletedRefs {
+		s.cancelBrainTurn(ref)
+	}
+	for _, env := range purgeEnvs {
+		s.notifyOutboxSubscribers(accountID, env.GetDeviceId(), env.GetCapabilityNamespace(), env)
+	}
+	if len(deletedRefs) > 0 {
+		removedRecords := make([]*runtimev1.WorkSessionRecord, 0, len(deletedRefs))
+		for _, ref := range deletedRefs {
+			removedRecords = append(removedRecords, &runtimev1.WorkSessionRecord{
+				WorkSessionRef: ref,
+				AgentBinding:   agentBinding,
+			})
+		}
+		s.notifyOverviewChange(accountID, nil, removedRecords)
+	}
+	return nil
+}
+
+func (s *Service) lockSessionStep(workSessionRef string) func() {
+	s.mu.Lock()
+	if s.sessionStepLocks == nil {
+		s.sessionStepLocks = make(map[string]*sync.Mutex)
+	}
+	mu := s.sessionStepLocks[workSessionRef]
+	if mu == nil {
+		mu = &sync.Mutex{}
+		s.sessionStepLocks[workSessionRef] = mu
+	}
+	s.mu.Unlock()
+	mu.Lock()
+	return mu.Unlock
+}
+
+func (s *Service) resolveAgentBinding(ctx context.Context, decision accountservice.LocalAppCallerDecision, rawHandle string) (string, error) {
+	trimmed := strings.TrimSpace(rawHandle)
+	if trimmed == "" {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	s.mu.Lock()
+	resolver := s.agentHandleResolver
+	s.mu.Unlock()
+	if resolver != nil {
+		resolved, err := resolver(ctx, decision, trimmed)
+		if err != nil {
+			return "", err
+		}
+		if strings.TrimSpace(resolved) == "" {
+			return "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
+		}
+		return strings.TrimSpace(resolved), nil
+	}
+	return trimmed, nil
+}
+
 // RegisterPrimaryCompanionProjection registers or refreshes Zhiyu's V1
 // read-only companion session projection (is_primary_companion = 1) without
 // mutating Zhiyu's existing conversation_* tables.
@@ -333,12 +572,32 @@ func isClosed(ch <-chan struct{}) bool {
 	}
 }
 
+// isCoreDesktop verifies BuiltIn Nimi Desktop (Home).
+func isCoreDesktop(decision accountservice.LocalAppCallerDecision) bool {
+	return decision.AppID == "nimi.desktop" && decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn
+}
+
+// isCoreHarness verifies BuiltIn or explicitly registered local-development Nimi Harness;
+// user_imported and third-party verified Apps are strictly rejected.
+func isCoreHarness(decision accountservice.LocalAppCallerDecision) bool {
+	return decision.AppID == CorePCBodyAppID &&
+		(decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn ||
+			decision.TrustClass == accountservice.LocalAppTrustClassDevelopment)
+}
+
+// isCoreZhiyu verifies BuiltIn or local-development Nimi Zhiyu.
+func isCoreZhiyu(decision accountservice.LocalAppCallerDecision) bool {
+	return decision.AppID == "nimi.zhiyu" &&
+		(decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn ||
+			decision.TrustClass == accountservice.LocalAppTrustClassDevelopment)
+}
+
 func normalizeBodyNamespace(decision accountservice.LocalAppCallerDecision, requested string) (string, error) {
 	ns := strings.TrimSpace(requested)
 	switch decision.OperationCapability {
 	case DomainAgentBodyPC:
-		// os.pc.* is strictly reserved for Runtime-verified OS-signed core PC body principal.
-		if decision.AppID != CorePCBodyAppID {
+		// os.pc.* is strictly reserved for Runtime-verified BuiltIn (or registered local-dev) core PC body principal.
+		if !isCoreHarness(decision) {
 			return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
 		if ns == "" {
@@ -400,6 +659,8 @@ func (s *Service) RegisterBodyCarrier(ctx context.Context, req *runtimev1.Regist
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 
+	// Close any superseded outbox streams bound to an older lease_epoch on this carrier.
+	s.evictSupersededOutboxSubscribers(decision.AccountID, deviceID, ns, nextEpoch)
 	s.notifyOverviewChange(decision.AccountID, nil, nil)
 	return &runtimev1.RegisterBodyCarrierResponse{
 		LeaseEpoch:          nextEpoch,
@@ -454,9 +715,29 @@ func (s *Service) UnregisterBodyCarrier(ctx context.Context, req *runtimev1.Unre
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	if unregistered {
+		s.evictSupersededOutboxSubscribers(decision.AccountID, strings.TrimSpace(req.GetDeviceId()), ns, req.GetLeaseEpoch()+1)
 		s.notifyOverviewChange(decision.AccountID, nil, nil)
 	}
 	return &runtimev1.UnregisterBodyCarrierResponse{Unregistered: unregistered}, nil
+}
+
+func (s *Service) evictSupersededOutboxSubscribers(accountID, deviceID, ns string, newEpoch int64) {
+	key := leaseMapKey(accountID, deviceID, ns)
+	s.mu.Lock()
+	var stale []*outboxSubscriber
+	for sub := range s.outboxSubscribers[key] {
+		if sub.leaseEpoch < newEpoch {
+			stale = append(stale, sub)
+			delete(s.outboxSubscribers[key], sub)
+		}
+	}
+	if len(s.outboxSubscribers[key]) == 0 {
+		delete(s.outboxSubscribers, key)
+	}
+	s.mu.Unlock()
+	for _, sub := range stale {
+		sub.close()
+	}
 }
 
 func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest, stream grpc.ServerStreamingServer[runtimev1.BodyOutboxEnvelope]) error {
@@ -473,7 +754,8 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 		return err
 	}
 	deviceID := strings.TrimSpace(req.GetDeviceId())
-	active, err := s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), s.now().UTC())
+	leaseEpoch := req.GetLeaseEpoch()
+	active, err := s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, leaseEpoch, s.now().UTC())
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -482,7 +764,11 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 	}
 
 	key := leaseMapKey(decision.AccountID, deviceID, ns)
-	sub := &outboxSubscriber{ch: make(chan *runtimev1.BodyOutboxEnvelope, 64)}
+	sub := &outboxSubscriber{
+		leaseEpoch: leaseEpoch,
+		wakeup:     make(chan struct{}, 1),
+		closed:     make(chan struct{}),
+	}
 	s.mu.Lock()
 	if s.outboxSubscribers[key] == nil {
 		s.outboxSubscribers[key] = make(map[*outboxSubscriber]struct{})
@@ -491,6 +777,7 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 	s.mu.Unlock()
 
 	defer func() {
+		sub.close()
 		s.mu.Lock()
 		delete(s.outboxSubscribers[key], sub)
 		if len(s.outboxSubscribers[key]) == 0 {
@@ -499,24 +786,58 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 		s.mu.Unlock()
 	}()
 
-	// Always drain pending tombstones BEFORE pending intents.
-	tombstones, intents, err := s.store.ListPendingOutbox(ctx, decision.AccountID, deviceID, ns)
-	if err != nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
-	}
-	seenIDs := make(map[string]struct{}, len(tombstones)+len(intents))
-	for _, env := range tombstones {
-		seenIDs[env.GetOutboxId()] = struct{}{}
-		if err := stream.Send(env); err != nil {
-			return err
+	// Bounded sent-cursor tracking: only tracks currently-pending unacked IDs
+	// and prunes any ID no longer pending in SQLite so memory stays strictly bounded
+	// while never silently dropping outbox envelopes under load.
+	sentPending := make(map[string]struct{})
+	drainPending := func() error {
+		alive, lErr := s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, leaseEpoch, s.now().UTC())
+		if lErr != nil {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
-	}
-	for _, env := range intents {
-		seenIDs[env.GetOutboxId()] = struct{}{}
-		if err := stream.Send(env); err != nil {
-			return err
+		if !alive {
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
 		}
+		tombstones, intents, err := s.store.ListPendingOutbox(ctx, decision.AccountID, deviceID, ns)
+		if err != nil {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+		}
+		stillPending := make(map[string]struct{}, len(tombstones)+len(intents))
+		for _, env := range tombstones {
+			id := env.GetOutboxId()
+			stillPending[id] = struct{}{}
+			if _, already := sentPending[id]; !already {
+				if err := stream.Send(env); err != nil {
+					return err
+				}
+				sentPending[id] = struct{}{}
+			}
+		}
+		for _, env := range intents {
+			id := env.GetOutboxId()
+			stillPending[id] = struct{}{}
+			if _, already := sentPending[id]; !already {
+				if err := stream.Send(env); err != nil {
+					return err
+				}
+				sentPending[id] = struct{}{}
+			}
+		}
+		// Prune acked/cancelled IDs so sentPending never grows unboundedly.
+		for id := range sentPending {
+			if _, ok := stillPending[id]; !ok {
+				delete(sentPending, id)
+			}
+		}
+		return nil
 	}
+
+	if err := drainPending(); err != nil {
+		return err
+	}
+
+	leaseCheckTicker := time.NewTicker(5 * time.Second)
+	defer leaseCheckTicker.Stop()
 
 	for {
 		select {
@@ -524,15 +845,14 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 			return ctx.Err()
 		case <-decision.SessionInvalidated:
 			return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
-		case env, ok := <-sub.ch:
-			if !ok {
-				return nil
+		case <-sub.closed:
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
+		case <-sub.wakeup:
+			if err := drainPending(); err != nil {
+				return err
 			}
-			if _, dup := seenIDs[env.GetOutboxId()]; dup {
-				continue
-			}
-			seenIDs[env.GetOutboxId()] = struct{}{}
-			if err := stream.Send(env); err != nil {
+		case <-leaseCheckTicker.C:
+			if err := drainPending(); err != nil {
 				return err
 			}
 		}
@@ -551,7 +871,8 @@ func (s *Service) AckBodyOutbox(ctx context.Context, req *runtimev1.AckBodyOutbo
 	if err != nil {
 		return nil, err
 	}
-	active, err := s.store.VerifyActiveLease(ctx, decision.AccountID, strings.TrimSpace(req.GetDeviceId()), ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), s.now().UTC())
+	deviceID := strings.TrimSpace(req.GetDeviceId())
+	active, err := s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), s.now().UTC())
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -563,7 +884,7 @@ func (s *Service) AckBodyOutbox(ctx context.Context, req *runtimev1.AckBodyOutbo
 	if resultState == "" {
 		resultState = "acked"
 	}
-	acked, err := s.store.AckOutbox(ctx, decision.AccountID, outboxID, resultState, s.now().UTC())
+	acked, err := s.store.AckOutbox(ctx, decision.AccountID, deviceID, ns, outboxID, resultState, s.now().UTC())
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -620,19 +941,17 @@ func (s *Service) notifyOutboxSubscribers(accountID, deviceID, capabilityNamespa
 
 	for _, sub := range subs {
 		select {
-		case sub.ch <- env:
+		case sub.wakeup <- struct{}{}:
 		default:
 		}
 	}
 }
 
-func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.WorkSessionRecord, removedRefs []string) {
+func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.WorkSessionRecord, removed []*runtimev1.WorkSessionRecord) {
 	_, carrierOnline, _ := s.store.FindActiveCarrierDevice(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
 	allAtt, _ := s.store.ListPendingAttention(context.Background(), accountID)
 
 	s.mu.Lock()
-	s.overviewSeq++
-	seq := s.overviewSeq
 	subs := make([]*overviewSubscriber, 0, len(s.overviewSubscribers))
 	for sub := range s.overviewSubscribers {
 		if sub.accountID == accountID {
@@ -651,19 +970,37 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 				visibleSessions = append(visibleSessions, rec)
 			}
 		}
+		var visibleRemoved []string
+		for _, rec := range removed {
+			if sub.agentRef != "" && rec.GetAgentBinding() != sub.agentRef {
+				continue
+			}
+			if readerCanAccessSession(sub.decision, rec) {
+				visibleRemoved = append(visibleRemoved, rec.GetWorkSessionRef())
+			}
+		}
+		// Avoid leaking hidden-session activity when neither sessions nor removals are visible
+		// unless this is a carrier liveness/attention broadcast (upserted==nil && removed==nil).
+		if (len(upserted) > 0 || len(removed) > 0) && len(visibleSessions) == 0 && len(visibleRemoved) == 0 {
+			continue
+		}
 		var visibleAtt []*runtimev1.PendingAttentionRecord
 		for _, att := range allAtt {
 			if readerCanAccessAttention(sub.decision, att) {
 				visibleAtt = append(visibleAtt, att)
 			}
 		}
+		s.mu.Lock()
+		sub.seq++
+		seq := sub.seq
+		s.mu.Unlock()
 		delta := &runtimev1.SessionOverviewDelta{
-			OverviewSeq:             seq,
-			FullBaseline:            false,
-			UpsertedSessions:        visibleSessions,
-			RemovedWorkSessionRefs:  removedRefs,
-			AttentionItems:          visibleAtt,
-			CarrierOnline:           carrierOnline,
+			OverviewSeq:            seq,
+			FullBaseline:           false,
+			UpsertedSessions:       visibleSessions,
+			RemovedWorkSessionRefs: visibleRemoved,
+			AttentionItems:         visibleAtt,
+			CarrierOnline:          carrierOnline,
 		}
 		select {
 		case sub.ch <- delta:

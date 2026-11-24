@@ -22,6 +22,7 @@ type smokeLocalAppAppService struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	appID          string
 	accountID      string
+	trustClass     accountservice.LocalAppTrustClass
 	allowedDomains map[localappop.Domain]bool
 }
 
@@ -43,6 +44,7 @@ func (a *smokeLocalAppAppService) AuthorizeLocalAppIngress(ctx context.Context, 
 		Operation:            spec.Operation,
 		OperationCapability:  string(spec.Domain),
 		AppID:                a.appID,
+		TrustClass:           a.trustClass,
 		AccountID:            a.accountID,
 		RegisteredAppSubject: "subject-" + a.appID,
 		ExpiresAt:            time.Now().UTC().Add(time.Hour),
@@ -98,10 +100,11 @@ func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *test
 		return runtimev1.NewAgentSessionServiceClient(conn)
 	}
 
-	// 1. Core Harness with agent.body.pc registers os.pc.workspace and subscribes to outbox.
+	// 1. Core Harness (BuiltIn) with agent.body.pc registers os.pc.workspace and subscribes to outbox.
 	harnessClient := dialProtected(t, &smokeLocalAppAppService{
-		appID:     "nimi.harness",
-		accountID: "acct-stage1",
+		appID:      "nimi.harness",
+		accountID:  "acct-stage1",
+		trustClass: accountservice.LocalAppTrustClassBuiltIn,
 		allowedDomains: map[localappop.Domain]bool{
 			localappop.Domain("agent.local"):   true,
 			localappop.Domain("agent.body.pc"): true,
@@ -198,5 +201,22 @@ func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *test
 		InstanceId:          "notes-hijack",
 	}); localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
 		t.Fatalf("app.body cross-app hijack must be denied: reason=%v err=%v", localAppTransportReason(err), err)
+	}
+
+	// 4. UserImported App spoofing app_id=nimi.harness MUST be rejected from os.pc.*!
+	spoofHarnessClient := dialProtected(t, &smokeLocalAppAppService{
+		appID:      "nimi.harness",
+		accountID:  "acct-stage1",
+		trustClass: accountservice.LocalAppTrustClassUserImported,
+		allowedDomains: map[localappop.Domain]bool{
+			localappop.Domain("agent.body.pc"): true,
+		},
+	}, 0x70)
+	if _, err := spoofHarnessClient.RegisterBodyCarrier(context.Background(), &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "win-dev-1",
+		CapabilityNamespace: "os.pc.workspace",
+		InstanceId:          "spoof-1",
+	}); localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
+		t.Fatalf("user_imported app spoofing nimi.harness must be denied: reason=%v err=%v", localAppTransportReason(err), err)
 	}
 }

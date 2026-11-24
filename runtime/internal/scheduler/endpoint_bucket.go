@@ -36,6 +36,7 @@ type endpointHolder struct {
 type endpointWaiter struct {
 	seq      uint64
 	priority Priority
+	preempt  func()
 	granted  chan *endpointHolder
 }
 
@@ -142,7 +143,7 @@ func (b *endpointBucket) dispatchLocked() {
 	for _, w := range b.waiters {
 		if b.canGrantLocked(w.priority) {
 			b.nextSeq++
-			holder := &endpointHolder{id: b.nextSeq, priority: w.priority}
+			holder := &endpointHolder{id: b.nextSeq, priority: w.priority, preempt: w.preempt}
 			b.holders = append(b.holders, holder)
 			w.granted <- holder
 			continue
@@ -150,6 +151,15 @@ func (b *endpointBucket) dispatchLocked() {
 		remaining = append(remaining, w)
 	}
 	b.waiters = remaining
+}
+
+func (b *endpointBucket) hasWaitingPriorityLocked(priority Priority) bool {
+	for _, w := range b.waiters {
+		if w.priority == priority {
+			return true
+		}
+	}
+	return false
 }
 
 // EndpointOccupancy reports active and queued counts for a physical endpoint bucket.
@@ -200,7 +210,9 @@ func (s *Scheduler) AcquireForEndpoint(
 	var preemptCallbacks []func()
 
 	bucket.mu.Lock()
-	if len(bucket.waiters) == 0 && bucket.canGrantLocked(priority) {
+	canBypassWaiters := len(bucket.waiters) == 0 ||
+		(priority == PriorityP0Foreground && !bucket.hasWaitingPriorityLocked(PriorityP0Foreground))
+	if canBypassWaiters && bucket.canGrantLocked(priority) {
 		bucket.nextSeq++
 		holder = &endpointHolder{
 			id:       bucket.nextSeq,
@@ -213,6 +225,7 @@ func (s *Scheduler) AcquireForEndpoint(
 		waiter = &endpointWaiter{
 			seq:      bucket.nextSeq,
 			priority: priority,
+			preempt:  preempt,
 			granted:  make(chan *endpointHolder, 1),
 		}
 		bucket.waiters = append(bucket.waiters, waiter)
@@ -229,9 +242,7 @@ func (s *Scheduler) AcquireForEndpoint(
 	if waiter != nil {
 		select {
 		case holder = <-waiter.granted:
-			bucket.mu.Lock()
-			holder.preempt = preempt
-			bucket.mu.Unlock()
+			// holder.preempt was installed atomically inside dispatchLocked under bucket.mu.
 		case <-ctx.Done():
 			bucket.mu.Lock()
 			removed := false

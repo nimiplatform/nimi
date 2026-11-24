@@ -68,7 +68,7 @@ func readerCanAccessAlarm(decision accountservice.LocalAppCallerDecision, rec *r
 	if rec == nil {
 		return false
 	}
-	if decision.AppID == "nimi.desktop" || decision.AppID == CorePCBodyAppID {
+	if isCoreDesktop(decision) || isCoreHarness(decision) {
 		return true
 	}
 	// Third-party delegated Apps (agent.trigger.delegate) ONLY see their own published alarms.
@@ -127,12 +127,14 @@ func parseCronField(field string, minVal, maxVal int) (map[int]bool, error) {
 }
 
 type parsedCron struct {
-	minutes map[int]bool
-	hours   map[int]bool
-	dom     map[int]bool
-	months  map[int]bool
-	dow     map[int]bool
-	loc     *time.Location
+	minutes       map[int]bool
+	hours         map[int]bool
+	dom           map[int]bool
+	domWildcard   bool
+	months        map[int]bool
+	dow           map[int]bool
+	dowWildcard   bool
+	loc           *time.Location
 }
 
 func parseFiveFieldCron(expr, tzName string) (*parsedCron, error) {
@@ -142,7 +144,7 @@ func parseFiveFieldCron(expr, tzName string) (*parsedCron, error) {
 	}
 	tz := strings.TrimSpace(tzName)
 	if tz == "" {
-		tz = "UTC"
+		return nil, fmt.Errorf("explicit IANA timezone is required")
 	}
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
@@ -171,33 +173,72 @@ func parseFiveFieldCron(expr, tzName string) (*parsedCron, error) {
 	if dow[7] {
 		dow[0] = true
 	}
-	return &parsedCron{minutes: mins, hours: hrs, dom: dom, months: months, dow: dow, loc: loc}, nil
+	return &parsedCron{
+		minutes:     mins,
+		hours:       hrs,
+		dom:         dom,
+		domWildcard: fields[2] == "*",
+		months:      months,
+		dow:         dow,
+		dowWildcard: fields[4] == "*",
+		loc:         loc,
+	}, nil
 }
 
-// nextAfter returns the earliest minute strictly after `after` matching the cron expression in its IANA timezone.
+func (c *parsedCron) dayMatches(local time.Time) bool {
+	domOK := c.dom[local.Day()]
+	dowOK := c.dow[int(local.Weekday())]
+	// Standard 5-field cron semantics: if both DOM and DOW are restricted, match EITHER (OR).
+	if !c.domWildcard && !c.dowWildcard {
+		return domOK || dowOK
+	}
+	return domOK && dowOK
+}
+
+// nextAfter returns the earliest minute strictly after `after` matching the cron
+// expression in its explicit IANA timezone, advancing strictly monotonically in
+// UTC so DST spring-forward/fall-back transitions can NEVER loop infinitely,
+// with a 5-year horizon covering Feb 29 leap years.
 func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
-	t := after.In(c.loc).Truncate(time.Minute).Add(time.Minute)
-	limit := t.Add(366 * 24 * time.Hour)
+	t := after.UTC().Truncate(time.Minute).Add(time.Minute)
+	limit := t.Add(5 * 366 * 24 * time.Hour)
 	for !t.After(limit) {
-		if !c.months[int(t.Month())] {
-			t = time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, c.loc)
+		local := t.In(c.loc)
+		if !c.months[int(local.Month())] {
+			nextLocal := time.Date(local.Year(), local.Month()+1, 1, 0, 0, 0, 0, c.loc)
+			nextUTC := nextLocal.UTC()
+			if !nextUTC.After(t) {
+				nextUTC = t.Add(24 * time.Hour).Truncate(time.Minute)
+			}
+			t = nextUTC
 			continue
 		}
-		if !c.dom[t.Day()] || !c.dow[int(t.Weekday())] {
-			t = time.Date(t.Year(), t.Month(), t.Day()+1, 0, 0, 0, 0, c.loc)
+		if !c.dayMatches(local) {
+			nextLocal := time.Date(local.Year(), local.Month(), local.Day()+1, 0, 0, 0, 0, c.loc)
+			nextUTC := nextLocal.UTC()
+			if !nextUTC.After(t) {
+				nextUTC = t.Add(time.Hour).Truncate(time.Minute)
+			}
+			t = nextUTC
 			continue
 		}
-		if !c.hours[t.Hour()] {
-			t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour()+1, 0, 0, 0, c.loc)
+		if !c.hours[local.Hour()] {
+			// Advance strictly monotonically in UTC to the next minute-0 boundary,
+			// never calling local time.Date(..., Hour+1, ...) which can map backward across spring DST!
+			remMin := 60 - local.Minute()
+			if remMin <= 0 {
+				remMin = 60
+			}
+			t = t.Add(time.Duration(remMin) * time.Minute)
 			continue
 		}
-		if !c.minutes[t.Minute()] {
+		if !c.minutes[local.Minute()] {
 			t = t.Add(time.Minute)
 			continue
 		}
 		return t.UTC(), nil
 	}
-	return time.Time{}, fmt.Errorf("no matching cron fire time within 366 days")
+	return time.Time{}, fmt.Errorf("no matching cron fire time within 5 years")
 }
 
 func scanAlarmRow(scanner interface{ Scan(dest ...any) error }) (*runtimev1.SessionAlarmRecord, string, error) {
@@ -267,8 +308,20 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 	}
 
 	now := s.now().UTC()
+	agentBinding, err := s.resolveAgentBinding(ctx, decision, req.GetAgentHandle())
+	if err != nil {
+		return nil, err
+	}
+	// Non-Core third-party Apps with agent.trigger.delegate may ONLY create explicit app_delegation alarms.
+	if !isCoreDesktop(decision) && !isCoreHarness(decision) && !isCoreZhiyu(decision) &&
+		req.GetAlarmKind() != runtimev1.AlarmKind_ALARM_KIND_APP_DELEGATION {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
 	tz := strings.TrimSpace(req.GetTimeZone())
 	if tz == "" {
+		if req.GetAlarmKind() == runtimev1.AlarmKind_ALARM_KIND_CRON || strings.TrimSpace(req.GetCronExpr()) != "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 		tz = "UTC"
 	}
 	if _, err := time.LoadLocation(tz); err != nil {
@@ -343,7 +396,7 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 
 	rec := &runtimev1.SessionAlarmRecord{
 		AlarmId:              newID("alarm"),
-		AgentBinding:         strings.TrimSpace(req.GetAgentHandle()),
+		AgentBinding:         agentBinding,
 		TargetWorkSessionRef: strings.TrimSpace(req.GetTargetWorkSessionRef()),
 		AlarmKind:            req.GetAlarmKind(),
 		CronExpr:             cronExpr,
@@ -365,10 +418,28 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 	}
 
 	saved, err := s.store.UpsertAlarm(ctx, decision.AccountID, rec, string(channelsJSON), now)
+	if errors.Is(err, errLeaseConflict) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
+	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	return &runtimev1.CreateAlarmResponse{Alarm: saved}, nil
+}
+
+func isStaleDelegationVersion(existingVersion, incomingVersion string) bool {
+	prev := strings.TrimSpace(existingVersion)
+	next := strings.TrimSpace(incomingVersion)
+	if prev == "" || next == "" || prev == next {
+		return false
+	}
+	// Compare integer/v-prefixed versions numerically when possible, else lexicographically.
+	pNum, pErr := strconv.ParseInt(strings.TrimPrefix(strings.ToLower(prev), "v"), 10, 64)
+	nNum, nErr := strconv.ParseInt(strings.TrimPrefix(strings.ToLower(next), "v"), 10, 64)
+	if pErr == nil && nErr == nil {
+		return nNum < pNum
+	}
+	return next < prev
 }
 
 func (st *Store) UpsertAlarm(ctx context.Context, accountID string, rec *runtimev1.SessionAlarmRecord, channelsJSON string, now time.Time) (*runtimev1.SessionAlarmRecord, error) {
@@ -384,30 +455,53 @@ func (st *Store) UpsertAlarm(ctx context.Context, accountID string, rec *runtime
 	}
 
 	// Idempotent upsert for app_delegation keyed by (account_id, source_publisher, source_object_id).
+	// Reject stale source_object_version and never silently resurrect user-cancelled/sleeping delegations!
 	if rec.GetSourceObjectId() != "" && rec.GetSourcePublisher() != "" {
-		var existingID string
-		var existingVersion int64
+		var (
+			existingID      string
+			existingVersion int64
+			existingStatus  string
+			existingObjVer  string
+		)
 		err := tx.QueryRowContext(ctx, `
-			SELECT alarm_id, version FROM runtime_session_alarm
+			SELECT alarm_id, version, status, source_object_version FROM runtime_session_alarm
 			WHERE account_id = ? AND source_publisher = ? AND source_object_id = ?`,
 			accountID, rec.GetSourcePublisher(), rec.GetSourceObjectId(),
-		).Scan(&existingID, &existingVersion)
+		).Scan(&existingID, &existingVersion, &existingStatus, &existingObjVer)
 		if err == nil {
+			if isStaleDelegationVersion(existingObjVer, rec.GetSourceObjectVersion()) {
+				return nil, errLeaseConflict
+			}
+			// Never allow re-submission with the same/older object version to revive cancelled or sleeping delegation.
+			nextStatus := existingStatus
+			if existingStatus == "cancelled" || existingStatus == "sleeping" {
+				if strings.TrimSpace(rec.GetSourceObjectVersion()) == "" || strings.TrimSpace(rec.GetSourceObjectVersion()) == strings.TrimSpace(existingObjVer) {
+					return nil, errLeaseConflict
+				}
+				// Even with a newer version, a user-cancelled delegation stays cancelled until explicitly re-enabled.
+				if existingStatus == "cancelled" {
+					return nil, errLeaseConflict
+				}
+				nextStatus = "active"
+			} else {
+				nextStatus = "active"
+			}
 			rec.AlarmId = existingID
 			rec.Version = existingVersion + 1
+			rec.Status = nextStatus
 			if _, err := tx.ExecContext(ctx, `
 				UPDATE runtime_session_alarm
 				SET agent_binding = ?, target_work_session_ref = ?, alarm_kind = ?,
 				    cron_expr = ?, time_zone = ?, source_object_version = ?,
 				    template_title = ?, template_body = ?, template_payload_json = ?,
-				    requires_llm = ?, delivery_channels_json = ?, status = 'active',
-				    unack_streak = 0, next_fire_at = ?, version = ?, expires_at = ?, updated_at = ?
-				WHERE alarm_id = ? AND account_id = ?`,
+				    requires_llm = ?, delivery_channels_json = ?, status = ?,
+				    next_fire_at = ?, version = ?, expires_at = ?, updated_at = ?
+				WHERE alarm_id = ? AND account_id = ? AND version = ?`,
 				rec.AgentBinding, rec.TargetWorkSessionRef, int32(rec.AlarmKind),
 				rec.CronExpr, rec.TimeZone, rec.SourceObjectVersion,
 				rec.TemplateTitle, rec.TemplateBody, rec.TemplatePayloadJson,
-				reqLLM, channelsJSON, rec.NextFireAt, rec.Version, rec.ExpiresAt, nowStr,
-				existingID, accountID,
+				reqLLM, channelsJSON, nextStatus, rec.NextFireAt, rec.Version, rec.ExpiresAt, nowStr,
+				existingID, accountID, existingVersion,
 			); err != nil {
 				return nil, err
 			}
@@ -505,11 +599,14 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	existing, err := s.store.GetAlarm(ctx, decision.AccountID, strings.TrimSpace(req.GetAlarmId()))
-	if errors.Is(err, errSessionNotFound) || !readerCanAccessAlarm(decision, existing) {
+	if errors.Is(err, errSessionNotFound) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	}
+	if !readerCanAccessAlarm(decision, existing) {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	if req.GetExpectedVersion() > 0 && existing.GetVersion() != req.GetExpectedVersion() {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
@@ -589,11 +686,14 @@ func (s *Service) DeleteAlarm(ctx context.Context, req *runtimev1.DeleteAlarmReq
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	existing, err := s.store.GetAlarm(ctx, decision.AccountID, strings.TrimSpace(req.GetAlarmId()))
-	if errors.Is(err, errSessionNotFound) || !readerCanAccessAlarm(decision, existing) {
+	if errors.Is(err, errSessionNotFound) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	}
+	if !readerCanAccessAlarm(decision, existing) {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	if req.GetExpectedVersion() > 0 && existing.GetVersion() != req.GetExpectedVersion() {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
@@ -677,43 +777,95 @@ func (st *Store) CancelAlarm(ctx context.Context, accountID, alarmID string, now
 	return err
 }
 
-func (st *Store) dailyAlarmLLMTokensUsed(ctx context.Context, accountID string, day string) (int64, error) {
+// reserveDailyAlarmLLMBudget atomically checks and reserves `reserveTokens` from
+// the account's daily background LLM budget inside a single BEGIN IMMEDIATE write
+// transaction so concurrent ticks can never exceed the hard daily cap.
+func (st *Store) reserveDailyAlarmLLMBudget(ctx context.Context, accountID, day string, reserveTokens, dailyBudget int64) (bool, error) {
+	tx, err := st.writeDB.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback() }()
 	key := "alarm_llm_tokens:" + accountID + ":" + day
 	var raw string
-	err := st.readDB.QueryRowContext(ctx, `SELECT value FROM runtime_session_meta WHERE key = ?`, key).Scan(&raw)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, nil
+	var used int64
+	err = tx.QueryRowContext(ctx, `SELECT value FROM runtime_session_meta WHERE key = ?`, key).Scan(&raw)
+	if err == nil {
+		used, _ = strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return false, err
 	}
-	if err != nil {
-		return 0, err
+	if used >= dailyBudget || (reserveTokens > 0 && used+reserveTokens > dailyBudget && used > 0) {
+		return false, nil
 	}
-	v, _ := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
-	return v, nil
+	nextUsed := used + reserveTokens
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO runtime_session_meta(key, value) VALUES (?, ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		key, strconv.FormatInt(nextUsed, 10),
+	); err != nil {
+		return false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
-func (st *Store) addDailyAlarmLLMTokensUsed(ctx context.Context, accountID string, day string, delta int64) error {
-	if delta <= 0 {
+func (st *Store) adjustDailyAlarmLLMBudget(ctx context.Context, accountID, day string, delta int64) error {
+	if delta == 0 {
 		return nil
 	}
-	current, err := st.dailyAlarmLLMTokensUsed(ctx, accountID, day)
+	tx, err := st.writeDB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = tx.Rollback() }()
 	key := "alarm_llm_tokens:" + accountID + ":" + day
-	_, err = st.writeDB.ExecContext(ctx, `
+	var raw string
+	var used int64
+	err = tx.QueryRowContext(ctx, `SELECT value FROM runtime_session_meta WHERE key = ?`, key).Scan(&raw)
+	if err == nil {
+		used, _ = strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	nextUsed := used + delta
+	if nextUsed < 0 {
+		nextUsed = 0
+	}
+	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO runtime_session_meta(key, value) VALUES (?, ?)
 		ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-		key, strconv.FormatInt(current+delta, 10),
+		key, strconv.FormatInt(nextUsed, 10),
+	); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (st *Store) claimAlarmOccurrence(ctx context.Context, accountID, alarmID, occurrenceKey string, expectedVersion int64, nowStr string) (int64, bool, error) {
+	nextVer := expectedVersion + 1
+	res, err := st.writeDB.ExecContext(ctx, `
+		UPDATE runtime_session_alarm
+		SET last_claimed_occurrence = ?, version = ?, updated_at = ?
+		WHERE account_id = ? AND alarm_id = ? AND version = ? AND status = 'active' AND last_claimed_occurrence != ?`,
+		occurrenceKey, nextVer, nowStr, accountID, alarmID, expectedVersion, occurrenceKey,
 	)
-	return err
+	if err != nil {
+		return expectedVersion, false, err
+	}
+	n, _ := res.RowsAffected()
+	return nextVer, n == 1, nil
 }
 
 // TickAlarms evaluates all due active alarms as of `now` with:
+//   - Atomic per-occurrence CAS claiming (zero double-fire across overlapping ticks!)
 //   - Zero-model deterministic template delivery by default (requires_llm == false)
+//   - Honest four-state Integration delivery receipts (NEVER fabricating PROVIDER_ACCEPTED when sender == nil!)
 //   - Wake coalescing (cron fires AT MOST once for missed intervals; one-shot expires after 24h)
-//   - Fatigue auto-sleep at unack_streak >= 3
-//   - Daily background LLM token budget enforcement when requires_llm == true
-//   - Honest four-state Integration delivery receipts persisted to runtime_alarm_delivery
+//   - Fatigue auto-sleep at unack_streak >= 3 (incremented ONLY on successful delivery!)
+//   - Atomic pre-execution daily background LLM token budget reservation when requires_llm == true
 //
 // @nimi-authority: rule.nimi.runtime.agent-participation.deterministic-alarms
 func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireResult, error) {
@@ -769,27 +921,35 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		}
 		isRecurring := alarm.GetAlarmKind() == runtimev1.AlarmKind_ALARM_KIND_CRON || (alarm.GetAlarmKind() == runtimev1.AlarmKind_ALARM_KIND_APP_DELEGATION && strings.TrimSpace(alarm.GetCronExpr()) != "")
 
+		// Atomically claim this exact occurrence via version CAS so overlapping ticks
+		// cannot double-fire and concurrent DeleteAlarm/UpdateAlarm cannot be clobbered.
+		claimedVersion, claimed, claimErr := s.store.claimAlarmOccurrence(ctx, accID, alarm.GetAlarmId(), alarm.GetNextFireAt(), alarm.GetVersion(), nowStr)
+		if claimErr != nil || !claimed {
+			continue
+		}
+
 		// Expiry check for explicit expires_at or > 24h missed one-shot alarms.
 		if exp := strings.TrimSpace(alarm.GetExpiresAt()); exp != "" && nowUTC.After(parseRFC3339(exp)) {
-			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', version = version + 1, updated_at = ? WHERE alarm_id = ?`, nowStr, alarm.GetAlarmId())
+			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', version = version + 1, updated_at = ? WHERE alarm_id = ? AND account_id = ? AND version = ?`, nowStr, alarm.GetAlarmId(), accID, claimedVersion)
 			results = append(results, AlarmFireResult{AlarmID: alarm.GetAlarmId(), StatusAfter: "expired", Expired: true, LateBy: lateBy})
 			continue
 		}
 		if !isRecurring && lateBy > alarmOneShotExpiryWindow {
-			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', version = version + 1, updated_at = ? WHERE alarm_id = ?`, nowStr, alarm.GetAlarmId())
+			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', version = version + 1, updated_at = ? WHERE alarm_id = ? AND account_id = ? AND version = ?`, nowStr, alarm.GetAlarmId(), accID, claimedVersion)
 			results = append(results, AlarmFireResult{AlarmID: alarm.GetAlarmId(), StatusAfter: "expired", Expired: true, LateBy: lateBy})
 			continue
 		}
 
-		// Render content: zero-model template by default; optional budgeted LLM only when requires_llm == true.
+		// Render content: zero-model template by default; optional atomically-reserved LLM when requires_llm == true.
 		renderedTitle := alarm.GetTemplateTitle()
 		renderedBody := alarm.GetTemplateBody()
 		usedLLM := false
 		tokensUsed := int64(0)
 		budgetExceeded := false
 		if alarm.GetRequiresLlm() {
-			usedToday, _ := s.store.dailyAlarmLLMTokensUsed(ctx, accID, dayKey)
-			if usedToday >= dailyBudget {
+			const minReservation = int64(1)
+			reserved, bErr := s.store.reserveDailyAlarmLLMBudget(ctx, accID, dayKey, minReservation, dailyBudget)
+			if bErr != nil || !reserved {
 				budgetExceeded = true
 			} else if llmRunner != nil {
 				t, b, toks, llmErr := llmRunner(ctx, accID, alarm)
@@ -802,12 +962,15 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 					}
 					usedLLM = true
 					tokensUsed = toks
-					_ = s.store.addDailyAlarmLLMTokensUsed(ctx, accID, dayKey, toks)
+					_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, toks-minReservation)
+				} else {
+					_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -minReservation)
 				}
+			} else {
+				_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -minReservation)
 			}
 		}
 		if budgetExceeded {
-			// Record honest rejected delivery receipt and advance schedule without spinning.
 			_, _ = s.store.writeDB.ExecContext(ctx, `
 				INSERT INTO runtime_alarm_delivery(delivery_id, alarm_id, account_id, channel, receipt_state, provider_message_ref, detail, fired_at, updated_at)
 				VALUES (?, ?, ?, 'llm_budget', ?, '', 'AGENT_ALARM_BUDGET_EXCEEDED', ?, ?)`,
@@ -818,8 +981,8 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 			_, _ = s.store.writeDB.ExecContext(ctx, `
 				UPDATE runtime_session_alarm
 				SET status = ?, next_fire_at = ?, last_receipt_state = ?, last_delivery_at = ?, version = version + 1, updated_at = ?
-				WHERE alarm_id = ?`,
-				nextStatus, nextFireStr, int32(runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED), nowStr, nowStr, alarm.GetAlarmId(),
+				WHERE alarm_id = ? AND account_id = ? AND version = ?`,
+				nextStatus, nextFireStr, int32(runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED), nowStr, nowStr, alarm.GetAlarmId(), accID, claimedVersion,
 			)
 			results = append(results, AlarmFireResult{
 				AlarmID:        alarm.GetAlarmId(),
@@ -840,7 +1003,8 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 			channels = []string{"desktop_notification"}
 		}
 		var deliveries []AlarmDeliveryOutcome
-		lastState := runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED
+		lastState := runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED
+		anyDelivered := false
 		for _, ch := range channels {
 			var outcome AlarmDeliveryOutcome
 			if sender != nil {
@@ -849,11 +1013,14 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 					outcome.ReceiptState = runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_EFFECT_UNKNOWN
 				}
 			} else {
+				// Honest failure: NEVER fabricate PROVIDER_ACCEPTED when no delivery sender is wired!
 				outcome = AlarmDeliveryOutcome{
-					ReceiptState:       runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED,
-					ProviderMessageRef: newID("msg"),
-					Detail:             "local_template_delivered",
+					ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED,
+					Detail:       "alarm_delivery_sender_unavailable",
 				}
+			}
+			if outcome.ReceiptState == runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED {
+				anyDelivered = true
 			}
 			lastState = outcome.ReceiptState
 			deliveries = append(deliveries, outcome)
@@ -865,14 +1032,18 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 			)
 		}
 
-		nextUnack := alarm.GetUnackStreak() + 1
+		// Only increment unack_streak when the reminder was actually delivered!
+		nextUnack := alarm.GetUnackStreak()
+		if anyDelivered {
+			nextUnack++
+		}
 		nextStatus, nextFireStr := s.computePostFireSchedule(alarm, isRecurring, nowUTC, nextUnack)
 		autoSlept := isRecurring && nextStatus == "sleeping"
 		_, _ = s.store.writeDB.ExecContext(ctx, `
 			UPDATE runtime_session_alarm
 			SET status = ?, unack_streak = ?, next_fire_at = ?, last_receipt_state = ?, last_delivery_at = ?, version = version + 1, updated_at = ?
-			WHERE alarm_id = ?`,
-			nextStatus, nextUnack, nextFireStr, int32(lastState), nowStr, nowStr, alarm.GetAlarmId(),
+			WHERE alarm_id = ? AND account_id = ? AND version = ?`,
+			nextStatus, nextUnack, nextFireStr, int32(lastState), nowStr, nowStr, alarm.GetAlarmId(), accID, claimedVersion,
 		)
 
 		results = append(results, AlarmFireResult{
@@ -892,32 +1063,33 @@ func (s *Service) computePostFireSchedule(alarm *runtimev1.SessionAlarmRecord, i
 	if !isRecurring {
 		return "completed", ""
 	}
-	// Wake coalescing: compute strictly next fire strictly AFTER nowUTC so multiple missed intervals fire at most once!
-	nextFireStr = ""
-	if parsed, err := parseFiveFieldCron(alarm.GetCronExpr(), alarm.GetTimeZone()); err == nil {
-		if nf, err := parsed.nextAfter(nowUTC); err == nil {
-			nextFireStr = formatRFC3339(nf)
-		}
+	parsed, err := parseFiveFieldCron(alarm.GetCronExpr(), alarm.GetTimeZone())
+	if err != nil {
+		return "schedule_error", ""
 	}
+	nf, err := parsed.nextAfter(nowUTC)
+	if err != nil {
+		return "schedule_error", ""
+	}
+	nextFireStr = formatRFC3339(nf)
 	if nextUnack >= alarmAutoSleepUnackThreshold {
 		return "sleeping", nextFireStr
 	}
 	return "active", nextFireStr
 }
 
-// ResolveAlarmReplyTarget resolves which alarm a user's external/IM reply refers
-// to: first by exact reply_to_message_ref in runtime_alarm_delivery; if omitted
-// and >= 2 alarms delivered within the recent window, returns all candidates for
-// explicit two-choice confirmation without guessing.
 func (s *Service) ResolveAlarmReplyTarget(ctx context.Context, accountID, agentBinding, replyToMessageRef string, now time.Time) (AlarmReplyResolution, error) {
 	disclaimer := "Modifying this reminder updates only your personal alarm schedule and does not alter third-party App business bookings."
 	if ref := strings.TrimSpace(replyToMessageRef); ref != "" {
 		var alarmID string
 		err := s.store.readDB.QueryRowContext(ctx, `
-			SELECT alarm_id FROM runtime_alarm_delivery
-			WHERE account_id = ? AND provider_message_ref = ?
-			ORDER BY fired_at DESC LIMIT 1`,
-			accountID, ref,
+			SELECT d.alarm_id
+			FROM runtime_alarm_delivery d
+			JOIN runtime_session_alarm a ON a.alarm_id = d.alarm_id AND a.account_id = d.account_id
+			WHERE d.account_id = ? AND d.provider_message_ref = ?
+			  AND (? = '' OR a.agent_binding = ?)
+			ORDER BY d.fired_at DESC LIMIT 1`,
+			accountID, ref, strings.TrimSpace(agentBinding), strings.TrimSpace(agentBinding),
 		).Scan(&alarmID)
 		if err == nil && alarmID != "" {
 			rec, getErr := s.store.GetAlarm(ctx, accountID, alarmID)
@@ -974,7 +1146,7 @@ type OfflineRecallPointer struct {
 //   - Reads latest_receipt_json directly from sessions.db (works 100% offline with Harness closed!)
 //   - Caps to Top-2 pointers and <= 1.5 KiB total non-instruction data frame
 //
-// @nimi-authority: rule.nimi.runtime.memory-world.session-pointer-recall
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (s *Service) BuildOfflineSessionRecallInjection(
 	ctx context.Context,
 	decision accountservice.LocalAppCallerDecision,
@@ -999,7 +1171,6 @@ func (s *Service) BuildOfflineSessionRecallInjection(
 
 	var entries []entry
 	var includedRefs []string
-	totalBytes := 0
 
 	for _, ptr := range sorted {
 		if len(entries) >= maxOfflineRecallPointers {
@@ -1024,23 +1195,21 @@ func (s *Service) BuildOfflineSessionRecallInjection(
 			// Taint-gated external/untrusted channel receipts are never injected into trusted recall.
 			continue
 		}
-		receipt := strings.TrimSpace(sess.Record.GetLatestReceiptJson())
-		if len(receipt) > 512 {
-			receipt = receipt[:512]
-		}
+		receipt := truncateUTF8ByBytes(strings.TrimSpace(sess.Record.GetLatestReceiptJson()), 512)
 		item := entry{
 			WorkSessionRef: ref,
-			Title:          sess.Record.GetTitle(),
+			Title:          truncateUTF8ByBytes(sess.Record.GetTitle(), 120),
 			Status:         sess.Record.GetStatus(),
 			UpdatedAt:      sess.Record.GetUpdatedAt(),
 			Receipt:        receipt,
 		}
-		encoded, _ := json.Marshal(item)
-		if totalBytes+len(encoded) > maxOfflineRecallBytes-96 {
+		candidateEntries := append(append([]entry(nil), entries...), item)
+		candidateRaw, _ := json.Marshal(candidateEntries)
+		candidateFrame := "<recalled_session_receipts_data>\n" + string(candidateRaw) + "\n</recalled_session_receipts_data>"
+		if len(candidateFrame) > maxOfflineRecallBytes {
 			break
 		}
-		totalBytes += len(encoded)
-		entries = append(entries, item)
+		entries = candidateEntries
 		includedRefs = append(includedRefs, ref)
 	}
 	if len(entries) == 0 {
@@ -1048,8 +1217,22 @@ func (s *Service) BuildOfflineSessionRecallInjection(
 	}
 	raw, _ := json.Marshal(entries)
 	frame := "<recalled_session_receipts_data>\n" + string(raw) + "\n</recalled_session_receipts_data>"
-	if len(frame) > maxOfflineRecallBytes {
-		frame = frame[:maxOfflineRecallBytes]
-	}
 	return frame, includedRefs, nil
+}
+
+func truncateUTF8ByBytes(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	if maxBytes <= 0 {
+		return ""
+	}
+	n := 0
+	for i := range s {
+		if i > maxBytes {
+			return s[:n]
+		}
+		n = i
+	}
+	return s[:n]
 }

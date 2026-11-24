@@ -1087,33 +1087,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	var agentSessionSvc *agentsession.Service
 	if protected != nil {
-		sessionsDBPath := ""
-		if strings.TrimSpace(cfg.LocalStatePath) != "" {
-			sessionsDBPath = filepath.Join(filepath.Dir(cfg.LocalStatePath), "sessions.db")
-		}
-		var (
-			milestoneHook     agentsession.MilestoneHook
-			memoryCleanupHook agentsession.MemoryCleanupHook
-		)
-		if memoryFacade != nil {
-			facadeRef := memoryFacade
-			milestoneHook = func(ctx context.Context, _ string, agentBinding, workSessionRef, milestoneKind, topicSummary string, _ []string) error {
-				_, err := facadeRef.CommitSessionPointer(ctx, agentBinding, workSessionRef, milestoneKind, topicSummary, agentsession.DefaultPCNamespace, time.Now().UTC())
-				return err
-			}
-			memoryCleanupHook = func(ctx context.Context, _ string, agentBinding, workSessionRef string) (uint32, error) {
-				forgotten, _, err := facadeRef.ForgetSessionLineage(ctx, agentBinding, workSessionRef)
-				return forgotten, err
-			}
-		}
 		var err error
-		agentSessionSvc, err = agentsession.Open(agentsession.Options{
-			Logger:            logger,
-			DBPath:            sessionsDBPath,
-			Scheduler:         aiSvc.Scheduler(),
-			MilestoneHook:     milestoneHook,
-			MemoryCleanupHook: memoryCleanupHook,
-		})
+		agentSessionSvc, err = buildProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade)
 		if err != nil {
 			return nil, fmt.Errorf("initialize AgentSession owner: %w", err)
 		}
@@ -1158,7 +1133,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimev1.RegisterRuntimeRemoteAccessServiceServer(protectedGRPCServer, remoteAccessSvc)
 	}
 	rootHandoff := &productControlRuntimeRootHandoff{
-		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc, integrations: integrationSvc,
+		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc, integrations: integrationSvc, agentSessions: agentSessionSvc,
 	}
 	if appInstallCoordinator != nil {
 		rootHandoff.appPackages = appInstallCoordinator

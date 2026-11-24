@@ -169,6 +169,8 @@ type Service struct {
 	chatTerminatingAgents        map[string]uint32
 	chatDurableTerminatingAgents map[string]bool
 	appActivityNotifier          AppActivityNotifier
+	agentTerminatedHookMu        sync.RWMutex
+	agentTerminatedHook          func(context.Context, string, string)
 	chatAsyncWG                  sync.WaitGroup
 	chatAsyncLifecycleCtx        context.Context
 	chatAsyncLifecycleCancel     context.CancelFunc

@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"google.golang.org/grpc"
@@ -80,7 +81,11 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	)
 
 	schedulerStartedAt := time.Now()
-	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	endpointKey := "cloud:default"
+	if effective != nil && strings.TrimSpace(effective.modelResolved()) != "" {
+		endpointKey = "cloud:" + strings.TrimSpace(effective.modelResolved())
+	}
+	release, acquireResult, acquireErr := s.scheduler.AcquireForEndpoint(jobCtx, endpointKey, scheduler.PriorityP0Foreground, nil)
 	s.observeLatency("runtime.ai.scheduler_acquire_ms", schedulerStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),
@@ -131,8 +136,14 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
+	var firstPacketTimerMu sync.Mutex
 	startFirstPacketTimer := func() {
-		if firstTimeout <= 0 || firstPacketTimer != nil {
+		if firstTimeout <= 0 {
+			return
+		}
+		firstPacketTimerMu.Lock()
+		defer firstPacketTimerMu.Unlock()
+		if firstPacketTimer != nil || firstPacketSeen.Load() {
 			return
 		}
 		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
@@ -142,6 +153,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			firstPacketTimedOut.Store(true)
 			requestCancel()
 		})
+	}
+	stopFirstPacketTimer := func() {
+		firstPacketTimerMu.Lock()
+		defer firstPacketTimerMu.Unlock()
+		if firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
 	}
 	idleTimeout := s.streamIdleTimeout
 	if totalTimeout > 0 && totalTimeout < idleTimeout {
@@ -174,8 +192,8 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}()
 	}
 	recordActivity := func() {
-		if firstPacketSeen.CompareAndSwap(false, true) && firstPacketTimer != nil {
-			firstPacketTimer.Stop()
+		if firstPacketSeen.CompareAndSwap(false, true) {
+			stopFirstPacketTimer()
 		}
 		resetIdleTimer()
 	}
@@ -270,9 +288,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		"route_decision", routeDecision.String(),
 	)
 	startFirstPacketTimer()
-	if firstPacketTimer != nil {
-		defer firstPacketTimer.Stop()
-	}
+	defer stopFirstPacketTimer()
 
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false

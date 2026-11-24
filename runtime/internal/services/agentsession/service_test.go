@@ -13,10 +13,19 @@ import (
 )
 
 func testCallerCtx(appID, subject, domain string, op localappop.Operation) context.Context {
+	trust := accountservice.LocalAppTrustClassUserImported
+	if appID == "nimi.desktop" || appID == CorePCBodyAppID || appID == "nimi.zhiyu" {
+		trust = accountservice.LocalAppTrustClassBuiltIn
+	}
+	return testCallerCtxWithTrust(appID, subject, domain, op, trust)
+}
+
+func testCallerCtxWithTrust(appID, subject, domain string, op localappop.Operation, trust accountservice.LocalAppTrustClass) context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		AccountID:            "acct-1",
 		AppID:                appID,
 		RegisteredAppSubject: subject,
+		TrustClass:           trust,
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		OperationCapability:  domain,
 		Operation:            op,

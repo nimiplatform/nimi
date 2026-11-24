@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
@@ -44,7 +45,8 @@ func executeLocalTextGenerateScenario(
 		return nil, err
 	}
 
-	release, acquireResult, err := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	localEndpointKey := "local:" + strings.TrimSpace(effective.modelResolved())
+	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, scheduler.PriorityP0Foreground, nil)
 	if err != nil {
 		executionErr := schedulerAcquireError(err)
 		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
@@ -171,7 +173,8 @@ func streamLocalTextGenerateScenario(
 		return err
 	}
 
-	release, acquireResult, err := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
+	localEndpointKey := "local:" + strings.TrimSpace(effective.modelResolved())
+	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, scheduler.PriorityP0Foreground, nil)
 	if err != nil {
 		executionErr := schedulerAcquireError(err)
 		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
@@ -218,8 +221,14 @@ func streamLocalTextGenerateScenario(
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
+	var firstPacketTimerMu sync.Mutex
 	startFirstPacketTimer := func() {
-		if firstTimeout <= 0 || firstPacketTimer != nil {
+		if firstTimeout <= 0 {
+			return
+		}
+		firstPacketTimerMu.Lock()
+		defer firstPacketTimerMu.Unlock()
+		if firstPacketTimer != nil || firstPacketSeen.Load() {
 			return
 		}
 		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
@@ -229,6 +238,13 @@ func streamLocalTextGenerateScenario(
 			firstPacketTimedOut.Store(true)
 			requestCancel()
 		})
+	}
+	stopFirstPacketTimer := func() {
+		firstPacketTimerMu.Lock()
+		defer firstPacketTimerMu.Unlock()
+		if firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
 	}
 	idleTimeout := s.streamIdleTimeout
 	if totalTimeout > 0 && totalTimeout < idleTimeout {
@@ -261,8 +277,8 @@ func streamLocalTextGenerateScenario(
 		}()
 	}
 	recordActivity := func() {
-		if firstPacketSeen.CompareAndSwap(false, true) && firstPacketTimer != nil {
-			firstPacketTimer.Stop()
+		if firstPacketSeen.CompareAndSwap(false, true) {
+			stopFirstPacketTimer()
 		}
 		resetIdleTimer()
 	}
@@ -291,11 +307,7 @@ func streamLocalTextGenerateScenario(
 	}); err != nil {
 		return err
 	}
-	defer func() {
-		if firstPacketTimer != nil {
-			firstPacketTimer.Stop()
-		}
-	}()
+	defer stopFirstPacketTimer()
 
 	var textBuffer strings.Builder
 	textItemOpened := false

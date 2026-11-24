@@ -177,6 +177,7 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 		AccountID:            "acct-1",
 		AppID:                "nimi.desktop",
 		RegisteredAppSubject: "subj-home",
+		TrustClass:           accountservice.LocalAppTrustClassBuiltIn,
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		OperationCapability:  DomainAgentTriggerDelegate,
 		Operation:            localappop.OperationAgentTriggerAlarmCreate,
