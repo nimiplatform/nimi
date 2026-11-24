@@ -60,7 +60,41 @@ import { HomeOmniComposer, type OmniHumanContactOption } from './home-omni-compo
 import { projectSessionOverviewAttention } from './home-omni-composer-model.js';
 import { BUNDLED_ZHIYU_RECENT_KEY, recordHomeRecentAppOpen } from './home-recent-apps-model.js';
 import { createDesktopAppsLiveBridge } from '../apps/apps-live-bridge.js';
+import { installedLaunchFailureMessage } from '../apps/apps-panel-controller.js';
+import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 import { focusRunningDesktopApp } from './home-active-work-card.js';
+
+const PC_BODY_CAPABILITY_DOMAIN = 'agent.body.pc';
+
+function entryDeclaresPcBodyCapability(entry: DesktopAppsEntry): boolean {
+  if (entry.localDevelopment?.appAccess?.includes(PC_BODY_CAPABILITY_DOMAIN)) return true;
+  if (entry.appInfo?.appAccess?.includes(PC_BODY_CAPABILITY_DOMAIN)) return true;
+  return false;
+}
+
+function entryLaunchPriority(entry: DesktopAppsEntry): number {
+  if (entry.run?.state === 'running') return 3;
+  if (entry.localDevelopment) return 2;
+  if (entry.committedRelease) return 1;
+  return 0;
+}
+
+function resolvePcBodyCarrierEntry(
+  entries: readonly DesktopAppsEntry[],
+  activePcCarrierAppId: string,
+): DesktopAppsEntry | undefined {
+  const activeId = activePcCarrierAppId.trim();
+  if (activeId) {
+    const activeMatches = entries
+      .filter((entry) => entry.identity.appId === activeId)
+      .sort((a, b) => entryLaunchPriority(b) - entryLaunchPriority(a));
+    if (activeMatches[0]) return activeMatches[0];
+  }
+  const declaredMatches = entries
+    .filter((entry) => entryLaunchPriority(entry) > 0 && entryDeclaresPcBodyCapability(entry))
+    .sort((a, b) => entryLaunchPriority(b) - entryLaunchPriority(a));
+  return declaredMatches[0];
+}
 
 const HOME_RESOURCE_POLL_MS = 15_000;
 
@@ -120,10 +154,11 @@ export function NimiOverview() {
     readonly sessions: readonly WorkSessionRecord[];
     readonly attentionItems: readonly PendingAttentionRecord[];
     readonly carrierOnline: boolean;
-  }>({ sessions: [], attentionItems: [], carrierOnline: false });
+    readonly activePcCarrierAppId: string;
+  }>({ sessions: [], attentionItems: [], carrierOnline: false, activePcCarrierAppId: '' });
 
   useEffect(() => {
-    setSessionOverview({ sessions: [], attentionItems: [], carrierOnline: false });
+    setSessionOverview({ sessions: [], attentionItems: [], carrierOnline: false, activePcCarrierAppId: '' });
     if (!isOverviewActive || authStatus !== 'authenticated' || !ownerUserId) return;
     const controller = new AbortController();
     void (async () => {
@@ -148,6 +183,9 @@ export function NimiOverview() {
               sessions: [...byRef.values()],
               attentionItems: delta.attentionItems ?? [],
               carrierOnline: delta.carrierOnline === true,
+              activePcCarrierAppId: typeof delta.activePcCarrierAppId === 'string'
+                ? delta.activePcCarrierAppId.trim()
+                : '',
             };
           });
         }
@@ -224,7 +262,7 @@ export function NimiOverview() {
     const cloud = textIntent.route.cloud;
     const fields = cloud.providerModelTarget?.fields;
     let modelLabel: string | null = null;
-    for (const key of ['modelId', 'model', 'id', 'name']) {
+    for (const key of ['providerModelId', 'modelId', 'model', 'id', 'name']) {
       const val = fields?.[key]?.kind;
       if (val && val.oneofKind === 'stringValue' && val.stringValue.trim()) {
         modelLabel = val.stringValue.trim();
@@ -342,34 +380,71 @@ export function NimiOverview() {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
   };
   const openHarness = (workSessionRef?: string) => {
-    void workSessionRef;
-    const harnessEntry = entries.find((entry) => entry.identity.appId === 'nimi.harness');
-    if (harnessEntry) {
-      recordHomeRecentAppOpen(messagesAccountKey, harnessEntry.identity.appId);
+    const carrierEntry = resolvePcBodyCarrierEntry(entries, sessionOverview.activePcCarrierAppId);
+    const trimmedRef = workSessionRef?.trim() ?? '';
+
+    const launchOrFocusCarrier = async (targetEntry: DesktopAppsEntry) => {
+      recordHomeRecentAppOpen(messagesAccountKey, targetEntry.identity.appId);
       const liveBridge = createDesktopAppsLiveBridge();
-      const running = harnessEntry.run?.state === 'running';
+      const running = targetEntry.run?.state === 'running';
       if (running) {
-        void focusRunningDesktopApp(harnessEntry, focusGeneration).catch(() =>
-          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
-        );
+        await focusRunningDesktopApp(targetEntry, focusGeneration);
         return;
       }
-      if (harnessEntry.localDevelopment) {
-        void liveBridge.startRegistration(harnessEntry.localDevelopment.selector).catch(() =>
-          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
-        );
+      if (targetEntry.localDevelopment) {
+        await liveBridge.startRegistration(targetEntry.localDevelopment.selector);
         return;
       }
-      if (harnessEntry.committedRelease && liveBridge.launchInstalled) {
-        void liveBridge.launchInstalled(harnessEntry.committedRelease.launchSelector.slice()).catch(() =>
-          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
-        );
+      if (targetEntry.committedRelease && liveBridge.launchInstalled) {
+        const run = await liveBridge.launchInstalled(targetEntry.committedRelease.launchSelector.slice());
+        if (run.state === 'crashed') {
+          throw new Error(installedLaunchFailureMessage(run, t));
+        }
         return;
       }
-      openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
-      return;
-    }
-    void navigation.push({ id: 'apps' });
+      openApp(targetEntry.identity.appId, targetEntry.identity.entryKey);
+    };
+
+    void (async () => {
+      // Zero-privilege Fork C deep-link: if a specific workSessionRef was requested, try
+      // opening its published App Activity record first so Runtime focuses/launches the owning
+      // PC Body App and delivers the exact work-session target to it.
+      if (trimmedRef) {
+        try {
+          const activityPage = await sdk.appProduct().activity.list({ pageSize: 50 });
+          const expectedObjectRef = `work-session:${trimmedRef}`;
+          const matched = activityPage.records.find((item) => (
+            (item.objectRef === expectedObjectRef || item.objectRef === trimmedRef)
+            && (!carrierEntry || item.source.appId === carrierEntry.identity.appId)
+          ));
+          if (matched) {
+            const opened = await sdk.appProduct().activity.open({ activityId: matched.activityId });
+            if (opened.outcome === 'opened') {
+              if (carrierEntry) recordHomeRecentAppOpen(messagesAccountKey, carrierEntry.identity.appId);
+              return;
+            }
+          }
+        } catch {
+          // Fall through to launching/focusing the active/declared PC Body carrier App.
+        }
+      }
+
+      if (carrierEntry) {
+        try {
+          await launchOrFocusCarrier(carrierEntry);
+        } catch (error) {
+          emitFeedbackToast({
+            kind: 'error',
+            message: error instanceof Error && error.message.trim()
+              ? error.message
+              : t('Apps.actionFailed'),
+          });
+          openApp(carrierEntry.identity.appId, carrierEntry.identity.entryKey);
+        }
+        return;
+      }
+      void navigation.push({ id: 'apps' });
+    })();
   };
   const openHumanChatDraft = (contactId: string, draftText: string) => {
     const trimmed = draftText.trim();

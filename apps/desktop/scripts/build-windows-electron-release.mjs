@@ -351,7 +351,7 @@ function runLayoutCommand(command, args, options = {}) {
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-010
 async function buildFormalProduct(packagedRoot, sourceRoot, version, sourceRevision, transactionRoot, keyFile) {
   const runtimeRoot = path.join(packagedRoot, 'runtime'); await mkdir(runtimeRoot);
-  for (const [name, owner] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot], ['harness', harnessRoot]]) {
+  for (const [name, owner] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot]]) {
     const resource = path.join(runtimeRoot, 'resources/nimi-apps', name); await mkdir(resource, { recursive: true });
     await cp(path.join(owner, 'nimi.app.yaml'), path.join(resource, 'nimi.app.yaml'));
   }

@@ -1377,6 +1377,7 @@ async function recoverDesktopAfterFailedQuit(error: unknown): Promise<void> {
     writeDesktopStderr(`[desktop-quit] work-recovery:${desktopBootstrapFailureCode(recoveryError)}\n`);
   }
   systemEntryHost?.setQuitPhase('idle');
+  bundledZhiyuHost?.resumeAfterFailedShutdown();
   installedAppHost?.resume();
   try { await localDevelopmentHost?.resumeAfterFailedShutdown(); }
   catch (error) { writeDesktopStderr(`[desktop-quit] supervisor-recovery:${desktopBootstrapFailureCode(error)}\n`); }

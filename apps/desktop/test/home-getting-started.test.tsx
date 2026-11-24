@@ -48,7 +48,7 @@ test('Home guidance appears only during cold start, disappears completely once A
       assert.ok(dom.window.document.getElementById('home-getting-started-steps'), `guidance disappeared for ${state}`);
       assert.match(dom.window.document.body.textContent ?? '', /View local AI/);
     }
-    for (const label of ['View local AI', 'Use cloud services', 'Open Nimi Chat', 'Explore companions', 'Browse apps']) {
+    for (const label of ['View local AI', 'Use cloud services', 'Open Nimi Harness', 'Explore companions', 'Browse apps']) {
       await click(label);
     }
     assert.deepEqual(opened, ['local', 'cloud', 'chat', 'explore', 'apps']);

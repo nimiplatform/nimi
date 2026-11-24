@@ -48,13 +48,22 @@ export function validateZhiyuHandoffBriefPayload(rawPayload: unknown): {
   const record = rawPayload && typeof rawPayload === 'object' && !Array.isArray(rawPayload)
     ? rawPayload as Record<string, unknown>
     : null;
-  if (!record || Object.keys(record).some((key) => !ZHIYU_HANDOFF_ALLOWED_KEYS.has(key))) {
+  const keys = record ? Object.keys(record) : [];
+  if (
+    !record
+    || keys.length !== ZHIYU_HANDOFF_ALLOWED_KEYS.size
+    || keys.some((key) => !ZHIYU_HANDOFF_ALLOWED_KEYS.has(key))
+    || typeof record.agentHandle !== 'string'
+    || typeof record.requestId !== 'string'
+    || typeof record.text !== 'string'
+    || typeof record.handoffBriefText !== 'string'
+  ) {
     throw new Error('zhiyu-handoff-invalid-brief');
   }
-  const agentHandle = typeof record.agentHandle === 'string' ? record.agentHandle.trim() : '';
-  const requestId = typeof record.requestId === 'string' ? record.requestId.trim() : '';
-  const text = typeof record.text === 'string' ? record.text.trim() : '';
-  const handoffBriefText = typeof record.handoffBriefText === 'string' ? record.handoffBriefText.trim() : '';
+  const agentHandle = record.agentHandle.trim();
+  const requestId = record.requestId.trim();
+  const text = record.text.trim();
+  const handoffBriefText = record.handoffBriefText.trim();
   if (
     !agentHandle || agentHandle.length > 256 || /[\x00-\x1f\x7f]/u.test(agentHandle)
     || !requestId || requestId.length > 128 || /[\x00-\x1f\x7f]/u.test(requestId)

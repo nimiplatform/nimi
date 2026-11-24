@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Briefcase, CheckCircle2, ShieldCheck, X } from 'lucide-react';
+import { AlertTriangle, Briefcase, CheckCircle2, Clock, ShieldCheck, X } from 'lucide-react';
 import {
   buildEditableHandoffBriefDraft,
   composeHandoffBriefPayload,
@@ -36,12 +36,20 @@ export function ZhiyuHarnessHandoffDialog({
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<ZhiyuHandoffSubmitResult | null>(null);
   const wasOpenRef = useRef(false);
+  const openGenerationRef = useRef(0);
   const stableRequestIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
+    const justClosed = !open && wasOpenRef.current;
     wasOpenRef.current = open;
+    if (justClosed) {
+      openGenerationRef.current += 1;
+      setSubmitting(false);
+      return;
+    }
     if (!justOpened) return;
+    openGenerationRef.current += 1;
     const draft = buildEditableHandoffBriefDraft({
       partnerName,
       currentDraft,
@@ -53,6 +61,7 @@ export function ZhiyuHarnessHandoffDialog({
     setStayedNotice(draft.stayedInZhiyuNotice);
     setError(null);
     setReceipt(null);
+    setSubmitting(false);
     stableRequestIdRef.current = undefined;
   }, [open, partnerName, currentDraft, recentTopicHints]);
 
@@ -70,6 +79,8 @@ export function ZhiyuHarnessHandoffDialog({
 
   const handleSubmit = async () => {
     setError(null);
+    setReceipt(null);
+    const generation = openGenerationRef.current;
     try {
       const payload = composeHandoffBriefPayload({
         agentHandle: agentHandle ?? '',
@@ -81,11 +92,23 @@ export function ZhiyuHarnessHandoffDialog({
       stableRequestIdRef.current = payload.requestId;
       setSubmitting(true);
       const res = await submitZhiyuHarnessHandoff(payload);
-      setReceipt(res);
+      if (generation !== openGenerationRef.current) return;
+      if (res.outcome === 'ACCEPTED' || res.outcome === 'DEFERRED_BODY_OFFLINE') {
+        setReceipt(res);
+      } else if (res.outcome === 'AMBIGUOUS_CANDIDATES') {
+        stableRequestIdRef.current = undefined;
+        setError('存在多个可继续的本机任务候选，请补充更明确的任务目标，或在 Nimi Home 中选择具体任务后再提交。');
+      } else {
+        stableRequestIdRef.current = undefined;
+        setError('未能确认任务已进入办理队列，请检查本机服务状态后重试。');
+      }
     } catch (err) {
+      if (generation !== openGenerationRef.current) return;
       setError(err instanceof Error ? err.message : '转交 Harness 失败，请稍后重试。');
     } finally {
-      setSubmitting(false);
+      if (generation === openGenerationRef.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -185,22 +208,36 @@ export function ZhiyuHarnessHandoffDialog({
         </div>
 
         {error ? (
-          <p role="alert" data-testid="zhiyu-handoff-error" className="text-xs text-[var(--nimi-status-danger-soft-text)]">
-            {error}
-          </p>
+          <div
+            role="alert"
+            data-testid="zhiyu-handoff-error"
+            className="flex items-center gap-2 rounded-xl bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]"
+          >
+            <AlertTriangle size={14} aria-hidden="true" className="shrink-0" />
+            <span>{error}</span>
+          </div>
         ) : null}
 
         {receipt ? (
           <div
             role="status"
             data-testid="zhiyu-handoff-receipt"
-            className="flex items-center gap-2 rounded-xl bg-[var(--nimi-status-success-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-success-soft-text)]"
+            data-outcome={receipt.outcome}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
+              receipt.outcome === 'DEFERRED_BODY_OFFLINE'
+                ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]'
+                : 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
+            }`}
           >
-            <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+            {receipt.outcome === 'DEFERRED_BODY_OFFLINE' ? (
+              <Clock size={14} aria-hidden="true" className="shrink-0" />
+            ) : (
+              <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+            )}
             <span>
               {receipt.outcome === 'DEFERRED_BODY_OFFLINE'
-                ? `已排队等待 PC 执行体上线（会话编号：${receipt.resolvedWorkSessionRef}）。打开 Nimi Harness 后将自动继续。`
-                : `已交给 Harness 启动本机任务（会话编号：${receipt.resolvedWorkSessionRef}）。`}
+                ? `已排队等待 PC 执行体上线（会话编号：${receipt.resolvedWorkSessionRef}）。打开已安装的本机执行 App 后将自动继续。`
+                : `已交给本机执行 App 启动任务（会话编号：${receipt.resolvedWorkSessionRef}）。`}
             </span>
           </div>
         ) : null}

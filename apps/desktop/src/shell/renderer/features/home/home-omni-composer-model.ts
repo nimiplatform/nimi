@@ -438,7 +438,8 @@ export function projectSessionOverviewAttention(input: {
     for (const session of input.sessions) {
       const isPcBody = session.sessionKind === 'pc_work'
         || session.ownerBodyKind === 'os.pc.workspace';
-      const isPendingOffline = session.status === 'queued_body_offline' || session.status === 'active';
+      // Only flag sessions that actually have offline queued work waiting for the PC body carrier.
+      const isPendingOffline = session.status === 'queued_body_offline';
       if (isPcBody && isPendingOffline) {
         result.push({
           id: `session-offline:${session.workSessionRef}`,

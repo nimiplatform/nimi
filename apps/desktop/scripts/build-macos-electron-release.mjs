@@ -479,7 +479,7 @@ async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment
   // Runtime reads each formal App declaration from this fixed signed resource
   // root before admitting Home or Avatar product operations.
   const bundledAppsRoot = path.join(desktopApp, 'Contents', 'Resources', 'nimi-apps');
-  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot], ['harness', harnessRoot]]) {
+  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot]]) {
     const releaseRoot = path.join(bundledAppsRoot, name);
     await mkdir(releaseRoot, { recursive: true, mode: 0o755 });
     const manifest = path.join(releaseRoot, 'nimi.app.yaml');

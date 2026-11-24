@@ -55,16 +55,40 @@ export function createDesktopBundledZhiyuHost(input: {
     && !current.window.isDestroyed()
     && event.sender === current.window.webContents
     && !(typeof current.window.webContents.isDestroyed === 'function' && current.window.webContents.isDestroyed())
+    && Boolean(event.senderFrame)
     && event.senderFrame === event.sender.mainFrame
     && isAllowedElectronRendererUrl(event.senderFrame.url, [rendererUrl]));
-  const harnessHandoffIpc = registerZhiyuHarnessHandoffIpc({
-    ipcMain,
-    authorizeSender: ownsSender,
-    getAgentSessionClient: () => current?.agentSession,
-  });
-  ipcMain.handle(ZHIYU_CONVERSATION_OPEN_READ, event => ownsSender(event) ? conversationDelivery.read() : null);
+  let ipcRegistered = false;
+  let harnessHandoffIpc: { dispose(): void } | undefined;
+  const readConversationOpen = (event: Electron.IpcMainInvokeEvent) => ownsSender(event) ? conversationDelivery.read() : null;
   const acknowledgeConversation = (event: Electron.IpcMainEvent, value: unknown) => { if (ownsSender(event)) conversationDelivery.acknowledge(value); };
-  ipcMain.on(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
+  const acknowledge = (event: Electron.IpcMainEvent, value: unknown) => {
+    const record = current;
+    if (!record || !event.senderFrame || event.sender !== record.window.webContents || event.senderFrame !== event.sender.mainFrame) return;
+    record.placement?.acknowledge(value);
+  };
+  const registerIpc = () => {
+    if (ipcRegistered) return;
+    ipcRegistered = true;
+    harnessHandoffIpc = registerZhiyuHarnessHandoffIpc({
+      ipcMain,
+      authorizeSender: ownsSender,
+      getAgentSessionClient: () => current?.agentSession,
+    });
+    ipcMain.handle(ZHIYU_CONVERSATION_OPEN_READ, readConversationOpen);
+    ipcMain.on(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
+    ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
+  };
+  const unregisterIpc = () => {
+    if (!ipcRegistered) return;
+    ipcRegistered = false;
+    ipcMain.removeListener(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
+    ipcMain.removeListener(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
+    ipcMain.removeHandler(ZHIYU_CONVERSATION_OPEN_READ);
+    harnessHandoffIpc?.dispose();
+    harnessHandoffIpc = undefined;
+  };
+  registerIpc();
   const focus = async () => {
     if (!current || current.window.isDestroyed()) throw new Error('bundled-zhiyu-window-unavailable');
     if (current.window.isMinimized()) current.window.restore();
@@ -89,12 +113,6 @@ export function createDesktopBundledZhiyuHost(input: {
     void closing.then(() => { closing = undefined; }, () => undefined);
     return closing;
   };
-  const acknowledge = (event: Electron.IpcMainEvent, value: unknown) => {
-    const record = current;
-    if (!record || event.sender !== record.window.webContents || event.senderFrame !== event.sender.mainFrame) return;
-    record.placement?.acknowledge(value);
-  };
-  ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
 
   const open = async (): Promise<void> => {
     if (!input.canOpen()) throw new Error('bundled-zhiyu-home-unavailable');
@@ -180,13 +198,13 @@ export function createDesktopBundledZhiyuHost(input: {
     isOpen: () => Boolean(current),
     isFocused: () => Boolean(current && !current.window.isDestroyed() && current.window.isFocused()),
     close,
+    resumeAfterFailedShutdown() {
+      registerIpc();
+    },
     async shutdown() {
       if (opening) await opening.catch(() => undefined);
       await close();
-      ipcMain.removeListener(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
-      ipcMain.removeListener(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
-      ipcMain.removeHandler(ZHIYU_CONVERSATION_OPEN_READ);
-      harnessHandoffIpc.dispose();
+      unregisterIpc();
     },
   };
 }

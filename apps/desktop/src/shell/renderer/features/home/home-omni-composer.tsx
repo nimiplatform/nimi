@@ -268,6 +268,10 @@ export function HomeOmniComposer({
   }, [activeTrigger, attachments, humanContacts, partners, sessionSearchItems, t]);
 
   useEffect(() => {
+    setDisambiguation(null);
+  }, [target]);
+
+  useEffect(() => {
     setActiveOptionIndex(0);
   }, [activeTrigger?.kind, activeTrigger?.query]);
 
@@ -370,6 +374,7 @@ export function HomeOmniComposer({
 
       if (isLightQaRouteResponse(response)) {
         const resolvedRef = response.resolvedWorkSessionRef;
+        setAttachments(EMPTY_OMNI_ATTACHMENTS);
         setLightQa((prev) => {
           const sameSession = prev && prev.workSessionRef === resolvedRef;
           const prevMessages = sameSession ? prev.messages : [];
@@ -559,6 +564,7 @@ export function HomeOmniComposer({
         requestId: randomRequestId(),
       });
       if (capturedGeneration !== accountGenerationRef.current) return;
+      setAttachments(EMPTY_OMNI_ATTACHMENTS);
       setLightQa((current) => (current ? {
         ...current,
         streaming: false,
@@ -681,8 +687,15 @@ export function HomeOmniComposer({
       }
     }
 
+    if (event.key === 'Escape' && disambiguation) {
+      event.preventDefault();
+      setDisambiguation(null);
+      return;
+    }
+
     if (event.key === 'Tab' && target.kind === 'partner') {
       event.preventDefault();
+      setDisambiguation(null);
       setTarget((prev) => toggleOmniPartnerMode(prev, attachments));
       return;
     }
@@ -717,7 +730,11 @@ export function HomeOmniComposer({
     : null;
   const effectiveCloudRouteStatus = cloudRouteStatus ?? (cloudRouteActive ? 'cloud' : 'local');
   const showCloudDataNotice = hasOmniFileContext(attachments)
-    && (effectiveCloudRouteStatus === 'cloud' || effectiveCloudRouteStatus === 'unknown');
+    && (
+      effectiveCloudRouteStatus === 'cloud'
+      || effectiveCloudRouteStatus === 'unknown'
+      || effectiveCloudRouteStatus === 'loading'
+    );
 
   const submitLabel = isHumanTarget
     ? t('runtimeConfig.overview.omni.openHumanChatWithDraft')
@@ -898,6 +915,7 @@ export function HomeOmniComposer({
             onChange={(event) => {
               setDraft(event.target.value);
               setCaretIndex(event.target.selectionStart ?? event.target.value.length);
+              if (disambiguation) setDisambiguation(null);
               if (submitError) setSubmitError(null);
             }}
             onSelect={(event) => {
@@ -937,13 +955,17 @@ export function HomeOmniComposer({
             <span className="inline-flex items-center gap-1.5">
               <ShieldAlert size={12} aria-hidden="true" />
               <span>
-                {effectiveCloudRouteStatus === 'unknown'
-                  ? t('runtimeConfig.overview.omni.cloudDataDestinationUnknown', {
-                    defaultValue: 'Current model route could not be verified; review your active model before sharing local files.',
+                {effectiveCloudRouteStatus === 'loading'
+                  ? t('runtimeConfig.overview.omni.cloudDataDestinationLoading', {
+                    defaultValue: 'Checking whether your active model runs locally or in the cloud before sharing local files…',
                   })
-                  : t('runtimeConfig.overview.omni.cloudDataDestinationNotice', {
-                    model: cloudModelLabel || t('runtimeConfig.systemEntry.cloud'),
-                  })}
+                  : effectiveCloudRouteStatus === 'unknown'
+                    ? t('runtimeConfig.overview.omni.cloudDataDestinationUnknown', {
+                      defaultValue: 'Current model route could not be verified; review your active model before sharing local files.',
+                    })
+                    : t('runtimeConfig.overview.omni.cloudDataDestinationNotice', {
+                      model: cloudModelLabel || t('runtimeConfig.systemEntry.cloud'),
+                    })}
               </span>
             </span>
             <button

@@ -13,10 +13,10 @@ import type { DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-
 
 const NOOP_ACTIONS: HomeQuickJumpActions = {
   onOpenZhiyu: () => {},
+  onOpenHarness: () => {},
   onOpenApp: () => {},
   onOpenPartner: () => {},
   onOpenCapability: () => {},
-  onOpenChat: () => {},
   onOpenExplore: () => {},
   onOpenApps: () => {},
   onOpenModelLibrary: () => {},

@@ -110,9 +110,21 @@ test('C1 shared Zhiyu handoff IPC enforces strict DTO, sender authorization, and
   assert.equal(capturedRequest?.entrySurface, 'zhiyu_handoff');
   assert.equal(capturedRequest?.trustTierHint, 'trusted');
 
-  // Extra fields & control characters are rejected fail-closed.
+  // Extra fields, missing keys, non-string values, & control characters are rejected fail-closed.
   assert.throws(
     () => validateZhiyuHandoffBriefPayload({ ...payload, entrySurface: 'forged' }),
+    /zhiyu-handoff-invalid-brief/,
+  );
+  assert.throws(
+    () => validateZhiyuHandoffBriefPayload({
+      agentHandle: payload.agentHandle,
+      requestId: payload.requestId,
+      handoffBriefText: payload.handoffBriefText,
+    }),
+    /zhiyu-handoff-invalid-brief/,
+  );
+  assert.throws(
+    () => validateZhiyuHandoffBriefPayload({ ...payload, text: 123 }),
     /zhiyu-handoff-invalid-brief/,
   );
   assert.throws(
