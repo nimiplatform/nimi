@@ -11,12 +11,16 @@ type ElectronProcess = NodeJS.Process & {
   readonly resourcesPath?: string;
 };
 
-export function loadNimiElectronProtectedLocalPackage(packageName: string): unknown {
+export function loadNimiElectronProtectedLocalPackage(
+  packageName: string,
+  options?: { readonly sourceDefaultAppOverride?: boolean },
+): unknown {
   const specifier = resolveNimiElectronProtectedLocalPackageSpecifier(packageName, {
     architecture: process.arch,
     platform: process.platform,
     resourcesPath: (process as ElectronProcess).resourcesPath,
-    sourceDefaultApp: (process as ElectronProcess).defaultApp === true,
+    sourceDefaultApp:
+      options?.sourceDefaultAppOverride === true || (process as ElectronProcess).defaultApp === true,
     sourceSourceLocalDevelopment: process.platform === 'win32'
       ? process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT
       : process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT,

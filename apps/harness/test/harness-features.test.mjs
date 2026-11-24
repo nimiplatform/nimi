@@ -275,7 +275,7 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
   assert.equal(cpDecision.decisions[0].allowSessionPermitted, false);
   // Automatic Home Activity must have fired with attention: true!
   assert.ok(activities.some(a => a.attention === true && a.objectRef === 'session:main'));
-  await harness.decide('main', cpDecision.decisions[0].id, false, 'Keep package.json scripts untouched');
+  await harness.decide('main', cpDecision.decisions[0].id, false, 'Keep package.json scripts untouched', false, cpDecision.decisions[0].revision);
   await waitFor(harness, v => !v.running && v.entries.some(e => e.text === 'Finished write-control-plane'));
   assert.ok(activities.some(a => a.attention === false && a.objectRef === 'session:main'));
 
@@ -285,7 +285,7 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
     await harness.submit('main', 'bash-echo', randomUUID());
     const bashPrompt = await waitFor(harness, v => v.decisions.length === 1);
     assert.equal(bashPrompt.decisions[0].allowSessionPermitted, false);
-    await harness.decide('main', bashPrompt.decisions[0].id, true, undefined, true);
+    await harness.decide('main', bashPrompt.decisions[0].id, true, undefined, true, bashPrompt.decisions[0].revision);
     await waitFor(harness, v => !v.running && v.entries.filter(e => e.text === 'Finished bash-echo').length === 1);
     assert.deepEqual((await harness.snapshot()).sessionAllowlist, []);
   }

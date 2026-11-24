@@ -213,6 +213,7 @@ pub async fn harness_secure_write_file(input: NativeHarnessSecureWriteInput) -> 
         content: input.content.to_vec(),
         precondition_sha256: input.precondition_sha256,
         allow_create: input.allow_create.unwrap_or(false),
+        must_not_exist: input.must_not_exist.unwrap_or(false),
         snapshot_path: input.snapshot_path,
         snapshot_root: input.snapshot_root,
     };

@@ -60,15 +60,8 @@ export const SPILL_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GiB
 export const SPILL_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 export const MAX_CONTROL_FRAME_BYTES = 256 * 1024; // 256 KiB (UTF-8 bytes)
 
-const INTERPRETER_EXECUTABLES = new Set([
-  'sh', 'bash', 'zsh', 'dash', 'ksh', 'fish', 'csh',
-  'cmd', 'cmd.exe', 'powershell', 'powershell.exe', 'pwsh', 'pwsh.exe',
-  'powershell_ise', 'powershell_ise.exe', 'mshta', 'mshta.exe', 'rundll32', 'rundll32.exe', 'regsvr32', 'regsvr32.exe',
-  'node', 'node.exe', 'deno', 'deno.exe', 'bun', 'bun.exe',
-  'python', 'python.exe', 'python3', 'python3.exe', 'py', 'py.exe',
-  'ruby', 'perl', 'php', 'wscript', 'cscript', 'osascript',
-  'env', 'awk', 'gawk', 'sed', 'xargs', 'find', 'make', 'cmake',
-  'npm', 'npm.cmd', 'npx', 'npx.cmd', 'pnpm', 'pnpm.cmd', 'yarn', 'yarn.cmd',
+const NON_DEV_ALLOWED_GIT_SUBCOMMANDS = new Set([
+  'status', 'diff', 'log', 'show', 'rev-parse', 'branch', 'tag', 'ls-files',
 ]);
 
 function isDangerousGitCommand(args: readonly string[]): boolean {
@@ -78,6 +71,15 @@ function isDangerousGitCommand(args: readonly string[]): boolean {
     if (
       lower === '-c'
       || lower.startsWith('-c=')
+      || (arg.startsWith('-c') && arg.length > 2)
+      || arg === '-C'
+      || (arg.startsWith('-C') && arg.length > 2)
+      || lower === '--git-dir'
+      || lower.startsWith('--git-dir=')
+      || lower === '--work-tree'
+      || lower.startsWith('--work-tree=')
+      || lower === '--exec-path'
+      || lower.startsWith('--exec-path=')
       || lower === '--config-env'
       || lower.startsWith('--config-env=')
       || lower.includes('core.pager')
@@ -94,6 +96,16 @@ function isDangerousGitCommand(args: readonly string[]): boolean {
     }
   }
   return false;
+}
+
+function isAllowedNonDevExecCommand(command: string | readonly string[]): boolean {
+  if (typeof command === 'string' || command.length === 0) return false;
+  const execExeBase = basename(command[0] ?? '').toLowerCase();
+  if (execExeBase !== 'git' && execExeBase !== 'git.exe') return false;
+  const args = command.slice(1);
+  if (isDangerousGitCommand(args)) return false;
+  const subcommand = args.find(arg => !arg.startsWith('-'))?.toLowerCase();
+  return Boolean(subcommand && NON_DEV_ALLOWED_GIT_SUBCOMMANDS.has(subcommand));
 }
 
 const lineScanEncoder = new TextEncoder();
@@ -297,6 +309,11 @@ export interface SecureWorkspaceExecutionEnvOptions {
   readonly writeCoordinator?: WorkspaceWriteCoordinator;
   readonly authorizeSideEffect?: (input: { actionKind: string; relativePath: string; payloadHash: string }) => Promise<void>;
   /**
+   * True ONLY when verified by Electron main (`process.defaultApp === true`) and
+   * passed to a child `utilityProcess` in source-local-development mode (`p-napp-037a`).
+   */
+  readonly allowSourceLocalDev?: boolean;
+  /**
    * Test-only opt-in allowing non-native Node fs/spawn fallback when running
    * isolated unit tests without the native addon. Production MUST leave false.
    */
@@ -335,21 +352,31 @@ function hasHarnessSecurityExports(candidate: unknown): candidate is NimiElectro
     && typeof record.harnessSecureDeleteFile === 'function';
 }
 
-function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | null): NimiElectronHarnessSecurityHost | null {
+function tryLoadNativeSecurityHost(
+  injected?: NimiElectronHarnessSecurityHost | null,
+  allowSourceLocalDev = false,
+): NimiElectronHarnessSecurityHost | null {
   if (injected !== undefined) return injected;
   if (process.platform !== 'win32' && process.platform !== 'darwin') return null;
 
-  // Prefer Kit's canonical loader first: resolves both packaged macOS
-  // Resources/nimi-native/protected-local and unpacked Windows/dev node_modules.
+  // Prefer Kit's canonical p-napp-037a verified loader: resolves packaged macOS
+  // Resources/nimi-native/protected-local, packaged Windows node_modules, and
+  // main-verified source-local-development native entries.
   try {
-    return createNimiElectronHarnessSecurityHost();
+    return createNimiElectronHarnessSecurityHost({
+      allowSourceLocalDevFromMain: allowSourceLocalDev,
+    });
   } catch {
-    // Fall through to explicit package / local workspace build paths.
+    // Fall through only for direct workspace package resolution or source-dev builds.
   }
 
   const packageName = process.platform === 'win32'
     ? '@nimiplatform/kit-protected-local-win32-x64'
     : '@nimiplatform/kit-protected-local-darwin-arm64';
+  if (!allowSourceLocalDev && process.platform === 'darwin') {
+    // Never bypass macOS Resources/nimi-native/protected-local integrity verification in packaged mode.
+    return null;
+  }
   try {
     const req = createRequire(import.meta.url);
     const loaded = req(packageName) as unknown;
@@ -357,7 +384,14 @@ function tryLoadNativeSecurityHost(injected?: NimiElectronHarnessSecurityHost | 
       return createNimiElectronHarnessSecurityHost(loaded);
     }
   } catch {
-    // Fall through to workspace-built native addon if present.
+    // Fall through to workspace-built native addon only in source-dev / node --test.
+  }
+
+  const isSourceOrTest = allowSourceLocalDev
+    || process.execArgv.includes('--test')
+    || Boolean(process.env.NODE_TEST_CONTEXT);
+  if (!isSourceOrTest) {
+    return null;
   }
 
   const artifact = process.platform === 'win32'
@@ -417,7 +451,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     this.spillDir = join(resolve(options.dataRoot), 'spill');
     this.snapshotDir = join(resolve(options.dataRoot), 'snapshots', options.sessionId);
     this.indexPath = join(this.snapshotDir, 'index.json');
-    this.nativeHost = tryLoadNativeSecurityHost(options.securityHost);
+    this.nativeHost = tryLoadNativeSecurityHost(options.securityHost, Boolean(options.allowSourceLocalDev));
     this.allowInsecureFallback = Boolean(options.allowInsecureTestFallback);
     this.coordinator = options.writeCoordinator ?? sharedWorkspaceWriteCoordinator;
     this.authorizeSideEffect = options.authorizeSideEffect;
@@ -628,6 +662,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             content: snapshotBytes,
             ...(record.afterSha256 ? { preconditionSha256: record.afterSha256 } : {}),
             allowCreate: true,
+            mustNotExist: record.afterSha256 === null,
           });
         } else if (record.afterSha256 === null) {
           await writeFile(record.absolutePath, snapshotBytes, { flag: 'wx' });
@@ -733,6 +768,28 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     }
   }
 
+  /**
+   * Handle-level secure read helper exposed for workspace search tools (grep) so
+   * reading candidate files never falls back to racy path-based realpath + open.
+   */
+  async readWorkspaceFileSecure(relativePath: string, maxBytes: number): Promise<Uint8Array> {
+    const { absolutePath, relativePosix } = this.resolveGuardedPath(relativePath);
+    const native = this.requireNativeHostOrFailClosed('readWorkspaceFileSecure');
+    if (native) {
+      const res = await native.secureReadFile({
+        workspaceRoot: this.workspaceRoot,
+        relativePath: relativePosix,
+        maxBytes,
+      });
+      return Uint8Array.from(Buffer.from(res.contentBase64, 'base64'));
+    }
+    const bytes = await readFile(absolutePath);
+    if (bytes.byteLength > maxBytes) {
+      throw new FileError('invalid', 'File exceeds maximum read limit.', relativePath);
+    }
+    return Uint8Array.from(bytes);
+  }
+
   async openBinaryReader(path: string, options: { noFollow?: boolean } | undefined, context: Context): Promise<Result<BinaryReader, FileError>> {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
@@ -741,6 +798,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         const res = await native.secureReadFile({
           workspaceRoot: this.workspaceRoot,
           relativePath: relativePosix,
+          maxBytes: 32 * 1024 * 1024,
         });
         const data = Uint8Array.from(Buffer.from(res.contentBase64, 'base64'));
         let mtimeMs = Date.now();
@@ -792,11 +850,10 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       const bytes = typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content);
       const afterSha = sha256Bytes(bytes);
 
-      if (this.authorizeSideEffect) {
-        await this.authorizeSideEffect({ actionKind: 'file_write', relativePath: relativePosix, payloadHash: afterSha });
-      }
-
       await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+        if (this.authorizeSideEffect) {
+          await this.authorizeSideEffect({ actionKind: 'file_write', relativePath: relativePosix, payloadHash: afterSha });
+        }
         await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
         const snapshotId = randomUUID();
         const snapshotPath = join(this.snapshotDir, `${snapshotId}.bak`);
@@ -888,15 +945,15 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       const src = this.resolveGuardedPath(sourcePath);
       const dst = this.resolveGuardedPath(destinationPath);
       const native = this.requireNativeHostOrFailClosed('renameFile');
-      if (this.authorizeSideEffect) {
-        await this.authorizeSideEffect({
-          actionKind: 'file_rename',
-          relativePath: dst.relativePosix,
-          payloadHash: sha256Bytes(Buffer.from(`${src.relativePosix}->${dst.relativePosix}`)),
-        });
-      }
       if (native) {
         await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+          if (this.authorizeSideEffect) {
+            await this.authorizeSideEffect({
+              actionKind: 'file_rename',
+              relativePath: dst.relativePosix,
+              payloadHash: sha256Bytes(Buffer.from(`${src.relativePosix}->${dst.relativePosix}`)),
+            });
+          }
           const read = await native.secureReadFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: src.relativePosix,
@@ -922,9 +979,16 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         });
         return ok(undefined);
       }
-      return await this.coordinator.withWriteLock(this.workspaceRoot, () =>
-        this.inner.renameFile(src.absolutePath, dst.absolutePath, context),
-      );
+      return await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+        if (this.authorizeSideEffect) {
+          await this.authorizeSideEffect({
+            actionKind: 'file_rename',
+            relativePath: dst.relativePosix,
+            payloadHash: sha256Bytes(Buffer.from(`${src.relativePosix}->${dst.relativePosix}`)),
+          });
+        }
+        return this.inner.renameFile(src.absolutePath, dst.absolutePath, context);
+      });
     } catch (error) {
       return err(toFileError(error, sourcePath));
     }
@@ -1195,14 +1259,14 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
       const native = this.requireNativeHostOrFailClosed('remove');
-      if (this.authorizeSideEffect) {
-        await this.authorizeSideEffect({
-          actionKind: 'file_delete',
-          relativePath: relativePosix,
-          payloadHash: sha256Bytes(Buffer.from(relativePosix)),
-        });
-      }
       await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+        if (this.authorizeSideEffect) {
+          await this.authorizeSideEffect({
+            actionKind: 'file_delete',
+            relativePath: relativePosix,
+            payloadHash: sha256Bytes(Buffer.from(relativePosix)),
+          });
+        }
         await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
         const snapshotId = randomUUID();
         const snapshotPath = join(this.snapshotDir, `${snapshotId}.bak`);
@@ -1310,12 +1374,10 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     if (!isStringShell && command.length === 0) {
       return err(new ExecutionError('spawn_error', 'Command must not be empty.'));
     }
-    const execExeBase = isStringShell ? '' : basename(command[0] ?? '').toLowerCase();
-    const isUnsafeNonDevCommand = isStringShell
-      || INTERPRETER_EXECUTABLES.has(execExeBase)
-      || ((execExeBase === 'git' || execExeBase === 'git.exe') && isDangerousGitCommand(command.slice(1)));
-    if (isUnsafeNonDevCommand && !this.explicitDevWorkspace) {
-      return err(new ExecutionError('shell_unavailable', 'Free shell and interpreter commands are only permitted inside an explicitly bound development workspace.'));
+    // Closed non-dev allowlist: outside an explicitly bound dev workspace, block ALL shell
+    // strings and non-allowlisted executables (only read-only git inspection without -c/-C/etc.).
+    if (!this.explicitDevWorkspace && !isAllowedNonDevExecCommand(command)) {
+      return err(new ExecutionError('shell_unavailable', 'Free shell and process execution are only permitted inside an explicitly bound development workspace.'));
     }
 
     let native: NimiElectronHarnessSecurityHost | null;
@@ -1335,6 +1397,9 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     const minimalEnv: Record<string, string> = {
       ...buildMinimalShellEnv(),
       ...filterSafeCallerEnvOverrides(options?.env),
+      PAGER: 'cat',
+      GIT_PAGER: 'cat',
+      GIT_TERMINAL_PROMPT: '0',
     };
 
     const commandSummary = isStringShell ? command : command.join(' ');
@@ -1374,14 +1439,19 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         };
 
       if (native) {
-        const spawned = await native.spawnJobProcess({
-          executable,
-          args,
-          workingDirectory: execCwd,
-          env: minimalEnv,
-          timeoutMs,
-          maxOutputBytes: 4 * 1024 * 1024,
-        });
+        let spawned;
+        try {
+          spawned = await native.spawnJobProcess({
+            executable,
+            args,
+            workingDirectory: execCwd,
+            env: minimalEnv,
+            timeoutMs,
+            maxOutputBytes: 4 * 1024 * 1024,
+          });
+        } catch (spawnErr) {
+          return err(new ExecutionError('spawn_error', spawnErr instanceof Error ? spawnErr.message : String(spawnErr)));
+        }
         this.activeJobIds.add(spawned.jobId);
         let aborted = false;
         let workspaceFrozenByJob = false;
@@ -1550,6 +1620,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     if (this.nativeHost) {
       for (const jobId of [...this.activeJobIds]) {
         await this.nativeHost.killJobProcess({ jobId }).catch(() => {});
+        // Drain/reap the tracked job handle from native HARNESS_JOBS registry.
+        await this.nativeHost.waitJobProcess({ jobId, timeoutMs: 2_000 }).catch(() => {});
         this.activeJobIds.delete(jobId);
       }
     }

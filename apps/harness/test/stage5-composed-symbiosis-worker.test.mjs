@@ -463,17 +463,23 @@ test('Stage 5 composed: SecureWorkspaceExecutionEnv blocks rogue side effects wi
   }
 });
 
-test('Stage 5 composed: HarnessBodySymbiosisClient rejects unknown commandKind & does not ACK failed purge', async () => {
+test('Stage 5 composed: HarnessBodySymbiosisClient enforces tombstone barrier & rejects unknown commandKind', async () => {
   const root = await mkdtemp(join(tmpdir(), 'nimi-stage5-purge-'));
   const acks = [];
+  const handledIntents = [];
   let failPurge = true;
   let purgeAttempts = 0;
+  let streamOpens = 0;
 
   const client = new HarnessBodySymbiosisClient({
     deviceId: 'pc-test-device',
     client: {
       async registerBodyCarrier() {
-        return { leaseEpoch: '2', effectiveContextBudgetTokens: 32000, pendingTombstones: [] };
+        return {
+          leaseEpoch: String(streamOpens + 2),
+          effectiveContextBudgetTokens: 32000,
+          pendingTombstones: [],
+        };
       },
       async heartbeatBodyCarrier() { return { alive: true, renewed: true, leaseEpoch: '2' }; },
       async unregisterBodyCarrier() { return { unregistered: true }; },
@@ -482,11 +488,24 @@ test('Stage 5 composed: HarnessBodySymbiosisClient rejects unknown commandKind &
         return { acked: true };
       },
       subscribeBodyOutbox() {
+        streamOpens += 1;
+        const openNo = streamOpens;
         return {
           async *[Symbol.asyncIterator]() {
-            yield { outboxId: 'unk-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 99, payloadJson: '{}' };
-            yield { outboxId: 'purge-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 3, payloadJson: '{}' };
-            yield { outboxId: 'purge-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 3, payloadJson: '{}' };
+            if (openNo === 1) {
+              yield { outboxId: 'unk-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 99, payloadJson: '{}' };
+              yield { outboxId: 'purge-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 3, payloadJson: '{}' };
+              // Strict tombstone barrier: this NEW_INTENT MUST NOT run on stream 1 after purge-1 fails!
+              yield { outboxId: 'intent-after-failed-purge', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 1, payloadJson: '{"text":"blocked"}' };
+            } else {
+              if (!acks.includes('purge-1')) {
+                yield { outboxId: 'purge-1', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 3, payloadJson: '{}' };
+              }
+              if (!acks.includes('intent-after-purge-ok')) {
+                yield { outboxId: 'intent-after-purge-ok', workSessionRef: 'ws-1', agentBinding: 'b1', commandKind: 1, payloadJson: '{"text":"allowed"}' };
+              }
+              await new Promise(r => setTimeout(r, 5000));
+            }
           },
         };
       },
@@ -501,7 +520,9 @@ test('Stage 5 composed: HarnessBodySymbiosisClient rejects unknown commandKind &
       },
       async onPurgeAgent() {},
       async onInvalidateMemory() {},
-      async onNewIntent() {},
+      async onNewIntent(env) {
+        handledIntents.push(env.outboxId);
+      },
       async onReconcileAfterTombstones() { return []; },
     },
   });
@@ -509,13 +530,185 @@ test('Stage 5 composed: HarnessBodySymbiosisClient rejects unknown commandKind &
   const ac = new AbortController();
   try {
     await client.start(ac.signal);
-    await waitFor(() => acks.includes('purge-1'), 5000, 'purge-1 retry ACK');
+    await waitFor(() => acks.includes('intent-after-purge-ok'), 5000, 'purge-1 retry + post-purge intent ACK');
     assert.equal(acks.includes('unk-1'), false, 'unknown commandKind must NEVER be ACKed');
-    assert.equal(purgeAttempts, 2, 'failed purge must not be ACKed and must retry');
-    assert.deepEqual(acks, ['purge-1']);
+    assert.equal(handledIntents.includes('intent-after-failed-purge'), false, 'NEW_INTENT must NEVER execute behind a failed tombstone');
+    assert.equal(purgeAttempts, 2, 'failed purge must not be ACKed and must retry on reconnect');
+    assert.deepEqual(acks, ['purge-1', 'intent-after-purge-ok']);
   } finally {
     ac.abort();
     await client.stop().catch(() => {});
+    await rm(root, { recursive: true, force: true }).catch(() => {});
+  }
+});
+
+test('Stage 5 composed: standalone empty-dir first submit discovers Partner handle, deduplicates concurrent outbox NEW_INTENT, sends outboxId, and emits milestone', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'nimi-stage5-standalone-'));
+  const dataRoot = join(root, 'data');
+  const routeCalls = [];
+  const stepRequests = [];
+  const projections = [];
+  const outboxQueue = [];
+  const outboxWaiters = [];
+  let outboxClosed = false;
+  const pushOutbox = env => {
+    const w = outboxWaiters.shift();
+    if (w) w({ value: env, done: false });
+    else outboxQueue.push(env);
+  };
+
+  const partnerHandle = `agent_ref_${'a'.repeat(43)}`;
+  const partnerBinding = `agent_binding_${'b'.repeat(43)}`;
+  const allocatedWorkSessionRef = `ws-standalone-${randomUUID()}`;
+  const allocatedOutboxId = `ob-${randomUUID()}`;
+
+  const services = {
+    storage: createInMemoryStorage(),
+    agentWork: {
+      async listReferences() {
+        return [{
+          agentHandle: partnerHandle,
+          agentBinding: partnerBinding,
+          activityAgentRef: 'agr_test1',
+          displayName: 'Alpha Partner',
+          avatarUrl: null,
+        }];
+      },
+    },
+    agentSession: {
+      async registerBodyCarrier() {
+        return { leaseEpoch: '1', effectiveContextBudgetTokens: 64000, pendingTombstones: [] };
+      },
+      async heartbeatBodyCarrier() { return { alive: true, renewed: true, leaseEpoch: '1' }; },
+      async unregisterBodyCarrier() { return { unregistered: true }; },
+      subscribeBodyOutbox(_req, opts) {
+        return {
+          async *[Symbol.asyncIterator]() {
+            const onAbort = () => {
+              outboxClosed = true;
+              while (outboxWaiters.length) outboxWaiters.shift()({ value: undefined, done: true });
+            };
+            opts?.signal?.addEventListener('abort', onAbort, { once: true });
+            try {
+              while (!outboxClosed && !opts?.signal?.aborted) {
+                if (outboxQueue.length > 0) yield outboxQueue.shift();
+                else {
+                  const next = await new Promise(r => outboxWaiters.push(r));
+                  if (next.done) break;
+                  yield next.value;
+                }
+              }
+            } finally {
+              opts?.signal?.removeEventListener('abort', onAbort);
+            }
+          },
+        };
+      },
+      async ackBodyOutbox() { return { acked: true }; },
+      async reportBodySessionProjection(req) {
+        projections.push(structuredClone(req));
+        return { applied: true };
+      },
+      async routeAndSubmitInput(req) {
+        routeCalls.push(structuredClone(req));
+        // Simulate Runtime concurrently pushing NEW_INTENT before routeAndSubmitInput returns!
+        pushOutbox({
+          outboxId: allocatedOutboxId,
+          workSessionRef: allocatedWorkSessionRef,
+          agentBinding: partnerBinding,
+          commandKind: 1,
+          payloadJson: JSON.stringify({
+            text: req.text,
+            agentHandle: req.agentHandle,
+            permissionMode: 'strict',
+          }),
+        });
+        await new Promise(r => setTimeout(r, 30));
+        return {
+          resolvedWorkSessionRef: allocatedWorkSessionRef,
+          outboxId: allocatedOutboxId,
+          workSessionRecord: { agentBinding: partnerBinding },
+        };
+      },
+      streamLocalAgentBodyStep(req) {
+        stepRequests.push(structuredClone(req));
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield { payload: { oneofKind: 'textDelta', textDelta: 'Standalone task finished cleanly.' } };
+            yield {
+              payload: {
+                oneofKind: 'done',
+                done: {
+                  finishReason: 'stop',
+                  usageInputTokens: '80',
+                  usageOutputTokens: '12',
+                  stepMac: 'mac-standalone-1',
+                  compactionSummary: '',
+                  postCompactionMac: '',
+                  effectiveContextBudgetTokens: 64000,
+                },
+              },
+            };
+          },
+        };
+      },
+    },
+    activity: { async put() { return {}; } },
+    aiConfig: { async get() { throw new Error('unused'); } },
+    integration: {
+      async listCatalog() { return { items: [] }; },
+      async listConnections() { return { connections: [] }; },
+      async registerProvider() { return {}; },
+      async unregisterProvider() { return {}; },
+      async pollProvider() {
+        await new Promise(r => setTimeout(r, 100));
+        return { calls: [] };
+      },
+      async completeProvider() { return {}; },
+    },
+    ai: {
+      artifacts: { async read() { throw new Error('unused'); }, async upload() { throw new Error('unused'); } },
+    },
+  };
+
+  const { workerPort, hostProc } = createLinkedWorkerPorts();
+  const workerHost = attachHarnessEngineWorker(workerPort);
+  const client = new HarnessEngineWorkerClient(hostProc);
+
+  try {
+    client.activateSession(services, {
+      dataRoot,
+      requireSymbiosis: true,
+      allowInsecureTestFallback: false,
+    });
+    // Wait briefly for symbiosis startup + Partner reference discovery
+    await new Promise(r => setTimeout(r, 150));
+
+    // User opens standalone Harness with empty dataRoot and immediately submits on 'main'!
+    await client.callEngine('submit', ['main', 'Inspect standalone startup flow', randomUUID(), false]);
+
+    const doneSnap = await waitFor(async () => {
+      const snap = await client.callEngine('snapshot');
+      return snap.entries?.some(e => e.role === 'assistant' && e.text.includes('Standalone task finished cleanly.')) && !snap.running
+        ? snap
+        : null;
+    }, 10_000, 'standalone first submit completion');
+
+    assert.equal(routeCalls.length, 1);
+    assert.equal(routeCalls[0].agentHandle, partnerHandle, 'must discover and send real Partner agentHandle');
+    assert.equal(doneSnap.sessions.length, 1, 'concurrent outbox NEW_INTENT must NOT create a duplicate local session');
+    assert.equal(doneSnap.sessions[0].workSessionRef, allocatedWorkSessionRef);
+    assert.equal(stepRequests.length, 1, 'prompt must execute exactly once');
+    const userMsg = stepRequests[0].workingMessages.find(m => m.role === 'user');
+    assert.equal(userMsg?.outboxId, allocatedOutboxId, 'user BodyWorkingMessage must carry authentic Runtime outboxId');
+    await waitFor(
+      () => projections.some(p => p.workSessionRef === allocatedWorkSessionRef && p.milestoneKind === 'initial_goal'),
+      5000,
+      'initial_goal milestone projection',
+    );
+  } finally {
+    await workerHost.dispose().catch(() => {});
+    client.close();
     await rm(root, { recursive: true, force: true }).catch(() => {});
   }
 });

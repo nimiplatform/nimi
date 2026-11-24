@@ -897,6 +897,7 @@ pub struct NativeHarnessSecureWriteInput {
     pub content: Buffer,
     pub precondition_sha256: Option<String>,
     pub allow_create: Option<bool>,
+    pub must_not_exist: Option<bool>,
     pub snapshot_path: Option<String>,
     pub snapshot_root: Option<String>,
 }

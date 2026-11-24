@@ -176,10 +176,11 @@ test('reopening and running another session preserves a parked write', async () 
     assert.deepEqual(await harness.pendingDecision(second.sessionId), { state: 'open-on-pc', tool: 'write', reason: 'payload_exceeds_32kib' });
     assert.equal(await harness.resolveDecision(second.sessionId, large.decisions[0].id, preview.revision, true), 'stale');
     const correction = 'Use the smaller export instead.';
-    await harness.decide(second.sessionId, large.decisions[0].id, false, correction);
+    await assert.rejects(harness.decide(second.sessionId, large.decisions[0].id, false, correction), /revision is required/i);
+    await harness.decide(second.sessionId, large.decisions[0].id, false, correction, false, large.decisions[0].revision);
     const declined = await waitFor(view => !view.running);
     assert.ok(declined.entries.some(entry => entry.toolFailure === 'blocked' && entry.text.includes(correction)));
-    await assert.rejects(harness.decide(second.sessionId, large.decisions[0].id, true), /no longer waiting/);
+    await assert.rejects(harness.decide(second.sessionId, large.decisions[0].id, true, undefined, false, large.decisions[0].revision), /no longer waiting/);
     await assert.rejects(readFile(join(second.workspace, 'large.txt')), { code: 'ENOENT' });
     const creationId = randomUUID();
     const [created, duplicate] = await Promise.all([harness.createRemote('consumer-a', creationId), harness.createRemote('consumer-a', creationId)]);

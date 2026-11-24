@@ -84,6 +84,7 @@ pub struct HarnessSecureWriteRequest {
     pub content: Vec<u8>,
     pub precondition_sha256: Option<String>,
     pub allow_create: bool,
+    pub must_not_exist: bool,
     pub snapshot_path: Option<String>,
     pub snapshot_root: Option<String>,
 }
@@ -693,64 +694,155 @@ mod non_windows_fallback {
         }
     }
 
+    #[cfg(unix)]
+    fn open_anchored_parent_dir_unix(
+        root: &Path,
+        parent_segments: &[String],
+        create_missing: bool,
+    ) -> Result<std::os::unix::io::OwnedFd, HarnessSecurityError> {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
+
+        let root_c = CString::new(root.as_os_str().as_bytes())
+            .map_err(|_| HarnessSecurityError::new("invalid-workspace-root", "root path contains NUL"))?;
+        let root_fd = unsafe {
+            libc::open(
+                root_c.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
+            )
+        };
+        if root_fd < 0 {
+            return Err(HarnessSecurityError::new(
+                "invalid-workspace-root",
+                std::io::Error::last_os_error().to_string(),
+            ));
+        }
+        let mut dir_fd = unsafe { OwnedFd::from_raw_fd(root_fd) };
+        for seg in parent_segments {
+            let seg_c = CString::new(seg.as_bytes())
+                .map_err(|_| HarnessSecurityError::new("invalid-path", "segment contains NUL"))?;
+            let next_fd = unsafe {
+                libc::openat(
+                    dir_fd.as_raw_fd(),
+                    seg_c.as_ptr(),
+                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            };
+            if next_fd >= 0 {
+                dir_fd = unsafe { OwnedFd::from_raw_fd(next_fd) };
+                continue;
+            }
+            let err = std::io::Error::last_os_error();
+            if err.raw_os_error() == Some(libc::ELOOP) {
+                return Err(HarnessSecurityError::new(
+                    "reparse-point-rejected",
+                    format!("symlink rejected at parent segment '{seg}'"),
+                ));
+            }
+            if err.kind() == std::io::ErrorKind::NotFound && create_missing {
+                let mk = unsafe { libc::mkdirat(dir_fd.as_raw_fd(), seg_c.as_ptr(), 0o755) };
+                if mk < 0 {
+                    let mk_err = std::io::Error::last_os_error();
+                    if mk_err.kind() != std::io::ErrorKind::AlreadyExists {
+                        return Err(HarnessSecurityError::new("write-failed", mk_err.to_string()));
+                    }
+                }
+                let created_fd = unsafe {
+                    libc::openat(
+                        dir_fd.as_raw_fd(),
+                        seg_c.as_ptr(),
+                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    )
+                };
+                if created_fd < 0 {
+                    let open_err = std::io::Error::last_os_error();
+                    if open_err.raw_os_error() == Some(libc::ELOOP) {
+                        return Err(HarnessSecurityError::new(
+                            "reparse-point-rejected",
+                            format!("symlink rejected at parent segment '{seg}'"),
+                        ));
+                    }
+                    return Err(HarnessSecurityError::new("write-failed", open_err.to_string()));
+                }
+                dir_fd = unsafe { OwnedFd::from_raw_fd(created_fd) };
+                continue;
+            }
+            return Err(HarnessSecurityError::new(
+                if err.kind() == std::io::ErrorKind::NotFound { "not-found" } else { "open-failed" },
+                err.to_string(),
+            ));
+        }
+        Ok(dir_fd)
+    }
+
     fn write_snapshot_file_posix(
         snapshot_root: Option<&str>,
         snapshot_path: &str,
         bytes: &[u8],
     ) -> Result<(), HarnessSecurityError> {
+        let Some(root_str) = snapshot_root.map(str::trim).filter(|s| !s.is_empty()) else {
+            return Err(HarnessSecurityError::new(
+                "snapshot-root-required",
+                "snapshot_root is required whenever snapshot_path is provided",
+            ));
+        };
         let raw_path = Path::new(snapshot_path);
-        let anchored = if let Some(root_str) = snapshot_root {
-            let root = std::fs::canonicalize(root_str).map_err(|err| {
-                HarnessSecurityError::new("snapshot-failed", err.to_string())
+        let root = std::fs::canonicalize(root_str)
+            .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
+        let rel = raw_path
+            .strip_prefix(Path::new(root_str))
+            .or_else(|_| raw_path.strip_prefix(&root))
+            .map_err(|_| {
+                HarnessSecurityError::new(
+                    "snapshot-escape",
+                    "snapshot_path escapes declared snapshot_root",
+                )
             })?;
-            let rel = raw_path
-                .strip_prefix(Path::new(root_str))
-                .or_else(|_| raw_path.strip_prefix(&root))
-                .map_err(|_| {
-                    HarnessSecurityError::new(
-                        "snapshot-escape",
-                        "snapshot_path escapes declared snapshot_root",
-                    )
-                })?;
-            let rel_str = rel.to_string_lossy().replace('\\', "/");
-            let segments = validate_relative_workspace_path(&rel_str, false)?;
-            ensure_no_symlinks_in_chain(&root, &segments, false)?;
-            if segments.len() > 1 {
-                let mut dir = root.clone();
-                for seg in &segments[..segments.len() - 1] {
-                    dir.push(seg);
-                    if !dir.exists() {
-                        std::fs::create_dir(&dir).map_err(|e| {
-                            HarnessSecurityError::new("snapshot-failed", e.to_string())
-                        })?;
-                    }
+        let rel_str = rel.to_string_lossy().replace('\\', "/");
+        let segments = validate_relative_workspace_path(&rel_str, false)?;
+        let leaf = segments.last().ok_or_else(|| {
+            HarnessSecurityError::new("snapshot-failed", "snapshot path missing leaf")
+        })?;
+        #[cfg(unix)]
+        let mut f = {
+            use std::ffi::CString;
+            use std::os::unix::io::{AsRawFd, FromRawFd};
+            let parent_fd = open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], true)?;
+            let leaf_c = CString::new(leaf.as_bytes())
+                .map_err(|_| HarnessSecurityError::new("snapshot-failed", "leaf contains NUL"))?;
+            let fd = unsafe {
+                libc::openat(
+                    parent_fd.as_raw_fd(),
+                    leaf_c.as_ptr(),
+                    libc::O_WRONLY | libc::O_CREAT | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    0o600 as libc::c_uint,
+                )
+            };
+            if fd < 0 {
+                let err = std::io::Error::last_os_error();
+                if err.raw_os_error() == Some(libc::ELOOP) {
+                    return Err(HarnessSecurityError::new(
+                        "reparse-point-rejected",
+                        "snapshot target is a symlink",
+                    ));
                 }
-                ensure_no_symlinks_in_chain(&root, &segments[..segments.len() - 1], true)?;
+                return Err(HarnessSecurityError::new("snapshot-failed", err.to_string()));
             }
+            unsafe { std::fs::File::from_raw_fd(fd) }
+        };
+        #[cfg(not(unix))]
+        let mut f = {
             let mut out = root;
             for seg in &segments {
                 out.push(seg);
             }
-            out
-        } else {
-            if let Some(parent) = raw_path.parent() {
-                std::fs::create_dir_all(parent).map_err(|err| {
-                    HarnessSecurityError::new("snapshot-failed", err.to_string())
-                })?;
-            }
-            raw_path.to_path_buf()
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(&out)
+                .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?
         };
-
-        let mut opts = std::fs::OpenOptions::new();
-        opts.write(true).create(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            opts.custom_flags(libc::O_NOFOLLOW);
-        }
-        let mut f = opts
-            .open(&anchored)
-            .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
         let meta = f
             .metadata()
             .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
@@ -769,6 +861,12 @@ mod non_windows_fallback {
         Ok(())
     }
 
+    #[cfg(unix)]
+    fn unix_fstat_dev_ino(meta: &std::fs::Metadata) -> (u64, u64) {
+        use std::os::unix::fs::MetadataExt;
+        (meta.dev(), meta.ino())
+    }
+
     pub fn verify_workspace_path(
         workspace_root: &Path,
         relative_path: &str,
@@ -777,53 +875,145 @@ mod non_windows_fallback {
         let segments = validate_relative_workspace_path(relative_path, expect_directory)?;
         let root = std::fs::canonicalize(workspace_root)
             .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
-        ensure_no_symlinks_in_chain(&root, &segments, true)?;
-        let mut target = root.clone();
-        for seg in &segments {
-            target.push(seg);
-        }
-        let final_path = std::fs::canonicalize(&target)
-            .map_err(|err| HarnessSecurityError::new("not-found", err.to_string()))?;
-        let canonical_rel = canonical_rel_posix(&root, &final_path)?;
-        verify_segments_match_posix(&segments, &canonical_rel)?;
-        if !expect_directory && is_sensitive_relative_path(&canonical_rel) {
+        let lexical_rel = segments.join("/");
+        if !expect_directory && is_sensitive_relative_path(&lexical_rel) {
             return Err(HarnessSecurityError::new(
                 "sensitive-path-rejected",
-                format!("access to sensitive file '{canonical_rel}' is blocked"),
+                format!("access to sensitive file '{lexical_rel}' is blocked"),
             ));
         }
-        let meta = std::fs::symlink_metadata(&final_path)
-            .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
-        if meta.file_type().is_symlink() {
-            return Err(HarnessSecurityError::new(
-                "reparse-point-rejected",
-                "target is a symbolic link",
-            ));
-        }
-        if expect_directory && !meta.is_dir() {
-            return Err(HarnessSecurityError::new(
-                "not-directory",
-                "target is not a directory",
-            ));
-        }
-        let mut n_number_of_links = 1;
-        if !expect_directory {
-            if meta.is_dir() {
+
+        #[cfg(unix)]
+        {
+            use std::ffi::CString;
+            use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+
+            let (file, final_path) = if segments.is_empty() {
+                let root_fd = open_anchored_parent_dir_unix(&root, &[], false)?;
+                (unsafe { std::fs::File::from_raw_fd(root_fd.into_raw_fd()) }, root.clone())
+            } else {
+                let parent_fd =
+                    open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], false)?;
+                let leaf = &segments[segments.len() - 1];
+                let leaf_c = CString::new(leaf.as_bytes())
+                    .map_err(|_| HarnessSecurityError::new("invalid-path", "leaf contains NUL"))?;
+                let flags = if expect_directory {
+                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC
+                } else {
+                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC
+                };
+                let fd = unsafe { libc::openat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), flags) };
+                if fd < 0 {
+                    let err = std::io::Error::last_os_error();
+                    let raw = err.raw_os_error();
+                    if raw == Some(libc::ELOOP) {
+                        return Err(HarnessSecurityError::new(
+                            "reparse-point-rejected",
+                            "target is a symbolic link",
+                        ));
+                    }
+                    if raw == Some(libc::ENOTDIR) {
+                        return Err(HarnessSecurityError::new(
+                            "not-directory",
+                            "target is not a directory",
+                        ));
+                    }
+                    if err.kind() == std::io::ErrorKind::NotFound {
+                        return Err(HarnessSecurityError::new("not-found", err.to_string()));
+                    }
+                    return Err(HarnessSecurityError::new("open-failed", err.to_string()));
+                }
+                let mut target = root.clone();
+                for seg in &segments {
+                    target.push(seg);
+                }
+                (unsafe { std::fs::File::from_raw_fd(fd) }, target)
+            };
+            let meta = file
+                .metadata()
+                .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+            if expect_directory && !meta.is_dir() {
                 return Err(HarnessSecurityError::new(
-                    "is-directory",
-                    "target is a directory",
+                    "not-directory",
+                    "target is not a directory",
                 ));
             }
-            n_number_of_links = check_nlink_one(&meta)?;
+            let mut n_number_of_links = 1;
+            if !expect_directory {
+                if meta.is_dir() {
+                    return Err(HarnessSecurityError::new(
+                        "is-directory",
+                        "target is a directory",
+                    ));
+                }
+                if !meta.is_file() {
+                    return Err(HarnessSecurityError::new(
+                        "invalid-file-type",
+                        "target is not a regular file",
+                    ));
+                }
+                n_number_of_links = check_nlink_one(&meta)?;
+            }
+            return Ok(HarnessVerifiedPath {
+                canonical_workspace_root: root.to_string_lossy().into_owned(),
+                final_path: final_path.to_string_lossy().into_owned(),
+                relative_path: lexical_rel,
+                is_directory: meta.is_dir(),
+                size_bytes: meta.len(),
+                n_number_of_links,
+            });
         }
-        Ok(HarnessVerifiedPath {
-            canonical_workspace_root: root.to_string_lossy().into_owned(),
-            final_path: final_path.to_string_lossy().into_owned(),
-            relative_path: canonical_rel,
-            is_directory: meta.is_dir(),
-            size_bytes: meta.len(),
-            n_number_of_links,
-        })
+
+        #[cfg(not(unix))]
+        {
+            ensure_no_symlinks_in_chain(&root, &segments, true)?;
+            let mut target = root.clone();
+            for seg in &segments {
+                target.push(seg);
+            }
+            let final_path = std::fs::canonicalize(&target)
+                .map_err(|err| HarnessSecurityError::new("not-found", err.to_string()))?;
+            let canonical_rel = canonical_rel_posix(&root, &final_path)?;
+            verify_segments_match_posix(&segments, &canonical_rel)?;
+            if !expect_directory && is_sensitive_relative_path(&canonical_rel) {
+                return Err(HarnessSecurityError::new(
+                    "sensitive-path-rejected",
+                    format!("access to sensitive file '{canonical_rel}' is blocked"),
+                ));
+            }
+            let meta = std::fs::symlink_metadata(&final_path)
+                .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+            if meta.file_type().is_symlink() {
+                return Err(HarnessSecurityError::new(
+                    "reparse-point-rejected",
+                    "target is a symbolic link",
+                ));
+            }
+            if expect_directory && !meta.is_dir() {
+                return Err(HarnessSecurityError::new(
+                    "not-directory",
+                    "target is not a directory",
+                ));
+            }
+            let mut n_number_of_links = 1;
+            if !expect_directory {
+                if meta.is_dir() {
+                    return Err(HarnessSecurityError::new(
+                        "is-directory",
+                        "target is a directory",
+                    ));
+                }
+                n_number_of_links = check_nlink_one(&meta)?;
+            }
+            Ok(HarnessVerifiedPath {
+                canonical_workspace_root: root.to_string_lossy().into_owned(),
+                final_path: final_path.to_string_lossy().into_owned(),
+                relative_path: canonical_rel,
+                is_directory: meta.is_dir(),
+                size_bytes: meta.len(),
+                n_number_of_links,
+            })
+        }
     }
 
     pub fn secure_read_file(
@@ -831,33 +1021,89 @@ mod non_windows_fallback {
         relative_path: &str,
         max_bytes: usize,
     ) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
-        let verified = verify_workspace_path(workspace_root, relative_path, false)?;
-        if verified.size_bytes as usize > max_bytes {
+        let segments = validate_relative_workspace_path(relative_path, false)?;
+        let root = std::fs::canonicalize(workspace_root)
+            .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
+        let lexical_rel = segments.join("/");
+        if is_sensitive_relative_path(&lexical_rel) {
+            return Err(HarnessSecurityError::new(
+                "sensitive-path-rejected",
+                format!("access to sensitive file '{lexical_rel}' is blocked"),
+            ));
+        }
+
+        #[cfg(unix)]
+        let (mut file, final_path_str) = {
+            use std::ffi::CString;
+            use std::os::unix::io::{AsRawFd, FromRawFd};
+
+            let parent_fd =
+                open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], false)?;
+            let leaf = &segments[segments.len() - 1];
+            let leaf_c = CString::new(leaf.as_bytes())
+                .map_err(|_| HarnessSecurityError::new("invalid-path", "leaf contains NUL"))?;
+            let fd = unsafe {
+                libc::openat(
+                    parent_fd.as_raw_fd(),
+                    leaf_c.as_ptr(),
+                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            };
+            if fd < 0 {
+                let err = std::io::Error::last_os_error();
+                if err.raw_os_error() == Some(libc::ELOOP) {
+                    return Err(HarnessSecurityError::new(
+                        "reparse-point-rejected",
+                        "target is a symbolic link",
+                    ));
+                }
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    return Err(HarnessSecurityError::new("not-found", err.to_string()));
+                }
+                return Err(HarnessSecurityError::new("read-failed", err.to_string()));
+            }
+            let mut target = root.clone();
+            for seg in &segments {
+                target.push(seg);
+            }
+            (
+                unsafe { std::fs::File::from_raw_fd(fd) },
+                target.to_string_lossy().into_owned(),
+            )
+        };
+
+        #[cfg(not(unix))]
+        let (mut file, final_path_str) = {
+            let verified = verify_workspace_path(workspace_root, relative_path, false)?;
+            let f = std::fs::OpenOptions::new()
+                .read(true)
+                .open(&verified.final_path)
+                .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
+            (f, verified.final_path)
+        };
+
+        let meta = file
+            .metadata()
+            .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+        if meta.is_dir() {
+            return Err(HarnessSecurityError::new(
+                "is-directory",
+                "target is a directory",
+            ));
+        }
+        if !meta.is_file() {
+            return Err(HarnessSecurityError::new(
+                "invalid-file-type",
+                "target is not a regular file",
+            ));
+        }
+        let nlink = check_nlink_one(&meta)?;
+        if meta.len() as usize > max_bytes {
             return Err(HarnessSecurityError::new(
                 "file-too-large",
                 "file exceeds maximum allowed read size",
             ));
         }
-        let mut open_opts = std::fs::OpenOptions::new();
-        open_opts.read(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            open_opts.custom_flags(libc::O_NOFOLLOW);
-        }
-        let mut file = open_opts
-            .open(&verified.final_path)
-            .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
-        let meta = file
-            .metadata()
-            .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
-        if !meta.is_file() {
-            return Err(HarnessSecurityError::new(
-                "is-directory",
-                "target is not a regular file",
-            ));
-        }
-        let nlink = check_nlink_one(&meta)?;
         let mut content = Vec::new();
         file.take((max_bytes as u64).saturating_add(1))
             .read_to_end(&mut content)
@@ -870,7 +1116,7 @@ mod non_windows_fallback {
         }
         let sha256 = sha256_hex(&content);
         Ok(HarnessSecureReadResult {
-            final_path: verified.final_path,
+            final_path: final_path_str,
             size_bytes: content.len() as u64,
             content,
             sha256,
@@ -891,224 +1137,498 @@ mod non_windows_fallback {
                 format!("write to sensitive file '{lexical_rel}' is blocked"),
             ));
         }
-        ensure_no_symlinks_in_chain(&root, &segments, false)?;
         let mut target = root.clone();
         for seg in &segments {
             target.push(seg);
         }
 
-        // Validate existing parent directory BEFORE creating or mutating anything!
-        if segments.len() > 1 {
-            let mut dir = root.clone();
-            for seg in &segments[..segments.len() - 1] {
-                dir.push(seg);
-                match std::fs::symlink_metadata(&dir) {
-                    Ok(meta) => {
-                        if meta.file_type().is_symlink() {
-                            return Err(HarnessSecurityError::new(
-                                "reparse-point-rejected",
-                                format!("symlink rejected at parent segment '{seg}'"),
-                            ));
-                        }
-                        if !meta.is_dir() {
-                            return Err(HarnessSecurityError::new(
-                                "not-directory",
-                                format!("parent segment '{seg}' is not a directory"),
-                            ));
-                        }
-                    }
-                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                        if !request.allow_create {
-                            return Err(HarnessSecurityError::new(
-                                "not-found",
-                                "parent directory does not exist and allow_create is false",
-                            ));
-                        }
-                        std::fs::create_dir(&dir).map_err(|e| {
-                            HarnessSecurityError::new("write-failed", e.to_string())
-                        })?;
-                    }
-                    Err(err) => {
-                        return Err(HarnessSecurityError::new("stat-failed", err.to_string()));
-                    }
-                }
-            }
-            let parent_real = std::fs::canonicalize(&dir)
-                .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-            let _ = canonical_rel_posix(&root, &parent_real)?;
-        }
-
-        // Try opening existing file WITHOUT O_TRUNC so nlink, canonical path,
-        // sensitive-path, and CAS precondition checks ALL succeed BEFORE any truncation!
-        let mut existing_opts = std::fs::OpenOptions::new();
-        existing_opts.read(true).write(true);
         #[cfg(unix)]
         {
-            use std::os::unix::fs::OpenOptionsExt;
-            existing_opts.custom_flags(libc::O_NOFOLLOW);
-        }
-        match existing_opts.open(&target) {
-            Ok(mut f) => {
-                let meta = f
-                    .metadata()
-                    .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
-                if !meta.is_file() {
-                    return Err(HarnessSecurityError::new(
-                        "is-directory",
-                        "target is not a regular file",
-                    ));
-                }
-                check_nlink_one(&meta)?;
-                let final_path = std::fs::canonicalize(&target)
-                    .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-                let canonical_rel = canonical_rel_posix(&root, &final_path)?;
-                verify_segments_match_posix(&segments, &canonical_rel)?;
-                if is_sensitive_relative_path(&canonical_rel) {
-                    return Err(HarnessSecurityError::new(
-                        "sensitive-path-rejected",
-                        format!("write to sensitive file '{canonical_rel}' is blocked"),
-                    ));
-                }
-                let mut existing_bytes = Vec::new();
-                (&f).take(64 * 1024 * 1024 + 1)
-                    .read_to_end(&mut existing_bytes)
-                    .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
-                if existing_bytes.len() > 64 * 1024 * 1024 {
-                    return Err(HarnessSecurityError::new(
-                        "file-too-large",
-                        "existing file exceeds 64MiB write limit",
-                    ));
-                }
-                let existing_sha = sha256_hex(&existing_bytes);
-                if let Some(expected) = request.precondition_sha256.as_deref() {
-                    if !expected.is_empty() && expected != existing_sha {
+            use std::ffi::CString;
+            use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+
+            let parent_fd = open_anchored_parent_dir_unix(
+                &root,
+                &segments[..segments.len() - 1],
+                request.allow_create,
+            )?;
+            let leaf = &segments[segments.len() - 1];
+            let leaf_c = CString::new(leaf.as_bytes())
+                .map_err(|_| HarnessSecurityError::new("invalid-path", "leaf contains NUL"))?;
+
+            // Try opening existing file via anchored parent FD WITHOUT O_TRUNC so nlink,
+            // regular-file, and CAS precondition checks ALL succeed BEFORE any truncation!
+            if !request.must_not_exist {
+                let fd = unsafe {
+                    libc::openat(
+                        parent_fd.as_raw_fd(),
+                        leaf_c.as_ptr(),
+                        libc::O_RDWR | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    )
+                };
+                if fd >= 0 {
+                    let mut f = unsafe { std::fs::File::from_raw_fd(fd) };
+                    let meta = f
+                        .metadata()
+                        .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+                    if meta.is_dir() {
                         return Err(HarnessSecurityError::new(
-                            "precondition-failed",
-                            "file hash mismatch before write",
+                            "is-directory",
+                            "target is a directory",
                         ));
                     }
+                    if !meta.is_file() {
+                        return Err(HarnessSecurityError::new(
+                            "invalid-file-type",
+                            "target is not a regular file",
+                        ));
+                    }
+                    check_nlink_one(&meta)?;
+                    let mut existing_bytes = Vec::new();
+                    (&f).take(64 * 1024 * 1024 + 1)
+                        .read_to_end(&mut existing_bytes)
+                        .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
+                    if existing_bytes.len() > 64 * 1024 * 1024 {
+                        return Err(HarnessSecurityError::new(
+                            "file-too-large",
+                            "existing file exceeds 64MiB write limit",
+                        ));
+                    }
+                    let existing_sha = sha256_hex(&existing_bytes);
+                    if let Some(expected) = request.precondition_sha256.as_deref() {
+                        if !expected.is_empty() && expected != existing_sha {
+                            return Err(HarnessSecurityError::new(
+                                "precondition-failed",
+                                "file hash mismatch before write",
+                            ));
+                        }
+                    }
+                    let mut snapshot_written = false;
+                    if let Some(snap) = request.snapshot_path.as_deref() {
+                        write_snapshot_file_posix(
+                            request.snapshot_root.as_deref(),
+                            snap,
+                            &existing_bytes,
+                        )?;
+                        snapshot_written = true;
+                    }
+                    f.seek(SeekFrom::Start(0))
+                        .and_then(|_| f.set_len(0))
+                        .and_then(|_| f.write_all(&request.content))
+                        .and_then(|_| f.sync_all())
+                        .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                    return Ok(HarnessSecureWriteResult {
+                        final_path: target.to_string_lossy().into_owned(),
+                        sha256: sha256_hex(&request.content),
+                        previous_sha256: Some(existing_sha),
+                        bytes_written: request.content.len() as u64,
+                        created: false,
+                        snapshot_written,
+                    });
                 }
-                let mut snapshot_written = false;
-                if let Some(snap) = request.snapshot_path.as_deref() {
-                    write_snapshot_file_posix(
-                        request.snapshot_root.as_deref(),
-                        snap,
-                        &existing_bytes,
-                    )?;
-                    snapshot_written = true;
+                let open_err = std::io::Error::last_os_error();
+                if open_err.raw_os_error() == Some(libc::ELOOP) {
+                    return Err(HarnessSecurityError::new(
+                        "reparse-point-rejected",
+                        "target is a symbolic link",
+                    ));
                 }
-                // All security & CAS checks passed on this exact open FD -> truncate & overwrite!
-                f.seek(SeekFrom::Start(0))
-                    .and_then(|_| f.set_len(0))
-                    .and_then(|_| f.write_all(&request.content))
-                    .and_then(|_| f.sync_all())
-                    .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-                return Ok(HarnessSecureWriteResult {
-                    final_path: final_path.to_string_lossy().into_owned(),
-                    sha256: sha256_hex(&request.content),
-                    previous_sha256: Some(existing_sha),
-                    bytes_written: request.content.len() as u64,
-                    created: false,
-                    snapshot_written,
-                });
+                if open_err.raw_os_error() == Some(libc::EISDIR) {
+                    return Err(HarnessSecurityError::new(
+                        "is-directory",
+                        "target is a directory",
+                    ));
+                }
+                if open_err.kind() != std::io::ErrorKind::NotFound {
+                    return Err(HarnessSecurityError::new("write-failed", open_err.to_string()));
+                }
             }
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-            Err(err) => {
+
+            if !request.allow_create {
+                return Err(HarnessSecurityError::new(
+                    "not-found",
+                    "target file does not exist and allow_create is false",
+                ));
+            }
+            if let Some(expected) = request.precondition_sha256.as_deref() {
+                if !expected.is_empty() {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "expected existing file hash, but target file does not exist",
+                    ));
+                }
+            }
+
+            let new_fd = unsafe {
+                libc::openat(
+                    parent_fd.as_raw_fd(),
+                    leaf_c.as_ptr(),
+                    libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    0o600 as libc::c_uint,
+                )
+            };
+            if new_fd < 0 {
+                let err = std::io::Error::last_os_error();
+                if err.kind() == std::io::ErrorKind::AlreadyExists {
+                    return Err(HarnessSecurityError::new(
+                        "already-exists",
+                        "target file already exists",
+                    ));
+                }
+                if err.raw_os_error() == Some(libc::ELOOP) {
+                    return Err(HarnessSecurityError::new(
+                        "reparse-point-rejected",
+                        "target is a symbolic link",
+                    ));
+                }
                 return Err(HarnessSecurityError::new("write-failed", err.to_string()));
             }
-        }
-
-        if !request.allow_create {
-            return Err(HarnessSecurityError::new(
-                "not-found",
-                "target file does not exist and allow_create is false",
-            ));
-        }
-        if let Some(expected) = request.precondition_sha256.as_deref() {
-            if !expected.is_empty() {
+            let mut f = unsafe { std::fs::File::from_raw_fd(new_fd) };
+            let meta_after = match f.metadata() {
+                Ok(m) => m,
+                Err(err) => {
+                    drop(f);
+                    unsafe {
+                        libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0);
+                    }
+                    return Err(HarnessSecurityError::new("write-failed", err.to_string()));
+                }
+            };
+            if !meta_after.is_file() || check_nlink_one(&meta_after).is_err() {
+                drop(f);
+                unsafe {
+                    libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0);
+                }
                 return Err(HarnessSecurityError::new(
-                    "precondition-failed",
-                    "expected existing file hash, but target file does not exist",
+                    "hardlink-rejected",
+                    "newly created file failed regular-file/nlink verification",
                 ));
             }
+            f.write_all(&request.content)
+                .and_then(|_| f.sync_all())
+                .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+            return Ok(HarnessSecureWriteResult {
+                final_path: target.to_string_lossy().into_owned(),
+                sha256: sha256_hex(&request.content),
+                previous_sha256: None,
+                bytes_written: request.content.len() as u64,
+                created: true,
+                snapshot_written: false,
+            });
         }
 
-        let mut create_opts = std::fs::OpenOptions::new();
-        create_opts.write(true).create_new(true);
-        #[cfg(unix)]
+        #[cfg(not(unix))]
         {
-            use std::os::unix::fs::OpenOptionsExt;
-            create_opts.custom_flags(libc::O_NOFOLLOW);
-        }
-        let mut f = create_opts
-            .open(&target)
-            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-        let verify_new = (|| -> Result<std::path::PathBuf, HarnessSecurityError> {
-            let meta_after = f
-                .metadata()
-                .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-            check_nlink_one(&meta_after)?;
+            ensure_no_symlinks_in_chain(&root, &segments, false)?;
+            if segments.len() > 1 {
+                let mut dir = root.clone();
+                for seg in &segments[..segments.len() - 1] {
+                    dir.push(seg);
+                    match std::fs::symlink_metadata(&dir) {
+                        Ok(meta) => {
+                            if meta.file_type().is_symlink() {
+                                return Err(HarnessSecurityError::new(
+                                    "reparse-point-rejected",
+                                    format!("symlink rejected at parent segment '{seg}'"),
+                                ));
+                            }
+                            if !meta.is_dir() {
+                                return Err(HarnessSecurityError::new(
+                                    "not-directory",
+                                    format!("parent segment '{seg}' is not a directory"),
+                                ));
+                            }
+                        }
+                        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                            if !request.allow_create {
+                                return Err(HarnessSecurityError::new(
+                                    "not-found",
+                                    "parent directory does not exist and allow_create is false",
+                                ));
+                            }
+                            std::fs::create_dir(&dir).map_err(|e| {
+                                HarnessSecurityError::new("write-failed", e.to_string())
+                            })?;
+                        }
+                        Err(err) => {
+                            return Err(HarnessSecurityError::new("stat-failed", err.to_string()));
+                        }
+                    }
+                }
+                let parent_real = std::fs::canonicalize(&dir)
+                    .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                let _ = canonical_rel_posix(&root, &parent_real)?;
+            }
+
+            if !request.must_not_exist {
+                match std::fs::OpenOptions::new().read(true).write(true).open(&target) {
+                    Ok(mut f) => {
+                        let meta = f
+                            .metadata()
+                            .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+                        if !meta.is_file() {
+                            return Err(HarnessSecurityError::new(
+                                "is-directory",
+                                "target is not a regular file",
+                            ));
+                        }
+                        check_nlink_one(&meta)?;
+                        let final_path = std::fs::canonicalize(&target)
+                            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                        let canonical_rel = canonical_rel_posix(&root, &final_path)?;
+                        verify_segments_match_posix(&segments, &canonical_rel)?;
+                        if is_sensitive_relative_path(&canonical_rel) {
+                            return Err(HarnessSecurityError::new(
+                                "sensitive-path-rejected",
+                                format!("write to sensitive file '{canonical_rel}' is blocked"),
+                            ));
+                        }
+                        let mut existing_bytes = Vec::new();
+                        (&f).take(64 * 1024 * 1024 + 1)
+                            .read_to_end(&mut existing_bytes)
+                            .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
+                        if existing_bytes.len() > 64 * 1024 * 1024 {
+                            return Err(HarnessSecurityError::new(
+                                "file-too-large",
+                                "existing file exceeds 64MiB write limit",
+                            ));
+                        }
+                        let existing_sha = sha256_hex(&existing_bytes);
+                        if let Some(expected) = request.precondition_sha256.as_deref() {
+                            if !expected.is_empty() && expected != existing_sha {
+                                return Err(HarnessSecurityError::new(
+                                    "precondition-failed",
+                                    "file hash mismatch before write",
+                                ));
+                            }
+                        }
+                        let mut snapshot_written = false;
+                        if let Some(snap) = request.snapshot_path.as_deref() {
+                            write_snapshot_file_posix(
+                                request.snapshot_root.as_deref(),
+                                snap,
+                                &existing_bytes,
+                            )?;
+                            snapshot_written = true;
+                        }
+                        f.seek(SeekFrom::Start(0))
+                            .and_then(|_| f.set_len(0))
+                            .and_then(|_| f.write_all(&request.content))
+                            .and_then(|_| f.sync_all())
+                            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                        return Ok(HarnessSecureWriteResult {
+                            final_path: final_path.to_string_lossy().into_owned(),
+                            sha256: sha256_hex(&request.content),
+                            previous_sha256: Some(existing_sha),
+                            bytes_written: request.content.len() as u64,
+                            created: false,
+                            snapshot_written,
+                        });
+                    }
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(err) => {
+                        return Err(HarnessSecurityError::new("write-failed", err.to_string()));
+                    }
+                }
+            }
+
+            if !request.allow_create {
+                return Err(HarnessSecurityError::new(
+                    "not-found",
+                    "target file does not exist and allow_create is false",
+                ));
+            }
+            if let Some(expected) = request.precondition_sha256.as_deref() {
+                if !expected.is_empty() {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "expected existing file hash, but target file does not exist",
+                    ));
+                }
+            }
+
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&target)
+                .map_err(|err| {
+                    if err.kind() == std::io::ErrorKind::AlreadyExists {
+                        HarnessSecurityError::new("already-exists", err.to_string())
+                    } else {
+                        HarnessSecurityError::new("write-failed", err.to_string())
+                    }
+                })?;
             let final_path = std::fs::canonicalize(&target)
                 .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-            let canonical_rel = canonical_rel_posix(&root, &final_path)?;
-            verify_segments_match_posix(&segments, &canonical_rel)?;
-            if is_sensitive_relative_path(&canonical_rel) {
-                return Err(HarnessSecurityError::new(
-                    "sensitive-path-rejected",
-                    format!("write to sensitive file '{canonical_rel}' is blocked"),
-                ));
-            }
-            Ok(final_path)
-        })();
-        let final_path = match verify_new {
-            Ok(p) => p,
-            Err(err) => {
-                drop(f);
-                let _ = std::fs::remove_file(&target);
-                return Err(err);
-            }
-        };
-        f.write_all(&request.content)
-            .and_then(|_| f.sync_all())
-            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
-        Ok(HarnessSecureWriteResult {
-            final_path: final_path.to_string_lossy().into_owned(),
-            sha256: sha256_hex(&request.content),
-            previous_sha256: None,
-            bytes_written: request.content.len() as u64,
-            created: true,
-            snapshot_written: false,
-        })
+            f.write_all(&request.content)
+                .and_then(|_| f.sync_all())
+                .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+            Ok(HarnessSecureWriteResult {
+                final_path: final_path.to_string_lossy().into_owned(),
+                sha256: sha256_hex(&request.content),
+                previous_sha256: None,
+                bytes_written: request.content.len() as u64,
+                created: true,
+                snapshot_written: false,
+            })
+        }
     }
 
     pub fn secure_delete_file(
         request: HarnessSecureDeleteRequest,
     ) -> Result<HarnessSecureDeleteResult, HarnessSecurityError> {
-        let read = secure_read_file(
-            Path::new(&request.workspace_root),
-            &request.relative_path,
-            64 * 1024 * 1024,
-        )?;
-        if let Some(expected) = request.precondition_sha256.as_deref() {
-            if !expected.is_empty() && expected != read.sha256 {
+        let segments = validate_relative_workspace_path(&request.relative_path, false)?;
+        let root = std::fs::canonicalize(&request.workspace_root)
+            .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
+        let lexical_rel = segments.join("/");
+        if is_sensitive_relative_path(&lexical_rel) {
+            return Err(HarnessSecurityError::new(
+                "sensitive-path-rejected",
+                format!("delete of sensitive file '{lexical_rel}' is blocked"),
+            ));
+        }
+
+        #[cfg(unix)]
+        {
+            use std::ffi::CString;
+            use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+
+            let parent_fd =
+                open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], false)?;
+            let leaf = &segments[segments.len() - 1];
+            let leaf_c = CString::new(leaf.as_bytes())
+                .map_err(|_| HarnessSecurityError::new("invalid-path", "leaf contains NUL"))?;
+            let fd = unsafe {
+                libc::openat(
+                    parent_fd.as_raw_fd(),
+                    leaf_c.as_ptr(),
+                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            };
+            if fd < 0 {
+                let err = std::io::Error::last_os_error();
+                if err.raw_os_error() == Some(libc::ELOOP) {
+                    return Err(HarnessSecurityError::new(
+                        "reparse-point-rejected",
+                        "target is a symbolic link",
+                    ));
+                }
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    return Err(HarnessSecurityError::new("not-found", err.to_string()));
+                }
+                return Err(HarnessSecurityError::new("delete-failed", err.to_string()));
+            }
+            let file = unsafe { std::fs::File::from_raw_fd(fd) };
+            let meta = file
+                .metadata()
+                .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+            if meta.is_dir() {
                 return Err(HarnessSecurityError::new(
-                    "precondition-failed",
-                    "file hash mismatch before delete",
+                    "is-directory",
+                    "target is a directory",
                 ));
             }
+            if !meta.is_file() {
+                return Err(HarnessSecurityError::new(
+                    "invalid-file-type",
+                    "target is not a regular file",
+                ));
+            }
+            check_nlink_one(&meta)?;
+            let (open_dev, open_ino) = unix_fstat_dev_ino(&meta);
+            let mut content = Vec::new();
+            (&file)
+                .take(64 * 1024 * 1024 + 1)
+                .read_to_end(&mut content)
+                .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
+            if content.len() > 64 * 1024 * 1024 {
+                return Err(HarnessSecurityError::new(
+                    "file-too-large",
+                    "target file exceeds 64MiB delete limit",
+                ));
+            }
+            let sha = sha256_hex(&content);
+            if let Some(expected) = request.precondition_sha256.as_deref() {
+                if !expected.is_empty() && expected != sha {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "file hash mismatch before delete",
+                    ));
+                }
+            }
+            let mut snapshot_written = false;
+            if let Some(snap) = request.snapshot_path.as_deref() {
+                write_snapshot_file_posix(request.snapshot_root.as_deref(), snap, &content)?;
+                snapshot_written = true;
+            }
+            // Verify directory entry still points to the exact same (st_dev, st_ino) before unlinkat.
+            let mut st: libc::stat = unsafe { std::mem::zeroed() };
+            let rc = unsafe {
+                libc::fstatat(
+                    parent_fd.as_raw_fd(),
+                    leaf_c.as_ptr(),
+                    &mut st,
+                    libc::AT_SYMLINK_NOFOLLOW,
+                )
+            };
+            if rc != 0 {
+                return Err(HarnessSecurityError::new(
+                    "delete-failed",
+                    std::io::Error::last_os_error().to_string(),
+                ));
+            }
+            if (st.st_dev as u64) != open_dev || (st.st_ino as u64) != open_ino {
+                return Err(HarnessSecurityError::new(
+                    "precondition-failed",
+                    "target file inode changed before delete",
+                ));
+            }
+            let unlink_rc = unsafe { libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0) };
+            if unlink_rc != 0 {
+                return Err(HarnessSecurityError::new(
+                    "delete-failed",
+                    std::io::Error::last_os_error().to_string(),
+                ));
+            }
+            let mut target = root.clone();
+            for seg in &segments {
+                target.push(seg);
+            }
+            return Ok(HarnessSecureDeleteResult {
+                final_path: target.to_string_lossy().into_owned(),
+                previous_sha256: sha,
+                snapshot_written,
+            });
         }
-        let mut snapshot_written = false;
-        if let Some(snap) = request.snapshot_path.as_deref() {
-            write_snapshot_file_posix(request.snapshot_root.as_deref(), snap, &read.content)?;
-            snapshot_written = true;
+
+        #[cfg(not(unix))]
+        {
+            let read = secure_read_file(
+                Path::new(&request.workspace_root),
+                &request.relative_path,
+                64 * 1024 * 1024,
+            )?;
+            if let Some(expected) = request.precondition_sha256.as_deref() {
+                if !expected.is_empty() && expected != read.sha256 {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "file hash mismatch before delete",
+                    ));
+                }
+            }
+            let mut snapshot_written = false;
+            if let Some(snap) = request.snapshot_path.as_deref() {
+                write_snapshot_file_posix(request.snapshot_root.as_deref(), snap, &read.content)?;
+                snapshot_written = true;
+            }
+            std::fs::remove_file(&read.final_path)
+                .map_err(|err| HarnessSecurityError::new("delete-failed", err.to_string()))?;
+            Ok(HarnessSecureDeleteResult {
+                final_path: read.final_path,
+                previous_sha256: read.sha256,
+                snapshot_written,
+            })
         }
-        std::fs::remove_file(&read.final_path)
-            .map_err(|err| HarnessSecurityError::new("delete-failed", err.to_string()))?;
-        Ok(HarnessSecureDeleteResult {
-            final_path: read.final_path,
-            previous_sha256: read.sha256,
-            snapshot_written,
-        })
     }
 }
 

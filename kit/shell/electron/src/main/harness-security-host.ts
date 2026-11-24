@@ -61,6 +61,7 @@ export interface NimiHarnessSecureWriteInput {
   readonly content: Uint8Array;
   readonly preconditionSha256?: string;
   readonly allowCreate?: boolean;
+  readonly mustNotExist?: boolean;
   readonly snapshotPath?: string;
   readonly snapshotRoot?: string;
 }
@@ -154,9 +155,35 @@ function unwrapOutcome<T>(outcome: NativeOutcome): T {
   throw new NimiElectronLocalAppHostError(reasonCode, retryable, metadata);
 }
 
-function loadBinding(injected?: NimiElectronHarnessSecurityBinding): NimiElectronHarnessSecurityBinding {
-  const candidate = (injected ?? loadNimiElectronProtectedLocalPackage(
+export interface CreateNimiElectronHarnessSecurityHostOptions {
+  readonly injectedBinding?: NimiElectronHarnessSecurityBinding;
+  /**
+   * True ONLY when verified by the Electron main process (`process.defaultApp === true`)
+   * and passed over a private MessagePort to a child `utilityProcess` where `process.defaultApp`
+   * is undefined. Packaged apps must always pass `false` (or omit) to preserve `p-napp-037a`.
+   */
+  readonly allowSourceLocalDevFromMain?: boolean;
+}
+
+function isInjectedBinding(
+  value: NimiElectronHarnessSecurityBinding | CreateNimiElectronHarnessSecurityHostOptions | undefined,
+): value is NimiElectronHarnessSecurityBinding {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && 'harnessRunJobProcess' in value
+    && typeof (value as unknown as Record<string, unknown>).harnessRunJobProcess === 'function',
+  );
+}
+
+function loadBinding(
+  options?: CreateNimiElectronHarnessSecurityHostOptions,
+): NimiElectronHarnessSecurityBinding {
+  const candidate = (options?.injectedBinding ?? loadNimiElectronProtectedLocalPackage(
     resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch),
+    options?.allowSourceLocalDevFromMain === true
+      ? { sourceDefaultAppOverride: true }
+      : undefined,
   )) as Record<string, unknown>;
   if (!candidate || typeof candidate !== 'object' || REQUIRED_METHODS.some((m) => typeof candidate[m] !== 'function')) {
     throw new NimiElectronLocalAppHostError('protected-carrier-required', false);
@@ -165,15 +192,18 @@ function loadBinding(injected?: NimiElectronHarnessSecurityBinding): NimiElectro
 }
 
 // @nimi-authority: rule.nimi.harness.assistant.security-gates
-/** Host-only native Win32 Job Object and NTFS handle-security facade for Harness main/utilityProcess. */
+/** Host-only native Win32 Job Object and NTFS/POSIX handle-security facade for Harness main/utilityProcess. */
 export function createNimiElectronHarnessSecurityHost(
-  injectedBinding?: NimiElectronHarnessSecurityBinding,
+  bindingOrOptions?: NimiElectronHarnessSecurityBinding | CreateNimiElectronHarnessSecurityHostOptions,
 ): NimiElectronHarnessSecurityHost {
-  let cached: NimiElectronHarnessSecurityBinding | undefined;
-  const binding = () => (cached ??= loadBinding(injectedBinding));
+  const options: CreateNimiElectronHarnessSecurityHostOptions | undefined = isInjectedBinding(bindingOrOptions)
+    ? { injectedBinding: bindingOrOptions }
+    : bindingOrOptions;
+  // Eagerly resolve and verify the native security binding so missing/tampered binaries fail closed immediately.
+  const resolved = loadBinding(options);
   const host: NimiElectronHarnessSecurityHost = {
     async runJobProcess(input) {
-      return unwrapOutcome(await binding().harnessRunJobProcess({
+      return unwrapOutcome(await resolved.harnessRunJobProcess({
         executable: input.executable,
         args: [...input.args],
         workingDirectory: input.workingDirectory,
@@ -183,7 +213,7 @@ export function createNimiElectronHarnessSecurityHost(
       }));
     },
     async spawnJobProcess(input) {
-      return unwrapOutcome(await binding().harnessSpawnJobProcess({
+      return unwrapOutcome(await resolved.harnessSpawnJobProcess({
         executable: input.executable,
         args: [...input.args],
         workingDirectory: input.workingDirectory,
@@ -193,41 +223,42 @@ export function createNimiElectronHarnessSecurityHost(
       }));
     },
     async waitJobProcess(input) {
-      return unwrapOutcome(await binding().harnessWaitJobProcess({
+      return unwrapOutcome(await resolved.harnessWaitJobProcess({
         jobId: input.jobId,
         ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
       }));
     },
     async killJobProcess(input) {
-      return unwrapOutcome(await binding().harnessKillJobProcess({ jobId: input.jobId }));
+      return unwrapOutcome(await resolved.harnessKillJobProcess({ jobId: input.jobId }));
     },
     async verifyWorkspacePath(input) {
-      return unwrapOutcome(await binding().harnessVerifyWorkspacePath({
+      return unwrapOutcome(await resolved.harnessVerifyWorkspacePath({
         workspaceRoot: input.workspaceRoot,
         relativePath: input.relativePath,
         ...(input.expectDirectory !== undefined ? { expectDirectory: input.expectDirectory } : {}),
       }));
     },
     async secureReadFile(input) {
-      return unwrapOutcome(await binding().harnessSecureReadFile({
+      return unwrapOutcome(await resolved.harnessSecureReadFile({
         workspaceRoot: input.workspaceRoot,
         relativePath: input.relativePath,
         ...(input.maxBytes !== undefined ? { maxBytes: input.maxBytes } : {}),
       }));
     },
     async secureWriteFile(input) {
-      return unwrapOutcome(await binding().harnessSecureWriteFile({
+      return unwrapOutcome(await resolved.harnessSecureWriteFile({
         workspaceRoot: input.workspaceRoot,
         relativePath: input.relativePath,
         content: Buffer.from(input.content.buffer, input.content.byteOffset, input.content.byteLength),
         ...(input.preconditionSha256 !== undefined ? { preconditionSha256: input.preconditionSha256 } : {}),
         ...(input.allowCreate !== undefined ? { allowCreate: input.allowCreate } : {}),
+        ...(input.mustNotExist !== undefined ? { mustNotExist: input.mustNotExist } : {}),
         ...(input.snapshotPath !== undefined ? { snapshotPath: input.snapshotPath } : {}),
         ...(input.snapshotRoot !== undefined ? { snapshotRoot: input.snapshotRoot } : {}),
       }));
     },
     async secureDeleteFile(input) {
-      return unwrapOutcome(await binding().harnessSecureDeleteFile({
+      return unwrapOutcome(await resolved.harnessSecureDeleteFile({
         workspaceRoot: input.workspaceRoot,
         relativePath: input.relativePath,
         ...(input.preconditionSha256 !== undefined ? { preconditionSha256: input.preconditionSha256 } : {}),

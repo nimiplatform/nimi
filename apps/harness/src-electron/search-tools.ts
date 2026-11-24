@@ -187,8 +187,17 @@ function isDisallowedIP(ip: string): boolean {
       const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
       return isDisallowedIP(v4);
     }
-    // NAT64 well-known (64:ff9b::/96) and local-use (64:ff9b:1::/48)
-    if (g[0] === 0x0064 && g[1] === 0xff9b && (g[2] === 0x0001 || (g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0))) {
+    // IPv4-translated (::ffff:0:0:0/96, RFC 2765)
+    if (g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0xffff && g[5] === 0) {
+      const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
+      return isDisallowedIP(v4);
+    }
+    // NAT64 local-use (64:ff9b:1::/48, RFC 8215) is unconditionally private/local.
+    if (g[0] === 0x0064 && g[1] === 0xff9b && g[2] === 0x0001) {
+      return true;
+    }
+    // NAT64 well-known (64:ff9b::/96, RFC 6052) embeds IPv4 in the final 32 bits.
+    if (g[0] === 0x0064 && g[1] === 0xff9b && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0) {
       const v4 = `${(g[6] >> 8) & 255}.${g[6] & 255}.${(g[7] >> 8) & 255}.${g[7] & 255}`;
       return isDisallowedIP(v4);
     }
@@ -314,7 +323,8 @@ function pinnedHttpGet(
           Host: hostHeader,
           Accept: 'text/plain, text/markdown, text/html, application/json, application/xml;q=0.9, */*;q=0.5',
         },
-        ...(isHttps ? { servername } : {}),
+        // RFC 6066 forbids IP address literals in TLS SNI servername.
+        ...(isHttps && isIP(servername) === 0 ? { servername } : {}),
       },
       res => {
         const status = res.statusCode ?? 0;
@@ -332,6 +342,7 @@ function pinnedHttpGet(
         const chunks: Buffer[] = [];
         let totalBytes = 0;
         let truncatedByBytes = false;
+        let ended = false;
         let settled = false;
         const finish = () => {
           if (settled) return;
@@ -359,8 +370,20 @@ function pinnedHttpGet(
           chunks.push(chunk);
           totalBytes += chunk.byteLength;
         });
-        res.on('end', finish);
-        res.on('close', finish);
+        res.on('end', () => {
+          ended = true;
+          finish();
+        });
+        res.on('close', () => {
+          if (settled) return;
+          if (ended || truncatedByBytes || res.complete) {
+            finish();
+            return;
+          }
+          settled = true;
+          cleanup();
+          rejectPromise(new Error('HTTP response connection closed before body completed.'));
+        });
         res.on('error', err => {
           if (settled) return;
           settled = true;
@@ -389,6 +412,8 @@ export type SearchToolsOptions = {
   allowLoopbackFetch?: boolean;
   fetchImpl?: typeof fetch;
   dnsLookupImpl?: DnsLookupFn;
+  /** Optional handle-level secure workspace file reader (e.g. SecureWorkspaceExecutionEnv.readWorkspaceFileSecure). */
+  readWorkspaceFile?: (relativePosix: string, maxBytes: number) => Promise<Uint8Array>;
 };
 
 export function searchTools(workspace: string | (() => string), account: AbortSignal, options: SearchToolsOptions = {}) {
@@ -555,22 +580,32 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
             try {
               const relCheck = toPosixRelative(root, filePath);
               if (isSensitivePath(relCheck, root)) continue;
-              const realFile = await realpath(filePath);
-              if (realFile !== root && !realFile.startsWith(rootPrefix)) continue;
-              const realRel = toPosixRelative(root, realFile);
-              if (isSensitivePath(realRel, root)) continue;
-              handle = await open(realFile, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-              const info = await handle.stat();
-              if (!info.isFile() || info.nlink > 1 || info.size === 0 || info.size > MAX_GREP_FILE_BYTES) continue;
-              const probeLen = Math.min(4096, info.size);
-              const probe = Buffer.allocUnsafe(probeLen);
-              const { bytesRead } = await handle.read(probe, 0, probeLen, 0);
-              if (probe.subarray(0, bytesRead).includes(0)) continue; // Skip binary files.
+              let fullBuffer: Buffer;
+              let rel = relCheck;
+              if (options.readWorkspaceFile) {
+                const rawBytes = await options.readWorkspaceFile(relCheck, MAX_GREP_FILE_BYTES);
+                if (rawBytes.byteLength === 0 || rawBytes.byteLength > MAX_GREP_FILE_BYTES) continue;
+                const probeLen = Math.min(4096, rawBytes.byteLength);
+                if (Buffer.from(rawBytes.buffer, rawBytes.byteOffset, probeLen).includes(0)) continue;
+                fullBuffer = Buffer.from(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+              } else {
+                const realFile = await realpath(filePath);
+                if (realFile !== root && !realFile.startsWith(rootPrefix)) continue;
+                const realRel = toPosixRelative(root, realFile);
+                if (isSensitivePath(realRel, root)) continue;
+                handle = await open(realFile, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+                const info = await handle.stat();
+                if (!info.isFile() || info.nlink > 1 || info.size === 0 || info.size > MAX_GREP_FILE_BYTES) continue;
+                const probeLen = Math.min(4096, info.size);
+                const probe = Buffer.allocUnsafe(probeLen);
+                const { bytesRead } = await handle.read(probe, 0, probeLen, 0);
+                if (probe.subarray(0, bytesRead).includes(0)) continue; // Skip binary files.
 
-              const fullBuffer = info.size <= probeLen
-                ? probe.subarray(0, bytesRead)
-                : await handle.readFile({ signal });
-              const rel = realRel;
+                fullBuffer = info.size <= probeLen
+                  ? probe.subarray(0, bytesRead)
+                  : await handle.readFile({ signal });
+                rel = realRel;
+              }
               const lines = fullBuffer.toString('utf8').split(/\r?\n/);
               for (let index = 0; index < lines.length; index++) {
                 const lineText = lines[index];

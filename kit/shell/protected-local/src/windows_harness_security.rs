@@ -10,10 +10,11 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{
-    CloseHandle, GetLastError, SetHandleInformation, ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND,
-    GENERIC_READ, GENERIC_WRITE, HANDLE, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, WAIT_OBJECT_0,
-    WAIT_TIMEOUT,
+    CloseHandle, GetLastError, SetHandleInformation, ERROR_ALREADY_EXISTS, ERROR_FILE_EXISTS,
+    ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, GENERIC_READ, GENERIC_WRITE, HANDLE,
+    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
+use windows_sys::Win32::Globalization::{CompareStringOrdinal, CSTR_EQUAL};
 use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FileDispositionInfo, FlushFileBuffers, GetFileInformationByHandle,
@@ -885,55 +886,52 @@ fn write_snapshot_file(
     snapshot_path: &str,
     bytes: &[u8],
 ) -> Result<(), HarnessSecurityError> {
-    let raw_path = Path::new(snapshot_path);
-    let target_path = if let Some(root_str) = snapshot_root {
-        let canonical_snap_root = canonicalize_workspace_root(Path::new(root_str))?;
-        let rel = raw_path
-            .strip_prefix(Path::new(root_str))
-            .or_else(|_| raw_path.strip_prefix(Path::new(&canonical_snap_root)))
-            .map_err(|_| {
-                HarnessSecurityError::new(
-                    "snapshot-escape",
-                    "snapshot_path escapes declared snapshot_root",
-                )
-            })?;
-        let rel_str = rel.to_string_lossy().replace('\\', "/");
-        let segments = validate_relative_workspace_path(&rel_str, false)?;
-        ensure_no_reparse_points_in_chain(&canonical_snap_root, &segments, false)?;
-        if segments.len() > 1 {
-            let mut dir = PathBuf::from(&canonical_snap_root);
-            for seg in &segments[..segments.len() - 1] {
-                dir.push(seg);
-                if !dir.exists() {
-                    std::fs::create_dir(&dir)
-                        .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
-                }
-            }
-            ensure_no_reparse_points_in_chain(
-                &canonical_snap_root,
-                &segments[..segments.len() - 1],
-                true,
-            )?;
-        }
-        let mut anchored = PathBuf::from(&canonical_snap_root);
-        for seg in &segments {
-            anchored.push(seg);
-        }
-        (Some((canonical_snap_root, segments)), anchored)
-    } else {
-        if let Some(parent) = raw_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
-        }
-        (None, raw_path.to_path_buf())
+    let Some(root_str) = snapshot_root.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Err(HarnessSecurityError::new(
+            "snapshot-root-required",
+            "snapshot_root is required whenever snapshot_path is provided",
+        ));
     };
+    let raw_path = Path::new(snapshot_path);
+    let canonical_snap_root = canonicalize_workspace_root(Path::new(root_str))?;
+    let rel = raw_path
+        .strip_prefix(Path::new(root_str))
+        .or_else(|_| raw_path.strip_prefix(Path::new(&canonical_snap_root)))
+        .map_err(|_| {
+            HarnessSecurityError::new(
+                "snapshot-escape",
+                "snapshot_path escapes declared snapshot_root",
+            )
+        })?;
+    let rel_str = rel.to_string_lossy().replace('\\', "/");
+    let segments = validate_relative_workspace_path(&rel_str, false)?;
+    ensure_no_reparse_points_in_chain(&canonical_snap_root, &segments, false)?;
+    if segments.len() > 1 {
+        let mut dir = PathBuf::from(&canonical_snap_root);
+        for seg in &segments[..segments.len() - 1] {
+            dir.push(seg);
+            if !dir.exists() {
+                std::fs::create_dir(&dir)
+                    .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
+            }
+        }
+        ensure_no_reparse_points_in_chain(
+            &canonical_snap_root,
+            &segments[..segments.len() - 1],
+            true,
+        )?;
+    }
+    let mut anchored_path = PathBuf::from(&canonical_snap_root);
+    for seg in &segments {
+        anchored_path.push(seg);
+    }
 
-    let (anchor, anchored_path) = target_path;
     let wide = wide_null_terminated(anchored_path.as_os_str())?;
+    let mut created_new = false;
     let existing = unsafe {
         CreateFileW(
             wide.as_ptr(),
-            GENERIC_WRITE,
+            GENERIC_WRITE | DELETE,
             0,
             std::ptr::null(),
             OPEN_EXISTING,
@@ -955,7 +953,7 @@ fn write_snapshot_file(
         let created = unsafe {
             CreateFileW(
                 wide.as_ptr(),
-                GENERIC_WRITE,
+                GENERIC_WRITE | DELETE,
                 0,
                 std::ptr::null(),
                 CREATE_NEW,
@@ -970,33 +968,49 @@ fn write_snapshot_file(
                 unsafe { GetLastError() },
             ));
         }
+        created_new = true;
         created
     };
     let owned = unsafe { OwnedHandle::from_raw_handle(handle.cast()) };
     let raw = owned.as_raw_handle().cast();
-    let info = file_info_from_handle(raw)?;
-    if (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 {
-        return Err(HarnessSecurityError::new(
-            "reparse-point-rejected",
-            "snapshot target is a reparse point",
-        ));
-    }
-    if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 {
-        return Err(HarnessSecurityError::new(
-            "snapshot-failed",
-            "snapshot target is a directory",
-        ));
-    }
-    if info.nNumberOfLinks != 1 {
-        return Err(HarnessSecurityError::new(
-            "hardlink-rejected",
-            "snapshot target has multiple hard links",
-        ));
-    }
-    if let Some((canonical_snap_root, expected_segments)) = anchor {
+    let verify_res = (|| -> Result<(), HarnessSecurityError> {
+        let info = file_info_from_handle(raw)?;
+        if (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 {
+            return Err(HarnessSecurityError::new(
+                "reparse-point-rejected",
+                "snapshot target is a reparse point",
+            ));
+        }
+        if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 {
+            return Err(HarnessSecurityError::new(
+                "snapshot-failed",
+                "snapshot target is a directory",
+            ));
+        }
+        if info.nNumberOfLinks != 1 {
+            return Err(HarnessSecurityError::new(
+                "hardlink-rejected",
+                "snapshot target has multiple hard links",
+            ));
+        }
         let final_snap = final_path_from_handle(raw)?;
         let snap_rel = canonical_relative_posix_win(&canonical_snap_root, &final_snap)?;
-        verify_segments_match_case_insensitive(&expected_segments, &snap_rel)?;
+        verify_segments_match_case_insensitive(&segments, &snap_rel)?;
+        Ok(())
+    })();
+    if let Err(err) = verify_res {
+        if created_new {
+            let disp = FILE_DISPOSITION_INFO { DeleteFile: true };
+            unsafe {
+                let _ = SetFileInformationByHandle(
+                    raw,
+                    FileDispositionInfo,
+                    (&disp as *const FILE_DISPOSITION_INFO).cast(),
+                    size_of::<FILE_DISPOSITION_INFO>() as u32,
+                );
+            }
+        }
+        return Err(err);
     }
     if unsafe { SetFilePointerEx(raw, 0, std::ptr::null_mut(), FILE_BEGIN) } == 0 {
         return Err(win32_err(
@@ -1013,29 +1027,61 @@ fn write_snapshot_file(
     write_all_to_handle(raw, bytes)
 }
 
+fn utf16_eq_ignore_case(a: &[u16], b: &[u16]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    if a.is_empty() {
+        return true;
+    }
+    let a_len = match i32::try_from(a.len()) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+    let b_len = match i32::try_from(b.len()) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+    unsafe { CompareStringOrdinal(a.as_ptr(), a_len, b.as_ptr(), b_len, 1) == CSTR_EQUAL }
+}
+
 fn canonical_relative_posix_win(canonical_root: &str, candidate_final: &str) -> Result<String, HarnessSecurityError> {
-    let root_trimmed = canonical_root.trim_end_matches('\\');
-    let cand_trimmed = candidate_final.trim_end_matches('\\');
-    let root_lower = root_trimmed.to_lowercase();
-    let cand_lower = cand_trimmed.to_lowercase();
-    if cand_lower == root_lower {
+    // Compare strictly on UTF-16 code units via Win32 CompareStringOrdinal so NTFS
+    // 1:1 ordinal case-folding matches the kernel and multi-byte Unicode folding
+    // (e.g. İ, K, ẞ, Ⱥ) can NEVER panic or match a distinct sibling directory!
+    let root_u16: Vec<u16> = canonical_root
+        .trim_end_matches('\\')
+        .encode_utf16()
+        .collect();
+    let cand_u16: Vec<u16> = candidate_final
+        .trim_end_matches('\\')
+        .encode_utf16()
+        .collect();
+    if cand_u16.len() == root_u16.len() && utf16_eq_ignore_case(&cand_u16, &root_u16) {
         return Ok(String::new());
     }
-    let prefix_lower = format!("{root_lower}\\");
-    if !cand_lower.starts_with(&prefix_lower) {
+    let sep = b'\\' as u16;
+    if cand_u16.len() <= root_u16.len() + 1
+        || cand_u16[root_u16.len()] != sep
+        || !utf16_eq_ignore_case(&cand_u16[..root_u16.len()], &root_u16)
+    {
         return Err(HarnessSecurityError::new(
             "workspace-escape",
             "resolved handle final path escapes canonical workspace root",
         ));
     }
-    // Extract exact casing suffix after canonical root prefix.
-    let suffix = &cand_trimmed[root_trimmed.len() + 1..];
+    let suffix = String::from_utf16(&cand_u16[root_u16.len() + 1..]).map_err(|_| {
+        HarnessSecurityError::new(
+            "invalid-path",
+            "resolved handle path contains unpaired UTF-16 surrogate",
+        )
+    })?;
     Ok(suffix.replace('\\', "/"))
 }
 
 /// Ensures the OS-resolved normalized relative path matches the requested lexical
-/// segments segment-for-segment (case-insensitively on Windows), defeating NTFS 8.3
-/// short names (`PACKAG~1.JSO`) and intra-workspace symlink/junction TOCTOU races.
+/// segments segment-for-segment via Win32 NTFS ordinal case-folding, defeating
+/// NTFS 8.3 short names (`PACKAG~1.JSO`), Unicode fold mismatches, and TOCTOU aliases.
 fn verify_segments_match_case_insensitive(
     expected_segments: &[String],
     canonical_rel: &str,
@@ -1054,7 +1100,9 @@ fn verify_segments_match_case_insensitive(
         ));
     }
     for (expected, actual) in expected_segments.iter().zip(actual_segments.iter()) {
-        if expected.to_lowercase() != actual.to_lowercase() {
+        let exp_u16: Vec<u16> = expected.encode_utf16().collect();
+        let act_u16: Vec<u16> = actual.encode_utf16().collect();
+        if !utf16_eq_ignore_case(&exp_u16, &act_u16) {
             return Err(HarnessSecurityError::new(
                 "path-alias-rejected",
                 format!(
@@ -1136,11 +1184,7 @@ pub fn verify_workspace_path(
         target.push(seg);
     }
     let wide = wide_null_terminated(target.as_os_str())?;
-    let flags = if expect_directory {
-        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT
-    } else {
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT
-    };
+    let flags = FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT;
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -1203,7 +1247,7 @@ pub fn secure_read_file(
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             std::ptr::null(),
             OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
             std::ptr::null_mut(),
         )
     };
@@ -1254,70 +1298,72 @@ pub fn secure_write_file(
     }
     let wide = wide_null_terminated(target.as_os_str())?;
 
-    // Try opening existing file exclusively against concurrent writers/renamers/deleters.
-    let existing_handle = unsafe {
-        CreateFileW(
-            wide.as_ptr(),
-            GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ,
-            std::ptr::null(),
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
-            std::ptr::null_mut(),
-        )
-    };
-    if existing_handle != INVALID_HANDLE_VALUE && !existing_handle.is_null() {
-        let owned = unsafe { OwnedHandle::from_raw_handle(existing_handle.cast()) };
-        let raw = owned.as_raw_handle().cast();
-        let (final_path, _canonical_rel, _info) =
-            verify_open_file_handle(raw, &canonical_root, &segments, false)?;
-        let existing_bytes = read_all_from_handle(raw, 64 * 1024 * 1024)?;
-        let existing_sha = sha256_hex(&existing_bytes);
+    if !request.must_not_exist {
+        // Try opening existing file exclusively against concurrent writers/renamers/deleters.
+        let existing_handle = unsafe {
+            CreateFileW(
+                wide.as_ptr(),
+                GENERIC_READ | GENERIC_WRITE,
+                FILE_SHARE_READ,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+                std::ptr::null_mut(),
+            )
+        };
+        if existing_handle != INVALID_HANDLE_VALUE && !existing_handle.is_null() {
+            let owned = unsafe { OwnedHandle::from_raw_handle(existing_handle.cast()) };
+            let raw = owned.as_raw_handle().cast();
+            let (final_path, _canonical_rel, _info) =
+                verify_open_file_handle(raw, &canonical_root, &segments, false)?;
+            let existing_bytes = read_all_from_handle(raw, 64 * 1024 * 1024)?;
+            let existing_sha = sha256_hex(&existing_bytes);
 
-        if let Some(expected) = request.precondition_sha256.as_deref() {
-            if !expected.is_empty() && expected != existing_sha {
-                return Err(HarnessSecurityError::new(
-                    "precondition-failed",
-                    "file content hash changed before write (CAS failed)",
+            if let Some(expected) = request.precondition_sha256.as_deref() {
+                if !expected.is_empty() && expected != existing_sha {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "file content hash changed before write (CAS failed)",
+                    ));
+                }
+            }
+            let mut snapshot_written = false;
+            if let Some(snap) = request.snapshot_path.as_deref() {
+                write_snapshot_file(request.snapshot_root.as_deref(), snap, &existing_bytes)?;
+                snapshot_written = true;
+            }
+            // Rewind the exact verified handle, overwrite, truncate, and flush.
+            if unsafe { SetFilePointerEx(raw, 0, std::ptr::null_mut(), FILE_BEGIN) } == 0 {
+                return Err(win32_err(
+                    "write-failed",
+                    "SetFilePointerEx",
+                    unsafe { GetLastError() },
                 ));
             }
+            if unsafe { SetEndOfFile(raw) } == 0 {
+                return Err(win32_err("write-failed", "SetEndOfFile", unsafe {
+                    GetLastError()
+                }));
+            }
+            write_all_to_handle(raw, &request.content)?;
+            return Ok(HarnessSecureWriteResult {
+                final_path,
+                sha256: sha256_hex(&request.content),
+                previous_sha256: Some(existing_sha),
+                bytes_written: request.content.len() as u64,
+                created: false,
+                snapshot_written,
+            });
         }
-        let mut snapshot_written = false;
-        if let Some(snap) = request.snapshot_path.as_deref() {
-            write_snapshot_file(request.snapshot_root.as_deref(), snap, &existing_bytes)?;
-            snapshot_written = true;
-        }
-        // Rewind the exact verified handle, overwrite, truncate, and flush.
-        if unsafe { SetFilePointerEx(raw, 0, std::ptr::null_mut(), FILE_BEGIN) } == 0 {
+
+        let open_code = unsafe { GetLastError() };
+        if open_code != ERROR_FILE_NOT_FOUND && open_code != ERROR_PATH_NOT_FOUND {
             return Err(win32_err(
                 "write-failed",
-                "SetFilePointerEx",
-                unsafe { GetLastError() },
+                "CreateFileW(OPEN_EXISTING)",
+                open_code,
             ));
         }
-        if unsafe { SetEndOfFile(raw) } == 0 {
-            return Err(win32_err("write-failed", "SetEndOfFile", unsafe {
-                GetLastError()
-            }));
-        }
-        write_all_to_handle(raw, &request.content)?;
-        return Ok(HarnessSecureWriteResult {
-            final_path,
-            sha256: sha256_hex(&request.content),
-            previous_sha256: Some(existing_sha),
-            bytes_written: request.content.len() as u64,
-            created: false,
-            snapshot_written,
-        });
-    }
-
-    let open_code = unsafe { GetLastError() };
-    if open_code != ERROR_FILE_NOT_FOUND && open_code != ERROR_PATH_NOT_FOUND {
-        return Err(win32_err(
-            "write-failed",
-            "CreateFileW(OPEN_EXISTING)",
-            open_code,
-        ));
     }
     if !request.allow_create {
         return Err(HarnessSecurityError::new(
@@ -1339,9 +1385,12 @@ pub fn secure_write_file(
         let mut dir = PathBuf::from(&canonical_root);
         for seg in &segments[..segments.len() - 1] {
             dir.push(seg);
-            if !dir.exists() {
-                std::fs::create_dir(&dir)
-                    .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+            match std::fs::create_dir(&dir) {
+                Ok(()) => {}
+                Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(err) => {
+                    return Err(HarnessSecurityError::new("write-failed", err.to_string()));
+                }
             }
         }
         ensure_no_reparse_points_in_chain(
@@ -1363,10 +1412,15 @@ pub fn secure_write_file(
         )
     };
     if new_handle == INVALID_HANDLE_VALUE || new_handle.is_null() {
+        let create_code = unsafe { GetLastError() };
         return Err(win32_err(
-            "write-failed",
+            if create_code == ERROR_FILE_EXISTS || create_code == ERROR_ALREADY_EXISTS {
+                "already-exists"
+            } else {
+                "write-failed"
+            },
             "CreateFileW(CREATE_NEW)",
-            unsafe { GetLastError() },
+            create_code,
         ));
     }
     let owned = unsafe { OwnedHandle::from_raw_handle(new_handle.cast()) };
@@ -1512,6 +1566,7 @@ mod tests {
             content: b"OVERWRITTEN".to_vec(),
             precondition_sha256: None,
             allow_create: false,
+            must_not_exist: false,
             snapshot_path: None,
             snapshot_root: None,
         })
@@ -1537,6 +1592,7 @@ mod tests {
             content: b"export const v = 1;\n".to_vec(),
             precondition_sha256: None,
             allow_create: true,
+            must_not_exist: false,
             snapshot_path: None,
             snapshot_root: None,
         })
@@ -1551,12 +1607,28 @@ mod tests {
             content: b"export const v = 999;\n".to_vec(),
             precondition_sha256: Some(created.sha256.clone()),
             allow_create: false,
+            must_not_exist: false,
             snapshot_path: Some(escaped_snap.to_string_lossy().into_owned()),
             snapshot_root: Some(snap_dir.to_string_lossy().into_owned()),
         })
         .unwrap_err();
         assert_eq!(snap_escape.reason_code(), "snapshot-escape");
         assert!(!escaped_snap.exists());
+
+        // Snapshot path without snapshot_root MUST fail closed!
+        let snap_no_root = secure_write_file(HarnessSecureWriteRequest {
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            relative_path: "src/app.ts".to_string(),
+            content: b"export const v = 888;\n".to_vec(),
+            precondition_sha256: Some(created.sha256.clone()),
+            allow_create: false,
+            must_not_exist: false,
+            snapshot_path: Some(snap_file.to_string_lossy().into_owned()),
+            snapshot_root: None,
+        })
+        .unwrap_err();
+        assert_eq!(snap_no_root.reason_code(), "snapshot-root-required");
+        assert!(!snap_file.exists());
 
         // Wrong CAS precondition must fail without modifying file
         let mismatch = secure_write_file(HarnessSecureWriteRequest {
@@ -1565,6 +1637,7 @@ mod tests {
             content: b"export const v = 2;\n".to_vec(),
             precondition_sha256: Some("0000".to_string()),
             allow_create: false,
+            must_not_exist: false,
             snapshot_path: Some(snap_file.to_string_lossy().into_owned()),
             snapshot_root: Some(snap_dir.to_string_lossy().into_owned()),
         })
@@ -1579,6 +1652,7 @@ mod tests {
             content: b"export const v = 2;\n".to_vec(),
             precondition_sha256: Some(created.sha256.clone()),
             allow_create: false,
+            must_not_exist: false,
             snapshot_path: Some(snap_file.to_string_lossy().into_owned()),
             snapshot_root: Some(snap_dir.to_string_lossy().into_owned()),
         })
@@ -1586,6 +1660,24 @@ mod tests {
         assert!(!updated.created);
         assert!(updated.snapshot_written);
         assert_eq!(std::fs::read(&snap_file).unwrap(), b"export const v = 1;\n");
+
+        // must_not_exist MUST refuse to overwrite an existing file!
+        let exists_err = secure_write_file(HarnessSecureWriteRequest {
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            relative_path: "src/app.ts".to_string(),
+            content: b"CLOBBERED\n".to_vec(),
+            precondition_sha256: None,
+            allow_create: true,
+            must_not_exist: true,
+            snapshot_path: None,
+            snapshot_root: None,
+        })
+        .unwrap_err();
+        assert_eq!(exists_err.reason_code(), "already-exists");
+
+        // Directory verified with expect_directory=false must return is-directory (not open-failed)
+        let dir_err = verify_workspace_path(&workspace, "src", false).unwrap_err();
+        assert_eq!(dir_err.reason_code(), "is-directory");
 
         let read = secure_read_file(&workspace, "src/app.ts", 4096).unwrap();
         assert_eq!(read.content, b"export const v = 2;\n");
@@ -1601,6 +1693,36 @@ mod tests {
         .unwrap();
         assert_eq!(deleted.previous_sha256, read.sha256);
         assert!(!workspace.join("src/app.ts").exists());
+
+        // must_not_exist succeeds after deletion
+        let restored = secure_write_file(HarnessSecureWriteRequest {
+            workspace_root: workspace.to_string_lossy().into_owned(),
+            relative_path: "src/app.ts".to_string(),
+            content: b"export const v = 1;\n".to_vec(),
+            precondition_sha256: None,
+            allow_create: true,
+            must_not_exist: true,
+            snapshot_path: None,
+            snapshot_root: None,
+        })
+        .unwrap();
+        assert!(restored.created);
+        assert_eq!(std::fs::read(workspace.join("src/app.ts")).unwrap(), b"export const v = 1;\n");
+
+        // Unicode length-changing case-fold characters (İ, K, ẞ, Ⱥ) must not panic or mis-slice
+        let rel_i = canonical_relative_posix_win(r"C:\İroot", r"C:\İroot\sub\file.txt").unwrap();
+        assert_eq!(rel_i, "sub/file.txt");
+        let rel_s = canonical_relative_posix_win(r"C:\ẞroot", r"C:\ẞroot\a.txt").unwrap();
+        assert_eq!(rel_s, "a.txt");
+        // Win32 ordinal case compare does NOT fold Kelvin sign U+212A to ASCII 'k' or U+023A to U+2C65
+        assert_eq!(
+            canonical_relative_posix_win(r"C:\KȺȺ", r"C:\kⱥⱥ\escape.txt")
+                .unwrap_err()
+                .reason_code(),
+            "workspace-escape"
+        );
+        verify_segments_match_case_insensitive(&["İ_dir".to_string(), "file.txt".to_string()], "İ_dir/FILE.txt")
+            .unwrap();
 
         // Sensitive .envrc and alias mismatch checks
         assert!(is_sensitive_relative_path(".envrc"));

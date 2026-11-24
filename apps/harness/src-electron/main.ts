@@ -113,27 +113,67 @@ void app.whenReady().then(async () => {
   if (!existsSync(engineWorkerPath)) {
     throw new Error(`Harness engine worker entry is missing: ${engineWorkerPath}`);
   }
-  const forked = utilityProcess.fork(engineWorkerPath, [], { serviceName: 'nimi-harness-engine' });
-  engineWorker = new HarnessEngineWorkerClient(forked, {
-    onViewChanged: notifyRendererViewChanged,
-    onFocusSession: workSessionRef => {
-      notifyRendererFocusSession(workSessionRef);
-      notifyRendererViewChanged();
-    },
-    onLeaseLost: reason => {
-      process.stderr.write(`[nimi-harness-symbiosis] lease lost: ${reason}\n`);
-      notifyRendererViewChanged();
-    },
-    onCrash: code => {
-      if (!quitting) {
+  const allowSourceLocalDev = (process as { defaultApp?: boolean }).defaultApp === true;
+  let lastActiveServices: Parameters<HarnessEngineWorkerClient['activateSession']>[0] | undefined;
+  let respawnTimer: ReturnType<typeof setTimeout> | undefined;
+  const crashTimestamps: number[] = [];
+  const MAX_RESPAWNS_PER_MINUTE = 5;
+
+  const spawnEngineWorker = (): HarnessEngineWorkerClient => {
+    const forked = utilityProcess.fork(engineWorkerPath, [], { serviceName: 'nimi-harness-engine' });
+    const worker = new HarnessEngineWorkerClient(forked, {
+      onViewChanged: notifyRendererViewChanged,
+      onFocusSession: workSessionRef => {
+        notifyRendererFocusSession(workSessionRef);
+        notifyRendererViewChanged();
+      },
+      onLeaseLost: reason => {
+        process.stderr.write(`[nimi-harness-symbiosis] lease lost: ${reason}\n`);
+        notifyRendererViewChanged();
+      },
+      onCrash: code => {
+        if (quitting) return;
         process.stderr.write(`[nimi-harness-worker] engine process exited unexpectedly (code=${code}); side effects will not be auto-replayed.\n`);
-      }
-    },
-    onLog: text => {
-      process.stderr.write(`${text}\n`);
-    },
-  });
-  void engineWorker.request({ kind: 'ping' }).catch(() => {});
+        if (engineWorker !== worker) return;
+        const now = Date.now();
+        while (crashTimestamps.length > 0 && now - crashTimestamps[0]! > 60_000) {
+          crashTimestamps.shift();
+        }
+        crashTimestamps.push(now);
+        if (crashTimestamps.length > MAX_RESPAWNS_PER_MINUTE) {
+          process.stderr.write('[nimi-harness-worker] respawn cap reached; restart Nimi Harness to recover.\n');
+          return;
+        }
+        const delayMs = Math.min(8_000, 1_000 * (2 ** (crashTimestamps.length - 1)));
+        if (respawnTimer) clearTimeout(respawnTimer);
+        respawnTimer = setTimeout(() => {
+          respawnTimer = undefined;
+          if (quitting) return;
+          const nextWorker = spawnEngineWorker();
+          engineWorker = nextWorker;
+          if (lastActiveServices) {
+            try {
+              nextWorker.activateSession(lastActiveServices, {
+                dataRoot: harnessDataRoot,
+                requireSymbiosis: true,
+                allowSourceLocalDev,
+              });
+            } catch (err) {
+              process.stderr.write(`[nimi-harness-worker] failed to reactivate respawned worker: ${err instanceof Error ? err.message : String(err)}\n`);
+            }
+          }
+          notifyRendererViewChanged();
+        }, delayMs);
+        respawnTimer.unref?.();
+      },
+      onLog: text => {
+        process.stderr.write(`${text}\n`);
+      },
+    });
+    void worker.request({ kind: 'ping' }).catch(() => {});
+    return worker;
+  };
+  engineWorker = spawnEngineWorker();
 
   const callEngine = <T = unknown>(method: string, args: unknown[] = []): Promise<T> => {
     if (!engineWorker) {
@@ -153,6 +193,16 @@ void app.whenReady().then(async () => {
       .catch(() => {});
   };
 
+  let activityOpenRegistration: { stop(): Promise<void> } | undefined;
+  const focusMainWindow = () => {
+    const existing = BrowserWindow.getAllWindows()[0];
+    if (existing && !existing.isDestroyed()) {
+      if (existing.isMinimized()) existing.restore();
+      existing.show();
+      existing.focus();
+    }
+  };
+
   registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,
@@ -161,12 +211,33 @@ void app.whenReady().then(async () => {
     ipcMain,
     onSessionReady: services => {
       accountGeneration += 1;
+      lastActiveServices = services;
       const deepLinkRef = pendingDeepLinkWorkSessionRef;
       pendingDeepLinkWorkSessionRef = undefined;
+      void activityOpenRegistration?.stop().catch(() => {});
+      activityOpenRegistration = services.activity?.onOpenRequest?.(async request => {
+        const refRaw = typeof request.objectRef === 'string' ? request.objectRef.trim() : '';
+        const targetRef = refRaw.startsWith('work-session:')
+          ? refRaw.slice('work-session:'.length).trim()
+          : refRaw.startsWith('session:')
+            ? refRaw.slice('session:'.length).trim()
+            : refRaw;
+        if (!targetRef) return 'object-unavailable';
+        const selected = await callEngine<boolean>('selectByWorkSessionRef', [targetRef]).catch(() => false);
+        if (!selected) return 'object-unavailable';
+        focusMainWindow();
+        notifyRendererFocusSession(targetRef);
+        notifyRendererViewChanged();
+        return 'opened';
+      });
       try {
-        engineWorker?.activateSession(services, {
+        if (!engineWorker) {
+          engineWorker = spawnEngineWorker();
+        }
+        engineWorker.activateSession(services, {
           dataRoot: harnessDataRoot,
           requireSymbiosis: true,
+          allowSourceLocalDev,
           ...(deepLinkRef ? { pendingDeepLinkWorkSessionRef: deepLinkRef } : {}),
         });
       } catch (error) {
@@ -175,6 +246,13 @@ void app.whenReady().then(async () => {
     },
     onSessionInvalidated: () => {
       accountGeneration += 1;
+      lastActiveServices = undefined;
+      void activityOpenRegistration?.stop().catch(() => {});
+      activityOpenRegistration = undefined;
+      if (respawnTimer) {
+        clearTimeout(respawnTimer);
+        respawnTimer = undefined;
+      }
       engineWorker?.invalidateSession();
       resetAccountScopedRenderer();
     },

@@ -42,6 +42,7 @@ export type MainToWorkerMessage =
     generation: number;
     dataRoot: string;
     requireSymbiosis: boolean;
+    allowSourceLocalDev?: boolean;
     allowInsecureTestFallback?: boolean;
     pendingDeepLinkWorkSessionRef?: string;
   }
@@ -158,10 +159,15 @@ type AsyncQueueItem =
   | { kind: 'end' }
   | { kind: 'error'; error: Error };
 
+const MAX_RPC_STREAM_QUEUE_ITEMS = 4096;
+const MAX_IPC_ASSET_BYTES = 64 * 1024 * 1024;
+
 class RpcStreamQueue {
   private readonly items: AsyncQueueItem[] = [];
   private readonly waiters: Array<(item: AsyncQueueItem) => void> = [];
   private closed = false;
+
+  constructor(private readonly onOverflow?: () => void) {}
 
   push(item: AsyncQueueItem): void {
     if (this.closed) return;
@@ -171,6 +177,13 @@ class RpcStreamQueue {
     const waiter = this.waiters.shift();
     if (waiter) {
       waiter(item);
+      return;
+    }
+    if (item.kind === 'chunk' && this.items.length >= MAX_RPC_STREAM_QUEUE_ITEMS) {
+      this.closed = true;
+      this.items.length = 0;
+      this.items.push({ kind: 'error', error: new Error('Runtime stream backpressure limit exceeded.') });
+      this.onOverflow?.();
       return;
     }
     this.items.push(item);
@@ -220,15 +233,26 @@ const ALLOWED_ENGINE_METHODS = new Set<string>([
 ]);
 
 async function collectAssetBodyBytes(body: unknown): Promise<Uint8Array> {
-  if (body instanceof Uint8Array) return body;
+  if (body instanceof Uint8Array) {
+    if (body.byteLength > MAX_IPC_ASSET_BYTES) {
+      throw new Error('Asset payload exceeds 64 MiB IPC limit.');
+    }
+    return body;
+  }
   if (body instanceof Blob) {
+    if (body.size > MAX_IPC_ASSET_BYTES) {
+      throw new Error('Asset payload exceeds 64 MiB IPC limit.');
+    }
     return new Uint8Array(await body.arrayBuffer());
   }
   const chunks: Uint8Array[] = [];
   let total = 0;
   for await (const chunk of body as AsyncIterable<Uint8Array>) {
-    chunks.push(chunk);
     total += chunk.byteLength;
+    if (total > MAX_IPC_ASSET_BYTES) {
+      throw new Error('Asset payload exceeds 64 MiB IPC limit.');
+    }
+    chunks.push(chunk);
   }
   const merged = new Uint8Array(total);
   let offset = 0;
@@ -250,14 +274,25 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
   const activeRuntimeStreams = new Map<string, RpcStreamQueue>();
 
   let currentGeneration = 0;
+  let latestRequestedGeneration = 0;
   let currentDataRoot = '';
   let currentRequireSymbiosis = true;
+  let currentAllowSourceLocalDev = false;
   let currentAllowInsecureTestFallback = false;
+  let currentDefaultAgentBinding: string | undefined;
+  let currentDefaultAgentHandle: string | undefined;
   let account = new AbortController();
   let harnessPromise: ReturnType<typeof openHarness> | undefined;
   let symbiosis: HarnessBodySymbiosisClient | undefined;
   let retiring = Promise.resolve();
+  let lifecycleQueue = Promise.resolve();
   let viewDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const enqueueLifecycle = (op: () => Promise<void>): Promise<void> => {
+    const next = lifecycleQueue.then(op, op);
+    lifecycleQueue = next.then(() => undefined, () => undefined);
+    return next;
+  };
 
   const log = (text: string) => send({ type: 'worker-log', text });
 
@@ -272,21 +307,26 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     });
   };
 
-  const runtimeStream = <T = unknown>(
+  const openRuntimeStream = <T = unknown>(
     generation: number,
     path: string,
     args: unknown[],
     signal?: AbortSignal,
-  ): AsyncIterable<T> => {
+  ): { iterable: AsyncIterable<T>; cancel: () => Promise<void> } => {
     const streamId = randomUUID();
-    const queue = new RpcStreamQueue();
-    activeRuntimeStreams.set(streamId, queue);
     const closeRemote = () => {
-      if (activeRuntimeStreams.delete(streamId)) {
-        queue.push({ kind: 'end' });
+      const existing = activeRuntimeStreams.get(streamId);
+      if (existing) {
+        activeRuntimeStreams.delete(streamId);
+        existing.push({ kind: 'end' });
         send({ type: 'runtime-stream-close', streamId });
       }
     };
+    const queue = new RpcStreamQueue(() => {
+      activeRuntimeStreams.delete(streamId);
+      send({ type: 'runtime-stream-close', streamId });
+    });
+    activeRuntimeStreams.set(streamId, queue);
     const onAbort = () => closeRemote();
     if (signal?.aborted || generation !== currentGeneration) {
       closeRemote();
@@ -294,7 +334,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
       signal?.addEventListener('abort', onAbort, { once: true });
       send({ type: 'runtime-stream-open', streamId, generation, path, args });
     }
-    return {
+    const iterable: AsyncIterable<T> = {
       async *[Symbol.asyncIterator]() {
         try {
           for (;;) {
@@ -310,7 +350,21 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         }
       },
     };
+    return {
+      iterable,
+      cancel: async () => {
+        signal?.removeEventListener('abort', onAbort);
+        closeRemote();
+      },
+    };
   };
+
+  const runtimeStream = <T = unknown>(
+    generation: number,
+    path: string,
+    args: unknown[],
+    signal?: AbortSignal,
+  ): AsyncIterable<T> => openRuntimeStream<T>(generation, path, args, signal).iterable;
 
   const createBusinessServicesProxy = (generation: number): NimiElectronAppBusinessServices => {
     const STREAM_AGENT_METHODS = new Set([
@@ -375,8 +429,8 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     const ai = {
       text: {
         streamTurn: async (input: unknown) => {
-          const iterable = runtimeStream(generation, 'ai.text.streamTurn', [input]);
-          return { events: iterable, cancel: async () => {} };
+          const handle = openRuntimeStream(generation, 'ai.text.streamTurn', [input]);
+          return { events: handle.iterable, cancel: handle.cancel };
         },
       },
       scenario: {
@@ -389,8 +443,8 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         submit: (spec: unknown, options?: unknown) => runtimeCall(generation, 'ai.scenarioJobs.submit', [spec, options]),
         get: (jobId: string, clientSubmissionId?: string) => runtimeCall(generation, 'ai.scenarioJobs.get', [jobId, clientSubmissionId]),
         subscribe: async (jobId: string) => {
-          const iterable = runtimeStream(generation, 'ai.scenarioJobs.subscribe', [jobId]);
-          return { events: iterable, cancel: async () => {} };
+          const handle = openRuntimeStream(generation, 'ai.scenarioJobs.subscribe', [jobId]);
+          return { events: handle.iterable, cancel: handle.cancel };
         },
         cancel: (jobId: string, reason?: string) => runtimeCall(generation, 'ai.scenarioJobs.cancel', [jobId, reason]),
       },
@@ -440,14 +494,20 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     const services = currentServices;
     const dataRoot = currentDataRoot;
     const requireSymbiosis = currentRequireSymbiosis;
+    const allowSourceLocalDev = currentAllowSourceLocalDev;
     const allowInsecureTestFallback = currentAllowInsecureTestFallback;
+    const defaultAgentBinding = currentDefaultAgentBinding;
+    const defaultAgentHandle = currentDefaultAgentHandle;
     const pending = retiring.then(() => {
       signal.throwIfAborted();
       return openHarness(services, signal, notifyViewChanged, {
         dataRoot,
         symbiosis,
         requireSymbiosis,
+        allowSourceLocalDev,
         allowInsecureTestFallback,
+        ...(defaultAgentBinding ? { defaultAgentBinding } : {}),
+        ...(defaultAgentHandle ? { defaultAgentHandle } : {}),
       });
     });
     harnessPromise = pending;
@@ -504,11 +564,20 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
   }
 
   async function startSession(msg: Extract<MainToWorkerMessage, { type: 'session-ready' }>): Promise<void> {
+    if (msg.generation < latestRequestedGeneration) {
+      return;
+    }
     await closeActiveSession();
+    if (msg.generation < latestRequestedGeneration) {
+      return;
+    }
     currentGeneration = msg.generation;
     currentDataRoot = msg.dataRoot;
     currentRequireSymbiosis = msg.requireSymbiosis;
+    currentAllowSourceLocalDev = Boolean(msg.allowSourceLocalDev);
     currentAllowInsecureTestFallback = Boolean(msg.allowInsecureTestFallback);
+    currentDefaultAgentBinding = undefined;
+    currentDefaultAgentHandle = undefined;
     const services = createBusinessServicesProxy(msg.generation);
     currentServices = services;
     const signal = account.signal;
@@ -520,12 +589,22 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
       }
     });
 
-    // 2. Start Brain-Body Symbiosis coordinator inside worker.
+    // 2. Start Brain-Body Symbiosis coordinator + Partner discovery inside worker.
     void (async () => {
       try {
         if (signal.aborted) return;
-        const deviceId = await resolvePersistentDeviceId(services.storage, signal);
+        const [deviceId, agentRefs] = await Promise.all([
+          resolvePersistentDeviceId(services.storage, signal),
+          services.agentWork.listReferences().catch(() => [] as readonly { agentHandle?: string; agentBinding?: string }[]),
+        ]);
         signal.throwIfAborted();
+        const firstPartner = agentRefs.find(ref => typeof ref?.agentHandle === 'string' && ref.agentHandle.trim().length > 0);
+        if (firstPartner?.agentHandle) {
+          currentDefaultAgentHandle = firstPartner.agentHandle.trim();
+          if (typeof firstPartner.agentBinding === 'string' && firstPartner.agentBinding.trim()) {
+            currentDefaultAgentBinding = firstPartner.agentBinding.trim();
+          }
+        }
         const client = new HarnessBodySymbiosisClient({
           deviceId,
           client: services.agentSession,
@@ -549,6 +628,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
             onReconcileAfterTombstones: async () => (await getHarness()).listBodyProjectionsForReconcile(),
             onLeaseLost: (reason) => {
               log(`[nimi-harness-symbiosis] lease lost: ${reason}`);
+              void harnessPromise?.then(h => h.revokeAllGrants()).catch(() => {});
               send({ type: 'lease-lost', reason });
               notifyViewChanged();
             },
@@ -557,9 +637,9 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         symbiosis = client;
         if (harnessPromise) {
           const active = await harnessPromise.catch(() => undefined);
-          if (active) await active.attachSymbiosis(client);
+          if (active) await active.attachSymbiosis(client, currentDefaultAgentBinding, currentDefaultAgentHandle);
         }
-        await client.start(signal);
+        await client.start(signal, { retryInitialHandshake: true });
         if (msg.pendingDeepLinkWorkSessionRef && !signal.aborted) {
           const ref = msg.pendingDeepLinkWorkSessionRef;
           const selected = await (await getHarness()).selectByWorkSessionRef(ref).catch(() => false);
@@ -594,14 +674,19 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         void handleEngineWorkerRequest(typed.payload).then(payload => send({ type: 'utility-response', payload }));
         break;
       case 'session-ready':
-        void startSession(typed);
+        latestRequestedGeneration = Math.max(latestRequestedGeneration, typed.generation);
+        void enqueueLifecycle(() => startSession(typed));
         break;
       case 'session-invalidated':
-        currentGeneration = typed.generation;
-        void closeActiveSession();
+        latestRequestedGeneration = Math.max(latestRequestedGeneration, typed.generation);
+        void enqueueLifecycle(async () => {
+          currentGeneration = Math.max(currentGeneration, typed.generation);
+          await closeActiveSession();
+        });
         break;
       case 'shutdown':
-        void closeActiveSession().finally(() => send({ type: 'shutdown-ack', id: typed.id }));
+        latestRequestedGeneration += 1;
+        void enqueueLifecycle(() => closeActiveSession()).finally(() => send({ type: 'shutdown-ack', id: typed.id }));
         break;
       case 'engine-call':
         void (async () => {
@@ -897,6 +982,7 @@ export class HarnessEngineWorkerClient {
     options: {
       readonly dataRoot: string;
       readonly requireSymbiosis: boolean;
+      readonly allowSourceLocalDev?: boolean;
       readonly allowInsecureTestFallback?: boolean;
       readonly pendingDeepLinkWorkSessionRef?: string;
     },
@@ -910,6 +996,7 @@ export class HarnessEngineWorkerClient {
       generation: this.currentGeneration,
       dataRoot: options.dataRoot,
       requireSymbiosis: options.requireSymbiosis,
+      ...(options.allowSourceLocalDev !== undefined ? { allowSourceLocalDev: options.allowSourceLocalDev } : {}),
       ...(options.allowInsecureTestFallback !== undefined ? { allowInsecureTestFallback: options.allowInsecureTestFallback } : {}),
       ...(options.pendingDeepLinkWorkSessionRef ? { pendingDeepLinkWorkSessionRef: options.pendingDeepLinkWorkSessionRef } : {}),
     } satisfies MainToWorkerMessage);

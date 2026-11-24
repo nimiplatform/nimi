@@ -295,10 +295,18 @@ export class HarnessBodySymbiosisClient {
    *   3. Reconcile local session projections with strictly monotonic (lease_epoch, projection_seq)
    *   4. Process pending NEW_INTENT items & start 10s heartbeat + SubscribeBodyOutbox loop
    */
-  async start(signal: AbortSignal): Promise<void> {
+  async start(signal: AbortSignal, options?: { readonly retryInitialHandshake?: boolean }): Promise<void> {
     if (this.running) return;
     this.stopped = false;
-    await this.registerAndDrain(signal);
+    try {
+      await this.registerAndDrain(signal);
+    } catch (error) {
+      if (!options?.retryInitialHandshake || this.stopped || signal.aborted) {
+        throw error;
+      }
+      // Keep the background reconnect loop running so transient startup races with
+      // Runtime recover automatically with exponential backoff.
+    }
     void this.consumeOutboxStreamWithReconnect(signal);
   }
 
@@ -348,19 +356,21 @@ export class HarnessBodySymbiosisClient {
         await this.handleEnvelopeAndAck(env);
       }
 
-      // Step 5: Start 10s in-memory heartbeat with lease-loss detection.
+      // Step 5: Start 10s in-memory heartbeat with epoch-fenced lease-loss detection.
       if (this.heartbeatTimer) {
         clearInterval(this.heartbeatTimer);
       }
       const intervalMs = Math.max(2_000, Number(reg.heartbeatIntervalMs ?? 10_000));
+      const myEpoch = this.leaseEpoch;
       this.heartbeatTimer = setInterval(() => {
-        if (!this.running || signal.aborted) return;
+        if (!this.running || this.stopped || this.leaseEpoch !== myEpoch || signal.aborted) return;
         void this.client.heartbeatBodyCarrier({
           deviceId: this.deviceId,
           capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
-          leaseEpoch: String(this.leaseEpoch),
+          leaseEpoch: String(myEpoch),
           instanceId: this.instanceId,
         } as never).then(resp => {
+          if (!this.running || this.stopped || this.leaseEpoch !== myEpoch || signal.aborted) return;
           const parsed = resp as unknown as { alive?: boolean; renewed?: boolean };
           if (parsed?.alive === false || parsed?.renewed === false) {
             this.handleLeaseLost('Runtime reported lease epoch superseded.');
@@ -368,6 +378,7 @@ export class HarnessBodySymbiosisClient {
             this.consecutiveHeartbeatFailures = 0;
           }
         }).catch(err => {
+          if (!this.running || this.stopped || this.leaseEpoch !== myEpoch || signal.aborted) return;
           this.consecutiveHeartbeatFailures += 1;
           if (this.consecutiveHeartbeatFailures >= 3) {
             this.handleLeaseLost(err instanceof Error ? err.message : 'Body carrier heartbeat lost.');
@@ -376,8 +387,28 @@ export class HarnessBodySymbiosisClient {
       }, intervalMs);
       this.heartbeatTimer.unref?.();
     } catch (error) {
-      await this.stop().catch(() => {});
+      await this.resetLeaseState(true).catch(() => {});
       throw error;
+    }
+  }
+
+  private async resetLeaseState(unregister: boolean): Promise<void> {
+    this.running = false;
+    this.tombstonesDrained = false;
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+    }
+    this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
+    if (unregister && this.leaseEpoch > 0) {
+      const epoch = this.leaseEpoch;
+      this.leaseEpoch = 0;
+      await this.client.unregisterBodyCarrier({
+        deviceId: this.deviceId,
+        capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
+        leaseEpoch: String(epoch),
+        instanceId: this.instanceId,
+      } as never).catch(() => {});
     }
   }
 
@@ -391,6 +422,15 @@ export class HarnessBodySymbiosisClient {
     }
     this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
     this.handlers.onLeaseLost?.(reason);
+  }
+
+  private isTombstoneCommand(kind: unknown): boolean {
+    return kind === 2
+      || kind === 3
+      || kind === 4
+      || kind === 'BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY'
+      || kind === 'BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION'
+      || kind === 'BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT';
   }
 
   private async consumeOutboxStreamWithReconnect(signal: AbortSignal): Promise<void> {
@@ -415,8 +455,15 @@ export class HarnessBodySymbiosisClient {
             if (/AGENT_BODY_LEASE_CONFLICT|FAILED_PRECONDITION/i.test(msg)) {
               throw envErr;
             }
-            // Do NOT ACK failed/unknown envelopes; keep the outbox subscription alive
-            // so Runtime can redeliver retriable commands without starving subsequent items.
+            if (this.isTombstoneCommand(env.commandKind)) {
+              // Strict v2.1 tombstone barrier: NEVER advance to subsequent NEW_INTENT items
+              // after a failed PURGE_* or INVALIDATE_MEMORY! Drop the stream and re-register
+              // so RegisterBodyCarrier drains all pending tombstones before any intent runs.
+              this.running = false;
+              this.tombstonesDrained = false;
+              throw envErr;
+            }
+            // Non-tombstone unknown/failed envelopes are NOT ACKed so Runtime can redeliver.
           }
         }
       } catch (err) {
@@ -428,9 +475,16 @@ export class HarnessBodySymbiosisClient {
       }
       if (this.stopped || signal.aborted) break;
       await new Promise<void>(resolve => {
-        const timer = setTimeout(resolve, backoffMs);
+        const onAbort = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        const timer = setTimeout(() => {
+          signal.removeEventListener('abort', onAbort);
+          resolve();
+        }, backoffMs);
         timer.unref?.();
-        signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+        signal.addEventListener('abort', onAbort, { once: true });
       });
       backoffMs = Math.min(15_000, backoffMs * 2);
     }
@@ -606,6 +660,9 @@ export class HarnessBodySymbiosisClient {
     if (!this.running || this.leaseEpoch <= 0) {
       throw new Error('Harness PC body lease is offline; cannot execute compaction step.');
     }
+    // Keep one stable stepRequestId across all retries so a post-commit stream drop
+    // replays the committed Runtime ledger journal idempotently without MAC mismatch.
+    const stepRequestId = randomUUID();
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
@@ -634,7 +691,7 @@ export class HarnessBodySymbiosisClient {
             isError: Boolean(m.isError),
             outboxId: m.outboxId ?? '',
           })),
-          stepRequestId: randomUUID(),
+          stepRequestId,
         } as never);
 
         let summary = '';
@@ -642,6 +699,7 @@ export class HarnessBodySymbiosisClient {
         let usageInputTokens = 0;
         let usageOutputTokens = 0;
         let budget = this.effectiveContextBudgetTokens;
+        let sawDone = false;
 
         for await (const raw of stream as AsyncIterable<Record<string, unknown>>) {
           const decoded = decodeBodyStepStreamEvent(raw);
@@ -652,6 +710,7 @@ export class HarnessBodySymbiosisClient {
               budget = decoded.effectiveContextBudgetTokens;
             }
           } else if (decoded.kind === 'done') {
+            sawDone = true;
             if (decoded.compactionSummary) summary = decoded.compactionSummary;
             postCompactionMac = decoded.postCompactionMac;
             usageInputTokens = decoded.usageInputTokens;
@@ -663,8 +722,14 @@ export class HarnessBodySymbiosisClient {
             throw new Error(decoded.message || 'Compaction step failed.');
           }
         }
+        if (!sawDone) {
+          throw new Error('Runtime compaction step stream closed before terminal done event.');
+        }
         if (!summary.trim()) {
           throw new Error('Runtime compaction step returned an empty summary.');
+        }
+        if (!postCompactionMac.trim()) {
+          throw new Error('Runtime compaction step did not return post_compaction_mac.');
         }
         this.effectiveContextBudgetTokens = budget;
         return {
@@ -682,21 +747,7 @@ export class HarnessBodySymbiosisClient {
   }
 
   async stop(): Promise<void> {
-    this.running = false;
-    this.tombstonesDrained = false;
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = undefined;
-    }
-    if (this.leaseEpoch > 0) {
-      const epoch = this.leaseEpoch;
-      this.leaseEpoch = 0;
-      await this.client.unregisterBodyCarrier({
-        deviceId: this.deviceId,
-        capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
-        leaseEpoch: String(epoch),
-        instanceId: this.instanceId,
-      } as never).catch(() => {});
-    }
+    this.stopped = true;
+    await this.resetLeaseState(true);
   }
 }

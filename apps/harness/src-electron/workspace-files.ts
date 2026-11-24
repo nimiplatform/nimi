@@ -26,13 +26,67 @@ function isPreviewableText(filePath: string): boolean {
   return textBasenames.has(basename(filePath).toLowerCase());
 }
 
-export async function validateWorkspaceDir(dir: string): Promise<string> {
+function pathsOverlapCaseAware(a: string, b: string): boolean {
+  const normA = process.platform === 'win32' || process.platform === 'darwin'
+    ? resolve(a).toLowerCase()
+    : resolve(a);
+  const normB = process.platform === 'win32' || process.platform === 'darwin'
+    ? resolve(b).toLowerCase()
+    : resolve(b);
+  if (normA === normB) return true;
+  const prefA = normA.endsWith(sep) ? normA : normA + sep;
+  const prefB = normB.endsWith(sep) ? normB : normB + sep;
+  return normA.startsWith(prefB) || normB.startsWith(prefA);
+}
+
+function isForbiddenSystemWorkspaceRoot(realDir: string): boolean {
+  // Reject filesystem roots such as "/" or "C:\".
+  if (dirname(realDir) === realDir) return true;
+  if (process.platform === 'win32') {
+    const lower = realDir.toLowerCase().replace(/\\+$/, '');
+    const sysRoot = (process.env.SystemRoot || process.env.SYSTEMROOT || 'C:\\Windows').toLowerCase().replace(/\\+$/, '');
+    const programFiles = (process.env.ProgramFiles || 'C:\\Program Files').toLowerCase().replace(/\\+$/, '');
+    const programFilesX86 = (process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)').toLowerCase().replace(/\\+$/, '');
+    for (const blocked of [sysRoot, programFiles, programFilesX86]) {
+      if (lower === blocked || lower.startsWith(`${blocked}\\`)) return true;
+    }
+    return false;
+  }
+  const normalized = realDir.replace(/\/+$/, '');
+  for (const blocked of ['/system', '/etc', '/usr', '/bin', '/sbin', '/dev', '/proc', '/sys', '/library']) {
+    if (normalized.toLowerCase() === blocked || normalized.toLowerCase().startsWith(`${blocked}/`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function validateWorkspaceDir(dir: string, forbiddenRoots: readonly string[] = []): Promise<string> {
   if (typeof dir !== 'string' || !dir.trim() || !isAbsolute(dir) || /[\x00-\x1f]/u.test(dir)) {
     throw new Error('Choose an absolute directory path for the workspace.');
   }
-  const info = await stat(dir);
-  if (!info.isDirectory()) throw new Error('The chosen workspace path is not a directory.');
-  return realpath(dir);
+  const linfo = await lstat(dir);
+  if (linfo.isSymbolicLink()) {
+    throw new Error('Workspace path must be a real directory, not a symbolic link.');
+  }
+  if (!linfo.isDirectory()) throw new Error('The chosen workspace path is not a directory.');
+  const real = await realpath(dir);
+  if (isForbiddenSystemWorkspaceRoot(real)) {
+    throw new Error('System roots and OS directories cannot be bound as a Harness workspace.');
+  }
+  for (const forbidden of forbiddenRoots) {
+    if (!forbidden) continue;
+    let resolvedForbidden = resolve(forbidden);
+    try {
+      resolvedForbidden = await realpath(forbidden);
+    } catch {
+      // Directory may not exist yet; compare resolved absolute path.
+    }
+    if (pathsOverlapCaseAware(real, resolvedForbidden)) {
+      throw new Error('Harness internal data directory cannot be bound as a user workspace.');
+    }
+  }
+  return real;
 }
 
 /** Verify whether a candidate path (existing or to-be-created) resolves strictly inside the workspace root. */

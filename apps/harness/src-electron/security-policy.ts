@@ -305,11 +305,15 @@ function parseEnvCanaryValue(rawVal: string): string {
 }
 
 function shouldTrackEnvCanary(key: string, val: string): boolean {
-  if (val.length < 8) return false;
   const lower = val.toLowerCase();
   if (BENIGN_ENV_LITERALS.has(lower)) return false;
+  // Explicitly sensitive key names (e.g. API_KEY, PIN_SECRET, AUTH_TOKEN) are tracked
+  // even when short (4-7 chars) or numeric, before generic entropy/numeric heuristics run.
+  if (SENSITIVE_KEY_NAME_RE.test(key)) {
+    return val.length >= 4;
+  }
+  if (val.length < 8) return false;
   if (/^\d+$/.test(val)) return false;
-  if (SENSITIVE_KEY_NAME_RE.test(key)) return true;
   if (val.length >= 16 && shannonEntropy(val) >= 3.2) return true;
   return false;
 }

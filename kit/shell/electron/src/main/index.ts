@@ -36,6 +36,7 @@ export {
 } from './local-app-host.js';
 export {
   createNimiElectronHarnessSecurityHost,
+  type CreateNimiElectronHarnessSecurityHostOptions,
   type NimiElectronHarnessSecurityBinding,
   type NimiElectronHarnessSecurityHost,
   type NimiHarnessJobProcessInput,
