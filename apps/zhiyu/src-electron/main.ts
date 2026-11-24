@@ -20,6 +20,7 @@ import {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,
 } from '@nimiplatform/kit/shell/electron/main';
+import { createNimiLocalAppAgentSessionClient } from '@nimiplatform/sdk/app';
 import {
   ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL,
   ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL,
@@ -68,6 +69,50 @@ ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, (event, payload) => {
   const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
   if (!window || event.sender !== window.webContents || window.webContents.isDestroyed()) return;
   resourcePackPlacementHost?.acknowledge(payload);
+});
+
+ipcMain.handle('nimi:zhiyu:harness-handoff:submit', async (event, rawPayload: unknown) => {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window || event.sender !== window.webContents || window.webContents.isDestroyed()) {
+    throw new Error('zhiyu-handoff-sender-unauthorized');
+  }
+  if (!registeredAppBridge) {
+    throw new Error('zhiyu-host-not-ready');
+  }
+  const record = rawPayload && typeof rawPayload === 'object' && !Array.isArray(rawPayload)
+    ? rawPayload as Record<string, unknown>
+    : null;
+  const agentHandle = typeof record?.agentHandle === 'string' ? record.agentHandle.trim() : '';
+  const requestId = typeof record?.requestId === 'string' ? record.requestId.trim() : '';
+  const text = typeof record?.text === 'string' ? record.text.trim() : '';
+  const handoffBriefText = typeof record?.handoffBriefText === 'string' ? record.handoffBriefText.trim() : '';
+  if (!agentHandle || !requestId || !handoffBriefText) {
+    throw new Error('zhiyu-handoff-invalid-brief');
+  }
+  const client = createNimiLocalAppAgentSessionClient(registeredAppBridge.localAppHost);
+  const res = await client.routeAndSubmitInput({
+    agentHandle,
+    requestId,
+    text: text || handoffBriefText.slice(0, 200),
+    explicitWorkSessionRef: '',
+    entrySurface: 'zhiyu_handoff',
+    workspaceRoot: '',
+    workspaceWritable: false,
+    attachmentPaths: [],
+    cardSourceSessionRef: '',
+    cardSourceMaxSeq: '0',
+    handoffBriefText,
+    replyToMessageRef: '',
+    delegationObjectId: '',
+    selectedCandidateRef: '',
+    trustTierHint: 'trusted',
+  });
+  return {
+    resolvedWorkSessionRef: res.resolvedWorkSessionRef,
+    sessionKind: res.sessionKind,
+    ownerBodyKind: res.ownerBodyKind,
+    deduplicated: res.deduplicated,
+  };
 });
 
 const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = async (payload) => {

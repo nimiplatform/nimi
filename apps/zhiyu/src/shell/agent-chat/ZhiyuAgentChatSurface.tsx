@@ -80,6 +80,7 @@ import { ZhiyuResourcePackSurface } from '../../resource-pack/ZhiyuResourcePackS
 import { ZhiyuResourcePackStatusNotice } from '../../resource-pack/ZhiyuResourcePackStatusNotice';
 import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/presentation-controller';
 import { ZhiyuAgentActivityReferences } from './ZhiyuAgentActivityReferences';
+import { ZhiyuHarnessHandoffDialog } from './ZhiyuHarnessHandoffDialog';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly discovery?: import('react').ReactNode;
@@ -248,6 +249,7 @@ export function ZhiyuAgentChatSurface({
   }, [openRequest, evidence.conversation.ready, connectionStatus, historyView.positionRequest, historyView.locate, onOpenRequestReady]);
 
   const [historyMediaRevision, setHistoryMediaRevision] = useState(0);
+  const [harnessHandoffOpen, setHarnessHandoffOpen] = useState(false);
   const historyMedia = useMemo(() => {
     const agentHandle = evidence.conversation.agentHandle;
     const conversationAnchorId = evidence.conversation.conversationAnchorId;
@@ -709,6 +711,7 @@ export function ZhiyuAgentChatSurface({
                     onAvatarLaunch={onAvatarLaunch}
                     onOpenAppearance={openAppearanceConfig}
                     onOpenBehavior={openBehaviorConfig}
+                    onOpenHarnessHandoff={hasCurrentPartner ? () => setHarnessHandoffOpen(true) : undefined}
                   />
                 )}
                 trailingSlot={(
@@ -762,6 +765,13 @@ export function ZhiyuAgentChatSurface({
         ) : null}
       </div>
       </div>
+      <ZhiyuHarnessHandoffDialog
+        open={harnessHandoffOpen}
+        partnerName={currentPartnerName}
+        agentHandle={evidence.localAgent.agentHandle ?? null}
+        currentDraft={draft}
+        onClose={() => setHarnessHandoffOpen(false)}
+      />
     </main>
   );
 }

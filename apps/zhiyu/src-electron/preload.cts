@@ -67,3 +67,10 @@ contextBridge.exposeInMainWorld('__nimiZhiyuConversationOpen', {
   },
   acknowledge(value: unknown) { ipcRenderer.send('nimi:zhiyu:conversation-open:ack', value); },
 });
+
+// Controlled brief-only handoff from Zhiyu to Harness via Runtime AgentSessionService.
+contextBridge.exposeInMainWorld('__nimiZhiyuHarnessHandoff', {
+  submit(payload: unknown) {
+    return ipcRenderer.invoke('nimi:zhiyu:harness-handoff:submit', payload);
+  },
+});

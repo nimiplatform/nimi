@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Briefcase,
   Lightbulb,
   SlidersHorizontal,
   UserRound,
@@ -81,12 +82,14 @@ export function ComposerModeTools({
   onAvatarLaunch,
   onOpenAppearance,
   onOpenBehavior,
+  onOpenHarnessHandoff,
 }: {
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly avatarLaunchPending?: boolean;
   readonly onAvatarLaunch?: () => void;
   readonly onOpenAppearance: () => void;
   readonly onOpenBehavior: () => void;
+  readonly onOpenHarnessHandoff?: () => void;
 }) {
   const avatarReady = avatarLaunchAction.state === 'ready' && Boolean(onAvatarLaunch);
   return (
@@ -118,6 +121,23 @@ export function ComposerModeTools({
       <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenBehavior}>
         <Lightbulb size={16} aria-hidden="true" />
       </button>
+      {onOpenHarnessHandoff ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="mx-0.5 h-4 w-px bg-[var(--nimi-border-subtle)]"
+          />
+          <button
+            type="button"
+            aria-label="转交 Harness 办理（可编辑简报）"
+            title="转交 Harness 办理（可编辑简报）"
+            data-zhiyu-composer-tool="harness-handoff"
+            onClick={onOpenHarnessHandoff}
+          >
+            <Briefcase size={16} aria-hidden="true" />
+          </button>
+        </>
+      ) : null}
     </>
   );
 }
