@@ -214,6 +214,7 @@ pub async fn harness_secure_write_file(input: NativeHarnessSecureWriteInput) -> 
         precondition_sha256: input.precondition_sha256,
         allow_create: input.allow_create.unwrap_or(false),
         snapshot_path: input.snapshot_path,
+        snapshot_root: input.snapshot_root,
     };
     match tokio::task::spawn_blocking(move || secure_write_file(request)).await {
         Ok(Ok(result)) => NativeJsonOutcome::success(json!({
@@ -238,6 +239,7 @@ pub async fn harness_secure_delete_file(
         relative_path: input.relative_path,
         precondition_sha256: input.precondition_sha256,
         snapshot_path: input.snapshot_path,
+        snapshot_root: input.snapshot_root,
     };
     match tokio::task::spawn_blocking(move || secure_delete_file(request)).await {
         Ok(Ok(result)) => NativeJsonOutcome::success(json!({

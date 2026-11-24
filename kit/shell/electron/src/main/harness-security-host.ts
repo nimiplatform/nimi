@@ -62,6 +62,7 @@ export interface NimiHarnessSecureWriteInput {
   readonly preconditionSha256?: string;
   readonly allowCreate?: boolean;
   readonly snapshotPath?: string;
+  readonly snapshotRoot?: string;
 }
 
 export interface NimiHarnessSecureWriteResult {
@@ -78,6 +79,7 @@ export interface NimiHarnessSecureDeleteInput {
   readonly relativePath: string;
   readonly preconditionSha256?: string;
   readonly snapshotPath?: string;
+  readonly snapshotRoot?: string;
 }
 
 export interface NimiHarnessSecureDeleteResult {
@@ -221,6 +223,7 @@ export function createNimiElectronHarnessSecurityHost(
         ...(input.preconditionSha256 !== undefined ? { preconditionSha256: input.preconditionSha256 } : {}),
         ...(input.allowCreate !== undefined ? { allowCreate: input.allowCreate } : {}),
         ...(input.snapshotPath !== undefined ? { snapshotPath: input.snapshotPath } : {}),
+        ...(input.snapshotRoot !== undefined ? { snapshotRoot: input.snapshotRoot } : {}),
       }));
     },
     async secureDeleteFile(input) {
@@ -229,6 +232,7 @@ export function createNimiElectronHarnessSecurityHost(
         relativePath: input.relativePath,
         ...(input.preconditionSha256 !== undefined ? { preconditionSha256: input.preconditionSha256 } : {}),
         ...(input.snapshotPath !== undefined ? { snapshotPath: input.snapshotPath } : {}),
+        ...(input.snapshotRoot !== undefined ? { snapshotRoot: input.snapshotRoot } : {}),
       }));
     },
   };

@@ -898,6 +898,7 @@ pub struct NativeHarnessSecureWriteInput {
     pub precondition_sha256: Option<String>,
     pub allow_create: Option<bool>,
     pub snapshot_path: Option<String>,
+    pub snapshot_root: Option<String>,
 }
 
 #[napi(object)]
@@ -906,4 +907,5 @@ pub struct NativeHarnessSecureDeleteInput {
     pub relative_path: String,
     pub precondition_sha256: Option<String>,
     pub snapshot_path: Option<String>,
+    pub snapshot_root: Option<String>,
 }
