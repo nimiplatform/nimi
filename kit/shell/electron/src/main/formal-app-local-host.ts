@@ -1291,10 +1291,18 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         cancel: () => raw.cancel(),
         closed: false,
       };
+      const MAX_AGENT_SESSION_QUEUE = 256;
       const push = (item: { readonly done: true } | { readonly done: false; readonly chunk: Uint8Array } | { readonly error: unknown }) => {
         if (state.waiters.length > 0) {
           state.waiters.shift()?.(item);
         } else {
+          if (state.queue.length >= MAX_AGENT_SESSION_QUEUE) {
+            state.closed = true;
+            state.cancel();
+            state.queue.length = 0;
+            state.queue.push({ error: new NimiElectronLocalAppHostError('resource-exhausted', true) });
+            return;
+          }
           state.queue.push(item);
         }
       };

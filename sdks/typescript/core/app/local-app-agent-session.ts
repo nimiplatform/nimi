@@ -59,6 +59,14 @@ export function createNimiLocalAppAgentSessionClient(
       request: CoreUnaryRequest<Body>,
     ): Promise<Response> {
       assertAgentSessionMethod(request.methodId);
+      if (request.signal?.aborted) {
+        throw createNimiError({
+          message: 'AgentSessionService request aborted.',
+          reasonCode: ReasonCode.OPERATION_ABORTED,
+          actionHint: 'retry_if_needed',
+          source: 'sdk',
+        });
+      }
       const codec = getRuntimeWireCodec(request.methodId);
       const requestBytes = codec.encodeRequest(request.body);
       const responseBytes = await shell.agentSessionUnary({
@@ -66,6 +74,14 @@ export function createNimiLocalAppAgentSessionClient(
         requestBytes,
         ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
       });
+      if (request.signal?.aborted) {
+        throw createNimiError({
+          message: 'AgentSessionService request aborted.',
+          reasonCode: ReasonCode.OPERATION_ABORTED,
+          actionHint: 'retry_if_needed',
+          source: 'sdk',
+        });
+      }
       return codec.decodeResponse(responseBytes) as Response;
     },
     serverStream<Response = unknown, Body = unknown>(
@@ -74,27 +90,45 @@ export function createNimiLocalAppAgentSessionClient(
       assertAgentSessionMethod(request.methodId);
       const codec = getRuntimeWireCodec(request.methodId);
       const requestBytes = codec.encodeRequest(request.body);
+      const signal = request.signal;
       return {
         async *[Symbol.asyncIterator]() {
+          if (signal?.aborted) {
+            return;
+          }
           const { streamId } = await shell.agentSessionStreamOpen({
             methodId: request.methodId,
             requestBytes,
             ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
           });
           let closed = false;
+          const closeOnce = () => {
+            if (closed) return Promise.resolve();
+            closed = true;
+            return shell.agentSessionStreamClose({ streamId }).then(() => undefined, () => undefined);
+          };
+          const onAbort = () => {
+            void closeOnce();
+          };
+          if (signal) {
+            if (signal.aborted) {
+              await closeOnce();
+              return;
+            }
+            signal.addEventListener('abort', onAbort, { once: true });
+          }
           try {
-            while (true) {
+            while (!signal?.aborted) {
               const next = await shell.agentSessionStreamNext({ streamId });
-              if (next.completed) {
+              if (next.completed || signal?.aborted) {
                 closed = true;
                 return;
               }
               yield codec.decodeResponse(next.chunk) as Response;
             }
           } finally {
-            if (!closed) {
-              await shell.agentSessionStreamClose({ streamId }).catch(() => undefined);
-            }
+            signal?.removeEventListener('abort', onAbort);
+            await closeOnce();
           }
         },
       };

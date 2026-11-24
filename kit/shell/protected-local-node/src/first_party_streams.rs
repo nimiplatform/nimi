@@ -29,11 +29,12 @@ struct FirstPartyProductStream {
 
 type SharedStream = Arc<FirstPartyProductStream>;
 enum StreamSlot {
-    Opening(Weak<dyn NimiDesktopControl>),
-    Open(SharedStream),
+    Opening(Weak<dyn NimiDesktopControl>, bool),
+    Open(SharedStream, bool),
 }
 type Registry = HashMap<String, StreamSlot>;
 const MAX_FIRST_PARTY_PRODUCT_STREAMS: usize = 32;
+const MAX_AGENT_SESSION_FIRST_PARTY_STREAMS: usize = 16;
 static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -43,18 +44,26 @@ fn streams() -> &'static Mutex<Registry> {
 
 fn slot_belongs_to_control(slot: &StreamSlot, control: &Arc<dyn NimiDesktopControl>) -> bool {
     let candidate = match slot {
-        StreamSlot::Opening(control) => control,
-        StreamSlot::Open(stream) => &stream.control,
+        StreamSlot::Opening(control, _) => control,
+        StreamSlot::Open(stream, _) => &stream.control,
     };
     candidate
         .upgrade()
         .is_some_and(|candidate| Arc::ptr_eq(&candidate, control))
 }
 
+fn slot_is_agent_session(slot: &StreamSlot) -> bool {
+    match slot {
+        StreamSlot::Opening(_, is_agent_session) | StreamSlot::Open(_, is_agent_session) => {
+            *is_agent_session
+        }
+    }
+}
+
 fn opened_stream(slot: StreamSlot) -> Option<SharedStream> {
     match slot {
-        StreamSlot::Opening(_) => None,
-        StreamSlot::Open(stream) => Some(stream),
+        StreamSlot::Opening(_, _) => None,
+        StreamSlot::Open(stream, _) => Some(stream),
     }
 }
 
@@ -116,7 +125,7 @@ pub(super) async fn close_first_party_product_streams_for_control(
                 return true;
             }
             count += 1;
-            if let StreamSlot::Open(stream) = slot {
+            if let StreamSlot::Open(stream, _) = slot {
                 active.push(stream.clone());
             }
             false
@@ -219,13 +228,23 @@ where
     {
         return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
     }
+    let is_agent_session = method_id.starts_with("/nimi.runtime.v1.AgentSessionService/");
     let mut registry = streams().lock().await;
-    if registry.len() >= MAX_FIRST_PARTY_PRODUCT_STREAMS {
+    let class_count = registry
+        .values()
+        .filter(|slot| slot_is_agent_session(slot) == is_agent_session)
+        .count();
+    let class_limit = if is_agent_session {
+        MAX_AGENT_SESSION_FIRST_PARTY_STREAMS
+    } else {
+        MAX_FIRST_PARTY_PRODUCT_STREAMS
+    };
+    if class_count >= class_limit {
         return NativeJsonOutcome::host_reason("resource-exhausted", false);
     }
     registry.insert(
         stream_id.clone(),
-        StreamSlot::Opening(Arc::downgrade(&control)),
+        StreamSlot::Opening(Arc::downgrade(&control), is_agent_session),
     );
     drop(registry);
     drop(current);
@@ -253,10 +272,10 @@ where
         control: Arc::downgrade(&control),
     });
     let mut registry = streams().lock().await;
-    let Some(slot @ StreamSlot::Opening(_)) = registry.get_mut(stream_id.as_str()) else {
+    let Some(slot @ StreamSlot::Opening(_, _)) = registry.get_mut(stream_id.as_str()) else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
     };
-    *slot = StreamSlot::Open(stream);
+    *slot = StreamSlot::Open(stream, is_agent_session);
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
@@ -270,8 +289,8 @@ pub async fn desktop_first_party_product_stream_next(
         .await
         .get(stream_id.as_str())
         .and_then(|slot| match slot {
-            StreamSlot::Opening(_) => None,
-            StreamSlot::Open(stream) => Some(stream.clone()),
+            StreamSlot::Opening(_, _) => None,
+            StreamSlot::Open(stream, _) => Some(stream.clone()),
         });
     let Some(stream) = stream else {
         return next_error("not-found", false);

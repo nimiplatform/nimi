@@ -310,6 +310,7 @@ pub async fn local_app_session_rebind() -> NativeJsonOutcome {
                 stream.task.abort();
                 drop(stream.sender);
             }
+            close_all_agent_session_streams().await;
             let status = if session.can_retry_initial_bootstrap() {
                 session
                     .renew_technical_session()
@@ -3094,13 +3095,20 @@ async fn clear_session_on_transport_failure(
     {
         return;
     }
-    let mut current = LOCAL_APP_SESSION.lock().await;
-    if current
-        .session
-        .as_ref()
-        .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
+    let mut invalidated_current = false;
     {
-        current.invalidated = Some(error.clone());
+        let mut current = LOCAL_APP_SESSION.lock().await;
+        if current
+            .session
+            .as_ref()
+            .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
+        {
+            current.invalidated = Some(error.clone());
+            invalidated_current = true;
+        }
+    }
+    if invalidated_current {
+        close_all_agent_session_streams().await;
     }
 }
 
@@ -3877,6 +3885,14 @@ const MAX_AGENT_SESSION_STREAMS: usize = 16;
 
 fn agent_session_streams() -> &'static Mutex<AgentSessionStreamRegistry> {
     AGENT_SESSION_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+async fn close_all_agent_session_streams() {
+    let drained = std::mem::take(&mut *agent_session_streams().lock().await);
+    for (_, stream) in drained {
+        stream.close_tx.send_replace(true);
+        stream.receiver.lock().await.take();
+    }
 }
 
 #[napi(js_name = "localAppAgentSessionUnary")]

@@ -18,7 +18,10 @@ export {
   type NimiElectronAppHostProfile,
   type NimiElectronAppHostProfileTarget,
 } from './app-host-profile.js';
-export type { NimiElectronAppBusinessServices } from './app-business-services.js';
+export {
+  createAppBusinessServices as createNimiElectronAppBusinessServices,
+  type NimiElectronAppBusinessServices,
+} from './app-business-services.js';
 export {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,

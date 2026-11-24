@@ -296,3 +296,15 @@ units:
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.product-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.harness-brief-handoff
+    kind: rule
+    title: Zhiyu hands off PC work through an explicit user-editable brief without leaking companion transcripts
+    modality: must
+    statement: Zhiyu preserves its pure companion boundary and canonical conversation_* storage without embedding local PC tools, and initiates PC work handoff to Nimi Harness strictly through a user-editable, bounded handoff brief submitted via Runtime AgentSessionService.RouteAndSubmitInput under agent.local without automatically forwarding private companion chat history or raw message transcripts.
+    condition: Whenever a user explicitly invokes handoff to Nimi Harness from a Zhiyu partner conversation.
+    failure: Reject unvalidated or over-budget handoff briefs, raw companion transcript leakage, unverified renderer frames, or silent mutation of companion conversation state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.agent-session-body-plane
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface

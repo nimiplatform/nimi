@@ -207,6 +207,7 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
       };
     },
   });
+  const agentSessionStreamClosers = new Map<string, () => Promise<void>>();
   const services: NimiElectronAppBusinessServices = Object.freeze({
     ai,
     agentSession: createNimiLocalAppAgentSessionClient({
@@ -221,22 +222,50 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
         const expected = generation;
         check(expected);
         const opened = await host.agentSessionStreamOpen(input);
-        check(expected);
         const closeStream = async () => {
           resources.delete(closeStream);
+          agentSessionStreamClosers.delete(opened.streamId);
           await host.agentSessionStreamClose({ streamId: opened.streamId }).catch(() => undefined);
         };
+        if (generation !== expected) {
+          await host.agentSessionStreamClose({ streamId: opened.streamId }).catch(() => undefined);
+          check(expected);
+        }
         resources.add(closeStream);
+        agentSessionStreamClosers.set(opened.streamId, closeStream);
         return opened;
       },
       agentSessionStreamNext: async (input) => {
         const expected = generation;
         check(expected);
-        const next = await host.agentSessionStreamNext(input);
-        check(expected);
-        return next;
+        try {
+          const next = await host.agentSessionStreamNext(input);
+          if (next.completed) {
+            const closer = agentSessionStreamClosers.get(input.streamId);
+            if (closer) {
+              resources.delete(closer);
+              agentSessionStreamClosers.delete(input.streamId);
+            }
+          }
+          check(expected);
+          return next;
+        } catch (error) {
+          const closer = agentSessionStreamClosers.get(input.streamId);
+          if (closer) {
+            resources.delete(closer);
+            agentSessionStreamClosers.delete(input.streamId);
+          }
+          throw error;
+        }
       },
-      agentSessionStreamClose: async (input) => host.agentSessionStreamClose(input),
+      agentSessionStreamClose: async (input) => {
+        const closer = agentSessionStreamClosers.get(input.streamId);
+        if (closer) {
+          resources.delete(closer);
+          agentSessionStreamClosers.delete(input.streamId);
+        }
+        return host.agentSessionStreamClose(input);
+      },
     }),
     agentWork: createNimiLocalAppAgentWorkClient({
       listReferences: async () => (await request('agentWorkReferenceList')).references,
