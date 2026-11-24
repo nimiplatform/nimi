@@ -111,7 +111,7 @@ test('HomeQuickStartBar submits typed draft on Enter, ignores Shift+Enter, and o
   }
 });
 
-test('HomeAttentionStrip collapses to empty markup when idle and enforces caps of 2 attention and 3 active work items', async () => {
+test('HomeAttentionStrip collapses to empty markup when idle and enforces caps of 3 attention and 3 active work items', async () => {
   await initI18n();
   await changeLocale('zh');
 
@@ -131,7 +131,8 @@ test('HomeAttentionStrip collapses to empty markup when idle and enforces caps o
   const attention: HomeAttentionItem[] = [
     { id: 'att-1', tone: 'danger', message: '引擎离线', actionLabel: '查看状态', onAction: noop },
     { id: 'att-2', tone: 'setup', message: '对话能力尚未配置', actionLabel: '去配置', onAction: noop },
-    { id: 'att-3', tone: 'warning', message: '第三条不应超过上限', actionLabel: '处理', onAction: noop },
+    { id: 'att-3', tone: 'warning', message: '待确认写入报告', actionLabel: '去审阅', onAction: noop },
+    { id: 'att-4', tone: 'info', message: '第四条不应超过上限', actionLabel: '处理', onAction: noop },
   ];
 
   const html = renderToStaticMarkup(
@@ -167,12 +168,15 @@ test('HomeAttentionStrip collapses to empty markup when idle and enforces caps o
       ]}
       onOpenActivity={noop}
       onOpenDownloads={noop}
+      onViewAllAttention={noop}
     />,
   );
 
   assert.match(html, /data-testid="home-attention-item:att-1"/);
   assert.match(html, /data-testid="home-attention-item:att-2"/);
-  assert.doesNotMatch(html, /data-testid="home-attention-item:att-3"/, 'caps attention at 2');
+  assert.match(html, /data-testid="home-attention-item:att-3"/);
+  assert.doesNotMatch(html, /data-testid="home-attention-item:att-4"/, 'caps attention at 3');
+  assert.match(html, /data-testid="home-attention-view-all"/);
   assert.match(html, /data-testid="home-active-execution:exec-1"/);
   assert.match(html, /data-testid="home-active-execution:exec-2"/);
   assert.match(html, /data-testid="home-active-download:dl-1"/);

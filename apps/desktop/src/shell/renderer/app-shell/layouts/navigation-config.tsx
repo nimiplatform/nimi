@@ -189,7 +189,6 @@ export function renderShellNavIcon(icon: string): ReactNode {
 // @nimi-authority: rule.nimi.desktop.shell-ui.r001
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
-  { id: 'chat', label: 'Nimi Chat', icon: renderShellNavIcon('chat') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'AI Capabilities', icon: renderShellNavIcon('runtime') },

@@ -276,6 +276,7 @@ export function getDesktopAccountProductClient(): DesktopRendererAccountProductC
     configurationReferences: client.configurationReferences,
     profiles: client.profiles,
     agents: Object.freeze(agents),
+    sessions: client.sessions,
     appMessages: client.appMessages,
     artifacts: client.artifacts,
     materializeRealmSource: client.materializeRealmSource,

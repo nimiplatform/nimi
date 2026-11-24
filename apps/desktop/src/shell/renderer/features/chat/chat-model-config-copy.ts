@@ -24,7 +24,7 @@ export function resolveChatSettingsCapabilityDescription(
 ): string {
   return capabilityContract === 'text.generate'
     ? t('Chat.settingsTextCapabilityDescription', {
-      defaultValue: 'Controls how Nimi Chat resolves text generation.',
+      defaultValue: 'Controls how Nimi Home resolves text generation.',
     })
     : (fallback || capabilityContract);
 }

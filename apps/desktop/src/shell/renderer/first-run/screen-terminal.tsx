@@ -9,7 +9,7 @@
 // - `blocked` → ScreenBlocked: a calm terminal surface explaining Nimi cannot
 //   continue safely, pointing to Support. No mark-ready / shortcut affordance.
 // - `ready_for_use` → ScreenReady: a brief "Nimi is ready" confirmation. The
-//   shell auto-continues to Chat -> Nimi Chat (P-COLD-012); the actual route
+//   shell auto-continues to Nimi Home (P-COLD-012); the actual route
 //   transition is owned by the app-routes admission gate, not this screen.
 
 import type { ReactElement } from 'react';
@@ -122,7 +122,7 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
 
 /**
  * `ready_for_use` confirmation screen. Shown briefly before the app-routes
- * admission gate auto-continues into Chat -> Nimi Chat.
+ * admission gate auto-continues into Nimi Home.
  */
 export function ScreenReady(): ReactElement {
   const { t } = useTranslation();
@@ -139,7 +139,7 @@ export function ScreenReady(): ReactElement {
           {t('FirstRun.ready.heading', { defaultValue: 'Nimi is ready' })}
         </h2>
         <p className="text-sm text-[var(--nimi-text-secondary)]">
-          {t('FirstRun.ready.body', { defaultValue: 'Opening Nimi Chat…' })}
+          {t('FirstRun.ready.body', { defaultValue: 'Opening Nimi Home…' })}
         </p>
       </div>
     </div>

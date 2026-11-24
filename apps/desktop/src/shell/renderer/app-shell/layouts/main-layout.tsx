@@ -155,10 +155,8 @@ export function MainLayout() {
           void onLogout();
         }}
         onLogin={() => {
-          navigation.push({ id: 'chat' });
-          void navigate('/login', {
-            state: { returnToChat: true },
-          });
+          navigation.push({ id: 'home', homeSection: 'overview' });
+          void navigate('/login');
         }}
       />
       <NonCriticalStartupBoundary>

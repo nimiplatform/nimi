@@ -144,8 +144,8 @@ describe('Desktop Electron local-development registration host', () => {
   it('waits for the same project Stop to finish before a new launch and preserves cleanup failures', {
     skip: process.platform !== 'win32', timeout: 10_000,
   }, async () => {
-    const appRoot = path.resolve(import.meta.dirname, '../../nimiday');
-    const resolved = await resolveElectronLocalDevelopmentPlan(appRoot, 'nimi.day', 'electron');
+    const appRoot = path.resolve(import.meta.dirname, '../../harness');
+    const resolved = await resolveElectronLocalDevelopmentPlan(appRoot, 'nimi.harness', 'electron');
     for (const fails of [false, true]) {
       const cleanupStarted = signal();
       const releaseCleanup = signal();

@@ -9,6 +9,7 @@ app_access:
   - agent.utopia.read
   - agent.utopia.manage
   - app.activity
+  - agent.trigger.delegate
   - integration.consume
   - integration.manage
 disposition: first_party_host_with_formal_app_self

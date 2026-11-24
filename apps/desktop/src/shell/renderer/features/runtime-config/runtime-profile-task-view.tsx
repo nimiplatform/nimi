@@ -40,7 +40,7 @@ export function RuntimeProfileTaskView(props: {
   const sdk = useDesktopRendererSdk();
   const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled, includePreparation: false });
   const ownerLabel = (appId?: string) =>
-    appId === sdk.appId() ? 'Nimi Chat' : (appId ?? t('runtimeConfig.setupTask.sourceLocalAgent'));
+    appId === sdk.appId() ? 'Nimi Home' : (appId ?? t('runtimeConfig.setupTask.sourceLocalAgent'));
   const snapshot = useRuntimeSetupTasks(props.store);
   const tasks = snapshot.tasks.filter((task) => task.draft?.profileUseId === props.useId);
   const taskKey = tasks.map((task) => task.taskId).join('|');

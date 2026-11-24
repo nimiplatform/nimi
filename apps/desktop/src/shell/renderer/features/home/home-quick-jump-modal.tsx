@@ -15,7 +15,6 @@ import {
   Download,
   HardDrive,
   Layers,
-  MessageSquare,
   Network,
   Plug,
   UserRound,
@@ -40,10 +39,10 @@ export type HomeQuickJumpItem = Readonly<{
 
 export type HomeQuickJumpActions = Readonly<{
   onOpenZhiyu: () => void;
+  onOpenHarness?: () => void;
   onOpenApp: (appId: string, entryKey: string) => void;
   onOpenPartner: (localAgentRef: string) => void;
   onOpenCapability: (capability: string) => void;
-  onOpenChat: () => void;
   onOpenExplore: () => void;
   onOpenApps: () => void;
   onOpenModelLibrary: () => void;
@@ -86,6 +85,16 @@ export function buildHomeQuickJumpItems(input: {
   ];
 
   const appItems: HomeQuickJumpItem[] = [
+    ...(actions.onOpenHarness
+      ? [{
+          id: 'app:harness',
+          group: 'apps' as const,
+          label: 'Nimi Harness',
+          keywords: 'Nimi Harness harness pc workspace assistant',
+          icon: <AppWindow size={15} aria-hidden="true" />,
+          onSelect: actions.onOpenHarness,
+        }]
+      : []),
     {
       id: 'app:zhiyu',
       group: 'apps',
@@ -127,14 +136,6 @@ export function buildHomeQuickJumpItems(input: {
   });
 
   const pageItems: HomeQuickJumpItem[] = [
-    {
-      id: 'page:chat',
-      group: 'pages',
-      label: t('Navigation.chat'),
-      keywords: `${t('Navigation.chat')} chat`,
-      icon: <MessageSquare size={15} aria-hidden="true" />,
-      onSelect: actions.onOpenChat,
-    },
     {
       id: 'page:explore',
       group: 'pages',

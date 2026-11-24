@@ -6,7 +6,7 @@ import { formatBytes, formatTransferRate } from '../../components/download-forma
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import type { HomeActiveDownloadItem } from './home-active-work-card.js';
 
-export const HOME_MAX_ATTENTION_ITEMS = 2;
+export const HOME_MAX_ATTENTION_ITEMS = 3;
 export const HOME_MAX_ACTIVE_WORK_ITEMS = 3;
 
 export type HomeAttentionTone = 'warning' | 'danger' | 'info' | 'setup';
@@ -25,6 +25,7 @@ export type HomeAttentionStripProps = {
   downloads: readonly HomeActiveDownloadItem[];
   onOpenActivity: () => void;
   onOpenDownloads: () => void;
+  onViewAllAttention?: () => void;
 };
 
 function AttentionIcon({ tone }: { tone: HomeAttentionTone }) {
@@ -52,10 +53,12 @@ export function HomeAttentionStrip({
   downloads,
   onOpenActivity,
   onOpenDownloads,
+  onViewAllAttention,
 }: HomeAttentionStripProps) {
   const { t } = useTranslation();
 
   const visibleAttention = attention.slice(0, HOME_MAX_ATTENTION_ITEMS);
+  const hiddenAttentionCount = Math.max(0, attention.length - visibleAttention.length);
   const visibleExecutions = executions.slice(0, HOME_MAX_ACTIVE_WORK_ITEMS);
   const remainingWorkSlots = Math.max(0, HOME_MAX_ACTIVE_WORK_ITEMS - visibleExecutions.length);
   const visibleDownloads = downloads.slice(0, remainingWorkSlots);
@@ -94,6 +97,18 @@ export function HomeAttentionStrip({
           </Button>
         </div>
       ))}
+      {hiddenAttentionCount > 0 && onViewAllAttention ? (
+        <div className="flex justify-end">
+          <Button
+            tone="ghost"
+            size="sm"
+            onClick={onViewAllAttention}
+            data-testid="home-attention-view-all"
+          >
+            {t('runtimeConfig.overview.attention.viewAllPending', { count: attention.length })} →
+          </Button>
+        </div>
+      ) : null}
 
       {visibleExecutions.map((execution) => {
         const model = execution.models[0];

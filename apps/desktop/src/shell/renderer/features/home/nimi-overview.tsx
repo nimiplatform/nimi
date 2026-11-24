@@ -50,10 +50,14 @@ import {
   type HomeMessageFilter,
   type HomeSystemItemMessage,
 } from './home-messages-model.js';
+import { DesktopAIExecutionRoute, type PendingAttentionRecord, type WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
 import { HomePartnersHeroCard } from './home-partners-hero-card.js';
 import { buildHomeQuickJumpItems, HomeQuickJumpModal } from './home-quick-jump-modal.js';
-import { HomeQuickStartBar } from './home-quick-start-bar.js';
+import { HomeOmniComposer } from './home-omni-composer.js';
+import { projectSessionOverviewAttention } from './home-omni-composer-model.js';
 import { BUNDLED_ZHIYU_RECENT_KEY, recordHomeRecentAppOpen } from './home-recent-apps-model.js';
+import { createDesktopAppsLiveBridge } from '../apps/apps-live-bridge.js';
+import { focusRunningDesktopApp } from './home-active-work-card.js';
 
 const HOME_RESOURCE_POLL_MS = 15_000;
 
@@ -97,7 +101,6 @@ export function NimiOverview() {
 
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
-  const setPendingNimiComposerPrefill = useAppStore((state) => state.setPendingNimiComposerPrefill);
   const destination = useHomeDestination();
   const isOverviewActive = destination.id === 'home' && (destination.homeSection ?? 'overview') === 'overview';
   const inventory = useCapabilityInventory({ enabled: isOverviewActive });
@@ -106,6 +109,49 @@ export function NimiOverview() {
   const resources = useSystemResources(HOME_RESOURCE_POLL_MS);
   const primaryRuntime = useHomePrimaryRuntimeQuery();
   const remoteAccess = useHomeRemoteAccessQuery();
+
+  const [sessionOverview, setSessionOverview] = useState<{
+    readonly sessions: readonly WorkSessionRecord[];
+    readonly attentionItems: readonly PendingAttentionRecord[];
+    readonly carrierOnline: boolean;
+  }>({ sessions: [], attentionItems: [], carrierOnline: false });
+
+  useEffect(() => {
+    if (!isOverviewActive || authStatus !== 'authenticated') return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const stream = await sdk.accountProduct().sessions.watchSessionOverview(
+          { agentHandle: '', includeArchived: false, afterOverviewSeq: '0' },
+          { signal: controller.signal },
+        );
+        for await (const delta of stream) {
+          if (controller.signal.aborted) break;
+          setSessionOverview((prev) => {
+            const byRef = new Map<string, WorkSessionRecord>(
+              delta.fullBaseline ? [] : prev.sessions.map((item) => [item.workSessionRef, item]),
+            );
+            for (const removed of delta.removedWorkSessionRefs ?? []) {
+              byRef.delete(removed);
+            }
+            for (const upserted of delta.upsertedSessions ?? []) {
+              byRef.set(upserted.workSessionRef, upserted);
+            }
+            return {
+              sessions: [...byRef.values()],
+              attentionItems: delta.attentionItems ?? [],
+              carrierOnline: delta.carrierOnline === true,
+            };
+          });
+        }
+      } catch {
+        // Keep last known session overview if stream is unavailable.
+      }
+    })();
+    return () => {
+      controller.abort();
+    };
+  }, [authStatus, isOverviewActive, sdk]);
 
   const ownerUserId = String(authUser?.id || '').trim();
   const agents = useQuery({
@@ -219,12 +265,49 @@ export function NimiOverview() {
   const openDiagnostics = (pane: RuntimeAdvancedDiagnosticsPane) => {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
   };
-  const openChat = () => {
-    void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
+  const openHarness = () => {
+    const harnessEntry = entries.find((entry) => entry.identity.appId === 'nimi.harness');
+    if (harnessEntry) {
+      recordHomeRecentAppOpen(messagesAccountKey, 'nimi.harness');
+      const liveBridge = createDesktopAppsLiveBridge();
+      const running = harnessEntry.run?.state === 'running';
+      if (running) {
+        void focusRunningDesktopApp(harnessEntry, focusGeneration).catch(() =>
+          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
+        );
+        return;
+      }
+      if (harnessEntry.localDevelopment) {
+        void liveBridge.startRegistration(harnessEntry.localDevelopment.selector).catch(() =>
+          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
+        );
+        return;
+      }
+      if (harnessEntry.committedRelease && liveBridge.launchInstalled) {
+        void liveBridge.launchInstalled(harnessEntry.committedRelease.launchSelector.slice()).catch(() =>
+          openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey),
+        );
+        return;
+      }
+      openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
+      return;
+    }
+    void navigation.push({ id: 'apps' });
   };
-  const submitChatDraft = (text: string) => {
-    setPendingNimiComposerPrefill(text);
-    void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
+  const openHumanChatDraft = (contactId: string, _draftText: string) => {
+    void navigation.push({
+      id: 'contacts',
+      chat: { mode: 'human', targetId: contactId, contactsSection: 'conversations' },
+    });
+  };
+  const openPartnerZhiyu = (localAgentRef: string, draftText?: string) => {
+    void navigation.push({
+      id: 'contacts',
+      partnerChat: {
+        localAgentRef,
+        ...(draftText ? { draft: { text: draftText, source: 'home_omni' } } : {}),
+      },
+    });
   };
   const openMessageSettings = () => {
     void navigation.push({ id: 'settings', settingsSection: 'notifications' });
@@ -251,11 +334,11 @@ export function NimiOverview() {
         capabilities: inventory.capabilities,
         actions: {
           onOpenZhiyu: openZhiyu,
+          onOpenHarness: openHarness,
           onOpenApp: openApp,
           onOpenPartner: (localAgentRef) => void navigation.push({ id: 'contacts', partnerChat: { localAgentRef } }),
           onOpenCapability: (capabilityContract) =>
             void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract } }),
-          onOpenChat: openChat,
           onOpenExplore: () => void navigation.push({ id: 'explore', exploreSearchKind: 'characters' }),
           onOpenApps: () => void navigation.push({ id: 'apps' }),
           onOpenModelLibrary: () => void navigation.push({ id: 'runtime', runtime: { page: 'modelLibrary' } }),
@@ -378,6 +461,35 @@ export function NimiOverview() {
       : t('runtimeConfig.overview.messages.hasUnread');
 
     const attentionItems: HomeAttentionItem[] = [];
+
+    // Reader-authorized Runtime session attention items (02 §2.3):
+    // PC approvals strictly focus Harness as the single approval authority (zero duplicated approve buttons in Home).
+    const sessionAttention = projectSessionOverviewAttention({
+      attentionItems: sessionOverview.attentionItems,
+      sessions: sessionOverview.sessions,
+      carrierOnline: sessionOverview.carrierOnline,
+    });
+    for (const item of sessionAttention) {
+      const prefix = item.kind === 'pending_approval'
+        ? item.remainingLabel
+          ? t('runtimeConfig.overview.attention.sessionApprovalTtl', { ttl: item.remainingLabel })
+          : t('runtimeConfig.overview.attention.sessionApproval')
+        : item.kind === 'body_offline'
+          ? t('runtimeConfig.overview.attention.sessionBodyOffline')
+          : item.kind === 'interrupted'
+            ? t('runtimeConfig.overview.attention.sessionInterrupted')
+            : t('runtimeConfig.overview.attention.sessionAlarm');
+      attentionItems.push({
+        id: item.id,
+        tone: item.tone,
+        message: `${prefix} · ${item.title}`,
+        actionLabel: item.kind === 'body_offline'
+          ? t('runtimeConfig.overview.attention.openHarnessAction')
+          : t('runtimeConfig.overview.attention.reviewAction'),
+        onAction: () => openHarness(),
+      });
+    }
+
     if (runtimeState === 'unavailable') {
       attentionItems.push({
         id: 'runtime-unavailable',
@@ -480,7 +592,7 @@ export function NimiOverview() {
         data-testid="home-overview-root"
       >
         <div className="flex min-w-0 flex-col gap-7">
-          <header className="flex min-w-0 flex-col gap-5 pt-2" data-testid="home-hero-header">
+          <header className="relative z-20 flex min-w-0 flex-col gap-5 pt-2" data-testid="home-hero-header">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span data-testid="home-date" className="text-xs text-[var(--nimi-text-secondary)]">
                 {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
@@ -525,9 +637,19 @@ export function NimiOverview() {
                 : t(greetingKey(now.getHours()))}
             </h1>
 
-            <HomeQuickStartBar
-              onSubmitDraft={submitChatDraft}
-              onOpenChat={openChat}
+            <HomeOmniComposer
+              accountKey={messagesAccountKey}
+              partners={agents.data ?? []}
+              recentSessions={sessionOverview.sessions}
+              cloudRouteActive={activeExecutions.some(
+                (execution) => execution.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD,
+              )}
+              onOpenHumanChatDraft={openHumanChatDraft}
+              onOpenPartnerZhiyu={openPartnerZhiyu}
+              onOpenHarness={openHarness}
+              onOpenModelSwitch={() =>
+                void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract: 'text.generate' } })
+              }
             />
           </header>
 
@@ -537,6 +659,7 @@ export function NimiOverview() {
             downloads={activeDownloads}
             onOpenActivity={() => setView('ai-activity')}
             onOpenDownloads={() => void navigation.push({ id: 'downloads' })}
+            onViewAllAttention={() => openCenter('pending')}
           />
 
           <HomePartnersHeroCard enabled={isOverviewActive} />

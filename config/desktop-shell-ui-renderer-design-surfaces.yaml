@@ -22,30 +22,6 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-019
-  - id: chat.page.root
-    module: features/chat/chat-page.tsx
-    role: chat_root
-    surface_profile: baseline
-    density_mode: compact
-    exception_policy: none
-    testid_required: true
-    source_rule: D-SHELL-019
-  - id: chat.page.floating_controls
-    module: features/chat/chat-page.tsx
-    role: chat_page_floating_controls
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-030
-  - id: chat.session_list.cards
-    module: features/chat/chat-nimi-session-list-panel.tsx
-    role: chat_session_list_cards
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-030
   - id: chat.inspect.operational
     module: features/chat/chat-runtime-inspect-content.tsx
     role: chat_runtime_inspect_operational

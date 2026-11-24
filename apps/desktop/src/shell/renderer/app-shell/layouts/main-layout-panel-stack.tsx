@@ -7,10 +7,6 @@ import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '../../featu
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { DESKTOP_PANEL_VARIANTS, useDesktopPanelCustom } from '../../ui/motion/desktop-motion';
 
-const ChatPage = lazy(async () => {
-  const mod = await import('../../features/chat/chat-page');
-  return { default: mod.ChatPage };
-});
 const ExplorePanel = lazy(async () => {
   const mod = await import('../../features/explore/explore-panel');
   return { default: mod.ExplorePanel };
@@ -121,12 +117,6 @@ export function MainLayoutPanelStack({
           {activeTab === 'home' || activeTab === 'notification' ? (
             <MotionPanelFrame panelId={activeTab}>
               <NimiOverview />
-            </MotionPanelFrame>
-          ) : null}
-
-          {activeTab === 'chat' ? (
-            <MotionPanelFrame panelId={activeTab} className="flex h-full min-h-0 flex-1">
-              <ChatPage />
             </MotionPanelFrame>
           ) : null}
 

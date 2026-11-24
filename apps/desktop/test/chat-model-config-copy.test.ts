@@ -29,7 +29,7 @@ test('chat capability rows label each capability by its real contract, not a har
 test('chat capability descriptions stay text-specific only for text.generate', () => {
   assert.equal(
     resolveChatSettingsCapabilityDescription('text.generate', 'fallback', t),
-    'Controls how Nimi Chat resolves text generation.',
+    'Controls how Nimi Home resolves text generation.',
   );
   assert.equal(
     resolveChatSettingsCapabilityDescription('image.generate', 'Image description', t),

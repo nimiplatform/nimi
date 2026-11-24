@@ -61,7 +61,7 @@ function ProfileOwnerIdentity({ owner, prominent = false }: {
     ? groupAppsEntries(apps.data.entries).find((entry) => entry.appId === owner.ownerAppId)
     : undefined, [apps.data, owner]);
   const name = owner.kind === 'app'
-    ? app?.displayName || (owner.ownerAppId === sdk.appId() ? 'Nimi Chat' : owner.ownerAppId)
+    ? app?.displayName || (owner.ownerAppId === sdk.appId() ? 'Nimi Home' : owner.ownerAppId)
     : t('runtimeConfig.setupTask.sourceLocalAgent');
 
   return (
@@ -820,7 +820,7 @@ function ProfileUsePanel(props: {
               onValueChange={setDestination}
               options={[
                 { value: 'machine', label: t('runtimeConfig.profileRun.machine') },
-                { value: `app:${sdk.appId()}`, label: 'Nimi Chat' },
+                { value: `app:${sdk.appId()}`, label: 'Nimi Home' },
                 { value: 'local-agent', label: t('runtimeConfig.setupTask.sourceLocalAgent') },
                 ...destinations.map(([id, label]) => ({ value: `app:${id}`, label })),
               ]}
