@@ -195,7 +195,13 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 	memoryStatus := "unavailable"
 	if r.svc.cognitionMemoryFacade != nil {
 		memoryCtx, cancelMemory := context.WithTimeout(ctx, publicChatOptionalContextBudget)
-		memoryResult, err := r.svc.cognitionMemoryFacade.Recall(memoryCtx, cognitionmemory.RecallIntent{NoModelWork: true, LocalAgentRef: session.LocalAgentRef, Query: result.Query, Limit: 4})
+		memoryResult, err := r.svc.cognitionMemoryFacade.Recall(memoryCtx, cognitionmemory.RecallIntent{
+			NoModelWork:   true,
+			LocalAgentRef: session.LocalAgentRef,
+			Query:         result.Query,
+			Limit:         4,
+			ScopeTags:     []string{memoryv1.ScopeTagGlobalFact},
+		})
 		cancelMemory()
 		if err == nil {
 			memoryStatus = string(memoryResult.Outcome)

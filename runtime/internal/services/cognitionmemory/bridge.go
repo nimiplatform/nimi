@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,9 +15,11 @@ import (
 type DrainAuthorizer func(context.Context, Binding) error
 
 type Bridge struct {
-	store     *Store
-	owner     OwnerPort
-	authorize DrainAuthorizer
+	store       *Store
+	owner       OwnerPort
+	authorize   DrainAuthorizer
+	agentLockMu sync.Mutex
+	agentLocks  map[string]*sync.Mutex
 }
 
 type DrainResult struct {
@@ -29,7 +32,33 @@ type DrainResult struct {
 }
 
 func NewBridge(store *Store, owner OwnerPort, authorize DrainAuthorizer) *Bridge {
-	return &Bridge{store: store, owner: owner, authorize: authorize}
+	return &Bridge{
+		store:      store,
+		owner:      owner,
+		authorize:  authorize,
+		agentLocks: make(map[string]*sync.Mutex),
+	}
+}
+
+// lockAgent serializes outbox drain, session-pointer commits, and DeleteSession
+// neutralization/forgetting for the same localAgentRef to eliminate memory
+// resurrection races and concurrent forget-journal collisions.
+func (b *Bridge) lockAgent(localAgentRef string) func() {
+	if b == nil || localAgentRef == "" {
+		return func() {}
+	}
+	b.agentLockMu.Lock()
+	if b.agentLocks == nil {
+		b.agentLocks = make(map[string]*sync.Mutex)
+	}
+	mu := b.agentLocks[localAgentRef]
+	if mu == nil {
+		mu = &sync.Mutex{}
+		b.agentLocks[localAgentRef] = mu
+	}
+	b.agentLockMu.Unlock()
+	mu.Lock()
+	return mu.Unlock
 }
 
 // EnsureBinding restores only the stable owner Ensure/Runtime bind boundary.
@@ -78,6 +107,12 @@ func (b *Bridge) bindingForDrain(ctx context.Context, localAgentRef string) (Bin
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r005
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r019
 func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResult, error) {
+	unlock := b.lockAgent(localAgentRef)
+	defer unlock()
+	return b.drainOneLocked(ctx, localAgentRef)
+}
+
+func (b *Bridge) drainOneLocked(ctx context.Context, localAgentRef string) (DrainResult, error) {
 	binding, rejected, err := b.bindingForDrain(ctx, localAgentRef)
 	if err != nil {
 		return rejected, err
@@ -88,6 +123,16 @@ func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResul
 			return DrainResult{BindingRef: binding.BindingRef}, nil
 		}
 		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if item.State == "cutoff_non_effecting" {
+		settled, err := b.owner.ReceiveNoOpCutoff(ctx, binding.BindingRef, binding.BankRef, binding.LifecycleRef, item.EventRef, item.OperationID, item.DeliverySequence)
+		if err != nil {
+			return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: settled.Outcome}, fmt.Errorf("drain cognition memory outbox: settle cutoff noop: %w", err)
+		}
+		if err := b.store.AcknowledgeCutoffNoOp(ctx, item.OperationID, item.EventRef, item.DeliverySequence); err != nil {
+			return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: acknowledge cutoff noop: %w", err)
+		}
+		return DrainResult{Drained: true, BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeNoEffect}, nil
 	}
 	if item.Envelope == nil {
 		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: committed envelope unavailable")

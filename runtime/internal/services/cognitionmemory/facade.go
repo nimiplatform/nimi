@@ -18,13 +18,15 @@ import (
 type CapabilityProvider func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error)
 
 type Facade struct {
-	store          *Store
-	owner          OwnerPort
-	bridge         *Bridge
-	authorize      DrainAuthorizer
-	capabilities   CapabilityProvider
-	embeddingMu    sync.Mutex // protects only the bank gate map
-	embeddingBanks map[string]*embeddingBankGate
+	store                *Store
+	owner                OwnerPort
+	bridge               *Bridge
+	authorize            DrainAuthorizer
+	capabilities         CapabilityProvider
+	embeddingMu          sync.Mutex // protects only the bank gate map
+	embeddingBanks       map[string]*embeddingBankGate
+	pointerThrottleMu    sync.Mutex
+	pointerThrottleCache map[sessionPointerThrottleKey]sessionPointerThrottleState
 }
 
 type RecallIntent struct {

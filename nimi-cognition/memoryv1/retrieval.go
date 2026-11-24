@@ -141,6 +141,11 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if !validOpaqueRef(request.OperationID) || !validOpaqueRef(request.BindingRef) || !validOpaqueRef(request.BankRef) || !validOpaqueRef(request.LifecycleRef) || !validTypedRef(request.Subject) || request.Subject.Kind != "account_subject" || !validContent(request.Query) || request.Limit <= 0 || request.Limit > 100 || !validCapabilitySnapshot(request.Capabilities) {
 		return RecallResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "recall_request")
 	}
+	if len(request.ScopeTags) > 0 {
+		if clause, _ := scopeTagFilterClause("m.scope_tag", request.ScopeTags); clause == "" {
+			return RecallResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "scope_tags")
+		}
+	}
 	var currentLifecycle, bankState, bindingState string
 	if err := c.db.QueryRowContext(ctx, `SELECT b.lifecycle_ref, b.state, x.state FROM memory_bank_bindings x JOIN memory_banks b ON b.bank_ref = x.bank_ref WHERE x.binding_ref = ? AND b.bank_ref = ?`, request.BindingRef, request.BankRef).Scan(&currentLifecycle, &bankState, &bindingState); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

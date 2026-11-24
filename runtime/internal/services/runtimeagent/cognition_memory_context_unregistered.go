@@ -49,7 +49,14 @@ func (s *Service) loadLocalAgentCognitionMemoryInputsWithReadSet(ctx context.Con
 	if s == nil || s.cognitionMemoryFacade == nil || strings.TrimSpace(query) == "" {
 		return nil, cognitionmemory.MemoryReadSet{}, nil
 	}
-	result, err := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{NoModelWork: true, LocalAgentRef: localAgentRef, Query: query, Limit: publicChatPreTurnMemoryLimit, IncludeRecentLife: true})
+	result, err := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
+		NoModelWork:       true,
+		LocalAgentRef:     localAgentRef,
+		Query:             query,
+		Limit:             publicChatPreTurnMemoryLimit,
+		IncludeRecentLife: true,
+		ScopeTags:         []string{memoryv1.ScopeTagGlobalFact},
+	})
 	if err != nil {
 		if s.logger != nil {
 			s.logger.Warn("optional Cognition Memory Recall unavailable", "local_agent_ref", localAgentRef, "outcome", result.Outcome, "error", err)

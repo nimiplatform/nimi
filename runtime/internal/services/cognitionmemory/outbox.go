@@ -238,23 +238,68 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 	var item OutboxItem
 	var payload []byte
 	var bankRef, lifecycleRef sql.NullString
-	err := s.backend.DB().QueryRowContext(ctx, `SELECT o.operation_id, o.event_ref, o.delivery_sequence, o.state, COALESCE(o.outcome, ''), o.payload IS NOT NULL, o.payload, s.bank_ref, s.lifecycle_ref FROM runtime_cognition_memory_outbox o JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref WHERE o.binding_ref = ? AND o.state = 'pending' ORDER BY o.delivery_sequence LIMIT 1`, bindingRef).Scan(&item.OperationID, &item.EventRef, &item.DeliverySequence, &item.State, &item.Outcome, &item.PayloadPresent, &payload, &bankRef, &lifecycleRef)
+	err := s.backend.DB().QueryRowContext(ctx, `
+		SELECT o.operation_id, o.event_ref, o.delivery_sequence, o.state, COALESCE(o.outcome, ''), o.payload IS NOT NULL, o.payload, s.bank_ref, s.lifecycle_ref
+		FROM runtime_cognition_memory_outbox o
+		JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
+		WHERE o.binding_ref = ?
+		  AND (o.state = 'pending' OR (o.state = 'cutoff_non_effecting' AND o.received_at IS NULL))
+		ORDER BY o.delivery_sequence
+		LIMIT 1`,
+		bindingRef,
+	).Scan(&item.OperationID, &item.EventRef, &item.DeliverySequence, &item.State, &item.Outcome, &item.PayloadPresent, &payload, &bankRef, &lifecycleRef)
 	if err != nil {
 		return OutboxItem{}, err
 	}
 	if !bankRef.Valid || !lifecycleRef.Valid || !validRef(bankRef.String) || !validRef(lifecycleRef.String) {
 		return OutboxItem{}, ErrMemoryUnbound
 	}
+	item.BindingRef = bindingRef
+	item.BankRef = bankRef.String
+	item.LifecycleRef = lifecycleRef.String
+	if item.State == "cutoff_non_effecting" {
+		// Neutralized session outbox rows carry zero payload and settle via ordered NoOpCutoff.
+		item.PayloadPresent = false
+		item.Envelope = nil
+		return item, nil
+	}
 	envelope := &runtimev1.CognitionMemoryCommittedEventEnvelope{}
 	if err := proto.Unmarshal(payload, envelope); err != nil {
 		return OutboxItem{}, fmt.Errorf("load pending cognition memory event: decode payload: %w", err)
 	}
 	envelope.Bank = &runtimev1.CognitionMemoryBankRef{Value: bankRef.String}
-	item.BindingRef = bindingRef
-	item.BankRef = bankRef.String
-	item.LifecycleRef = lifecycleRef.String
 	item.Envelope = envelope
 	return item, nil
+}
+
+// AcknowledgeCutoffNoOp records that Cognition accepted an ordered zero-payload
+// cutoff settlement for a neutralized session outbox row and advances delivery_frontier.
+func (s *Store) AcknowledgeCutoffNoOp(ctx context.Context, operationID, eventRef string, deliverySequence uint64) error {
+	if s == nil || s.backend == nil || !validRef(operationID) || !validRef(eventRef) || deliverySequence == 0 {
+		return fmt.Errorf("acknowledge cognition memory cutoff noop: invalid input")
+	}
+	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var bindingRef, storedEventRef, state string
+		var sequence uint64
+		var receivedAt sql.NullString
+		if err := tx.QueryRow(`SELECT binding_ref, event_ref, delivery_sequence, state, received_at FROM runtime_cognition_memory_outbox WHERE operation_id = ?`, operationID).Scan(&bindingRef, &storedEventRef, &sequence, &state, &receivedAt); err != nil {
+			return fmt.Errorf("acknowledge cognition memory cutoff noop: load outbox: %w", err)
+		}
+		if storedEventRef != eventRef || sequence != deliverySequence {
+			return ErrConflict
+		}
+		if state == "cutoff_non_effecting" && receivedAt.Valid {
+			return nil
+		}
+		if state != "cutoff_non_effecting" {
+			return ErrConflict
+		}
+		now := s.now().UTC().Format(time.RFC3339Nano)
+		if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET outcome = 'no_effect', payload = NULL, received_at = ? WHERE operation_id = ?`, now, operationID); err != nil {
+			return fmt.Errorf("acknowledge cognition memory cutoff noop: update outbox: %w", err)
+		}
+		return advanceDeliveryFrontierTx(tx, bindingRef)
+	})
 }
 
 // @nimi-authority: rule.nimi.runtime.memory-world.r021
@@ -613,7 +658,7 @@ func committedEventKind(envelope *runtimev1.CognitionMemoryCommittedEventEnvelop
 // committed-event provenance belongs to (source_kind='session', source_ref=workSessionRef)
 // as cutoff_non_effecting with payload=NULL so asynchronous outbox drain can
 // NEVER resurrect memories of a deleted session.
-// @nimi-authority: rule.nimi.runtime.memory-world.session-pointer-recall
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, workSessionRef string) (int64, error) {
 	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
 		return 0, fmt.Errorf("neutralize session cognition outbox: invalid input")
@@ -656,14 +701,15 @@ func advanceDeliveryFrontierTx(tx *sql.Tx, bindingRef string) error {
 	}
 	for frontier+1 < nextSequence {
 		var state string
-		err := tx.QueryRow(`SELECT state FROM runtime_cognition_memory_outbox WHERE binding_ref = ? AND delivery_sequence = ?`, bindingRef, frontier+1).Scan(&state)
+		var receivedAt sql.NullString
+		err := tx.QueryRow(`SELECT state, received_at FROM runtime_cognition_memory_outbox WHERE binding_ref = ? AND delivery_sequence = ?`, bindingRef, frontier+1).Scan(&state, &receivedAt)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				break
 			}
 			return fmt.Errorf("advance cognition memory delivery frontier: inspect sequence: %w", err)
 		}
-		if state != "received" {
+		if state != "received" && !(state == "cutoff_non_effecting" && receivedAt.Valid) {
 			break
 		}
 		frontier++

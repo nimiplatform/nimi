@@ -131,29 +131,46 @@ func (c *Core) initialize() error {
 	if _, err := c.db.Exec(`PRAGMA journal_mode = WAL`); err != nil {
 		return fmt.Errorf("memory core: enable wal: %w", err)
 	}
-	var version int
-	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
-		return fmt.Errorf("memory core: inspect schema version: %w", err)
-	}
-	if version != 0 && version != 4 && version != schemaVersion {
-		return contractError(OutcomeUnsupported, "schema_version")
-	}
 	tx, err := c.db.Begin()
 	if err != nil {
 		return fmt.Errorf("memory core: begin schema: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Acquire the SQLite write lock before inspecting user_version so concurrent
+	// connections opening a v4 database serialize v4 -> v5 migration cleanly.
+	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS memory_schema_migration_lock (id INTEGER PRIMARY KEY CHECK (id = 1))`); err != nil {
+		return fmt.Errorf("memory core: acquire migration lock: %w", err)
+	}
+	var version int
+	if err := tx.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return fmt.Errorf("memory core: inspect schema version: %w", err)
+	}
+	if version != 0 && version != 4 && version != schemaVersion {
+		return contractError(OutcomeUnsupported, "schema_version")
+	}
 	// Controlled incremental migration v4 -> v5: add scope_tag & slot_key columns
 	// and active single-slot unique index before running idempotent DDL.
 	if version == 4 {
-		for _, alter := range []string{
-			`ALTER TABLE memories ADD COLUMN scope_tag TEXT NOT NULL DEFAULT 'global_fact'`,
-			`ALTER TABLE memories ADD COLUMN slot_key TEXT NOT NULL DEFAULT ''`,
-			`CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`,
-		} {
-			if _, err := tx.Exec(alter); err != nil {
-				return fmt.Errorf("memory core: migrate schema v4->v5: %w", err)
+		hasScopeTag, err := tableHasColumnTx(tx, "memories", "scope_tag")
+		if err != nil {
+			return fmt.Errorf("memory core: inspect memories.scope_tag: %w", err)
+		}
+		if !hasScopeTag {
+			if _, err := tx.Exec(`ALTER TABLE memories ADD COLUMN scope_tag TEXT NOT NULL DEFAULT 'global_fact'`); err != nil {
+				return fmt.Errorf("memory core: migrate schema v4->v5 scope_tag: %w", err)
 			}
+		}
+		hasSlotKey, err := tableHasColumnTx(tx, "memories", "slot_key")
+		if err != nil {
+			return fmt.Errorf("memory core: inspect memories.slot_key: %w", err)
+		}
+		if !hasSlotKey {
+			if _, err := tx.Exec(`ALTER TABLE memories ADD COLUMN slot_key TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("memory core: migrate schema v4->v5 slot_key: %w", err)
+			}
+		}
+		if _, err := tx.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS memories_active_slot_idx ON memories(bank_ref, slot_key) WHERE lifecycle = 'current' AND slot_key != ''`); err != nil {
+			return fmt.Errorf("memory core: migrate schema v4->v5 slot_idx: %w", err)
 		}
 	}
 	statements := []string{
@@ -339,6 +356,31 @@ func canonicalRequestKey(value any) (string, error) {
 
 func validOpaqueRef(value string) bool {
 	return strings.TrimSpace(value) == value && value != "" && len(value) <= 512 && utf8.ValidString(value)
+}
+
+func tableHasColumnTx(tx *sql.Tx, table, column string) (bool, error) {
+	rows, err := tx.Query(`PRAGMA table_info(` + table + `)`)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 func validTypedRef(ref TypedRef) bool {

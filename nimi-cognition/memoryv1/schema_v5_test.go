@@ -168,4 +168,48 @@ func TestSchemaV4ToV5MigrationSingleSlotSupersedeAndScopeTagRecall(t *testing.T)
 	if err != nil || len(remaining) != 0 {
 		t.Fatalf("expected 0 remaining session lineage refs after forget, got %v err=%v", remaining, err)
 	}
+
+	// 6. Whitespace-only ScopeTags allowlist MUST be rejected as OutcomeInvalid (never fall back to unfiltered).
+	invalidRecall, err := core.Recall(ctx, RecallRequest{
+		OperationID:  "op_recall_blank_scope",
+		BindingRef:   "bind_v4",
+		BankRef:      "bank_v4",
+		LifecycleRef: "cut_v4",
+		Subject:      TypedRef{Kind: "account_subject", Value: "acct_1"},
+		Query:        "tea",
+		Limit:        10,
+		ScopeTags:    []string{"   ", "\t"},
+		Capabilities: snap,
+	}, nil)
+	if err == nil || invalidRecall.Outcome != OutcomeInvalid {
+		t.Fatalf("expected OutcomeInvalid for whitespace-only ScopeTags, got %+v err=%v", invalidRecall, err)
+	}
+
+	// 7. IncludeRecentLife with ScopeTags=[session_pointer] MUST NOT leak global_fact life_change memories!
+	if _, err := core.db.ExecContext(ctx, `INSERT INTO memories(memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key) VALUES('mem_life_global', 'bank_v4', 'Walked in the rain', 'inferred', 'current', ?, ?, 'life', 'evt_life_1', 'global_fact', '')`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := core.db.ExecContext(ctx, `INSERT INTO memory_lineage(memory_ref, ref_type, ref_kind, ref_value) VALUES('mem_life_global', 'source', 'life_change', 'chg_1')`); err != nil {
+		t.Fatal(err)
+	}
+	scopedLifeRecall, err := core.Recall(ctx, RecallRequest{
+		OperationID:       "op_recall_scoped_life",
+		BindingRef:        "bind_v4",
+		BankRef:           "bank_v4",
+		LifecycleRef:      "cut_v4",
+		Subject:           TypedRef{Kind: "account_subject", Value: "acct_1"},
+		Query:             "tea",
+		Limit:             10,
+		ScopeTags:         []string{ScopeTagSessionPointer},
+		IncludeRecentLife: true,
+		Capabilities:      snap,
+	}, nil)
+	if err != nil {
+		t.Fatalf("scoped IncludeRecentLife recall failed: %v", err)
+	}
+	for _, hit := range scopedLifeRecall.Hits {
+		if hit.ScopeTag != ScopeTagSessionPointer {
+			t.Fatalf("IncludeRecentLife leaked non-session_pointer memory: %+v", hit)
+		}
+	}
 }

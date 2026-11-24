@@ -119,7 +119,11 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 			}
 			insertLifecycle := LifecycleCurrent
 			supersedesRef := mutation.TargetMemoryRef
+			var targetScopeTag, targetSlotKey string
 			if mutation.Kind == MutationCorrection || mutation.Kind == MutationConflict {
+				if mutation.Kind == MutationCorrection {
+					_ = tx.QueryRowContext(ctx, `SELECT scope_tag, slot_key FROM memories WHERE memory_ref = ? AND bank_ref = ? AND lifecycle = ?`, mutation.TargetMemoryRef, request.BankRef, LifecycleCurrent).Scan(&targetScopeTag, &targetSlotKey)
+				}
 				targetLifecycle := LifecycleSuperseded
 				targetCode := "correction_target"
 				if mutation.Kind == MutationConflict {
@@ -144,9 +148,16 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 			}
 			scopeTag := strings.TrimSpace(mutation.ScopeTag)
 			if scopeTag == "" {
-				scopeTag = ScopeTagGlobalFact
+				if mutation.Kind == MutationCorrection && strings.TrimSpace(targetScopeTag) != "" {
+					scopeTag = strings.TrimSpace(targetScopeTag)
+				} else {
+					scopeTag = ScopeTagGlobalFact
+				}
 			}
 			slotKey := strings.TrimSpace(mutation.SlotKey)
+			if slotKey == "" && mutation.Kind == MutationCorrection && strings.TrimSpace(targetSlotKey) != "" {
+				slotKey = strings.TrimSpace(targetSlotKey)
+			}
 			// Single-slot atomic supersede: if a current memory already occupies
 			// (bank_ref, slot_key), supersede it and evict it from derived indexes
 			// in the same transaction before inserting the replacement.

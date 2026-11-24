@@ -16,7 +16,15 @@ func (c *Core) includeRecentLife(ctx context.Context, request RecallRequest, res
 	if err := validateRecallSnapshotTx(ctx, tx, request); err != nil {
 		return result, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT m.memory_ref,m.bank_ref,m.content,m.epistemic_status,m.lifecycle,m.occurred_at,m.updated_at,m.source_explanation,m.event_ref,m.scope_tag,m.slot_key FROM memories m WHERE m.bank_ref=? AND m.lifecycle=? AND EXISTS (SELECT 1 FROM memory_lineage l WHERE l.memory_ref=m.memory_ref AND l.ref_type='source' AND l.ref_kind='life_change') ORDER BY m.occurred_at DESC,m.memory_ref LIMIT ?`, request.BankRef, LifecycleCurrent, min(2, max(1, request.Limit/2)))
+	query := `SELECT m.memory_ref,m.bank_ref,m.content,m.epistemic_status,m.lifecycle,m.occurred_at,m.updated_at,m.source_explanation,m.event_ref,m.scope_tag,m.slot_key FROM memories m WHERE m.bank_ref=? AND m.lifecycle=? AND EXISTS (SELECT 1 FROM memory_lineage l WHERE l.memory_ref=m.memory_ref AND l.ref_type='source' AND l.ref_kind='life_change')`
+	args := []any{request.BankRef, LifecycleCurrent}
+	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
+		query += ` AND ` + scopeClause
+		args = append(args, scopeArgs...)
+	}
+	query += ` ORDER BY m.occurred_at DESC,m.memory_ref LIMIT ?`
+	args = append(args, min(2, max(1, request.Limit/2)))
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return result, fmt.Errorf("recall recent life: %w", err)
 	}

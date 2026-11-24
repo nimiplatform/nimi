@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
@@ -15,7 +14,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const sessionPointerMilestoneCooldown = 30 * time.Minute
+const (
+	sessionPointerMilestoneCooldown = 30 * time.Minute
+	maxPointerThrottleEntries       = 2048
+)
 
 type sessionPointerThrottleKey struct {
 	localAgentRef  string
@@ -27,17 +29,23 @@ type sessionPointerThrottleState struct {
 	lastSummary     string
 }
 
-var (
-	pointerThrottleMu    sync.Mutex
-	pointerThrottleCache = make(map[sessionPointerThrottleKey]sessionPointerThrottleState)
-)
+func isTaintedSessionPointerSource(bodyKind string) bool {
+	kind := strings.ToLower(strings.TrimSpace(bodyKind))
+	return kind == "" ||
+		kind == "channel_external" ||
+		strings.Contains(kind, "external") ||
+		strings.Contains(kind, "untrusted") ||
+		strings.Contains(kind, "tainted")
+}
 
 // CommitSessionPointer enqueues and drains a single-slot `session_pointer_committed`
-// fact for (localAgentRef, workSessionRef), enforcing v2.1's milestone throttle:
+// fact for (localAgentRef, workSessionRef), enforcing v2.1's milestone throttle
+// and source taint gating:
 //   - "initial_goal" / "completed" / "archived" always commit immediately
 //   - incremental updates require real topic change AND >= 30 minutes since last commit
+//   - external / untrusted sources are rejected before entering Cognition memory
 //
-// @nimi-authority: rule.nimi.runtime.memory-world.session-pointer-recall
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (f *Facade) CommitSessionPointer(
 	ctx context.Context,
 	localAgentRef string,
@@ -54,22 +62,31 @@ func (f *Facade) CommitSessionPointer(
 	if !validRef(localAgentRef) || !validRef(workSessionRef) || summary == "" {
 		return false, nil
 	}
+	if isTaintedSessionPointerSource(bodyKind) {
+		return false, nil
+	}
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
 	milestone := strings.ToLower(strings.TrimSpace(milestoneKind))
 	isBypassMilestone := milestone == "initial_goal" || milestone == "completed" || milestone == "archived"
 
+	unlock := f.bridge.lockAgent(localAgentRef)
+	defer unlock()
+
 	key := sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef}
-	pointerThrottleMu.Lock()
-	prev, seen := pointerThrottleCache[key]
+	f.pointerThrottleMu.Lock()
+	if f.pointerThrottleCache == nil {
+		f.pointerThrottleCache = make(map[sessionPointerThrottleKey]sessionPointerThrottleState)
+	}
+	prev, seen := f.pointerThrottleCache[key]
 	if seen && !isBypassMilestone {
 		if prev.lastSummary == summary || now.Sub(prev.lastCommittedAt) < sessionPointerMilestoneCooldown {
-			pointerThrottleMu.Unlock()
+			f.pointerThrottleMu.Unlock()
 			return false, nil
 		}
 	}
-	pointerThrottleMu.Unlock()
+	f.pointerThrottleMu.Unlock()
 
 	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
@@ -117,44 +134,66 @@ func (f *Facade) CommitSessionPointer(
 
 	// Drain & commit the session pointer through the standard custody pipeline.
 	for {
-		drained, err := f.bridge.DrainOne(ctx, localAgentRef)
+		drained, err := f.bridge.drainOneLocked(ctx, localAgentRef)
 		if err != nil {
 			return false, fmt.Errorf("commit session pointer drain: %w", err)
 		}
 		if !drained.Drained {
 			break
 		}
-		if _, err := f.ProcessRemember(ctx, localAgentRef, drained.OperationID); err != nil {
-			return false, fmt.Errorf("commit session pointer remember: %w", err)
+		if drained.Outcome != memoryv1.OutcomeNoEffect {
+			if _, err := f.ProcessRemember(ctx, localAgentRef, drained.OperationID); err != nil {
+				return false, fmt.Errorf("commit session pointer remember: %w", err)
+			}
 		}
 		if drained.OperationID == operationID {
 			break
 		}
 	}
 
-	pointerThrottleMu.Lock()
-	pointerThrottleCache[key] = sessionPointerThrottleState{
+	f.pointerThrottleMu.Lock()
+	if f.pointerThrottleCache == nil {
+		f.pointerThrottleCache = make(map[sessionPointerThrottleKey]sessionPointerThrottleState)
+	}
+	if len(f.pointerThrottleCache) >= maxPointerThrottleEntries {
+		for k := range f.pointerThrottleCache {
+			delete(f.pointerThrottleCache, k)
+			if len(f.pointerThrottleCache) < maxPointerThrottleEntries/2 {
+				break
+			}
+		}
+	}
+	f.pointerThrottleCache[key] = sessionPointerThrottleState{
 		lastCommittedAt: now.UTC(),
 		lastSummary:     summary,
 	}
-	pointerThrottleMu.Unlock()
+	f.pointerThrottleMu.Unlock()
 	return true, nil
 }
 
 // ForgetSessionLineage implements v2.1's anti-resurrection DeleteSession memory
-// cleanup sequence:
+// cleanup sequence under the per-agent lifecycle lock:
 //  1. Neutralize all pending runtime_cognition_memory_outbox rows linked to
 //     (source_kind='session', source_ref=workSessionRef) with
 //     state='cutoff_non_effecting' and payload=NULL FIRST.
-//  2. Query memory_lineage(ref_type='source', ref_kind='session', ref_value=workSessionRef)
-//     for all already-committed memory_refs.
-//  3. Call Facade.Forget(..., confirmed=true) to atomically forget them.
+//  2. Neutralize any already-received (not yet remembered) memory_receipts in
+//     Cognition matching that session so in-flight drains cannot resurrect it.
+//  3. Settle any head cutoff_non_effecting outbox rows via zero-payload NoOpCutoff
+//     so received_frontier/ready_frontier/delivery_frontier advance with zero gap.
+//  4. Query memory_lineage(ref_type='source', ref_kind='session', ref_value=workSessionRef)
+//     and atomically forget all committed memories through Facade.Forget.
 //
-// @nimi-authority: rule.nimi.runtime.memory-world.session-pointer-recall
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSessionRef string) (uint32, int64, error) {
 	if f == nil || f.store == nil || f.owner == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
 		return 0, 0, nil
 	}
+	unlock := func() {}
+	if f.bridge != nil {
+		unlock = f.bridge.lockAgent(localAgentRef)
+	}
+	defer unlock()
+
 	// Step 1: Neutralize pending outbox rows BEFORE touching canonical memories.
 	neutralized, err := f.store.NeutralizeSessionOutbox(ctx, localAgentRef, workSessionRef)
 	if err != nil {
@@ -175,22 +214,45 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		return 0, neutralized, err
 	}
 
-	// Step 2: Look up all committed memory_refs via memory_lineage.
+	// Step 2: Neutralize any already-received, not-yet-remembered receipts in Cognition.
+	neutralizedReceipts, err := f.owner.NeutralizePendingReceiptsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
+	if err != nil {
+		return 0, neutralized, err
+	}
+	neutralized += neutralizedReceipts
+
+	// Step 3: Settle any head neutralized outbox rows so frontiers stay contiguous.
+	if f.bridge != nil && binding.Enabled && !binding.AdoptionRequired {
+		for {
+			nextItem, nextErr := f.store.NextPending(ctx, binding.BindingRef)
+			if nextErr != nil || nextItem.State != "cutoff_non_effecting" {
+				break
+			}
+			if _, drainErr := f.bridge.drainOneLocked(ctx, localAgentRef); drainErr != nil {
+				return 0, neutralized, drainErr
+			}
+		}
+	}
+
+	// Step 4: Look up all committed memory_refs via memory_lineage.
 	refs, err := f.owner.FindMemoryRefsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
 	if err != nil {
 		return 0, neutralized, err
 	}
 	if len(refs) == 0 {
+		f.pointerThrottleMu.Lock()
+		delete(f.pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})
+		f.pointerThrottleMu.Unlock()
 		return 0, neutralized, nil
 	}
 
-	// Step 3: Exact Forget through canonical Facade.Forget.
+	// Step 5: Exact Forget through canonical Facade.Forget.
 	outcome, err := f.Forget(ctx, localAgentRef, refs, true)
 	if err != nil {
 		return 0, neutralized, err
 	}
-	pointerThrottleMu.Lock()
-	delete(pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})
-	pointerThrottleMu.Unlock()
+	f.pointerThrottleMu.Lock()
+	delete(f.pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})
+	f.pointerThrottleMu.Unlock()
 	return uint32(len(outcome.AffectedMemoryRefs)), neutralized, nil
 }

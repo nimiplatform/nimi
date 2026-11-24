@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
@@ -314,7 +315,13 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 		// Solitary work already has one cancelable 90s owner budget, including
 		// model loading. Do not apply the foreground's index-only wait window
 		// to embedding execution and repeatedly abort a cold model.
-		recalled, recallErr := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{IncludeRecentLife: true, LocalAgentRef: ref, Query: query, Limit: 8})
+		recalled, recallErr := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
+			IncludeRecentLife: true,
+			LocalAgentRef:     ref,
+			Query:             query,
+			Limit:             8,
+			ScopeTags:         []string{memoryv1.ScopeTagGlobalFact},
+		})
 		if recallErr == nil {
 			input.Memory, err = publicChatCognitionMemoryInputs(recalled.Hits)
 			if err != nil {

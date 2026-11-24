@@ -321,10 +321,183 @@ func validateCommittedFact(fact CommittedFact) error {
 		if fact.SessionPointer == nil || !validOpaqueRef(fact.SessionPointer.WorkSessionRef) || !validContent(fact.SessionPointer.TopicSummary) {
 			return contractError(OutcomeInvalid, "session_pointer_fact")
 		}
+		if fact.SessionPointer.ScopeTag != "" && fact.SessionPointer.ScopeTag != ScopeTagSessionPointer {
+			return contractError(OutcomeInvalid, "session_pointer_scope_tag")
+		}
+		expectedSlotKey := "session_ref:" + fact.SessionPointer.WorkSessionRef
+		if fact.SessionPointer.SlotKey != "" && fact.SessionPointer.SlotKey != expectedSlotKey {
+			return contractError(OutcomeInvalid, "session_pointer_slot_key")
+		}
+		if len(fact.SessionPointer.BodyKind) > 128 {
+			return contractError(OutcomeInvalid, "session_pointer_body_kind")
+		}
 	default:
 		return contractError(OutcomeUnsupported, "event_kind")
 	}
 	return nil
+}
+
+// ReceiveNoOpCutoff settles a neutralized Runtime outbox sequence without
+// storing any payload or creating any memory, advancing both received_frontier
+// and ready_frontier monotonically so DeleteSession never triggers delivery_gap.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (c *Core) ReceiveNoOpCutoff(
+	ctx context.Context,
+	bindingRef, bankRef, lifecycleRef, eventRef, operationID string,
+	deliverySequence uint64,
+) (CommitResult, error) {
+	if !validOpaqueRef(bindingRef) || !validOpaqueRef(bankRef) || !validOpaqueRef(lifecycleRef) || !validOpaqueRef(eventRef) || !validOpaqueRef(operationID) || deliverySequence == 0 {
+		return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "cutoff_noop_identity")
+	}
+	requestKey, err := canonicalRequestKey(struct {
+		Kind             string `json:"kind"`
+		BindingRef       string `json:"bindingRef"`
+		BankRef          string `json:"bankRef"`
+		EventRef         string `json:"eventRef"`
+		OperationID      string `json:"operationId"`
+		DeliverySequence uint64 `json:"deliverySequence"`
+	}{
+		Kind:             "cutoff_noop",
+		BindingRef:       bindingRef,
+		BankRef:          bankRef,
+		EventRef:         eventRef,
+		OperationID:      operationID,
+		DeliverySequence: deliverySequence,
+	})
+	if err != nil {
+		return CommitResult{Outcome: OutcomeFailed}, err
+	}
+	tx, err := c.db.BeginTx(ctx, nil)
+	if err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if operation, err := loadOperationTx(tx, operationID); err == nil {
+		if operation.Kind != "cutoff_noop" || operation.BindingRef != bindingRef || !operation.BankRef.Valid || operation.BankRef.String != bankRef ||
+			!operation.EventRef.Valid || operation.EventRef.String != eventRef || !operation.Sequence.Valid || uint64(operation.Sequence.Int64) != deliverySequence || operation.RequestKey != requestKey {
+			return CommitResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "operation_request")
+		}
+		frontiers, loadErr := loadFrontiersTx(ctx, tx, bindingRef)
+		if loadErr != nil {
+			return CommitResult{Outcome: OutcomeUnavailable}, loadErr
+		}
+		return CommitResult{Outcome: OutcomeNoEffect, BankRef: bankRef, EventRef: eventRef, OperationID: operationID, DeliverySequence: deliverySequence, ReceivedFrontier: frontiers.Received}, nil
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: inspect operation: %w", err)
+	}
+
+	var storedBankRef, storedLifecycleRef, bankState, bindingState string
+	if err := tx.QueryRowContext(ctx, `SELECT b.bank_ref, b.lifecycle_ref, b.state, x.state FROM memory_bank_bindings x JOIN memory_banks b ON b.bank_ref = x.bank_ref WHERE x.binding_ref = ?`, bindingRef).Scan(&storedBankRef, &storedLifecycleRef, &bankState, &bindingState); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "unknown_binding")
+		}
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: inspect bank: %w", err)
+	}
+	if bankState != "active" || bindingState != "active" || storedBankRef != bankRef {
+		return CommitResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "bank_binding")
+	}
+	if storedLifecycleRef != lifecycleRef {
+		return CommitResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "lifecycle_cutoff")
+	}
+	frontiers, err := loadFrontiersTx(ctx, tx, bindingRef)
+	if err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, err
+	}
+	if deliverySequence != frontiers.Received+1 {
+		return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "delivery_gap")
+	}
+	now := formatTime(c.now())
+	resultJSON, err := json.Marshal(DecisionResult{Outcome: OutcomeNoEffect, OperationID: operationID})
+	if err != nil {
+		return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("receive cutoff noop: encode result: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, outcome, result_json, created_at, updated_at) VALUES(?, 'cutoff_noop', ?, ?, ?, ?, ?, ?, ?, ?, ?)`, operationID, bindingRef, bankRef, eventRef, deliverySequence, requestKey, OutcomeNoEffect, resultJSON, now, now); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: save operation: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_receipts(operation_id, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, lifecycle_ref, outcome, payload, committed_at, terminal_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`, operationID, bindingRef, bankRef, eventRef, deliverySequence, requestKey, lifecycleRef, OutcomeNoEffect, now, now); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: save receipt: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE memory_frontiers SET received_frontier = ? WHERE binding_ref = ?`, deliverySequence, bindingRef); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: advance received frontier: %w", err)
+	}
+	if err := advanceReadyFrontierTx(ctx, tx, bindingRef); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: commit: %w", err)
+	}
+	return CommitResult{Outcome: OutcomeNoEffect, BankRef: bankRef, EventRef: eventRef, OperationID: operationID, DeliverySequence: deliverySequence, ReceivedFrontier: deliverySequence}, nil
+}
+
+// NeutralizePendingReceiptsBySource wipes payload and settles as no_effect any
+// already-received (not yet remembered) memory_receipts matching (sourceKind,
+// sourceValue), eliminating the in-flight DrainOne memory resurrection window.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (c *Core) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, sourceKind, sourceValue string) (int64, error) {
+	if !validOpaqueRef(bindingRef) || !validOpaqueRef(bankRef) || sourceKind == "" || sourceValue == "" {
+		return 0, contractError(OutcomeInvalid, "neutralize_pending_receipt_input")
+	}
+	tx, err := c.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("neutralize pending receipts: begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.QueryContext(ctx, `SELECT operation_id, payload FROM memory_receipts WHERE binding_ref = ? AND bank_ref = ? AND outcome = ? AND payload IS NOT NULL`, bindingRef, bankRef, OutcomeReceived)
+	if err != nil {
+		return 0, fmt.Errorf("neutralize pending receipts: query: %w", err)
+	}
+	var matchingOps []string
+	for rows.Next() {
+		var opID string
+		var raw []byte
+		if err := rows.Scan(&opID, &raw); err != nil {
+			_ = rows.Close()
+			return 0, fmt.Errorf("neutralize pending receipts: scan: %w", err)
+		}
+		var req CommitRequest
+		if json.Unmarshal(raw, &req) != nil {
+			continue
+		}
+		matched := false
+		for _, src := range req.Sources {
+			if src.Kind == sourceKind && src.Value == sourceValue {
+				matched = true
+				break
+			}
+		}
+		if !matched && sourceKind == "session" && req.Fact.SessionPointer != nil && req.Fact.SessionPointer.WorkSessionRef == sourceValue {
+			matched = true
+		}
+		if matched {
+			matchingOps = append(matchingOps, opID)
+		}
+	}
+	if err := rows.Close(); err != nil {
+		return 0, fmt.Errorf("neutralize pending receipts: close rows: %w", err)
+	}
+	if len(matchingOps) == 0 {
+		return 0, nil
+	}
+	now := formatTime(c.now())
+	for _, opID := range matchingOps {
+		resultJSON, err := json.Marshal(DecisionResult{Outcome: OutcomeNoEffect, OperationID: opID})
+		if err != nil {
+			return 0, fmt.Errorf("neutralize pending receipts: encode result: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_operations SET outcome = ?, result_json = ?, updated_at = ? WHERE operation_id = ? AND outcome = ?`, OutcomeNoEffect, resultJSON, now, opID, OutcomeReceived); err != nil {
+			return 0, fmt.Errorf("neutralize pending receipts: update operation: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_receipts SET outcome = ?, payload = NULL, terminal_at = ? WHERE operation_id = ? AND outcome = ?`, OutcomeNoEffect, now, opID, OutcomeReceived); err != nil {
+			return 0, fmt.Errorf("neutralize pending receipts: update receipt: %w", err)
+		}
+	}
+	if err := advanceReadyFrontierTx(ctx, tx, bindingRef); err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("neutralize pending receipts: commit: %w", err)
+	}
+	return int64(len(matchingOps)), nil
 }
 
 func validTerminalState(state TerminalState) bool {

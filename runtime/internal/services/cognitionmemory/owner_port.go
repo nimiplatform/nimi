@@ -37,6 +37,8 @@ type OwnerPort interface {
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
 	QualifyMemoryRefs(context.Context, string, string, string, []string) (map[string]bool, error)
 	FindMemoryRefsBySource(context.Context, string, string, string, string) ([]string, error)
+	ReceiveNoOpCutoff(context.Context, string, string, string, string, string, uint64) (memoryv1.CommitResult, error)
+	NeutralizePendingReceiptsBySource(context.Context, string, string, string, string) (int64, error)
 }
 
 func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
@@ -51,6 +53,20 @@ func (a *OwnerAdapter) FindMemoryRefsBySource(ctx context.Context, bindingRef, b
 		return nil, err
 	}
 	return a.core.FindMemoryRefsBySource(ctx, bankRef, sourceKind, sourceValue)
+}
+
+func (a *OwnerAdapter) ReceiveNoOpCutoff(ctx context.Context, bindingRef, bankRef, lifecycleRef, eventRef, operationID string, deliverySequence uint64) (memoryv1.CommitResult, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return memoryv1.CommitResult{Outcome: errorOutcome(err)}, err
+	}
+	return a.core.ReceiveNoOpCutoff(ctx, bindingRef, bankRef, lifecycleRef, eventRef, operationID, deliverySequence)
+}
+
+func (a *OwnerAdapter) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, sourceKind, sourceValue string) (int64, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return 0, err
+	}
+	return a.core.NeutralizePendingReceiptsBySource(ctx, bindingRef, bankRef, sourceKind, sourceValue)
 }
 
 type OwnerBindingResolver func(context.Context, string) (Binding, error)

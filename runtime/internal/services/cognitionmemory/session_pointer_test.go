@@ -111,13 +111,13 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 		t.Fatalf("expected cutoff_non_effecting with payload=NULL, got state=%q payloadPresent=%v", state, payloadPresent)
 	}
 
-	// Attempt to drain outbox afterward -> MUST drain 0 items and resurrect 0 memories!
+	// Attempt to drain outbox afterward -> already settled as zero-payload cutoff_non_effecting, 0 memories resurrected!
 	drained, err := bridge.DrainOne(ctx, agentRef)
 	if err != nil {
 		t.Fatalf("DrainOne after neutralization: %v", err)
 	}
 	if drained.Drained {
-		t.Fatalf("neutralized outbox event MUST NOT drain or resurrect: %+v", drained)
+		t.Fatalf("already-settled neutralized outbox event MUST NOT drain again: %+v", drained)
 	}
 	afterProj, err := facade.Inspect(ctx, InspectIntent{LocalAgentRef: agentRef, Limit: 50})
 	if err != nil {
@@ -125,5 +125,67 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 	}
 	if afterProj.CurrentCount != 0 || afterProj.ForgottenCount != 2 {
 		t.Fatalf("expected 0 current & 2 forgotten after ForgetSessionLineage, got current=%d forgotten=%d", afterProj.CurrentCount, afterProj.ForgottenCount)
+	}
+
+	// 5. Follow-up unrelated event AFTER neutralization MUST NOT stall with delivery_gap!
+	committedBeta, err := facade.CommitSessionPointer(ctx, agentRef, "ws_beta_002", "initial_goal", "Fresh unrelated session after alpha deleted", "os.pc.workspace", baseTime.Add(50*time.Minute))
+	if err != nil || !committedBeta {
+		t.Fatalf("expected follow-up event after neutralization to succeed without delivery_gap: committed=%v err=%v", committedBeta, err)
+	}
+	afterBeta, err := facade.Inspect(ctx, InspectIntent{LocalAgentRef: agentRef, Limit: 50})
+	if err != nil {
+		t.Fatalf("Inspect after beta commit: %v", err)
+	}
+	if afterBeta.CurrentCount != 1 {
+		t.Fatalf("expected exactly 1 current memory (beta only, zero ghost alpha), got %d", afterBeta.CurrentCount)
+	}
+
+	// 6. Already-received (not yet remembered) Cognition receipt MUST also be neutralized by ForgetSessionLineage!
+	inFlightOpID := "cmop_" + ulid.Make().String()
+	inFlightEnv := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: inFlightOpID},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "session", Value: "ws_gamma_003"}},
+		CommittedAt: timestamppb.New(baseTime.Add(60 * time.Minute)),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_SessionPointerCommitted{
+			SessionPointerCommitted: &runtimev1.CognitionMemorySessionPointerCommitted{
+				WorkSessionRef: "ws_gamma_003",
+				ScopeTag:       memoryv1.ScopeTagSessionPointer,
+				SlotKey:        "session_ref:ws_gamma_003",
+				TopicSummary:   "In-flight drained receipt before DeleteSession",
+				BodyKind:       "os.pc.workspace",
+			},
+		},
+	}
+	if err := store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := store.EnqueueCommittedEventTx(tx, agentRef, inFlightEnv)
+		return err
+	}); err != nil {
+		t.Fatalf("enqueue in-flight gamma event: %v", err)
+	}
+	// Drain to Cognition memory_receipts WITHOUT calling ProcessRemember yet!
+	inFlightDrain, err := bridge.DrainOne(ctx, agentRef)
+	if err != nil || !inFlightDrain.Drained {
+		t.Fatalf("drain in-flight gamma event: %+v err=%v", inFlightDrain, err)
+	}
+	// Now DeleteSession calls ForgetSessionLineage -> MUST neutralize the already-received receipt!
+	_, neutGamma, err := facade.ForgetSessionLineage(ctx, agentRef, "ws_gamma_003")
+	if err != nil || neutGamma != 1 {
+		t.Fatalf("expected 1 already-received Cognition receipt neutralized, got neut=%d err=%v", neutGamma, err)
+	}
+	// Calling ProcessRemember afterward must return no_effect (zero resurrection)!
+	remRes, err := facade.ProcessRemember(ctx, agentRef, inFlightOpID)
+	if err != nil {
+		t.Fatalf("ProcessRemember on neutralized receipt: %v", err)
+	}
+	if remRes.Outcome != memoryv1.OutcomeNoEffect || len(remRes.AffectedMemoryRefs) != 0 {
+		t.Fatalf("expected no_effect on neutralized receipt, got %+v", remRes)
+	}
+
+	// 7. Tainted external source MUST be rejected by CommitSessionPointer.
+	taintedCommitted, err := facade.CommitSessionPointer(ctx, agentRef, "ws_ext_004", "initial_goal", "Untrusted external summary", "channel_external", baseTime.Add(70*time.Minute))
+	if err != nil || taintedCommitted {
+		t.Fatalf("expected tainted channel_external source to be rejected, committed=%v err=%v", taintedCommitted, err)
 	}
 }

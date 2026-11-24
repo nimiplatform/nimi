@@ -190,11 +190,22 @@ func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationP
 }
 
 func baselineRememberPlan(current []Memory, mutation MemoryMutation) MutationPlan {
+	targetScope := strings.TrimSpace(mutation.ScopeTag)
+	if targetScope == "" {
+		targetScope = ScopeTagGlobalFact
+	}
 	candidate := strings.Join(strings.Fields(strings.ToLower(mutation.Content)), " ")
 	candidatePreference, hasCandidatePreference := baselinePreferenceMeaning(mutation.Content)
 	conflictTarget := ""
 	for _, item := range current {
 		if item.Lifecycle != LifecycleCurrent {
+			continue
+		}
+		itemScope := strings.TrimSpace(item.ScopeTag)
+		if itemScope == "" {
+			itemScope = ScopeTagGlobalFact
+		}
+		if itemScope != targetScope {
 			continue
 		}
 		if strings.Join(strings.Fields(strings.ToLower(item.Content)), " ") == candidate {
