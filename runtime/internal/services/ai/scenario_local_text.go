@@ -46,7 +46,8 @@ func executeLocalTextGenerateScenario(
 	}
 
 	localEndpointKey := "local:" + strings.TrimSpace(effective.modelResolved())
-	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, scheduler.PriorityP0Foreground, nil)
+	admission, _ := scheduler.ExecutionAdmissionFromContext(jobCtx)
+	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, admission.Priority, admission.Preempt)
 	if err != nil {
 		executionErr := schedulerAcquireError(err)
 		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)
@@ -174,7 +175,8 @@ func streamLocalTextGenerateScenario(
 	}
 
 	localEndpointKey := "local:" + strings.TrimSpace(effective.modelResolved())
-	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, scheduler.PriorityP0Foreground, nil)
+	admission, _ := scheduler.ExecutionAdmissionFromContext(jobCtx)
+	release, acquireResult, err := s.scheduler.AcquireForEndpoint(jobCtx, localEndpointKey, admission.Priority, admission.Preempt)
 	if err != nil {
 		executionErr := schedulerAcquireError(err)
 		s.finishLocalTextScenarioJobFailure(jobCtx, jobID, executionErr)

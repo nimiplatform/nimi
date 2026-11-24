@@ -29,38 +29,39 @@ func readerCanAccessSession(decision accountservice.LocalAppCallerDecision, rec 
 	if rec == nil {
 		return false
 	}
-	// Core first-party Home (BuiltIn) and Harness (BuiltIn or dev-registered) are authorized for full account overview.
-	if isCoreDesktop(decision) || isCoreHarness(decision) {
+	// Any App activating agent.session.manage (or agent.body.pc) sees the account overview
+	// without any hardcoded built-in app_id privilege.
+	if hasSessionManage(decision) {
 		return true
 	}
-	// Zhiyu sees its own companion & app-scoped sessions.
-	if isCoreZhiyu(decision) {
-		return rec.GetSessionKind() == "companion" ||
-			rec.GetIsPrimaryCompanion() ||
-			rec.GetPublisherScopeKey() == "app:nimi.zhiyu"
+	if hasCompanionScope(decision) && (rec.GetSessionKind() == "companion" || rec.GetIsPrimaryCompanion()) {
+		return true
 	}
-	// Ordinary Apps only see sessions bound to their own publisher_scope_key.
-	return rec.GetPublisherScopeKey() != "" && rec.GetPublisherScopeKey() == "app:"+decision.AppID
+	scopeKey := subjectScopeKey(decision)
+	return scopeKey != "" && rec.GetPublisherScopeKey() != "" &&
+		(rec.GetPublisherScopeKey() == scopeKey || strings.HasPrefix(rec.GetPublisherScopeKey(), "channel:"+strings.TrimSpace(decision.RegisteredAppSubject)+":"))
 }
 
 func visibilityForReader(decision accountservice.LocalAppCallerDecision) readerVisibilityFilter {
-	if isCoreDesktop(decision) || isCoreHarness(decision) {
+	if hasSessionManage(decision) {
 		return readerVisibilityFilter{FullAccount: true}
 	}
-	if isCoreZhiyu(decision) {
-		return readerVisibilityFilter{ZhiyuScope: true}
+	return readerVisibilityFilter{
+		IncludeCompanion: hasCompanionScope(decision),
+		SubjectScopeKey:  subjectScopeKey(decision),
+		ChannelPrefix:    "channel:" + strings.TrimSpace(decision.RegisteredAppSubject) + ":",
 	}
-	return readerVisibilityFilter{AppScopeKey: "app:" + decision.AppID}
 }
 
 func readerCanAccessAttention(decision accountservice.LocalAppCallerDecision, att *runtimev1.PendingAttentionRecord) bool {
 	if att == nil {
 		return false
 	}
-	if isCoreDesktop(decision) || isCoreHarness(decision) {
+	if hasSessionManage(decision) {
 		return true
 	}
-	return att.GetTrustScope() == "app:"+decision.AppID
+	scopeKey := subjectScopeKey(decision)
+	return scopeKey != "" && att.GetTrustScope() == scopeKey
 }
 
 func deriveSessionTitle(text, workspaceRoot string) string {
@@ -106,6 +107,7 @@ func computeSubmissionPayloadHash(agentBinding string, req *runtimev1.RouteAndSu
 		ExplicitWorkSessionRef string   `json:"explicitWorkSessionRef"`
 		SelectedCandidateRef   string   `json:"selectedCandidateRef"`
 		EntrySurface           string   `json:"entrySurface"`
+		TrustTierHint          string   `json:"trustTierHint"`
 		WorkspaceRoot          string   `json:"workspaceRoot"`
 		WorkspaceWritable      bool     `json:"workspaceWritable"`
 		AttachmentPaths        []string `json:"attachmentPaths"`
@@ -120,6 +122,7 @@ func computeSubmissionPayloadHash(agentBinding string, req *runtimev1.RouteAndSu
 		ExplicitWorkSessionRef: strings.TrimSpace(req.GetExplicitWorkSessionRef()),
 		SelectedCandidateRef:   strings.TrimSpace(req.GetSelectedCandidateRef()),
 		EntrySurface:           strings.TrimSpace(req.GetEntrySurface()),
+		TrustTierHint:          strings.TrimSpace(req.GetTrustTierHint()),
 		WorkspaceRoot:          strings.TrimSpace(req.GetWorkspaceRoot()),
 		WorkspaceWritable:      req.GetWorkspaceWritable(),
 		AttachmentPaths:        req.GetAttachmentPaths(),
@@ -209,7 +212,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	// Fast read-only idempotency check scoped to (account_id, caller_subject, request_id) + payload_hash.
 	if existing, err := s.store.LookupSubmission(ctx, decision.AccountID, decision.RegisteredAppSubject, requestID, payloadHash); err != nil {
 		if errors.Is(err, errSubmissionPayloadConflict) {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	} else if existing != nil {
@@ -219,25 +222,33 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		return existing, nil
 	}
 
+	if req.GetWorkspaceWritable() && !hasSessionManage(decision) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+
 	var (
-		targetRow             *sessionRow
-		existingTargetUpdate  bool
-		closeSourceInboxRef   string
-		routeReason           string
-		heuristicDowngraded   bool
-		promotedTurns         int32
-		handoffHistoryPayload []map[string]any
+		targetRow                *sessionRow
+		existingTargetUpdate     bool
+		explicitPermissionChange bool
+		closeSourceInboxRef      string
+		routeReason              string
+		heuristicDowngraded      bool
+		promotedTurns            int32
+		handoffHistoryPayload    []map[string]any
 	)
 
-	// --- Layer 0 / 2A: External channel isolation MUST run BEFORE explicit anchor ---
+	callerScope := subjectScopeKey(decision)
+
+	// --- Layer 0 / 2A: External channel isolation MUST run BEFORE explicit anchor for ALL callers ---
 	entrySurface := strings.TrimSpace(req.GetEntrySurface())
 	isExternalChannel := strings.HasPrefix(entrySurface, "channel:") ||
-		(!isCoreDesktop(decision) && !isCoreHarness(decision) && !isCoreZhiyu(decision) && strings.EqualFold(strings.TrimSpace(req.GetTrustTierHint()), "external"))
+		strings.EqualFold(strings.TrimSpace(req.GetTrustTierHint()), "external")
 	if isExternalChannel {
-		scopeKey := entrySurface
-		if scopeKey == "" {
-			scopeKey = "channel:external:" + decision.AppID
+		channelTag := entrySurface
+		if channelTag == "" {
+			channelTag = "external"
 		}
+		scopeKey := "channel:" + strings.TrimSpace(decision.RegisteredAppSubject) + ":" + channelTag
 		existing, err := s.store.FindActiveExternalChannelSession(ctx, decision.AccountID, agentBinding, scopeKey)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -319,6 +330,10 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		if !readerCanAccessSession(decision, src.Record) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 		}
+		// Never promote untrusted/external channel sessions into a trusted PC workspace!
+		if src.Record.GetTrustTier() != "trusted" || src.Record.GetSessionKind() == "channel_external" {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
 		maxSeq := req.GetCardSourceMaxSeq()
 		events, err := s.store.ListBrainEvents(ctx, sourceRef, 0, maxSeq, 128)
 		if err != nil {
@@ -326,7 +341,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		}
 		handoffHistoryPayload, promotedTurns = extractCommittedHandoffEvents(events)
 		permMode := "plan-readonly"
-		if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
+		if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" && hasSessionManage(decision) {
 			permMode = "workspace-edit"
 		}
 		if src.Record.GetIsGeneralInbox() {
@@ -340,12 +355,12 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				AgentBinding:         agentBinding,
 				SessionKind:          "pc_work",
 				OwnerBodyKind:        DefaultPCNamespace,
-				PublisherScopeKey:    "app:" + decision.AppID,
+				PublisherScopeKey:    callerScope,
 				ForkedFromSessionRef: sourceRef,
 				ForkedAtSeq:          maxSeq,
 				Title:                deriveSessionTitle(req.GetText(), req.GetWorkspaceRoot()),
 				Status:               "active",
-				TrustTier:            "trusted",
+				TrustTier:            src.Record.GetTrustTier(),
 				WorkspaceRoot:        strings.TrimSpace(req.GetWorkspaceRoot()),
 				PermissionMode:       permMode,
 				LatestReceiptJson:    "{}",
@@ -356,7 +371,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 
 	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetHandoffBriefText()) != "" {
 		permMode := "plan-readonly"
-		if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
+		if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" && hasSessionManage(decision) {
 			permMode = "workspace-edit"
 		}
 		targetRow = &sessionRow{
@@ -367,7 +382,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				AgentBinding:      agentBinding,
 				SessionKind:       "pc_work",
 				OwnerBodyKind:     DefaultPCNamespace,
-				PublisherScopeKey: "app:" + decision.AppID,
+				PublisherScopeKey: callerScope,
 				Title:             deriveSessionTitle(req.GetHandoffBriefText(), req.GetWorkspaceRoot()),
 				Status:            "active",
 				TrustTier:         "trusted",
@@ -392,7 +407,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			routeReason = "l2_workspace_root_match"
 		} else {
 			permMode := "plan-readonly"
-			if req.GetWorkspaceWritable() {
+			if req.GetWorkspaceWritable() && hasSessionManage(decision) {
 				permMode = "workspace-edit"
 			}
 			targetRow = &sessionRow{
@@ -403,7 +418,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 					AgentBinding:      agentBinding,
 					SessionKind:       "pc_work",
 					OwnerBodyKind:     DefaultPCNamespace,
-					PublisherScopeKey: "app:" + decision.AppID,
+					PublisherScopeKey: callerScope,
 					Title:             deriveSessionTitle(req.GetText(), wsRoot),
 					Status:            "active",
 					TrustTier:         "trusted",
@@ -457,10 +472,11 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			routeReason = "l3_fts5_confident_continue"
 			if targetRow.Record.GetSessionKind() == "pc_work" && targetRow.Record.GetPermissionMode() == "workspace-edit" {
 				targetRow.Record.PermissionMode = "plan-readonly"
+				explicitPermissionChange = true
 				heuristicDowngraded = true
 			}
 		} else if isLowEntropyShortFollowUp(req.GetText()) {
-			recentRows, _, listErr := s.store.ListSessions(ctx, decision.AccountID, agentBinding, false, []string{"pc_work"}, "active", "", visibilityForReader(decision))
+			recentRows, _, _, listErr := s.store.ListSessions(ctx, decision.AccountID, agentBinding, false, []string{"pc_work"}, "active", "", visibilityForReader(decision), 4, "")
 			if listErr == nil && len(recentRows) >= 2 {
 				topN := len(recentRows)
 				if topN > 3 {
@@ -490,7 +506,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	if targetRow == nil {
 		if !forceGeneralInbox && looksLikePCWorkIntent(req) {
 			permMode := "plan-readonly"
-			if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
+			if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" && hasSessionManage(decision) {
 				permMode = "workspace-edit"
 			}
 			targetRow = &sessionRow{
@@ -501,7 +517,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 					AgentBinding:      agentBinding,
 					SessionKind:       "pc_work",
 					OwnerBodyKind:     DefaultPCNamespace,
-					PublisherScopeKey: "app:" + decision.AppID,
+					PublisherScopeKey: callerScope,
 					Title:             deriveSessionTitle(req.GetText(), req.GetWorkspaceRoot()),
 					Status:            "active",
 					TrustTier:         "trusted",
@@ -520,8 +536,6 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				inbox = nil
 			}
 			if inbox != nil && !forceGeneralInbox && inbox.InboxTurnCount+1 >= lightQAPromoteTurnNumber {
-				// 4th turn in light Q&A promotes to a fresh pc_work session with <= 6 committed turns
-				// and atomically closes the old general_inbox window to prevent promotion loops!
 				events, _ := s.store.ListBrainEvents(ctx, inbox.Record.GetWorkSessionRef(), 0, inbox.Record.GetHeadSeq(), 128)
 				handoffHistoryPayload, promotedTurns = extractCommittedHandoffEvents(events)
 				closeSourceInboxRef = inbox.Record.GetWorkSessionRef()
@@ -533,7 +547,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 						AgentBinding:         agentBinding,
 						SessionKind:          "pc_work",
 						OwnerBodyKind:        DefaultPCNamespace,
-						PublisherScopeKey:    "app:" + decision.AppID,
+						PublisherScopeKey:    callerScope,
 						ForkedFromSessionRef: inbox.Record.GetWorkSessionRef(),
 						ForkedAtSeq:          inbox.Record.GetHeadSeq(),
 						Title:                deriveSessionTitle(req.GetText(), ""),
@@ -558,7 +572,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 						AgentBinding:      agentBinding,
 						SessionKind:       "general_inbox",
 						OwnerBodyKind:     "brain",
-						PublisherScopeKey: "app:" + decision.AppID,
+						PublisherScopeKey: callerScope,
 						IsGeneralInbox:    true,
 						Title:             deriveSessionTitle(req.GetText(), ""),
 						Status:            "active",
@@ -577,17 +591,18 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	}
 
 	commitIn := routedCommitInput{
-		AccountID:             decision.AccountID,
-		CallerSubject:         decision.RegisteredAppSubject,
-		ClientSubmissionID:    requestID,
-		SubmissionPayloadHash: payloadHash,
-		Session:               targetRow,
-		ExistingSessionUpdate: existingTargetUpdate,
-		CloseSourceInboxRef:   closeSourceInboxRef,
-		Outcome:               runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_ACCEPTED,
-		RouteReason:           routeReason,
-		PromotedTurns:         promotedTurns,
-		Now:                   now,
+		AccountID:                decision.AccountID,
+		CallerSubject:            decision.RegisteredAppSubject,
+		ClientSubmissionID:       requestID,
+		SubmissionPayloadHash:    payloadHash,
+		Session:                  targetRow,
+		ExistingSessionUpdate:    existingTargetUpdate,
+		ExplicitPermissionChange: explicitPermissionChange,
+		CloseSourceInboxRef:      closeSourceInboxRef,
+		Outcome:                  runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_ACCEPTED,
+		RouteReason:              routeReason,
+		PromotedTurns:            promotedTurns,
+		Now:                      now,
 	}
 
 	if targetRow.Record.GetOwnerBodyKind() != "" && targetRow.Record.GetOwnerBodyKind() != "brain" {
@@ -652,7 +667,10 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	resp, deduplicated, err := s.store.CommitRoutedSubmission(ctx, commitIn)
 	if err != nil {
 		if errors.Is(err, errSubmissionPayloadConflict) {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		if errors.Is(err, errSessionConflict) {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
 		}
 		if errors.Is(err, errSessionNotFound) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
@@ -665,7 +683,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		}
 		if commitIn.BrainEvent != nil {
 			s.notifyBrainEventSubscribers(commitIn.BrainEvent)
-			s.maybeStartBrainTurn(decision.AccountID, targetRow.Record, req.GetText(), requestID)
+			s.maybeStartBrainTurn(decision, targetRow.Record, req.GetText(), requestID)
 		}
 		s.notifyOverviewChange(decision.AccountID, []*runtimev1.WorkSessionRecord{targetRow.Record}, nil)
 	}
@@ -713,6 +731,12 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	if targetKind == "" {
 		targetKind = "pc_work"
 	}
+	if req.GetWorkspaceWritable() && !hasSessionManage(decision) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if targetKind == "pc_work" && (src.Record.GetTrustTier() != "trusted" || src.Record.GetSessionKind() == "channel_external") {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
 	ownerBodyKind := DefaultPCNamespace
 	if targetKind != "pc_work" {
 		ownerBodyKind = "brain"
@@ -725,6 +749,10 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
 		permMode = "workspace-edit"
 	}
+	targetTrustTier := src.Record.GetTrustTier()
+	if targetTrustTier == "" {
+		targetTrustTier = "trusted"
+	}
 	targetRow := &sessionRow{
 		AccountID:    decision.AccountID,
 		TopicSummary: title,
@@ -733,12 +761,12 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 			AgentBinding:         src.Record.GetAgentBinding(),
 			SessionKind:          targetKind,
 			OwnerBodyKind:        ownerBodyKind,
-			PublisherScopeKey:    "app:" + decision.AppID,
+			PublisherScopeKey:    subjectScopeKey(decision),
 			ForkedFromSessionRef: src.Record.GetWorkSessionRef(),
 			ForkedAtSeq:          sourceSeq,
 			Title:                title,
 			Status:               "active",
-			TrustTier:            "trusted",
+			TrustTier:            targetTrustTier,
 			WorkspaceRoot:        strings.TrimSpace(req.GetWorkspaceRoot()),
 			PermissionMode:       permMode,
 			LatestReceiptJson:    "{}",
@@ -798,7 +826,7 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	resp, deduplicated, err := s.store.CommitRoutedSubmission(ctx, commitIn)
 	if err != nil {
 		if errors.Is(err, errSubmissionPayloadConflict) {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -861,7 +889,7 @@ func (s *Service) ListSessions(ctx context.Context, req *runtimev1.ListSessionsR
 		}
 		agentFilter = resolved
 	}
-	rows, totalVisible, err := s.store.ListSessions(
+	rows, totalVisible, nextPageToken, err := s.store.ListSessions(
 		ctx,
 		decision.AccountID,
 		agentFilter,
@@ -870,6 +898,8 @@ func (s *Service) ListSessions(ctx context.Context, req *runtimev1.ListSessionsR
 		req.GetStatusFilter(),
 		req.GetSearchQuery(),
 		visibilityForReader(decision),
+		int(req.GetPageSize()),
+		req.GetPageToken(),
 	)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -878,11 +908,9 @@ func (s *Service) ListSessions(ctx context.Context, req *runtimev1.ListSessionsR
 	for _, r := range rows {
 		items = append(items, r.Record)
 	}
-	if pageSize := int(req.GetPageSize()); pageSize > 0 && len(items) > pageSize {
-		items = items[:pageSize]
-	}
 	return &runtimev1.ListSessionsResponse{
 		Items:             items,
+		NextPageToken:     nextPageToken,
 		TotalVisibleCount: uint32(totalVisible),
 	}, nil
 }
@@ -909,7 +937,7 @@ func (s *Service) UpdateSession(ctx context.Context, req *runtimev1.UpdateSessio
 		default:
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		if pm == "workspace-edit" && !isCoreDesktop(decision) && !isCoreHarness(decision) {
+		if pm == "workspace-edit" && !hasSessionManage(decision) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
 	}
@@ -924,6 +952,9 @@ func (s *Service) UpdateSession(ctx context.Context, req *runtimev1.UpdateSessio
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	updated, err := s.store.UpdateSessionFields(ctx, decision.AccountID, req, s.now().UTC())
+	if errors.Is(err, errSessionNotFound) {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
+	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -977,6 +1008,7 @@ func (s *Service) DeleteSession(ctx context.Context, req *runtimev1.DeleteSessio
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
+	s.deleteSessionStepLock(ref)
 	outboxID := ""
 	if purgeEnv != nil {
 		outboxID = purgeEnv.GetOutboxId()
@@ -1007,7 +1039,7 @@ func (s *Service) WatchSessionOverview(req *runtimev1.WatchSessionOverviewReques
 		}
 		agentFilter = resolved
 	}
-	rows, _, err := s.store.ListSessions(ctx, decision.AccountID, agentFilter, req.GetIncludeArchived(), nil, "", "", visibilityForReader(decision))
+	rows, _, _, err := s.store.ListSessions(ctx, decision.AccountID, agentFilter, req.GetIncludeArchived(), nil, "", "", visibilityForReader(decision), 200, "")
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}

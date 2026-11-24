@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,45 +14,51 @@ import (
 )
 
 func testCallerCtx(appID, subject, domain string, op localappop.Operation) context.Context {
-	trust := accountservice.LocalAppTrustClassUserImported
-	if appID == "nimi.desktop" || appID == CorePCBodyAppID || appID == "nimi.zhiyu" {
-		trust = accountservice.LocalAppTrustClassBuiltIn
+	domains := []string{domain}
+	switch appID {
+	case "nimi.desktop":
+		domains = append(domains, DomainAgentSessionManage, DomainAgentLocal, DomainAgentTriggerDelegate)
+	case "nimi.harness":
+		domains = append(domains, DomainAgentBodyPC, DomainAgentSessionManage, DomainAgentLocal)
+	case "nimi.zhiyu":
+		domains = append(domains, DomainAgentCompanion, DomainAgentLocal)
 	}
-	return testCallerCtxWithTrust(appID, subject, domain, op, trust)
+	return testCallerCtxWithDomains(appID, subject, domain, op, domains...)
 }
 
-func testCallerCtxWithTrust(appID, subject, domain string, op localappop.Operation, trust accountservice.LocalAppTrustClass) context.Context {
+func testCallerCtxWithDomains(appID, subject, domain string, op localappop.Operation, activated ...string) context.Context {
 	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		AccountID:            "acct-1",
 		AppID:                appID,
 		RegisteredAppSubject: subject,
-		TrustClass:           trust,
+		TrustClass:           accountservice.LocalAppTrustClassUserImported,
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		OperationCapability:  domain,
+		ActivatedDomains:     strings.Join(activated, ","),
 		Operation:            op,
 		ExpiresAt:            time.Now().UTC().Add(time.Hour),
 	})
 }
 
-func TestRegisterBodyCarrierEnforcesCorePCPrincipalAndNamespaceIsolation(t *testing.T) {
+func TestRegisterBodyCarrierEnforcesCapabilityAndLeaseIsolation(t *testing.T) {
 	svc := New(Options{})
 
-	// 1. Core Harness with agent.body.pc registers os.pc.workspace -> succeeds.
-	harnessCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	// 1. Any local App with activated agent.body.pc registers os.pc.workspace -> succeeds (zero-privilege).
+	harnessCtx := testCallerCtx("com.custom.pcbody", "subj-pcbody", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
 	reg, err := svc.RegisterBodyCarrier(harnessCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: "os.pc.workspace",
 		InstanceId:          "inst-1",
 	})
 	if err != nil {
-		t.Fatalf("core harness register failed: %v", err)
+		t.Fatalf("pc body register failed: %v", err)
 	}
 	if reg.GetLeaseEpoch() != 1 || reg.GetCapabilityNamespace() != "os.pc.workspace" {
 		t.Fatalf("unexpected register response: %+v", reg)
 	}
 
 	// 2. Heartbeat with valid epoch -> succeeds.
-	hbCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCHeartbeat)
+	hbCtx := testCallerCtx("com.custom.pcbody", "subj-pcbody", DomainAgentBodyPC, localappop.OperationAgentBodyPCHeartbeat)
 	hb, err := svc.HeartbeatBodyCarrier(hbCtx, &runtimev1.HeartbeatBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: "os.pc.workspace",
@@ -62,24 +69,34 @@ func TestRegisterBodyCarrierEnforcesCorePCPrincipalAndNamespaceIsolation(t *test
 		t.Fatalf("heartbeat failed: resp=%+v err=%v", hb, err)
 	}
 
-	// 3. Ordinary third-party App claiming agent.body.pc is rejected.
-	spoofCtx := testCallerCtx("com.evil.app", "subj-evil", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
-	if _, err := svc.RegisterBodyCarrier(spoofCtx, &runtimev1.RegisterBodyCarrierRequest{
+	// 3. Another App without activated agent.body.pc is rejected.
+	noCapCtx := testCallerCtxWithDomains("com.evil.app", "subj-evil", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentLocal)
+	if _, err := svc.RegisterBodyCarrier(noCapCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: "os.pc.workspace",
 		InstanceId:          "inst-evil",
 	}); status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected PermissionDenied for non-core app on agent.body.pc, got %v", err)
+		t.Fatalf("expected PermissionDenied without activated agent.body.pc, got %v", err)
 	}
 
-	// 4. Third-party app with agent.body.app can only register app.<app_id>.*, never os.pc.* or another app's namespace.
+	// 3b. Another subject WITH agent.body.pc (even claiming app_id=nimi.harness) CANNOT preempt active lease!
+	preemptCtx := testCallerCtx("nimi.harness", "subj-preempt", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	if _, err := svc.RegisterBodyCarrier(preemptCtx, &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "dev-1",
+		CapabilityNamespace: "os.pc.workspace",
+		InstanceId:          "inst-preempt",
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied on cross-subject os.pc.workspace preemption, got %v", err)
+	}
+
+	// 4. App with agent.body.app can only register app.<app_id>.*, never os.pc.* or another app's namespace.
 	appCtx := testCallerCtx("com.example.tool", "subj-tool", DomainAgentBodyApp, localappop.OperationAgentBodyAppRegister)
 	if _, err := svc.RegisterBodyCarrier(appCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: "os.pc.workspace",
 		InstanceId:          "inst-tool",
 	}); status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected PermissionDenied for third-party app requesting os.pc.*, got %v", err)
+		t.Fatalf("expected PermissionDenied for agent.body.app requesting os.pc.*, got %v", err)
 	}
 	appReg, err := svc.RegisterBodyCarrier(appCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
@@ -87,7 +104,7 @@ func TestRegisterBodyCarrierEnforcesCorePCPrincipalAndNamespaceIsolation(t *test
 		InstanceId:          "inst-tool",
 	})
 	if err != nil || appReg.GetLeaseEpoch() != 1 {
-		t.Fatalf("expected third-party app scoped namespace registration to succeed, got resp=%+v err=%v", appReg, err)
+		t.Fatalf("expected app-scoped namespace registration to succeed, got resp=%+v err=%v", appReg, err)
 	}
 
 	// 5. Another subject trying to preempt active lease -> rejected.

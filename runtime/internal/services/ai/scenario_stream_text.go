@@ -85,7 +85,8 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if effective != nil && strings.TrimSpace(effective.modelResolved()) != "" {
 		endpointKey = "cloud:" + strings.TrimSpace(effective.modelResolved())
 	}
-	release, acquireResult, acquireErr := s.scheduler.AcquireForEndpoint(jobCtx, endpointKey, scheduler.PriorityP0Foreground, nil)
+	admission, _ := scheduler.ExecutionAdmissionFromContext(jobCtx)
+	release, acquireResult, acquireErr := s.scheduler.AcquireForEndpoint(jobCtx, endpointKey, admission.Priority, admission.Preempt)
 	s.observeLatency("runtime.ai.scheduler_acquire_ms", schedulerStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),
 		"scenario_type", req.GetScenarioType().String(),

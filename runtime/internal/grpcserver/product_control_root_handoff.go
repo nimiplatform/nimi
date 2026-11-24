@@ -55,6 +55,11 @@ func (h *productControlRuntimeRootHandoff) CloseRootAdmission(ctx context.Contex
 			return fmt.Errorf("quiesce App package owner: %w", err)
 		}
 	}
+	if h.agentSessions != nil {
+		if err := h.agentSessions.QuiesceDataRootContext(ctx); err != nil {
+			return fmt.Errorf("quiesce AgentSession owner: %w", err)
+		}
+	}
 	if h.agent != nil {
 		if err := h.agent.QuiesceDataRootContext(ctx); err != nil {
 			return fmt.Errorf("quiesce Runtime Agent owner: %w", err)
@@ -78,11 +83,6 @@ func (h *productControlRuntimeRootHandoff) CloseRootAdmission(ctx context.Contex
 	if h.appActivity != nil {
 		if err := h.appActivity.QuiesceDataRootContext(ctx); err != nil {
 			return fmt.Errorf("quiesce App activity owner: %w", err)
-		}
-	}
-	if h.agentSessions != nil {
-		if err := h.agentSessions.QuiesceDataRootContext(ctx); err != nil {
-			return fmt.Errorf("quiesce AgentSession owner: %w", err)
 		}
 	}
 	if h.backend != nil {

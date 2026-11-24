@@ -61,7 +61,7 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 	if err != nil {
 		t.Fatalf("CreateAlarm app_delegation: %v", err)
 	}
-	if a1.GetAlarm().GetSourcePublisher() != "com.parentos.app" || a1.GetAlarm().GetVersion() != 1 {
+	if a1.GetAlarm().GetSourcePublisher() != "subject:subj-parentos" || a1.GetAlarm().GetVersion() != 1 {
 		t.Fatalf("unexpected alarm metadata: %+v", a1.GetAlarm())
 	}
 
@@ -180,6 +180,7 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 		TrustClass:           accountservice.LocalAppTrustClassBuiltIn,
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		OperationCapability:  DomainAgentTriggerDelegate,
+		ActivatedDomains:     DomainAgentSessionManage + "," + DomainAgentTriggerDelegate,
 		Operation:            localappop.OperationAgentTriggerAlarmCreate,
 		ExpiresAt:            clock.Add(time.Hour),
 	})
@@ -275,10 +276,11 @@ func TestStage3OfflineTop2RecallAuthorizationBudgetAndTaintGate(t *testing.T) {
 		{WorkSessionRef: refs[2], Score: 0.85}, // 3rd trusted -> excluded by Top-2 cap!
 	}
 
-	// Authorized Home reader: gets ONLY Top-2 trusted sessions, <= 1.5 KiB, and Harness is completely offline!
+	// Authorized session-manage reader: gets ONLY Top-2 trusted sessions, <= 1.5 KiB, and Harness is completely offline!
 	desktopDecision := accountservice.LocalAppCallerDecision{
-		AccountID: "acct-1",
-		AppID:     "nimi.desktop",
+		AccountID:        "acct-1",
+		AppID:            "nimi.desktop",
+		ActivatedDomains: DomainAgentSessionManage,
 	}
 	frame, included, err := svc.BuildOfflineSessionRecallInjection(context.Background(), desktopDecision, "agent-work", pointers)
 	if err != nil {

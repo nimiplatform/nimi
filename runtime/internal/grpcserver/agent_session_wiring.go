@@ -2,6 +2,9 @@ package grpcserver
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"hash/fnv"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -10,8 +13,6 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/agentsession"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
@@ -50,11 +51,12 @@ func buildProductionAgentSessionService(
 		readSetQualifier = func(ctx context.Context, _, agentBinding, _ string, lastEpoch int64) (bool, int64, error) {
 			proj, err := facadeRef.InspectBinding(ctx, agentBinding)
 			if err != nil {
-				// Fail closed if Cognition memory owner is unreachable while a read set is tracked.
-				if lastEpoch > 0 {
-					return false, lastEpoch, err
+				// Only an explicitly absent Cognition memory binding (unconfigured agent)
+				// may proceed with epoch 0; any storage/owner failure MUST fail closed!
+				if errors.Is(err, sql.ErrNoRows) && lastEpoch == 0 {
+					return true, 0, nil
 				}
-				return true, 0, nil
+				return false, lastEpoch, err
 			}
 			if proj.Outcome == memoryv1.OutcomeUnconfigured || !proj.Enabled || proj.AdoptionRequired {
 				if lastEpoch > 0 {
@@ -62,8 +64,16 @@ func buildProductionAgentSessionService(
 				}
 				return true, 0, nil
 			}
-			// Monotonic mutation epoch: increments on every forget or supersede mutation.
-			currentEpoch := int64(proj.ForgottenCount)*1_000_000 + int64(proj.SupersededCount) + 1
+			// Derive read-set epoch strictly from lifecycle_ref (delete-all/disable cutoff)
+			// and ForgottenCount; NEVER include SupersededCount so ordinary milestone pointer
+			// updates do not invalidate active Body sessions.
+			h := fnv.New64a()
+			_, _ = h.Write([]byte(strings.TrimSpace(proj.LifecycleRef)))
+			lifecycleTag := int64(h.Sum64() & 0x0000_0000_7fff_ffff)
+			currentEpoch := (lifecycleTag << 24) | int64(proj.ForgottenCount&0x00ff_ffff)
+			if currentEpoch <= 0 {
+				currentEpoch = 1
+			}
 			if lastEpoch > 0 && currentEpoch != lastEpoch {
 				return false, currentEpoch, nil
 			}
@@ -86,6 +96,7 @@ func buildProductionAgentSessionService(
 		bodyStepExecutor = func(ctx context.Context, in agentsession.BodyStepExecutionInput, emitter agentsession.BodyStepEmitter) (agentsession.BodyStepExecutionResult, error) {
 			res, err := agentRef.ExecuteAgentBodyStep(ctx, runtimeagentservice.BodyStepRuntimeInput{
 				AccountID:           in.AccountID,
+				CallerAppID:         in.CallerAppID,
 				AgentBinding:        in.AgentBinding,
 				WorkSessionRef:      in.WorkSessionRef,
 				Purpose:             in.Purpose,
@@ -112,13 +123,13 @@ func buildProductionAgentSessionService(
 				ContextBudgetTokens: res.ContextBudgetTokens,
 			}, nil
 		}
-		brainTurnExecutor = func(ctx context.Context, accountID string, session *runtimev1.WorkSessionRecord, userText, requestID string, emit func(eventType, payloadJSON string) error) error {
+		brainTurnExecutor = func(ctx context.Context, in agentsession.BrainTurnExecutionInput, emit func(eventType, payloadJSON string, persist bool) error) error {
 			offlineRecall := ""
-			if memoryFacade != nil && svcRef != nil && session != nil && session.GetSessionKind() == "general_inbox" && strings.TrimSpace(userText) != "" {
+			if memoryFacade != nil && svcRef != nil && in.Session != nil && in.Session.GetSessionKind() == "general_inbox" && strings.TrimSpace(in.UserText) != "" {
 				recallRes, recallErr := memoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
 					NoModelWork:   true,
-					LocalAgentRef: session.GetAgentBinding(),
-					Query:         userText,
+					LocalAgentRef: in.Session.GetAgentBinding(),
+					Query:         in.UserText,
 					Limit:         4,
 					ScopeTags:     []string{memoryv1.ScopeTagSessionPointer},
 				})
@@ -136,12 +147,8 @@ func buildProductionAgentSessionService(
 						})
 					}
 					if len(ptrs) > 0 {
-						readerDecision := accountservice.LocalAppCallerDecision{
-							AccountID:  accountID,
-							AppID:      envelope.ProtectedDesktopAppID,
-							TrustClass: accountservice.LocalAppTrustClassBuiltIn,
-						}
-						if frame, _, err := svcRef.BuildOfflineSessionRecallInjection(ctx, readerDecision, session.GetAgentBinding(), ptrs); err == nil {
+						// Always authorize recall strictly against the real caller decision!
+						if frame, _, err := svcRef.BuildOfflineSessionRecallInjection(ctx, in.CallerDecision, in.Session.GetAgentBinding(), ptrs); err == nil {
 							offlineRecall = frame
 						}
 					}
@@ -149,13 +156,17 @@ func buildProductionAgentSessionService(
 			}
 			return agentRef.ExecuteBrainInlineTurn(
 				ctx,
-				accountID,
-				session.GetAgentBinding(),
-				session.GetWorkSessionRef(),
-				session.GetSessionKind(),
-				userText,
-				requestID,
-				offlineRecall,
+				runtimeagentservice.BrainInlineTurnRuntimeInput{
+					AccountID:            in.AccountID,
+					CallerAppID:          in.CallerDecision.AppID,
+					LocalAgentRef:        in.Session.GetAgentBinding(),
+					WorkSessionRef:       in.Session.GetWorkSessionRef(),
+					SessionKind:          in.Session.GetSessionKind(),
+					UserText:             in.UserText,
+					RequestID:            in.RequestID,
+					OfflineRecallContext: offlineRecall,
+					History:              in.History,
+				},
 				emit,
 			)
 		}
@@ -171,9 +182,18 @@ func buildProductionAgentSessionService(
 		}
 	}
 
+	isDesktopDeliveryChannel := func(channel string) bool {
+		switch strings.ToLower(strings.TrimSpace(channel)) {
+		case "desktop_notification", "desktop", "home", "local":
+			return true
+		default:
+			return false
+		}
+	}
+
 	alarmDeliverySender := func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, channel, renderedTitle, renderedBody string, _ time.Duration) agentsession.AlarmDeliveryOutcome {
 		norm := strings.ToLower(strings.TrimSpace(channel))
-		if norm == "desktop" || norm == "home" || norm == "local" {
+		if isDesktopDeliveryChannel(norm) {
 			if svcRef == nil {
 				return agentsession.AlarmDeliveryOutcome{
 					ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED,
@@ -201,19 +221,20 @@ func buildProductionAgentSessionService(
 	}
 
 	svc, err := agentsession.Open(agentsession.Options{
-		Logger:              logger,
-		DBPath:              sessionsDBPath,
-		RequirePersistentDB: requirePersistent,
-		Scheduler:           aiSvc.Scheduler(),
-		EndpointResolver:    endpointResolver,
-		AgentHandleResolver: agentHandleResolver,
-		BodyStepExecutor:    bodyStepExecutor,
-		ReadSetQualifier:    readSetQualifier,
-		MilestoneHook:       milestoneHook,
-		MemoryCleanupHook:   memoryCleanupHook,
-		BrainTurnExecutor:   brainTurnExecutor,
-		AlarmDeliverySender: alarmDeliverySender,
-		AlarmLLMRunner:      alarmLLMRunner,
+		Logger:                   logger,
+		DBPath:                   sessionsDBPath,
+		RequirePersistentDB:      requirePersistent,
+		Scheduler:                aiSvc.Scheduler(),
+		EndpointResolver:         endpointResolver,
+		AgentHandleResolver:      agentHandleResolver,
+		BodyStepExecutor:         bodyStepExecutor,
+		ReadSetQualifier:         readSetQualifier,
+		MilestoneHook:            milestoneHook,
+		MemoryCleanupHook:        memoryCleanupHook,
+		BrainTurnExecutor:        brainTurnExecutor,
+		AlarmDeliverySender:      alarmDeliverySender,
+		SupportedDeliveryChannel: isDesktopDeliveryChannel,
+		AlarmLLMRunner:           alarmLLMRunner,
 	})
 	if err != nil {
 		return nil, err

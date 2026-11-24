@@ -27,11 +27,12 @@ import (
 
 const (
 	DomainAgentLocal           = "agent.local"
+	DomainAgentSessionManage   = "agent.session.manage"
+	DomainAgentCompanion       = "agent.companion"
 	DomainAgentBodyPC          = "agent.body.pc"
 	DomainAgentBodyApp         = "agent.body.app"
 	DomainAgentTriggerDelegate = "agent.trigger.delegate"
 
-	CorePCBodyAppID       = "nimi.harness"
 	CorePCNamespacePrefix = "os.pc."
 	DefaultPCNamespace    = "os.pc.workspace"
 	DefaultHeartbeatMs    = 10_000
@@ -56,6 +57,7 @@ type Options struct {
 	MemoryCleanupHook         MemoryCleanupHook
 	BrainTurnExecutor         BrainTurnExecutor
 	AlarmDeliverySender       AlarmDeliverySender
+	SupportedDeliveryChannel  func(channel string) bool
 	AlarmLLMRunner            AlarmLLMRunner
 	DailyAlarmLLMBudgetTokens int64
 }
@@ -117,6 +119,7 @@ type Service struct {
 	memoryCleanupHook         MemoryCleanupHook
 	brainTurnExecutor         BrainTurnExecutor
 	alarmDeliverySender       AlarmDeliverySender
+	supportedDeliveryChannel  func(channel string) bool
 	alarmLLMRunner            AlarmLLMRunner
 	dailyAlarmLLMBudgetTokens int64
 
@@ -124,13 +127,20 @@ type Service struct {
 	outboxSubscribers     map[string]map[*outboxSubscriber]struct{}
 	overviewSubscribers   map[*overviewSubscriber]struct{}
 	brainEventSubscribers map[string]map[*brainEventSubscriber]struct{}
-	brainTurnCancels      map[string]context.CancelFunc
+	brainTurnCancels      map[string]brainTurnCancelEntry
+	brainTurnSeq          uint64
+	brainTurnsWg          sync.WaitGroup
 	sessionStepLocks      map[string]*sync.Mutex
 	alarmTickerParent     context.Context
 	alarmTickerInterval   time.Duration
 	alarmTickerCancel     context.CancelFunc
 	alarmTickerDone       chan struct{}
 	overviewSeq           uint64
+}
+
+type brainTurnCancelEntry struct {
+	id     uint64
+	cancel context.CancelFunc
 }
 
 // Open initializes an AgentSessionService backed by a physically isolated
@@ -198,12 +208,13 @@ func Open(opts Options) (*Service, error) {
 		memoryCleanupHook:         opts.MemoryCleanupHook,
 		brainTurnExecutor:         opts.BrainTurnExecutor,
 		alarmDeliverySender:       opts.AlarmDeliverySender,
+		supportedDeliveryChannel:  opts.SupportedDeliveryChannel,
 		alarmLLMRunner:            opts.AlarmLLMRunner,
 		dailyAlarmLLMBudgetTokens: opts.DailyAlarmLLMBudgetTokens,
 		outboxSubscribers:         make(map[string]map[*outboxSubscriber]struct{}),
 		overviewSubscribers:       make(map[*overviewSubscriber]struct{}),
 		brainEventSubscribers:     make(map[string]map[*brainEventSubscriber]struct{}),
-		brainTurnCancels:          make(map[string]context.CancelFunc),
+		brainTurnCancels:          make(map[string]brainTurnCancelEntry),
 		sessionStepLocks:          make(map[string]*sync.Mutex),
 	}, nil
 }
@@ -229,8 +240,8 @@ func (s *Service) Close() error {
 	s.alarmTickerCancel = nil
 	s.alarmTickerDone = nil
 	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
-	for ref, cancel := range s.brainTurnCancels {
-		cancels = append(cancels, cancel)
+	for ref, entry := range s.brainTurnCancels {
+		cancels = append(cancels, entry.cancel)
 		delete(s.brainTurnCancels, ref)
 	}
 	s.mu.Unlock()
@@ -243,6 +254,7 @@ func (s *Service) Close() error {
 	if alarmDone != nil {
 		<-alarmDone
 	}
+	s.brainTurnsWg.Wait()
 	var err error
 	if s.ownsStore && s.store != nil {
 		err = s.store.Close()
@@ -375,8 +387,10 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 	s.alarmTickerCancel = nil
 	s.alarmTickerDone = nil
 	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
-	for ref, cancel := range s.brainTurnCancels {
-		cancels = append(cancels, cancel)
+	for ref, entry := range s.brainTurnCancels {
+		if entry.cancel != nil {
+			cancels = append(cancels, entry.cancel)
+		}
 		delete(s.brainTurnCancels, ref)
 	}
 	s.mu.Unlock()
@@ -392,6 +406,16 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+	turnsDone := make(chan struct{})
+	go func() {
+		s.brainTurnsWg.Wait()
+		close(turnsDone)
+	}()
+	select {
+	case <-turnsDone:
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 	if s.store != nil {
 		return s.store.FlushWAL(ctx)
@@ -416,7 +440,7 @@ func (s *Service) ResumeDataRootAfterAbort() {
 }
 
 // NotifyDesktopAlarm records a durable desktop pending-attention entry for a
-// fired alarm and broadcasts it to live Home overview subscribers without
+// fired alarm and broadcasts it to live overview subscribers without
 // misusing the public app.activity channel (P-ACTV-002).
 func (s *Service) NotifyDesktopAlarm(
 	ctx context.Context,
@@ -432,12 +456,16 @@ func (s *Service) NotifyDesktopAlarm(
 	attentionID := fmt.Sprintf("alarm_%s_%d", alarm.GetAlarmId(), now.UnixNano())
 	summaryJSON := fmt.Sprintf(`{"alarmId":%q,"title":%q,"body":%q,"alarmKind":%d}`,
 		alarm.GetAlarmId(), renderedTitle, renderedBody, int32(alarm.GetAlarmKind()))
+	trustScope := strings.TrimSpace(alarm.GetSourcePublisher())
+	if trustScope == "" {
+		trustScope = "account:session_manage"
+	}
 	att := &runtimev1.PendingAttentionRecord{
 		AttentionId:    attentionID,
 		WorkSessionRef: alarm.GetTargetWorkSessionRef(),
 		AgentBinding:   alarm.GetAgentBinding(),
 		AttentionKind:  "alarm_reminder",
-		TrustScope:     "desktop",
+		TrustScope:     trustScope,
 		SummaryJson:    summaryJSON,
 		ExpiresAt:      formatRFC3339(now.Add(24 * time.Hour)),
 		UpdatedAt:      formatRFC3339(now),
@@ -456,22 +484,25 @@ func (s *Service) PurgeAgent(ctx context.Context, accountID, agentBinding string
 	if s == nil || s.store == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(agentBinding) == "" {
 		return nil
 	}
-	deletedRefs, purgeEnvs, err := s.store.PurgeAgentSessionsAndAlarms(ctx, strings.TrimSpace(accountID), strings.TrimSpace(agentBinding), s.now().UTC())
+	deletedMetas, purgeEnvs, err := s.store.PurgeAgentSessionsAndAlarms(ctx, strings.TrimSpace(accountID), strings.TrimSpace(agentBinding), s.now().UTC())
 	if err != nil {
 		return err
 	}
-	for _, ref := range deletedRefs {
-		s.cancelBrainTurn(ref)
+	for _, meta := range deletedMetas {
+		s.cancelBrainTurn(meta.WorkSessionRef)
+		s.deleteSessionStepLock(meta.WorkSessionRef)
 	}
 	for _, env := range purgeEnvs {
 		s.notifyOutboxSubscribers(accountID, env.GetDeviceId(), env.GetCapabilityNamespace(), env)
 	}
-	if len(deletedRefs) > 0 {
-		removedRecords := make([]*runtimev1.WorkSessionRecord, 0, len(deletedRefs))
-		for _, ref := range deletedRefs {
+	if len(deletedMetas) > 0 {
+		removedRecords := make([]*runtimev1.WorkSessionRecord, 0, len(deletedMetas))
+		for _, meta := range deletedMetas {
 			removedRecords = append(removedRecords, &runtimev1.WorkSessionRecord{
-				WorkSessionRef: ref,
-				AgentBinding:   agentBinding,
+				WorkSessionRef:    meta.WorkSessionRef,
+				AgentBinding:      agentBinding,
+				SessionKind:       meta.SessionKind,
+				PublisherScopeKey: meta.PublisherScopeKey,
 			})
 		}
 		s.notifyOverviewChange(accountID, nil, removedRecords)
@@ -492,6 +523,12 @@ func (s *Service) lockSessionStep(workSessionRef string) func() {
 	s.mu.Unlock()
 	mu.Lock()
 	return mu.Unlock
+}
+
+func (s *Service) deleteSessionStepLock(workSessionRef string) {
+	s.mu.Lock()
+	delete(s.sessionStepLocks, workSessionRef)
+	s.mu.Unlock()
 }
 
 func (s *Service) resolveAgentBinding(ctx context.Context, decision accountservice.LocalAppCallerDecision, rawHandle string) (string, error) {
@@ -572,32 +609,30 @@ func isClosed(ch <-chan struct{}) bool {
 	}
 }
 
-// isCoreDesktop verifies BuiltIn Nimi Desktop (Home).
-func isCoreDesktop(decision accountservice.LocalAppCallerDecision) bool {
-	return decision.AppID == "nimi.desktop" && decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn
+func hasSessionManage(decision accountservice.LocalAppCallerDecision) bool {
+	return decision.HasActivatedDomain(DomainAgentSessionManage) || decision.HasActivatedDomain(DomainAgentBodyPC)
 }
 
-// isCoreHarness verifies BuiltIn or explicitly registered local-development Nimi Harness;
-// user_imported and third-party verified Apps are strictly rejected.
-func isCoreHarness(decision accountservice.LocalAppCallerDecision) bool {
-	return decision.AppID == CorePCBodyAppID &&
-		(decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn ||
-			decision.TrustClass == accountservice.LocalAppTrustClassDevelopment)
+func hasCompanionScope(decision accountservice.LocalAppCallerDecision) bool {
+	return decision.HasActivatedDomain(DomainAgentCompanion)
 }
 
-// isCoreZhiyu verifies BuiltIn or local-development Nimi Zhiyu.
-func isCoreZhiyu(decision accountservice.LocalAppCallerDecision) bool {
-	return decision.AppID == "nimi.zhiyu" &&
-		(decision.TrustClass == accountservice.LocalAppTrustClassBuiltIn ||
-			decision.TrustClass == accountservice.LocalAppTrustClassDevelopment)
+func subjectScopeKey(decision accountservice.LocalAppCallerDecision) string {
+	sub := strings.TrimSpace(decision.RegisteredAppSubject)
+	if sub == "" {
+		return ""
+	}
+	return "subject:" + sub
 }
 
 func normalizeBodyNamespace(decision accountservice.LocalAppCallerDecision, requested string) (string, error) {
 	ns := strings.TrimSpace(requested)
 	switch decision.OperationCapability {
 	case DomainAgentBodyPC:
-		// os.pc.* is strictly reserved for Runtime-verified BuiltIn (or registered local-dev) core PC body principal.
-		if !isCoreHarness(decision) {
+		// Zero-privilege capability admission: ANY local formal App that activated
+		// agent.body.pc may bind os.pc.* under single-active-subject lease fencing.
+		// Remote sessions never activate agent.body.pc.
+		if !decision.HasActivatedDomain(DomainAgentBodyPC) {
 			return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 		}
 		if ns == "" {
@@ -884,7 +919,10 @@ func (s *Service) AckBodyOutbox(ctx context.Context, req *runtimev1.AckBodyOutbo
 	if resultState == "" {
 		resultState = "acked"
 	}
-	acked, err := s.store.AckOutbox(ctx, decision.AccountID, deviceID, ns, outboxID, resultState, s.now().UTC())
+	acked, err := s.store.AckOutbox(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), outboxID, resultState, s.now().UTC())
+	if errors.Is(err, errLeaseConflict) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
+	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -1028,33 +1066,57 @@ func (s *Service) notifyBrainEventSubscribers(env *runtimev1.BrainSessionEventEn
 	}
 }
 
-func (s *Service) maybeStartBrainTurn(accountID string, session *runtimev1.WorkSessionRecord, userText, requestID string) {
+func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDecision, session *runtimev1.WorkSessionRecord, userText, requestID string) {
 	s.mu.Lock()
 	executor := s.brainTurnExecutor
 	s.mu.Unlock()
 	if executor == nil || session == nil {
 		return
 	}
+	accountID := decision.AccountID
 	ref := session.GetWorkSessionRef()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s.mu.Lock()
-	if prev, ok := s.brainTurnCancels[ref]; ok {
-		prev()
+	if prev, ok := s.brainTurnCancels[ref]; ok && prev.cancel != nil {
+		prev.cancel()
 	}
-	s.brainTurnCancels[ref] = cancel
+	s.brainTurnSeq++
+	turnID := s.brainTurnSeq
+	s.brainTurnCancels[ref] = brainTurnCancelEntry{id: turnID, cancel: cancel}
 	s.mu.Unlock()
 
+	s.brainTurnsWg.Add(1)
 	go func() {
+		defer s.brainTurnsWg.Done()
 		defer func() {
 			cancel()
 			s.mu.Lock()
-			if current, ok := s.brainTurnCancels[ref]; ok && fmt.Sprintf("%p", current) == fmt.Sprintf("%p", cancel) {
+			if current, ok := s.brainTurnCancels[ref]; ok && current.id == turnID {
 				delete(s.brainTurnCancels, ref)
 			}
 			s.mu.Unlock()
 		}()
-		_ = executor(ctx, accountID, session, userText, requestID, func(eventType, payloadJSON string) error {
+		history, _ := s.store.ListBrainEvents(ctx, ref, 0, 0, 64)
+		err := executor(ctx, BrainTurnExecutionInput{
+			AccountID:      accountID,
+			CallerDecision: decision,
+			Session:        session,
+			UserText:       userText,
+			RequestID:      requestID,
+			History:        history,
+		}, func(eventType, payloadJSON string, persist bool) error {
+			if !persist {
+				s.notifyBrainEventSubscribers(&runtimev1.BrainSessionEventEnvelope{
+					WorkSessionRef: ref,
+					Seq:            0,
+					EventId:        newID("ev"),
+					EventType:      eventType,
+					PayloadJson:    payloadJSON,
+					CreatedAt:      formatRFC3339(s.now().UTC()),
+				})
+				return nil
+			}
 			env, err := s.store.AppendBrainEvent(ctx, accountID, ref, eventType, payloadJSON, s.now().UTC())
 			if err != nil {
 				return err
@@ -1062,18 +1124,24 @@ func (s *Service) maybeStartBrainTurn(accountID string, session *runtimev1.WorkS
 			s.notifyBrainEventSubscribers(env)
 			return nil
 		})
+		if err != nil && ctx.Err() == nil {
+			errPayload := fmt.Sprintf(`{"requestId":%q,"error":%q}`, requestID, err.Error())
+			if env, appendErr := s.store.AppendBrainEvent(ctx, accountID, ref, "turn_error", errPayload, s.now().UTC()); appendErr == nil {
+				s.notifyBrainEventSubscribers(env)
+			}
+		}
 	}()
 }
 
 func (s *Service) cancelBrainTurn(workSessionRef string) bool {
 	s.mu.Lock()
-	cancel, ok := s.brainTurnCancels[workSessionRef]
+	entry, ok := s.brainTurnCancels[workSessionRef]
 	if ok {
 		delete(s.brainTurnCancels, workSessionRef)
 	}
 	s.mu.Unlock()
-	if ok && cancel != nil {
-		cancel()
+	if ok && entry.cancel != nil {
+		entry.cancel()
 		return true
 	}
 	return false

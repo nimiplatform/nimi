@@ -6,6 +6,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
@@ -179,11 +180,23 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 		// @nimi-authority: rule.nimi.runtime.ai-provider.internal-output-budget
 		ctx = textbehavior.WithInternalOutputBudget(ctx, req.ReservedOutputTokens)
 	}
+	timeoutMs := int32(publicChatDefaultTurnTimeoutMs)
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining > 0 {
+			remMs := int32(remaining.Milliseconds())
+			if remMs > 600_000 {
+				remMs = 600_000
+			}
+			if remMs > timeoutMs {
+				timeoutMs = remMs
+			}
+		}
+	}
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.AppID), publicChatRuntimeAppID),
 			SubjectUserId: strings.TrimSpace(req.SubjectUserID),
-			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
+			TimeoutMs:     timeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

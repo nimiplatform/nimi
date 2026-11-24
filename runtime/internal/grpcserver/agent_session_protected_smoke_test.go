@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 type smokeLocalAppAppService struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	appID          string
+	subject        string
 	accountID      string
 	trustClass     accountservice.LocalAppTrustClass
 	allowedDomains map[localappop.Domain]bool
@@ -39,17 +41,31 @@ func (a *smokeLocalAppAppService) AuthorizeLocalAppIngress(ctx context.Context, 
 	if err != nil || !a.allowedDomains[spec.Domain] {
 		return ctx, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
+	var domains []string
+	for d, allowed := range a.allowedDomains {
+		if allowed {
+			domains = append(domains, string(d))
+		}
+	}
 	decision := accountservice.LocalAppCallerDecision{
 		AuthorityClass:       localappop.AuthorityClassAppAccess,
 		Operation:            spec.Operation,
 		OperationCapability:  string(spec.Domain),
+		ActivatedDomains:     strings.Join(domains, ","),
 		AppID:                a.appID,
 		TrustClass:           a.trustClass,
 		AccountID:            a.accountID,
-		RegisteredAppSubject: "subject-" + a.appID,
+		RegisteredAppSubject: a.subjectID(),
 		ExpiresAt:            time.Now().UTC().Add(time.Hour),
 	}
 	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+}
+
+func (a *smokeLocalAppAppService) subjectID() string {
+	if a.subject != "" {
+		return a.subject
+	}
+	return "subject-" + a.appID
 }
 
 func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *testing.T) {
@@ -203,9 +219,10 @@ func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *test
 		t.Fatalf("app.body cross-app hijack must be denied: reason=%v err=%v", localAppTransportReason(err), err)
 	}
 
-	// 4. UserImported App spoofing app_id=nimi.harness MUST be rejected from os.pc.*!
+	// 4. Another subject (even claiming app_id=nimi.harness and agent.body.pc) CANNOT preempt active os.pc.workspace lease!
 	spoofHarnessClient := dialProtected(t, &smokeLocalAppAppService{
 		appID:      "nimi.harness",
+		subject:    "subject-hijack-pc-body",
 		accountID:  "acct-stage1",
 		trustClass: accountservice.LocalAppTrustClassUserImported,
 		allowedDomains: map[localappop.Domain]bool{
@@ -216,7 +233,7 @@ func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *test
 		DeviceId:            "win-dev-1",
 		CapabilityNamespace: "os.pc.workspace",
 		InstanceId:          "spoof-1",
-	}); localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
-		t.Fatalf("user_imported app spoofing nimi.harness must be denied: reason=%v err=%v", localAppTransportReason(err), err)
+	}); localAppTransportReason(err) != runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT {
+		t.Fatalf("cross-subject os.pc.workspace lease preemption must fail with AGENT_BODY_LEASE_CONFLICT: reason=%v err=%v", localAppTransportReason(err), err)
 	}
 }

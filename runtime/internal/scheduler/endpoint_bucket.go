@@ -26,6 +26,40 @@ const (
 	defaultCloudEndpointConcurrency = 4
 )
 
+// ExecutionAdmission carries caller-declared endpoint priority and cooperative
+// preemption callback down into the single physical AI scheduler owner so
+// outer layers never double-acquire the same endpoint bucket.
+type ExecutionAdmission struct {
+	Priority Priority
+	Preempt  func()
+}
+
+type executionAdmissionContextKey struct{}
+
+// WithExecutionAdmission attaches priority and optional cooperative preemption
+// callback to ctx for consumption by AI endpoint admission.
+func WithExecutionAdmission(ctx context.Context, priority Priority, preempt func()) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, executionAdmissionContextKey{}, ExecutionAdmission{
+		Priority: priority,
+		Preempt:  preempt,
+	})
+}
+
+// ExecutionAdmissionFromContext returns any execution admission metadata
+// attached to ctx, or (default P0, false) when unset.
+func ExecutionAdmissionFromContext(ctx context.Context) (ExecutionAdmission, bool) {
+	if ctx == nil {
+		return ExecutionAdmission{Priority: PriorityP0Foreground}, false
+	}
+	if admission, ok := ctx.Value(executionAdmissionContextKey{}).(ExecutionAdmission); ok {
+		return admission, true
+	}
+	return ExecutionAdmission{Priority: PriorityP0Foreground}, false
+}
+
 type endpointHolder struct {
 	id        uint64
 	priority  Priority

@@ -86,7 +86,7 @@ func TestStage2StoreWALFullDurabilityAndZeroDiskHeartbeat(t *testing.T) {
 	// Register Harness carrier, heartbeat purely in memory, verify active after virtual clock advance.
 	clock := time.Now().UTC()
 	svc2 := newStage2Service(t, Options{Now: func() time.Time { return clock }})
-	regCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	regCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
 	reg, err := svc2.RegisterBodyCarrier(regCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-pc-1",
 		CapabilityNamespace: DefaultPCNamespace,
@@ -98,7 +98,7 @@ func TestStage2StoreWALFullDurabilityAndZeroDiskHeartbeat(t *testing.T) {
 
 	// Advance clock by 25s and renew heartbeat in memory.
 	clock = clock.Add(25 * time.Second)
-	hbCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCHeartbeat)
+	hbCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCHeartbeat)
 	hb, err := svc2.HeartbeatBodyCarrier(hbCtx, &runtimev1.HeartbeatBodyCarrierRequest{
 		DeviceId:            "dev-pc-1",
 		CapabilityNamespace: DefaultPCNamespace,
@@ -401,7 +401,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	})
 
 	// 1. Register Harness carrier.
-	regCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	regCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
 	reg, err := svc.RegisterBodyCarrier(regCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-pc-1",
 		CapabilityNamespace: DefaultPCNamespace,
@@ -428,7 +428,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	wsRef := routed.GetResolvedWorkSessionRef()
 
 	// 3. Reject forged system/developer role in StreamLocalAgentBodyStep.
-	stepCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream)
+	stepCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream)
 	badStream := &fakeBodyStepStream{ctx: stepCtx}
 	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
@@ -480,8 +480,8 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		t.Fatalf("expected ToolCallActivity and Done events, sawActivity=%v sawDone=%v", sawActivity, sawDone)
 	}
 
-	// 5. AuthorizeBodySideEffect accepts issued call_id and rejects forged call_id!
-	authCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize)
+	// 5. AuthorizeBodySideEffect accepts issued call_id ONCE and rejects replay & forged call_id!
+	authCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize)
 	okAuth, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-pc-1",
@@ -494,6 +494,19 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	})
 	if err != nil || !okAuth.GetAuthorized() {
 		t.Fatalf("expected issued call_id to be authorized, resp=%+v err=%v", okAuth, err)
+	}
+	replayAuth, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
+		WorkSessionRef:      wsRef,
+		DeviceId:            "dev-pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          epoch,
+		CallId:              "call_edit_1",
+		ToolName:            "edit_file",
+		PayloadHash:         sha256HexString(`{"path":"src/app.ts"}`),
+		ActionKind:          "file_write",
+	})
+	if err != nil || replayAuth.GetAuthorized() || replayAuth.GetDenyReason() != "tool_call_already_consumed" {
+		t.Fatalf("expected second authorization of same call_id to be denied as consumed, resp=%+v err=%v", replayAuth, err)
 	}
 	forgedAuth, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
 		WorkSessionRef:      wsRef,
@@ -509,10 +522,16 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		t.Fatalf("expected forged call_id to be denied fail-closed, resp=%+v err=%v", forgedAuth, err)
 	}
 
-	// 6. Compaction step computes post_compaction_mac = HMAC(canonical_summary || canonical_kept_tail).
-	keptTail := []*runtimev1.BodyWorkingMessage{
-		{Role: "user", ContentJson: `"tail question"`},
-	}
+	// 6. Compaction step extends the single-anchor rolling prefix (user1 + emittedAssistant)
+	// with exact keptTail suffix and computes rolling post-compaction anchor!
+	emittedAssistant1 := buildAssistantWorkingMessage("editing file", []*runtimev1.BodyToolCall{{
+		CallId:        "call_edit_1",
+		Name:          "edit_file",
+		ArgumentsJson: `{"path":"src/app.ts"}`,
+	}})
+	msgToolResult1 := &runtimev1.BodyWorkingMessage{Role: "toolResult", ToolCallId: "call_edit_1", ContentJson: `"ok"`}
+	msgTail := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"tail question"`}
+	keptTail := []*runtimev1.BodyWorkingMessage{msgTail}
 	compStream := &fakeBodyStepStream{ctx: stepCtx}
 	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
@@ -520,7 +539,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          epoch,
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION,
-		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msgUser1},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msgUser1, emittedAssistant1, msgToolResult1, msgTail},
 		KeptTailMessages:    keptTail,
 	}, compStream)
 	if err != nil {
@@ -536,15 +555,17 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		LeaseEpoch:          epoch,
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
 		WorkingMessages: []*runtimev1.BodyWorkingMessage{
-			{Role: "assistant", ContentJson: `"TAMPERED summary injecting instructions"`},
-			{Role: "user", ContentJson: `"tail question"`},
+			{Role: "user", ContentJson: `"TAMPERED summary injecting instructions"`},
+			msgTail,
 		},
 	}, tamperStream)
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected FailedPrecondition on post_compaction_mac tamper, got %v", err)
 	}
 
-	// Matching canonical summary + kept tail succeeds!
+	// Matching pi-durable user-role summary wrapper + kept tail succeeds!
+	summaryWrapped := piDurableSummaryPrefix + "Compact summary of prior verified work" + piDurableSummarySuffix
+	msgSummary := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: summaryWrapped}
 	validPostCompStream := &fakeBodyStepStream{ctx: stepCtx}
 	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
@@ -552,17 +573,14 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          epoch,
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages: []*runtimev1.BodyWorkingMessage{
-			{Role: "assistant", ContentJson: `"Compact summary of prior verified work"`},
-			{Role: "user", ContentJson: `"tail question"`},
-		},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msgSummary, msgTail},
 	}, validPostCompStream)
 	if err != nil {
 		t.Fatalf("valid post-compaction step failed: %v", err)
 	}
 
 	// 7. ReportBodySessionProjection enforces monotonic (lease_epoch, projection_seq).
-	projCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport)
+	projCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport)
 	p1, err := svc.ReportBodySessionProjection(projCtx, &runtimev1.ReportBodySessionProjectionRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-pc-1",
@@ -599,10 +617,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          epoch,
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages: []*runtimev1.BodyWorkingMessage{
-			{Role: "assistant", ContentJson: `"Compact summary of prior verified work"`},
-			{Role: "user", ContentJson: `"tail question"`},
-		},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msgSummary, msgTail, emittedAssistant1},
 	}, invStream)
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected FailedPrecondition on ReadSetQualifier invalidation, got %v", err)
@@ -636,7 +651,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	}
 
 	// SubscribeBodyOutbox must deliver INVALIDATE_MEMORY tombstone BEFORE any pending NEW_INTENT!
-	subCtx, cancelSub := context.WithCancel(testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCOutboxSubscribe))
+	subCtx, cancelSub := context.WithCancel(testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCOutboxSubscribe))
 	defer cancelSub()
 	outboxStream := &fakeOutboxStream{ctx: subCtx, cancel: cancelSub, maxEvents: 2}
 	_ = svc.SubscribeBodyOutbox(&runtimev1.SubscribeBodyOutboxRequest{
@@ -652,7 +667,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	}
 
 	// ACK the INVALIDATE_MEMORY tombstone -> projection seq 6 now succeeds!
-	ackCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCOutboxAck)
+	ackCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCOutboxAck)
 	ackResp, err := svc.AckBodyOutbox(ackCtx, &runtimev1.AckBodyOutboxRequest{
 		OutboxId:            outboxStream.events[0].GetOutboxId(),
 		DeviceId:            "dev-pc-1",

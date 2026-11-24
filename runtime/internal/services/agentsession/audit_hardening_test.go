@@ -8,12 +8,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *testing.T) {
+func TestAuditHardeningCapabilityIdempotencyCronDSTLedgerAndLeaseRestart(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "sessions#test.db")
 	clock := time.Date(2026, 3, 8, 6, 30, 0, 0, time.UTC) // 01:30 EST in America/New_York (spring-forward DST!)
 	svc := newStage2Service(t, Options{
@@ -39,17 +38,17 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 		},
 	})
 
-	// 1. UserImported app spoofing app_id=nimi.harness MUST be rejected from os.pc.*!
-	spoofRegCtx := testCallerCtxWithTrust(CorePCBodyAppID, "subj-spoof", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, accountservice.LocalAppTrustClassUserImported)
-	if _, err := svc.RegisterBodyCarrier(spoofRegCtx, &runtimev1.RegisterBodyCarrierRequest{
+	// 1. App WITHOUT activated agent.body.pc MUST be rejected from os.pc.* regardless of app_id!
+	noCapRegCtx := testCallerCtxWithDomains("nimi.harness", "subj-spoof", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentLocal)
+	if _, err := svc.RegisterBodyCarrier(noCapRegCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: DefaultPCNamespace,
 		InstanceId:          "inst-spoof",
 	}); status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("user_imported spoofing nimi.harness MUST be rejected, got %v", err)
+		t.Fatalf("caller without activated agent.body.pc MUST be rejected, got %v", err)
 	}
 
-	// 2. Same request_id with DIFFERENT payload MUST fail with AlreadyExists; different caller subject gets isolated namespace!
+	// 2. Same request_id with DIFFERENT payload MUST fail with FailedPrecondition; different caller subject gets isolated namespace!
 	desktopRouteCtx := testCallerCtx("nimi.desktop", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit)
 	firstRoute, err := svc.RouteAndSubmitInput(desktopRouteCtx, &runtimev1.RouteAndSubmitInputRequest{
 		AgentHandle:       "agent-1",
@@ -69,8 +68,8 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 		WorkspaceRoot:     `D:\work\alpha`,
 		WorkspaceWritable: true,
 		EntrySurface:      "home_omni",
-	}); status.Code(err) != codes.AlreadyExists {
-		t.Fatalf("expected AlreadyExists on same request_id with different payload, got %v", err)
+	}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition on same request_id with different payload, got %v", err)
 	}
 	// Different app reusing req-idem-1 MUST NOT read nimi.desktop's session record!
 	otherRouteCtx := testCallerCtx("com.third.app", "subj-3p", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit)
@@ -168,7 +167,7 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 	}
 
 	// 7. Harness registration + BodyStep last_step_mac verification + AuthorizeBodySideEffect fail-closed + monotonic (lease_epoch, projection_seq) across restart!
-	harnessRegCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	harnessRegCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
 	reg1, err := svc.RegisterBodyCarrier(harnessRegCtx, &runtimev1.RegisterBodyCarrierRequest{
 		DeviceId:            "dev-1",
 		CapabilityNamespace: DefaultPCNamespace,
@@ -179,7 +178,7 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 	}
 	wsRef := firstRoute.GetResolvedWorkSessionRef()
 	// Drain pending tombstones/intents if any (none yet except NEW_INTENT).
-	stepCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream)
+	stepCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream)
 	st1 := &fakeBodyStepStream{ctx: stepCtx}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
@@ -207,7 +206,7 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 		t.Fatalf("expected FailedPrecondition on tampered last_step_mac prefix, got %v", err)
 	}
 	// AuthorizeBodySideEffect MUST reject empty call_id!
-	authCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize)
+	authCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize)
 	emptyCallAuth, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-1",
@@ -220,7 +219,7 @@ func TestAuditHardeningTrustClassIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 		t.Fatalf("expected empty call_id to fail closed, got %+v err=%v", emptyCallAuth, err)
 	}
 	// Report projection seq=10 under epoch 1, then restart carrier -> epoch 2 with projection_seq=1 MUST succeed!
-	projCtx := testCallerCtx(CorePCBodyAppID, "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport)
+	projCtx := testCallerCtx("nimi.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport)
 	if resp, err := svc.ReportBodySessionProjection(projCtx, &runtimev1.ReportBodySessionProjectionRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-1",
