@@ -1504,6 +1504,16 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.tool-call-activity-heartbeat
+    kind: rule
+    title: Transient ToolCallActivity liveness keeps long tool streams alive without altering public payload contracts
+    modality: must
+    statement: textbehavior.OrderedDelta may emit an independent transient ToolCallActivity liveness signal while providers stream long tool-call arguments so stream idle watchdogs refresh liveness without false 30-second kills; ToolCallActivity must not change HasPublicPayload() semantics, must not emit partial unvalidated tool arguments as executable tool calls, and must never be persisted as durable Body partial progress. Executable ToolCall items continue to be sealed and emitted only once validated and complete at terminal batch verification.
+    condition: Whenever a streaming text provider or local execution engine accumulates tool-call arguments during generation.
+    failure: Reject partial unvalidated tool calls, mutated HasPublicPayload() semantics, or persisted partial tool progress while keeping genuine idle timeouts active when no provider bytes arrive.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.text-content-rules
     kind: rule
     title: Narrow deterministic text content rules

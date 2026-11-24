@@ -462,17 +462,15 @@ scopes:
         value: "runtime/internal/services/account/**/*.go"
       - kind: path_glob
         value: "sdks/typescript/realm/**/*"
-  - scope: nimigo.workbench
-    bindings:
-      - kind: path_glob
-        value: "apps/nimigo/src/product/**"
   - scope: runtime.integration
     bindings:
       - kind: path_glob
         value: runtime/internal/services/integration/**/*.go
       - kind: path_glob
         value: runtime/internal/services/app/**/*.go
-  - scope: nimiday.assistant
+  - scope: harness.assistant
     bindings:
       - kind: path_glob
-        value: apps/nimiday/src/nimiday/**
+        value: apps/harness/src/**/*
+      - kind: path_glob
+        value: apps/harness/src-electron/**/*

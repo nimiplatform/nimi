@@ -216,3 +216,17 @@ units:
         target: definition.nimi.cognition.memory.provenance-plane
       - type: applies_to
         target: definition.nimi.cognition.memory.v1-algorithm-plane
+  - id: rule.nimi.cognition.memory.session-pointer-slot
+    kind: rule
+    title: Session association pointers use single-slot supersession and natural forgetting
+    modality: must
+    statement: Cognition Schema v5 adds scope_tag and slot_key columns with an active single-slot unique constraint per (bank_ref, slot_key) and a sixth committed fact kind session_pointer_committed carrying work_session_ref, scope_tag, slot_key, topic_summary, and body_kind. Re-committing the same (bank_ref, slot_key) atomically marks the prior current pointer superseded in the same Core transaction so each work session occupies at most one active Cognition slot without log spam; RecallRequest supports optional scope_tags allowlist filtering, session association pointers remain subject to Cognition natural decay and forgetting without special alarm exemptions, and forgetting a pointer never deletes the underlying Runtime session archive.
+    condition: Whenever a session association pointer is committed, updated, recalled, or forgotten in Cognition.
+    failure: Reject invalid schema upgrades, duplicate active slot entries for one (bank_ref, slot_key), cross-scope leakage when scope_tags are specified, or session archive deletion triggered by natural forgetting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.memory.provenance-plane

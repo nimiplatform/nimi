@@ -395,3 +395,17 @@ units:
         target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
       - type: applies_to
         target: definition.nimi.runtime.service-operations.memory-derived-payload
+  - id: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+    kind: rule
+    title: Session pointer handoff and DeleteSession outbox neutralization
+    modality: must
+    statement: Runtime proposes session_pointer_committed events only at bounded session milestones using slot_key session_ref:<work_session_ref> so Cognition supersedes prior slots in place; on chat recall of session_ref pointers, Runtime authorizes the current reader and fetches at most Top-2 non-deleted session receipts from sessions.db within a 1.5 KiB non-instruction frame without requiring Harness to be open. On explicit DeleteSession, Runtime first writes an irreversible deleted_at tombstone and PURGE_SESSION outbox entry in sessions.db, neutralizes all pending runtime_cognition_memory_outbox rows linked to that work_session_ref to cutoff_non_effecting with cleared payload in memory.db, and then forgets committed memories matched by memory_lineage (ref_type=source, ref_kind=session, ref_value=work_session_ref) through Facade.Forget so replay cannot resurrect deleted session pointers.
+    condition: Whenever Runtime commits session pointers, performs offline two-stage recall, or executes DeleteSession.
+    failure: Reject unauthorized receipt disclosure, unneutralized outbox replay resurrecting deleted session memories, or recall frames exceeding the Top-2 and 1.5 KiB non-instruction data budget.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary

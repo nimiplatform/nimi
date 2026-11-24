@@ -2182,3 +2182,37 @@ units:
     kind: definition
     title: Current Runtime host and client topology
     meaning: A Runtime host owns AI execution and its local state; an App client consumes admitted operations; a management surface consumes separately authorized owner operations. The current host is a PC Runtime. Desktop-hosted native Apps use verified local Host sessions, while admitted Web and Android clients use scoped identity and a direct connection to the account-bound primary Runtime without running a Runtime on the client device. Realm owns identity and primary binding coordination, Runtime owns source confirmation and operation admission, SDK and Kit carry public contracts, and Cognition remains the long-term Memory owner behind the Runtime bridge. Access to the same host is distinct from cross-Runtime state synchronization or compute federation; the current direct carrier has no relay or automatic business replay.
+  - id: definition.nimi.platform.core-protocol.agent-session-body-plane
+    kind: definition
+    title: Agent Session and Brain-Body symbiosis plane
+    meaning: The Agent Session and Brain-Body symbiosis plane separates Runtime-owned LocalAgent consciousness, multi-session registry, zero-cloud-model routing, deterministic alarms, and exclusive persona context orchestration from a verified Body execution carrier such as Nimi Harness over protected Unary and ServerStream RPCs keyed by work_session_ref and session-scoped agent_handle without caller-supplied reserved account, session, or snapshot fields.
+  - id: definition.nimi.platform.core-protocol.directed-trigger-delegation
+    kind: definition
+    title: Directed reminder and trigger delegation plane
+    meaning: Directed reminder and trigger delegation is a user-bound, explicitly revocable Runtime deterministic trigger contract under static domain agent.trigger.delegate binding verified source publisher, source object identity, object version, and discloseable template fields independently of public broadcast app.activity and independently of Cognition natural forgetting.
+  - id: rule.nimi.platform.core-protocol.agent-session-operations
+    kind: rule
+    title: Agent Session and Body operations preserve protected transport invariants
+    modality: must
+    statement: All AgentSessionService operations are admitted strictly through protected transport using Unary and ServerStream RPCs with zero bidirectional streams, derive account and Registered App Subject solely from the verified connection, address work sessions by work_session_ref and LocalAgents by opaque agent_handle or non-authorizing agent_binding, reject caller-supplied session_id, account_id, app_id, or snapshot_id fields, enforce static closed-set domain coverage under agent.body.pc, agent.body.app, or agent.trigger.delegate, bind os.pc.* carrier namespaces solely to Runtime-verified OS-signed core PC body principals, and restrict third-party agent.body.app carriers to app.<app_id>.* without preempting an active lease.
+    condition: Whenever Home, Harness, Zhiyu, or a formal protected App invokes an AgentSessionService operation.
+    failure: Reject forbidden caller assertion fields, missing static domain coverage, cross-namespace carrier preemption, or unverified transport before mutating session, outbox, or alarm state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.agent-session-body-plane
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+  - id: rule.nimi.platform.core-protocol.directed-trigger-delegation
+    kind: rule
+    title: Directed reminder delegations remain distinct from public app.activity
+    modality: must
+    statement: Third-party reminder and scheduled trigger delegations enter Runtime exclusively through explicit user-bound revocable agent.trigger.delegate operations scoped to the verified publisher tuple (account_id, verified_publisher_app_id, source_object_id) and never reinterpret public broadcast app.activity records as execution directives under P-ACTV-002; confirmed deterministic alarms execute directly from Runtime trigger storage using zero-model templates by default, record honest four-state Integration delivery receipts, and modifying a Runtime alarm never silently mutates source App business objects.
+    condition: Whenever an App registers, updates, triggers, or handles replies for a directed reminder or scheduled delegation.
+    failure: Reject public app.activity records treated as executable commands, unverified cross-publisher keys, or silent mutation of source App business truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.directed-trigger-delegation

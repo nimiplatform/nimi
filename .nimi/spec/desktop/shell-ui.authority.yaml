@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop exposes Home, Nimi Chat, Contacts & Conversations, Explore, Apps, AI Capabilities, Cloud Services and Connections and access through the existing shell. Nimi Chat retains session-based generic AI conversation. Contacts & Conversations groups Realm direct chats and Runtime partner conversations, with separate conversation and contact views. Explicit Zhiyu handoff uses the verified Host. Home remains the ordinary entry and Logo destination. Downloads, Settings and diagnostics retain their existing roles. This separation reuses existing styling and interaction; it does not require a new shell, process or window model.
+    statement: Desktop exposes Home, Contacts & Conversations, Explore, Apps, AI Capabilities, Cloud Services and Connections and access through the existing shell, having retired the standalone Nimi Chat primary tab in favor of Home's inline Omni-Composer light Q&A and the bundled Core Apps Nimi Harness (PC work and multi-step assistant) and Zhiyu (pure companion). Contacts & Conversations groups Realm direct chats and Runtime partner conversations, with separate conversation and contact views. Explicit Zhiyu and Harness handoffs use the verified Host. Home remains the ordinary entry and Logo destination. Downloads, Settings and diagnostics retain their existing roles. This separation reuses existing styling and interaction; it does not require a new shell or window model.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -636,7 +636,7 @@ units:
     kind: rule
     title: Home AI execution carries an explicit owner and contract
     modality: must
-    statement: Every Nimi Home AI execution request carries an explicit CapabilityContract and the canonical AIConfig owner identity. Home Nimi Chat uses the Desktop App AIConfig; Home partner management projects the shared LocalAgent subsystem AIConfig without submitting a LocalAgent Conversation turn. Partner conversations in Home and Zhiyu use that same subsystem owner through their admitted Conversation operations.
+    statement: Every Nimi Home AI execution request carries an explicit CapabilityContract and the canonical AIConfig owner identity. Home Omni-Composer light Q&A and partner sessions use the shared LocalAgent subsystem AIConfig through admitted AgentSessionService and Conversation operations; Home partner management projects that shared LocalAgent subsystem AIConfig without submitting a turn, while App-owned AI execution uses its own Desktop or App AIConfig owner.
     condition: Whenever Nimi Home submits AI execution intent.
     failure: Reject the request before execution when the CapabilityContract or canonical AIConfig owner is absent, invalid, or confused between the Desktop App and LocalAgent subsystem.
     relations:
@@ -882,7 +882,7 @@ units:
     kind: rule
     title: Runtime execution bridges use Runtime reason as primary code
     modality: must
-    statement: Desktop Nimi Chat and Runtime host capability bridges throw NimiError, branch on Runtime reasonCode, retain LOCAL_AI aliases only as extra.localReasonCode diagnostic data, and attach traceId to every Runtime call.
+    statement: Desktop Home Omni-Composer and Runtime host capability bridges throw NimiError, branch on Runtime reasonCode, retain LOCAL_AI aliases only as extra.localReasonCode diagnostic data, and attach traceId to every Runtime call.
     condition: Whenever Desktop invokes Runtime execution.
     failure: Reject plain-Error downgrade, alias-led control flow, and uncorrelated calls.
     relations:
@@ -1111,9 +1111,9 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.chat-sides
     kind: rule
-    title: Home separates generic AI from contacts and conversations
+    title: Home separates Omni-Composer light Q&A from contacts and conversations
     modality: must
-    statement: Nimi Chat remains independent from Contacts & Conversations. Contacts & Conversations switches its right rail between the compact human and partner conversation avatars and the searchable Contacts panel with Friends and Partners views, while keeping the existing transcript and composer presentation and replacing the main pane with the selected Human or Agent profile when a contact is chosen. Human and Agent profiles retain their owner-specific reads and actions. Existing threads, scoped drafts, attachments, relationship admission, request attention and owner read boundaries remain in force. Inactive partners remain discoverable through inventory and cannot open a Conversation without an admitted active reference. Ordinary reply navigation targets Home and explicit Zhiyu navigation remains available. Opening a summary, selecting a row or changing destinations never acknowledges a reply. Actual visible focused replies retain their owner read semantics. Scope replacement clears old navigation and pending work without replay.
+    statement: Standalone Nimi Chat is retired; light Q&A runs inline inside Home's Omni-Composer while Contacts & Conversations owns Realm direct chats and Runtime partner conversations. Contacts & Conversations switches its right rail between the compact human and partner conversation avatars and the searchable Contacts panel with Friends and Partners views, while keeping the existing transcript and composer presentation and replacing the main pane with the selected Human or Agent profile when a contact is chosen. Human and Agent profiles retain their owner-specific reads and actions. Existing threads, scoped drafts, attachments, relationship admission, request attention and owner read boundaries remain in force. Inactive partners remain discoverable through inventory and cannot open a Conversation without an admitted active reference. Ordinary reply navigation targets Home and explicit Zhiyu and Harness navigation remain available. Opening a summary, selecting a row or changing destinations never acknowledges a reply. Actual visible focused replies retain their owner read semantics. Scope replacement clears old navigation and pending work without replay.
     condition: Whenever Home composes Chat navigation and its relationship rail.
     failure: Reject a flip restoring the previous chat object or thread, unread-dependent ordering or membership, selection-based repositioning, duplicate all-conversations or all-companions rail shortcuts, inaccessible Contacts or primary companion directory, lost or cross-account drafts, and treating loading or read failure as Agent deletion.
     relations:

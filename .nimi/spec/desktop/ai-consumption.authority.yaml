@@ -309,10 +309,10 @@ units:
     reason: Removed with the public probe lifecycle; Desktop presents typed request admission and Job failure reasons instead.
   - id: rule.nimi.desktop.ai-consumption.r030
     kind: rule
-    title: Built-in chat AIConfig owners remain distinct
+    title: Home App and LocalAgent AIConfig owners remain distinct
     modality: must
-    statement: Desktop Nimi Chat is a Desktop-owned capability consumer using the Desktop App AIConfig, while Home partner interaction opens Zhiyu, a Runtime LocalAgent Conversation consumer using the one shared LocalAgent subsystem AIConfig; neither creates a chat-specific or per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires an explicit route and, for Cloud, exact current-environment references plus expected owner revision without waiting for execution readiness.
-    condition: Whenever built-in Nimi chat or a Runtime LocalAgent AIConfig is initialized or reconfigured.
+    statement: Desktop App-owned capability consumption uses the Desktop App AIConfig, while Home Omni-Composer light Q&A, Nimi Harness PC sessions, and Zhiyu companion interaction consume Runtime LocalAgent operations using the one shared LocalAgent subsystem AIConfig; none creates a per-Agent owner, Profile Apply produces only portable non-committing prefill, and the later canonical Save requires an explicit route and, for Cloud, exact current-environment references plus expected owner revision without waiting for execution readiness.
+    condition: Whenever Desktop App or Runtime LocalAgent AIConfig is initialized or reconfigured.
     failure: Reject owner conflation, per-Agent AIConfig, Profile Apply commit, guessed resource references, and implicit execution materialization without changing Product Control readiness.
     relations:
       - type: applies_to
@@ -326,7 +326,7 @@ units:
     kind: rule
     title: Built-in config has no inferred success or fallback owner
     modality: must_not
-    statement: Desktop synthesizes AIConfig, route, Cloud target, current-account Connector, Loadout, machine selection, binding, admission, or Job truth from renderer state, selected tab, Conversation state, inventory, process health, caller-provided LocalAgent identity, or execution references; shares fallback across Desktop Nimi Chat and LocalAgent Conversation; creates a chat-specific or per-Agent owner; or hardcodes provider, engine, model, or configuration identity.
+    statement: Desktop synthesizes AIConfig, route, Cloud target, current-account Connector, Loadout, machine selection, binding, admission, or Job truth from renderer state, selected tab, Conversation state, inventory, process health, caller-provided LocalAgent identity, or execution references; shares fallback across Desktop App AIConfig and LocalAgent subsystem AIConfig; creates a per-Agent owner; or hardcodes provider, engine, model, or configuration identity.
     condition: Whenever built-in chat configuration or execution admission is evaluated.
     failure: Preserve the canonical Desktop App or shared LocalAgent AIConfig owner and return the typed admission reason.
     relations:
@@ -746,7 +746,7 @@ units:
     kind: rule
     title: Cloud Services connects catalog browsing to explicit consumer configuration
     modality: must
-    statement: Cloud Services presents Connector management status separately from credential presence and historical diagnostics, independently reads the admitted Runtime model catalog without requiring Test Connector, preserves unavailable catalog entries and explicit empty, failed or incomplete reads, and exposes safe identity, account scope, billing-mode disclosure and actionable diagnostic reasons without claiming model execution readiness. Configure-use first chooses the existing Nimi Chat, projected App or singular shared LocalAgent owner and capability, preserves any existing draft, and resolves exact current owner options before the user explicitly commits a whole AIConfig with its expected revision; browsing, prefill, navigation and cancellation never commit configuration, execute AI or invent target identity. Connection search and filtering never change configuration, and selected identity remains clear. All navigation uses the existing Home owner, system-managed connections stay immutable, and account or connection replacement rejects stale asynchronous projections.
+    statement: Cloud Services presents Connector management status separately from credential presence and historical diagnostics, independently reads the admitted Runtime model catalog without requiring Test Connector, preserves unavailable catalog entries and explicit empty, failed or incomplete reads, and exposes safe identity, account scope, billing-mode disclosure and actionable diagnostic reasons without claiming model execution readiness. Configure-use first chooses the existing projected App or singular shared LocalAgent owner and capability, preserves any existing draft, and resolves exact current owner options before the user explicitly commits a whole AIConfig with its expected revision; browsing, prefill, navigation and cancellation never commit configuration, execute AI or invent target identity. Connection search and filtering never change configuration, and selected identity remains clear. All navigation uses the existing Home owner, system-managed connections stay immutable, and account or connection replacement rejects stale asynchronous projections.
     condition: Whenever Home renders or operates the Cloud Services workspace.
     failure: Reject catalog-check coupling, a hidden empty or failed catalog, a diagnostic projected as current availability, inferred account or billing facts, guessed execution targets, overwritten drafts, implicit consumer writes, and cross-account or stale results.
     relations:

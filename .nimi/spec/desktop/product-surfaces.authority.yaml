@@ -378,7 +378,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.home-overview
     kind: definition
     title: Nimi personal AI overview
-    meaning: The Home default pane is a Desktop-owned personal AI overview with a Messages preview of the global Message center. The preview and center compose Realm social notifications and current received requests, App events and independently actionable items, downloads, setup failures and App updates as one user experience. Each source retains its owner, cursor, identity, read and business state; this presentation creates no new publishing, notification database, task engine, execution, billing or readiness truth.
+    meaning: "The Home default pane is a Desktop-owned personal AI overview featuring the top Omni-Composer (zero-prefix automatic Brain routing with inline streaming light Q&A card, explicit @ human / ~ partner / # session / + zero-memory menu, and read-only attachment vs writable workspace split), a reader-authorized attention strip, preinstalled Core Apps (Nimi Harness and Zhiyu) plus installed Apps Dock, and Partners avatars launching Zhiyu, alongside a Messages preview of the global Message center. Each source retains its owner, cursor, identity, read and business state; this presentation creates no parallel task engine, approval authority, execution, billing or readiness truth."
   - id: rule.nimi.desktop.product-surfaces.home-system-activity
     kind: rule
     title: Home and its system entry share owner activity and AI usage
@@ -555,3 +555,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
+  - id: rule.nimi.desktop.product-surfaces.home-omni-composer
+    kind: rule
+    title: Home Omni-Composer routes light Q&A inline and focuses Harness for PC work
+    modality: must
+    statement: "The Home Omni-Composer submits free intent with a pre-session idempotency key to Runtime AgentSessionService.RouteAndSubmitInput using the user's explicit or user-pinned partner handle (never a Runtime implicit default); light Q&A streams inline in a non-focus-stealing card backed by general_inbox with one-click promotion or split to Harness, low-entropy ambiguity returns preserve the draft with 1/2/3 candidate pills, @ human locks a visible non-auto-sending draft pill, ~ partner toggles Harness vs Zhiyu via Tab, # session searches active and archived sessions, Chinese IME composition and mid-token emails, URLs, numeric ranges, or paths never false-trigger menus, dropped files default to read-only attachments unless explicitly authorized as a writable workspace, and Home's attention strip aggregates strictly reader-authorized pending items and focuses Harness as the sole PC approval authority rather than duplicating PC approval mutation buttons."
+    condition: Whenever a user composes input, attaches files, or clicks attention items on Nimi Home.
+    failure: Reject silent sends to human contacts, silent writable workspace escalation, duplicated PC approval buttons in Home, false symbol triggers, or cross-reader hidden item count leaks.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.agent-session-body-plane

@@ -1,0 +1,40 @@
+format: nimicoding.authority/v2
+owner: team.harness
+scope: harness.assistant
+units:
+  - id: definition.nimi.harness.assistant.core-app
+    kind: definition
+    title: Nimi Harness Core App PC Body and activity console
+    meaning: Nimi Harness (apps/harness, canonical App identity nimi.harness) is the preinstalled OS-signed PC Body and multi-session activity console running as an independent supervised Electron process with an internal utilityProcess hosting pi-durable@1.6.0 (WAL FULL SQLite) and SecureWorkspaceExecutionEnv; Runtime remains the sole LocalAgent Brain and persona/context authority while Harness owns local PC tool execution, approvals, crash non-replay, file snapshots, and two fixed views (Tasks & Deliverables and Project Workspace).
+  - id: rule.nimi.harness.assistant.symbiosis-and-durability
+    kind: rule
+    title: Harness maintains WAL FULL durability, tombstone-first reconciliation, and official beforeCompact hook
+    modality: must
+    statement: Harness opens its pi-durable SQLite database with explicit PRAGMA journal_mode=WAL and PRAGMA synchronous=FULL verified by readback (2), persists requestId=outbox_id with payload hash, submission id, and withdraw state in the same FULL transaction, drains and acknowledges all PURGE_SESSION, PURGE_AGENT, and INVALIDATE_MEMORY tombstones before reporting monotonic (lease_epoch, projection_seq) reconciliation on startup, retains pi-durable@1.6.0 core unmodified while registering the official CompactionTask beforeCompact hook with backgroundTokens=0 (two bounded retries and usage reporting) using stable logical model id local-agent:<agent_binding> and Runtime-projected effective_context_budget_tokens, keeps tool images attributed to toolResult rather than role user, and invokes synchronous AuthorizeBodySideEffect before starting any high-risk side effect while failing closed on disconnect.
+    condition: Whenever Harness starts, accepts Runtime BodyOutbox commands, runs inference/compaction, or starts a side-effecting tool.
+    failure: Reject synchronous mode below FULL, unverified reconciliation ahead of tombstones, replayed interrupted commands, unauthorized side effects during disconnect, or role-user image smuggling.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.agent-session-body-plane
+  - id: rule.nimi.harness.assistant.security-gates
+    kind: rule
+    title: Harness enforces seven PC Body security gates through SecureWorkspaceExecutionEnv and Rust native helpers
+    modality: must
+    statement: "Harness replaces NodeExecutionEnv with SecureWorkspaceExecutionEnv and consumes kit/shell/protected-local Rust native primitives (packaged in asarUnpack with matching Electron ABI) to enforce seven PC Body security gates: (1) Win32 Job Object (CREATE_SUSPENDED, KILL_ON_JOB_CLOSE, ActiveProcesses==0 wait) fail-closed child process tree containment with UTF-8 lossy output; (2) handle-level NTFS validation (CreateFileW, GetFinalPathNameByHandleW, nNumberOfLinks==1, precondition_sha256) and hard rejection of leading @, file://, \\\\?\\, ADS colons, and trailing dots/spaces; (3) case-folded workspace control-plane file wall forcing allow_once on .git/**, .github/**, package.json scripts, test/build configs, Makefile, scripts, conftest.py, and build.rs, safe git flags, and shared isSensitivePath() hard-denying .env*/keys across read, write, edit, and grep/glob; (4) free Shell restricted to explicit developer workspaces and strictly allow_once with inheritEnv=false minimal env allowlist, approval card highlighting recently AI-modified scripts/tests, and stdout/stderr high-entropy/credential .env* canary redaction to [REDACTED_WORKSPACE_SECRET] (OS AppContainer explicitly deferred to Phase 2); (5) unified local and remote revision atomic CAS with trusted execution-generated approval cards and 24-72h TTL; (6) overlapping workspace write mutex and pre-write isolated snapshots in <nimi-data>/snapshots/ for typed file restore only; and (7) redirected temp spill in <nimi-data>/spill/ (2 GB / 14d LRU), 256 KiB control-frame ceiling, single-instance lock, and utilityProcess isolation."
+    condition: Whenever Harness resolves paths, reads/searches/modifies workspace files, executes shell commands, or processes local or remote approvals.
+    failure: Deny policy violations, path escapes, hard-link/symlink escapes, sensitive file reads, stale CAS revisions, or Job Object assignment failures before executing any file or process side effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.dual-views
+    kind: rule
+    title: Harness provides Tasks and Deliverables and Project Workspace fixed views
+    modality: must
+    statement: Harness exposes two top-level fixed views sharing one underlying session and receipt model—Tasks & Deliverables (default view for daily deliverables, approvals, alarms/delegations, receipts, and one-click typed pre-write file restore) and Project Workspace (pinned repositories, file tree, line-level diff review, terminal output, Follow-Up, Withdraw, and Stop)—alongside cross-Agent sidebar filtering, intake of general_inbox promotion handoff_history, and intake of user-editable Zhiyu handoff briefs.
+    condition: Whenever a user operates Harness or hands off work from Home or Zhiyu.
+    failure: Never claim automatic undo for Shell commands or sent external messages, and never silently ingest unapproved Zhiyu private companion transcripts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
