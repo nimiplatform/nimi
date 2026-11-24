@@ -847,6 +847,7 @@ function ContextualMarketDetail(props: {
               <InstallPlanPanel
                 installed={Boolean(offer.installedModelAssetId) || offer.candidate.installed}
                 installable={offer.applicability !== 'unsupported' && offer.candidate.installable}
+                hostRecipeMatched={recipe?.applicability === 'supported' && offer.applicability === 'supported'}
                 plan={plan}
                 error={planError}
                 busy={busy || planLoading}
@@ -932,6 +933,7 @@ export function ModelInstallAction(props: {
 export function InstallPlanPanel(props: {
   readonly installed: boolean;
   readonly installable: boolean;
+  readonly hostRecipeMatched?: boolean;
   readonly onImport?: () => void;
   readonly importDisabled?: boolean;
   readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
@@ -971,7 +973,7 @@ export function InstallPlanPanel(props: {
             <PlanRow label={t('runtimeConfig.recommend.planFiles', { defaultValue: 'File count' })} value={String(plan.files.length)} />
             <PlanRow
               label={t('runtimeConfig.recommend.planHostRecipeLabel', { defaultValue: 'Host recipe' })}
-              value={formatHostRecipeCompatibility(plan.warnings, t)}
+              value={formatHostRecipeCompatibility(plan.warnings, props.hostRecipeMatched === true, t)}
             />
             {plan.license ? <PlanRow label={t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' })} value={plan.license} /> : null}
           </dl>
@@ -1066,14 +1068,15 @@ function isNumberedWeightShard(entry: string): boolean {
   return part !== '1' || total !== '1';
 }
 
-function formatHostRecipeCompatibility(warnings: readonly string[], t: TFunction): string {
+function formatHostRecipeCompatibility(warnings: readonly string[], matched: boolean, t: TFunction): string {
   if (warnings.includes('WARN_NO_HOST_RECIPE_SD1')) {
     return t('runtimeConfig.recommend.planHostRecipeNoSd1', { defaultValue: 'No SD 1.x recipe on this host (file storage only)' });
   }
   if (warnings.includes('WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED')) {
     return t('runtimeConfig.recommend.planHostRecipeUnverified', { defaultValue: 'Checked when creating a configuration (community file)' });
   }
-  return t('runtimeConfig.recommend.planHostRecipeSupported', { defaultValue: 'Supported by host recipes' });
+  if (matched) return t('runtimeConfig.recommend.planHostRecipeSupported', { defaultValue: 'Supported by the selected recipe on this device.' });
+  return t('runtimeConfig.recommend.planHostRecipePending', { defaultValue: 'Compatibility has not been checked for this device.' });
 }
 
 function formatInstallPlanWarning(code: string, t: TFunction): string {

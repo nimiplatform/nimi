@@ -474,8 +474,9 @@ func fetchHFRepoHeadRevision(
 		return nil, fmt.Errorf("%w: endpoint is invalid", errHfRepoInvalid)
 	}
 	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + repo
-	if trimmedRev := strings.TrimSpace(revisionRaw); trimmedRev != "" && !strings.EqualFold(trimmedRev, "main") {
-		base.Path += "/revision/" + url.PathEscape(trimmedRev)
+	if trimmedRev := strings.TrimSpace(revisionRaw); trimmedRev != "" && trimmedRev != "main" {
+		base.RawPath = base.EscapedPath() + "/revision/" + url.PathEscape(trimmedRev)
+		base.Path += "/revision/" + trimmedRev
 	}
 	requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
 	defer cancel()

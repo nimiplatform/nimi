@@ -7,6 +7,7 @@ import type {
   NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
+  NimiRuntimeLocalInstallResult,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -69,7 +70,7 @@ export type RuntimeSetupRunnerAIConfigPort = {
 export type RuntimeSetupRunnerPorts = {
   readonly loadouts: Pick<NimiMachineLoadoutClient, 'listRecipes' | 'get' | 'prepare' | 'commit' | 'select'>;
   readonly environment: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveEnvironmentPlan' | 'applyEnvironmentPlan' | 'listEnvironmentDependencyJobs'>;
-  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'listModelAssets'>;
+  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'resumeTransfer' | 'getModelAsset' | 'listModelAssets'>;
   /** null when the source has no consumer AIConfig route to save. */
   readonly aiConfigForSource: (source: RuntimeSetupTaskSource) => RuntimeSetupRunnerAIConfigPort | null;
   readonly account: { readonly currentAccountId: () => string | Promise<string> };
@@ -214,6 +215,12 @@ function errorRetryAfterSeconds(error: unknown): number | undefined {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Unknown error');
+}
+
+function preparationFailure(stage: RuntimeSetupTaskStage, error: unknown): RuntimeSetupRunnerFailure {
+  const reasonCode = errorReasonCode(error);
+  const retryAfterSeconds = reasonCode === 'AI_PROVIDER_RATE_LIMITED' ? errorRetryAfterSeconds(error) : undefined;
+  return { stage, reasonCode, message: errorMessage(error), ...(retryAfterSeconds ? { retryAfterSeconds } : {}) };
 }
 
 function isConditionConflict(error: unknown): boolean {
@@ -894,13 +901,11 @@ async function computePreparation(
   };
 }
 
+function acquisitionIdentity(offer: RuntimeSetupAcquireOption): string {
+  return JSON.stringify([offer.offerRef, offer.expectedContentId, offer.templateId, offer.portableSource]);
+}
+
 function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparationPlan): boolean {
-  const acquisitionIdentity = (offer: RuntimeSetupAcquireOption) => JSON.stringify([
-    offer.offerRef,
-    offer.expectedContentId,
-    offer.templateId,
-    offer.portableSource,
-  ]);
   // A newly missing asset adds work even when its content identity is unchanged.
   // Only downloads already reviewed from the same source may still be dispatched.
   if (right.acquire.some((item) => {
@@ -1378,10 +1383,75 @@ export async function resolveRuntimeSetupPreparation(
     }));
     return ok(computed.plan);
   } catch (error) {
-    const failure: RuntimeSetupRunnerFailure = { stage, reasonCode: errorReasonCode(error), message: errorMessage(error) };
+    const failure = preparationFailure(stage, error);
     failTask(store, taskId, 'failed', failure);
     return failed(failure);
   }
+}
+
+async function acquireSetupModel(
+  store: RuntimeSetupTaskStore,
+  task: RuntimeSetupTask,
+  ports: RuntimeSetupRunnerPorts,
+  offer: RuntimeSetupAcquireOption,
+): Promise<RuntimeSetupRunnerResult<NimiRuntimeLocalInstallResult>> {
+  const taskId = task.taskId;
+  const pending = task.refs.rateLimitedInstall;
+  const identity = acquisitionIdentity(offer);
+  const resumePlan = pending?.offerIdentity === identity ? pending.planId : undefined;
+  const planId = resumePlan ?? (offer.templateId
+    ? await ports.install.resolveInstallPlan({ templateId: offer.templateId })
+    : offer.portableSource
+      ? await ports.install.resolveInstallPlan(portableSourceInstallPlanInput(task.capabilityContract, offer.portableSource))
+      : await ports.install.resolveOfferInstallPlan(offer.offerRef)).planId;
+  store.updateTask(taskId, (current) => ({
+    refs: {
+      ...current.refs,
+      installPlanIds: resumePlan ? current.refs.installPlanIds : [...current.refs.installPlanIds, planId],
+      downloadPlans: { ...current.refs.downloadPlans, [offer.offerRef]: planId },
+    },
+  }));
+
+  if (!resumePlan) {
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    try {
+      return ok(await ports.install.install(planId, { caller: 'core' }));
+    } catch (error) {
+      if (errorReasonCode(error) === 'AI_PROVIDER_RATE_LIMITED') {
+        store.updateTask(taskId, current => ({
+          refs: { ...current.refs, rateLimitedInstall: { planId, offerIdentity: identity } },
+        }));
+      }
+      throw error;
+    }
+  }
+
+  // Runtime creates the transfer before fetching bytes. Its plan ID survives a failed install RPC.
+  let transfer = (await ports.install.listTransfers()).find(row => row.planId === planId && row.sessionKind === 'download');
+  if (transfer?.state === 'failed' && transfer.availableActions.includes('resume')) {
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    transfer = await ports.install.resumeTransfer(transfer.installSessionId, { caller: 'core' });
+  }
+  while (transfer?.state === 'running' || transfer?.state === 'queued') {
+    await sleepFor(ports, 1000);
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    const sessionId = transfer.installSessionId;
+    transfer = (await ports.install.listTransfers()).find(row => row.installSessionId === sessionId);
+  }
+  if (!transfer || transfer.state === 'completed' || transfer.state === 'cancelled' || (transfer.state === 'failed' && !transfer.retryable)) {
+    store.updateTask(taskId, current => ({ refs: { ...current.refs, rateLimitedInstall: undefined } }));
+  }
+  if (transfer?.state === 'completed' && transfer.modelAssetId) {
+    return ok({ installSessionId: transfer.installSessionId, modelAsset: await ports.install.getModelAsset(transfer.modelAssetId) });
+  }
+  return failed({
+    stage: 'install',
+    reasonCode: transfer?.reasonCode,
+    message: transfer?.message || 'Check the original transfer in Downloads before retrying setup.',
+  });
 }
 
 /**
@@ -1428,11 +1498,12 @@ export async function runRuntimeSetupPreparation(
   try {
     computed = await computePreparation(task, ports);
   } catch (error) {
-    const failure: RuntimeSetupRunnerFailure = { stage: 'resolve-preparation', reasonCode: errorReasonCode(error), message: errorMessage(error) };
+    const failure = preparationFailure('resolve-preparation', error);
     failTask(store, taskId, 'failed', failure);
     return failed(failure);
   }
-  if (computed.candidate.revision !== task.candidateRevisionBaseline) {
+  if (computed.candidate.revision !== task.candidateRevisionBaseline
+    || computed.candidate.revision !== input.reviewedPlan.candidateRevision) {
     const failure: RuntimeSetupRunnerFailure = {
       stage,
       reasonCode: RUNTIME_SETUP_CONDITION_CONFLICT,
@@ -1535,21 +1606,12 @@ export async function runRuntimeSetupPreparation(
       continue;
     }
     try {
-      const installPlan = item.offer.templateId
-        ? await ports.install.resolveInstallPlan({ templateId: item.offer.templateId })
-        : item.offer.portableSource
-          ? await ports.install.resolveInstallPlan(portableSourceInstallPlanInput(task.capabilityContract, item.offer.portableSource))
-          : await ports.install.resolveOfferInstallPlan(item.offer.offerRef);
-      store.updateTask(taskId, (current) => ({
-        refs: {
-          ...current.refs,
-          installPlanIds: [...current.refs.installPlanIds, installPlan.planId],
-          downloadPlans: { ...current.refs.downloadPlans, [item.offer.offerRef]: installPlan.planId },
-        },
-      }));
-      const installGuard = await guardWrite(store, taskId, ports, { stage: 'install' });
-      if (!('task' in installGuard)) return installGuard;
-      const installed = await ports.install.install(installPlan.planId, { caller: 'core' });
+      const result = await acquireSetupModel(store, installAdmission.task, ports, item.offer);
+      if (result.status !== 'ok') {
+        if (result.status === 'failed') failTask(store, taskId, 'failed', result.failure);
+        return result;
+      }
+      const installed = result.value;
       store.updateTask(taskId, (current) => ({
         refs: {
           ...current.refs,
@@ -1566,13 +1628,7 @@ export async function runRuntimeSetupPreparation(
         expectedContentId: item.offer.expectedContentId ?? installed.modelAsset.contentId,
       });
     } catch (error) {
-      const retryAfterSeconds = errorRetryAfterSeconds(error);
-      const failure: RuntimeSetupRunnerFailure = {
-        stage: 'install',
-        reasonCode: errorReasonCode(error),
-        message: errorMessage(error),
-        ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
-      };
+      const failure = preparationFailure('install', error);
       failTask(store, taskId, 'failed', failure);
       return failed(failure);
     }

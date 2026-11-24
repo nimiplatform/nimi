@@ -160,6 +160,8 @@ export type RuntimeSetupTaskRefs = {
   readonly transferIds: readonly string[];
   /** Current preparation's offer-to-plan links and successful Runtime install receipts. */
   readonly downloadPlans?: Readonly<Record<string, string>>;
+  /** A failed download's exact Runtime plan and reviewed source, for explicit or automatic retry. */
+  readonly rateLimitedInstall?: { readonly planId: string; readonly offerIdentity: string };
   readonly installedOfferRefs?: readonly string[];
   readonly environmentPlanId?: string;
   readonly dependencyJobIds: readonly string[];
@@ -271,6 +273,7 @@ function cloneRefs(refs: RuntimeSetupTaskRefs): RuntimeSetupTaskRefs {
     installPlanIds: [...refs.installPlanIds],
     transferIds: [...refs.transferIds],
     ...(refs.downloadPlans ? { downloadPlans: { ...refs.downloadPlans } } : {}),
+    ...(refs.rateLimitedInstall ? { rateLimitedInstall: { ...refs.rateLimitedInstall } } : {}),
     ...(refs.installedOfferRefs ? { installedOfferRefs: [...refs.installedOfferRefs] } : {}),
     ...(refs.environmentPlanId ? { environmentPlanId: refs.environmentPlanId } : {}),
     dependencyJobIds: [...refs.dependencyJobIds],
@@ -343,7 +346,11 @@ function normalizeStringList(raw: unknown): string[] {
 function normalizeRefs(raw: unknown): RuntimeSetupTaskRefs {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyRefs();
   const record = raw as Record<string, unknown>;
+  const pending = record.rateLimitedInstall as Record<string, unknown> | undefined;
+  const planId = normalizeText(pending?.planId);
+  const offerIdentity = normalizeText(pending?.offerIdentity);
   return {
+    ...(planId && offerIdentity ? { rateLimitedInstall: { planId, offerIdentity } } : {}),
     installPlanIds: normalizeStringList(record.installPlanIds),
     transferIds: normalizeStringList(record.transferIds),
     ...(normalizeText(record.environmentPlanId)

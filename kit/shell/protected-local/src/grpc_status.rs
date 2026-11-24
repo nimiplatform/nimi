@@ -42,6 +42,15 @@ pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<Strin
     if info.reason == "AI_CONTENT_FILTER_BLOCKED" {
         return public_reason_metadata(Some(&info));
     }
+    if info.reason == "AI_PROVIDER_RATE_LIMITED" {
+        return info
+            .metadata
+            .get("retry_after_seconds")
+            .and_then(|value| value.parse::<u32>().ok())
+            .filter(|seconds| (1..=86_400).contains(seconds))
+            .map(|seconds| BTreeMap::from([("retry_after_seconds".into(), seconds.to_string())]))
+            .unwrap_or_default();
+    }
     if info.reason == "AI_CONNECTOR_INVALID" {
         return info.metadata.get("input_format")
             .filter(|value| value.as_str() == "mubert-customer-pair-v1")
@@ -616,6 +625,40 @@ fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rate_limit_window_is_bounded_desktop_metadata() {
+        for (value, expected) in [
+            ("601", Some("601")),
+            ("86400", Some("86400")),
+            ("0", None),
+            ("86401", None),
+            ("invalid", None),
+        ] {
+            let info = GoogleRpcErrorInfo {
+                reason: "AI_PROVIDER_RATE_LIMITED".into(),
+                domain: ERROR_INFO_DOMAIN.into(),
+                metadata: HashMap::from([
+                    ("retry_after_seconds".into(), value.into()),
+                    ("private".into(), "upstream".into()),
+                ]),
+            };
+            let details = GoogleRpcStatus {
+                code: Code::ResourceExhausted as i32,
+                message: String::new(),
+                details: vec![prost_types::Any {
+                    type_url: ERROR_INFO_TYPE_URL.into(),
+                    value: info.encode_to_vec(),
+                }],
+            };
+            let status = Status::with_details(Code::ResourceExhausted, "", details.encode_to_vec().into());
+            let metadata = desktop_runtime_reason_metadata(&status);
+            let expected_metadata = expected
+                .map(|s| BTreeMap::from([("retry_after_seconds".into(), s.into())]))
+                .unwrap_or_default();
+            assert_eq!(metadata, expected_metadata);
+        }
+    }
 
     #[test]
     fn connector_input_format_is_public_bounded_desktop_only_metadata() {

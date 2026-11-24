@@ -536,6 +536,12 @@ function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Rec
   const contentRefusal = reasonCode === 'AI_CONTENT_FILTER_BLOCKED' || reasonCode === 'ai-content-filter-blocked';
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
+    if (key === 'retry_after_seconds') {
+      if (reasonCode !== 'AI_PROVIDER_RATE_LIMITED' || typeof entry !== 'string'
+        || !/^[1-9]\d{0,4}$/u.test(entry) || Number(entry) > 86400) throw untrusted();
+      metadata[key] = entry;
+      continue;
+    }
     if (key === 'input_format') {
       if (reasonCode !== 'AI_CONNECTOR_INVALID' || entry !== 'mubert-customer-pair-v1') throw untrusted();
       metadata[key] = entry;

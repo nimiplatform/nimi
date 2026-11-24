@@ -1,7 +1,5 @@
 import {
   commitRuntimeSetupCloudUse,
-  reopenRuntimeSetupTask,
-  resolveRuntimeSetupPreparation,
   runRuntimeSetupPreparation,
   type RuntimeSetupPreparationPlan,
   type RuntimeSetupRunnerPorts,
@@ -82,12 +80,11 @@ export async function runRuntimeProfileTasks(input: {
   publishRuns();
   const maxAttempts = Math.max(0, input.rateLimitRetry?.maxAttempts ?? DEFAULT_RATE_LIMIT_MAX_ATTEMPTS);
   const defaultWaitMs = Math.max(0, input.rateLimitRetry?.defaultWaitMs ?? DEFAULT_RATE_LIMIT_WAIT_MS);
-  const maxWaitMs = Math.max(defaultWaitMs, input.rateLimitRetry?.maxWaitMs ?? DEFAULT_RATE_LIMIT_MAX_WAIT_MS);
+  const maxWaitMs = input.rateLimitRetry?.maxWaitMs ?? DEFAULT_RATE_LIMIT_MAX_WAIT_MS;
   const nowMs = input.rateLimitRetry?.nowMs ?? (() => Date.now());
   const sleep = input.rateLimitRetry?.sleep ?? waitWithAbort;
-  const activePlans: Record<string, RuntimeSetupPreparationPlan> = { ...input.plans };
-
   const runPass = async (passTaskIds: readonly string[]) => {
+    const limited: { taskId: string; waitMs: number }[] = [];
     for (const taskId of passTaskIds) {
       if (controller.signal.aborted) break;
       const task = input.store.getTask(taskId);
@@ -110,7 +107,7 @@ export async function runRuntimeProfileTasks(input: {
             targetLabel: task.draft.cloudTargetLabel,
           });
         } else {
-          const plan = activePlans[taskId];
+          const plan = input.plans[taskId];
           if (!plan) throw new Error('Review the preparation details before continuing.');
           result = await runRuntimeSetupPreparation(input.store, taskId, input.ports, {
             mode: input.mode,
@@ -129,6 +126,12 @@ export async function runRuntimeProfileTasks(input: {
       }
       if (result.status !== 'ok') {
         const current = input.store.getTask(taskId);
+        if (result.status === 'failed' && current?.status === 'failed'
+          && current.draft?.route !== 'cloud' && (result.failure.stage === 'install' || result.failure.stage === 'resolve-preparation')
+          && result.failure.reasonCode === RATE_LIMIT_REASON_CODE) {
+          const waitMs = result.failure.retryAfterSeconds === undefined ? defaultWaitMs : result.failure.retryAfterSeconds * 1000;
+          if (waitMs <= maxWaitMs) limited.push({ taskId, waitMs });
+        }
         if (current && !['done', 'stopped', 'failed', 'needs-attention'].includes(current.status)) {
           input.store.updateTask(taskId, () => ({
             status: 'needs-attention',
@@ -138,29 +141,17 @@ export async function runRuntimeProfileTasks(input: {
         }
       }
     }
+    return limited;
   };
 
   try {
     // This promise belongs to the task store's lifetime, not its React view.
     // Each task retains its own conditions, effects and recovery state.
-    await runPass(input.taskIds);
+    let limited = await runPass(input.taskIds);
 
     for (let attempt = 1; attempt <= maxAttempts && !controller.signal.aborted; attempt += 1) {
-      const rateLimitedTasks = input.taskIds
-        .map((taskId) => input.store.getTask(taskId))
-        .filter((task): task is NonNullable<typeof task> => Boolean(
-          task
-          && task.status === 'failed'
-          && task.draft?.route !== 'cloud'
-          && task.failure?.reasonCode === RATE_LIMIT_REASON_CODE,
-        ));
-      if (rateLimitedTasks.length === 0) break;
-
-      const requestedWaitMs = rateLimitedTasks.reduce((max, task) => {
-        const seconds = task.failure?.retryAfterSeconds;
-        return seconds && seconds > 0 ? Math.max(max, seconds * 1000) : max;
-      }, 0);
-      const waitMs = Math.min(maxWaitMs, requestedWaitMs > 0 ? requestedWaitMs : defaultWaitMs);
+      if (limited.length === 0) break;
+      const waitMs = Math.max(...limited.map(item => item.waitMs));
       waitingUses.set(useId, { resumeAtMs: nowMs() + waitMs, attempt, maxAttempts });
       publishRuns();
       await sleep(waitMs, controller.signal);
@@ -169,25 +160,15 @@ export async function runRuntimeProfileTasks(input: {
       if (controller.signal.aborted) break;
 
       const retryableIds: string[] = [];
-      for (const task of rateLimitedTasks) {
-        if (controller.signal.aborted) break;
-        const latest = input.store.getTask(task.taskId);
+      for (const { taskId } of limited) {
+        const latest = input.store.getTask(taskId);
         if (!latest || latest.status !== 'failed' || latest.failure?.reasonCode !== RATE_LIMIT_REASON_CODE) continue;
-        reopenRuntimeSetupTask(input.store, task.taskId);
-        const refreshed = await resolveRuntimeSetupPreparation(input.store, task.taskId, input.ports, {
-          acceptExternalCandidateState: true,
-        });
-        if (refreshed.status !== 'ok') continue;
-        const taskChoices = input.choices[task.taskId] ?? {};
-        if (refreshed.value.unavailable.length > 0
-          || !refreshed.value.awaitingChoice.every((choice) => Boolean(taskChoices[choice.slotId]))) {
-          continue;
-        }
-        activePlans[task.taskId] = refreshed.value;
-        retryableIds.push(task.taskId);
+        // Preparation revalidates the original review and its revision baselines before writing.
+        input.store.updateTask(taskId, () => ({ status: 'review', failure: undefined, nextAction: 'confirm-preparation' }));
+        retryableIds.push(taskId);
       }
       if (retryableIds.length === 0 || controller.signal.aborted) break;
-      await runPass(retryableIds);
+      limited = await runPass(retryableIds);
     }
   } finally {
     waitingUses.delete(useId);

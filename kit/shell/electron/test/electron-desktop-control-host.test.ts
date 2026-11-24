@@ -87,6 +87,27 @@ it('carries only the admitted connector input format through renderer-safe error
   }
 });
 
+it('projects the exact Runtime rate-limit window through the Desktop install error', async () => {
+  for (const [reasonCode, seconds, valid] of [
+    ['AI_PROVIDER_RATE_LIMITED', '601', true], ['AI_PROVIDER_RATE_LIMITED', '86401', false],
+    ['AI_PROVIDER_RATE_LIMITED', '2.5', false], ['AI_PROVIDER_AUTH_FAILED', '601', false],
+  ] as const) {
+    const reasonMetadata = { retry_after_seconds: seconds };
+    const host = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopMachineProductUnary: async () => ({ status: 'error', reasonCode, retryable: true, reasonMetadata }),
+    }));
+    const error = await invokeElectronRuntimeUnary({
+      client: unusedPublicClient(), payload: { methodId: '/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan', requestBytesBase64: '' },
+      appId: 'nimi.desktop', event: {}, runtimeEndpoint: 'protected-desktop-control', command: 'runtime_bridge_unary',
+      desktopControlHost: host, desktopSenderAuthorized: true,
+    }).then(() => { throw new Error('expected install rejection'); }, error => error);
+    const rendered = toShellBridgeNimiError(toSerializedElectronShellError(error));
+    expect(rendered.reasonCode).toBe(valid ? reasonCode : 'runtime-service-untrusted');
+    if (valid) expect(rendered.details).toMatchObject({ reasonMetadata });
+    else expect(rendered.details).not.toHaveProperty('reasonMetadata');
+  }
+});
+
 function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
   return {
     unary: async () => {

@@ -109,6 +109,12 @@ test('install plan panel discloses host recipe compatibility warnings before dow
   </I18nextProvider>);
   assert.match(communityHtml, /Checked when creating a configuration/);
   assert.match(communityHtml, /verified for integrity and SHA-256 on download/);
+  const indexPlan = { ...communityPlan, source: 'model-index', warnings: [] };
+  const renderIndexed = (matched?: boolean) => renderToStaticMarkup(<I18nextProvider i18n={i18n}>
+    <InstallPlanPanel installed={false} installable plan={indexPlan} hostRecipeMatched={matched} error="" busy={false} onReview={() => {}} />
+  </I18nextProvider>);
+  assert.match(renderIndexed(), /Compatibility has not been checked/);
+  assert.match(renderIndexed(true), /Supported by the selected recipe/);
 });
 
 test('model card preserves document content while hiding metadata and resolving repository assets', () => {

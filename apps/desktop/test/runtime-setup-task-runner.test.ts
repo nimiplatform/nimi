@@ -9,6 +9,7 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
+  NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
@@ -25,6 +26,7 @@ import {
   commitRuntimeSetupUse,
   createRuntimeSetupCandidate,
   discardRuntimeSetupTask,
+  reopenRuntimeSetupTask,
   resolveRuntimeSetupPreparation,
   resumeRuntimeSetupOwnerRoute,
   reuseRuntimeSetupCurrent,
@@ -142,7 +144,7 @@ test('Profile group retries only rate-limited tasks after reset window, stops on
               actionHint: 'retry_after_rate_limit_window',
               retryable: true,
               source: 'runtime',
-              details: { retryAfterSeconds: 12 },
+              details: { reasonMetadata: { retry_after_seconds: '12' } },
             });
           }
           return basePorts.install.resolveOfferInstallPlan(offerRef);
@@ -228,7 +230,7 @@ test('Profile group retries only rate-limited tasks after reset window, stops on
             reasonCode: 'AI_PROVIDER_RATE_LIMITED',
             retryable: true,
             source: 'runtime',
-            details: { retryAfterSeconds: 45 },
+            details: { reasonMetadata: { retry_after_seconds: '45' } },
           });
         },
       },
@@ -259,6 +261,98 @@ test('Profile group retries only rate-limited tasks after reset window, stops on
     assert.equal(store.getTask(task)?.failure?.reasonCode, 'AI_PROVIDER_RATE_LIMITED');
   }
 });
+
+for (const change of ['candidate revision', 'additional download'] as const) {
+  test(`rate-limit retry requires a new review after ${change}`, async () => {
+    const store = makeStore();
+    const taskId = await createAppTask(store);
+    const calls: CallLog = [];
+    const state = baseState();
+    const ports = createPorts(state, calls);
+    const plan = await reachReview(store, taskId, ports);
+    let attempts = 0;
+    await runRuntimeProfileTasks({
+      store, taskIds: [taskId], plans: { [taskId]: plan }, choices: {}, mode: 'prepare-and-use',
+      ports: { ...ports, install: { ...ports.install, resolveOfferInstallPlan: async ref => {
+        if (++attempts === 1) throw createNimiError({ reasonCode: 'AI_PROVIDER_RATE_LIMITED', message: 'rate limited' });
+        return ports.install.resolveOfferInstallPlan(ref);
+      } } },
+      rateLimitRetry: { sleep: async () => {
+        if (change === 'candidate revision') state.loadouts[0] = { ...state.loadouts[0]!, revision: 'external' };
+        else state.plan = environmentPlan({ dependencies: [...state.plan.dependencies, {
+          ...state.plan.dependencies[0]!, dependencyId: 'additional-package',
+        }] });
+      } },
+    });
+    assert.equal(store.getTask(taskId)?.status, 'needs-attention');
+    assert.equal(store.getTask(taskId)?.failure?.reasonCode,
+      change === 'candidate revision' ? 'AI_LOADOUT_CONDITION_CONFLICT' : 'RUNTIME_SETUP_PLAN_CHANGED');
+    assert.equal(attempts, 1);
+    assert.ok(!calls.some(call => ['install.install', 'environment.applyEnvironmentPlan', 'loadouts.select'].includes(call.method)));
+  });
+}
+
+for (const seconds of [12, 601]) {
+  test(`setup recovers the original download after a ${seconds}-second reset window`, async () => {
+    const storage = createMemoryStorage();
+    let store = makeStore(storage);
+    const calls: CallLog = [];
+    const state = baseState();
+    const base = createPorts(state, calls);
+    let originalPlan = '';
+    let resumed = false;
+    let installs = 0;
+    const original = (): NimiRuntimeLocalTransferSessionSummary => ({
+      planId: originalPlan, installSessionId: 'original', sessionKind: 'download',
+      state: resumed ? 'completed' : 'failed', phase: 'download', sourceLabel: 'shared-label',
+      modelAssetId: resumed ? INSTALLED_ASSET.modelAssetId : '', availableActions: resumed ? [] : ['resume'],
+      createdAt: '', updatedAt: '', bytesReceived: 0, bytesReused: 0, bytesVerified: 0,
+      cleanupPending: false, retryable: !resumed,
+    });
+    const ports: RuntimeSetupRunnerPorts = { ...base, install: {
+      ...base.install,
+      install: async planId => {
+        installs++;
+        originalPlan = planId;
+        throw createNimiError({ reasonCode: 'AI_PROVIDER_RATE_LIMITED', message: 'rate limited',
+          details: { reasonMetadata: { retry_after_seconds: String(seconds) } } });
+      },
+      listTransfers: async () => [{ ...original(), installSessionId: 'other', planId: 'unrelated' }, original()],
+      resumeTransfer: async id => {
+        assert.equal(id, 'original');
+        assert.equal(resumed, false);
+        resumed = true;
+        return { ...original(), state: 'running', modelAssetId: '' };
+      },
+    } };
+    const taskId = await createAppTask(store);
+    let review = await reachReview(store, taskId, ports);
+    const waits: number[] = [];
+    const run = () => runRuntimeProfileTasks({ store, ports, taskIds: [taskId], plans: { [taskId]: review },
+      choices: {}, mode: 'prepare-only', rateLimitRetry: { sleep: async ms => { waits.push(ms); } } });
+    await run();
+    if (seconds > 300) {
+      assert.deepEqual(waits, []);
+      assert.equal(resumed, false);
+      store = makeStore(storage);
+      assert.equal(store.getTask(taskId)?.failure?.retryAfterSeconds, seconds);
+      assert.equal(reopenRuntimeSetupTask(store, taskId).status, 'ok');
+      const fresh = await resolveRuntimeSetupPreparation(store, taskId, ports);
+      assert.equal(fresh.status, 'ok');
+      review = fresh.value;
+      await run();
+    } else {
+      assert.deepEqual(waits, [seconds * 1000]);
+    }
+    assert.equal(installs, 1);
+    assert.equal(resumed, true);
+    assert.equal(store.getTask(taskId)?.status, 'prepared');
+    assert.deepEqual(store.getTask(taskId)?.refs.transferIds, ['original']);
+    assert.equal(store.getTask(taskId)?.refs.rateLimitedInstall, undefined);
+    assert.equal(calls.filter(call => call.method === 'install.resolveOfferInstallPlan').length, 1);
+    assert.ok(calls.some(call => call.method === 'install.getModelAsset' && call.args === INSTALLED_ASSET.modelAssetId));
+  });
+}
 
 function createMemoryStorage() {
   const map = new Map<string, string>();
@@ -590,6 +684,13 @@ function createPorts(state: PortState, calls: CallLog): RuntimeSetupRunnerPorts 
       async listTransfers() {
         calls.push({ method: 'install.listTransfers', args: null });
         return [];
+      },
+      async resumeTransfer() {
+        throw new Error('No resumable transfer in this scenario.');
+      },
+      async getModelAsset(id) {
+        calls.push({ method: 'install.getModelAsset', args: id });
+        return state.assets.find(asset => asset.modelAssetId === id) ?? assert.fail('Unknown asset ID');
       },
       async listModelAssets() {
         calls.push({ method: 'install.listModelAssets', args: null });

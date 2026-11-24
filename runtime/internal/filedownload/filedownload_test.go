@@ -558,6 +558,11 @@ func TestParseRetryAfterHeaders(t *testing.T) {
 			want:   45 * time.Second,
 		},
 		{
+			name:   "large reset window stays outside automatic retry budget",
+			header: http.Header{"Retry-After": []string{"10000000000"}},
+			want:   maxParsedRetryAfter,
+		},
+		{
 			name:   "retry-after http date",
 			header: http.Header{"Retry-After": []string{now.Add(90 * time.Second).Format(http.TimeFormat)}},
 			want:   90 * time.Second,

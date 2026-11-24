@@ -42,6 +42,19 @@ func (e *RateLimitError) Unwrap() error {
 
 const maxParsedRetryAfter = 24 * time.Hour
 
+// Bound delta-seconds before converting to nanoseconds so a long cooldown
+// cannot overflow into a short (or missing) delay.
+func retryAfterDelta(raw string) time.Duration {
+	seconds, err := strconv.ParseUint(raw, 10, 64)
+	if errors.Is(err, strconv.ErrRange) {
+		return maxParsedRetryAfter
+	}
+	if err != nil {
+		return 0
+	}
+	return time.Duration(min(seconds, uint64(maxParsedRetryAfter/time.Second))) * time.Second
+}
+
 // ParseRetryAfter extracts a bounded reset window from standard Retry-After
 // (seconds or HTTP-date) and IETF RateLimit ("policy";r=0;t=<seconds>) headers.
 func ParseRetryAfter(header http.Header, now time.Time) time.Duration {
@@ -61,30 +74,22 @@ func ParseRetryAfter(header http.Header, now time.Time) time.Duration {
 		}
 	}
 	if raw := strings.TrimSpace(header.Get("Retry-After")); raw != "" {
-		if seconds, err := strconv.Atoi(raw); err == nil && seconds > 0 {
-			consider(time.Duration(seconds) * time.Second)
+		if delta := retryAfterDelta(raw); delta > 0 {
+			consider(delta)
 		} else if until, err := http.ParseTime(raw); err == nil {
 			consider(until.Sub(now))
 		}
 	}
 	for _, value := range header.Values("RateLimit") {
 		for _, item := range strings.Split(value, ",") {
-			var seconds int
-			var sawT bool
 			for _, part := range strings.Split(item, ";") {
 				key, val, ok := strings.Cut(strings.TrimSpace(part), "=")
 				if !ok {
 					continue
 				}
 				if strings.EqualFold(strings.TrimSpace(key), "t") {
-					if parsed, err := strconv.Atoi(strings.TrimSpace(val)); err == nil && parsed > 0 {
-						seconds = parsed
-						sawT = true
-					}
+					consider(retryAfterDelta(strings.TrimSpace(val)))
 				}
-			}
-			if sawT {
-				consider(time.Duration(seconds) * time.Second)
 			}
 		}
 	}

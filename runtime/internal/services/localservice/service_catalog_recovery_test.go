@@ -642,7 +642,7 @@ func TestPortableSourceMainPinsResolvedCommitAndSurvivesBranchMove(t *testing.T)
 	branchMoved := atomic.Bool{}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
+		switch r.URL.EscapedPath() {
 		case "/api/models/community/untagged-model":
 			sha := commitA
 			if branchMoved.Load() {
@@ -651,9 +651,12 @@ func TestPortableSourceMainPinsResolvedCommitAndSurvivesBranchMove(t *testing.T)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id": "community/untagged-model", "modelId": "community/untagged-model", "sha": sha,
 			})
-		case "/api/models/community/untagged-model/revision/" + commitA:
+		case "/api/models/community/untagged-model/revision/release%2Fv2":
+			_ = json.NewEncoder(w).Encode(map[string]string{"sha": commitB})
+		case "/api/models/community/untagged-model/revision/" + commitA, "/api/models/community/untagged-model/revision/" + commitB:
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"id": "community/untagged-model", "modelId": "community/untagged-model", "sha": commitA,
+				"id": "community/untagged-model", "modelId": "community/untagged-model",
+				"sha": strings.TrimPrefix(r.URL.Path, "/api/models/community/untagged-model/revision/"),
 				"siblings": []map[string]any{{
 					"rfilename": "model-q4.gguf",
 					"lfs":       map[string]any{"size": len(payload), "sha256": payloadHash},
@@ -673,11 +676,12 @@ func TestPortableSourceMainPinsResolvedCommitAndSurvivesBranchMove(t *testing.T)
 	svc.hfCatalogSearch = nil
 	svc.hfCatalogEndpoint = server.URL + "/api/models"
 	svc.hfDownloadBaseURL = server.URL
-	resolved, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+	request := &runtimev1.ResolveModelInstallPlanRequest{
 		Source: "huggingface", Repo: "community/untagged-model", Revision: "main",
 		Capabilities: []string{"text.generate"}, Entry: "model-q4.gguf",
 		Files: []string{"model-q4.gguf"}, Hashes: map[string]string{"model-q4.gguf": payloadHash},
-	})
+	}
+	resolved, err := svc.ResolveModelInstallPlan(context.Background(), request)
 	if err != nil {
 		t.Fatalf("resolve plan for main branch: %v", err)
 	}
@@ -687,6 +691,11 @@ func TestPortableSourceMainPinsResolvedCommitAndSurvivesBranchMove(t *testing.T)
 	}
 	if !slices.Contains(plan.GetWarnings(), "WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED") {
 		t.Fatalf("community GGUF plan missing unverified-recipe warning: %v", plan.GetWarnings())
+	}
+	request.Revision = "release/v2"
+	branchPlan, err := svc.ResolveModelInstallPlan(context.Background(), request)
+	if err != nil || branchPlan.GetPlan().GetRevision() != commitB {
+		t.Fatalf("resolve named branch: plan=%v err=%v", branchPlan.GetPlan(), err)
 	}
 
 	// Simulate upstream moving main before download begins.
@@ -794,6 +803,21 @@ func TestHFRateLimitPreservesRetryAfterAndUsesImmutableCache(t *testing.T) {
 	transfers, listErr := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
 	if listErr != nil || len(transfers.GetTransfers()) == 0 || !transfers.GetTransfers()[0].GetRetryable() {
 		t.Fatalf("download 429 transfer should stay retryable: %+v err=%v", transfers, listErr)
+	}
+	original := transfers.GetTransfers()[0]
+	if original.GetPlanId() != firstPlan.GetPlan().GetPlanId() || !slices.Contains(original.GetAvailableActions(), runtimev1.LocalTransferAction_LOCAL_TRANSFER_ACTION_RESUME) {
+		t.Fatalf("original install plan has no resumable transfer: %v", original)
+	}
+	downloadRateLimited.Store(false)
+	sessionID := original.GetInstallSessionId()
+	if _, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{InstallSessionId: sessionID}); err != nil {
+		t.Fatal(err)
+	}
+	waitTransferStateForTest(t, svc, sessionID, localTransferStateCompleted)
+	completed := svc.localTransferSummary(sessionID)
+	asset, err := svc.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: completed.GetAssetId()})
+	if err != nil || asset.GetAsset().GetContentId() != "sha256:"+payloadHash {
+		t.Fatalf("resumed transfer returned wrong content: %v, err=%v", asset, err)
 	}
 }
 
