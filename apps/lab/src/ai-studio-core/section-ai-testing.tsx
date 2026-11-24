@@ -418,15 +418,13 @@ function TextStudioShell({
             const totalSteps = Number.isFinite(job.progressTotalSteps) && job.progressTotalSteps > 0 ? Math.trunc(job.progressTotalSteps) : 0;
             const currentStep = Number.isFinite(job.progressCurrentStep) && job.progressCurrentStep >= 0 ? Math.trunc(job.progressCurrentStep) : 0;
             const percent = Number.isFinite(job.progressPercent) ? Math.max(0, Math.min(100, Math.round(job.progressPercent))) : 0;
-            const jobProgress = totalSteps > 0 || percent > 0 || currentStep > 0
-              ? { percent, currentStep, totalSteps }
-              : undefined;
+            const jobProgress = totalSteps > 0 ? { percent, currentStep, totalSteps } : undefined;
             if (jobStatus || jobProgress) {
               setExecutingRun(current => current?.id === pendingRun.id
                 ? {
                     ...current,
                     ...(jobStatus ? { jobStatus } : {}),
-                    ...(jobProgress ? { jobProgress } : {}),
+                    jobProgress,
                   }
                 : current);
             }

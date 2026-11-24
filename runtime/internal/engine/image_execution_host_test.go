@@ -230,6 +230,24 @@ func TestImageExecutionHostStopCancelsActiveAndQueuedRequests(t *testing.T) {
 	}
 }
 
+func TestImageHostFailedLoadWithUnconfirmedStopBlocksNextRequest(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{stopErr: errors.New("unconfirmed process exit")}
+	substrate.ensureFn = func(context.Context, *capabilitydriver.ImageInvocationPlan, func() error, localexecution.ImageProgressFunc) (bool, error) {
+		return false, errors.New("load failed")
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	plan := imagePlanForHostTest(t, "load-failure", 1)
+	for range 2 {
+		if _, err := host.ExecuteImage(context.Background(), plan, nil, nil, nil); err == nil {
+			t.Fatal("unexpected success")
+		}
+	}
+	if substrate.ensureCalls != 1 || substrate.stopCalls != 1 {
+		t.Fatalf("loads=%d stops=%d", substrate.ensureCalls, substrate.stopCalls)
+	}
+}
+
 func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
 	started := make(chan struct{})
 	var once sync.Once

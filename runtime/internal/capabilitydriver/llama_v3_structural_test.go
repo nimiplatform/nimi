@@ -87,6 +87,40 @@ func buildStructuralLLMGGUFForTest(t *testing.T, arch, modelType string, ctxLen,
 	return buildStructuralLLMGGUFWithDeepstackForTest(t, arch, modelType, ctxLen, embdLen, pooling, 0, chatTemplate, toolUseTemplate)
 }
 
+func TestEmbeddingGemmaRequiresTensorPayload(t *testing.T) {
+	var buf bytes.Buffer
+	buf.WriteString("GGUF")
+	mustWriteLlamaProbeValue(t, &buf, uint32(3))
+	mustWriteLlamaProbeValue(t, &buf, uint64(2))
+	mustWriteLlamaProbeValue(t, &buf, uint64(5))
+	writeLlamaProbeString(t, &buf, "general.architecture")
+	mustWriteLlamaProbeValue(t, &buf, uint32(ggufmeta.ValueTypeString))
+	writeLlamaProbeString(t, &buf, "gemma-embedding2")
+	for _, field := range []struct {
+		key   string
+		value uint32
+	}{
+		{"context_length", 8192}, {"embedding_length", 512}, {"embedding_length_out", 768}, {"pooling_type", 1},
+	} {
+		writeLlamaProbeString(t, &buf, "gemma-embedding2."+field.key)
+		mustWriteLlamaProbeValue(t, &buf, uint32(ggufmeta.ValueTypeUint32))
+		mustWriteLlamaProbeValue(t, &buf, field.value)
+	}
+	const projectionBytes = 512 * 768 * 4
+	writeLlamaProbeTensor(t, &buf, "output.weight", 0, 512, 768)
+	writeLlamaProbeTensor(t, &buf, "output_norm.weight", projectionBytes, 512)
+	writeLlamaProbePayload(&buf, projectionBytes+512*4)
+	data := buf.Bytes()
+	input := ModelAssetFormatProbeInput{RecipeID: LlamaEmbeddingGemma2RecipeID, RequirementID: EmbeddingGGUFRequirementID, RelativePath: "community.gguf", Entry: true}
+	driver := LlamaEmbedDriver{}
+	if _, err := driver.ProbeModelAsset(input, bytes.NewReader(data), int64(len(data))); err != nil {
+		t.Fatalf("complete model: %v", err)
+	}
+	if _, err := driver.ProbeModelAsset(input, bytes.NewReader(data[:len(data)-1]), int64(len(data)-1)); err == nil {
+		t.Fatal("accepted a missing tensor byte")
+	}
+}
+
 func TestLlamaV3RequiresCompleteTensorTableAndPayload(t *testing.T) {
 	driver := LlamaTextDriver{}
 	input := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}

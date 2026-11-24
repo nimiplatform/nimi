@@ -13506,7 +13506,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.chatterbox.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.chatterbox.tts
-    driver_dialect: audio.cpp/chatterbox/audio-synthesize/v1
+    driver_dialect: audio.cpp/chatterbox/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13526,7 +13526,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.confucius4-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.confucius4-tts.tts
-    driver_dialect: audio.cpp/confucius4_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/confucius4_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13546,7 +13546,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.dots-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.dots-tts.tts
-    driver_dialect: audio.cpp/dots_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/dots_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13566,7 +13566,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.dramabox.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.dramabox.tts
-    driver_dialect: audio.cpp/dramabox/audio-synthesize/v1
+    driver_dialect: audio.cpp/dramabox/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13586,7 +13586,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.fish-audio.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.fish-audio.tts
-    driver_dialect: audio.cpp/fish_audio/audio-synthesize/v1
+    driver_dialect: audio.cpp/fish_audio/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13606,7 +13606,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.glm-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.glm-tts.tts
-    driver_dialect: audio.cpp/glm_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/glm_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13626,7 +13626,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.higgs-audio-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-tts.tts
-    driver_dialect: audio.cpp/higgs_audio_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/higgs_audio_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13646,7 +13646,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.index-tts2.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.index-tts2.tts
-    driver_dialect: audio.cpp/index_tts2/audio-synthesize/v1
+    driver_dialect: audio.cpp/index_tts2/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13666,7 +13666,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.inflect-v2.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.inflect-v2.tts
-    driver_dialect: audio.cpp/inflect_v2/audio-synthesize/v1
+    driver_dialect: audio.cpp/inflect_v2/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13686,7 +13686,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.irodori-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.irodori-tts.tts
-    driver_dialect: audio.cpp/irodori_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/irodori_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13706,7 +13706,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.miotts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.miotts.tts
-    driver_dialect: audio.cpp/miotts/audio-synthesize/v1
+    driver_dialect: audio.cpp/miotts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13736,7 +13736,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.moss-tts-local.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.moss-tts-local.tts
-    driver_dialect: audio.cpp/moss_tts_local/audio-synthesize/v1
+    driver_dialect: audio.cpp/moss_tts_local/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13756,7 +13756,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.moss-tts-nano.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.moss-tts-nano.tts
-    driver_dialect: audio.cpp/moss_tts_nano/audio-synthesize/v1
+    driver_dialect: audio.cpp/moss_tts_nano/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13776,7 +13776,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.neutts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.neutts.tts
-    driver_dialect: audio.cpp/neutts/audio-synthesize/v1
+    driver_dialect: audio.cpp/neutts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13796,7 +13796,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.omnivoice.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.omnivoice.tts
-    driver_dialect: audio.cpp/omnivoice/audio-synthesize/v1
+    driver_dialect: audio.cpp/omnivoice/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13816,7 +13816,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.outetts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.outetts.tts
-    driver_dialect: audio.cpp/outetts/audio-synthesize/v1
+    driver_dialect: audio.cpp/outetts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13856,7 +13856,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.qwen3-tts-base.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts.tts
-    driver_dialect: audio.cpp/qwen3_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/qwen3_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13876,7 +13876,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.supertonic.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.supertonic.tts
-    driver_dialect: audio.cpp/supertonic/audio-synthesize/v1
+    driver_dialect: audio.cpp/supertonic/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13896,7 +13896,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.vibevoice.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.vibevoice.tts
-    driver_dialect: audio.cpp/vibevoice/audio-synthesize/v1
+    driver_dialect: audio.cpp/vibevoice/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13916,7 +13916,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.vietneu-tts.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.vietneu-tts.tts
-    driver_dialect: audio.cpp/vietneu_tts/audio-synthesize/v1
+    driver_dialect: audio.cpp/vietneu_tts/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13936,7 +13936,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.voxcpm2.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.voxcpm2.tts
-    driver_dialect: audio.cpp/voxcpm2/audio-synthesize/v1
+    driver_dialect: audio.cpp/voxcpm2/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13976,7 +13976,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.vevo2.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.vevo2.tts
-    driver_dialect: audio.cpp/vevo2/audio-synthesize/v1
+    driver_dialect: audio.cpp/vevo2/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -13996,7 +13996,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.citrinet-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.citrinet-asr.asr
-    driver_dialect: audio.cpp/citrinet_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/citrinet_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14016,7 +14016,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.fun-asr-nano.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.fun-asr-nano.asr
-    driver_dialect: audio.cpp/fun_asr_nano/audio-transcribe/v1
+    driver_dialect: audio.cpp/fun_asr_nano/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14036,7 +14036,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.higgs-audio-stt.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-stt.asr
-    driver_dialect: audio.cpp/higgs_audio_stt/audio-transcribe/v1
+    driver_dialect: audio.cpp/higgs_audio_stt/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14056,7 +14056,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.hviske-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.hviske-asr.asr
-    driver_dialect: audio.cpp/hviske_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/hviske_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14076,7 +14076,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.kroko-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.kroko-asr.asr
-    driver_dialect: audio.cpp/kroko_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/kroko_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14096,7 +14096,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.nemotron-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.nemotron-asr.asr
-    driver_dialect: audio.cpp/nemotron_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/nemotron_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14116,7 +14116,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.parakeet-tdt.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.parakeet-tdt.asr
-    driver_dialect: audio.cpp/parakeet_tdt/audio-transcribe/v1
+    driver_dialect: audio.cpp/parakeet_tdt/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14136,7 +14136,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.qwen3-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.qwen3-asr.asr
-    driver_dialect: audio.cpp/qwen3_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/qwen3_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14156,7 +14156,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.sense-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.sense-asr.asr
-    driver_dialect: audio.cpp/sense_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/sense_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14176,7 +14176,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.vibevoice-asr.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.vibevoice-asr.asr
-    driver_dialect: audio.cpp/vibevoice_asr/audio-transcribe/v1
+    driver_dialect: audio.cpp/vibevoice_asr/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14196,7 +14196,7 @@ loadout_recipes:
     capability_contract: audio.transcribe
     implementation_id: local.audio.transcribe.voxtral-realtime.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.voxtral-realtime.asr
-    driver_dialect: audio.cpp/voxtral_realtime/audio-transcribe/v1
+    driver_dialect: audio.cpp/voxtral_realtime/audio-transcribe/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14216,7 +14216,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.chatterbox.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.chatterbox.voice-reference
-    driver_dialect: audio.cpp/chatterbox/voice-reference-create/v1
+    driver_dialect: audio.cpp/chatterbox/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14237,7 +14237,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.confucius4-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.confucius4-tts.voice-reference
-    driver_dialect: audio.cpp/confucius4_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/confucius4_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14258,7 +14258,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.dots-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.dots-tts.voice-reference
-    driver_dialect: audio.cpp/dots_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/dots_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14279,7 +14279,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.dramabox.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.dramabox.voice-reference
-    driver_dialect: audio.cpp/dramabox/voice-reference-create/v1
+    driver_dialect: audio.cpp/dramabox/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14300,7 +14300,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.fish-audio.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.fish-audio.voice-reference
-    driver_dialect: audio.cpp/fish_audio/voice-reference-create/v1
+    driver_dialect: audio.cpp/fish_audio/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14321,7 +14321,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.glm-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.glm-tts.voice-reference
-    driver_dialect: audio.cpp/glm_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/glm_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14342,7 +14342,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.higgs-audio-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-tts.voice-reference
-    driver_dialect: audio.cpp/higgs_audio_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/higgs_audio_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14363,7 +14363,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.index-tts2.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.index-tts2.voice-reference
-    driver_dialect: audio.cpp/index_tts2/voice-reference-create/v1
+    driver_dialect: audio.cpp/index_tts2/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14384,7 +14384,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.irodori-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.irodori-tts.voice-reference
-    driver_dialect: audio.cpp/irodori_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/irodori_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14405,7 +14405,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.miotts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.miotts.voice-reference
-    driver_dialect: audio.cpp/miotts/voice-reference-create/v1
+    driver_dialect: audio.cpp/miotts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14426,7 +14426,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.moss-tts-local.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.moss-tts-local.voice-reference
-    driver_dialect: audio.cpp/moss_tts_local/voice-reference-create/v1
+    driver_dialect: audio.cpp/moss_tts_local/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14447,7 +14447,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.moss-tts-nano.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.moss-tts-nano.voice-reference
-    driver_dialect: audio.cpp/moss_tts_nano/voice-reference-create/v1
+    driver_dialect: audio.cpp/moss_tts_nano/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14468,7 +14468,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.omnivoice.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.omnivoice.voice-reference
-    driver_dialect: audio.cpp/omnivoice/voice-reference-create/v1
+    driver_dialect: audio.cpp/omnivoice/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14489,7 +14489,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.outetts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.outetts.voice-reference
-    driver_dialect: audio.cpp/outetts/voice-reference-create/v1
+    driver_dialect: audio.cpp/outetts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14510,7 +14510,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.pocket-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.pocket-tts.voice-reference
-    driver_dialect: audio.cpp/pocket_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/pocket_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14531,7 +14531,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.qwen3-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts.voice-reference
-    driver_dialect: audio.cpp/qwen3_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/qwen3_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14552,7 +14552,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.vibevoice.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.vibevoice.voice-reference
-    driver_dialect: audio.cpp/vibevoice/voice-reference-create/v1
+    driver_dialect: audio.cpp/vibevoice/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14573,7 +14573,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.vietneu-tts.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.vietneu-tts.voice-reference
-    driver_dialect: audio.cpp/vietneu_tts/voice-reference-create/v1
+    driver_dialect: audio.cpp/vietneu_tts/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14594,7 +14594,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.voxcpm2.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.voxcpm2.voice-reference
-    driver_dialect: audio.cpp/voxcpm2/voice-reference-create/v1
+    driver_dialect: audio.cpp/voxcpm2/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14615,7 +14615,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.vevo2.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.vevo2.voice-reference
-    driver_dialect: audio.cpp/vevo2/voice-reference-create/v1
+    driver_dialect: audio.cpp/vevo2/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14636,7 +14636,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.fish-drama3.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.tts
-    driver_dialect: audio.cpp/fish_drama3/audio-synthesize/v1
+    driver_dialect: audio.cpp/fish_drama3/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14656,7 +14656,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.fish-drama3.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.voice-reference
-    driver_dialect: audio.cpp/fish_drama3/voice-reference-create/v1
+    driver_dialect: audio.cpp/fish_drama3/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14677,7 +14677,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.kitten-tts2.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.tts
-    driver_dialect: audio.cpp/kitten_tts2/audio-synthesize/v1
+    driver_dialect: audio.cpp/kitten_tts2/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14697,7 +14697,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.kitten-tts2.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.voice-reference
-    driver_dialect: audio.cpp/kitten_tts2/voice-reference-create/v1
+    driver_dialect: audio.cpp/kitten_tts2/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio
@@ -14718,7 +14718,7 @@ loadout_recipes:
     capability_contract: audio.synthesize
     implementation_id: local.audio.synthesize.plapre.audio-cpp
     driver_id: nimi.runtime.driver.audio-cpp.plapre.tts
-    driver_dialect: audio.cpp/plapre/audio-synthesize/v1
+    driver_dialect: audio.cpp/plapre/audio-synthesize/v2
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -14738,7 +14738,7 @@ loadout_recipes:
     capability_contract: voice.create
     implementation_id: local.voice.create.plapre.audio-cpp-reference
     driver_id: nimi.runtime.driver.audio-cpp.plapre.voice-reference
-    driver_dialect: audio.cpp/plapre/voice-reference-create/v1
+    driver_dialect: audio.cpp/plapre/voice-reference-create/v2
     default_options: {}
     supported_features:
       - input.audio

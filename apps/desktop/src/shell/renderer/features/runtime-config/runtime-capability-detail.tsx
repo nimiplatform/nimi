@@ -47,11 +47,13 @@ import {
   type RecipeOfferSummary,
 } from './runtime-capability-presentation.js';
 import {
+  loadoutAssetLabel,
   loadoutSlotLabelKey,
   resolvePrimaryRecipeSlot,
 } from './runtime-config-loadout-model-display.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
 import { RuntimeEnvironmentCheck, RuntimeEnvironmentDependencies, type RuntimeEnvironmentActions } from './runtime-environment-details.js';
+import { configurationShortId } from './runtime-local-model-list.js';
 import { RuntimeConfigLoadoutTextBehaviors, SavedConfigsView } from './runtime-config-page-loadouts.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
@@ -98,7 +100,6 @@ type Props = {
   onCreate?: () => void;
   /** Opens SavedConfigsView with the create drawer already open. */
   initialCreateOnSaved?: boolean;
-  onClearInitialCreate?: () => void;
   onApplyCustomization: (draft: RuntimeSetupTaskDraft, previous?: NimiMachineLoadout) => Promise<void>;
   onRetryCustomization?: () => void;
   onTask: (taskId: string) => void;
@@ -178,10 +179,9 @@ export function RuntimeCapabilityDetail(props: Props) {
       .toLocaleLowerCase().includes(search);
   });
 
-  const orderedRecipes = props.recipes.filter(recipe => {
-    if (!search) return true;
-    return `${recipe.title} ${modelDisplayTitle(recipe.title)} ${recipe.recipeId}`.toLocaleLowerCase().includes(search);
-  });
+  const configuredRecipes = new Set(loadouts.filter(item => item.validationState === 'configured').map(item => item.recipeId));
+  const orderedRecipes = props.recipes.filter(recipe => !configuredRecipes.has(recipe.recipeId)
+    && (!search || `${recipe.title} ${modelDisplayTitle(recipe.title)} ${recipe.recipeId}`.toLocaleLowerCase().includes(search)));
 
   const editingLoadout = editing?.loadoutId ? loadouts.find(item => item.loadoutId === editing.loadoutId) : undefined;
   const editingRecipe = props.recipes.find(recipe => recipe.recipeId === editing?.recipeId);
@@ -200,7 +200,7 @@ export function RuntimeCapabilityDetail(props: Props) {
     initialCreate={props.initialCreateOnSaved}
     backLabel={t('runtimeConfig.localModels.backToModels')}
     navigationContext={props.navigationContext ?? { capabilityContract: props.capability }}
-    onBack={() => { props.onClearInitialCreate?.(); props.onSection('models'); }}
+    onBack={() => props.onSection('models')}
     environmentWritesDisabled={props.disabled} onPrepareEnvironment={loadout => { void props.onStart(loadout.recipeId, loadout); }} onOpenModelMarket={props.onModelMarket} />;
   const controlsDisabled = props.busy || props.disabled || Boolean(props.modelsLoading || props.modelsError || props.libraryLoading || props.libraryError);
   const showSearch = loadouts.length + props.recipes.length > 6;
@@ -236,6 +236,23 @@ export function RuntimeCapabilityDetail(props: Props) {
                 const recipe = props.recipes.find(item => item.recipeId === loadout.recipeId);
                 const identity = capabilityModelIdentity(loadout, props.recipes, props.catalog, props.assets);
                 const isSelected = loadout.loadoutId === props.selected?.loadoutId;
+                const similar = loadouts.filter(other => other.loadoutId !== loadout.loadoutId
+                  && other.recipeId === loadout.recipeId && other.displayName === loadout.displayName);
+                const differences: string[] = [];
+                if (similar.length) {
+                  for (const [key, value] of Object.entries(loadout.options)) {
+                    if (key !== 'contextSize' && similar.some(other => JSON.stringify(other.options[key]) !== JSON.stringify(value))) {
+                      differences.push(`${key} ${JSON.stringify(value)}`);
+                    }
+                  }
+                  for (const axis of loadout.modelAxes) {
+                    if (!axis.modelAssetId || !similar.some(other =>
+                      other.modelAxes.find(item => item.slotId === axis.slotId)?.modelAssetId !== axis.modelAssetId)) continue;
+                    const asset = props.assets.find(item => item.modelAssetId === axis.modelAssetId);
+                    if (asset) differences.push(loadoutAssetLabel(asset, props.catalog));
+                  }
+                  differences.push(configurationShortId(loadout, loadouts));
+                }
                 const primarySlot = recipe ? resolvePrimaryRecipeSlot(recipe) : { kind: 'none' as const };
                 const hasBoundMainModel = primarySlot.kind === 'single'
                   ? loadout.modelAxes.some((axis) => axis.slotId === primarySlot.slot.slotId && Boolean(axis.modelAssetId))
@@ -246,6 +263,7 @@ export function RuntimeCapabilityDetail(props: Props) {
                     loadout={loadout}
                     recipe={recipe}
                     identity={identity}
+                    differences={differences}
                     current={isSelected}
                     busy={controlsDisabled}
                     onSelect={() => { void props.onSelectLoadout(loadout); }}
@@ -451,6 +469,7 @@ function SavedLoadoutCard(props: {
   readonly loadout: NimiMachineLoadout;
   readonly recipe?: NimiLoadoutRecipe;
   readonly identity: ReturnType<typeof capabilityModelIdentity>;
+  readonly differences: readonly string[];
   readonly current: boolean;
   readonly busy: boolean;
   readonly onSelect: () => void;
@@ -473,6 +492,7 @@ function SavedLoadoutCard(props: {
     !props.current && !aliasAlreadyShowsVersion ? props.identity.versionShort : '',
     props.identity.recipeShortTitle && props.identity.recipeShortTitle !== title ? props.identity.recipeShortTitle : '',
     contextSize ? t('runtimeConfig.product.contextReduced', { size: contextSize.toLocaleString() }) : '',
+    ...props.differences,
   ].filter(Boolean);
   const configuredFeatureKeys = modelFeatureLocaleKeys(props.loadout.configuredFeatures);
   const unboundOptionalSlots = props.loadout.modelAxes.filter(

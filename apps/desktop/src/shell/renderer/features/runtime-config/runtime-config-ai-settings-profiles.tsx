@@ -111,7 +111,6 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   readonly libraryError?: boolean;
   readonly onRetryOverview: () => void;
   readonly onOpenCapability: (capability: string) => void;
-  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -241,7 +240,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             onRetry={props.onRetryOverview}
             onOpenCapability={props.onOpenCapability}
             onOpenTask={props.onOpenSetupTask}
-            onStartRecipe={props.onStartRecipe}
+            onOpenSavedConfigs={props.onOpenSavedConfigs}
             onOpenCloudServices={props.onOpenCloudServices}
             onOpenRecommendations={() => setMode({ kind: 'recommended' })}
             onImportProfile={() => setImporting(true)}
@@ -656,8 +655,10 @@ function ProfileUsePanel(props: {
         : { kind: 'runtime', accountId, returnFocus: 'runtime.aiSettings' };
       const profileUseId = `profile-use-${crypto.randomUUID()}`;
       const needsLocalAggregate = startablePlans.some((plan) => plan.state === 'ready' && plan.candidate);
-      const machineAggregate = needsLocalAggregate ? await props.ports.loadouts.get() : null;
-      const machineProjection = machineAggregate ? projectRuntimeConfigAIProfileAuthoringMachine(machineAggregate) : null;
+      const [machineAggregate, inventory] = needsLocalAggregate
+        ? await Promise.all([props.ports.loadouts.get(), localEnvironment.listModelAssets()])
+        : [null, []] as const;
+      const machineProjection = machineAggregate ? projectRuntimeConfigAIProfileAuthoringMachine(machineAggregate, inventory) : null;
       const existingByContract = new Map<string, NimiMachineLoadouts['loadouts'][number]>();
       if (machineAggregate && machineProjection && transferPlan) {
         for (const plan of startablePlans) {
@@ -666,7 +667,7 @@ function ProfileUsePanel(props: {
           const capability = transferPlan.profile.capabilities[plan.capabilityContract];
           if (!recipe || capability?.route !== 'local' || !capability.implementation) continue;
           const { decision } = deriveNimiAIProfileLocalConfigurationPreview({
-            profile: transferPlan.profile,
+            profile: transferPlan.bindingProfile ?? transferPlan.profile,
             capabilityContract: plan.capabilityContract,
             recipe,
             machine: machineProjection,
@@ -677,7 +678,7 @@ function ProfileUsePanel(props: {
           const choices = decision.matches.length === 1
             ? [decision.matches[0]!.loadoutId]
             : deriveNimiAIProfileSelectionMismatchPreview({
-              profile: transferPlan.profile,
+              profile: transferPlan.bindingProfile ?? transferPlan.profile,
               capabilityContract: plan.capabilityContract,
               machine: machineProjection,
               validation: { requireProvenance: false, requireLicense: false },
@@ -760,7 +761,7 @@ function ProfileUsePanel(props: {
       request.dispose();
       views.update(props.viewId, () => ({ busy: false }));
     });
-  }, [navigation, views, owner, profile.source.profileId, props, startablePlans, t, transferPlan]);
+  }, [localEnvironment, navigation, views, owner, profile.source.profileId, props, startablePlans, t, transferPlan]);
 
   useEffect(() => {
     if (!props.autoReview || props.draft.autoReviewStarted || !transferPlan || busy || previewError || startablePlans.length !== selectedPlans.length || !startablePlans.length) return;

@@ -6,8 +6,6 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
-  deriveLoadoutDefaultDisplayName,
-  isGenericEngineRecipeTitle,
   loadoutModelPresentation,
   resolvePrimaryRecipeSlot,
   resolveVerifiedAssetIdentity,
@@ -229,7 +227,17 @@ export function recipeOfferSummary(
   const counted = new Set<string>();
   for (const slot of required) {
     const exact = catalog && exactRecommendedSlotOffer(slot, catalog, assets);
-    const usable = exact ? (exact.offer ? [exact.offer] : []) : slot.offers.filter((offer) => offer.applicability !== 'unsupported');
+    if (exact) {
+      if (exact.installedAsset) { installed++; continue; }
+      missing++;
+      if (!counted.has(exact.templateId)) {
+        counted.add(exact.templateId);
+        const size = exact.descriptor.totalSizeBytes;
+        downloadBytes = downloadBytes !== null && size !== undefined && size > 0 ? downloadBytes + size : null;
+      }
+      continue;
+    }
+    const usable = slot.offers.filter((offer) => offer.applicability !== 'unsupported');
     if (usable.some((offer) => offer.installedModelAssetId)) {
       installed++;
       continue;
@@ -304,12 +312,10 @@ export function exactRecommendedSlotOffer(
   const templateId = slot.recommendedVariantIds[0]!;
   const contentId = slot.recommendedContentIds[0]!;
   const descriptor = catalog.find((item) => item.templateId === templateId && item.contentId === contentId);
-  const installed = assets.filter(asset => asset.contentVerified && asset.contentId === contentId);
+  if (!descriptor) return undefined;
+  const installed = assets.filter(asset => asset.contentVerified && asset.contentId === contentId && asset.entry === descriptor.entry);
   const offer = slot.offers.find(item => item.applicability !== 'unsupported'
-    && descriptor && item.candidate.title === descriptor.title && item.candidate.variantLabel === descriptor.entry
-    && (item.installedModelAssetId
-      ? installed.some(asset => asset.modelAssetId === item.installedModelAssetId)
-      : item.candidate.installable));
+    && installed.some(asset => asset.modelAssetId === item.installedModelAssetId));
   const installedAsset = installed.find(asset => asset.modelAssetId === offer?.installedModelAssetId);
   return { templateId, contentId, descriptor, installedAsset, offer };
 }

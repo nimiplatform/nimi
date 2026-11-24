@@ -29,9 +29,12 @@ import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
   NimiMachineLoadouts,
+  NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
+
+import { portableAxesFromSavedLoadout, resolvePortableProfileEntries, verifiedModelAssetEntry } from './runtime-config-ai-profile-transfer.js';
 
 export type RuntimeConfigAIProfileCapabilityContract = string;
 
@@ -112,6 +115,8 @@ export type RuntimeConfigAIProfileAuthoringCurrentProjection = {
   readonly machine: NimiAIProfileAuthoringMachineProjection;
   readonly recipes: readonly NimiLoadoutRecipe[];
   readonly rawLoadouts?: readonly NimiMachineLoadout[];
+  readonly assets?: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
 };
 
 export type RuntimeConfigAIProfileAuthoringRequirementView = {
@@ -437,6 +442,7 @@ export function deriveRuntimeConfigAIProfileAuthoringPreview(
     exportTechnicalError = technicalErrorDetail(error);
   }
 
+  const bindingProfile = resolvePortableProfileEntries(profile, current?.verifiedAssets ?? []);
   const journey = current === null
     ? null
     : Object.freeze({
@@ -462,7 +468,7 @@ export function deriveRuntimeConfigAIProfileAuthoringPreview(
       ]) => (
         capability.route === 'local' && capability.implementation
           ? [deriveNimiAIProfileLocalConfigurationPreview({
-            profile,
+            profile: bindingProfile,
             capabilityContract,
             recipe: recipeForCapabilityDraft(draft, capabilityContract, recipes),
             machine: current.machine,
@@ -472,7 +478,7 @@ export function deriveRuntimeConfigAIProfileAuthoringPreview(
       )),
       selectionPreviews: Object.keys(profile.capabilities).map((capabilityContract) => (
         deriveNimiAIProfileSelectionMismatchPreview({
-          profile,
+          profile: bindingProfile,
           capabilityContract,
           machine: current.machine,
           validation: PREVIEW_VALIDATION,
@@ -491,7 +497,9 @@ export function deriveRuntimeConfigAIProfileAuthoringPreview(
 
 export function projectRuntimeConfigAIProfileAuthoringMachine(
   machine: NimiMachineLoadouts,
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
 ): NimiAIProfileAuthoringMachineProjection {
+  const byId = new Map(assets.map(asset => [asset.modelAssetId, asset]));
   return Object.freeze({
     loadouts: Object.freeze(machine.loadouts.map((loadout) => Object.freeze({
       loadoutId: loadout.loadoutId,
@@ -510,10 +518,14 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
           // An unselected optional slot has no resource identity in this projection.
           axes: Object.freeze(loadout.modelAxes.filter((axis) => (
             axis.presence !== 'optional-conditional' || axis.resolution !== 'not-configured'
-          )).map((axis) => Object.freeze({
-            slotId: axis.slotId,
-            contentId: axis.expectedContentId,
-          }))),
+          )).map((axis) => {
+            const asset = byId.get(axis.modelAssetId);
+            const entry = asset && asset.contentId === axis.expectedContentId ? verifiedModelAssetEntry(asset) : undefined;
+            return Object.freeze({
+              slotId: axis.slotId, contentId: axis.expectedContentId,
+              ...(entry ? { entry: entry.relativePath, expectedHash: normalizePortableSha256(entry.sha256) ?? undefined } : {}),
+            });
+          })),
           options: loadout.options as unknown as NimiJsonObject,
         }),
       } : {}),
@@ -531,18 +543,21 @@ export async function loadRuntimeConfigAIProfileAuthoringCurrentProjection(input
   readonly getSharedAIConfig: () => Promise<NimiCapabilityAIConfig | null>;
   readonly getLoadouts: () => Promise<NimiMachineLoadouts>;
   readonly getRecipes: () => Promise<readonly NimiLoadoutRecipe[]>;
+  readonly getModelAssets?: () => Promise<readonly NimiRuntimeModelAssetRecord[]>;
 }): Promise<RuntimeConfigAIProfileAuthoringCurrentProjection> {
-  const [appAIConfig, sharedAIConfig, machine, recipes] = await Promise.all([
+  const [appAIConfig, sharedAIConfig, machine, recipes, assets] = await Promise.all([
     input.getAppAIConfig(),
     input.getSharedAIConfig(),
     input.getLoadouts(),
     input.getRecipes(),
+    input.getModelAssets?.() ?? [],
   ]);
   return Object.freeze({
     appId: input.appId,
     appAIConfig,
     sharedAIConfig,
-    machine: projectRuntimeConfigAIProfileAuthoringMachine(machine),
+    machine: projectRuntimeConfigAIProfileAuthoringMachine(machine, assets),
+    assets,
     recipes: Object.freeze([...recipes]),
     rawLoadouts: Object.freeze([...machine.loadouts]),
   });
@@ -920,7 +935,7 @@ export function buildPortableAxisFromAsset(
   slotId: string,
   asset: NimiRuntimeModelAssetRecord,
 ): NimiPortableAIProfileLoadoutAxis | null {
-  const entry = asset.files.find((file) => file.relativePath === asset.entry) ?? asset.files[0];
+  const entry = verifiedModelAssetEntry(asset);
   const expectedHash = normalizePortableSha256(entry?.sha256);
   const contentId = normalizePortableSha256(asset.contentId);
   if (!entry || !expectedHash || !contentId) return null;
@@ -941,6 +956,23 @@ export function buildPortableAxisFromAsset(
       }
       : {}),
   });
+}
+
+export function verifiedAssetForOfferInstallPlan(
+  offerRef: string,
+  plan: Pick<NimiRuntimeLocalInstallPlanDescriptor, 'offerRef' | 'templateId' | 'repo' | 'revision' | 'entry' | 'files' | 'hashes'>,
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): NimiRuntimeLocalVerifiedAssetDescriptor | undefined {
+  if (plan.offerRef && plan.offerRef !== offerRef) return undefined;
+  const files = new Set(plan.files);
+  if (files.size !== plan.files.length) return undefined;
+  const matches = catalog.filter(asset =>
+    asset.templateId === plan.templateId && asset.repo === plan.repo && asset.revision === plan.revision
+    && asset.entry === plan.entry && files.size === asset.files.length && asset.files.every(file => {
+      const digest = normalizePortableSha256(plan.hashes[file]);
+      return files.has(file) && digest !== null && digest === normalizePortableSha256(asset.hashes[file]);
+    }));
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 export function buildPortableAxisFromVerifiedDescriptor(
@@ -985,15 +1017,7 @@ export function fillRuntimeConfigAIProfileCapabilityFromLoadout(input: {
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
 }): RuntimeConfigAIProfileAuthoringDraft {
   const assetsById = new Map(input.assets.map((asset) => [asset.modelAssetId, asset]));
-  const axes: NimiPortableAIProfileLoadoutAxis[] = [];
-  for (const axis of input.loadout.modelAxes) {
-    if (axis.resolution === 'not-configured' || !axis.modelAssetId) continue;
-    const asset = assetsById.get(axis.modelAssetId);
-    if (!asset) continue;
-    const portableAxis = buildPortableAxisFromAsset(axis.slotId, asset);
-    if (portableAxis) axes.push(portableAxis);
-  }
-  axes.sort((left, right) => left.slotId.localeCompare(right.slotId));
+  const axes = portableAxesFromSavedLoadout(input.loadout, assetsById);
   const options = JSON.parse(JSON.stringify(input.loadout.options ?? {})) as NimiJsonObject;
   return {
     ...input.draft,

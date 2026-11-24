@@ -1327,6 +1327,16 @@ units:
         target: definition.nimi.runtime.ai-provider.voice-conversion
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.audio-cpp-speech-slot-dialects
+    kind: rule
+    title: Audio cpp speech model slot policies have exact dialect identities
+    modality: must
+    statement: The shared audio.cpp speech family Drivers project substitutable synthesis, offline transcription and reference voice model slots on their respective audio-synthesize/v2, audio-transcribe/v2 and voice-reference-create/v2 dialects. MioTTS v2 also projects its separate substitutable codec slot. PocketTTS and MiniMax-H3 synthesis retain their strict required file contracts and audio-synthesize/v1 dialects. Reference voice creation has its own version independently of synthesis. Recipe, implementation and environment consumer identities stay stable. Runtime revalidates selected bytes at execution.
+    condition: Whenever Runtime registers, prepares, interprets or restores a Loadout for one of the shared audio.cpp speech Drivers.
+    failure: Mark a Loadout using a retired dialect blocked and require explicit preparation and selection under the current dialect. Do not alias the old projection or relax strict package requirements.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
   - id: rule.nimi.runtime.local-compute.audio-cpp-current-tts
     kind: rule
     title: Current audio cpp speech families keep package presets and exact reference controls

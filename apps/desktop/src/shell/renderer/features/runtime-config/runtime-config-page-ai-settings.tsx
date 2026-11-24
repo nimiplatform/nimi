@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
 import { capabilityIcon, Button, ConfirmDialog, InlineAlert, ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
-import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
+import type { NimiLoadoutRecipe, NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, FolderOpen, LayoutGrid, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import {
   setupTaskModelTitle,
 } from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
+import { canBuildRecommendedPortableProfile } from './runtime-profile-quick-start.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeEnvironmentObservation } from './runtime-environment-observation.js';
 import {
@@ -127,6 +128,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
   const [openCreateOnSaved, setOpenCreateOnSaved] = useState(false);
+  useEffect(() => {
+    if (section === 'saved') setOpenCreateOnSaved(false);
+  }, [section]);
   const [, setImpactRevision] = useState(0);
   const pendingImpact = impactState.current();
   const requestImpact = (pending: RuntimeConfigLoadoutPendingImpact) => {
@@ -247,32 +251,35 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const noticeUnlessShownByTask = (taskId: string, failure: RuntimeSetupFailureNotice) => {
     if (!store.getTask(taskId)?.failure) setError(failure);
   };
-  const createRecommendedCandidate = (taskId: string, recipeId: string) => {
-    const recipe = recipes.find(item => item.recipeId === recipeId);
-    if (!recipe) throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
-    const preferredOffers: Record<string, string> = {};
-    const axes: { slotId: string; modelAssetId: string; expectedContentId: string }[] = [];
-    for (const slot of recipe.slots) {
-      if (slot.presence !== 'required') continue;
-      const exact = exactRecommendedSlotOffer(slot, library.data?.catalog, library.data?.assets);
-      if (!exact) continue;
+  const createRecommendedCandidate = (taskId: string, recipe: NimiLoadoutRecipe) => {
+    const axes: NonNullable<RuntimeSetupTaskDraft['axes']>[number][] = [];
+    const pendingAxes: NonNullable<RuntimeSetupTaskDraft['pendingAxes']>[number][] = [];
+    for (const slot of recipe.slots.filter(slot => slot.presence === 'required')) {
+      const exact = exactRecommendedSlotOffer(slot, library.data?.catalog, library.data?.assets)!;
       if (exact.installedAsset) {
         axes.push({ slotId: slot.slotId, modelAssetId: exact.installedAsset.modelAssetId, expectedContentId: exact.contentId });
-        if (exact.offer?.installedModelAssetId) preferredOffers[slot.slotId] = exact.offer.candidate.offerRef;
-      } else if (exact.offer) {
-        preferredOffers[slot.slotId] = exact.offer.candidate.offerRef;
       } else {
-        throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
+        pendingAxes.push({ slotId: slot.slotId, contentId: exact.contentId, templateId: exact.templateId,
+          expectedHash: exact.descriptor.hashes[exact.descriptor.entry],
+          source: { repo: exact.descriptor.repo, revision: exact.descriptor.revision, file: exact.descriptor.entry } });
       }
     }
-    store.updateTask(taskId, current => ({ draft: { ...current.draft, route: 'local', recipeId, preferredOffers } }));
-    return createRuntimeSetupCandidate(store, taskId, ports, { recipeId, axes });
+    store.updateTask(taskId, current => ({ draft: { ...current.draft, route: 'local', recipeId: recipe.recipeId, pendingAxes } }));
+    return createRuntimeSetupCandidate(store, taskId, ports, { recipeId: recipe.recipeId, axes });
   };
   const onStart = async (recipeId?: string, previous?: NimiMachineLoadout, targetCapability = visibleCapability) => {
     if (!targetCapability) return;
     setBusy(true);
     setError(null);
     try {
+      const recipe = inventory.data?.recipes.find(item => item.capabilityContract === targetCapability && item.recipeId === recipeId);
+      if (recipeId && !previous) {
+        if (!recipe) throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
+        if (!canBuildRecommendedPortableProfile(recipe, library.data?.catalog ?? [])) {
+          props.onOpenSavedConfigs({ capabilityContract: targetCapability, recipeId: recipe.recipeId, recipeRevision: recipe.revision });
+          return;
+        }
+      }
       const task = await createSetupTask(targetCapability);
       if (previous) {
         // Point directly at the existing Loadout instead of creating a duplicate candidate.
@@ -290,8 +297,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           },
         }));
         await resolveRuntimeSetupPreparation(store, task.taskId, ports);
-      } else if (recipeId) {
-        const result = await createRecommendedCandidate(task.taskId, recipeId);
+      } else if (recipe) {
+        const result = await createRecommendedCandidate(task.taskId, recipe);
         if (result.status !== 'ok') noticeUnlessShownByTask(task.taskId, result.failure);
         else await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       }
@@ -353,6 +360,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               openSetupTask(ownerTask.taskId);
               return;
             }
+            returnToSource(ownerTask.source);
           } else {
             await inventory.refetch();
           }
@@ -392,8 +400,14 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     setBusy(true);
     setError(null);
     try {
+      const recipe = recipes.find(item => item.recipeId === recipeId);
+      if (!recipe) throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
+      if (!canBuildRecommendedPortableProfile(recipe, library.data?.catalog ?? [])) {
+        await onChooseImportedFiles(recipeId);
+        return;
+      }
       const task = await createSetupTask();
-      const created = await createRecommendedCandidate(task.taskId, recipeId);
+      const created = await createRecommendedCandidate(task.taskId, recipe);
       if (created.status !== 'ok') {
         noticeUnlessShownByTask(task.taskId, created.failure);
         openSetupTask(task.taskId);
@@ -496,18 +510,20 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     void navigation.push(homeRuntimeDestination('aiSettings', { capabilityContract: configuration.capability, loadoutId: configuration.loadoutId }));
     setError(null);
   };
-  const onReturnToSource = () => {
-    const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
+  const returnToSource = (source: { readonly returnFocus?: string; readonly ownerAppId?: string; readonly configRef?: string } | undefined) => {
+    const target = resolveRuntimeSetupReturnTarget(source?.returnFocus);
     setError(null);
     if (target?.kind === 'destination') {
       void returnFromRuntimeSetup(navigation, target.destination)
         .catch(error => setError({ message: error instanceof Error ? error.message : String(error) }));
-    } else if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
-      void navigation.push({ id: 'apps', appId: focusedTask.source.ownerAppId });
+    } else if (target?.kind === 'tab' && target.tab === 'apps' && source?.ownerAppId) {
+      void returnFromRuntimeSetup(navigation, { id: 'apps', appId: source.ownerAppId, appSection: 'ai-models', appConfigRef: source.configRef })
+        .catch(error => setError({ message: error instanceof Error ? error.message : String(error) }));
     } else if (target?.kind === 'tab') void navigation.push({ id: target.tab });
     else void navigation.push(homeRuntimeDestination('aiSettings'));
     void inventory.refetch();
   };
+  const onReturnToSource = () => returnToSource(focusedTask?.source);
 
   return (
     <div
@@ -759,9 +775,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     libraryError={library.isError}
                     onRetryOverview={onRetryOverview}
                     onOpenCapability={openCapability}
-                    onStartRecipe={(capabilityContract, recipeId) => {
-                      void onStart(recipeId, undefined, capabilityContract);
-                    }}
                     store={store}
                     ports={ports}
                     runtimeWritesDisabled={props.runtimeWritesDisabled}
@@ -827,7 +840,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     openSection('saved');
                   }}
                   initialCreateOnSaved={openCreateOnSaved}
-                  onClearInitialCreate={() => setOpenCreateOnSaved(false)}
                   onApplyCustomization={onApplyCustomization}
                   onRetryCustomization={() => { void inventory.refetch(); void library.refetch(); }}
                   onTask={openSetupTask}

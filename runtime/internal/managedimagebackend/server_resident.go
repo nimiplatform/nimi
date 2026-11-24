@@ -88,7 +88,6 @@ type stableDiffusionCPPResident struct {
 type managedImageLogCapture struct {
 	mu      sync.Mutex
 	builder strings.Builder
-	lines   []string
 }
 
 func streamManagedImageCommandOutput(reader io.ReadCloser, stream string, label string, capture *managedImageLogCapture, wg *sync.WaitGroup) {
@@ -259,7 +258,6 @@ func (c *managedImageLogCapture) Append(line string) {
 		c.builder.WriteString("\n")
 	}
 	c.builder.WriteString(trimmed)
-	c.lines = append(c.lines, trimmed)
 }
 
 func (c *managedImageLogCapture) String() string {
@@ -269,31 +267,6 @@ func (c *managedImageLogCapture) String() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return strings.TrimSpace(c.builder.String())
-}
-
-func (c *managedImageLogCapture) SnapshotCursor() int {
-	if c == nil {
-		return 0
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return len(c.lines)
-}
-
-func (c *managedImageLogCapture) LinesSince(cursor int) ([]string, int) {
-	if c == nil {
-		return nil, 0
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if cursor < 0 {
-		cursor = 0
-	}
-	if cursor > len(c.lines) {
-		cursor = len(c.lines)
-	}
-	out := append([]string(nil), c.lines[cursor:]...)
-	return out, len(c.lines)
 }
 
 func (r *stableDiffusionCPPResident) markExited(err error) {

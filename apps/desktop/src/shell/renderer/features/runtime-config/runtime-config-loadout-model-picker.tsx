@@ -163,6 +163,7 @@ export function LoadoutSlotModelPickerBody(props: {
   readonly clearLabel?: string;
   readonly offerActionMode?: LoadoutSlotOfferActionMode;
   readonly offerDisabledReason?: (offer: NimiLoadoutRecipeSlotOffer) => string | null;
+  readonly assetError?: (modelAssetId: string) => string | undefined;
   readonly onSelectAsset: (modelAssetId: string) => void;
   readonly onSelectOffer?: (offer: NimiLoadoutRecipeSlotOffer) => void;
   readonly onInspectOffer?: (offer: NimiLoadoutRecipeSlotOffer) => void;
@@ -209,6 +210,7 @@ export function LoadoutSlotModelPickerBody(props: {
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-[var(--nimi-text-primary)]" title={presentation.headline}>{presentation.headline}</span>
           <span className="mt-1 block break-all text-xs text-[var(--nimi-text-muted)]" title={detail}>{detail}</span>
+          {props.assetError?.(asset.modelAssetId) && <span className="block text-xs text-[var(--nimi-status-warning)]">{props.assetError(asset.modelAssetId)}</span>}
         </span>
         {selected ? <StatusBadge tone="info" shape="soft" className="shrink-0">{t('runtimeConfig.loadouts.picker.current')}</StatusBadge> : null}
       </button>

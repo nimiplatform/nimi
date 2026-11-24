@@ -225,7 +225,7 @@ func (s *Service) resolveSingleFileCheckpoint(ctx context.Context, identity mode
 		if err != nil {
 			return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "checkpoint header could not be read"})
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode == http.StatusTooManyRequests {
 			rateErr := &filedownload.RateLimitError{
 				StatusCode: resp.StatusCode,
@@ -475,6 +475,11 @@ func fetchHFRepoHeadRevision(
 	}
 	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + repo
 	if trimmedRev := strings.TrimSpace(revisionRaw); trimmedRev != "" && trimmedRev != "main" {
+		for _, segment := range strings.Split(trimmedRev, "/") {
+			if segment == "." || segment == ".." {
+				return nil, fmt.Errorf("%w: invalid revision path", errHfRepoInvalid)
+			}
+		}
 		base.RawPath = base.EscapedPath() + "/revision/" + url.PathEscape(trimmedRev)
 		base.Path += "/revision/" + trimmedRev
 	}

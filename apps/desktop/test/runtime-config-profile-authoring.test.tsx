@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import type {
   NimiLoadoutRecipe,
+  NimiMachineLoadout,
   NimiMachineLoadouts,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -895,6 +896,15 @@ test('share-file import without provenance or license loads cleanly, rejects sec
       { modelAssetId: 'a-vision', contentId: `sha256:${'b'.repeat(64)}`, displayName: 'Vision', entry: 'mmproj.gguf', totalSizeBytes: 50, contentVerified: true, files: [{ relativePath: 'mmproj.gguf', sha256: 'b'.repeat(64), sizeBytes: 50, nonExecutableContent: false }] } as never,
     ],
   });
+  const original = JSON.stringify(readyForExport);
+  assert.throws(() => fillRuntimeConfigAIProfileCapabilityFromLoadout({
+    draft: readyForExport, draftId: readyForExport.capabilities[0]!.draftId, assets: [],
+    loadout: { ...TEXT_RECIPE, displayName: 'Missing weight', modelAxes: [{
+      slotId: 'main.gguf', modelAssetId: 'gone', expectedContentId: `sha256:${'a'.repeat(64)}`,
+      resolution: 'configured', presence: 'required',
+    }] } as unknown as NimiMachineLoadout,
+  }), /main\.gguf/);
+  assert.equal(JSON.stringify(readyForExport), original);
   assert.equal(filled.capabilities[0]?.requiredFeaturesText, 'input.image');
   assert.deepEqual(
     filled.capabilities[0]?.local.loadout?.axes.map((axis) => [axis.slotId, axis.expectedHash]),

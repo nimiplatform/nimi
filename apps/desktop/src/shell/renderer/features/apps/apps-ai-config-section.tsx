@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState as useRecordState } from 'react';
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/kit/ui';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
@@ -324,7 +324,12 @@ export function AppsAIConfigSection({
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
 
-  const [recordRef,setRecordRef]=useRecordState<string>();
+  const destination = useHomeDestination();
+  const recordRef = destination.appId === appId ? destination.appConfigRef : undefined;
+  const setRecordRef = (ref: string | undefined) => {
+    if (navigation.getSnapshot().current.destination !== destination) return;
+    void navigation.replace({ id: 'apps', appId, appSection: 'ai-models', appEntryKey: destination.appEntryKey, appConfigRef: ref });
+  };
   const [recordError,setRecordError]=useRecordState('');
   const appAIConfig = useDesktopNimiAppAIConfig(appId,{includeRecords:true,configRef:recordRef});
   // Retain the last records snapshot for this app so switching to a cold configRef
@@ -342,6 +347,9 @@ export function AppsAIConfigSection({
     ? appAIConfig.data
     : (recordsSnapshotState?.appId === appId ? recordsSnapshotState.snapshot : undefined);
   const activeConfigRef = recordRef ?? appAIConfig.data?.record?.configRef;
+  const returnFocus = 'home:' + encodeURIComponent(JSON.stringify({
+    id: 'apps', appId, appSection: 'ai-models', appEntryKey: destination.appEntryKey, appConfigRef: activeConfigRef,
+  }));
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const { t, i18n } = useTranslation();
   const copy = useAppsModelConfigCopy(appDisplayName);
@@ -408,7 +416,7 @@ export function AppsAIConfigSection({
           ownerAppId: appId,
           ...(activeConfigRef ? { configRef: activeConfigRef } : {}),
           accountId,
-          returnFocus: `apps:${appId}`,
+          returnFocus,
         },
         openTask: (taskId) => {
 
@@ -416,7 +424,7 @@ export function AppsAIConfigSection({
         },
       });
     });
-  }, [activeConfigRef, appId, runtimeConfigNavigation, navigation]);
+  }, [activeConfigRef, appId, runtimeConfigNavigation, returnFocus]);
 
   const openProfileUse = useCallback(() => {
     // The profile library opens in this app's owner context (including active configRef):
@@ -426,9 +434,9 @@ export function AppsAIConfigSection({
       kind: 'app',
       ownerAppId: appId,
       ...(activeConfigRef ? { configRef: activeConfigRef } : {}),
-      returnFocus: `apps:${appId}`,
+      returnFocus,
     });
-  }, [activeConfigRef, appId, runtimeConfigNavigation, navigation]);
+  }, [activeConfigRef, appId, runtimeConfigNavigation, returnFocus]);
 
   return (
     <section data-testid={`apps-ai-config-${appId}`}>

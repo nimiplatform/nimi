@@ -194,6 +194,7 @@ func AudioCppSpeechConsumerID(capabilityContract string, identity Identity) (str
 	return "", false
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.audio-cpp-speech-slot-dialects
 func AudioCppReferenceVoiceRegistrations() []AudioCppSpeechRegistration {
 	registrations := make([]AudioCppSpeechRegistration, 0, len(audioCppTTSSpecs))
 	for _, spec := range audioCppTTSSpecs {
@@ -210,7 +211,7 @@ func AudioCppReferenceVoiceRegistrations() []AudioCppSpeechRegistration {
 			Identity: Identity{
 				ImplementationID: "local.voice.create." + name + ".audio-cpp-reference",
 				DriverID:         "nimi.runtime.driver.audio-cpp." + name + ".voice-reference",
-				DriverDialect:    "audio.cpp/" + spec.family + "/voice-reference-create/v1",
+				DriverDialect:    "audio.cpp/" + spec.family + "/voice-reference-create/v2",
 			},
 		})
 	}
@@ -223,6 +224,10 @@ func audioCppTTSRegistration(spec audioCppTTSSpec) AudioCppSpeechRegistration {
 	if implementationID == "" {
 		implementationID = "local.audio.synthesize." + name + ".audio-cpp"
 	}
+	dialect := "audio.cpp/" + spec.family + "/audio-synthesize/v2"
+	if len(spec.requiredFileSizes) > 0 {
+		dialect = "audio.cpp/" + spec.family + "/audio-synthesize/v1"
+	}
 	return AudioCppSpeechRegistration{
 		CapabilityContract: AudioSynthesizeContract,
 		RecipeID:           name + ".audio-cpp.synthesize.v1",
@@ -232,7 +237,7 @@ func audioCppTTSRegistration(spec audioCppTTSSpec) AudioCppSpeechRegistration {
 		Identity: Identity{
 			ImplementationID: implementationID,
 			DriverID:         "nimi.runtime.driver.audio-cpp." + name + ".tts",
-			DriverDialect:    "audio.cpp/" + spec.family + "/audio-synthesize/v1",
+			DriverDialect:    dialect,
 		},
 	}
 }
@@ -248,7 +253,7 @@ func audioCppASRRegistration(spec audioCppASRSpec) AudioCppSpeechRegistration {
 		Identity: Identity{
 			ImplementationID: "local.audio.transcribe." + name + ".audio-cpp",
 			DriverID:         "nimi.runtime.driver.audio-cpp." + name + ".asr",
-			DriverDialect:    "audio.cpp/" + spec.family + "/audio-transcribe/v1",
+			DriverDialect:    "audio.cpp/" + spec.family + "/audio-transcribe/v2",
 		},
 	}
 }

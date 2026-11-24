@@ -20,7 +20,7 @@ for (const key of [
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const { createElement, act } = await import('react');
+const { createElement, act, useState } = await import('react');
 const { createRoot } = await import('react-dom/client');
 const { TooltipProvider } = await import('@nimiplatform/kit/ui');
 
@@ -704,6 +704,34 @@ test('LabReasoningControls strictly validates budget drafts, blocks invalid subm
     const noIntensityBindings = mkBindings({ ...budgetSupport, supportsBudget: false });
     await act(async () => { renderControls(noIntensityBindings); await new Promise((r) => setTimeout(r, 0)); });
     assert.equal(container.querySelector('input'), null);
+
+    // A presentation edit must keep an invalid budget blocking the parent form.
+    let exchange = { scenario: 'tool-call', delivery: 'sync', reasoning: { activation: 'required', presentation: 'hidden', exactBudgetTokens: 1024 } };
+    function ExchangeForm() {
+      const [parameters, setParameters] = useState(exchange);
+      exchange = parameters;
+      return createElement('form', null, createElement(mod.LabTextExchangeParameterPanel, {
+        parameters, contract: mod.labTextExchangeParameters, disabled: false, source: 'local', onChange: setParameters,
+      }));
+    }
+    await act(async () => {
+      renderer.render(createElement(mod.LabRendererProvider, { bindings }, createElement(ExchangeForm)));
+    });
+    const budget = container.querySelector('input[inputmode="numeric"]');
+    assert.ok(budget);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(budget, '');
+      budget.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+    dom.window.HTMLElement.prototype.scrollIntoView ??= () => {};
+    const triggers = [...container.querySelectorAll('.lab-reasoning [role="combobox"]')];
+    assert.equal(triggers.length, 2);
+    await act(async () => { triggers[1].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    const option = [...document.querySelectorAll('[role="option"]')].find(e => e.getAttribute('aria-selected') === 'false');
+    assert.ok(option);
+    await act(async () => { option.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    assert.equal(exchange.reasoning.presentation, 'summary');
+    assert.equal(mod.labTextExchangeParameters.requiredInputIssue(exchange), 'CapabilityTests.reasoning.budgetInvalid');
   } finally {
     await act(async () => renderer.unmount());
   }
@@ -825,12 +853,13 @@ test('ImageFields posture differentiates slot-missing vs unsupported vs ready, a
     assert.equal(bar0.getAttribute('aria-valuenow'), '0');
     assert.match(container.textContent, /"current":0,"total":21/u);
 
-    // 4) Unknown total and 0% renders status only (no progressbar)
-    await act(async () => {
-      renderer.render(createElement(TooltipProvider, null, createElement(mod.AIStudioHostProvider, { value: host },
-        createElement(mod.StudioResult, { ...baseResultProps, jobProgress: { percent: 0, currentStep: 0, totalSteps: 0 } }))));
-    });
-    assert.equal(container.querySelector('[role="progressbar"]'), null);
+    for (const percent of [0, 73]) {
+      await act(async () => {
+        renderer.render(createElement(TooltipProvider, null, createElement(mod.AIStudioHostProvider, { value: host },
+          createElement(mod.StudioResult, { ...baseResultProps, jobProgress: { percent, currentStep: 0, totalSteps: 0 } }))));
+      });
+      assert.equal(container.querySelector('[role="progressbar"]'), null);
+    }
   } finally {
     await act(async () => renderer.unmount());
   }
@@ -965,6 +994,19 @@ test('SectionAITesting sessionScopeKey preserves snapshot on focus refresh and w
     assert.equal(submitButton().disabled, true, 'changing sessionScopeKey must immediately clear stale snapshot');
     await act(async () => { refreshDeferred.resolve(switchedSnapshotB); await new Promise((r) => setTimeout(r, 0)); });
     assert.equal(submitButton().disabled, false);
+    refreshDeferred = Promise.withResolvers();
+    await act(async () => { window.dispatchEvent(new dom.window.Event('focus')); });
+    await act(async () => { submitButton().click(); });
+    const first = refreshDeferred;
+    refreshDeferred = Promise.withResolvers();
+    await act(async () => { window.dispatchEvent(new dom.window.Event('focus')); });
+    await act(async () => { refreshDeferred.resolve(switchedSnapshotB); });
+    try {
+      assert.equal(runCalls, 1, 'the latest unchanged target can dispatch while the superseded refresh is pending');
+    } finally {
+      await act(async () => { first.resolve(switchedSnapshotB); });
+    }
+    assert.equal(runCalls, 1, 'the superseded refresh does not dispatch again');
   } finally {
     await act(async () => renderer.unmount());
   }

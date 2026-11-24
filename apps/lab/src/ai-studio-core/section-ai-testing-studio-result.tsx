@@ -368,7 +368,7 @@ export function StudioResult({
   let body: ReactNode;
   if (running) {
     const hasStream = typeof streamingText === 'string';
-    const hasKnownProgress = Boolean(!hasStream && jobProgress && (jobProgress.totalSteps > 0 || jobProgress.percent > 0));
+    const hasKnownProgress = Boolean(!hasStream && jobProgress && jobProgress.totalSteps > 0);
     body = (
       <div className="studio-result__pending">
         <div className="studio-result__pending-line">

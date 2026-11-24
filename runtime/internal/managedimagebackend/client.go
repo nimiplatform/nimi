@@ -147,7 +147,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateResult,
 		return nil, fmt.Errorf("managed image request mode is required")
 	}
 	if req.Protocol == ProtocolDirectGOSD && (req.Mode == ImageRequestModeInstructionEdit || req.Mode == ImageRequestModeControl) {
-		return nil, fmt.Errorf("direct gosd does not expose the stable-diffusion.cpp instruction-edit route")
+		return nil, fmt.Errorf("direct gosd does not expose the stable-diffusion.cpp %s route", req.Mode)
 	}
 	switch req.Mode {
 	case ImageRequestModeTextToImage:
@@ -460,7 +460,7 @@ func validateLoadModelRequestCarrier(req LoadModelRequest) error {
 		return fmt.Errorf("managed image protocol is required")
 	}
 	if req.Protocol == ProtocolDirectGOSD {
-		if len(req.Components) != 0 || req.DiffusionFA || req.OffloadToCPU || req.FlowShift != 0 || req.QwenImageZeroCondT {
+		if req.Checkpoint || len(req.Components) != 0 || req.DiffusionFA || req.OffloadToCPU || req.FlowShift != 0 || req.QwenImageZeroCondT {
 			return fmt.Errorf("direct gosd load cannot carry managed wrapper fields")
 		}
 		return nil

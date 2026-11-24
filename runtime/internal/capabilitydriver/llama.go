@@ -588,6 +588,17 @@ func (driver LlamaTextDriver) validateTextBehaviorAdapterMatchFacts(facts TextBe
 	return facts, nil
 }
 
+// RecommendedTextContextOptions preserves all other defaults and maps an
+// admitted full-capacity recommendation to the Driver's automatic mode.
+func (d LlamaTextDriver) RecommendedTextContextOptions(defaults *structpb.Struct, recommended, authored uint64) (*structpb.Struct, error) {
+	if recommended < authored {
+		return d.WithTextContextSize(defaults, recommended)
+	}
+	result := proto.Clone(defaults).(*structpb.Struct)
+	delete(result.Fields, "contextSize")
+	return result, nil
+}
+
 // WithTextContextSize returns options with the explicit portable context
 // size set; the rest of options is kept unchanged.
 func (LlamaTextDriver) WithTextContextSize(options *structpb.Struct, contextSize uint64) (*structpb.Struct, error) {

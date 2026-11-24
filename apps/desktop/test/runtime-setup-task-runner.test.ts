@@ -477,7 +477,11 @@ const INSTALLED_ASSET = {
   modelAssetId: 'asset-1',
   contentId: 'sha256:model-content',
   displayName: 'Image Model (Q8)',
-} as NimiRuntimeModelAssetRecord;
+  entry: 'model.gguf', files: [{ relativePath: 'model.gguf', sha256: 'f'.repeat(64), sizeBytes: 2048, nonExecutableContent: false }],
+  totalSizeBytes: 2048, contentVerified: true, catalogVerification: 'matched', catalogVerified: true, unclassified: false,
+  createdAt: '2026-11-24T00:00:00Z', updatedAt: '2026-11-24T00:00:00Z', latestIntegrityCheckedAt: '2026-11-24T00:00:00Z',
+  duplicateContent: false, containsNonExecutableCode: false,
+} satisfies NimiRuntimeModelAssetRecord;
 
 type CallLog = { readonly method: string; readonly args: unknown }[];
 
@@ -1551,6 +1555,21 @@ test('profile-derived candidates carry the portable recipe, options, axes, and p
   assert.equal(args.provenance.source_profile_id, 'profile.shared-1');
   assert.equal(args.provenance.desktop_setup_task_id, taskId);
 });
+test('advanced saving an explicit empty required slot suppresses Runtime recommendation prefill', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const candidate = loadout({ loadoutId: 'explicitly-cleared', modelAxes: [{
+    slotId: 'main.diffusion', displayLabel: 'Main', modelAssetId: INSTALLED_ASSET.modelAssetId,
+    expectedContentId: INSTALLED_ASSET.contentId, recipeCompatible: true, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'configured',
+  }] });
+  const ports = createPorts(baseState({ loadouts: [candidate], assets: [INSTALLED_ASSET] }), calls);
+  const taskId = await createAppTask(store);
+  store.updateTask(taskId, () => ({ candidateLoadoutId: candidate.loadoutId, candidateRevisionBaseline: candidate.revision }));
+  const updated = await updateRuntimeSetupCandidate(store, taskId, ports, { axes: [] });
+  assert.equal(updated.status, 'ok');
+  assert.deepEqual(rebindPrepareArgs(calls)?.modelAxes, [{ slotId: 'main.diffusion', modelAssetId: '', expectedContentId: '' }]);
+});
+
 test('advanced edits update the unselected candidate under its revision condition', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -1981,7 +2000,7 @@ function draftPendingAxis(store: RuntimeSetupTaskStore, taskId: string, pendingA
 test('a profile pending axis acquires exactly its declared content identity through the portable source plan', async () => {
   const store = makeStore();
   const calls: CallLog = [];
-  const ports = createPorts(baseState(), calls);
+  const ports = createPorts(baseState({ installResult: { ...INSTALLED_ASSET, contentId: PENDING_CONTENT } }), calls);
   const taskId = await createAppTask(store);
   draftPendingAxis(store, taskId, {
     slotId: 'main.diffusion',
@@ -2476,7 +2495,8 @@ test('Stop during account lookup invalidates the pending write admission', async
 test('a catalog multi-file profile keeps its complete template through acquisition and binding', async () => {
   const store = makeStore();
   const calls: CallLog = [];
-  const bundle = { ...INSTALLED_ASSET, contentId: 'sha256:complete-bundle' };
+  const bundle = { ...INSTALLED_ASSET, contentId: 'sha256:complete-bundle', entry: 'model.safetensors',
+    files: [{ relativePath: 'model.safetensors', sha256: 'single-entry', sizeBytes: 128, nonExecutableContent: false }] };
   const state = baseState({ assets: [], installResult: bundle });
   const ports = createPorts(state, calls);
   const taskId = await createAppTask(store);

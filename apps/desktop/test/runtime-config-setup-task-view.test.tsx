@@ -557,7 +557,7 @@ const GEMMA_RECIPE = {
 } as unknown as NimiLoadoutRecipe;
 const GEMMA_LOADOUT = {
   loadoutId: 'loadout-gemma', recipeId: 'recipe-gemma', capabilityContract: 'text.generate',
-  displayName: 'Gemma 4 text generation', modelAxes: [], validationState: 'configured',
+  displayName: 'Gemma 4 text generation', modelAxes: [], configuredFeatures: ['input.image'], validationState: 'configured',
 } as unknown as NimiMachineLoadout;
 const environmentWith = (...states: string[]) => ({
   state: 'ready',
@@ -571,7 +571,8 @@ function assertReadyCurrentModel(html: string): void {
   assert.match(html, /Gemma 4 text generation/);
   assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
   assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
-  assert.match(html, /data-testid="capability-model-settings:recipe-gemma"/);
+  assert.match(html, /data-testid="capability-config-settings:loadout-gemma"/);
+  assert.doesNotMatch(html, /data-testid="capability-model-settings:recipe-gemma"/);
   assert.doesNotMatch(html, /role="tablist"|capability-change-model/);
   assert.doesNotMatch(html, /runtimeConfig\.overview\.openChat/);
   assert.doesNotMatch(html, /runtimeConfig\.setupTask\.(?:repairSetup|checkPreparation)/);

@@ -28,7 +28,8 @@ test('a sole installed offer for a different quant cannot satisfy an exact recom
   };
   const imported = [{ ...assets[0]!, contentId: 'Q8' }];
   const acquisition = exactRecommendedSlotOffer({ ...slot, offers: [available] }, [descriptor], imported);
-  assert.equal(acquisition?.offer, available);
+  assert.equal(acquisition?.descriptor.templateId, 'variant-Q8');
+  assert.equal(acquisition?.offer, undefined, 'a title and filename do not bind an opaque offer');
   assert.equal(acquisition?.installedAsset, undefined, 'identical bytes from another distribution do not waive the review');
 });
 

@@ -73,7 +73,7 @@ test('World rejects missing or malformed original snapshots and marks a lost rec
 });
 
 test('World definite admission rejection uses typed Runtime and SDK reason shapes, not message or retry flags', async()=>{
- for(const reasonCode of ['AI_LOCAL_ASSET_SLOT_MISSING','ai-config-invalid','ai-media-option-unsupported','AI_MEDIA_SPEC_INVALID','SDK_LOCAL_APP_INPUT_INVALID','artifact-forbidden']) {
+ for(const reasonCode of ['AI_LOCAL_ASSET_SLOT_MISSING','ai-local-asset-slot-missing']) {
   const pending={version:2,id:'action-1',state:'pending',clientSubmissionId:'action-1',request:structuredClone(saved.request)};
   const path=`${WORLD_TOUR_RECOVERY_PREFIX}/action-1.json`;
   const mem=createCasAssetStore(new Map([[path,pending]]));
@@ -83,7 +83,8 @@ test('World definite admission rejection uses typed Runtime and SDK reason shape
   assert.equal(mem.removed.length,1);
   assert.equal(mem.store.has(path),false);
  }
- for(const cause of [{reasonCode:'PROTOCOL_ENVELOPE_INVALID'},{reasonCode:'AI_PROVIDER_UNAVAILABLE',retryable:false},{reasonCode:'runtime-grpc-deadline-exceeded'},
+ for(const cause of [...['ai-config-invalid','ai-media-option-unsupported','AI_MEDIA_SPEC_INVALID','SDK_LOCAL_APP_INPUT_INVALID','artifact-forbidden'].map(reasonCode=>({reasonCode})),
+   {reasonCode:'PROTOCOL_ENVELOPE_INVALID'},{reasonCode:'AI_PROVIDER_UNAVAILABLE',retryable:false},{reasonCode:'runtime-grpc-deadline-exceeded'},
    {reasonCode:'unknown-error',message:'ai-config-invalid',retryable:false},{message:'AI_INPUT_INVALID'}]) {
   const pending={version:2,id:'action-2',state:'pending',clientSubmissionId:'action-2',request:structuredClone(saved.request)};
   const path=`${WORLD_TOUR_RECOVERY_PREFIX}/action-2.json`;
@@ -101,7 +102,7 @@ test('World late rejection cannot clear a different request or an already known 
  ]) {
   const path=`${WORLD_TOUR_RECOVERY_PREFIX}/action-1.json`;
   const mem=createCasAssetStore(new Map([[path,stored]]));
-  const outcome=await clearRejectedWorldPending(mem.assets,{version:2,id:'action-1',state:'pending',clientSubmissionId:'action-1',request:saved.request},{reasonCode:'ai-media-option-unsupported'});
+  const outcome=await clearRejectedWorldPending(mem.assets,{version:2,id:'action-1',state:'pending',clientSubmissionId:'action-1',request:saved.request},{reasonCode:'ai-local-asset-slot-missing'});
   assert.equal(outcome.removed,false);
   assert.equal(mem.removed.length,0);
   assert.equal(mem.store.has(path),true);
@@ -114,7 +115,7 @@ test('World late rejection cannot clear a new action even when its original requ
   const current = { version: 2, id: 'action-b', state: 'pending', clientSubmissionId: 'action-b', request: saved.request };
   const pathB = `${WORLD_TOUR_RECOVERY_PREFIX}/action-b.json`;
   const mem = createCasAssetStore(new Map([[pathB, current]]));
-  const outcome = await clearRejectedWorldPending(mem.assets, previous, { reasonCode: 'AI_INPUT_INVALID' });
+  const outcome = await clearRejectedWorldPending(mem.assets, previous, { reasonCode: 'AI_LOCAL_ASSET_SLOT_MISSING' });
   assert.equal(outcome.removed, false);
   assert.equal(mem.store.has(pathB), true);
 });
@@ -141,6 +142,11 @@ test('shared history treats an absent remote World recovery record as empty with
   assert.deepEqual(await worldOwner.worldTourRecoveryReferences({ list: async () => { throw missing; } }), []);
   const denied = Object.assign(new Error('access denied'), { reasonCode: 'APP_SCOPE_FORBIDDEN' });
   await assert.rejects(() => worldOwner.worldTourRecoveryReferences({ list: async () => { throw denied; } }), error => error === denied);
+  let page = 0;
+  await assert.rejects(() => worldOwner.worldTourRecoveryReferences({ list: async () => {
+    if (page++ === 0) return { assets: [], nextCursor: 'more' };
+    throw missing;
+  } }), error => error === missing);
 });
 
 test('World run and Resume cannot finalize A twice; a later B keeps its own unresolved record', async () => {
@@ -184,7 +190,7 @@ test('World run and Resume cannot finalize A twice; a later B keeps its own unre
     await assert.rejects(() => worldOwner.runWorldTour({ ...input, prompt: 'B' }), /B Submit response lost/);
     const [pendingB] = pendingRecords();
     assert.notEqual(pendingB.clientSubmissionId, pendingA.clientSubmissionId); assert.equal(pendingB.request.prompt, 'B');
-    await worldOwner.clearRejectedWorldPending(client.storage.assets, pendingA, { reasonCode: 'AI_INPUT_INVALID' });
+    await worldOwner.clearRejectedWorldPending(client.storage.assets, pendingA, { reasonCode: 'AI_LOCAL_ASSET_SLOT_MISSING' });
     assert.deepEqual(pendingRecords(), [pendingB]); assert.equal(histories, 1);
   } finally { delete globalThis.__worldOwnerFixture; }
 });

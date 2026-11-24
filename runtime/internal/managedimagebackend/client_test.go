@@ -438,6 +438,12 @@ func TestLoadAndFreeRejectMixedPhysicalCarriers(t *testing.T) {
 	if err := FreeModel(context.Background(), directWithWrapper); err == nil || !strings.Contains(err.Error(), "managed wrapper fields") {
 		t.Fatalf("mixed direct free carrier error = %v", err)
 	}
+	checkpoint := directWithWrapper
+	checkpoint.Components = nil
+	checkpoint.Checkpoint = true
+	if err := validateLoadModelRequestCarrier(checkpoint); err == nil {
+		t.Fatal("direct gosd accepted a managed checkpoint load")
+	}
 	wrapperWithDirect := LoadModelRequest{
 		BackendAddress: "127.0.0.1:1", Protocol: ProtocolManagedWrapper,
 		ModelsRoot: t.TempDir(), ModelPath: "model.gguf", DirectOptions: []string{"diffusion_model"},

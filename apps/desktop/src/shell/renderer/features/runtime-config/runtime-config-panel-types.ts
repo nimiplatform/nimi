@@ -26,6 +26,7 @@ export type RuntimeConfigLoadoutNavigationContext = {
 export type RuntimeConfigLoadoutCreateDraft = {
   readonly customDisplayName?: string;
   readonly modelAssetIds: Readonly<Record<string, string>>;
+  readonly pendingSlotAssetId?: string;
   readonly contextSize?: string;
   readonly contextSizeEdited?: boolean;
 };

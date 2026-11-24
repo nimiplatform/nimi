@@ -846,6 +846,15 @@ func TestPortableSourceUsesRecordedRevisionAndExactHash(t *testing.T) {
 	}
 }
 
+func TestHFHeadRejectsDotRevisionSegments(t *testing.T) {
+	for _, revision := range []string{".", "refs/../main"} {
+		_, err := fetchHFRepoHeadRevision(context.Background(), http.DefaultClient, "https://example.invalid/api/models", "org/model", revision)
+		if !errors.Is(err, errHfRepoInvalid) {
+			t.Fatalf("revision %q: %v", revision, err)
+		}
+	}
+}
+
 func TestHFCatalogRequestURLsUseImmutableRevisionAndRequiredSourceFacts(t *testing.T) {
 	searchURL, err := hfCatalogSearchURL(hfCatalogSearchRequest{Query: "flux", CategoryFilter: "image", Limit: 12})
 	if err != nil {

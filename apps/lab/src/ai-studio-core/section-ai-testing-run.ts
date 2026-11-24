@@ -117,7 +117,8 @@ export function useStudioRunTargetSummary(
   const hostRef = useRef(host);
   hostRef.current = host;
   const scopeKey = resolveRunTargetScopeKey(host);
-  const inFlightRefreshRef = useRef<Promise<NimiAIConfigSnapshot | null> | null>(null);
+  const inFlightRefreshRef = useRef<{ settled: Promise<void>; release: () => void } | null>(null);
+  const lastRefresh = useRef<{ scopeKey: string; snapshot: NimiAIConfigSnapshot | null } | null>(null);
   const [configProjection, setConfigProjection] = useState<{
     scopeKey: string;
     state: 'loading' | 'loaded' | 'failed';
@@ -126,57 +127,57 @@ export function useStudioRunTargetSummary(
   }>({ scopeKey, state: 'loading', snapshot: null, error: null });
 
   useEffect(() => {
-    let cancelled = false;
-    let requestGeneration = 0;
     const refresh = (preserveSnapshot: boolean) => {
-      const generation = ++requestGeneration;
+      let release!: () => void;
+      const settled = new Promise<void>(resolve => { release = resolve; });
+      const pending = { settled, release };
+      const previous = inFlightRefreshRef.current;
+      inFlightRefreshRef.current = pending;
+      // A submission waiting on a superseded refresh can now await the latest one.
+      previous?.release();
       if (!preserveSnapshot) {
         setConfigProjection({ scopeKey, state: 'loading', snapshot: null, error: null });
       }
-      const pending = hostRef.current.sdk.aiConfig.getSnapshot()
+      void hostRef.current.sdk.aiConfig.getSnapshot()
         .then((next) => {
-          if (cancelled || generation !== requestGeneration) return null;
+          if (inFlightRefreshRef.current !== pending) return;
+          lastRefresh.current = { scopeKey, snapshot: next };
           setConfigProjection({ scopeKey, state: 'loaded', snapshot: next, error: null });
-          return next;
         })
         .catch((cause) => {
-          if (!cancelled && generation === requestGeneration) {
-            setConfigProjection({
-              scopeKey,
-              state: 'failed',
-              snapshot: null,
-              error: cause instanceof Error ? cause.message : String(cause || hostRef.current.translate('Studio.run.aiConfigLoadFailed')),
-            });
-          }
-          return null;
+          if (inFlightRefreshRef.current !== pending) return;
+          lastRefresh.current = { scopeKey, snapshot: null };
+          setConfigProjection({
+            scopeKey,
+            state: 'failed',
+            snapshot: null,
+            error: cause instanceof Error ? cause.message : String(cause || hostRef.current.translate('Studio.run.aiConfigLoadFailed')),
+          });
         })
         .finally(() => {
           if (inFlightRefreshRef.current === pending) {
             inFlightRefreshRef.current = null;
           }
+          pending.release();
         });
-      inFlightRefreshRef.current = pending;
     };
     refresh(false);
     const unsubscribe = hostRef.current.app.events.subscribeAIConfigRefresh(() => refresh(true));
     return () => {
-      cancelled = true;
-      requestGeneration += 1;
+      inFlightRefreshRef.current?.release();
       inFlightRefreshRef.current = null;
+      lastRefresh.current = null;
       unsubscribe();
     };
   }, [scopeKey]);
 
   const waitForTargetRefresh = useCallback(async (): Promise<StudioTargetRefreshWaitResult> => {
     if (!inFlightRefreshRef.current) return { waited: false };
-    let latest: NimiAIConfigSnapshot | null = null;
     while (inFlightRefreshRef.current) {
-      const current: Promise<NimiAIConfigSnapshot | null> = inFlightRefreshRef.current;
-      latest = await current;
-      if (inFlightRefreshRef.current === current) break;
+      await inFlightRefreshRef.current.settled;
     }
-    return { waited: true, snapshot: latest };
-  }, []);
+    return { waited: true, snapshot: lastRefresh.current?.scopeKey === scopeKey ? lastRefresh.current.snapshot : null };
+  }, [scopeKey]);
 
   return useMemo(() => {
     const scopeMatches = configProjection.scopeKey === scopeKey;

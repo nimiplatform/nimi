@@ -481,7 +481,7 @@ test('rapid Loadout updates use one last-write-wins impact slot for cancel and c
   assert.deepEqual(persisted, ['last']);
 });
 
-test('recommended Loadout model axes only carry fully bound pairs', async () => {
+test('recommended installs bind only the confirmed slots and preserve other empty choices', async () => {
   const recommendedContentId = `sha256:${'f'.repeat(64)}`;
   const recipe = {
     slots: [
@@ -495,14 +495,12 @@ test('recommended Loadout model axes only carry fully bound pairs', async () => 
     ],
   } as unknown as Pick<NimiMachineLoadout, 'modelAxes'>;
 
-  // Nothing installed or resolved: the required slot stays absent from
-  // modelAxes instead of sending an expectedContentId-only half binding.
-  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, []), []);
+  // Keep an explicitly empty required slot even with a recommendation in inventory.
+  const empty = [{ slotId: 'main', modelAssetId: '', expectedContentId: '' }];
+  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, []), empty);
 
   const installed = { modelAssetId: 'asset-main', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
-  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, [installed]), [
-    { slotId: 'main', modelAssetId: 'asset-main', expectedContentId: recommendedContentId },
-  ]);
+  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, [installed]), empty);
 
   // Optional-conditional slots with installed static recommendations (e.g.
   // SDXL ProMax ControlNet) must NOT be auto-bound without explicit confirmation.
@@ -527,7 +525,7 @@ test('recommended Loadout model axes only carry fully bound pairs', async () => 
   const installedMain = { modelAssetId: 'asset-sdxl', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
   assert.deepEqual(
     runtimeConfigRecommendedLoadoutModelAxes(sdxlLoadout, sdxlRecipe, [installedMain, installedControlNet]),
-    [{ slotId: 'main.diffusion', modelAssetId: 'asset-sdxl', expectedContentId: recommendedContentId }],
+    [{ slotId: 'main.diffusion', modelAssetId: '', expectedContentId: '' }],
   );
   const updates: Array<Record<string, unknown>> = [];
   await installAndBindRuntimeConfigRecommendedLoadout({
@@ -587,6 +585,12 @@ test('manual text Loadout create draft preserves r061 catalog fits and never sil
   } as unknown as NimiLoadoutRecipe;
 
   // Empty-store recommended install preserves r061 recommendedContextFit.
+  const unified: NimiLoadoutRecipe = { ...reducedRecommendedRecipe,
+    implementation: { ...reducedRecommendedRecipe.implementation, driverId: 'nimi.runtime.driver.llama-cpp' },
+    defaultOptions: { gpuLayers: 99, contextSize: 8192 } };
+  const manual = resolveLoadoutCreateContextOption(unified, { 'main.gguf': 'manual' });
+  assert.deepEqual(buildLoadoutCreateOptions(unified, manual), { gpuLayers: 99, contextSize: 8192 });
+  assert.deepEqual(buildLoadoutCreateOptions(unified, ''), { gpuLayers: 99 });
   assert.equal(resolveLoadoutCreateContextOption(reducedRecommendedRecipe, {}), '90112');
   assert.equal(resolveLoadoutCreateContextOption(fullRecommendedRecipe, {}), '');
   // An imported model with no offer uses its native limit, even if below 8192.

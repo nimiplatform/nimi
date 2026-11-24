@@ -302,7 +302,7 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
         disabled={props.disabled}
         onChange={(reasoning) => {
           const next: LabTextExchangeParameters = { ...parametersRef.current, reasoning };
-          delete next.reasoningDraftInvalid;
+          if (reasoning === undefined) delete next.reasoningDraftInvalid;
           props.onChange(next);
         }}
         onValidityChange={(valid) => {

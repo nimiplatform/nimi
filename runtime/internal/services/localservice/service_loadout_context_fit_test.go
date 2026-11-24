@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func gemmaRecipeOnHost(t *testing.T, svc *Service, totalGiB int64) *runtimev1.LoadoutRecipeDescriptor {
@@ -34,6 +35,30 @@ func recipeSlot(t *testing.T, recipe *runtimev1.LoadoutRecipeDescriptor, slotID 
 	}
 	t.Fatalf("recipe slot %q is missing", slotID)
 	return nil
+}
+
+func TestFullFitClearsRecipeContextOnlyInRecommendation(t *testing.T) {
+	driver := capabilitydriver.LlamaTextDriver{}
+	defaults, err := structpb.NewStruct(map[string]any{"contextSize": 8192, "gpuLayers": 99})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, limit := range []uint64{262144, 16384} {
+		options, err := driver.RecommendedTextContextOptions(defaults, limit, 262144)
+		if err != nil {
+			t.Fatal(err)
+		}
+		window, err := driver.TextContextWindow(options, 262144)
+		if err != nil || window != limit || options.GetFields()["gpuLayers"].GetNumberValue() != 99 {
+			t.Fatalf("fit %d: effective %d, options %v, error %v", limit, window, options, err)
+		}
+		if limit == 262144 && options.GetFields()["contextSize"] != nil {
+			t.Fatal("native fit supplied a fixed context")
+		}
+	}
+	if defaults.GetFields()["contextSize"].GetNumberValue() != 8192 {
+		t.Fatal("changed Recipe defaults")
+	}
 }
 
 // The host keeps its coherent E2B Q8_0 recommendation; what changes is that the

@@ -174,7 +174,12 @@ export interface NimiAIProfileAuthoringMachineLoadoutProjection {
   readonly sourceProfileId?: string;
   readonly loadout?: {
     readonly recipeId: string;
-    readonly axes: readonly { readonly slotId: string; readonly contentId: string }[];
+    readonly axes: readonly {
+      readonly slotId: string;
+      readonly contentId: string;
+      readonly entry?: string;
+      readonly expectedHash?: string;
+    }[];
     readonly options: NimiJsonObject;
   };
 }
@@ -700,6 +705,7 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
       capability.implementation!,
     ))
     .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout, capability) === equivalenceDigest)
+    .filter((loadout) => matchesPortableEntries(loadout, capability))
     .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId));
   const sameSource = equivalent.length > 0
     ? []
@@ -811,6 +817,7 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
         localConfigurationDigestFromMachineLoadout(loadout, localCapability)
           === localConfigurationDigestFromProfile(capabilityContract, localCapability)
       ))
+      .filter((loadout) => matchesPortableEntries(loadout, localCapability))
       .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId))
     : [];
 
@@ -827,9 +834,11 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
   const currentFeatureSubset = currentLoadout
     ? deriveFeatureSubset(requiredFeatures, currentLoadout.configuredFeatures)
     : unavailableFeatureSubset(requiredFeatures);
-  const matchedEquivalentForSubset = equivalentLoadouts.find(
+  const compatibleEquivalents = equivalentLoadouts.filter(
     (loadout) => deriveFeatureSubset(requiredFeatures, loadout.configuredFeatures).compatible,
-  ) ?? equivalentLoadouts[0];
+  );
+  const matchedEquivalentForSubset = compatibleEquivalents.find((loadout) => loadout.loadoutId === currentLoadout?.loadoutId)
+    ?? compatibleEquivalents[0] ?? equivalentLoadouts[0];
   // This branch has one shared feature projection. Name only records for which
   // that projection is true, including when equivalent portable content exists.
   const equivalentLoadoutIds = equivalentLoadouts
@@ -1172,6 +1181,17 @@ function portableProfileContent(profile: NimiPortableAIProfile): unknown {
   };
 }
 
+function matchesPortableEntries(
+  machine: NimiAIProfileAuthoringMachineLoadoutProjection,
+  profile: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
+): boolean {
+  return (profile.loadout?.axes ?? []).every(axis => {
+    const bound = machine.loadout?.axes.find(item => item.slotId === axis.slotId);
+    return bound !== undefined && (bound.expectedHash ?? bound.contentId) === axis.expectedHash
+      && (!axis.source || axis.expectedHash === axis.contentId || bound.entry === axis.source.file);
+  });
+}
+
 function localConfigurationDigestFromProfile(
   capabilityContract: string,
   capability: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
@@ -1406,7 +1426,14 @@ function normalizeMachineLoadoutIntent(
     if (!/^sha256:[a-f0-9]{64}$/u.test(contentId)) {
       return authoringError(`Machine Loadout[${loadoutIndex}].loadout.axes[${axisIndex}].contentId is invalid`);
     }
-    return Object.freeze({ slotId, contentId });
+    if (axis.expectedHash !== undefined && !/^sha256:[a-f0-9]{64}$/u.test(axis.expectedHash)) {
+      return authoringError(`Machine Loadout[${loadoutIndex}] entry hash is invalid`);
+    }
+    return Object.freeze({
+      slotId, contentId,
+      ...(axis.entry !== undefined ? { entry: requireExactNonEmptyText(axis.entry, 'Machine Loadout entry') } : {}),
+      ...(axis.expectedHash !== undefined ? { expectedHash: axis.expectedHash } : {}),
+    });
   });
   assertUnique(axes.map((axis) => axis.slotId), `Machine Loadout[${loadoutIndex}] slots`);
   return Object.freeze({

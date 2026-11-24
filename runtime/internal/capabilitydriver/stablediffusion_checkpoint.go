@@ -52,7 +52,7 @@ func ProbeStandaloneDiffusionCheckpoint(source io.Reader, size int64) (Diffusion
 		"model.diffusion_model.middle_block.1.transformer_blocks.0.attn2.to_k.weight":         {1280, 2048},
 		"model.diffusion_model.output_blocks.8.0.in_layers.0.weight":                          {640},
 	})
-	layout := DiffusionCheckpointLayoutNone
+	var layout DiffusionCheckpointLayout
 	switch {
 	case sdxl:
 		layout = DiffusionCheckpointLayoutSDXL

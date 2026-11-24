@@ -228,14 +228,7 @@ export function RuntimeCapabilityCustomize(props: {
       if (!offer || offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable)) return;
       // Acquisition is reviewed in the preparation list; the pick is recorded as its preferred choice.
       const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && hasLlamaContextField
-        ? (offer.contextFit
-          ? buildLoadoutCreateOptions(
-            recipe,
-            offer.contextFit.recommendedContextSize < offer.contextFit.authoredContextSize
-              ? String(offer.contextFit.recommendedContextSize)
-              : '',
-          )
-          : buildLoadoutCreateOptions(recipe, ''))
+        ? (offer.contextFit?.recommendedOptions ?? recipe.defaultOptions)
         : undefined) as RuntimeSetupTaskDraft['options'];
       syncUneditedContextOptions(syncedOptions);
       setDraft((current) => {

@@ -133,6 +133,56 @@ func TestRetiredGemmaV1LoadoutRemainsRecordedButBlockedWithoutMigration(t *testi
 	}
 }
 
+func TestRetiredAudioSpeechDialectRequiresANewLoadoutForTheCurrentRecipe(t *testing.T) {
+	ctx := context.Background()
+	svc := newLoadoutTestService(t, t.TempDir())
+	input := &runtimev1.PrepareLoadoutRequest{
+		CapabilityContract: "audio.synthesize",
+		RecipeId:           "qwen3-tts.audio-cpp.synthesize.v1",
+		DisplayName:        "Voice setup",
+	}
+	prepared, err := svc.PrepareLoadout(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	committed := commitLoadoutForTest(t, svc, ctx, prepared.GetPrepareId(), false)
+	svc.mu.Lock()
+	stored := svc.loadouts[committed.GetLoadoutId()]
+	stored.Implementation.DriverDialect = "audio.cpp/qwen3_tts/audio-synthesize/v1"
+	stored.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED
+	stored.ModelAxes[0].ModelAssetId = "stored-model"
+	stored.ModelAxes[0].ExpectedContentId = "sha256:" + strings.Repeat("a", 64)
+	stored.ModelAxes[0].Resolution = runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED
+	stored.ModelAxes[0].RecipeCompatible = true
+	svc.mu.Unlock()
+
+	replacement := proto.Clone(input).(*runtimev1.PrepareLoadoutRequest)
+	replacement.LoadoutId = committed.GetLoadoutId()
+	replacement.ExpectedLoadoutRevision = committed.GetRevision()
+	if _, err := svc.PrepareLoadout(ctx, replacement); grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE {
+		t.Fatalf("existing V1 Loadout must not prepare a V2 replacement under the same ID: %v", err)
+	}
+	current, err := svc.GetLoadout(ctx, &runtimev1.GetLoadoutRequest{LoadoutId: committed.GetLoadoutId()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocked := current.GetLoadout()
+	axis := blocked.GetModelAxes()[0]
+	if blocked.GetValidationState() != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED ||
+		axis.GetRecipeCompatible() || axis.GetResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED ||
+		axis.GetModelAssetId() != "stored-model" {
+		t.Fatalf("retired Loadout must keep its binding without projecting it as configured: %+v, axis: %+v", blocked, axis)
+	}
+	prepared, err = svc.PrepareLoadout(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next := prepared.GetProposedLoadout(); next.GetLoadoutId() == committed.GetLoadoutId() ||
+		next.GetImplementation().GetDriverDialect() != "audio.cpp/qwen3_tts/audio-synthesize/v2" {
+		t.Fatalf("new Loadout must use the current dialect and a new identity: %+v", next)
+	}
+}
+
 func TestMusic3CatalogRecommendationMatchesDriverContentIdentity(t *testing.T) {
 	svc := newLoadoutTestService(t, t.TempDir())
 	recipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.MiniMaxMusic3RecipeID)

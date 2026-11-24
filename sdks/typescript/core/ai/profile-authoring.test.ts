@@ -459,6 +459,14 @@ test('selection mismatch preview remains generic across implementation identitie
     },
   });
   assert.deepEqual(mixed.branches[1].loadoutIds, ['loadout-with-image']);
+  const compatible = { ...equivalentUnboundMachine.loadouts[0]!, configuredFeatures: ['input.image'] };
+  const current = { ...compatible, loadoutId: 'z-current', configuredFeatures: ['input.image', 'input.audio'] };
+  const keep = deriveNimiAIProfileSelectionMismatchPreview({
+    profile, capabilityContract: 'text.generate',
+    machine: { loadouts: [compatible, current], selections: [{ capabilityContract: 'text.generate', loadoutId: current.loadoutId }] },
+  });
+  assert.deepEqual(keep.branches[1].loadoutIds, [current.loadoutId]);
+  assert.equal(keep.branches[1].changesSelection, false);
   assert.equal(mixed.branches[1].changesSelection, true);
 });
 
@@ -540,6 +548,50 @@ test('equivalence digest sorts loadout axes canonically and setLocalCapability c
   assert.equal(deriveNimiAIProfileLocalConfigurationPreview({
     ...comparison, profile: explicitProfile, recipe: TEXT_RECIPE,
   }).decision.kind, 'add-new');
+});
+
+test('local configuration reuses a renamed single-file model and requires the exact entry for a bundle', () => {
+  const contentId = `sha256:${'a'.repeat(64)}` as const;
+  const bundleEntryHash = `sha256:${'b'.repeat(64)}` as const;
+  for (const [expectedHash, matches] of [[contentId, true], [bundleEntryHash, false]] as const) {
+    const options = { contextSize: 4096 };
+    const profile = createNimiAIProfileAuthoringBuilder({
+      profileId: 'profile.entry-identity',
+      title: 'Entry identity',
+      provenance: { publisher: 'example.test' },
+      license: 'Apache-2.0',
+    }).setLocalCapability({
+      capabilityContract: 'text.generate',
+      requiredFeatures: [],
+      localConfiguration: { recipe: TEXT_RECIPE, omitPortableConfig: true },
+      loadout: {
+        recipeId: TEXT_RECIPE.recipeId,
+        axes: [{ slotId: 'main.gguf', contentId, expectedHash, source: { repo: 'example/model', revision: 'main', file: 'model.gguf' } }],
+        options,
+      },
+    }).build();
+    const machine: NimiAIProfileAuthoringMachineProjection = {
+      loadouts: [{
+        loadoutId: 'loadout-renamed',
+        capabilityContract: 'text.generate',
+        implementation: TEXT_RECIPE.implementation,
+        portableConfig: options,
+        implementationSupportedFeatures: TEXT_RECIPE.implementationSupportedFeatures,
+        configuredFeatures: [],
+        requirementResolution: 'configured',
+        loadout: {
+          recipeId: TEXT_RECIPE.recipeId,
+          axes: [{ slotId: 'main.gguf', contentId, expectedHash, entry: 'renamed.gguf' }],
+          options,
+        },
+      }],
+      selections: [],
+    };
+    const decision = deriveNimiAIProfileLocalConfigurationPreview({
+      profile, capabilityContract: 'text.generate', recipe: TEXT_RECIPE, machine,
+    }).decision;
+    assert.equal(decision.kind, matches ? 'reuse-equivalent' : 'add-new');
+  }
 });
 
 test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', () => {

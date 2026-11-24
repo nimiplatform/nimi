@@ -43,12 +43,6 @@ export type PendingWorld = {
   readonly request: WorldPendingRequest;
 };
 
-function isStorageNotFoundError(cause: unknown): boolean {
-  if (!cause || typeof cause !== 'object') return false;
-  const error = cause as { reasonCode?: unknown; code?: unknown };
-  const code = String(error.reasonCode ?? error.code ?? '').toLowerCase().replaceAll('-', '_');
-  return code === 'not_found' || code === 'app_storage_entry_not_found' || code === 'app_asset_not_found';
-}
 
 function worldRecordPath(id: string): string {
   return `${WORLD_TOUR_RECOVERY_PREFIX}/${encodeURIComponent(id)}.json`;
@@ -110,18 +104,13 @@ function worldStore(assets: WorldRecoveryAssets = getLabLocalAppClient().storage
 async function listActivePendingWorlds(
   assets: WorldRecoveryAssets = getLabLocalAppClient().storage.assets,
 ): Promise<readonly { readonly record: PendingWorld; readonly sha256: string }[]> {
-  try {
-    const versions = await worldStore(assets).listVersions();
-    return versions
-      .filter((entry) => entry.record.state !== 'rejected')
-      .sort((left, right) => (
-        Date.parse(left.record.request.createdAt) - Date.parse(right.record.request.createdAt)
-        || left.record.clientSubmissionId.localeCompare(right.record.clientSubmissionId)
-      ));
-  } catch (cause) {
-    if (isStorageNotFoundError(cause)) return [];
-    throw cause;
-  }
+  const versions = await worldStore(assets).listVersions();
+  return versions
+    .filter((entry) => entry.record.state !== 'rejected')
+    .sort((left, right) => (
+      Date.parse(left.record.request.createdAt) - Date.parse(right.record.request.createdAt)
+      || left.record.clientSubmissionId.localeCompare(right.record.clientSubmissionId)
+    ));
 }
 
 async function pendingWorld(
@@ -145,27 +134,9 @@ export async function worldTourRecoveryReferences(assets: WorldRecoveryAssets) {
   });
 }
 
-// Excludes PROTOCOL_ENVELOPE_INVALID / invalid-payload, timeouts, aborts, and network/unknown failures.
-const WORLD_ADMISSION_REJECTIONS = new Set([
-  'AI_LOCAL_ASSET_SLOT_MISSING',
-  'SDK_LOCAL_APP_INPUT_INVALID',
-  'AI_INPUT_INVALID',
-  'AI_INPUT_LIMIT_EXCEEDED',
-  'AI_MEDIA_SPEC_INVALID',
-  'AI_MEDIA_OPTION_UNSUPPORTED',
-  'AI_MODALITY_NOT_SUPPORTED',
-  'AI_CONFIG_INVALID',
-  'AI_ROUTE_UNSUPPORTED',
-  'AI_MODEL_NOT_FOUND',
-  'ARTIFACT_FORBIDDEN',
-  'ARTIFACT_NOT_FOUND',
-  'ARTIFACT_MIME_MISMATCH',
-  'ARTIFACT_TOO_LARGE',
-]);
-
 export function isDefiniteWorldAdmissionRejection(cause: unknown): boolean {
   if (!cause || typeof cause !== 'object' || !('reasonCode' in cause) || typeof cause.reasonCode !== 'string') return false;
-  return WORLD_ADMISSION_REJECTIONS.has(cause.reasonCode.trim().replaceAll('-', '_').toUpperCase());
+  return cause.reasonCode.trim().replaceAll('-', '_').toUpperCase() === 'AI_LOCAL_ASSET_SLOT_MISSING';
 }
 
 function canonicalPendingJSON(value: unknown): string {
@@ -184,7 +155,7 @@ export async function clearRejectedWorldPending(
 ): Promise<{ readonly removed: boolean }> {
   if (!isDefiniteWorldAdmissionRejection(cause)) return { removed: false };
   const store = worldStore(assets);
-  const current = await store.readVersion(pending.clientSubmissionId);
+  const current = await store.readVersion(pending.clientSubmissionId).catch(() => null);
   if (!current) return { removed: false };
   if (
     current.record.state !== 'pending'

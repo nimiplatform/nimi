@@ -16,15 +16,15 @@ import (
 )
 
 const (
-	magicHeader                 = "GGUF"
-	maxMetadataStringBytes      = 1 << 20
-	maxMetadataEntries          = 1 << 20
-	maxTensorEntries            = 1 << 20
-	maxTensorDimensions         = 16
-	maxWatchedProtocolTokenLen  = 32
-	maxTrackedSpecialTokenCount = 4096
-	llamaTokenTypeControl       = 3
-	llamaTokenTypeUserDefined   = 4
+	magicHeader                = "GGUF"
+	maxMetadataStringBytes     = 1 << 20
+	maxMetadataEntries         = 1 << 20
+	maxTensorEntries           = 1 << 20
+	maxTensorDimensions        = 16
+	maxWatchedProtocolTokenLen = 32
+
+	llamaTokenTypeControl     = 3
+	llamaTokenTypeUserDefined = 4
 )
 
 // watchedProtocolTokens lists the exact control/special and BOS/EOS token
@@ -204,9 +204,9 @@ func InspectMetadataAndTensors(reader io.Reader) (Summary, error) {
 }
 
 type tokenizerScanState struct {
-	watchedByID   map[uint64]string
-	specialIDs    map[uint64]struct{}
-	specialCapped bool
+	watchedByID map[uint64]string
+	// One bit per token, grown only after its type has actually been read.
+	specialBits []uint64
 }
 
 func inspectMetadataStrict(reader io.Reader, readTensors bool) (Summary, error) {
@@ -218,10 +218,7 @@ func inspectMetadataStrict(reader io.Reader, readTensors bool) (Summary, error) 
 		return Summary{}, fmt.Errorf("unsupported gguf version %d", summary.Version)
 	}
 	seen := make(map[string]bool)
-	tokScan := &tokenizerScanState{
-		watchedByID: make(map[uint64]string),
-		specialIDs:  make(map[uint64]struct{}),
-	}
+	tokScan := &tokenizerScanState{watchedByID: make(map[uint64]string)}
 	for i := uint64(0); i < summary.KVCount; i++ {
 		entry, err := readMetadataEntryWithTokenizerScan(reader, i, tokScan)
 		if err != nil {
@@ -240,10 +237,10 @@ func inspectMetadataStrict(reader io.Reader, readTensors bool) (Summary, error) 
 		if eosID, ok := summary.Uint64Value("tokenizer.ggml.eos_token_id"); ok {
 			summary.Tokenizer.EOSToken = tokScan.watchedByID[eosID]
 		}
-		if len(tokScan.specialIDs) > 0 && !tokScan.specialCapped {
+		if len(tokScan.specialBits) > 0 {
 			specialSet := make(map[string]struct{}, len(tokScan.watchedByID))
 			for id, tok := range tokScan.watchedByID {
-				if _, isSpecial := tokScan.specialIDs[id]; isSpecial {
+				if word := id / 64; word < uint64(len(tokScan.specialBits)) && tokScan.specialBits[word]&(1<<(id%64)) != 0 {
 					specialSet[tok] = struct{}{}
 				}
 			}
@@ -471,14 +468,12 @@ func scanTokenizerArray(reader io.Reader, key string, tokScan *tokenizerScanStat
 			if _, err := io.ReadFull(reader, chunk); err != nil {
 				return err
 			}
+			tokScan.specialBits = append(tokScan.specialBits, make([]uint64, (batch+63)/64)...)
 			for j := uint64(0); j < batch; j++ {
 				val, ok := decodeIntegerLittleEndian(chunk[j*width:(j+1)*width], elementType)
 				if ok && (val == llamaTokenTypeControl || val == llamaTokenTypeUserDefined) {
-					if len(tokScan.specialIDs) >= maxTrackedSpecialTokenCount {
-						tokScan.specialCapped = true
-					} else {
-						tokScan.specialIDs[index+j] = struct{}{}
-					}
+					id := index + j
+					tokScan.specialBits[id/64] |= 1 << (id % 64)
 				}
 			}
 			index += batch

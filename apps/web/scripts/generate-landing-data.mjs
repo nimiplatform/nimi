@@ -374,7 +374,8 @@ function formatLocalModelLabel(model, recipe, recipeModelCount) {
   if (id.startsWith('asset-decision-laya-')) {
     return String(recipe.title ?? id).trim();
   }
-  if (recipeModelCount > 1 && model.install?.repo) {
+  const genericTextTitle = /^llama\.cpp GGUF text generation$/i.test(String(recipe.title ?? '').trim());
+  if ((recipeModelCount > 1 || genericTextTitle) && model.install?.repo) {
     const repoName = model.install.repo.split('/').pop().replace(/-GGUF$/i, '');
     if (/^gemma-4-/i.test(repoName)) {
       return repoName.replace(/-/g, ' ').replace(/\bgemma\b/i, 'Gemma').replace(/\bit\b/i, 'IT');

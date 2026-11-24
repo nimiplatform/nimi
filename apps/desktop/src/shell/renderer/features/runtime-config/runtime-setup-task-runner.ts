@@ -47,6 +47,7 @@ import type {
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store';
 import { runtimeSetupTaskUnconfirmed } from './runtime-setup-task-store.js';
+import { matchPortableModelAsset, matchesExpectedAxisIntegrity, runtimeConfigAIProfileHashMismatch } from './runtime-config-ai-profile-transfer.js';
 
 /**
  * Orchestration logic for one Runtime model setup task. All Runtime access is
@@ -70,7 +71,8 @@ export type RuntimeSetupRunnerAIConfigPort = {
 export type RuntimeSetupRunnerPorts = {
   readonly loadouts: Pick<NimiMachineLoadoutClient, 'listRecipes' | 'get' | 'prepare' | 'commit' | 'select'>;
   readonly environment: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveEnvironmentPlan' | 'applyEnvironmentPlan' | 'listEnvironmentDependencyJobs'>;
-  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'resumeTransfer' | 'getModelAsset' | 'listModelAssets'>;
+  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'resumeTransfer' | 'getModelAsset' | 'listModelAssets'>
+    & Partial<Pick<NimiRuntimeLocalEnvironmentClient, 'listVerifiedAssets'>>;
   /** null when the source has no consumer AIConfig route to save. */
   readonly aiConfigForSource: (source: RuntimeSetupTaskSource) => RuntimeSetupRunnerAIConfigPort | null;
   readonly account: { readonly currentAccountId: () => string | Promise<string> };
@@ -698,10 +700,11 @@ function planPendingSlot(
 ) {
   const label = slot.displayLabel || slot.slotId;
   const bound = candidate.modelAxes.find((axis) => axis.slotId === slot.slotId && axis.modelAssetId);
-  if (bound && bound.expectedContentId === pending.contentId) {
+  const boundAsset = bound && installedAssets.find(asset => asset.modelAssetId === bound.modelAssetId);
+  if (bound && boundAsset && matchesExpectedAxisIntegrity(boundAsset, pending)) {
     return { kind: 'reuse', slotId: slot.slotId, label, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
-  const installed = installedAssets.find((asset) => asset.contentId === pending.contentId);
+  const installed = matchPortableModelAsset(installedAssets, pending);
   if (installed) {
     return {
       kind: 'acquire', slotId: slot.slotId, label,
@@ -1173,7 +1176,8 @@ async function resolveAutoDisplayNameForAxes(
       assets = await ports.install.listModelAssets();
     }
   }
-  return deriveLoadoutDefaultDisplayName(recipe, modelAxes, [], assets ?? [], preferredOffers);
+  const catalog = modelAxes.some(axis => axis.modelAssetId) ? await ports.install.listVerifiedAssets?.() : undefined;
+  return deriveLoadoutDefaultDisplayName(recipe, modelAxes, catalog ?? [], assets ?? [], preferredOffers);
 }
 
 export async function createRuntimeSetupCandidate(
@@ -1207,9 +1211,12 @@ export async function createRuntimeSetupCandidate(
       ...(input.axes ? { axes: input.axes } : {}),
     },
   }));
-  const modelAxes = (input.axes ?? [])
-    .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
-    .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
+  const modelAxes = [...(input.axes ?? [])];
+  for (const pending of task.draft?.pendingAxes ?? []) {
+    if (!modelAxes.some(axis => axis.slotId === pending.slotId)) {
+      modelAxes.push({ slotId: pending.slotId, modelAssetId: '', expectedContentId: '' });
+    }
+  }
   try {
     const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
     const recipe = recipes.find((item) => item.recipeId === input.recipeId);
@@ -1295,9 +1302,14 @@ export async function updateRuntimeSetupCandidate(
       return attention(failure, { candidateRevision: candidate.revision });
     }
     const draftAxes = input.axes ?? candidate.modelAxes;
-    const modelAxes = draftAxes
-      .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
-      .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
+    const modelAxes = draftAxes.map(({ slotId, modelAssetId, expectedContentId }) => ({
+      slotId, modelAssetId: modelAssetId ?? '', expectedContentId: expectedContentId ?? '',
+    }));
+    for (const slot of candidate.modelAxes) {
+      if (slot.presence === 'required' && !modelAxes.some(axis => axis.slotId === slot.slotId)) {
+        modelAxes.push({ slotId: slot.slotId, modelAssetId: '', expectedContentId: '' });
+      }
+    }
     const existingNameSource = loadoutDisplayNameSource(candidate.provenance);
     let nextDisplayName = input.displayName?.trim() || candidate.displayName;
     let nextProvenance = candidate.provenance;
@@ -1597,6 +1609,10 @@ export async function runRuntimeSetupPreparation(
         const assets = await ports.install.listModelAssets();
         const asset = assets.find((entry) => entry.modelAssetId === item.offer.installedModelAssetId);
         if (!asset) throw new Error(`Installed ModelAsset ${item.offer.installedModelAssetId} is no longer present.`);
+        const pendingAxis = item.offer.expectedContentId && task.draft?.pendingAxes?.find(axis => axis.slotId === item.slotId);
+        if (pendingAxis && asset.contentId === pendingAxis.contentId && !matchesExpectedAxisIntegrity(asset, pendingAxis)) {
+          throw runtimeConfigAIProfileHashMismatch(`Profile entry mismatch for ${item.label}`);
+        }
         bindings.set(item.slotId, { modelAssetId: asset.modelAssetId, expectedContentId: item.offer.expectedContentId ?? asset.contentId });
       } catch (error) {
         const failure: RuntimeSetupRunnerFailure = { stage: 'install', reasonCode: errorReasonCode(error), message: errorMessage(error) };
@@ -1612,6 +1628,10 @@ export async function runRuntimeSetupPreparation(
         return result;
       }
       const installed = result.value;
+      const pendingAxis = item.offer.expectedContentId && task.draft?.pendingAxes?.find(axis => axis.slotId === item.slotId);
+      if (pendingAxis && installed.modelAsset.contentId === pendingAxis.contentId && !matchesExpectedAxisIntegrity(installed.modelAsset, pendingAxis)) {
+        throw runtimeConfigAIProfileHashMismatch(`Profile entry mismatch for ${item.label}`);
+      }
       store.updateTask(taskId, (current) => ({
         refs: {
           ...current.refs,

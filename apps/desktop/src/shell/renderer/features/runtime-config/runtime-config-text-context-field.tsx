@@ -9,6 +9,7 @@ export function RuntimeTextContextSizeField(props: {
   readonly onChange: (next: string) => void;
   readonly disabled?: boolean;
   readonly testId?: string;
+  readonly inputTestId?: string;
 }) {
   const { t } = useTranslation();
   const parsed = patchLoadoutTextContextOption({}, props.value);
@@ -18,6 +19,7 @@ export function RuntimeTextContextSizeField(props: {
       <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
         <span>{t('runtimeConfig.loadouts.contextSize')}</span>
         <TextField
+          data-testid={props.inputTestId}
           aria-label={t('runtimeConfig.loadouts.contextSize')}
           inputMode="numeric"
           placeholder={t('runtimeConfig.loadouts.contextSizeAuto')}
@@ -27,7 +29,7 @@ export function RuntimeTextContextSizeField(props: {
           onChange={(event) => props.onChange(event.currentTarget.value)}
         />
       </label>
-      <p className={`text-xs ${invalid ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'}`}>
+      <p data-testid={invalid && props.inputTestId ? `${props.inputTestId}-error` : undefined} className={`text-xs ${invalid ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'}`}>
         {invalid ? t('runtimeConfig.loadouts.contextSizeInvalid') : t('runtimeConfig.loadouts.contextSizeHint')}
       </p>
     </div>

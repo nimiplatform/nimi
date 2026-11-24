@@ -19,6 +19,7 @@ import {
 import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
+  NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -32,6 +33,7 @@ import {
   loadoutSlotLabelKey,
   type NimiLoadoutRecipeSlotOffer,
 } from './runtime-config-loadout-model-display.js';
+import { matchPortableModelAsset } from './runtime-config-ai-profile-transfer.js';
 import { LoadoutSlotModelPickerBody } from './runtime-config-loadout-model-picker.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
@@ -52,6 +54,7 @@ import {
   runtimeConfigAIProfileCapabilityContracts,
   runtimeConfigAIProfileRecipeCandidates,
   technicalErrorDetail,
+  verifiedAssetForOfferInstallPlan,
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
   type RuntimeConfigAIProfileAuthoringInspection,
@@ -72,6 +75,7 @@ export type AIProfileAuthoringViewProps = {
   readonly loadouts?: readonly NimiMachineLoadout[];
   readonly assets?: readonly NimiRuntimeModelAssetRecord[];
   readonly verifiedAssets?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly resolveOfferInstallPlan?: NimiRuntimeLocalEnvironmentClient['resolveOfferInstallPlan'];
   readonly onDraftChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly onImportFile: (file: File) => void;
   readonly onExport: () => void;
@@ -108,7 +112,7 @@ export function AIProfileAuthoringPage() {
     setProjectionStatus('loading');
     setProjectionTechnicalError('');
     try {
-      const [next, nextAssets, nextVerified] = await Promise.all([
+      const [next, nextVerified] = await Promise.all([
         loadRuntimeConfigAIProfileAuthoringCurrentProjection({
           appId: sdk.appId(),
           getAppAIConfig: () => readOptionalAIConfig(async () => (
@@ -119,12 +123,12 @@ export function AIProfileAuthoringPage() {
           ).config),
           getLoadouts: () => loadouts.get(),
           getRecipes: () => loadouts.listRecipes(),
+          getModelAssets: () => localEnvironment.listModelAssets(),
         }),
-        localEnvironment.listModelAssets().catch(() => [] as readonly NimiRuntimeModelAssetRecord[]),
-        localEnvironment.listVerifiedAssets().catch(() => [] as readonly NimiRuntimeLocalVerifiedAssetDescriptor[]),
+        localEnvironment.listVerifiedAssets(),
       ]);
-      setCurrent(next);
-      setAssets(nextAssets);
+      setCurrent({ ...next, verifiedAssets: nextVerified });
+      setAssets(next.assets ?? []);
       setVerifiedAssets(nextVerified);
       dispatch({ type: 'recipes-loaded', recipes: next.recipes });
       setProjectionStatus('ready');
@@ -194,6 +198,7 @@ export function AIProfileAuthoringPage() {
       loadouts={current?.rawLoadouts ?? []}
       assets={assets}
       verifiedAssets={verifiedAssets}
+      resolveOfferInstallPlan={localEnvironment.resolveOfferInstallPlan}
       onDraftChange={(draft) => dispatch({ type: 'draft-changed', draft })}
       onImportFile={importFile}
       onExport={exportArtifact}
@@ -419,6 +424,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               loadouts={props.loadouts ?? []}
               assets={props.assets ?? []}
               verifiedAssets={props.verifiedAssets ?? []}
+              resolveOfferInstallPlan={props.resolveOfferInstallPlan}
               capabilityContracts={capabilityContracts}
               requirement={requirementsByCapability.get(activeCapability.capabilityContract)}
               onChange={updateDraft}
@@ -528,6 +534,7 @@ function CapabilityAuthoringCard(props: {
   readonly loadouts: readonly NimiMachineLoadout[];
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly resolveOfferInstallPlan?: AIProfileAuthoringViewProps['resolveOfferInstallPlan'];
   readonly capabilityContracts: readonly string[];
   readonly requirement: RuntimeConfigAIProfileAuthoringRequirementView | undefined;
   readonly onChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
@@ -639,6 +646,7 @@ function CapabilityAuthoringCard(props: {
           loadouts={props.loadouts}
           assets={props.assets}
           verifiedAssets={props.verifiedAssets}
+          resolveOfferInstallPlan={props.resolveOfferInstallPlan}
           onChangeDraft={props.onChange}
           updateCapability={updateCapability}
           t={props.t}
@@ -665,6 +673,7 @@ function LocalImplementationFields(props: {
   readonly loadouts: readonly NimiMachineLoadout[];
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly resolveOfferInstallPlan?: AIProfileAuthoringViewProps['resolveOfferInstallPlan'];
   readonly onChangeDraft: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly updateCapability: (
     update: (current: RuntimeConfigAIProfileCapabilityDraft) => RuntimeConfigAIProfileCapabilityDraft,
@@ -685,23 +694,36 @@ function LocalImplementationFields(props: {
       local: { ...current.local, ...next },
     }));
   };
-  const resolveVerifiedDescriptorForOffer = (offer: NimiLoadoutRecipeSlotOffer) => {
-    const title = offer.candidate.title.trim();
-    const variant = offer.candidate.variantLabel.trim();
-    const byExact = props.verifiedAssets.filter((item) => (
-      item.title.trim() === title && item.entry.trim() === variant
-    ));
-    if (byExact.length === 1) return byExact[0];
-    const byEntry = props.verifiedAssets.filter((item) => item.entry.trim() === variant);
-    if (byEntry.length === 1) return byEntry[0];
-    return undefined;
-  };
+  const [fillError, setFillError] = useState('');
+  const pickingSlot = pickingSlotId && selected ? selected.slots.find(slot => slot.slotId === pickingSlotId) : undefined;
+  const [resolvedOffers, setResolvedOffers] = useState<{
+    slot: NonNullable<typeof pickingSlot>;
+    catalog: typeof props.verifiedAssets;
+    descriptors: ReadonlyMap<string, NimiRuntimeLocalVerifiedAssetDescriptor>;
+  }>();
+  useEffect(() => {
+    const resolve = props.resolveOfferInstallPlan;
+    if (!pickingSlot || !resolve) return;
+    let active = true;
+    const offers = pickingSlot.offers.filter(offer => !offer.installedModelAssetId && offer.candidate.installable && offer.applicability !== 'unsupported');
+    void Promise.all(offers.map(async (offer) => {
+      const ref = offer.candidate.offerRef;
+      try {
+        const descriptor = verifiedAssetForOfferInstallPlan(ref, await resolve(ref), props.verifiedAssets);
+        return descriptor ? [ref, descriptor] as const : null;
+      } catch { return null; }
+    })).then(results => {
+      if (active) setResolvedOffers({ slot: pickingSlot, catalog: props.verifiedAssets,
+        descriptors: new Map(results.filter(item => item !== null)) });
+    });
+    return () => { active = false; };
+  }, [pickingSlot, props.resolveOfferInstallPlan, props.verifiedAssets]);
+  const resolveVerifiedDescriptorForOffer = (offer: NimiLoadoutRecipeSlotOffer) =>
+    resolvedOffers?.slot === pickingSlot && resolvedOffers?.catalog === props.verifiedAssets
+      ? resolvedOffers.descriptors.get(offer.candidate.offerRef) : undefined;
   if (candidates.length === 0) {
     return <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.localIntentOnly')}</InlineAlert>;
   }
-  const pickingSlot = pickingSlotId && selected
-    ? selected.slots.find((slot) => slot.slotId === pickingSlotId) ?? null
-    : null;
   return (
     <div className="space-y-4 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-4" data-testid="ai-profile-authoring-local-section">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -720,6 +742,7 @@ function LocalImplementationFields(props: {
       </div>
       {capability.local.includeImplementation ? (
         <>
+          {fillError ? <InlineAlert tone="warning" role="alert">{props.t('runtimeConfig.profiles.authoring.fillFailed')} {fillError}</InlineAlert> : null}
           {savedLoadouts.length > 0 ? (
             <AuthoringSelect
               label={props.t('runtimeConfig.profiles.authoring.fillFromSaved')}
@@ -729,13 +752,16 @@ function LocalImplementationFields(props: {
               onChange={(loadoutId) => {
                 const chosen = savedLoadouts.find((item) => item.loadoutId === loadoutId);
                 if (!chosen) return;
-                setPickingSlotId(null);
-                props.onChangeDraft(fillRuntimeConfigAIProfileCapabilityFromLoadout({
-                  draft: props.draft,
-                  draftId: capability.draftId,
-                  loadout: chosen,
-                  assets: props.assets,
-                }));
+                setFillError('');
+                try {
+                  const filled = fillRuntimeConfigAIProfileCapabilityFromLoadout({
+                    draft: props.draft, draftId: capability.draftId, loadout: chosen, assets: props.assets,
+                  });
+                  setPickingSlotId(null);
+                  props.onChangeDraft(filled);
+                } catch (error) {
+                  setFillError(technicalErrorDetail(error));
+                }
               }}
               options={savedLoadouts.map((loadout) => ({
                 value: loadout.loadoutId,
@@ -788,7 +814,7 @@ function LocalImplementationFields(props: {
                     selectedAssetId={(() => {
                       const boundAxis = capability.local.loadout?.axes.find((axis) => axis.slotId === pickingSlot.slotId);
                       if (!boundAxis) return '';
-                      return props.assets.find((asset) => asset.contentId === boundAxis.contentId)?.modelAssetId ?? '';
+                      return matchPortableModelAsset(props.assets, boundAxis)?.modelAssetId ?? '';
                     })()}
                     allowClear
                     offerActionMode="select-verified-hash"

@@ -50,6 +50,7 @@ export type HomeDestination = {
   readonly appId?: string;
   readonly appEntryKey?: string;
   readonly appSection?: HomeAppSection;
+  readonly appConfigRef?: string;
   readonly settingsSection?: string;
   readonly messageFilter?: 'all' | 'unread' | 'pending';
   readonly messageSource?: string;
@@ -68,7 +69,7 @@ export type HomeChatPosition = {
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], contacts: ['chat', 'profileId', 'contactView', 'conversationFilter', 'partnerQuery', 'partner', 'partnerManagerAnchorId', 'partnerManagerSection', 'partnerChat'], explore: ['exploreSection', 'exploreSearchKind', 'search', 'exploreWorldId', 'exploreTopicId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   connections: ['connectionAppId', 'connectionSourceId'],
-  apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
+  apps: ['appId', 'appEntryKey', 'appSection', 'appConfigRef'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
   notification: ['messageFilter', 'messageSource'],
@@ -86,7 +87,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (Object.keys(input).some(key => key !== 'id' && !CATALOG[id].includes(key))) throw new Error('Unexpected Home destination fields.');
   const result: Record<string, unknown> = { id };
   for (const key of CATALOG[id]) if (input[key] !== undefined) result[key] = input[key];
-  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'exploreTopicId', 'worldTopicId', 'appId', 'appEntryKey']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
+  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'exploreTopicId', 'worldTopicId', 'appId', 'appEntryKey', 'appConfigRef']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
   if (typeof result.profileId === 'string' && /^(local-agent:|runtime-source:)/.test(result.profileId)) throw new Error('A human profile requires an account reference.');
   if (id === 'world-detail' && !result.worldId) throw new Error('World detail requires a world reference.');
   if (id === 'source-detail') {
@@ -147,6 +148,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     result.partner = { localAgentRef: stringRef(partner.localAgentRef), ...(partner.settingsSection ? { settingsSection: partner.settingsSection } : {}), ...(activity ? { activity } : {}) };
   }
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
+  if (result.appConfigRef && result.appSection !== 'ai-models') throw new Error('An App configuration reference requires the AI models section.');
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }
   if (id === 'settings') result.settingsSection ??= 'appearance';

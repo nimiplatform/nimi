@@ -186,19 +186,14 @@ export async function readStudioJobRecovery(
   assets: StudioJobRecoveryAssets,
   capability: StudioJobRecoveryCapability = 'music.generate',
 ): Promise<readonly StudioJobRecoveryEntry[]> {
-  try {
-    const versions = await recoveryStore(assets, capability).listVersions();
-    return versions
-      .map((item) => item.record)
-      .filter((entry) => entry.state !== 'rejected')
-      .sort((left, right) => (
-        Date.parse(left.createdAt) - Date.parse(right.createdAt)
-        || left.clientSubmissionId.localeCompare(right.clientSubmissionId)
-      ));
-  } catch (cause) {
-    if (isStorageNotFoundError(cause)) return [];
-    throw cause;
-  }
+  const versions = await recoveryStore(assets, capability).listVersions();
+  return versions
+    .map((item) => item.record)
+    .filter((entry) => entry.state !== 'rejected')
+    .sort((left, right) => (
+      Date.parse(left.createdAt) - Date.parse(right.createdAt)
+      || left.clientSubmissionId.localeCompare(right.clientSubmissionId)
+    ));
 }
 
 export class StudioRecoveryWriteUnconfirmed extends Error {
@@ -338,7 +333,7 @@ export async function forgetStudioJobRecovery(
 
 export type ForgetPendingRecoveryResult =
   | { readonly removed: true; readonly entry: StudioJobRecoveryEntry }
-  | { readonly removed: false; readonly reason: 'missing' | 'already-acknowledged' | 'cas-conflict' | 'remove-unconfirmed' };
+  | { readonly removed: false; readonly reason: 'read-unconfirmed' | 'missing' | 'already-acknowledged' | 'cas-conflict' | 'remove-unconfirmed' };
 
 /**
  * Two-phase atomic cleanup for a definite pre-admission rejection:
@@ -354,7 +349,12 @@ export async function forgetPendingStudioJobRecoveryIfUnacknowledged(
   id: string,
 ): Promise<ForgetPendingRecoveryResult> {
   const store = recoveryStore(assets, capability);
-  const current = await store.readVersion(id);
+  let current;
+  try {
+    current = await store.readVersion(id);
+  } catch {
+    return { removed: false, reason: 'read-unconfirmed' };
+  }
   if (!current) return { removed: false, reason: 'missing' };
   if (current.record.state !== 'pending' || current.record.jobId || current.record.result) {
     return { removed: false, reason: 'already-acknowledged' };
