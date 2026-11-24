@@ -36,6 +36,7 @@ type RecallIntent struct {
 	OperationID       string
 	Query             string
 	Limit             int
+	ScopeTags         []string
 }
 
 type InspectIntent struct {
@@ -186,6 +187,7 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 		IncludeRecentLife: intent.IncludeRecentLife,
 		SubjectScope:      []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
 		Limit:             uint32(limit),
+		ScopeTags:         intent.ScopeTags,
 		Capabilities:      ownerProtoCapabilitySnapshot(snapshot),
 	}, port)
 	outcome := ownerMemoryOutcome(result.GetOutcome())

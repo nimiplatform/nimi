@@ -1,6 +1,7 @@
 package textbehavior
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"sort"
@@ -35,17 +36,55 @@ type OrderedItem struct {
 	ReasoningContinuity *runtimev1.ReasoningContinuityCarrier
 }
 
+// ToolCallActivity carries transient non-public liveness progress while a
+// provider streams tool-call arguments. It never changes HasPublicPayload()
+// and never authorizes partial tool execution or durable progress persistence.
+// @nimi-authority: rule.nimi.runtime.ai-provider.tool-call-activity-heartbeat
+type ToolCallActivity struct {
+	CallID              string
+	ToolName            string
+	ArgumentsDeltaBytes int
+	AccumulatedBytes    int
+}
+
 type OrderedDelta struct {
 	ItemIndex           uint32
 	Kind                OrderedItemKind
 	Text                string
 	ToolCall            *runtimev1.ToolCall
+	ToolCallActivity    *ToolCallActivity
 	ReasoningContinuity *runtimev1.ReasoningContinuityCarrier
 	ItemCompleted       bool
 }
 
 func (delta OrderedDelta) HasPublicPayload() bool {
 	return delta.Text != "" || delta.ToolCall != nil || delta.ReasoningContinuity != nil || delta.ItemCompleted
+}
+
+func (delta OrderedDelta) HasToolCallActivity() bool {
+	return delta.ToolCallActivity != nil
+}
+
+type toolCallActivityObserverKey struct{}
+
+// ToolCallActivityObserver receives transient non-public tool-call argument
+// liveness progress so transport layers can refresh idle timers or forward
+// ephemeral heartbeats without publishing incomplete tool-call payloads.
+type ToolCallActivityObserver func(ToolCallActivity) error
+
+func WithToolCallActivityObserver(ctx context.Context, observer ToolCallActivityObserver) context.Context {
+	if ctx == nil || observer == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, toolCallActivityObserverKey{}, observer)
+}
+
+func ToolCallActivityObserverFromContext(ctx context.Context) ToolCallActivityObserver {
+	if ctx == nil {
+		return nil
+	}
+	observer, _ := ctx.Value(toolCallActivityObserverKey{}).(ToolCallActivityObserver)
+	return observer
 }
 
 type NormalizedResult struct {
@@ -160,6 +199,13 @@ func (assembler *OrderedStreamAssembler) AppendFragment(fragment PrivateFragment
 			}
 			delta.ToolCall = call
 			assembler.completed[fragment.ItemIndex] = OrderedItem{Kind: fragment.Kind, ToolCall: cloneToolCall(call)}
+		} else if fragment.ToolCall.IDPart != "" || fragment.ToolCall.NamePart != "" || fragment.ToolCall.ArgumentsJSONPart != "" {
+			delta.ToolCallActivity = &ToolCallActivity{
+				CallID:              strings.TrimSpace(state.toolID.String()),
+				ToolName:            strings.TrimSpace(state.toolName.String()),
+				ArgumentsDeltaBytes: len(fragment.ToolCall.ArgumentsJSONPart),
+				AccumulatedBytes:    state.arguments.Len(),
+			}
 		}
 	case OrderedItemReasoningContinuity:
 		if !fragment.Complete || fragment.Text != "" || fragment.ToolCall != nil || !ValidContinuity(fragment.ReasoningContinuity) {
@@ -258,7 +304,23 @@ func cloneOrderedItem(input OrderedItem) OrderedItem {
 }
 
 func cloneOrderedDelta(input OrderedDelta) OrderedDelta {
-	return OrderedDelta{ItemIndex: input.ItemIndex, Kind: input.Kind, Text: input.Text, ToolCall: cloneToolCall(input.ToolCall), ReasoningContinuity: cloneContinuity(input.ReasoningContinuity), ItemCompleted: input.ItemCompleted}
+	return OrderedDelta{
+		ItemIndex:           input.ItemIndex,
+		Kind:                input.Kind,
+		Text:                input.Text,
+		ToolCall:            cloneToolCall(input.ToolCall),
+		ToolCallActivity:    cloneToolCallActivity(input.ToolCallActivity),
+		ReasoningContinuity: cloneContinuity(input.ReasoningContinuity),
+		ItemCompleted:       input.ItemCompleted,
+	}
+}
+
+func cloneToolCallActivity(input *ToolCallActivity) *ToolCallActivity {
+	if input == nil {
+		return nil
+	}
+	copied := *input
+	return &copied
 }
 
 func CloneOrderedItems(values []OrderedItem) []OrderedItem {

@@ -538,6 +538,11 @@ func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedE
 		if !validRef(fact.GetRelationshipKind()) || !validCommittedContent(fact.GetBoundedFact()) {
 			return fmt.Errorf("enqueue cognition memory event: invalid relationship fact")
 		}
+	case envelope.GetSessionPointerCommitted() != nil:
+		fact := envelope.GetSessionPointerCommitted()
+		if !validRef(fact.GetWorkSessionRef()) || !validCommittedContent(fact.GetTopicSummary()) {
+			return fmt.Errorf("enqueue cognition memory event: invalid session pointer fact")
+		}
 	default:
 		return fmt.Errorf("enqueue cognition memory event: unsupported fact")
 	}
@@ -597,9 +602,42 @@ func committedEventKind(envelope *runtimev1.CognitionMemoryCommittedEventEnvelop
 		return "correction_committed"
 	case envelope.GetRelationshipCommitted() != nil:
 		return "relationship_committed"
+	case envelope.GetSessionPointerCommitted() != nil:
+		return "session_pointer_committed"
 	default:
 		return ""
 	}
+}
+
+// NeutralizeSessionOutbox marks any pending Cognition outbox items whose
+// committed-event provenance belongs to (source_kind='session', source_ref=workSessionRef)
+// as cutoff_non_effecting with payload=NULL so asynchronous outbox drain can
+// NEVER resurrect memories of a deleted session.
+// @nimi-authority: rule.nimi.runtime.memory-world.session-pointer-recall
+func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, workSessionRef string) (int64, error) {
+	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
+		return 0, fmt.Errorf("neutralize session cognition outbox: invalid input")
+	}
+	var neutralized int64
+	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `
+			UPDATE runtime_cognition_memory_outbox
+			SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL
+			WHERE state = 'pending'
+			  AND event_ref IN (
+				SELECT event_ref FROM runtime_cognition_memory_committed_event
+				WHERE local_agent_ref = ? AND source_kind = 'session' AND source_ref = ?
+			  )`,
+			localAgentRef, workSessionRef,
+		)
+		if err != nil {
+			return fmt.Errorf("neutralize session cognition outbox: %w", err)
+		}
+		n, _ := res.RowsAffected()
+		neutralized = n
+		return nil
+	})
+	return neutralized, err
 }
 
 func marshalEnvelope(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) ([]byte, string, error) {

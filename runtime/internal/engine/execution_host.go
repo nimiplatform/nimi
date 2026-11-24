@@ -551,8 +551,14 @@ func (h *ExecutionHost) consumeTextBehaviorStream(
 		if appendErr != nil {
 			return localexecution.TextResult{}, h.textBehaviorInferenceFailure(ctx, appendErr)
 		}
+		activityObserver := textbehavior.ToolCallActivityObserverFromContext(ctx)
 		for _, delta := range deltas {
 			if !delta.HasPublicPayload() {
+				if delta.HasToolCallActivity() && activityObserver != nil {
+					if err := activityObserver(*delta.ToolCallActivity); err != nil {
+						return localexecution.TextResult{}, h.inferenceFailure(ctx, err)
+					}
+				}
 				continue
 			}
 			value := delta

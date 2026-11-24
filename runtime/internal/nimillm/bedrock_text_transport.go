@@ -167,9 +167,14 @@ func (p *CloudProvider) executeBedrockTextBehavior(ctx context.Context, model st
 		if err != nil {
 			return failed(err)
 		}
+		activityObserver := textbehavior.ToolCallActivityObserverFromContext(ctx)
 		for _, delta := range deltas {
 			if delta.HasPublicPayload() {
 				if err := onDelta(delta); err != nil {
+					return failed(err)
+				}
+			} else if delta.HasToolCallActivity() && activityObserver != nil {
+				if err := activityObserver(*delta.ToolCallActivity); err != nil {
 					return failed(err)
 				}
 			}

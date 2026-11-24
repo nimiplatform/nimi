@@ -362,8 +362,16 @@ func streamLocalTextGenerateScenario(
 			Err:  context.Canceled,
 		})
 	} else {
+		parentActivityObserver := textbehavior.ToolCallActivityObserverFromContext(requestCtx)
+		streamCtx := textbehavior.WithToolCallActivityObserver(backendCtx, func(activity textbehavior.ToolCallActivity) error {
+			recordActivity()
+			if parentActivityObserver != nil {
+				return parentActivityObserver(activity)
+			}
+			return nil
+		})
 		var result localexecution.TextResult
-		result, err = s.localTextHost.StreamText(backendCtx, executionEffective.plan, onDelta, func(progress localexecution.TextExecutionProgress) {
+		result, err = s.localTextHost.StreamText(streamCtx, executionEffective.plan, onDelta, func(progress localexecution.TextExecutionProgress) {
 			if progress == localexecution.TextExecutionProgressReady || progress == localexecution.TextExecutionProgressReused {
 				startFirstPacketTimer()
 			}

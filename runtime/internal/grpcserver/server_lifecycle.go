@@ -156,6 +156,9 @@ func (s *Server) releaseOwners(ctx context.Context) error {
 	if s.integrationService != nil {
 		_ = s.integrationService.Close()
 	}
+	if s.agentSessionService != nil {
+		_ = s.agentSessionService.Close()
+	}
 	if s.appActivityService != nil {
 		_ = s.appActivityService.Close()
 	}

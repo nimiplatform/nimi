@@ -80,6 +80,7 @@ type Service struct {
 	localAppIngressRevalidator               localAppIngressRevalidator
 	localAppWorkExecutions                   map[string]*localAppWorkExecution
 	localAppWorkActiveByAgent                map[string]string
+	sessionActiveByKey                       map[string]string
 	backgroundByAgent                        map[string]*agentBackgroundExecution
 	foregroundWaitingByAgent                 map[string]int
 	lifeFrameWG                              sync.WaitGroup

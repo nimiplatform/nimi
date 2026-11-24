@@ -36,6 +36,7 @@ type OwnerPort interface {
 	PendingEmbeddingRebuilds(context.Context, string) ([]memoryv1.PendingEmbeddingRebuild, error)
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
 	QualifyMemoryRefs(context.Context, string, string, string, []string) (map[string]bool, error)
+	FindMemoryRefsBySource(context.Context, string, string, string, string) ([]string, error)
 }
 
 func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRef, lifecycleRef string, refs []string) (map[string]bool, error) {
@@ -43,6 +44,13 @@ func (a *OwnerAdapter) QualifyMemoryRefs(ctx context.Context, bindingRef, bankRe
 		return nil, err
 	}
 	return a.core.QualifyMemoryRefs(ctx, bindingRef, bankRef, lifecycleRef, refs)
+}
+
+func (a *OwnerAdapter) FindMemoryRefsBySource(ctx context.Context, bindingRef, bankRef, sourceKind, sourceValue string) ([]string, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return nil, err
+	}
+	return a.core.FindMemoryRefsBySource(ctx, bankRef, sourceKind, sourceValue)
 }
 
 type OwnerBindingResolver func(context.Context, string) (Binding, error)
@@ -145,7 +153,8 @@ func (a *OwnerAdapter) Recall(ctx context.Context, request *runtimev1.CognitionM
 	}
 	result, err := a.core.Recall(ctx, memoryv1.RecallRequest{
 		OperationID: request.GetOperation().GetValue(), BindingRef: binding.BindingRef, BankRef: binding.BankRef,
-		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()), Capabilities: snapshot, IncludeRecentLife: request.GetIncludeRecentLife(),
+		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()),
+		ScopeTags: request.GetScopeTags(), Capabilities: snapshot, IncludeRecentLife: request.GetIncludeRecentLife(),
 	}, embeddingPort)
 	response.Outcome = ownerProtoOutcome(result.Outcome)
 	for _, hit := range result.Hits {
@@ -530,6 +539,18 @@ func ownerCommitRequest(envelope *runtimev1.CognitionMemoryCommittedEventEnvelop
 	case envelope.GetRelationshipCommitted() != nil:
 		fact := envelope.GetRelationshipCommitted()
 		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindRelationship, Relationship: &memoryv1.RelationshipFact{RelationshipKind: fact.GetRelationshipKind(), BoundedFact: fact.GetBoundedFact()}}
+	case envelope.GetSessionPointerCommitted() != nil:
+		fact := envelope.GetSessionPointerCommitted()
+		request.Fact = memoryv1.CommittedFact{
+			Kind: memoryv1.EventKindSessionPointer,
+			SessionPointer: &memoryv1.SessionPointerFact{
+				WorkSessionRef: fact.GetWorkSessionRef(),
+				ScopeTag:       fact.GetScopeTag(),
+				SlotKey:        fact.GetSlotKey(),
+				TopicSummary:   fact.GetTopicSummary(),
+				BodyKind:       fact.GetBodyKind(),
+			},
+		}
 	default:
 		return memoryv1.CommitRequest{}, ownerContractError(memoryv1.OutcomeUnsupported, "event_fact")
 	}
@@ -558,6 +579,7 @@ func ownerProtoMemory(item memoryv1.Memory) *runtimev1.CognitionMemoryHit {
 		Bank: &runtimev1.CognitionMemoryBankRef{Value: item.BankRef}, Memory: &runtimev1.CognitionMemoryRef{Value: item.MemoryRef}, Content: item.Content,
 		EpistemicStatus: ownerProtoEpistemic(item.EpistemicStatus), Lifecycle: ownerProtoLifecycle(item.Lifecycle),
 		OccurredAt: timestamppb.New(item.OccurredAt), UpdatedAt: timestamppb.New(item.UpdatedAt), SourceExplanation: item.SourceExplanation,
+		ScopeTag: item.ScopeTag, SlotKey: item.SlotKey,
 	}
 	for _, ref := range item.Subjects {
 		hit.Subjects = append(hit.Subjects, &runtimev1.CognitionMemorySubjectRef{Kind: ref.Kind, Value: ref.Value})
@@ -579,6 +601,7 @@ func ownerMemoryFromProto(hit *runtimev1.CognitionMemoryHit) (memoryv1.Memory, e
 		MemoryRef: hit.GetMemory().GetValue(), BankRef: hit.GetBank().GetValue(), Content: hit.GetContent(),
 		EpistemicStatus: ownerEpistemic(hit.GetEpistemicStatus()), Lifecycle: ownerLifecycle(hit.GetLifecycle()),
 		OccurredAt: hit.GetOccurredAt().AsTime(), UpdatedAt: hit.GetUpdatedAt().AsTime(), SourceExplanation: hit.GetSourceExplanation(),
+		ScopeTag: hit.GetScopeTag(), SlotKey: hit.GetSlotKey(),
 	}
 	for _, ref := range hit.GetSubjects() {
 		item.Subjects = append(item.Subjects, memoryv1.TypedRef{Kind: ref.GetKind(), Value: ref.GetValue()})

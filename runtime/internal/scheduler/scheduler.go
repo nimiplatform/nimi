@@ -126,6 +126,8 @@ type Scheduler struct {
 	perApp              map[string]*appSemaphore
 	perSize             int
 	starvationThreshold time.Duration
+	endpoints           map[string]*endpointBucket
+	endpointCaps        map[string]int
 
 	// Atomic occupancy counters (K-SCHED-003).
 	globalUsed atomic.Int32

@@ -114,6 +114,7 @@ type agentLifeState struct {
 	LastLifeAttempt                 time.Time                     `json:"lastLifeAttempt,omitempty"`
 	ContactSinceUser                bool                          `json:"contactSinceUser,omitempty"`
 	Interaction                     *lifeInteraction              `json:"interaction,omitempty"`
+	ActiveInteractions              map[string]time.Time          `json:"activeInteractions,omitempty"`
 	Revision                        uint64                        `json:"revision"`
 	StartedAt                       time.Time                     `json:"startedAt,omitempty"`
 	SettledAt                       time.Time                     `json:"settledAt,omitempty"`
@@ -151,6 +152,12 @@ func cloneAgentLifeState(input *agentLifeState) *agentLifeState {
 	if input.Interaction != nil {
 		value := *input.Interaction
 		out.Interaction = &value
+	}
+	if len(input.ActiveInteractions) > 0 {
+		out.ActiveInteractions = make(map[string]time.Time, len(input.ActiveInteractions))
+		for k, v := range input.ActiveInteractions {
+			out.ActiveInteractions[k] = v
+		}
 	}
 	out.MemoryReadSet.Refs = append([]string(nil), input.MemoryReadSet.Refs...)
 	out.Future = cloneLifeFrames(input.Future)

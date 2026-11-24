@@ -29,6 +29,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/agentsession"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	"github.com/nimiplatform/nimi/runtime/internal/services/appactivity"
@@ -71,6 +72,7 @@ type Server struct {
 	persistenceBackend    *runtimepersistence.Backend
 	cognitionV1Owner      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
+	agentSessionService   *agentsession.Service
 	appActivityService    *appactivity.Service
 	integrationService    *integration.Service
 	realmRealtimeService  *realmrealtimeservice.Service
@@ -918,6 +920,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	logger.Info("runtime in-process mode enabled")
 
 	cognitionSvc := composeCognitionV1Owner(logger, cfg)
+	var memoryFacade *cognitionmemory.Facade
 	if cognitionSvc != nil {
 		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc))
 		memoryStore := cognitionmemory.NewStore(backend)
@@ -933,7 +936,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			},
 		)
 		memoryBridge := cognitionmemory.NewBridge(memoryStore, memoryOwner, agentSvc.AuthorizeCognitionMemoryBinding)
-		memoryFacade := cognitionmemory.NewFacade(
+		memoryFacade = cognitionmemory.NewFacade(
 			memoryStore,
 			memoryOwner,
 			memoryBridge,
@@ -1082,7 +1085,38 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			return false
 		}
 	}
+	var agentSessionSvc *agentsession.Service
 	if protected != nil {
+		sessionsDBPath := ""
+		if strings.TrimSpace(cfg.LocalStatePath) != "" {
+			sessionsDBPath = filepath.Join(filepath.Dir(cfg.LocalStatePath), "sessions.db")
+		}
+		var (
+			milestoneHook     agentsession.MilestoneHook
+			memoryCleanupHook agentsession.MemoryCleanupHook
+		)
+		if memoryFacade != nil {
+			facadeRef := memoryFacade
+			milestoneHook = func(ctx context.Context, _ string, agentBinding, workSessionRef, milestoneKind, topicSummary string, _ []string) error {
+				_, err := facadeRef.CommitSessionPointer(ctx, agentBinding, workSessionRef, milestoneKind, topicSummary, agentsession.DefaultPCNamespace, time.Now().UTC())
+				return err
+			}
+			memoryCleanupHook = func(ctx context.Context, _ string, agentBinding, workSessionRef string) (uint32, error) {
+				forgotten, _, err := facadeRef.ForgetSessionLineage(ctx, agentBinding, workSessionRef)
+				return forgotten, err
+			}
+		}
+		var err error
+		agentSessionSvc, err = agentsession.Open(agentsession.Options{
+			Logger:            logger,
+			DBPath:            sessionsDBPath,
+			Scheduler:         aiSvc.Scheduler(),
+			MilestoneHook:     milestoneHook,
+			MemoryCleanupHook: memoryCleanupHook,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("initialize AgentSession owner: %w", err)
+		}
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry, desktopRefusals)
 		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry, localAppRefusals)
@@ -1090,6 +1124,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimev1.RegisterRuntimeAppActivityServiceServer(localAppGRPCServer, activitySvc)
 		runtimev1.RegisterRuntimeIntegrationServiceServer(protectedGRPCServer, integrationSvc)
 		runtimev1.RegisterRuntimeIntegrationServiceServer(localAppGRPCServer, integrationSvc)
+		runtimev1.RegisterAgentSessionServiceServer(protectedGRPCServer, agentSessionSvc)
+		runtimev1.RegisterAgentSessionServiceServer(localAppGRPCServer, agentSessionSvc)
 	}
 	activitySvc.StartRetention()
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -1162,6 +1198,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		persistenceBackend:    backend,
 		cognitionV1Owner:      cognitionSvc,
 		agentService:          agentSvc,
+		agentSessionService:   agentSessionSvc,
 		appActivityService:    activitySvc,
 		integrationService:    integrationSvc,
 		realmRealtimeService:  realmRealtimeSvc,
@@ -1214,4 +1251,8 @@ func (s *Server) LocalService() *localservice.Service {
 
 func (s *Server) AgentService() *runtimeagentservice.Service {
 	return s.agentService
+}
+
+func (s *Server) AgentSessionService() *agentsession.Service {
+	return s.agentSessionService
 }

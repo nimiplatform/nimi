@@ -49,12 +49,54 @@ func (l *agentLifeState) beginInteraction(sourceID string, now time.Time, advanc
 		l.interruptCurrent(now)
 		l.Interaction = &lifeInteraction{ID: "interaction_" + ulid.Make().String(), StartedAt: now}
 	}
+	if l.ActiveInteractions == nil {
+		l.ActiveInteractions = map[string]time.Time{}
+	}
+	l.ActiveInteractions[sourceID] = now
 	l.Interaction.SourceID = sourceID
 	if now.After(l.Interaction.LastActivityAt) {
 		l.Interaction.LastActivityAt = now
 	}
 	l.WaitReason = "interaction"
 	return completed, l.changed()
+}
+
+// beginNonDisruptiveSessionInteraction records a concurrent pc_work or alarm
+// session activity in ActiveInteractions without interrupting ongoing companion
+// activities or altering BehavioralPosture.
+// @nimi-authority: rule.nimi.runtime.agent-participation.multi-session-life
+func (l *agentLifeState) beginNonDisruptiveSessionInteraction(sourceID string, now time.Time) error {
+	if sourceID == "" {
+		return nil
+	}
+	if l.ActiveInteractions == nil {
+		l.ActiveInteractions = map[string]time.Time{}
+	}
+	l.ActiveInteractions[sourceID] = now
+	return l.changed()
+}
+
+func (l *agentLifeState) endSessionInteraction(sourceID string, now time.Time) error {
+	if sourceID == "" {
+		return nil
+	}
+	delete(l.ActiveInteractions, sourceID)
+	if l.Interaction != nil && l.Interaction.SourceID == sourceID && now.After(l.Interaction.LastActivityAt) {
+		l.Interaction.LastActivityAt = now
+	}
+	return l.changed()
+}
+
+func (l *agentLifeState) hasActiveInteractions(now time.Time) bool {
+	if lifeInteractionBlocks(l.Interaction, now) {
+		return true
+	}
+	for _, ts := range l.ActiveInteractions {
+		if now.Before(ts.Add(lifeInteractionSilence)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (l *agentLifeState) interruptCurrent(now time.Time) {
@@ -131,6 +173,7 @@ func (l *agentLifeState) reviewFuture(now time.Time) {
 
 func (s *Service) recordLifeInteractionRelease(ref, sourceID string, now time.Time) {
 	err := s.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		delete(e.Life.ActiveInteractions, sourceID)
 		i := e.Life.Interaction
 		if i == nil || i.SourceID != sourceID || !now.After(i.LastActivityAt) {
 			return nil, nil, nil
@@ -140,6 +183,24 @@ func (s *Service) recordLifeInteractionRelease(ref, sourceID string, now time.Ti
 	})
 	if err != nil && s.logger != nil {
 		s.logger.Warn("record interaction release", "error", err)
+	}
+}
+
+// RecordSessionInteraction records multi-live interaction state on an Agent.
+// pc_work and alarm sessions never alter BehavioralPosture or interrupt companion activities.
+func (s *Service) RecordSessionInteraction(ref, sourceID, sessionKind string, active bool, now time.Time) {
+	err := s.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		if !active {
+			return nil, nil, e.Life.endSessionInteraction(sourceID, now)
+		}
+		if sessionKind == "pc_work" || sessionKind == "alarm" {
+			return nil, nil, e.Life.beginNonDisruptiveSessionInteraction(sourceID, now)
+		}
+		_, err := e.Life.beginInteraction(sourceID, now, false)
+		return nil, nil, err
+	})
+	if err != nil && s.logger != nil {
+		s.logger.Warn("record session interaction", "error", err)
 	}
 }
 

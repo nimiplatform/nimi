@@ -290,9 +290,14 @@ func readTextBehaviorSSE(ctx context.Context, body io.Reader, invocation *textbe
 		if err != nil {
 			return err
 		}
+		activityObserver := textbehavior.ToolCallActivityObserverFromContext(ctx)
 		for _, delta := range deltas {
 			if onDelta != nil && delta.HasPublicPayload() {
 				if err := onDelta(delta); err != nil {
+					return err
+				}
+			} else if delta.HasToolCallActivity() && activityObserver != nil {
+				if err := activityObserver(*delta.ToolCallActivity); err != nil {
 					return err
 				}
 			}

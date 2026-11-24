@@ -329,6 +329,16 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 	return svc, nil
 }
 
+// Scheduler returns the shared physical-endpoint execution scheduler owned by
+// the AI service so sibling Runtime services (such as AgentSession) coordinate
+// endpoint concurrency and P0/P1/P2 priorities on the same buckets.
+func (s *Service) Scheduler() *scheduler.Scheduler {
+	if s == nil {
+		return nil
+	}
+	return s.scheduler
+}
+
 // SetLocalExecutionResolver wires the machine Loadout owner into job-time
 // composition. It is independent from legacy LocalAsset listing and lifecycle
 // APIs.

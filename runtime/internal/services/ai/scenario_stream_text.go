@@ -348,6 +348,15 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return nil
 	}
 	backendCtx = nimillm.WithStreamSimulationFlag(backendCtx, &streamSimulated)
+	parentActivityObserver := textbehavior.ToolCallActivityObserverFromContext(requestCtx)
+	backendCtx = textbehavior.WithToolCallActivityObserver(backendCtx, func(activity textbehavior.ToolCallActivity) error {
+		recordFirstProviderCallback()
+		recordActivity()
+		if parentActivityObserver != nil {
+			return parentActivityObserver(activity)
+		}
+		return nil
+	})
 	result, streamErr := s.streamCapturedCloudText(backendCtx, effective, func(delta textbehavior.OrderedDelta) error {
 		recordFirstProviderCallback()
 		recordActivity()

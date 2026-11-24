@@ -83,7 +83,9 @@ func (s *Service) ListLocalAppAgentWorkReferences(ctx context.Context, _ *runtim
 
 // @nimi-authority: rule.nimi.runtime.agent-participation.shared-execution-admission
 // Both admission paths use the same mutex; no Conversation state is created
-// merely to claim an Agent for App business work.
+// merely to claim an Agent for App business work. Multi-session work serializes
+// per (agent_id, work_session_ref) so concurrent sessions do not false-block
+// while waiting on tool results or user approvals.
 func (s *Service) localAgentExecutionBusyLocked(agentID string) bool {
 	if id := s.chatActiveByAgent[agentID]; id != "" {
 		if s.chatTurns[id] != nil {
@@ -92,6 +94,37 @@ func (s *Service) localAgentExecutionBusyLocked(agentID string) bool {
 		delete(s.chatActiveByAgent, agentID)
 	}
 	return s.localAppWorkActiveByAgent[agentID] != "" || s.backgroundByAgent[agentID] != nil
+}
+
+func sessionAdmissionKey(agentID, workSessionRef string) string {
+	return agentID + "\x00" + workSessionRef
+}
+
+// AcquireSessionExecutionSlot serializes inference execution per
+// (agent_id, work_session_ref) without blocking independent work_session_ref
+// sessions on the same Agent. Callers must release the returned closure as soon
+// as the LLM inference step finishes (releasing during tool/approval wait).
+func (s *Service) AcquireSessionExecutionSlot(agentID, workSessionRef, executionID string) (func(), error) {
+	key := sessionAdmissionKey(strings.TrimSpace(agentID), strings.TrimSpace(workSessionRef))
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	if s.isClosed() || s.agentTerminationFencedLocked(agentID) {
+		return nil, localAppConversationOwnerUnavailable()
+	}
+	if s.sessionActiveByKey == nil {
+		s.sessionActiveByKey = map[string]string{}
+	}
+	if existing := s.sessionActiveByKey[key]; existing != "" && existing != executionID {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
+	}
+	s.sessionActiveByKey[key] = executionID
+	return func() {
+		s.chatSurfaceMu.Lock()
+		if s.sessionActiveByKey[key] == executionID {
+			delete(s.sessionActiveByKey, key)
+		}
+		s.chatSurfaceMu.Unlock()
+	}, nil
 }
 
 func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.StartLocalAppAgentWorkRequest) (*runtimev1.StartLocalAppAgentWorkResponse, error) {
