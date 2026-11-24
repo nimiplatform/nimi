@@ -21,7 +21,6 @@ import { draftsForScope } from './session-drafts.js';
 import { errorText, type HarnessView } from './harness-types.js';
 import {
   ensureNimiRouteConfig,
-  loadNimiModelRouteCatalog,
   type NimiEnsureRouteInput,
   type NimiModelRouteCatalog,
 } from './model-routes.js';
@@ -74,18 +73,11 @@ export function Conversations({
 
   const refreshModelRoutes = useCallback(async () => {
     if (!modelScope) return;
-    setLoadingRoutes(true);
-    try {
-      const catalog = await loadNimiModelRouteCatalog(modelScope.client.aiConfig as never);
-      if (!modelScope.signal.aborted) {
-        setRouteCatalog(catalog);
-        setRecords(catalog.configs.map(c => ({ configRef: c.configRef, name: c.name, isDefault: c.isDefault })));
-      }
-    } catch (cause) {
-      if (!modelScope.signal.aborted) setError(errorText(cause));
-    } finally {
-      if (!modelScope.signal.aborted) setLoadingRoutes(false);
-    }
+    // Harness runs under Brain-Body Symbiosis (agent.local + agent.body.pc);
+    // Runtime LocalAgent owns model routing, so App-level aiConfig is not used here.
+    setLoadingRoutes(false);
+    setRouteCatalog(undefined);
+    setRecords([]);
   }, [modelScope]);
 
   useEffect(() => {

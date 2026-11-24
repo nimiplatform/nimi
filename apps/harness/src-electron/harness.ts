@@ -521,6 +521,7 @@ export interface OpenHarnessOptions {
   readonly requireSymbiosis?: boolean;
   readonly defaultAgentBinding?: string;
   readonly defaultAgentHandle?: string;
+  readonly defaultAgentDisplayName?: string;
   readonly allowSourceLocalDev?: boolean;
   readonly allowInsecureTestFallback?: boolean;
 }
@@ -537,27 +538,48 @@ export async function openHarness(
   let symbiosisClient = options?.symbiosis;
   let defaultAgentBinding = options?.defaultAgentBinding;
   let defaultAgentHandle = options?.defaultAgentHandle;
+  let defaultAgentDisplayName = options?.defaultAgentDisplayName;
   const reportedInitialMilestone = new Set<string>();
   let pendingRouteSubmit: Promise<void> = Promise.resolve();
 
-  const resolveDefaultPartner = async (): Promise<{ agentHandle: string; agentBinding?: string } | undefined> => {
+  const resolveDefaultPartner = async (): Promise<{ agentHandle: string; agentBinding?: string; displayName?: string } | undefined> => {
     if (defaultAgentHandle) {
-      return { agentHandle: defaultAgentHandle, ...(defaultAgentBinding ? { agentBinding: defaultAgentBinding } : {}) };
+      return {
+        agentHandle: defaultAgentHandle,
+        ...(defaultAgentBinding ? { agentBinding: defaultAgentBinding } : {}),
+        ...(defaultAgentDisplayName ? { displayName: defaultAgentDisplayName } : {}),
+      };
     }
-    const listRefs = (services as { agentWork?: { listReferences?: () => Promise<readonly { agentHandle?: string; agentBinding?: string }[]> } }).agentWork?.listReferences;
-    if (typeof listRefs !== 'function') return undefined;
-    try {
-      const refs = await listRefs();
-      const first = refs.find(ref => typeof ref?.agentHandle === 'string' && ref.agentHandle.trim().length > 0);
-      if (first?.agentHandle) {
-        defaultAgentHandle = first.agentHandle.trim();
-        if (typeof first.agentBinding === 'string' && first.agentBinding.trim()) {
-          defaultAgentBinding = first.agentBinding.trim();
+    type PartnerRef = { agentHandle?: string; agentBinding?: string; displayName?: string };
+    const candidateListers = [
+      (services as { agents?: { listReferences?: () => Promise<readonly PartnerRef[]> } }).agents?.listReferences,
+      (services as { agentWork?: { listReferences?: () => Promise<readonly PartnerRef[]> } }).agentWork?.listReferences,
+    ];
+    for (const listRefs of candidateListers) {
+      if (typeof listRefs !== 'function') continue;
+      try {
+        const refs = await listRefs();
+        const first = Array.isArray(refs)
+          ? refs.find(ref => typeof ref?.agentHandle === 'string' && ref.agentHandle.trim().length > 0)
+          : undefined;
+        if (first?.agentHandle) {
+          const resolvedHandle = first.agentHandle.trim();
+          defaultAgentHandle = resolvedHandle;
+          if (typeof first.agentBinding === 'string' && first.agentBinding.trim()) {
+            defaultAgentBinding = first.agentBinding.trim();
+          }
+          if (typeof first.displayName === 'string' && first.displayName.trim()) {
+            defaultAgentDisplayName = first.displayName.trim();
+          }
+          return {
+            agentHandle: resolvedHandle,
+            ...(defaultAgentBinding ? { agentBinding: defaultAgentBinding } : {}),
+            ...(defaultAgentDisplayName ? { displayName: defaultAgentDisplayName } : {}),
+          };
         }
-        return { agentHandle: defaultAgentHandle, ...(defaultAgentBinding ? { agentBinding: defaultAgentBinding } : {}) };
+      } catch {
+        // Try next available reference list surface.
       }
-    } catch {
-      // Fall through so caller reports actionable guidance.
     }
     return undefined;
   };
@@ -706,6 +728,7 @@ export async function openHarness(
         workSessionRef: item.workSessionRef,
         agentBinding: item.agentBinding ?? defaultAgentBinding,
         agentHandle: item.agentHandle ?? defaultAgentHandle,
+        agentDisplayName: defaultAgentDisplayName,
         symbiosis: symbiosisClient,
         requireSymbiosis: options?.requireSymbiosis,
         allowSourceLocalDev: options?.allowSourceLocalDev,
@@ -1336,7 +1359,7 @@ export async function openHarness(
             requestId,
             text,
             explicitWorkSessionRef: '',
-            entrySurface: 'harness',
+            entrySurface: 'harness_new_session',
             workspaceRoot: currentRecord.workspaceDir ?? workspaceOf(id),
             workspaceWritable: (currentRecord.permissionMode ?? 'strict') !== 'plan-readonly',
             attachmentPaths: [],
@@ -1351,6 +1374,10 @@ export async function openHarness(
           resolvedRef = routed.resolvedWorkSessionRef?.trim() ?? '';
           if (!resolvedRef) {
             throw new Error('Runtime did not allocate a canonical work_session_ref for this session.');
+          }
+          const conflicting = catalog.sessions.find(entry => entry.id !== id && entry.workSessionRef === resolvedRef);
+          if (conflicting) {
+            throw new Error(`Runtime routed new session to an already bound work_session_ref (${resolvedRef}).`);
           }
           const resolvedBinding = routed.workSessionRecord?.agentBinding?.trim() || resolvedPartner.agentBinding || defaultAgentBinding;
           const resolvedHandle = resolvedPartner.agentHandle;
@@ -1411,15 +1438,16 @@ export async function openHarness(
     },
     async stop(id: string) { return (await session(id)).stop(); },
     async resume(id: string) { return (await session(id)).resume(); },
-    async attachSymbiosis(nextSymbiosis: HarnessBodySymbiosisClient, agentBinding?: string, agentHandle?: string) {
+    async attachSymbiosis(nextSymbiosis: HarnessBodySymbiosisClient, agentBinding?: string, agentHandle?: string, agentDisplayName?: string) {
       symbiosisClient = nextSymbiosis;
       if (agentBinding) defaultAgentBinding = agentBinding;
       if (agentHandle) defaultAgentHandle = agentHandle;
+      if (agentDisplayName) defaultAgentDisplayName = agentDisplayName;
       // Rebind every already-opened session so a renderer snapshot racing ahead of
       // symbiosis startup never strands an opened session offline.
       await Promise.allSettled([...opened.values()].map(async pending => {
         const resolved = await pending;
-        await resolved.attachSymbiosis(nextSymbiosis, agentBinding, agentHandle);
+        await resolved.attachSymbiosis(nextSymbiosis, agentBinding, agentHandle, agentDisplayName);
       }));
       viewChanged?.();
     },
@@ -1782,6 +1810,7 @@ type OpenSessionOptions = {
   workspaceDir?: string;
   agentBinding?: string;
   agentHandle?: string;
+  agentDisplayName?: string;
   symbiosis?: HarnessBodySymbiosisClient;
   requireSymbiosis?: boolean;
   allowSourceLocalDev?: boolean;
@@ -1797,6 +1826,7 @@ async function openSession(opts: OpenSessionOptions) {
   let effectiveWorkSessionRef = opts.workSessionRef ?? sessionId;
   let effectiveAgentBinding = opts.agentBinding ?? 'default';
   let effectiveAgentHandle = opts.agentHandle ?? effectiveAgentBinding;
+  let effectiveAgentDisplayName = opts.agentDisplayName?.trim() || 'Nimi Partner';
   let activeSymbiosis: HarnessBodySymbiosisClient | undefined = opts.symbiosis;
   let currentWorkspace = opts.workspaceDir ?? sessionWorkspace(folder, sessionId);
   let explicitDevWorkspace = Boolean(opts.workspaceDir);
@@ -1950,7 +1980,7 @@ async function openSession(opts: OpenSessionOptions) {
         agentHandle: effectiveAgentHandle,
         agentBinding: effectiveAgentBinding,
         workSessionRef: effectiveWorkSessionRef,
-        label: 'Nimi Partner',
+        label: effectiveAgentDisplayName,
         workspaceName: () => workspaceLabelOf(currentWorkspace) ?? 'workspace',
         permissionMode: () => currentPermissionMode,
         contextWindow: budgetTokens,
@@ -1974,7 +2004,7 @@ async function openSession(opts: OpenSessionOptions) {
       }
       models.setProvider(symbiosisProvider);
       bound = {
-        label: 'Nimi Partner',
+        label: effectiveAgentDisplayName,
         selection: { contextWindowTokens: budgetTokens } as NonNullable<Awaited<ReturnType<typeof readSessionModel>>>['selection'],
         modelId: logicalId,
         provider: symbiosisProvider,
@@ -2055,9 +2085,10 @@ async function openSession(opts: OpenSessionOptions) {
 
     return {
       reader: harness,
-      async attachSymbiosis(nextSymbiosis: HarnessBodySymbiosisClient, agentBinding?: string, agentHandle?: string) {
+      async attachSymbiosis(nextSymbiosis: HarnessBodySymbiosisClient, agentBinding?: string, agentHandle?: string, agentDisplayName?: string) {
         if (agentBinding) effectiveAgentBinding = agentBinding;
         if (agentHandle) effectiveAgentHandle = agentHandle;
+        if (agentDisplayName && agentDisplayName.trim()) effectiveAgentDisplayName = agentDisplayName.trim();
         await applySymbiosisProvider(nextSymbiosis);
       },
       async bindRuntimeSession(workSessionRef: string, agentBinding?: string, agentHandle?: string) {

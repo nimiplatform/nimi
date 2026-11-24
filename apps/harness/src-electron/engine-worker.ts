@@ -281,6 +281,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
   let currentAllowInsecureTestFallback = false;
   let currentDefaultAgentBinding: string | undefined;
   let currentDefaultAgentHandle: string | undefined;
+  let currentDefaultAgentDisplayName: string | undefined;
   let account = new AbortController();
   let harnessPromise: ReturnType<typeof openHarness> | undefined;
   let symbiosis: HarnessBodySymbiosisClient | undefined;
@@ -461,6 +462,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
 
     return {
       ai,
+      agents: makeUnaryProxy('agents'),
       agentSession,
       storage,
       aiConfig: makeUnaryProxy('aiConfig'),
@@ -498,6 +500,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     const allowInsecureTestFallback = currentAllowInsecureTestFallback;
     const defaultAgentBinding = currentDefaultAgentBinding;
     const defaultAgentHandle = currentDefaultAgentHandle;
+    const defaultAgentDisplayName = currentDefaultAgentDisplayName;
     const pending = retiring.then(() => {
       signal.throwIfAborted();
       return openHarness(services, signal, notifyViewChanged, {
@@ -508,6 +511,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         allowInsecureTestFallback,
         ...(defaultAgentBinding ? { defaultAgentBinding } : {}),
         ...(defaultAgentHandle ? { defaultAgentHandle } : {}),
+        ...(defaultAgentDisplayName ? { defaultAgentDisplayName } : {}),
       });
     });
     harnessPromise = pending;
@@ -578,6 +582,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     currentAllowInsecureTestFallback = Boolean(msg.allowInsecureTestFallback);
     currentDefaultAgentBinding = undefined;
     currentDefaultAgentHandle = undefined;
+    currentDefaultAgentDisplayName = undefined;
     const services = createBusinessServicesProxy(msg.generation);
     currentServices = services;
     const signal = account.signal;
@@ -593,9 +598,15 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     void (async () => {
       try {
         if (signal.aborted) return;
+        const discoverPartners = async (): Promise<readonly { agentHandle?: string; agentBinding?: string; displayName?: string }[]> => {
+          const fromAgents = await services.agents?.listReferences?.().catch(() => null);
+          if (Array.isArray(fromAgents) && fromAgents.length > 0) return fromAgents;
+          const fromWork = await services.agentWork?.listReferences?.().catch(() => null);
+          return Array.isArray(fromWork) ? fromWork : [];
+        };
         const [deviceId, agentRefs] = await Promise.all([
           resolvePersistentDeviceId(services.storage, signal),
-          services.agentWork.listReferences().catch(() => [] as readonly { agentHandle?: string; agentBinding?: string }[]),
+          discoverPartners(),
         ]);
         signal.throwIfAborted();
         const firstPartner = agentRefs.find(ref => typeof ref?.agentHandle === 'string' && ref.agentHandle.trim().length > 0);
@@ -603,6 +614,9 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
           currentDefaultAgentHandle = firstPartner.agentHandle.trim();
           if (typeof firstPartner.agentBinding === 'string' && firstPartner.agentBinding.trim()) {
             currentDefaultAgentBinding = firstPartner.agentBinding.trim();
+          }
+          if (typeof firstPartner.displayName === 'string' && firstPartner.displayName.trim()) {
+            currentDefaultAgentDisplayName = firstPartner.displayName.trim();
           }
         }
         const client = new HarnessBodySymbiosisClient({
@@ -637,7 +651,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
         symbiosis = client;
         if (harnessPromise) {
           const active = await harnessPromise.catch(() => undefined);
-          if (active) await active.attachSymbiosis(client, currentDefaultAgentBinding, currentDefaultAgentHandle);
+          if (active) await active.attachSymbiosis(client, currentDefaultAgentBinding, currentDefaultAgentHandle, currentDefaultAgentDisplayName);
         }
         await client.start(signal, { retryInitialHandshake: true });
         if (msg.pendingDeepLinkWorkSessionRef && !signal.aborted) {

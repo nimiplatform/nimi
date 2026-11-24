@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NimiAccountControl, useNimiAppSession } from '@nimiplatform/kit/auth/app';
 import { Button } from '@nimiplatform/kit/ui';
-import { AppModelConfigSurface } from '@nimiplatform/kit/features/model-config/ui';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
 import { useI18n } from '../i18n.js';
@@ -51,13 +50,16 @@ export function ModelSettings({ onBack }: { onBack?: () => void }) {
         </div>
         {error && <p className="harness-error" role="alert">{error}</p>}
         {scope && (
-          <AppModelConfigSurface
-            scope={scope}
-            appId={appId}
-            capabilityContracts={['text.generate', 'audio.transcribe']}
-            language={locale}
-            onOpenOwnerConfiguration={() => void openHome('ai-models')}
-          />
+          <div className="harness-access">
+            <span className="harness-access__status">
+              {locale === 'zh'
+                ? '本工作台通过 Runtime 伙伴（Brain-Body 共生）路由模型与记忆；如需调整默认云端或本地对话模型，请前往 Nimi Home 模型设置。'
+                : 'This workspace routes models and memory through your Nimi Partner (Brain-Body symbiosis). Configure default local or cloud models in Nimi Home.'}
+            </span>
+            <Button size="sm" tone="primary" leadingIcon={<ExternalLink size={14} />} onClick={() => void openHome('ai-models')}>
+              {locale === 'zh' ? '在 Nimi Home 中配置模型' : 'Configure models in Nimi Home'}
+            </Button>
+          </div>
         )}
       </div>
     </section>

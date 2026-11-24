@@ -696,6 +696,7 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
 
     assert.equal(routeCalls.length, 1);
     assert.equal(routeCalls[0].agentHandle, partnerHandle, 'must discover and send real Partner agentHandle');
+    assert.equal(routeCalls[0].entrySurface, 'harness_new_session', 'unbound Harness session must request fresh session allocation');
     assert.equal(doneSnap.sessions.length, 1, 'concurrent outbox NEW_INTENT must NOT create a duplicate local session');
     assert.equal(doneSnap.sessions[0].workSessionRef, allocatedWorkSessionRef);
     assert.equal(stepRequests.length, 1, 'prompt must execute exactly once');
