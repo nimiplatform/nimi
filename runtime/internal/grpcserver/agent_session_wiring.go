@@ -40,8 +40,12 @@ func buildProductionAgentSessionService(
 	)
 	if memoryFacade != nil {
 		facadeRef := memoryFacade
-		milestoneHook = func(ctx context.Context, _ string, agentBinding, workSessionRef, milestoneKind, topicSummary string, _ []string) error {
-			_, err := facadeRef.CommitSessionPointer(ctx, agentBinding, workSessionRef, milestoneKind, topicSummary, agentsession.DefaultPCNamespace, time.Now().UTC())
+		milestoneHook = func(ctx context.Context, _ string, agentBinding, workSessionRef, bodyKind, milestoneKind, topicSummary string, _ []string) error {
+			effectiveBodyKind := strings.TrimSpace(bodyKind)
+			if effectiveBodyKind == "" {
+				effectiveBodyKind = agentsession.DefaultPCNamespace
+			}
+			_, err := facadeRef.CommitSessionPointer(ctx, agentBinding, workSessionRef, milestoneKind, topicSummary, effectiveBodyKind, time.Now().UTC())
 			return err
 		}
 		memoryCleanupHook = func(ctx context.Context, _ string, agentBinding, workSessionRef string) (uint32, error) {
@@ -125,7 +129,10 @@ func buildProductionAgentSessionService(
 		}
 		brainTurnExecutor = func(ctx context.Context, in agentsession.BrainTurnExecutionInput, emit func(eventType, payloadJSON string, persist bool) error) error {
 			offlineRecall := ""
-			if memoryFacade != nil && svcRef != nil && in.Session != nil && in.Session.GetSessionKind() == "general_inbox" && strings.TrimSpace(in.UserText) != "" {
+			if memoryFacade != nil && svcRef != nil && in.Session != nil &&
+				in.Session.GetTrustTier() == "trusted" &&
+				in.Session.GetSessionKind() == "general_inbox" &&
+				strings.TrimSpace(in.UserText) != "" {
 				recallRes, recallErr := memoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
 					NoModelWork:   true,
 					LocalAgentRef: in.Session.GetAgentBinding(),
@@ -162,6 +169,7 @@ func buildProductionAgentSessionService(
 					LocalAgentRef:        in.Session.GetAgentBinding(),
 					WorkSessionRef:       in.Session.GetWorkSessionRef(),
 					SessionKind:          in.Session.GetSessionKind(),
+					TrustTier:            in.Session.GetTrustTier(),
 					UserText:             in.UserText,
 					RequestID:            in.RequestID,
 					OfflineRecallContext: offlineRecall,
@@ -220,6 +228,12 @@ func buildProductionAgentSessionService(
 		}
 	}
 
+	var agentTerminatedChecker func(accountID, agentBinding string) bool
+	if agentSvc != nil {
+		agentRef := agentSvc
+		agentTerminatedChecker = agentRef.IsAgentTerminated
+	}
+
 	svc, err := agentsession.Open(agentsession.Options{
 		Logger:                   logger,
 		DBPath:                   sessionsDBPath,
@@ -235,6 +249,7 @@ func buildProductionAgentSessionService(
 		AlarmDeliverySender:      alarmDeliverySender,
 		SupportedDeliveryChannel: isDesktopDeliveryChannel,
 		AlarmLLMRunner:           alarmLLMRunner,
+		AgentTerminatedChecker:   agentTerminatedChecker,
 	})
 	if err != nil {
 		return nil, err
@@ -243,11 +258,15 @@ func buildProductionAgentSessionService(
 
 	if agentSvc != nil {
 		agentSvc.SetAgentTerminatedHook(func(ctx context.Context, accountID, localAgentRef string) {
-			if err := svc.PurgeAgent(ctx, accountID, localAgentRef); err != nil && logger != nil {
-				logger.Warn("purge agent sessions on agent termination failed", "agent", localAgentRef, "error", err)
+			if err := svc.EnqueueAndPurgeAgent(ctx, accountID, localAgentRef); err != nil && logger != nil {
+				logger.Warn("purge agent sessions on agent termination failed (queued for retry)", "agent", localAgentRef, "error", err)
 			}
 		})
 	}
+	// Run immediate startup reconciliation for any sessions stuck in 'deleting'
+	// or any agents terminated before SetAgentTerminatedHook was registered.
+	_ = svc.RecoverPendingDeletions(context.Background())
+	_ = svc.RecoverPendingAgentPurges(context.Background())
 	svc.StartAlarmTicker(context.Background(), 15*time.Second)
 	return svc, nil
 }

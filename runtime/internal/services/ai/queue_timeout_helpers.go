@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const maxRuntimeRequestTimeout = 5 * time.Minute
+const maxRuntimeRequestTimeout = 10 * time.Minute
 const localImageExecutionResourceBudget = 20 * time.Minute
 
 func (s *Service) attachQueueWaitUnary(ctx context.Context, result scheduler.AcquireResult) {

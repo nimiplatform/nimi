@@ -83,7 +83,12 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	schedulerStartedAt := time.Now()
 	endpointKey := "cloud:default"
 	if effective != nil && strings.TrimSpace(effective.modelResolved()) != "" {
-		endpointKey = "cloud:" + strings.TrimSpace(effective.modelResolved())
+		connector := strings.TrimSpace(effective.connector.ConnectorID)
+		if connector != "" {
+			endpointKey = "cloud:" + connector + ":" + strings.TrimSpace(effective.modelResolved())
+		} else {
+			endpointKey = "cloud:" + strings.TrimSpace(effective.modelResolved())
+		}
 	}
 	admission, _ := scheduler.ExecutionAdmissionFromContext(jobCtx)
 	release, acquireResult, acquireErr := s.scheduler.AcquireForEndpoint(jobCtx, endpointKey, admission.Priority, admission.Preempt)

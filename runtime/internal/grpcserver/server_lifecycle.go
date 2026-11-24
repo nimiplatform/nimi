@@ -100,6 +100,11 @@ func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func
 
 	ownersDone := make(chan error, 1)
 	go func(result StopResult) {
+		if result.Err == nil && s.agentSessionService != nil {
+			// Quiesce AgentSession background brain turns, alarms, and recovery loops
+			// before quiescing LocalAgent and Cognition owners they depend on.
+			s.agentSessionService.Quiesce()
+		}
 		if result.Err == nil && s.agentService != nil {
 			// The RPC gate is closed and any root handoff RPC has returned.
 			// Use the Agent's owner drain before waiting on other subsystems.
@@ -150,14 +155,14 @@ func (s *Server) releaseOwners(ctx context.Context) error {
 	if s.localService != nil {
 		s.localService.StopProductControlCheckSync()
 	}
+	if s.agentSessionService != nil {
+		_ = s.agentSessionService.Close()
+	}
 	if s.agentService != nil {
 		s.agentService.Close()
 	}
 	if s.integrationService != nil {
 		_ = s.integrationService.Close()
-	}
-	if s.agentSessionService != nil {
-		_ = s.agentSessionService.Close()
 	}
 	if s.appActivityService != nil {
 		_ = s.appActivityService.Close()

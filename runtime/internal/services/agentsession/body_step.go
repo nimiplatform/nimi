@@ -79,7 +79,7 @@ type BodyStepExecutor func(ctx context.Context, input BodyStepExecutionInput, em
 type ReadSetQualifier func(ctx context.Context, accountID, agentBinding, workSessionRef string, lastEpoch int64) (valid bool, currentEpoch int64, err error)
 
 // MilestoneHook receives milestone session projections (for Stage 3 Cognition v5 pointer commits).
-type MilestoneHook func(ctx context.Context, accountID, agentBinding, workSessionRef, milestoneKind, topicSummary string, deliverables []string) error
+type MilestoneHook func(ctx context.Context, accountID, agentBinding, workSessionRef, bodyKind, milestoneKind, topicSummary string, deliverables []string) error
 
 // MemoryCleanupHook neutralizes Cognition outbox and forgets session-lineage memories during DeleteSession.
 type MemoryCleanupHook func(ctx context.Context, accountID, agentBinding, workSessionRef string) (uint32, error)
@@ -223,6 +223,16 @@ func extractSemanticTextContent(raw string) string {
 	return normalizeCompactionSummaryText(canonicalJSONString(trimmed))
 }
 
+func jsonMarshalNoEscape(value any) (string, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(value); err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(buf.String(), "\n"), nil
+}
+
 func canonicalJSONString(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -232,11 +242,11 @@ func canonicalJSONString(raw string) string {
 	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
 		return trimmed
 	}
-	encoded, err := json.Marshal(parsed)
+	encoded, err := jsonMarshalNoEscape(parsed)
 	if err != nil {
 		return trimmed
 	}
-	return string(encoded)
+	return encoded
 }
 
 type semanticToolCall struct {
@@ -522,9 +532,10 @@ func actionKindAllowedByPermissionMode(permissionMode, actionKind string) bool {
 	mode := strings.ToLower(strings.TrimSpace(permissionMode))
 	switch kind {
 	case "file_write", "file_edit", "file_delete", "shell_exec", "process_exec", "integration_write", "outbound_network":
-		// Closed allowlist: only writable workspace modes authorize side effects;
+		// Closed allowlist: only writable workspace modes (including Harness default
+		// per-action interactive approval mode 'strict') authorize side effects;
 		// plan-readonly, readonly, companion, or unknown modes strictly fail closed!
-		return mode == "workspace-edit" || mode == "full" || mode == "developer"
+		return mode == "strict" || mode == "workspace-edit" || mode == "full" || mode == "developer"
 	default:
 		// Unknown or empty action_kind ALWAYS fails closed.
 		return false
@@ -533,15 +544,21 @@ func actionKindAllowedByPermissionMode(permissionMode, actionKind string) bool {
 
 // StreamLocalAgentBodyStep enforces the single-anchor rolling Brain-Body
 // symbiosis ledger across both normal inference and compaction steps, rejects
-// non-allowlisted roles (including system/developer), serializes steps per
-// session, wraps body_advisory_context in a per-turn random-nonce block,
-// qualifies Cognition read sets synchronously, propagates P0/P2 priority into
-// the single physical AI endpoint scheduler, buffers tool_call frames until
-// ledger commit, and caps 600s/2MiB.
+// non-allowlisted roles (including system/developer) and unauthenticated suffix
+// assistant turns, serializes steps per session under an end-to-end 600s
+// deadline, supports idempotent replay via step_request_id across stream drops,
+// wraps body_advisory_context in a per-turn random-nonce block, qualifies
+// Cognition read sets synchronously, propagates P0/P2 priority into the single
+// physical AI endpoint scheduler, and commits ledger + relational per-call tool
+// grants + replay journal atomically BEFORE flushing executable tool_call frames.
 // @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
 func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodyStepRequest, stream grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]) error {
 	ctx := stream.Context()
-	decision, err := s.authorize(ctx, localappop.OperationAgentBodyPCStepStream, localappop.OperationAgentBodyAppStepStream)
+	// End-to-end 600s deadline covers step serialization wait, inference, ledger commit, and flushing.
+	stepCtx, stepCancel := context.WithTimeout(ctx, bodyStepMaxDuration)
+	defer stepCancel()
+
+	decision, err := s.authorize(stepCtx, localappop.OperationAgentBodyPCStepStream, localappop.OperationAgentBodyAppStepStream)
 	if err != nil {
 		return err
 	}
@@ -557,7 +574,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 	deviceID := strings.TrimSpace(req.GetDeviceId())
 	now := s.now().UTC()
-	activeLease, err := s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), now)
+	activeLease, err := s.store.VerifyActiveLease(stepCtx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), now)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -566,11 +583,14 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	ref := strings.TrimSpace(req.GetWorkSessionRef())
-	unlockStep := s.lockSessionStep(ref)
+	unlockStep, lockErr := s.lockSessionStepContext(stepCtx, ref)
+	if lockErr != nil {
+		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+	}
 	defer unlockStep()
 
 	// Re-verify active lease AFTER acquiring per-session step serialization lock.
-	activeLease, err = s.store.VerifyActiveLease(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), s.now().UTC())
+	activeLease, err = s.store.VerifyActiveLease(stepCtx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), s.now().UTC())
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -578,7 +598,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
 	}
 
-	sess, err := s.store.GetSession(ctx, decision.AccountID, ref)
+	sess, err := s.store.GetSession(stepCtx, decision.AccountID, ref)
 	if errors.Is(err, errSessionNotFound) {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
@@ -587,6 +607,9 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 	if sess.Record.GetOwnerBodyKind() != ns || sess.Record.GetStatus() == "deleted" || sess.Record.GetStatus() == "deleting" {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
+	}
+	if boundDev := strings.TrimSpace(sess.Record.GetDeviceId()); boundDev != "" && boundDev != "local-default" && boundDev != deviceID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 
 	// 1. Strict role allowlist (user / assistant / tool / toolResult ONLY).
@@ -599,8 +622,8 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		}
 	}
 
-	// 2. Load ledger & verify single-anchor rolling LastStepMAC + issued tool call IDs.
-	ledger, err := s.store.GetLedger(ctx, decision.AccountID, ref)
+	// 2. Load ledger & check idempotent step_request_id replay across dropped streams.
+	ledger, err := s.store.GetLedger(stepCtx, decision.AccountID, ref)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
@@ -614,10 +637,47 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			EffectiveContextBudgetTokens: defaultContextBudgetToken,
 		}
 	}
-	issuedWindow := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
-	issuedMeta := decodeIssuedToolMeta(ledger.IssuedToolArgsJSON)
 	canonicalWorking := canonicalOrderWorkingMessages(req.GetWorkingMessages())
 	canonicalKeptTail := canonicalOrderWorkingMessages(req.GetKeptTailMessages())
+	stepReqID := strings.TrimSpace(req.GetStepRequestId())
+
+	if stepReqID != "" {
+		journal, jErr := s.store.GetStepJournal(stepCtx, decision.AccountID, ref, stepReqID)
+		if jErr != nil {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+		}
+		if journal != nil && journal.Done != nil {
+			prevOK := false
+			if journal.PrevCommittedCount == 0 && journal.PrevStepMAC == "" {
+				prevOK = true
+			} else if len(canonicalWorking) >= journal.PrevCommittedCount {
+				expectedPrevMAC := s.computeHMAC([]byte(ref), canonicalizeMessagesBytes(canonicalWorking[:journal.PrevCommittedCount]))
+				prevOK = hmac.Equal([]byte(expectedPrevMAC), []byte(journal.PrevStepMAC))
+			}
+			if !prevOK {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			replayEmitter := &bodyStepStreamEmitter{
+				ctx:          stepCtx,
+				stream:       stream,
+				budgetTokens: journal.Done.GetEffectiveContextBudgetTokens(),
+			}
+			for _, tc := range journal.ToolCalls {
+				if err := replayEmitter.send(&runtimev1.BodyStepStreamEvent{
+					Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: tc},
+				}); err != nil {
+					return err
+				}
+			}
+			return replayEmitter.send(&runtimev1.BodyStepStreamEvent{
+				Payload: &runtimev1.BodyStepStreamEvent_Done{Done: journal.Done},
+			})
+		}
+	}
+
+	issuedWindow := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
+	prevStepMAC := ledger.LastStepMAC
+	prevCommittedCount := ledger.LastCommittedCount
 
 	// Single-anchor continuity check on EVERY step (normal inference AND compaction):
 	// canonicalWorking[:ledger.LastCommittedCount] MUST match ledger.LastStepMAC!
@@ -630,21 +690,50 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
 	}
-	// Every newly appended toolResult beyond the cryptographically verified prefix
-	// MUST reference a tool call actually issued by Runtime in issuedWindow.
-	// Older messages (< LastCommittedCount) are already authenticated by LastStepMAC,
-	// so aged-out toolResults beyond the 512-entry sliding window never fail compaction.
+	// Suffix authenticity beyond the cryptographically verified prefix:
+	// - NEVER allow fabricated role=="assistant" messages appended by the Body!
+	// - Every appended toolResult MUST reference a Runtime-issued call_id in issuedWindow
+	//   that has NOT already been settled in a previous step or duplicated in this step.
+	// - Any appended user message carrying an outbox_id MUST match an actual NEW_INTENT
+	//   outbox envelope for this account & work_session_ref.
 	checkFrom := ledger.LastCommittedCount
 	if checkFrom < 0 || checkFrom > len(canonicalWorking) {
 		checkFrom = 0
 	}
+	seenSuffixToolCalls := make(map[string]struct{})
+	var settledToolCallIDs []string
 	for idx := checkFrom; idx < len(canonicalWorking); idx++ {
 		msg := canonicalWorking[idx]
 		role := strings.ToLower(strings.TrimSpace(msg.GetRole()))
-		if role == "toolresult" || role == "tool" {
+		switch role {
+		case "assistant":
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+		case "toolresult", "tool":
 			callID := strings.TrimSpace(msg.GetToolCallId())
 			if callID == "" || !containsString(issuedWindow, callID) {
 				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			if _, dup := seenSuffixToolCalls[callID]; dup {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			alreadyCommitted, cErr := s.store.IsToolResultAlreadyCommitted(stepCtx, decision.AccountID, ref, callID)
+			if cErr != nil {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+			}
+			if alreadyCommitted {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			seenSuffixToolCalls[callID] = struct{}{}
+			settledToolCallIDs = append(settledToolCallIDs, callID)
+		case "user":
+			if outboxID := strings.TrimSpace(msg.GetOutboxId()); outboxID != "" {
+				validOutbox, oErr := s.store.VerifyOutboxIntentExists(stepCtx, decision.AccountID, ref, outboxID)
+				if oErr != nil {
+					return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+				}
+				if !validOutbox {
+					return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+				}
 			}
 		}
 	}
@@ -659,36 +748,39 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	// 3. Synchronously qualify Cognition read set BEFORE inference.
 	readSetEpoch := ledger.ReadSetEpoch
 	if s.readSetQualifier != nil {
-		valid, currentEpoch, qErr := s.readSetQualifier(ctx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
+		valid, currentEpoch, qErr := s.readSetQualifier(stepCtx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
 		if qErr != nil {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
 		if !valid {
+			invPayload, _ := jsonMarshalNoEscape(map[string]any{
+				"workSessionRef": ref,
+				"epoch":          currentEpoch,
+				"previousEpoch":  ledger.ReadSetEpoch,
+			})
 			invEnv := &runtimev1.BodyOutboxEnvelope{
 				OutboxId:            newID("outbox"),
 				DeviceId:            deviceID,
 				CapabilityNamespace: ns,
 				WorkSessionRef:      ref,
 				CommandKind:         runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY,
-				PayloadJson:         fmt.Sprintf(`{"workSessionRef":%q,"epoch":%d}`, ref, currentEpoch),
+				PayloadJson:         invPayload,
 				CreatedAt:           formatRFC3339(now),
 				AgentBinding:        sess.Record.GetAgentBinding(),
 			}
-			_ = s.store.EnqueueOutbox(ctx, decision.AccountID, invEnv, "")
+			_ = s.store.EnqueueOutbox(stepCtx, decision.AccountID, invEnv, "")
 			s.notifyOutboxSubscribers(decision.AccountID, invEnv.GetDeviceId(), ns, invEnv)
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_MEMORY_INVALIDATED)
 		}
 		readSetEpoch = currentEpoch
 	}
 
-	// 4. Independent 600s deadline & single-owner physical-endpoint admission:
+	// 4. Single-owner physical-endpoint admission:
 	// Propagate P0/P2 priority & cooperative preemption callback down to ai.Service
 	// via context rather than double-acquiring the same physical endpoint bucket.
-	stepCtx, stepCancel := context.WithTimeout(ctx, bodyStepMaxDuration)
-	defer stepCancel()
-
+	isCompaction := req.GetPurpose() == runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION
 	priority := scheduler.PriorityP0Foreground
-	if req.GetPurpose() == runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION {
+	if isCompaction {
 		priority = scheduler.PriorityP2Background
 	}
 	endpointKey := s.resolveEndpointKey(sess.Record.GetAgentBinding())
@@ -705,6 +797,12 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		budgetTokens: budgetTokens,
 	}
 
+	// Compaction MUST NEVER declare or emit executable tools.
+	stepTools := req.GetTools()
+	if isCompaction {
+		stepTools = nil
+	}
+
 	execInput := BodyStepExecutionInput{
 		AccountID:           decision.AccountID,
 		CallerAppID:         decision.AppID,
@@ -714,7 +812,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		EndpointKey:         endpointKey,
 		Priority:            priority,
 		AdvisoryNonceBlock:  advisoryBlock,
-		Tools:               req.GetTools(),
+		Tools:               stepTools,
 		CanonicalMessages:   canonicalWorking,
 		KeptTailMessages:    canonicalKeptTail,
 		ContextBudgetTokens: budgetTokens,
@@ -759,20 +857,26 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			allIssuedCalls = append(allIssuedCalls, buffered)
 		}
 	}
-	nextIssuedWindow := appendIssuedToolCallIDs(issuedWindow, allIssuedCalls)
-	nextIssuedMeta := mergeIssuedToolMeta(issuedMeta, nextIssuedWindow, allIssuedCalls)
-	issuedJSON, _ := json.Marshal(nextIssuedWindow)
-	issuedMetaJSON, _ := json.Marshal(nextIssuedMeta)
 
 	var (
-		stepMAC           string
-		postCompactionMAC string
+		stepMAC            string
+		postCompactionMAC  string
+		compactionSummary  string
+		nextIssuedWindow   = issuedWindow
+		commitIssuedCalls  = allIssuedCalls
 	)
-	if req.GetPurpose() == runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION {
+	if isCompaction {
 		summaryCanon := normalizeCompactionSummaryText(execResult.CompactionSummary)
+		if summaryCanon == "" || len(allIssuedCalls) > 0 {
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		compactionSummary = summaryCanon
+		commitIssuedCalls = nil
+		emitter.bufferedToolCalls = nil
+		encodedSummary, _ := jsonMarshalNoEscape(summaryCanon)
 		summaryMsg := &runtimev1.BodyWorkingMessage{
 			Role:        "user",
-			ContentJson: summaryCanon,
+			ContentJson: encodedSummary,
 		}
 		postCompactionPrefix := make([]*runtimev1.BodyWorkingMessage, 0, 1+len(canonicalKeptTail))
 		postCompactionPrefix = append(postCompactionPrefix, summaryMsg)
@@ -783,6 +887,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		ledger.LastCommittedCount = len(postCompactionPrefix)
 		ledger.CompactionCount++
 	} else {
+		nextIssuedWindow = appendIssuedToolCallIDs(issuedWindow, allIssuedCalls)
 		// Single-anchor rolling MAC signs canonicalWorking PLUS the assistant
 		// output emitted by this step so neither prior turns nor model output
 		// (including issued tool calls) can be forged on subsequent steps.
@@ -794,33 +899,60 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		ledger.PostCompactionMAC = ""
 		ledger.LastCommittedCount = len(committedAfter)
 	}
+	issuedJSON, _ := json.Marshal(nextIssuedWindow)
 	ledger.LastStepMAC = stepMAC
 	ledger.IssuedToolCallIDsJSON = string(issuedJSON)
-	ledger.IssuedToolArgsJSON = string(issuedMetaJSON)
 	ledger.ReadSetEpoch = readSetEpoch
 	ledger.EffectiveContextBudgetTokens = budgetTokens
 	ledger.UpdatedAt = formatRFC3339(s.now().UTC())
-	if err := s.store.UpsertLedger(ctx, ledger); err != nil {
+
+	doneMsg := &runtimev1.BodyStepDone{
+		FinishReason:                 execResult.FinishReason,
+		UsageInputTokens:             execResult.UsageInputTokens,
+		UsageOutputTokens:            execResult.UsageOutputTokens,
+		StepMac:                      stepMAC,
+		CompactionSummary:            compactionSummary,
+		PostCompactionMac:            postCompactionMAC,
+		EffectiveContextBudgetTokens: budgetTokens,
+	}
+
+	commitErr := s.store.CommitStepLedger(stepCtx, commitStepLedgerInput{
+		Ledger:               ledger,
+		DeviceID:             deviceID,
+		Namespace:            ns,
+		CarrierSubject:       decision.RegisteredAppSubject,
+		LeaseEpoch:           req.GetLeaseEpoch(),
+		SettledToolCallIDs:   settledToolCallIDs,
+		NewlyIssuedToolCalls: commitIssuedCalls,
+		StepRequestID:        stepReqID,
+		PrevStepMAC:          prevStepMAC,
+		PrevCommittedCount:   prevCommittedCount,
+		Done:                 doneMsg,
+		Now:                  s.now().UTC(),
+	})
+	if errors.Is(commitErr, errLeaseConflict) {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
+	}
+	if errors.Is(commitErr, errSessionNotFound) {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
+	}
+	if errors.Is(commitErr, errBodyNamespaceMismatch) {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if errors.Is(commitErr, errSessionConflict) {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+	}
+	if commitErr != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 
-	// Flush executable tool_call frames strictly AFTER the ledger transaction commits!
+	// Flush executable tool_call frames strictly AFTER the ledger + relational grant transaction commits!
 	if err := emitter.flushBufferedToolCalls(); err != nil {
 		return err
 	}
 
 	return emitter.send(&runtimev1.BodyStepStreamEvent{
-		Payload: &runtimev1.BodyStepStreamEvent_Done{
-			Done: &runtimev1.BodyStepDone{
-				FinishReason:                 execResult.FinishReason,
-				UsageInputTokens:             execResult.UsageInputTokens,
-				UsageOutputTokens:            execResult.UsageOutputTokens,
-				StepMac:                      stepMAC,
-				CompactionSummary:            execResult.CompactionSummary,
-				PostCompactionMac:            postCompactionMAC,
-				EffectiveContextBudgetTokens: budgetTokens,
-			},
-		},
+		Payload: &runtimev1.BodyStepStreamEvent_Done{Done: doneMsg},
 	})
 }
 
@@ -1081,6 +1213,7 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 				decision.AccountID,
 				updatedRow.Record.GetAgentBinding(),
 				updatedRow.Record.GetWorkSessionRef(),
+				updatedRow.Record.GetOwnerBodyKind(),
 				milestone,
 				req.GetTopicSummary(),
 				req.GetDeliverablePaths(),

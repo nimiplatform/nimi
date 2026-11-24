@@ -24,7 +24,7 @@ const (
 	alarmOneShotExpiryWindow         = 24 * time.Hour
 	alarmAutoSleepUnackThreshold     = 3
 	alarmRecentReplyWindow           = 6 * time.Hour
-	alarmClaimLeaseWindow            = 2 * time.Minute
+	alarmClaimLeaseWindow            = 4 * time.Minute
 	maxOfflineRecallPointers         = 2
 	maxOfflineRecallBytes            = 1536 // 1.5 KiB hard ceiling per v2.1 03 §5.2
 )
@@ -222,8 +222,14 @@ func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
 	for !t.After(limit) {
 		local := t.In(c.loc)
 		if !c.months[int(local.Month())] {
-			// Jump to start of next month safely even across midnight DST spring-forward (e.g. America/Havana).
-			nextLocal := time.Date(local.Year(), local.Month()+1, 1, 0, 0, 0, 0, c.loc)
+			// Jump to start of next month safely across December->January wrap and midnight DST spring-forward.
+			nextYear := local.Year()
+			nextMonth := local.Month() + 1
+			if nextMonth > time.December {
+				nextYear++
+				nextMonth = time.January
+			}
+			nextLocal := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, c.loc)
 			nextUTC := nextLocal.UTC()
 			if !nextUTC.After(t) {
 				nextUTC = t.Add(24 * time.Hour).Truncate(time.Minute)
@@ -231,7 +237,7 @@ func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
 			// Pull back by up to 2h if midnight spring-forward shifted Date forward past day 1 00:00 UTC boundary.
 			if nextUTC.Sub(t) > 2*time.Hour {
 				probe := nextUTC.Add(-2 * time.Hour)
-				if probe.After(t) && int(probe.In(c.loc).Month()) == int(local.Month()+1) {
+				if probe.After(t) && probe.In(c.loc).Month() == nextMonth {
 					nextUTC = probe
 				}
 			}
@@ -265,27 +271,15 @@ func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
 			t = t.Add(time.Minute)
 			continue
 		}
-		// Prevent fall-back DST duplicate firing: if the exact same local wall-clock
-		// minute already fired at `after` (first pass of repeated hour) or 1 hour
-		// earlier in the same DST fall-back fold, skip the repeated occurrence.
-		if local.Year() == afterLocal.Year() && local.Month() == afterLocal.Month() &&
-			local.Day() == afterLocal.Day() && local.Hour() == afterLocal.Hour() &&
-			local.Minute() == afterLocal.Minute() {
-			t = t.Add(time.Minute)
-			continue
+		// Prevent fall-back DST duplicate firing for BOTH 1-hour and 30-minute folds
+		// (e.g. America/New_York and Australia/Lord_Howe): unconditionally skip the
+		// second occurrence of any repeated local wall-clock minute.
+		sameWallClock := func(candidate time.Time) bool {
+			return candidate.Year() == local.Year() && candidate.Month() == local.Month() &&
+				candidate.Day() == local.Day() && candidate.Hour() == local.Hour() &&
+				candidate.Minute() == local.Minute()
 		}
-		prevHourLocal := t.Add(-time.Hour).In(c.loc)
-		if prevHourLocal.Year() == local.Year() && prevHourLocal.Month() == local.Month() &&
-			prevHourLocal.Day() == local.Day() && prevHourLocal.Hour() == local.Hour() &&
-			prevHourLocal.Minute() == local.Minute() && t.Add(-time.Hour).After(after.UTC().Truncate(time.Minute)) {
-			// Should not happen since we walked forward from after, guard anyway.
-			t = t.Add(time.Minute)
-			continue
-		}
-		if prevHourLocal.Year() == local.Year() && prevHourLocal.Month() == local.Month() &&
-			prevHourLocal.Day() == local.Day() && prevHourLocal.Hour() == local.Hour() &&
-			prevHourLocal.Minute() == local.Minute() && !t.Add(-time.Hour).Before(after.UTC().Truncate(time.Minute)) {
-			// Exact repeated wall-clock minute right after the first pass fired at `after`!
+		if sameWallClock(afterLocal) || sameWallClock(t.Add(-time.Hour).In(c.loc)) || sameWallClock(t.Add(-30*time.Minute).In(c.loc)) {
 			t = t.Add(time.Minute)
 			continue
 		}
@@ -454,10 +448,18 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 		payloadJSON = "{}"
 	}
 
+	targetRef := strings.TrimSpace(req.GetTargetWorkSessionRef())
+	if targetRef != "" {
+		sess, gErr := s.store.GetSession(ctx, decision.AccountID, targetRef)
+		if errors.Is(gErr, errSessionNotFound) || gErr != nil || sess == nil || !readerCanAccessSession(decision, sess.Record) {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
+		}
+	}
+
 	rec := &runtimev1.SessionAlarmRecord{
 		AlarmId:              newID("alarm"),
 		AgentBinding:         agentBinding,
-		TargetWorkSessionRef: strings.TrimSpace(req.GetTargetWorkSessionRef()),
+		TargetWorkSessionRef: targetRef,
 		AlarmKind:            req.GetAlarmKind(),
 		CronExpr:             cronExpr,
 		TimeZone:             tz,
@@ -1103,7 +1105,13 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 					tokensUsed = toks
 					_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, toks-reserveTokens)
 				} else {
-					_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -reserveTokens)
+					// Settle any tokens actually consumed before failure rather than blindly refunding 100%.
+					if toks > 0 {
+						tokensUsed = toks
+						_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, toks-reserveTokens)
+					} else {
+						_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -reserveTokens)
+					}
 				}
 			} else {
 				_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -reserveTokens)
@@ -1142,6 +1150,11 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 			channels = []string{"desktop_notification"}
 		}
 		var deliveries []AlarmDeliveryOutcome
+		type deliveryRecord struct {
+			channel string
+			outcome AlarmDeliveryOutcome
+		}
+		var recordedDeliveries []deliveryRecord
 		lastState := runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED
 		anyDelivered := false
 		for _, ch := range channels {
@@ -1163,12 +1176,7 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 			}
 			lastState = outcome.ReceiptState
 			deliveries = append(deliveries, outcome)
-			_, _ = s.store.writeDB.ExecContext(ctx, `
-				INSERT INTO runtime_alarm_delivery(delivery_id, alarm_id, account_id, channel, receipt_state, provider_message_ref, detail, fired_at, updated_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				newID("dlv"), alarm.GetAlarmId(), accID, ch, int32(outcome.ReceiptState),
-				strings.TrimSpace(outcome.ProviderMessageRef), strings.TrimSpace(outcome.Detail), nowStr, nowStr,
-			)
+			recordedDeliveries = append(recordedDeliveries, deliveryRecord{channel: ch, outcome: outcome})
 		}
 
 		// Only increment unack_streak when the reminder was actually delivered!
@@ -1178,12 +1186,54 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		}
 		nextStatus, nextFireStr := s.computePostFireSchedule(alarm, isRecurring, nowUTC, nextUnack)
 		autoSlept := isRecurring && nextStatus == "sleeping"
-		_, _ = s.store.writeDB.ExecContext(ctx, `
+
+		// Atomically commit delivery receipts + post-fire schedule inside ONE checked
+		// SQLite transaction (using deterministic delivery_id per alarm+occurrence+channel)
+		// so retries never create duplicate receipts or silently drop schedule advances.
+		tx, txErr := s.store.writeDB.BeginTx(ctx, nil)
+		if txErr != nil {
+			return results, txErr
+		}
+		commitOK := false
+		for _, rec := range recordedDeliveries {
+			detDeliveryID := fmt.Sprintf("dlv_%s_%s_%s", alarm.GetAlarmId(), alarm.GetNextFireAt(), strings.ToLower(strings.TrimSpace(rec.channel)))
+			if _, execErr := tx.ExecContext(ctx, `
+				INSERT INTO runtime_alarm_delivery(delivery_id, alarm_id, account_id, channel, receipt_state, provider_message_ref, detail, fired_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT(delivery_id) DO UPDATE SET
+					receipt_state = excluded.receipt_state,
+					provider_message_ref = excluded.provider_message_ref,
+					detail = excluded.detail,
+					updated_at = excluded.updated_at`,
+				detDeliveryID, alarm.GetAlarmId(), accID, rec.channel, int32(rec.outcome.ReceiptState),
+				strings.TrimSpace(rec.outcome.ProviderMessageRef), strings.TrimSpace(rec.outcome.Detail), nowStr, nowStr,
+			); execErr != nil {
+				_ = tx.Rollback()
+				return results, execErr
+			}
+		}
+		updRes, updErr := tx.ExecContext(ctx, `
 			UPDATE runtime_session_alarm
 			SET status = ?, unack_streak = ?, next_fire_at = ?, last_receipt_state = ?, last_delivery_at = ?, claim_expires_at = '', version = version + 1, updated_at = ?
 			WHERE alarm_id = ? AND account_id = ? AND version = ?`,
 			nextStatus, nextUnack, nextFireStr, int32(lastState), nowStr, nowStr, alarm.GetAlarmId(), accID, claimedVersion,
 		)
+		if updErr != nil {
+			_ = tx.Rollback()
+			return results, updErr
+		}
+		affected, _ := updRes.RowsAffected()
+		if affected == 1 {
+			if err := tx.Commit(); err != nil {
+				return results, err
+			}
+			commitOK = true
+		} else {
+			_ = tx.Rollback()
+		}
+		if !commitOK {
+			continue
+		}
 
 		results = append(results, AlarmFireResult{
 			AlarmID:     alarm.GetAlarmId(),

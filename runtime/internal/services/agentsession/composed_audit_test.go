@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -11,7 +12,10 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -643,5 +647,579 @@ func TestComposedHonestDesktopAlarmsAndFailClosedExternalChannels(t *testing.T) 
 		Status:  &revive,
 	}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("cancelled alarm MUST NOT be revivable via UpdateAlarm, got %v", err)
+	}
+}
+
+type fakeOverviewStream struct {
+	grpc.ServerStream
+	ctx    context.Context
+	cancel context.CancelFunc
+	deltas []*runtimev1.SessionOverviewDelta
+}
+
+func (f *fakeOverviewStream) Context() context.Context    { return f.ctx }
+func (f *fakeOverviewStream) SetHeader(metadata.MD) error  { return nil }
+func (f *fakeOverviewStream) SendHeader(metadata.MD) error { return nil }
+func (f *fakeOverviewStream) SetTrailer(metadata.MD)       {}
+func (f *fakeOverviewStream) Send(d *runtimev1.SessionOverviewDelta) error {
+	f.deltas = append(f.deltas, d)
+	if f.cancel != nil {
+		f.cancel()
+	}
+	return nil
+}
+
+type fakeBrainEventStream struct {
+	grpc.ServerStream
+	ctx    context.Context
+	cancel context.CancelFunc
+	mu     sync.Mutex
+	events []*runtimev1.BrainSessionEventEnvelope
+	target int
+}
+
+func (f *fakeBrainEventStream) Context() context.Context    { return f.ctx }
+func (f *fakeBrainEventStream) SetHeader(metadata.MD) error  { return nil }
+func (f *fakeBrainEventStream) SendHeader(metadata.MD) error { return nil }
+func (f *fakeBrainEventStream) SetTrailer(metadata.MD)       {}
+func (f *fakeBrainEventStream) Send(ev *runtimev1.BrainSessionEventEnvelope) error {
+	f.mu.Lock()
+	f.events = append(f.events, ev)
+	n := len(f.events)
+	f.mu.Unlock()
+	if f.target > 0 && n >= f.target && f.cancel != nil {
+		f.cancel()
+	}
+	return nil
+}
+
+func callerCtxWithExactDomains(appID, subject, opCap string, op localappop.Operation, activatedCSV string) context.Context {
+	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+		AppID:                appID,
+		AccountID:            "acct-1",
+		RegisteredAppSubject: subject,
+		AuthorityClass:       localappop.AuthorityClassAppAccess,
+		Operation:            op,
+		OperationCapability:  opCap,
+		ActivatedDomains:     activatedCSV,
+		TrustClass:           accountservice.LocalAppTrustClassUserImported,
+		ExpiresAt:            time.Now().UTC().Add(time.Hour),
+	})
+}
+
+func TestAuditForkCCapabilityOrthogonalityAndSingleSubjectLeaseFence(t *testing.T) {
+	svc := newStage2Service(t, Options{})
+
+	// Subject A (app.alpha) creates a session with agent.local only.
+	routeA := callerCtxWithExactDomains("app.alpha", "subj-alpha", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal)
+	respA, err := svc.RouteAndSubmitInput(routeA, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:  "agent-1",
+		RequestId:    "req-alpha-1",
+		Text:         "private alpha note",
+		EntrySurface: "app.alpha",
+	})
+	if err != nil {
+		t.Fatalf("alpha RouteAndSubmitInput: %v", err)
+	}
+	alphaRef := respA.GetResolvedWorkSessionRef()
+
+	// Subject B (app.pcbody) has agent.local + agent.body.pc WITHOUT agent.session.manage.
+	// It MUST NOT see, get, or delete Subject A's session, nor route writable workspaces!
+	listB := callerCtxWithExactDomains("app.pcbody", "subj-pcbody", DomainAgentLocal, localappop.OperationAgentSessionList, DomainAgentLocal+","+DomainAgentBodyPC)
+	listed, err := svc.ListSessions(listB, &runtimev1.ListSessionsRequest{AgentHandle: "agent-1"})
+	if err != nil {
+		t.Fatalf("ListSessions: %v", err)
+	}
+	if len(listed.GetItems()) != 0 {
+		t.Fatalf("agent.body.pc WITHOUT agent.session.manage leaked cross-publisher sessions: %+v", listed.GetItems())
+	}
+
+	delB := callerCtxWithExactDomains("app.pcbody", "subj-pcbody", DomainAgentLocal, localappop.OperationAgentSessionDelete, DomainAgentLocal+","+DomainAgentBodyPC)
+	if _, err := svc.DeleteSession(delB, &runtimev1.DeleteSessionRequest{WorkSessionRef: alphaRef, Confirmed: true}); status.Code(err) != codes.NotFound {
+		t.Fatalf("agent.body.pc WITHOUT agent.session.manage must NOT delete other publisher session, got %v", err)
+	}
+
+	routeWriteB := callerCtxWithExactDomains("app.pcbody", "subj-pcbody", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentBodyPC)
+	if _, err := svc.RouteAndSubmitInput(routeWriteB, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-pcbody-write",
+		Text:              "edit repo",
+		WorkspaceRoot:     "/repo",
+		WorkspaceWritable: true,
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("agent.body.pc WITHOUT agent.session.manage must NOT route writable workspace, got %v", err)
+	}
+
+	// Single-active-subject lease fence: Subject B registers on device "pc-a";
+	// Subject C (another agent.body.pc app) MUST be rejected even on a DIFFERENT device "pc-b"!
+	regB := callerCtxWithExactDomains("app.pcbody", "subj-pcbody", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentBodyPC)
+	if _, err := svc.RegisterBodyCarrier(regB, &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "pc-a",
+		CapabilityNamespace: DefaultPCNamespace,
+		InstanceId:          "inst-a",
+	}); err != nil {
+		t.Fatalf("RegisterBodyCarrier subj-pcbody: %v", err)
+	}
+	regC := callerCtxWithExactDomains("app.rival", "subj-rival", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentBodyPC)
+	if _, err := svc.RegisterBodyCarrier(regC, &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "pc-b",
+		CapabilityNamespace: DefaultPCNamespace,
+		InstanceId:          "inst-b",
+	}); status.Code(err) != codes.PermissionDenied && status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("competing subject on different device_id MUST fail with lease conflict, got %v", err)
+	}
+
+	// Option A: WatchSessionOverview baseline must report active_pc_carrier_app_id == "app.pcbody" (NOT hardcoded nimi.harness!).
+	watchBaseCtx, watchCancel := context.WithCancel(callerCtxWithExactDomains("app.home", "subj-home", DomainAgentSessionManage, localappop.OperationAgentSessionOverviewWatch, DomainAgentLocal+","+DomainAgentSessionManage))
+	defer watchCancel()
+	ovStream := &fakeOverviewStream{ctx: watchBaseCtx, cancel: watchCancel}
+	_ = svc.WatchSessionOverview(&runtimev1.WatchSessionOverviewRequest{}, ovStream)
+	if len(ovStream.deltas) == 0 || !ovStream.deltas[0].GetCarrierOnline() || ovStream.deltas[0].GetActivePcCarrierAppId() != "app.pcbody" {
+		t.Fatalf("expected Option A active_pc_carrier_app_id=app.pcbody, got %+v", ovStream.deltas)
+	}
+}
+
+func TestAuditDeleteSessionCrashRecoveryAndRetry(t *testing.T) {
+	var failCleanup atomic.Bool
+	failCleanup.Store(true)
+	var cleanupCalls atomic.Int32
+
+	svc := newStage2Service(t, Options{
+		MemoryCleanupHook: func(_ context.Context, _, _, _ string) (uint32, error) {
+			cleanupCalls.Add(1)
+			if failCleanup.Load() {
+				return 0, errors.New("simulated memory.db transient error")
+			}
+			return 2, nil
+		},
+	})
+
+	routeCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage)
+	routed, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-del-1",
+		Text:              "build app",
+		WorkspaceRoot:     "/ws",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput: %v", err)
+	}
+	ref := routed.GetResolvedWorkSessionRef()
+
+	// First DeleteSession marks session 'deleting' then fails at Cognition cleanup.
+	delCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionDelete, DomainAgentLocal+","+DomainAgentSessionManage)
+	if _, err := svc.DeleteSession(delCtx, &runtimev1.DeleteSessionRequest{WorkSessionRef: ref, Confirmed: true}); status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal error on simulated Cognition failure, got %v", err)
+	}
+
+	// Session must be invisible to normal GetSession but visible to DeleteSession retry!
+	if _, err := svc.Store().GetSession(context.Background(), "acct-1", ref); !errors.Is(err, errSessionNotFound) {
+		t.Fatalf("expected normal GetSession to hide deleting row, got %v", err)
+	}
+
+	// Retry DeleteSession after transient error clears -> MUST succeed and enqueue PURGE_SESSION!
+	failCleanup.Store(false)
+	delResp, err := svc.DeleteSession(delCtx, &runtimev1.DeleteSessionRequest{WorkSessionRef: ref, Confirmed: true})
+	if err != nil || !delResp.GetDeleted() || delResp.GetForgottenMemoryCount() != 2 || delResp.GetOutboxId() == "" {
+		t.Fatalf("DeleteSession retry from 'deleting' MUST converge, got resp=%+v err=%v", delResp, err)
+	}
+	if cleanupCalls.Load() != 2 {
+		t.Fatalf("expected 2 cleanup attempts, got %d", cleanupCalls.Load())
+	}
+
+	// Also test RecoverPendingDeletions directly on a second session stuck in 'deleting'.
+	routed2, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-del-2",
+		Text:              "second task",
+		WorkspaceRoot:     "/ws2",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput 2: %v", err)
+	}
+	failCleanup.Store(true)
+	_, _ = svc.DeleteSession(delCtx, &runtimev1.DeleteSessionRequest{WorkSessionRef: routed2.GetResolvedWorkSessionRef(), Confirmed: true})
+	failCleanup.Store(false)
+	if err := svc.RecoverPendingDeletions(context.Background()); err != nil {
+		t.Fatalf("RecoverPendingDeletions: %v", err)
+	}
+	stillDeleting, err := svc.Store().ListDeletingSessions(context.Background())
+	if err != nil || len(stillDeleting) != 0 {
+		t.Fatalf("expected 0 sessions stuck in deleting after recovery, got %+v err=%v", stillDeleting, err)
+	}
+}
+
+func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
+	var stepInvocations atomic.Int32
+	svc := newStage2Service(t, Options{
+		ReadSetQualifier: func(_ context.Context, _, _, _ string, epoch int64) (bool, int64, error) {
+			return true, epoch, nil
+		},
+		BodyStepExecutor: func(_ context.Context, in BodyStepExecutionInput, emitter BodyStepEmitter) (BodyStepExecutionResult, error) {
+			n := stepInvocations.Add(1)
+			if in.Purpose == runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION {
+				// Simulate bad model trying to emit empty summary on compaction
+				return BodyStepExecutionResult{FinishReason: "stop", CompactionSummary: ""}, nil
+			}
+			if n == 1 {
+				// Emit tool call containing HTML/JSX characters `<`, `>`, `&&`!
+				call := &runtimev1.BodyToolCall{
+					CallId:        "call_html_1",
+					Name:          "write",
+					ArgumentsJson: `{"content":"<div>a && b</div>","path":"App.tsx"}`,
+				}
+				_ = emitter.SendToolCall(call)
+				return BodyStepExecutionResult{
+					FinishReason:    "tool_calls",
+					AssistantText:   "Writing App.tsx",
+					IssuedToolCalls: []*runtimev1.BodyToolCall{call},
+				}, nil
+			}
+			// Step 2: model repeats call_html_1 — MUST NOT un-consume call_html_1!
+			dupCall := &runtimev1.BodyToolCall{
+				CallId:        "call_html_1",
+				Name:          "write",
+				ArgumentsJson: `{"content":"<div>a && b</div>","path":"App.tsx"}`,
+			}
+			_ = emitter.SendToolCall(dupCall)
+			return BodyStepExecutionResult{
+				FinishReason:    "stop",
+				AssistantText:   "Done",
+				IssuedToolCalls: []*runtimev1.BodyToolCall{dupCall},
+			}, nil
+		},
+	})
+
+	regCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentLocal+","+DomainAgentSessionManage+","+DomainAgentBodyPC)
+	reg, err := svc.RegisterBodyCarrier(regCtx, &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		InstanceId:          "inst-1",
+	})
+	if err != nil {
+		t.Fatalf("RegisterBodyCarrier: %v", err)
+	}
+	routeCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage+","+DomainAgentBodyPC)
+	routed, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-step-1",
+		Text:              "create App.tsx",
+		WorkspaceRoot:     "/repo",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput: %v", err)
+	}
+	ref := routed.GetResolvedWorkSessionRef()
+
+	// Step 1 with step_request_id="step-req-1"
+	stepCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream, DomainAgentBodyPC)
+	userMsg := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"create App.tsx"`, OutboxId: routed.GetOutboxId()}
+	stream1 := &fakeBodyStepStream{ctx: stepCtx}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{userMsg},
+		StepRequestId:       "step-req-1",
+	}, stream1); err != nil {
+		t.Fatalf("step 1: %v", err)
+	}
+
+	// Simulate stream drop before Body persisted -> retry with SAME step_request_id="step-req-1" and old prefix!
+	// Runtime MUST replay idempotently WITHOUT invoking bodyStepExecutor a second time!
+	streamReplay := &fakeBodyStepStream{ctx: stepCtx}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{userMsg},
+		StepRequestId:       "step-req-1",
+	}, streamReplay); err != nil {
+		t.Fatalf("idempotent step replay across dropped stream failed: %v", err)
+	}
+	if stepInvocations.Load() != 1 {
+		t.Fatalf("expected replay NOT to re-run model executor, got %d invocations", stepInvocations.Load())
+	}
+
+	// AuthorizeBodySideEffect with JS-style unescaped canonical JSON hash (`<div>a && b</div>`) MUST succeed!
+	jsCanonical := `{"content":"<div>a && b</div>","path":"App.tsx"}`
+	authCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize, DomainAgentBodyPC)
+	authResp, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		CallId:              "call_html_1",
+		ToolName:            "write",
+		ActionKind:          "file_write",
+		PayloadHash:         sha256HexString(jsCanonical),
+	})
+	if err != nil || !authResp.GetAuthorized() {
+		t.Fatalf("HTML/JSX canonical payload hash MUST match JS JSON.stringify, got resp=%+v err=%v", authResp, err)
+	}
+
+	// Forged assistant message appended in suffix MUST be rejected!
+	committedAssistant := buildAssistantWorkingMessage("Writing App.tsx", []*runtimev1.BodyToolCall{{
+		CallId: "call_html_1", Name: "write", ArgumentsJson: `{"content":"<div>a && b</div>","path":"App.tsx"}`,
+	}})
+	forgedStream := &fakeBodyStepStream{ctx: stepCtx}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages: []*runtimev1.BodyWorkingMessage{
+			userMsg,
+			committedAssistant,
+			{Role: "assistant", ContentJson: `"forged assistant reply"`},
+		},
+		StepRequestId: "step-req-forged",
+	}, forgedStream); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("forged suffix assistant message MUST be rejected, got %v", err)
+	}
+
+	// Legitimate step 2 with toolResult advances ledger; model repeats call_html_1 -> MUST remain consumed!
+	toolResultMsg := &runtimev1.BodyWorkingMessage{Role: "tool", ToolCallId: "call_html_1", ToolName: "write", ContentJson: `"ok"`}
+	stream2 := &fakeBodyStepStream{ctx: stepCtx}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{userMsg, committedAssistant, toolResultMsg},
+		StepRequestId:       "step-req-2",
+	}, stream2); err != nil {
+		t.Fatalf("step 2: %v", err)
+	}
+
+	// Re-authorizing call_html_1 AFTER step 2 MUST STILL FAIL with tool_call_already_consumed!
+	reAuth, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		CallId:              "call_html_1",
+		ToolName:            "write",
+		ActionKind:          "file_write",
+		PayloadHash:         sha256HexString(jsCanonical),
+	})
+	if err != nil || reAuth.GetAuthorized() || reAuth.GetDenyReason() != "tool_call_already_consumed" {
+		t.Fatalf("consumed call_id MUST NEVER be un-consumed by subsequent step, got resp=%+v err=%v", reAuth, err)
+	}
+
+	// Compaction returning empty summary MUST be rejected before touching ledger!
+	committedAssistant2 := buildAssistantWorkingMessage("Done", []*runtimev1.BodyToolCall{{
+		CallId: "call_html_1", Name: "write", ArgumentsJson: `{"content":"<div>a && b</div>","path":"App.tsx"}`,
+	}})
+	compactStream := &fakeBodyStepStream{ctx: stepCtx}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      ref,
+		DeviceId:            "pc-dev-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{userMsg, committedAssistant, toolResultMsg, committedAssistant2},
+		KeptTailMessages:    []*runtimev1.BodyWorkingMessage{committedAssistant2},
+		StepRequestId:       "step-req-compact-empty",
+	}, compactStream); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("empty compaction summary MUST fail closed, got %v", err)
+	}
+}
+
+func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverges(t *testing.T) {
+	clock := time.Date(2026, 11, 24, 10, 0, 0, 0, time.UTC)
+	var memEpoch atomic.Int64
+	memEpoch.Store(42)
+
+	var svc *Service
+	svc = newStage2Service(t, Options{
+		Now: func() time.Time { return clock },
+		SupportedDeliveryChannel: func(ch string) bool {
+			return strings.ToLower(strings.TrimSpace(ch)) == "desktop_notification"
+		},
+		AlarmDeliverySender: func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, _, title, body string, _ time.Duration) AlarmDeliveryOutcome {
+			ref, err := svc.NotifyDesktopAlarm(ctx, accountID, alarm, title, body)
+			if err != nil {
+				return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED}
+			}
+			return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED, ProviderMessageRef: ref}
+		},
+		ReadSetQualifier: func(_ context.Context, _, _, _ string, lastEpoch int64) (bool, int64, error) {
+			cur := memEpoch.Load()
+			if lastEpoch > 0 && cur != lastEpoch {
+				return false, cur, nil
+			}
+			return true, cur, nil
+		},
+		BrainTurnExecutor: func(_ context.Context, in BrainTurnExecutionInput, emit func(eventType, payloadJSON string, persist bool) error) error {
+			// Emit ephemeral Seq==0 streaming deltas followed by persisted assistant_message.
+			_ = emit("text_delta", `{"delta":"Hello "}`, false)
+			_ = emit("text_delta", `{"delta":"World"}`, false)
+			return emit("assistant_message", `{"text":"Hello World"}`, true)
+		},
+		BodyStepExecutor: func(_ context.Context, _ BodyStepExecutionInput, _ BodyStepEmitter) (BodyStepExecutionResult, error) {
+			return BodyStepExecutionResult{FinishReason: "stop", AssistantText: "ok"}, nil
+		},
+	})
+
+	// 1. Verify SubscribeBrainSessionEvents delivers ephemeral Seq==0 text_delta frames!
+	routeCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage)
+	routedInbox, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:  "agent-1",
+		RequestId:    "req-brain-1",
+		Text:         "hi",
+		EntrySurface: "home",
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput inbox: %v", err)
+	}
+	subBase, subCancel := context.WithTimeout(callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionBrainEventsSubscribe, DomainAgentLocal+","+DomainAgentSessionManage), 3*time.Second)
+	defer subCancel()
+	brainStream := &fakeBrainEventStream{ctx: subBase, cancel: subCancel, target: 4}
+	doneSub := make(chan struct{})
+	go func() {
+		defer close(doneSub)
+		_ = svc.SubscribeBrainSessionEvents(&runtimev1.SubscribeBrainSessionEventsRequest{
+			WorkSessionRef: routedInbox.GetResolvedWorkSessionRef(),
+			AfterSeq:       0,
+		}, brainStream)
+	}()
+	time.Sleep(50 * time.Millisecond)
+	// Submit second turn while subscribed so live Seq==0 deltas stream directly.
+	if _, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:            "agent-1",
+		RequestId:              "req-brain-2",
+		Text:                   "stream me",
+		ExplicitWorkSessionRef: routedInbox.GetResolvedWorkSessionRef(),
+		EntrySurface:           "home",
+	}); err != nil {
+		t.Fatalf("RouteAndSubmitInput 2: %v", err)
+	}
+	<-doneSub
+	deltaCount := 0
+	for _, ev := range brainStream.events {
+		if ev.GetEventType() == "text_delta" && ev.GetSeq() == 0 {
+			deltaCount++
+		}
+	}
+	if deltaCount == 0 {
+		t.Fatalf("SubscribeBrainSessionEvents MUST deliver live Seq==0 text_delta events, got %+v", brainStream.events)
+	}
+
+	// 2. Verify Body ClearPendingAttention preserves delivered desktop alarm_reminder AND supports 'strict' mode!
+	regCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister, DomainAgentBodyPC)
+	reg, err := svc.RegisterBodyCarrier(regCtx, &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId:            "pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		InstanceId:          "inst-1",
+	})
+	if err != nil {
+		t.Fatalf("RegisterBodyCarrier: %v", err)
+	}
+	routedPC, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-pc-alarm",
+		Text:              "watch build",
+		WorkspaceRoot:     "/repo",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput pc: %v", err)
+	}
+	pcRef := routedPC.GetResolvedWorkSessionRef()
+	createAlarmCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmCreate, DomainAgentLocal+","+DomainAgentSessionManage+","+DomainAgentTriggerDelegate)
+	if _, err := svc.CreateAlarm(createAlarmCtx, &runtimev1.CreateAlarmRequest{
+		AgentHandle:          "agent-1",
+		TargetWorkSessionRef: pcRef,
+		AlarmKind:            runtimev1.AlarmKind_ALARM_KIND_DELAY,
+		DelaySeconds:         5,
+		TemplateTitle:        "Build check",
+		TemplateBody:         "Check status",
+	}); err != nil {
+		t.Fatalf("CreateAlarm: %v", err)
+	}
+	clock = clock.Add(10 * time.Second)
+	if _, err := svc.TickAlarms(context.Background(), clock); err != nil {
+		t.Fatalf("TickAlarms: %v", err)
+	}
+
+	projCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport, DomainAgentBodyPC)
+	if _, err := svc.ReportBodySessionProjection(projCtx, &runtimev1.ReportBodySessionProjectionRequest{
+		WorkSessionRef:        pcRef,
+		DeviceId:              "pc-1",
+		CapabilityNamespace:   DefaultPCNamespace,
+		LeaseEpoch:            reg.GetLeaseEpoch(),
+		ProjectionSeq:         1,
+		PermissionMode:        "strict",
+		ClearPendingAttention: true,
+	}); err != nil {
+		t.Fatalf("ReportBodySessionProjection with strict mode & ClearPendingAttention failed: %v", err)
+	}
+	atts, err := svc.Store().ListPendingAttention(context.Background(), "acct-1")
+	if err != nil || len(atts) != 1 || atts[0].GetAttentionKind() != "alarm_reminder" {
+		t.Fatalf("ClearPendingAttention MUST preserve alarm_reminder, got %+v err=%v", atts, err)
+	}
+
+	// 3. Verify disabling memory (epoch 42 -> 0) converges cleanly after ACK instead of infinite invalidation!
+	stepCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream, DomainAgentBodyPC)
+	msg1 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"turn 1"`}
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      pcRef,
+		DeviceId:            "pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1},
+		StepRequestId:       "epoch-step-1",
+	}, &fakeBodyStepStream{ctx: stepCtx}); err != nil {
+		t.Fatalf("epoch step 1: %v", err)
+	}
+	// Disable memory -> epoch drops to 0.
+	memEpoch.Store(0)
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      pcRef,
+		DeviceId:            "pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), {Role: "user", ContentJson: `"turn 2"`}},
+		StepRequestId:       "epoch-step-2",
+	}, &fakeBodyStepStream{ctx: stepCtx}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected AGENT_SESSION_MEMORY_INVALIDATED on epoch 42->0, got %v", err)
+	}
+	tombstones, _, err := svc.Store().ListPendingOutbox(context.Background(), "acct-1", "pc-1", DefaultPCNamespace)
+	if err != nil || len(tombstones) == 0 {
+		t.Fatalf("expected INVALIDATE_MEMORY tombstone, got %+v err=%v", tombstones, err)
+	}
+	ackCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCOutboxAck, DomainAgentBodyPC)
+	if _, err := svc.AckBodyOutbox(ackCtx, &runtimev1.AckBodyOutboxRequest{
+		OutboxId:            tombstones[0].GetOutboxId(),
+		DeviceId:            "pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		ResultState:         "memory_invalidated",
+	}); err != nil {
+		t.Fatalf("AckBodyOutbox: %v", err)
+	}
+	// Next step with epoch == 0 MUST now SUCCEED cleanly!
+	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef:      pcRef,
+		DeviceId:            "pc-1",
+		CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch:          reg.GetLeaseEpoch(),
+		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), {Role: "user", ContentJson: `"turn 2"`}},
+		StepRequestId:       "epoch-step-3",
+	}, &fakeBodyStepStream{ctx: stepCtx}); err != nil {
+		t.Fatalf("step after ACKing epoch 42->0 invalidation MUST succeed, got %v", err)
 	}
 }

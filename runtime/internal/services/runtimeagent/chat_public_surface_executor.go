@@ -183,12 +183,12 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	timeoutMs := int32(publicChatDefaultTurnTimeoutMs)
 	if deadline, ok := ctx.Deadline(); ok {
 		if remaining := time.Until(deadline); remaining > 0 {
-			remMs := int32(remaining.Milliseconds())
-			if remMs > 600_000 {
-				remMs = 600_000
+			remMs64 := remaining.Milliseconds()
+			if remMs64 > 600_000 {
+				remMs64 = 600_000
 			}
-			if remMs > timeoutMs {
-				timeoutMs = remMs
+			if remMs64 > int64(timeoutMs) {
+				timeoutMs = int32(remMs64)
 			}
 		}
 	}

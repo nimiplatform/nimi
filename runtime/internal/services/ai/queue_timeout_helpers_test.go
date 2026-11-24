@@ -47,7 +47,7 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 		},
 		{
 			name:           "reject public override above runtime max",
-			timeoutMS:      int32((10 * time.Minute) / time.Millisecond),
+			timeoutMS:      int32((maxRuntimeRequestTimeout + time.Minute) / time.Millisecond),
 			defaultTimeout: defaultGenerateTimeout,
 			wantError:      true,
 		},

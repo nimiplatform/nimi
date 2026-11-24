@@ -60,6 +60,7 @@ type Options struct {
 	SupportedDeliveryChannel  func(channel string) bool
 	AlarmLLMRunner            AlarmLLMRunner
 	DailyAlarmLLMBudgetTokens int64
+	AgentTerminatedChecker    func(accountID, agentBinding string) bool
 }
 
 type carrierLease struct {
@@ -122,15 +123,17 @@ type Service struct {
 	supportedDeliveryChannel  func(channel string) bool
 	alarmLLMRunner            AlarmLLMRunner
 	dailyAlarmLLMBudgetTokens int64
+	agentTerminatedChecker    func(accountID, agentBinding string) bool
 
 	mu                    sync.Mutex
+	closed                bool
 	outboxSubscribers     map[string]map[*outboxSubscriber]struct{}
 	overviewSubscribers   map[*overviewSubscriber]struct{}
 	brainEventSubscribers map[string]map[*brainEventSubscriber]struct{}
 	brainTurnCancels      map[string]brainTurnCancelEntry
 	brainTurnSeq          uint64
 	brainTurnsWg          sync.WaitGroup
-	sessionStepLocks      map[string]*sync.Mutex
+	sessionStepLocks      map[string]chan struct{}
 	alarmTickerParent     context.Context
 	alarmTickerInterval   time.Duration
 	alarmTickerCancel     context.CancelFunc
@@ -139,8 +142,9 @@ type Service struct {
 }
 
 type brainTurnCancelEntry struct {
-	id     uint64
-	cancel context.CancelFunc
+	id      uint64
+	turnRef string
+	cancel  context.CancelFunc
 }
 
 // Open initializes an AgentSessionService backed by a physically isolated
@@ -211,11 +215,12 @@ func Open(opts Options) (*Service, error) {
 		supportedDeliveryChannel:  opts.SupportedDeliveryChannel,
 		alarmLLMRunner:            opts.AlarmLLMRunner,
 		dailyAlarmLLMBudgetTokens: opts.DailyAlarmLLMBudgetTokens,
+		agentTerminatedChecker:    opts.AgentTerminatedChecker,
 		outboxSubscribers:         make(map[string]map[*outboxSubscriber]struct{}),
 		overviewSubscribers:       make(map[*overviewSubscriber]struct{}),
 		brainEventSubscribers:     make(map[string]map[*brainEventSubscriber]struct{}),
 		brainTurnCancels:          make(map[string]brainTurnCancelEntry),
-		sessionStepLocks:          make(map[string]*sync.Mutex),
+		sessionStepLocks:          make(map[string]chan struct{}),
 	}, nil
 }
 
@@ -229,12 +234,14 @@ func New(opts Options) *Service {
 	return svc
 }
 
-// Close cancels active brain turns and closes any owned sessions.db store.
-func (s *Service) Close() error {
+// Quiesce marks the service closed to new background brain turns, stops the
+// alarm/recovery ticker, and waits for in-flight brain turns to finish.
+func (s *Service) Quiesce() {
 	if s == nil {
-		return nil
+		return
 	}
 	s.mu.Lock()
+	s.closed = true
 	alarmCancel := s.alarmTickerCancel
 	alarmDone := s.alarmTickerDone
 	s.alarmTickerCancel = nil
@@ -255,6 +262,14 @@ func (s *Service) Close() error {
 		<-alarmDone
 	}
 	s.brainTurnsWg.Wait()
+}
+
+// Close cancels active brain turns and closes any owned sessions.db store.
+func (s *Service) Close() error {
+	if s == nil {
+		return nil
+	}
+	s.Quiesce()
 	var err error
 	if s.ownsStore && s.store != nil {
 		err = s.store.Close()
@@ -360,7 +375,9 @@ func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duratio
 
 	go func() {
 		defer close(done)
-		// Run an immediate startup/wake-merge sweep before waiting for the ticker.
+		// Run immediate startup recovery for interrupted deletes/purges and wake-merge alarm sweep.
+		_ = s.RecoverPendingDeletions(ctx)
+		_ = s.RecoverPendingAgentPurges(ctx)
 		_, _ = s.TickAlarms(ctx, s.now().UTC())
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -369,6 +386,8 @@ func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duratio
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				_ = s.RecoverPendingDeletions(ctx)
+				_ = s.RecoverPendingAgentPurges(ctx)
 				_, _ = s.TickAlarms(ctx, s.now().UTC())
 			}
 		}
@@ -382,6 +401,7 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 		return nil
 	}
 	s.mu.Lock()
+	s.closed = true
 	alarmCancel := s.alarmTickerCancel
 	alarmDone := s.alarmTickerDone
 	s.alarmTickerCancel = nil
@@ -430,12 +450,43 @@ func (s *Service) ResumeDataRootAfterAbort() {
 		return
 	}
 	s.mu.Lock()
+	s.closed = false
 	parent := s.alarmTickerParent
 	interval := s.alarmTickerInterval
 	active := s.alarmTickerCancel != nil
 	s.mu.Unlock()
 	if !active && parent != nil && parent.Err() == nil && interval > 0 {
 		s.StartAlarmTicker(parent, interval)
+	}
+}
+
+func buildDesktopAlarmAttention(alarm *runtimev1.SessionAlarmRecord, renderedTitle, renderedBody string, now time.Time) *runtimev1.PendingAttentionRecord {
+	occ := strings.TrimSpace(alarm.GetNextFireAt())
+	if occ == "" {
+		occ = formatRFC3339(now.UTC().Truncate(time.Second))
+	}
+	// Deterministic idempotency key per (alarm_id, scheduled_occurrence) prevents
+	// duplicate desktop notifications across crashes or claim-lease retries.
+	attentionID := fmt.Sprintf("alarm_%s_%s", alarm.GetAlarmId(), occ)
+	summaryJSON, _ := jsonMarshalNoEscape(map[string]any{
+		"alarmId":   alarm.GetAlarmId(),
+		"title":     renderedTitle,
+		"body":      renderedBody,
+		"alarmKind": int32(alarm.GetAlarmKind()),
+	})
+	trustScope := strings.TrimSpace(alarm.GetSourcePublisher())
+	if trustScope == "" {
+		trustScope = "account:session_manage"
+	}
+	return &runtimev1.PendingAttentionRecord{
+		AttentionId:    attentionID,
+		WorkSessionRef: alarm.GetTargetWorkSessionRef(),
+		AgentBinding:   alarm.GetAgentBinding(),
+		AttentionKind:  "alarm_reminder",
+		TrustScope:     trustScope,
+		SummaryJson:    summaryJSON,
+		ExpiresAt:      formatRFC3339(now.Add(24 * time.Hour)),
+		UpdatedAt:      formatRFC3339(now),
 	}
 }
 
@@ -453,28 +504,97 @@ func (s *Service) NotifyDesktopAlarm(
 		return "", fmt.Errorf("desktop alarm notification unavailable")
 	}
 	now := s.now().UTC()
-	attentionID := fmt.Sprintf("alarm_%s_%d", alarm.GetAlarmId(), now.UnixNano())
-	summaryJSON := fmt.Sprintf(`{"alarmId":%q,"title":%q,"body":%q,"alarmKind":%d}`,
-		alarm.GetAlarmId(), renderedTitle, renderedBody, int32(alarm.GetAlarmKind()))
-	trustScope := strings.TrimSpace(alarm.GetSourcePublisher())
-	if trustScope == "" {
-		trustScope = "account:session_manage"
-	}
-	att := &runtimev1.PendingAttentionRecord{
-		AttentionId:    attentionID,
-		WorkSessionRef: alarm.GetTargetWorkSessionRef(),
-		AgentBinding:   alarm.GetAgentBinding(),
-		AttentionKind:  "alarm_reminder",
-		TrustScope:     trustScope,
-		SummaryJson:    summaryJSON,
-		ExpiresAt:      formatRFC3339(now.Add(24 * time.Hour)),
-		UpdatedAt:      formatRFC3339(now),
-	}
+	att := buildDesktopAlarmAttention(alarm, renderedTitle, renderedBody, now)
 	if err := s.store.UpsertPendingAttention(ctx, accountID, att, now); err != nil {
 		return "", err
 	}
 	s.notifyOverviewChange(accountID, nil, nil)
-	return "desktop-attention:" + attentionID, nil
+	return "desktop-attention:" + att.GetAttentionId(), nil
+}
+
+// EnqueueAndPurgeAgent durably records a pending agent purge BEFORE cascading
+// into sessions.db so a transient failure or crash always converges on restart.
+func (s *Service) EnqueueAndPurgeAgent(ctx context.Context, accountID, agentBinding string) error {
+	if s == nil || s.store == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(agentBinding) == "" {
+		return nil
+	}
+	acct := strings.TrimSpace(accountID)
+	agent := strings.TrimSpace(agentBinding)
+	if err := s.store.EnqueuePendingAgentPurge(ctx, acct, agent, s.now().UTC()); err != nil {
+		return err
+	}
+	if err := s.PurgeAgent(ctx, acct, agent); err != nil {
+		return err
+	}
+	return s.store.DeletePendingAgentPurge(ctx, acct, agent)
+}
+
+// RecoverPendingDeletions finishes any sessions left in durable 'deleting' state
+// across crashes or transient Cognition errors so memory cutoffs, lineage forgets,
+// and PURGE_SESSION tombstones always converge.
+func (s *Service) RecoverPendingDeletions(ctx context.Context) error {
+	if s == nil || s.store == nil {
+		return nil
+	}
+	deleting, err := s.store.ListDeletingSessions(ctx)
+	if err != nil {
+		return err
+	}
+	var firstErr error
+	for _, row := range deleting {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if _, _, _, compErr := s.completeSessionDeletion(ctx, row.AccountID, row); compErr != nil && firstErr == nil {
+			firstErr = compErr
+		}
+	}
+	return firstErr
+}
+
+// RecoverPendingAgentPurges replays durable pending agent purges AND reconciles
+// any active sessions/alarms whose LocalAgent is already terminated (closing the
+// startup hook-ordering window).
+func (s *Service) RecoverPendingAgentPurges(ctx context.Context) error {
+	if s == nil || s.store == nil {
+		return nil
+	}
+	pending, err := s.store.ListPendingAgentPurges(ctx)
+	if err != nil {
+		return err
+	}
+	var firstErr error
+	for _, item := range pending {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if err := s.PurgeAgent(ctx, item.AccountID, item.AgentBinding); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		_ = s.store.DeletePendingAgentPurge(ctx, item.AccountID, item.AgentBinding)
+	}
+	s.mu.Lock()
+	checker := s.agentTerminatedChecker
+	s.mu.Unlock()
+	if checker != nil {
+		active, listErr := s.store.ListDistinctActiveAgentBindings(ctx)
+		if listErr == nil {
+			for _, item := range active {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+				if checker(item.AccountID, item.AgentBinding) {
+					if err := s.EnqueueAndPurgeAgent(ctx, item.AccountID, item.AgentBinding); err != nil && firstErr == nil {
+						firstErr = err
+					}
+				}
+			}
+		}
+	}
+	return firstErr
 }
 
 // PurgeAgent cascades LocalAgent termination into sessions.db: cancels active
@@ -510,19 +630,23 @@ func (s *Service) PurgeAgent(ctx context.Context, accountID, agentBinding string
 	return nil
 }
 
-func (s *Service) lockSessionStep(workSessionRef string) func() {
+func (s *Service) lockSessionStepContext(ctx context.Context, workSessionRef string) (func(), error) {
 	s.mu.Lock()
 	if s.sessionStepLocks == nil {
-		s.sessionStepLocks = make(map[string]*sync.Mutex)
+		s.sessionStepLocks = make(map[string]chan struct{})
 	}
-	mu := s.sessionStepLocks[workSessionRef]
-	if mu == nil {
-		mu = &sync.Mutex{}
-		s.sessionStepLocks[workSessionRef] = mu
+	sem := s.sessionStepLocks[workSessionRef]
+	if sem == nil {
+		sem = make(chan struct{}, 1)
+		s.sessionStepLocks[workSessionRef] = sem
 	}
 	s.mu.Unlock()
-	mu.Lock()
-	return mu.Unlock
+	select {
+	case sem <- struct{}{}:
+		return func() { <-sem }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (s *Service) deleteSessionStepLock(workSessionRef string) {
@@ -610,7 +734,7 @@ func isClosed(ch <-chan struct{}) bool {
 }
 
 func hasSessionManage(decision accountservice.LocalAppCallerDecision) bool {
-	return decision.HasActivatedDomain(DomainAgentSessionManage) || decision.HasActivatedDomain(DomainAgentBodyPC)
+	return decision.HasActivatedDomain(DomainAgentSessionManage)
 }
 
 func hasCompanionScope(decision accountservice.LocalAppCallerDecision) bool {
@@ -986,7 +1110,7 @@ func (s *Service) notifyOutboxSubscribers(accountID, deviceID, capabilityNamespa
 }
 
 func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.WorkSessionRecord, removed []*runtimev1.WorkSessionRecord) {
-	_, carrierOnline, _ := s.store.FindActiveCarrierDevice(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
+	_, activePCCarrierAppID, carrierOnline, _ := s.store.FindActiveCarrier(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
 	allAtt, _ := s.store.ListPendingAttention(context.Background(), accountID)
 
 	s.mu.Lock()
@@ -1039,6 +1163,7 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 			RemovedWorkSessionRefs: visibleRemoved,
 			AttentionItems:         visibleAtt,
 			CarrierOnline:          carrierOnline,
+			ActivePcCarrierAppId:   activePCCarrierAppID,
 		}
 		select {
 		case sub.ch <- delta:
@@ -1067,10 +1192,7 @@ func (s *Service) notifyBrainEventSubscribers(env *runtimev1.BrainSessionEventEn
 }
 
 func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDecision, session *runtimev1.WorkSessionRecord, userText, requestID string) {
-	s.mu.Lock()
-	executor := s.brainTurnExecutor
-	s.mu.Unlock()
-	if executor == nil || session == nil {
+	if session == nil {
 		return
 	}
 	accountID := decision.AccountID
@@ -1078,15 +1200,22 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s.mu.Lock()
+	if s.closed || s.brainTurnExecutor == nil {
+		s.mu.Unlock()
+		cancel()
+		return
+	}
+	executor := s.brainTurnExecutor
 	if prev, ok := s.brainTurnCancels[ref]; ok && prev.cancel != nil {
 		prev.cancel()
 	}
 	s.brainTurnSeq++
 	turnID := s.brainTurnSeq
-	s.brainTurnCancels[ref] = brainTurnCancelEntry{id: turnID, cancel: cancel}
+	s.brainTurnCancels[ref] = brainTurnCancelEntry{id: turnID, turnRef: strings.TrimSpace(requestID), cancel: cancel}
+	// Add(1) strictly under s.mu while !s.closed so Close()/Quiesce() Wait() never races.
+	s.brainTurnsWg.Add(1)
 	s.mu.Unlock()
 
-	s.brainTurnsWg.Add(1)
 	go func() {
 		defer s.brainTurnsWg.Done()
 		defer func() {
@@ -1097,7 +1226,7 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 			}
 			s.mu.Unlock()
 		}()
-		history, _ := s.store.ListBrainEvents(ctx, ref, 0, 0, 64)
+		history, _ := s.store.ListRecentBrainEvents(ctx, ref, 64)
 		err := executor(ctx, BrainTurnExecutionInput{
 			AccountID:      accountID,
 			CallerDecision: decision,
@@ -1125,7 +1254,10 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 			return nil
 		})
 		if err != nil && ctx.Err() == nil {
-			errPayload := fmt.Sprintf(`{"requestId":%q,"error":%q}`, requestID, err.Error())
+			errPayload, _ := jsonMarshalNoEscape(map[string]string{
+				"requestId": requestID,
+				"error":     err.Error(),
+			})
 			if env, appendErr := s.store.AppendBrainEvent(ctx, accountID, ref, "turn_error", errPayload, s.now().UTC()); appendErr == nil {
 				s.notifyBrainEventSubscribers(env)
 			}
@@ -1134,13 +1266,24 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 }
 
 func (s *Service) cancelBrainTurn(workSessionRef string) bool {
+	return s.cancelBrainTurnExpected(workSessionRef, "")
+}
+
+func (s *Service) cancelBrainTurnExpected(workSessionRef, expectedTurnRef string) bool {
+	expected := strings.TrimSpace(expectedTurnRef)
 	s.mu.Lock()
 	entry, ok := s.brainTurnCancels[workSessionRef]
-	if ok {
-		delete(s.brainTurnCancels, workSessionRef)
+	if !ok {
+		s.mu.Unlock()
+		return false
 	}
+	if expected != "" && entry.turnRef != expected {
+		s.mu.Unlock()
+		return false
+	}
+	delete(s.brainTurnCancels, workSessionRef)
 	s.mu.Unlock()
-	if ok && entry.cancel != nil {
+	if entry.cancel != nil {
 		entry.cancel()
 		return true
 	}

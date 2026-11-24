@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -42,6 +43,7 @@ type BrainInlineTurnRuntimeInput struct {
 	LocalAgentRef        string
 	WorkSessionRef       string
 	SessionKind          string
+	TrustTier            string
 	UserText             string
 	RequestID            string
 	OfflineRecallContext string
@@ -91,8 +93,35 @@ func (s *Service) notifyAgentTerminated(ctx context.Context, accountID, localAge
 	}
 }
 
+// IsAgentTerminated reports whether localAgentRef is absent or no longer ACTIVE
+// for accountID, allowing AgentSessionService startup reconciliation to catch
+// any termination committed before hooks were attached or across crashes.
+func (s *Service) IsAgentTerminated(accountID, localAgentRef string) bool {
+	if s == nil {
+		return false
+	}
+	acct := strings.TrimSpace(accountID)
+	ref := strings.TrimSpace(localAgentRef)
+	if acct == "" || ref == "" {
+		return false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.accountTerminationFencedLocked(acct) {
+		return true
+	}
+	entry, ok := s.agents[ref]
+	if !ok || entry == nil || entry.Agent == nil {
+		return true
+	}
+	if strings.TrimSpace(entry.Agent.GetOwnerUserId()) != acct {
+		return true
+	}
+	return entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE
+}
+
 // ResolveAgentSessionBinding resolves an opaque LocalApp agent_handle or
-// agent_binding (or, for callers activating agent.session.manage or agent.body.pc,
+// agent_binding (or, strictly for callers activating agent.session.manage,
 // a canonical local_agent_ref projected by AgentSessionService) against the active
 // LocalAgent inventory owned strictly by decision.AccountID.
 // Fails closed on cross-account or terminated targets without app_id privilege.
@@ -106,8 +135,7 @@ func (s *Service) ResolveAgentSessionBinding(
 		return "", localAppAgentAccessDenied()
 	}
 
-	canResolveCanonicalRef := decision.HasActivatedDomain(string(localappop.DomainAgentSessionManage)) ||
-		decision.HasActivatedDomain("agent.body.pc")
+	canResolveCanonicalRef := decision.HasActivatedDomain(string(localappop.DomainAgentSessionManage))
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -233,6 +261,7 @@ func (s *Service) ExecuteAgentBodyStep(
 		ctx,
 		accountID,
 		agentRef,
+		workRef,
 		execID,
 		latestUserQueryFromBodyMessages(in.CanonicalMessages),
 		true,
@@ -405,11 +434,13 @@ func (s *Service) ExecuteBrainInlineTurn(
 		defer releaseBinding()
 	}
 	textBinding := bindings[runtimeAgentAIConfigCapabilityTextGenerate]
-	allowPersonalMemory := in.SessionKind != "channel_external"
+	trustTier := strings.ToLower(strings.TrimSpace(in.TrustTier))
+	allowPersonalMemory := trustTier == "trusted" && in.SessionKind != "channel_external"
 	if compiledSystem := s.compileSessionPersonaSystemPrompt(
 		ctx,
 		in.AccountID,
 		in.LocalAgentRef,
+		in.WorkSessionRef,
 		execID,
 		in.UserText,
 		allowPersonalMemory,
@@ -418,7 +449,7 @@ func (s *Service) ExecuteBrainInlineTurn(
 		textBinding,
 	); compiledSystem != "" {
 		systemPrompt = compiledSystem
-		if strings.TrimSpace(in.OfflineRecallContext) != "" {
+		if allowPersonalMemory && strings.TrimSpace(in.OfflineRecallContext) != "" {
 			systemPrompt += "\n\n" + strings.TrimSpace(in.OfflineRecallContext)
 		}
 	}
@@ -522,6 +553,7 @@ func (s *Service) RunAlarmLLM(
 		ctx,
 		accountID,
 		localAgentRef,
+		"alarm:"+sessionKey,
 		execID,
 		prompt,
 		false,
@@ -648,6 +680,7 @@ func (s *Service) compileSessionPersonaSystemPrompt(
 	ctx context.Context,
 	accountID string,
 	localAgentRef string,
+	anchorID string,
 	execID string,
 	query string,
 	allowPersonalMemory bool,
@@ -660,12 +693,23 @@ func (s *Service) compileSessionPersonaSystemPrompt(
 		return ""
 	}
 	var memory []agentTurnMemoryInput
-	if allowPersonalMemory && strings.TrimSpace(query) != "" {
-		if loaded, _, memErr := s.loadLocalAgentCognitionMemoryInputsWithReadSet(ctx, localAgentRef, query); memErr == nil {
+	var readSet cognitionmemory.MemoryReadSet
+	trimmedQuery := strings.TrimSpace(query)
+	if allowPersonalMemory && trimmedQuery != "" {
+		if loaded, rs, memErr := s.loadLocalAgentCognitionMemoryInputsWithReadSet(ctx, localAgentRef, trimmedQuery); memErr == nil && len(loaded) > 0 {
 			memory = loaded
+			readSet = rs
 		}
 	}
-	current := agentTurnCurrentUserInput{Text: query}
+	effectiveQuery := trimmedQuery
+	if effectiveQuery == "" {
+		effectiveQuery = "[continue execution step]"
+	}
+	convAnchor := strings.TrimSpace(anchorID)
+	if convAnchor == "" {
+		convAnchor = "session:" + execID
+	}
+	current := agentTurnCurrentUserInput{Text: effectiveQuery}
 	cognition := s.publicChatRuntime().retrieveLocalAgentSourceCognition(ctx, accountID, localAgentRef, source, current, nil, nil, nil, publicChatAvailableActions{})
 	catalogDigest, err := hashSourceMaterializationDomainJCS(publicChatCatalogRevisionHashDomain, struct {
 		CatalogRevision string `json:"catalogRevision"`
@@ -673,22 +717,26 @@ func (s *Service) compileSessionPersonaSystemPrompt(
 		ProviderID      string `json:"providerId"`
 	}{binding.CatalogRevision, binding.ModelRevision, binding.ProviderID})
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("compile session persona catalog digest failed", "agent", localAgentRef, "error", err)
+		}
 		return ""
 	}
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
-		Source:         source,
-		LocalAgentRef:  localAgentRef,
-		ExecutionID:    execID,
-		RequestID:      execID,
-		RuntimePolicy:  []agentTurnRuntimePolicyInput{{PolicyID: publicChatContextRuntimePolicyID, Version: publicChatContextRuntimePolicyV1, Text: runtimePolicy}},
-		OutputContract: agentTurnOutputContractInput{ContractID: localAppWorkOutputContractID, Version: "v1", Instruction: outputContract},
-		Memory:         memory,
-		CurrentUserTurn: current,
-		Cognition:      cognition,
+		Source:               source,
+		LocalAgentRef:        localAgentRef,
+		ConversationAnchorID: convAnchor,
+		TurnID:               execID,
+		RequestID:            execID,
+		RuntimePolicy:        []agentTurnRuntimePolicyInput{{PolicyID: publicChatContextRuntimePolicyID, Version: publicChatContextRuntimePolicyV1, Text: runtimePolicy}},
+		OutputContract:       agentTurnOutputContractInput{ContractID: localAppWorkOutputContractID, Version: "v1", Instruction: outputContract},
+		Memory:               memory,
+		CurrentUserTurn:      current,
+		Cognition:            cognition,
 		Budget: agentTurnContextBudgetInput{
-			ContextWindowTokens:  binding.ContextWindowTokens,
-			ReservedOutputTokens: 4096,
-			ReservedSafetyTokens: publicChatContextSafetyTokens,
+			ContextWindowTokens:   binding.ContextWindowTokens,
+			ReservedOutputTokens:  4096,
+			ReservedSafetyTokens:  publicChatContextSafetyTokens,
 			ReservedAdapterTokens: publicChatContextAdapterTokens,
 		},
 		Route: agentTurnContextRouteInput{
@@ -697,7 +745,63 @@ func (s *Service) compileSessionPersonaSystemPrompt(
 		},
 	})
 	if err != nil || compiled == nil {
+		if s.logger != nil && err != nil {
+			s.logger.Warn("compile session persona turn context failed", "agent", localAgentRef, "anchor", convAnchor, "error", err)
+		}
 		return ""
+	}
+	// Qualify included canonical memory refs against live Cognition Memory lifecycle
+	// so stale/forgotten memories cannot silently enter a Body or Brain turn prompt.
+	if len(readSet.Refs) > 0 && s.cognitionMemoryFacade != nil {
+		includedRefs := make([]string, 0, len(readSet.Refs))
+		actual := map[string]bool{}
+		for _, lane := range compiled.PrivateLanes {
+			if lane.LaneID == agentTurnContextLaneCanonicalMemory {
+				for _, item := range lane.Items {
+					if item.Included {
+						actual[item.SourceRef.RefID] = true
+					}
+				}
+			}
+		}
+		for _, ref := range readSet.Refs {
+			if actual[ref] {
+				includedRefs = append(includedRefs, ref)
+			}
+		}
+		if len(includedRefs) > 0 {
+			readSet.Refs = includedRefs
+			s.cognitionMemoryOwnerLifecycleMu.Lock()
+			qualified, qErr := s.cognitionMemoryFacade.QualifyReadSet(ctx, localAgentRef, readSet)
+			s.cognitionMemoryOwnerLifecycleMu.Unlock()
+			if qErr != nil || len(qualified) != len(includedRefs) {
+				// Recompile cleanly without stale personal memory when memory shifted mid-compile.
+				compiledNoMem, reErr := compileAgentTurnContext(agentTurnContextCompileInput{
+					Source:               source,
+					LocalAgentRef:        localAgentRef,
+					ConversationAnchorID: convAnchor,
+					TurnID:               execID,
+					RequestID:            execID,
+					RuntimePolicy:        []agentTurnRuntimePolicyInput{{PolicyID: publicChatContextRuntimePolicyID, Version: publicChatContextRuntimePolicyV1, Text: runtimePolicy}},
+					OutputContract:       agentTurnOutputContractInput{ContractID: localAppWorkOutputContractID, Version: "v1", Instruction: outputContract},
+					CurrentUserTurn:      current,
+					Cognition:            cognition,
+					Budget: agentTurnContextBudgetInput{
+						ContextWindowTokens:   binding.ContextWindowTokens,
+						ReservedOutputTokens:  4096,
+						ReservedSafetyTokens:  publicChatContextSafetyTokens,
+						ReservedAdapterTokens: publicChatContextAdapterTokens,
+					},
+					Route: agentTurnContextRouteInput{
+						RouteDigest:           binding.RouteDigest,
+						CatalogRevisionDigest: catalogDigest,
+					},
+				})
+				if reErr == nil && compiledNoMem != nil {
+					compiled = compiledNoMem
+				}
+			}
+		}
 	}
 	for _, msg := range compiled.ProviderPrompt.Messages {
 		if strings.EqualFold(strings.TrimSpace(msg.Role), "system") && strings.TrimSpace(msg.Content) != "" {
@@ -795,10 +899,17 @@ func bodyWorkingMessagesToChatMessages(msgs []*runtimev1.BodyWorkingMessage, pur
 		role := strings.ToLower(strings.TrimSpace(m.GetRole()))
 		switch role {
 		case "user":
-			out = append(out, &runtimev1.ChatMessage{
-				Role:    "user",
-				Content: extractReadableMessageContent(m.GetContentJson()),
-			})
+			if parts := parseUserBodyContentParts(m.GetContentJson()); len(parts) > 0 {
+				out = append(out, &runtimev1.ChatMessage{
+					Role:  "user",
+					Parts: parts,
+				})
+			} else {
+				out = append(out, &runtimev1.ChatMessage{
+					Role:    "user",
+					Content: extractReadableMessageContent(m.GetContentJson()),
+				})
+			}
 		case "assistant":
 			turnItems := parseAssistantBodyTurnItems(m.GetContentJson())
 			if len(turnItems) > 0 {
@@ -839,6 +950,69 @@ func bodyWorkingMessagesToChatMessages(msgs []*runtimev1.BodyWorkingMessage, pur
 		})
 	}
 	return out, nil
+}
+
+func parseUserBodyContentParts(raw string) []*runtimev1.ChatContentPart {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || !strings.HasPrefix(trimmed, "[") {
+		return nil
+	}
+	var blocks []map[string]any
+	if json.Unmarshal([]byte(trimmed), &blocks) != nil || len(blocks) == 0 {
+		return nil
+	}
+	hasMedia := false
+	parts := make([]*runtimev1.ChatContentPart, 0, len(blocks))
+	for _, block := range blocks {
+		blockType, _ := block["type"].(string)
+		switch strings.ToLower(strings.TrimSpace(blockType)) {
+		case "text":
+			if txt, ok := block["text"].(string); ok && txt != "" {
+				parts = append(parts, &runtimev1.ChatContentPart{
+					Type:    runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
+					Content: &runtimev1.ChatContentPart_Text{Text: txt},
+				})
+			}
+		case "image":
+			data, _ := block["data"].(string)
+			mimeType, _ := block["mimeType"].(string)
+			if mimeType == "" {
+				mimeType, _ = block["mime_type"].(string)
+			}
+			if mimeType == "" {
+				mimeType = "image/png"
+			}
+			urlStr, _ := block["url"].(string)
+			if urlStr == "" && data != "" {
+				urlStr = "data:" + mimeType + ";base64," + data
+			}
+			if urlStr != "" {
+				hasMedia = true
+				parts = append(parts, &runtimev1.ChatContentPart{
+					Type:    runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					Content: &runtimev1.ChatContentPart_ImageUrl{ImageUrl: &runtimev1.ChatContentImageURL{Url: urlStr}},
+				})
+			}
+		case "image_url":
+			var urlStr string
+			if u, ok := block["image_url"].(string); ok {
+				urlStr = u
+			} else if obj, ok := block["image_url"].(map[string]any); ok {
+				urlStr, _ = obj["url"].(string)
+			}
+			if urlStr != "" {
+				hasMedia = true
+				parts = append(parts, &runtimev1.ChatContentPart{
+					Type:    runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+					Content: &runtimev1.ChatContentPart_ImageUrl{ImageUrl: &runtimev1.ChatContentImageURL{Url: urlStr}},
+				})
+			}
+		}
+	}
+	if !hasMedia {
+		return nil
+	}
+	return parts
 }
 
 func extractReadableMessageContent(raw string) string {
