@@ -180,6 +180,7 @@ async function finishFaceSwapJob(
     signal: context.input.observationSignal,
     cancelSignal: context.input.signal,
     onObservation: context.input.onObservation,
+    onJobUpdate: context.input.onJobUpdate,
   });
   if (outcome.kind === 'non-success') return outcome.result;
   const job = outcome.job;

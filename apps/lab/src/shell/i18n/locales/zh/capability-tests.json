@@ -74,7 +74,18 @@
       "streamIncomplete": "流式输出在完成前意外中断。",
       "jsonObjectScenario": "JSON 对象输出",
       "jsonObjectHint": "请求 JSON 对象输出。App 解析完整的最终文本，并确认结果为对象。",
-      "jsonObjectPassed": "JSON 对象测试通过：完整的最终文本已解析为对象。"
+      "jsonObjectPassed": "JSON 对象测试通过：完整的最终文本已解析为对象。",
+      "behaviors": {
+        "tool-use": "工具调用",
+        "structured-output": "结构化输出",
+        "reasoning": "推理控制"
+      },
+      "behaviorStatus": {
+        "configured": "Runtime 投影：当前模型已配置支持{{behavior}}。",
+        "unavailable": "Runtime 投影：当前模型不支持{{behavior}}。你仍可运行以验证 Runtime 的拒绝行为。",
+        "ambiguous": "Runtime 投影：当前社区或未认证模型的{{behavior}}支持状态不明确，你仍可运行以观察实际表现。",
+        "unobserved": "Runtime 投影：当前目标未报告{{behavior}}状态。"
+      }
     },
     "textDecide": {
       "label": "决策",
@@ -155,6 +166,8 @@
       "changedModel": "模型已更换，请选择可用设置。旧设置会在派发前被明确拒绝。",
       "effort": "推理强度",
       "budget": "精确 token 预算",
+      "budgetInvalid": "请输入 1 到 4294967295 之间的正整数，或恢复为沿用模型默认。",
+      "resetToDefault": "恢复模型默认",
       "presentation": "推理输出",
       "hidden": "不显示概要",
       "summary": "推理概要",

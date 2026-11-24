@@ -33,9 +33,9 @@ import { LabAIStudioAdapter } from './lab-ai-studio-adapter.js';
 
 export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRendererBindings): AIStudioHistoryRepository {
     const loadRecoveryReferences = async () => {
-      const references = [...await worldTourRecoveryReferences(rendererHost.sdk.localAppClient.storage)];
+      const references = [...await worldTourRecoveryReferences(rendererHost.sdk.storage.assets)];
       for (const capability of studioJobRecoveryCapabilities) {
-        for (const entry of await readStudioJobRecovery(rendererHost.sdk.localAppClient.storage, capability)) {
+        for (const entry of await readStudioJobRecovery(rendererHost.sdk.storage.assets, capability)) {
           references.push({ id: entry.clientSubmissionId, capabilityId: capability,
             jobId: entry.result?.ok && 'jobId' in entry.result ? entry.result.jobId : entry.jobId,
             complete: Boolean(entry.result?.ok), artifactPaths: [...new Set([
@@ -56,7 +56,7 @@ export function createLabAIStudioHistoryRepository(rendererHost: LabCanonicalRen
       removeImageHistory: (runId: string, ids: readonly string[]) => rendererHost.app.commands.removeImageHistory(runId, ids),
       loadRecoveryReferences,
       forgetRecoveryReference: (reference: { id: string; capabilityId: string }) => forgetStudioJobRecovery(
-        rendererHost.sdk.localAppClient.storage, reference.id, reference.capabilityId as StudioJobRecoveryCapability),
+        rendererHost.sdk.storage.assets, reference.id, reference.capabilityId as StudioJobRecoveryCapability),
       projectHistory: (runs: StudioRunHistory, images: readonly LabImageHistoryRecord[]) => reconcile(runs, images),
     };
 

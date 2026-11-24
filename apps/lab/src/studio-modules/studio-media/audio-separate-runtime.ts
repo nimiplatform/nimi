@@ -1,6 +1,6 @@
 import type { NimiLocalAppAudioInfo } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
-import { beginStudioJobRecovery, recordedStudioScenarioJobClient, recoverStudioJobId, captureStudioJobRecoveryJobId, readStudioJobRecovery, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
+import { beginStudioJobRecovery, StudioRecoveryWriteUnconfirmed, cleanupRejectedStudioRecoveryEntry, createRecordedStudioScenarioJobSession, isDefiniteUninvokedRunnerRejection, recoverStudioJobId, readStudioJobRecovery, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal } from '../../ai-studio-core/job-recovery.js';
 import { createStudioScenarioJobClient, projectStudioArtifactRunnerResult, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 import type { StudioManagedArtifact } from '../../ai-studio-core/runtime-types.js';
 import type { StudioAudioSeparateParameters } from './parameters.js';
@@ -10,7 +10,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   const parameters = context.input.parameters as StudioAudioSeparateParameters | undefined;
   const client = context.host.client; const signal = context.input.signal;
   if (parameters?.recoverySubmissionId) {
-    const entry = (await readStudioJobRecovery(client.storage, 'audio.separate')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
+    const entry = (await readStudioJobRecovery(client.storage.assets, 'audio.separate')).find(item => item.clientSubmissionId === parameters.recoverySubmissionId);
     if (!entry?.sourceAudio) throw new Error(context.host.translate('Music.recoveryMissing'));
     const saved = await restoreSavedStudioJobResult(entry, context.capability.label, 'audio.separate', client.storage.assets, studioJobRecoverySignal(context.input));
     if (saved) return saved;
@@ -19,7 +19,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
       jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: entry.sourceAudio,
       separationRequest: entry.separationRequest }, result);
-    await saveStudioJobRecoveryResult(client.storage, entry.clientSubmissionId, projected, 'audio.separate');
+    await saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'audio.separate');
     return projected;
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('AudioSeparate.configureInputs'));
@@ -65,19 +65,25 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
   try {
     signal?.throwIfAborted();
     if (adopted.sizeBytes !== separationInput.sizeBytes || adopted.mediaType !== separationInput.mimeType) throw new Error('Canonical source adoption changed metadata');
-    clientSubmissionId = await beginStudioJobRecovery(client.storage, 'audio.separate', sourceAudio, undefined,
+    clientSubmissionId = await beginStudioJobRecovery(client.storage.assets, 'audio.separate', sourceAudio, undefined,
       separationRequest, context.input.recordedRunConfig, context.input.prompt);
-  } catch (cause) { await client.storage.assets.remove(adopted.relativePath); throw cause; }
-  const scenarioClient = recordedStudioScenarioJobClient(context, clientSubmissionId, 'audio.separate');
-  const result = await context.host.runners.audioSeparate({ runtime: { ai: scenarioClient }, appId: context.host.appId,
+  } catch (cause) {
+    if (!(cause instanceof StudioRecoveryWriteUnconfirmed)) await client.storage.assets.remove(adopted.relativePath);
+    throw cause;
+  }
+  const session = createRecordedStudioScenarioJobSession(context, clientSubmissionId, 'audio.separate');
+  const result = await context.host.runners.audioSeparate({ runtime: { ai: session.client }, appId: context.host.appId,
       mimeType: separationInput.mimeType,
       sourceAudio: { artifactId: separationInput.artifactId, ...(sourceRange ? { range: sourceRange } : {}) },
       ...(parameters.includeInstrumentParts ? { includeInstrumentParts: true } : {}),
       scenarioId: context.scenarioId, surfaceId: context.host.surfaceId,
       signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason,
       onJobUpdate: context.input.onJobUpdate });
+  if (result.ok === false && !session.wasSubmitInvoked() && isDefiniteUninvokedRunnerRejection(result.error)) {
+    await cleanupRejectedStudioRecoveryEntry(client.storage.assets, 'audio.separate', clientSubmissionId);
+  }
   const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: sourceAudio, separationRequest }, result);
-  await saveStudioJobRecoveryResult(client.storage, clientSubmissionId, projected, 'audio.separate');
+  await saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'audio.separate');
   return projected;
 }
 

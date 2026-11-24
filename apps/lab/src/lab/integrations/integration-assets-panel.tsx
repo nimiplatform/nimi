@@ -4,6 +4,7 @@ import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
 import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.js';
+import { STUDIO_JOB_RECOVERY_PREFIX } from '../../ai-studio-core/job-recovery.js';
 import { IntegrationAssetPreview } from './integration-asset-preview.js';
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.integrations
@@ -24,7 +25,8 @@ export function IntegrationAssetsPanel({ busy, setAssetBusy }: { busy: boolean; 
     try {
       const page = await host.sdk.localAppClient.storage.assets.list({ prefix: '', pageSize: 100, cursor: nextCursor });
       if (!current()) return;
-      setAssets(previous => nextCursor ? [...new Map([...previous, ...page.assets].map(asset => [asset.relativePath, asset])).values()] : page.assets);
+      const visibleAssets = page.assets.filter((asset) => !asset.relativePath.startsWith(STUDIO_JOB_RECOVERY_PREFIX));
+      setAssets(previous => nextCursor ? [...new Map([...previous, ...visibleAssets].map(asset => [asset.relativePath, asset])).values()] : visibleAssets);
       setCursor(page.nextCursor); setLoaded(true);
     } catch { if (current()) setError(t('Integrations.filesLoadFailed')); }
     finally { if (current()) setLoading(false); }

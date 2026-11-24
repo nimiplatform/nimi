@@ -1,6 +1,36 @@
 import type { StudioResultKind } from './module-registration.js';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 
+export const STUDIO_TEXT_MEDIA_MIMES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'audio/wav',
+  'audio/mpeg',
+  'video/mp4',
+] as const;
+
+export type StudioTextMediaMime = (typeof STUDIO_TEXT_MEDIA_MIMES)[number];
+
+const STUDIO_TEXT_MEDIA_EXTENSIONS: Readonly<Record<StudioTextMediaMime, string>> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'audio/wav': 'wav',
+  'audio/mpeg': 'mp3',
+  'video/mp4': 'mp4',
+};
+
+export function isSupportedStudioTextMediaMime(value: string): value is StudioTextMediaMime {
+  return (STUDIO_TEXT_MEDIA_MIMES as readonly string[]).includes(value);
+}
+
+export function studioTextMediaExtension(mimeType: StudioTextMediaMime): string {
+  return STUDIO_TEXT_MEDIA_EXTENSIONS[mimeType];
+}
+
 export function textStudioMediaInputAvailable(snapshot: NimiAIConfigSnapshot, mediaType?: string): boolean {
   const required = mediaType ? mediaType.startsWith('image/') ? 'input.image' : mediaType.startsWith('audio/') ? 'input.audio' : mediaType.startsWith('video/') ? 'input.video' : '' : undefined;
   if (required === '') return false;

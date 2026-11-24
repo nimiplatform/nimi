@@ -26,6 +26,7 @@ export type AIStudioHostPort = {
   readonly appTitle: string;
   readonly translate: (key: string, values?: Readonly<Record<string, unknown>>) => string;
   readonly locale: string;
+  readonly sessionScopeKey?: string;
   readonly clock: {
     readonly now: () => number;
   };

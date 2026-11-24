@@ -54,6 +54,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const [state, setState] = useState<LabTextConversationState>(INITIAL_LAB_TEXT_CONVERSATION_STATE);
   const [draft, setDraft] = useState('');
   const [reasoning, setReasoning] = useState<NimiRuntimeAIReasoningOptions>();
+  const [reasoningValid, setReasoningValid] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,7 +88,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   ];
 
   const send = () => {
-    if (!runTarget.canDispatch || !session?.send(draft, reasoning)) return;
+    if (!runTarget.canDispatch || !reasoningValid || !session?.send(draft, reasoning)) return;
     setDraft('');
   };
 
@@ -123,7 +124,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       <LabConversationTranscript messages={displayed} loading={conversation === null} />
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.textConversation.composer')}>
-        <LabReasoningControls value={reasoning} onChange={setReasoning} disabled={busy} />
+        <LabReasoningControls value={reasoning} onChange={setReasoning} onValidityChange={setReasoningValid} disabled={busy} />
         {conversation?.contextStart ? <InlineAlert tone="info">{t('CapabilityTests.textConversation.contextReset')}</InlineAlert> : null}
         <TextareaField
           rows={3}
@@ -135,7 +136,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
         />
         <div className="lab-realtime__row">
           <Button type="button" size="sm" tone="primary"
-            disabled={!draft.trim() || busy || conversation === null || !!loadError || !runTarget.canDispatch}
+            disabled={!draft.trim() || !reasoningValid || busy || conversation === null || !!loadError || !runTarget.canDispatch}
             onClick={send}>
             {t('CapabilityTests.textConversation.send')}
           </Button>

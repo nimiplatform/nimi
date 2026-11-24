@@ -98,7 +98,18 @@
       "streamIncomplete": "The stream ended before it completed.",
       "jsonObjectScenario": "JSON object output",
       "jsonObjectHint": "The request asks for a JSON object. The App parses the complete final text and verifies it is an object.",
-      "jsonObjectPassed": "The JSON object test passed: the complete final text parsed as an object."
+      "jsonObjectPassed": "The JSON object test passed: the complete final text parsed as an object.",
+      "behaviors": {
+        "tool-use": "Tool calling",
+        "structured-output": "Structured output",
+        "reasoning": "Reasoning"
+      },
+      "behaviorStatus": {
+        "configured": "Runtime projection: {{behavior}} is configured for the selected model.",
+        "unavailable": "Runtime projection: {{behavior}} is unavailable for the selected model. You can still run this test to verify Runtime's refusal.",
+        "ambiguous": "Runtime projection: {{behavior}} support is ambiguous for this community or unverified model. You can still run this test to observe actual Runtime behavior.",
+        "unobserved": "Runtime projection: {{behavior}} status was not reported for the selected target."
+      }
     },
     "textDecide": {
       "label": "Decisions",
@@ -179,6 +190,8 @@
       "changedModel": "The model changed. Choose an available setting; the previous setting will be refused before dispatch.",
       "effort": "Reasoning effort",
       "budget": "Exact token budget",
+      "budgetInvalid": "Enter a whole number between 1 and 4294967295, or switch back to the model default.",
+      "resetToDefault": "Use model default",
       "presentation": "Reasoning output",
       "hidden": "Hide summary",
       "summary": "Reasoning summary",

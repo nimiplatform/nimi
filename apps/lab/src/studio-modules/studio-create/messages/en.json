@@ -23,7 +23,7 @@
         "emptyTitle": "Waiting for generation",
         "emptyHint": "Your generated text will appear here.",
         "footnote": "Your request will be sent to the runtime to generate content.",
-        "imageInvalid": "Attach one JPEG image, WAV or MP3 recording, or MP4 video for this request.",
+        "imageInvalid": "Attach one JPEG, PNG, WebP, or GIF image, one WAV or MP3 recording, or one MP4 video for this request.",
         "imageTargetChecking": "Checking whether the selected model accepts this media. The attachment is kept while checking.",
         "imageTargetUnknown": "Media support could not be confirmed. The attachment is kept; reopen model settings or retry later.",
         "imageTargetUnsupported": "The selected model does not accept this media. Remove the attachment or choose a model that supports its format.",

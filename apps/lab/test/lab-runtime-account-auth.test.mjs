@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -289,15 +290,35 @@ function readyRuntimeDependencies(client, overrides = {}) {
 
 function fakeLocalAppClient(overrides = {}) {
   const adoptedAssetMetadata = new Map();
+  const assetBodies = new Map();
   const recoveryDocuments = new Map();
   let latestJob;
+  const sha256Of = (bytes) => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
   const unavailable = (name) => async () => {
     throw Object.assign(new Error(`${name} was not configured by this test.`), {
       reasonCode: 'TEST_METHOD_UNAVAILABLE',
     });
   };
+  const readRecoveryEntries = (capability) => {
+    const prefix = `studio/recovery/${capability}/`;
+    return [...adoptedAssetMetadata.keys()]
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => JSON.parse(new TextDecoder().decode(assetBodies.get(key))))
+      .filter((entry) => entry.state !== 'rejected')
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.clientSubmissionId.localeCompare(b.clientSubmissionId));
+  };
+  const seedRecoveryEntry = (capability, entry) => {
+    const normalized = { id: entry.clientSubmissionId, state: entry.result ? 'completed' : entry.jobId ? 'acknowledged' : 'pending', ...entry };
+    const relativePath = `studio/recovery/${capability}/${encodeURIComponent(normalized.id)}.json`;
+    const bytes = new TextEncoder().encode(JSON.stringify(normalized));
+    adoptedAssetMetadata.set(relativePath, { relativePath, mediaType: 'application/json', sizeBytes: bytes.byteLength, sha256: sha256Of(bytes) });
+    assetBodies.set(relativePath, bytes);
+  };
   return {
     adoptedAssetMetadata,
+    assetBodies,
+    readRecoveryEntries,
+    seedRecoveryEntry,
     ai: {
       text: {
         generateCandidate: overrides.generateCandidate ?? unavailable('text.generateCandidate'),
@@ -324,10 +345,11 @@ function fakeLocalAppClient(overrides = {}) {
       async readJson(key) { if (!recoveryDocuments.has(key)) throw { code: 'not-found' }; return { value: structuredClone(recoveryDocuments.get(key)) }; },
       async writeJson(key, value) { recoveryDocuments.set(key, structuredClone(value)); return { value }; },
       assets: {
-        async list({ prefix }) { return { assets: [...adoptedAssetMetadata.values()].filter(asset => asset.relativePath.startsWith(prefix)), nextCursor: '' }; },
+        async list({ prefix = '' } = {}) { return { assets: [...adoptedAssetMetadata.values()].filter(asset => asset.relativePath.startsWith(prefix)).map(asset => structuredClone(asset)), nextCursor: '' }; },
         async read({ relativePath }) {
           const asset = await this.stat(relativePath);
-          return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() };
+          const bytes = assetBodies.get(relativePath) ?? new Uint8Array(asset.sizeBytes);
+          return { asset, range: { offset: 0, length: bytes.byteLength, totalSize: bytes.byteLength }, body: (async function* () { yield bytes; })() };
         },
         adoptArtifact: async input => {
           const metadata = await (overrides.adoptArtifact ?? unavailable('storage.assets.adoptArtifact'))(input);
@@ -338,8 +360,27 @@ function fakeLocalAppClient(overrides = {}) {
           if (!adoptedAssetMetadata.has(path)) throw Object.assign(new Error('missing test asset'), { code: 'not-found' });
           return structuredClone(adoptedAssetMetadata.get(path));
         },
-        write: overrides.writeAsset ?? unavailable('storage.assets.write'),
-        remove: overrides.removeAsset ?? unavailable('storage.assets.remove'),
+        write: async input => {
+          if (overrides.writeAsset) return overrides.writeAsset(input);
+          const bytes = input.body instanceof Uint8Array ? new Uint8Array(input.body) : new TextEncoder().encode(String(input.body));
+          const existing = adoptedAssetMetadata.get(input.relativePath);
+          if (input.expectedSha256 !== undefined) {
+            if (existing?.sha256 !== input.expectedSha256) {
+              throw Object.assign(new Error('asset cas conflict'), { reasonCode: 'APP_STORAGE_CONFLICT' });
+            }
+          } else if (input.overwrite === false && existing) {
+            throw Object.assign(new Error('asset exists'), { reasonCode: 'APP_STORAGE_CONFLICT' });
+          }
+          const metadata = { relativePath: input.relativePath, mediaType: input.mediaType, sizeBytes: bytes.byteLength, sha256: sha256Of(bytes) };
+          adoptedAssetMetadata.set(input.relativePath, metadata);
+          assetBodies.set(input.relativePath, bytes);
+          return structuredClone(metadata);
+        },
+        remove: async path => {
+          if (overrides.removeAsset) return overrides.removeAsset(path);
+          assetBodies.delete(path);
+          return { removed: adoptedAssetMetadata.delete(path) };
+        },
       },
     },
   };
@@ -462,11 +503,7 @@ for (const [capabilityId, runnerName, mimeType, previewUrl, firstFrameCase] of [
       },
     });
     if (capabilityId === 'music.generate') {
-      let recovery = [];
       client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'music.generate', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [{ scoreMode: 'unsupported' }] } } } }] }) };
-      client.storage.readJson = async () => ({ value: recovery });
-      client.storage.writeJson = async (_path, value) => { recovery = structuredClone(value); return { value }; };
-      client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
     }
     const jobClient = { marker: `job-client:${capabilityId}` };
     const calls = [];
@@ -531,7 +568,7 @@ for (const [capabilityId, runnerName, mimeType, previewUrl, firstFrameCase] of [
       assert.equal(calls[0].prompt, 'run music.generate');
       assert.equal(calls[0].lyrics, '[Verse]\nCity lights are waking.');
       assert.equal(result.output.musicGeneration.termination, 'budget-limit');
-      const recovery = (await client.storage.readJson()).value;
+      const recovery = client.readRecoveryEntries('music.generate');
       assert.equal(recovery.length, 1);
       assert.equal(recovery[0].result.musicGeneration.mixRelativePath, result.output.firstArtifact.relativePath);
     } else {
@@ -1000,17 +1037,39 @@ test('Lab image-assisted text skips opaque reasoning continuity and still requir
   }
 });
 
-test('Lab text.generate rejects unverified image formats before upload', async () => {
+test('Lab text.generate rejects unsupported image formats before upload and saves PNG/WebP/GIF with matching extensions', async () => {
   const { runLabCapability } = await importLabRuntime();
   let uploads = 0;
-  const client = fakeLocalAppClient({ async uploadArtifact() { uploads += 1; throw new Error('unreachable'); } });
-  const result = await runLabCapability({
+  const rejectClient = fakeLocalAppClient({ async uploadArtifact() { uploads += 1; throw new Error('unreachable'); } });
+  const rejected = await runLabCapability({
     capabilityId: 'text.generate', prompt: 'Describe the image.',
-    attachments: [{ id: 'image', kind: 'image', name: 'image.png', mimeType: 'image/png', dataUrl: 'data:image/png;base64,AQID' }],
-  }, readyRuntimeDependencies(client));
-  assert.equal(result.ok, false);
-  assert.equal(result.reason, 'input-invalid');
+    attachments: [{ id: 'image', kind: 'image', name: 'image.bmp', mimeType: 'image/bmp', dataUrl: 'data:image/bmp;base64,AQID' }],
+  }, readyRuntimeDependencies(rejectClient));
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.reason, 'input-invalid');
   assert.equal(uploads, 0);
+
+  for (const [mimeType, ext] of [['image/png', 'png'], ['image/webp', 'webp'], ['image/gif', 'gif']]) {
+    const writes = [];
+    const client = fakeLocalAppClient({
+      async uploadArtifact(input) { assert.equal(input.mimeType, mimeType); return { artifactId: `owned-${ext}` }; },
+      async executeScenario(input) {
+        assert.equal(input.messages[0].parts[1].mediaType, mimeType);
+        return { output: { type: 'text-generate', finishReason: 'stop', items: [{ type: 'text', text: `ok ${ext}` }] } };
+      },
+      async writeAsset(input) {
+        writes.push(input);
+        return { relativePath: input.relativePath, sizeBytes: input.body.byteLength, sha256: `sha256:${'a'.repeat(64)}` };
+      },
+    });
+    const ok = await runLabCapability({
+      capabilityId: 'text.generate', prompt: 'Describe the image.',
+      attachments: [{ id: `img-${ext}`, kind: 'image', name: `sample.${ext}`, mimeType, dataUrl: `data:${mimeType};base64,AQID` }],
+    }, readyRuntimeDependencies(client));
+    assert.equal(ok.ok, true, ok.message);
+    assert.match(writes[0].relativePath, new RegExp(`\\.${ext}$`, 'u'));
+    assert.equal(ok.output.sourceImage.mediaType, mimeType);
+  }
 });
 
 test('Lab text.generate uploads owned audio and saves its original input beside the answer', async () => {
@@ -1584,6 +1643,7 @@ test('Lab records the music author action before Submit and recovers it without 
   const client = fakeLocalAppClient({
     async submitScenarioJob(_spec, options) {
       submitted += 1;
+      const entries = client.readRecoveryEntries('music.generate');
       assert.equal(entries.length, 1);
       assert.equal(options.clientSubmissionId, entries[0].clientSubmissionId);
       throw new Error('submit response was lost after server acceptance');
@@ -1599,11 +1659,8 @@ test('Lab records the music author action before Submit and recovers it without 
     if (configured > 1) throw new Error('Recovery must not resolve a fresh generation configuration');
     return { effectiveSelections: [{ capabilityContract: 'music.generate', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [{ scoreMode: 'unsupported' }] } } } }] };
   } };
-  client.storage.readJson = async () => ({ value: entries });
-  client.storage.writeJson = async (_path, value) => { entries = structuredClone(value); return { value }; };
-  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
   client.ai.scenarioJobs.lookupSubmission = async (id) => {
-    assert.equal(id, entries[0].clientSubmissionId);
+    assert.equal(id, client.readRecoveryEntries('music.generate')[0].clientSubmissionId);
     return { job: { jobId: 'original-music-job' } };
   };
   const dependencies = readyRuntimeDependencies(client, {
@@ -1620,7 +1677,7 @@ test('Lab records the music author action before Submit and recovers it without 
   const failed = await runLabCapability({ capabilityId: 'music.generate', prompt: 'folk', parameters: { lyrics: 'line' } }, dependencies);
   assert.equal(failed.ok, false);
   assert.equal(submitted, 1);
-  const recoverySubmissionId = entries[0].clientSubmissionId;
+  const recoverySubmissionId = client.readRecoveryEntries('music.generate')[0].clientSubmissionId;
   const input = { capabilityId: 'music.generate', prompt: '', parameters: { recoverySubmissionId } };
   const recovered = await runLabCapability(input, dependencies);
   assert.equal(recovered.ok, true, recovered.message);
@@ -1635,7 +1692,7 @@ test('Lab records the music author action before Submit and recovers it without 
 test('Lab transcription retains its canonical source and complete result across lost Submit and reopen', async () => {
   // Fault injection verifies recovery semantics; this is not model acceptance.
   const { runLabCapability } = await importLabRuntime();
-  let entries = []; let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
+  let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
   const adoptions = [];
   const metadata = { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 };
   const output = { ok: true, capabilityId: 'music.transcribe', message: 'estimated score', output: {
@@ -1647,7 +1704,9 @@ test('Lab transcription retains its canonical source and complete result across 
   } };
   const client = fakeLocalAppClient({
     async submitScenarioJob(_spec, options) {
-      submits++; assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
+      submits++;
+      const entries = client.readRecoveryEntries('music.transcribe');
+      assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
       assert.equal(options.clientSubmissionId, entries[0].clientSubmissionId); throw new Error('lost Submit response');
     },
     async adoptArtifact(input) {
@@ -1660,9 +1719,6 @@ test('Lab transcription retains its canonical source and complete result across 
   });
   client.storage.assets.stat = async path => client.adoptedAssetMetadata.get(path)
     ?? { relativePath: 'input/song.mp3', mediaType: 'audio/mpeg', sizeBytes: 1000 };
-  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
-  client.storage.readJson = async path => { assert.equal(path, 'studio/music-transcription-recovery.json'); return { value: entries }; };
-  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/music-transcription-recovery.json'); entries = structuredClone(value); return { value }; };
   client.ai.artifacts.upload = async input => { preparations++; assert.equal(preparations, 1); assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1' }); return { artifactId: 'source-canonical', mimeType: 'audio/wav', sizeBytes: 7680058, audioInfo: metadata }; };
   client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'music.transcribe', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [], transcription: [{ formats: ['abc','timeline'], parts: ['lead-sheet'], supportsRange: true, maxDurationSeconds: 600, maxSourceBytes: 536870912 }] } } } }] }) };
   client.ai.scenarioJobs.lookupSubmission = async () => ({ job: { jobId: 'original-transcription-job' } });
@@ -1675,6 +1731,7 @@ test('Lab transcription retains its canonical source and complete result across 
   });
   const failed = await runLabCapability({ capabilityId: 'music.transcribe', prompt: '', parameters: { sourceRelativePath: 'input/song.mp3', sourceMimeType: 'audio/mpeg', requestedFormats: ['abc','timeline'], requestedPart: 'lead-sheet', startSeconds: 1, endSeconds: 10 } }, dependencies);
   assert.equal(failed.ok, false); assert.equal(submits, 1);
+  const entries = client.readRecoveryEntries('music.transcribe');
   const recovery = { capabilityId: 'music.transcribe', prompt: '', parameters: { recoverySubmissionId: entries[0].clientSubmissionId } };
   const recovered = await runLabCapability(recovery, dependencies);
   assert.equal(recovered.ok, true, recovered.message);
@@ -1691,7 +1748,7 @@ test('Lab transcription retains its canonical source and complete result across 
 test('Lab voice conversion retains its distinct inputs and complete result across lost Submit and reopen', async () => {
   // Fault injection verifies recovery semantics; this is not model acceptance.
   const { runLabCapability } = await importLabRuntime();
-  let entries = []; let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
+  let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
   const adoptions = [];
   const sourceInfo = { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 };
   const targetInfo = { sampleRateHz: 48000, channels: 2, frameCount: 240000, durationMs: 5000 };
@@ -1705,7 +1762,9 @@ test('Lab voice conversion retains its distinct inputs and complete result acros
   } };
   const client = fakeLocalAppClient({
     async submitScenarioJob(_spec, options) {
-      submits++; assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
+      submits++;
+      const entries = client.readRecoveryEntries('audio.voice.convert');
+      assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
       assert.equal(entries[0].targetAudio.mediaType, 'audio/wav');
       assert.equal(options.clientSubmissionId, entries[0].clientSubmissionId); throw new Error('lost Submit response');
     },
@@ -1721,9 +1780,6 @@ test('Lab voice conversion retains its distinct inputs and complete result acros
   });
   client.storage.assets.stat = async (relativePath) => client.adoptedAssetMetadata.get(relativePath) ?? ({ relativePath,
     mediaType: relativePath.endsWith('vocal.mp3') ? 'audio/mpeg' : 'audio/flac', sizeBytes: 1000 });
-  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
-  client.storage.readJson = async path => { assert.equal(path, 'studio/voice-convert-recovery.json'); return { value: entries }; };
-  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/voice-convert-recovery.json'); entries = structuredClone(value); return { value }; };
   client.ai.artifacts.upload = async input => {
     preparations++; assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1' });
     return preparations === 1
@@ -1753,6 +1809,7 @@ test('Lab voice conversion retains its distinct inputs and complete result acros
     targetKind: 'reference-audio', targetRelativePath: 'input/target.flac', targetMimeType: 'audio/flac',
     targetEndSeconds: 5, semitoneShift: 2 } }, dependencies);
   assert.equal(failed.ok, false); assert.equal(submits, 1);
+  const entries = client.readRecoveryEntries('audio.voice.convert');
   const recovery = { capabilityId: 'audio.voice.convert', prompt: '', parameters: { recoverySubmissionId: entries[0].clientSubmissionId } };
   const recovered = await runLabCapability(recovery, dependencies);
   assert.equal(recovered.ok, true, recovered.message);
@@ -1810,11 +1867,10 @@ function audioSeparationRunnerOutput(jobId, instrumentParts) {
 }
 
 function fakeAudioSeparationClient(overrides = {}) {
-  let entries = overrides.entries ?? [];
   const adoptions = [];
   const client = fakeLocalAppClient({
     async submitScenarioJob(_spec, options) {
-      overrides.onSubmit?.(options, entries);
+      overrides.onSubmit?.(options, client.readRecoveryEntries('audio.separate'));
       return { job: { jobId: 'separation-job-1' } };
     },
     async adoptArtifact(input) {
@@ -1825,11 +1881,11 @@ function fakeAudioSeparationClient(overrides = {}) {
         sizeBytes: original ? 7680058 : stem.sizeBytes, sha256: `sha256:${original ? 'a'.repeat(64) : stem.sha256}` };
     },
   });
+  for (const seeded of overrides.entries ?? []) {
+    client.seedRecoveryEntry('audio.separate', seeded);
+  }
   client.storage.assets.stat = async (relativePath) => client.adoptedAssetMetadata.get(relativePath) ?? ({ relativePath,
     mediaType: relativePath.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav', sizeBytes: 1000 });
-  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
-  client.storage.readJson = async path => { assert.equal(path, 'studio/audio-separation-recovery.json'); return { value: entries }; };
-  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/audio-separation-recovery.json'); entries = structuredClone(value); return { value }; };
   client.ai.scenarioJobs.get = async jobId => ({ job: { jobId } });
   client.ai.scenarioJobs.lookupSubmission = async () => { throw Object.assign(new Error('Original task is not found or expired'), { reasonCode: 'AI_MEDIA_JOB_NOT_FOUND' }); };
   client.ai.artifacts.upload = async input => {
@@ -1844,7 +1900,7 @@ function fakeAudioSeparationClient(overrides = {}) {
       audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 } };
   };
   client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'audio.separate', state: 'ready', resource: { oneofKind: 'local', local: {} } }] }) };
-  return { client, adoptions, getEntries: () => entries };
+  return { client, adoptions, getEntries: () => client.readRecoveryEntries('audio.separate') };
 }
 
 test('Lab audio separation persists and submits one client action identity and adopts every returned stem', async () => {
@@ -1964,7 +2020,7 @@ test('Lab audio separation queries an unresolved action and never resubmits when
   assert.equal(result.ok, false);
   assert.match(result.message, /not found or expired/u);
   assert.equal(submits, 0); assert.equal(observations, 0);
-  await musicRecovery.forgetStudioJobRecovery(client.storage, 'record-without-job', 'audio.separate');
+  await musicRecovery.forgetStudioJobRecovery(client.storage.assets, 'record-without-job', 'audio.separate');
   assert.deepEqual(getEntries(), []);
 });
 
@@ -2018,7 +2074,6 @@ for (const corruptRetainedAsset of [false, true]) {
   test(`Lab recovers canonical audio and score paths after result persistence fails (corrupt=${corruptRetainedAsset})`, async () => {
     // Inject the storage failure after adoption, without claiming model acceptance.
     const { runLabCapability } = await importLabRuntime();
-    let entries = [];
     let failSave = true;
     let generations = 0;
     const assets = new Map();
@@ -2039,17 +2094,22 @@ for (const corruptRetainedAsset of [false, true]) {
         assets.set(relativePath, record);
         return record;
       },
-      async removeAsset(relativePath) { removals.push(relativePath); assets.delete(relativePath); },
+      async removeAsset(relativePath) { removals.push(relativePath); assets.delete(relativePath); return { removed: true }; },
     });
+    const baseList = client.storage.assets.list.bind(client.storage.assets);
     client.storage.assets.list = async ({ prefix, pageSize }) => {
+      if (prefix.startsWith('studio/recovery/')) return baseList({ prefix, pageSize });
       assert.equal(pageSize, 2);
       assert.match(prefix, /^media\/music-generate\/[0-9a-f]{64}\/$/u);
       return { assets: [...assets.values()].filter((item) => item.relativePath.startsWith(prefix)), nextCursor: '' };
     };
-    client.storage.readJson = async () => ({ value: entries });
-    client.storage.writeJson = async (_path, value) => {
-      if (failSave && value[0]?.result) { failSave = false; throw new Error('result persistence interrupted'); }
-      entries = structuredClone(value); return { value };
+    const baseWrite = client.storage.assets.write.bind(client.storage.assets);
+    client.storage.assets.write = async (input) => {
+      if (input.relativePath.startsWith('studio/recovery/music.generate/')) {
+        const parsed = JSON.parse(new TextDecoder().decode(input.body));
+        if (failSave && parsed.result) { failSave = false; throw new Error('result persistence interrupted'); }
+      }
+      return baseWrite(input);
     };
     client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'music.generate', state: 'ready',
       resource: { oneofKind: 'local', local: { musicInput: { generation: [{ scoreMode: 'unsupported' }] } } } }] }) };
@@ -2064,10 +2124,10 @@ for (const corruptRetainedAsset of [false, true]) {
     const interrupted = await runLabCapability({ capabilityId: 'music.generate', prompt: 'folk', parameters: { lyrics: 'line' } }, dependencies);
     assert.equal(interrupted.ok, false);
     assert.match(interrupted.message, /result persistence interrupted/u);
-    assert.equal(entries[0].result, undefined);
+    assert.equal(client.readRecoveryEntries('music.generate')[0].result, undefined);
     assert.equal(assets.size, 2);
     if (corruptRetainedAsset) assets.values().next().value.sha256 = `sha256:${'c'.repeat(64)}`;
-    const recovered = await runLabCapability({ capabilityId: 'music.generate', prompt: '', parameters: { recoverySubmissionId: entries[0].clientSubmissionId } }, dependencies);
+    const recovered = await runLabCapability({ capabilityId: 'music.generate', prompt: '', parameters: { recoverySubmissionId: client.readRecoveryEntries('music.generate')[0].clientSubmissionId } }, dependencies);
     assert.equal(generations, 1);
     assert.deepEqual(adoptions, ['artifact:music.generate', 'artifact:score']);
     assert.deepEqual(removals, [], 'pre-existing adopted assets must not be rolled back');
@@ -2076,7 +2136,7 @@ for (const corruptRetainedAsset of [false, true]) {
     else {
       assert.match(recovered.output.musicGeneration.mixRelativePath, /\/result\.wav$/u);
       assert.match(recovered.output.musicGeneration.generatedScore.relativePath, /\/result\.bin$/u);
-      assert.equal(entries[0].result.artifacts.length, 2);
+      assert.equal(client.readRecoveryEntries('music.generate')[0].result.artifacts.length, 2);
     }
   });
 }
@@ -2090,7 +2150,7 @@ test('Lab image recovery reuses the original action and adopted target after a l
   const client = fakeLocalAppClient({
     async submitScenarioJob(_spec, options) {
       submits++;
-      const entries = (await client.storage.readJson('studio/image-recovery.json')).value;
+      const entries = client.readRecoveryEntries('image.generate');
       assert.equal(entries.length, 1);
       assert.equal(entries[0].clientSubmissionId, options.clientSubmissionId);
       return { job: original };
@@ -2107,20 +2167,22 @@ test('Lab image recovery reuses the original action and adopted target after a l
   client.storage.assets.read = async input => { reads++; return read(input); };
   const first = await runLabCapability({ capabilityId: 'image.generate', prompt: 'Original image' }, readyRuntimeDependencies(client));
   assert.equal(first.ok, false); assert.match(first.message, /adopt response lost/);
-  const [entry] = (await client.storage.readJson('studio/image-recovery.json')).value;
+  const [entry] = client.readRecoveryEntries('image.generate');
   assert.equal(entry.jobId, original.jobId); assert.equal(entry.result, undefined);
   const recovered = await runLabCapability({ capabilityId: 'image.generate', prompt: 'Unrelated new draft', parameters: { recoverySubmissionId: entry.clientSubmissionId } }, readyRuntimeDependencies(client));
   assert.equal(recovered.ok, true, recovered.message);
   assert.equal(recovered.output.jobId, original.jobId);
   assert.equal(adoptions, 1); assert.equal(submits, 1); assert.ok(reads > 0);
-  assert.equal((await client.storage.readJson('studio/image-recovery.json')).value[0].result.jobId, original.jobId);
+  assert.equal(client.readRecoveryEntries('image.generate')[0].result.jobId, original.jobId);
 });
 
 test('Lab refuses Submit when the author action cannot be saved', async () => {
   const { runLabCapability } = await importLabRuntime();
   let submits = 0;
-  const client = fakeLocalAppClient({ async submitScenarioJob() { submits++; throw new Error('must not Submit'); } });
-  client.storage.writeJson = async () => { throw new Error('business storage unavailable'); };
+  const client = fakeLocalAppClient({
+    async submitScenarioJob() { submits++; throw new Error('must not Submit'); },
+    async writeAsset() { throw new Error('business storage unavailable'); },
+  });
   const result = await runLabCapability({ capabilityId: 'image.generate', prompt: 'An image' }, readyRuntimeDependencies(client));
   assert.equal(result.ok, false); assert.match(result.message, /business storage unavailable/); assert.equal(submits, 0);
 });

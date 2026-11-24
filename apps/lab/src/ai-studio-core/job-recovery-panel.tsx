@@ -28,14 +28,14 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
   useEffect(() => () => observation.current?.abort(), [capability]);
   async function refresh() {
     const sequence = ++snapshotSequence.current;
-    const next = await readStudioJobRecovery(host.sdk.storage, capability);
+    const next = await readStudioJobRecovery(host.sdk.assets, capability);
     if (sequence === snapshotSequence.current) { setEntries(next); }
   }
   useEffect(() => {
     let active = true;
     const load = () => {
       const sequence = ++snapshotSequence.current;
-      void readStudioJobRecovery(host.sdk.storage, capability).then((value) => {
+      void readStudioJobRecovery(host.sdk.assets, capability).then((value) => {
       if (!active || sequence !== snapshotSequence.current) return;
       setEntries(value);
       setResult(previous => {
@@ -98,7 +98,7 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
       {[...visibleEntries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(host.locale)}</time>
         <Button disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
-        <Button disabled={disabled || busy} onClick={() => void forgetStudioJobRecovery(host.sdk.storage, entry.clientSubmissionId, capability).then(() => {
+        <Button disabled={disabled || busy} onClick={() => void forgetStudioJobRecovery(host.sdk.assets, entry.clientSubmissionId, capability).then(() => {
           setResult(null); setError(''); return refresh();
         })
           .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))}>{t('Music.forgetRecord')}</Button>

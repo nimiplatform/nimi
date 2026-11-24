@@ -319,7 +319,9 @@
       "markupFileHint": "A separate transparent PNG annotation layer matching the source image. Do not combine with a mask.",
       "layerPngRequired": "Choose a PNG file up to 32 MiB.",
       "clearLayer": "Clear layer",
-      "imageFormatHint": "Use a format supported by the selected model. SVG and GIF are generation-only; SVG can incur separate provider authoring charges. GIF timing rounds to 10 ms."
+      "imageFormatHint": "Use a format supported by the selected model. SVG and GIF are generation-only; SVG can incur separate provider authoring charges. GIF timing rounds to 10 ms.",
+      "imageInputSlotMissingHint": "This local implementation supports image input (such as ControlNet or image-guided generation), but the optional companion slot is not bound in the current Loadout. Bind it in Nimi Home to use image input; submitting one now will be rejected by Runtime.",
+      "imageInputUnsupportedHint": "The selected configuration does not declare image input support (text-to-image only). Submitting reference, control, or mask images will be rejected by Runtime."
     }
   },
   "Music": {

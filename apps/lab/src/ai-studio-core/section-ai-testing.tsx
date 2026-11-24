@@ -14,6 +14,7 @@ import { CapabilityRunHistory, DrawerErrorBoundary, downloadTextFile, resultPlai
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
 import {
+  STUDIO_TEXT_MEDIA_MIMES,
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
   textStudioMediaInputAvailable,
@@ -104,12 +105,13 @@ function TextStudioShell({
   const runSeqRef = useRef(0);
   const [observationIssue, setObservationIssue] = useState(false);
   const abortControllerRef = useRef<{ runId: string; controller: AbortController; observation: AbortController } | null>(null);
+  const submittingRef = useRef(false);
   const running = executingRun !== null;
   const displayingExecution = executingRun !== null && activeRun?.id === executingRun.id;
   const displayedRun = displayingExecution ? executingRun : activeRun;
   const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
-    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : capability.id === 'text.generate' ? { maxAttachments: 1, accept: ['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4'] } : {}) }),
+    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...((capability.id === 'vision.locate') ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : capability.id === 'text.generate' ? { maxAttachments: 1, accept: [...STUDIO_TEXT_MEDIA_MIMES] } : {}) }),
     [capability.id],
   );
   const composerState = useChatComposer<BrowserDataUrlAttachment>({
@@ -273,7 +275,7 @@ function TextStudioShell({
   }
 
   async function run(nextPrompt = prompt, nextContext = context, replay = false) {
-    if (abortControllerRef.current) return;
+    if (abortControllerRef.current || submittingRef.current) return;
     if (!replay && inputPreparationsRef.current.has(capability.id)) return;
     if (replay && !textMediaReplayable) return;
     if (replay && (!displayedRunReplayable || !replayAssetsAvailable)) return;
@@ -298,6 +300,41 @@ function TextStudioShell({
     if (profile.requiresParameterInput && !runHasAlternativeInput) return;
     if (!(replay && capability.id === 'vision.locate' ? Boolean(savedTextMedia) : hasRequiredImage)) return;
     if (!runTarget.canDispatch) return;
+    submittingRef.current = true;
+    const preRefreshSeq = runSeqRef.current;
+    try {
+      const refresh = await runTarget.waitForTargetRefresh();
+      if (runSeqRef.current !== preRefreshSeq || abortControllerRef.current) return;
+      if (refresh.waited) {
+        if (!refresh.snapshot || refresh.snapshot.revision !== runTarget.snapshot?.revision) return;
+        if (runTarget.capabilityContract) {
+          const refreshedSelection = refresh.snapshot.effectiveSelections.find(
+            (item) => item.capabilityContract === runTarget.capabilityContract,
+          );
+          if (!refreshedSelection || refreshedSelection.state !== 'ready') return;
+          if (refreshedSelection.localLoadoutRevision !== runTarget.effectiveSelection?.localLoadoutRevision) return;
+          const refreshedResource = refreshedSelection.resource;
+          const refreshedSource = refreshedResource?.oneofKind === 'local'
+            ? 'local'
+            : refreshedResource?.oneofKind === 'cloud'
+              ? 'cloud'
+              : 'unknown';
+          if (refreshedSource !== 'unknown' && refreshedSource !== runTarget.source) return;
+          const refreshedTargetRef = refreshedResource?.oneofKind === 'local'
+            ? refreshedResource.local.loadoutRef
+            : refreshedResource?.oneofKind === 'cloud'
+              ? (typeof refreshedResource.cloud.target.providerModelTarget.providerModelId === 'string'
+                  ? refreshedResource.cloud.target.providerModelTarget.providerModelId
+                  : undefined)
+              : undefined;
+          if (runTarget.targetRef && refreshedTargetRef && refreshedTargetRef !== runTarget.targetRef) {
+            return;
+          }
+        }
+      }
+    } finally {
+      submittingRef.current = false;
+    }
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
     const abortController = new AbortController();
@@ -378,7 +415,21 @@ function TextStudioShell({
           onJobUpdate: job => {
             if (runSeqRef.current !== runSeq) return;
             const jobStatus = job.status === ScenarioJobStatus.QUEUED || job.status === ScenarioJobStatus.SUBMITTED ? 'queued' : job.status === ScenarioJobStatus.RUNNING ? 'running' : undefined;
-            if (jobStatus) setExecutingRun(current => current?.id === pendingRun.id ? { ...current, jobStatus } : current);
+            const totalSteps = Number.isFinite(job.progressTotalSteps) && job.progressTotalSteps > 0 ? Math.trunc(job.progressTotalSteps) : 0;
+            const currentStep = Number.isFinite(job.progressCurrentStep) && job.progressCurrentStep >= 0 ? Math.trunc(job.progressCurrentStep) : 0;
+            const percent = Number.isFinite(job.progressPercent) ? Math.max(0, Math.min(100, Math.round(job.progressPercent))) : 0;
+            const jobProgress = totalSteps > 0 || percent > 0 || currentStep > 0
+              ? { percent, currentStep, totalSteps }
+              : undefined;
+            if (jobStatus || jobProgress) {
+              setExecutingRun(current => current?.id === pendingRun.id
+                ? {
+                    ...current,
+                    ...(jobStatus ? { jobStatus } : {}),
+                    ...(jobProgress ? { jobProgress } : {}),
+                  }
+                : current);
+            }
           },
         });
       } catch (error) {
@@ -551,6 +602,7 @@ function TextStudioShell({
           capabilityId={capability.id}
           contract={registration.parameters}
           source={runTarget.source}
+          effectiveSelection={runTarget.effectiveSelection}
           parameters={capabilityParameters}
           disabled={running || preparingInput}
           onChange={(next) => parameterStore.setParameters(capability.id, next)}

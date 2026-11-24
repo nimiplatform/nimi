@@ -23,7 +23,7 @@
         "emptyTitle": "等待生成",
         "emptyHint": "生成的文本会显示在这里。",
         "footnote": "你的请求会发送到 Runtime 以生成内容。",
-        "imageInvalid": "请为这次请求附上一张 JPEG 图片、一段 WAV 或 MP3 录音，或一个 MP4 视频。",
+        "imageInvalid": "请为这次请求附上一张 JPEG、PNG、WebP 或 GIF 图片、一段 WAV 或 MP3 录音，或一个 MP4 视频。",
         "imageTargetChecking": "正在检查所选模型是否接受这份媒体。检查期间会保留附件。",
         "imageTargetUnknown": "无法确认所选模型是否支持这份媒体。附件会保留；请重新打开模型设置或稍后重试。",
         "imageTargetUnsupported": "所选模型不接受这份媒体。请移除附件，或选择支持其格式的模型。",

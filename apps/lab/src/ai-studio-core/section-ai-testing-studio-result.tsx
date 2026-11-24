@@ -9,9 +9,10 @@ import { TextExchangeResultView } from './section-ai-testing-exchange-result.js'
 import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
 import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, EmptyState, IconButton, ProgressIndicator, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, SlidersHorizontal, Sparkles, Square } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
+import type { StudioJobProgress } from './section-ai-testing-run.js';
 import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
@@ -208,6 +209,7 @@ export function StudioResult({
   requestSettings,
   streamingText,
   jobStatus,
+  jobProgress,
   verboseConsole,
   onCopy,
   onDownload,
@@ -226,6 +228,7 @@ export function StudioResult({
   requestSettings?: ReactNode;
   streamingText?: string | null;
   jobStatus?: 'queued' | 'running';
+  jobProgress?: StudioJobProgress;
   verboseConsole: boolean;
   onCopy: () => void;
   onDownload: () => void;
@@ -365,6 +368,7 @@ export function StudioResult({
   let body: ReactNode;
   if (running) {
     const hasStream = typeof streamingText === 'string';
+    const hasKnownProgress = Boolean(!hasStream && jobProgress && (jobProgress.totalSteps > 0 || jobProgress.percent > 0));
     body = (
       <div className="studio-result__pending">
         <div className="studio-result__pending-line">
@@ -379,6 +383,24 @@ export function StudioResult({
             ? t(profile.pendingLabelKey)
             : hasStream ? t('Studio.result.pendingStreaming') : t('Studio.result.pendingRuntime')}</span>
         </div>
+        {hasKnownProgress && jobProgress ? (
+          <div className="studio-result__progress" data-testid="studio-job-progress">
+            <ProgressIndicator
+              value={jobProgress.percent}
+              max={100}
+              showValue
+              aria-label={t('Studio.result.progressLabel')}
+              aria-valuetext={jobProgress.totalSteps > 0
+                ? t('Studio.result.progressSteps', { current: jobProgress.currentStep, total: jobProgress.totalSteps })
+                : `${jobProgress.percent}%`}
+            />
+            {jobProgress.totalSteps > 0 ? (
+              <span className="studio-result__progress-steps">
+                {t('Studio.result.progressSteps', { current: jobProgress.currentStep, total: jobProgress.totalSteps })}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '...'}</div> : null}
       </div>
     );

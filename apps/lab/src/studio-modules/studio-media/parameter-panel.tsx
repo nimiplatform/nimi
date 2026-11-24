@@ -189,7 +189,35 @@ function ImageFields(props: StudioParameterPanelProps) {
     { field: 'frameCount', label: t('Studio.parameters.fields.animationFrames'), render: disabled => <StudioNumberParameter current={parameters} field="frameCount" label={t('Studio.parameters.fields.animationFrames')} onChange={update} min={2} step={1} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
     { field: 'frameDurationMs', label: t('Studio.parameters.fields.frameDurationMs'), render: disabled => <StudioNumberParameter current={parameters} field="frameDurationMs" label={t('Studio.parameters.fields.frameDurationMs')} onChange={update} min={20} max={2000} step={10} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
   ];
-  return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;
+  const imageInputPosture = (() => {
+    const selection = props.effectiveSelection;
+    if (!selection || selection.state !== 'ready' || !selection.resource) return 'unknown' as const;
+    if (selection.resource.oneofKind === 'local') {
+      const implSupports = selection.resource.local.implementationSupportedFeatures.includes('input.image');
+      if (!implSupports) return 'unsupported' as const;
+      return selection.resource.local.configuredFeatures.includes('input.image')
+        ? ('ready' as const)
+        : ('slot-missing' as const);
+    }
+    return selection.resource.cloud.target.supportedFeatures.includes('input.image')
+      ? ('ready' as const)
+      : ('unsupported' as const);
+  })();
+  const imageInputHintKey = imageInputPosture === 'slot-missing'
+    ? 'Studio.parameters.imageInputSlotMissingHint'
+    : imageInputPosture === 'unsupported'
+      ? 'Studio.parameters.imageInputUnsupportedHint'
+      : '';
+  return (
+    <div className="studio-parameters__stack">
+      {imageInputHintKey ? (
+        <p className="studio-parameters__note" role="status" data-testid="studio-image-input-posture">
+          {t(imageInputHintKey)}
+        </p>
+      ) : null}
+      <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />
+    </div>
+  );
 }
 
 function ControlImageField(props: {

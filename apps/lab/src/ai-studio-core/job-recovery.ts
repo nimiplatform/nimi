@@ -1,7 +1,7 @@
+import { createNimiAppRecordStore } from '@nimiplatform/kit/core/app-record-storage';
 import { ScenarioType, VisionLocateGeometry } from '@nimiplatform/sdk/runtime/generated';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import type { JsonValue } from '@nimiplatform/sdk/types';
 import { createStudioRunHistoryResultSnapshot, restoreStudioCapabilityRunResult, type StudioRunHistoryResultSnapshot } from './history.js';
 import { validateManagedArtifact, validateStudioHistoryResult, validateRunConfig, validateFaceSwapHistory } from './history-policy.js';
 import type { StudioRunConfigSnapshot } from './history.js';
@@ -9,8 +9,13 @@ import { studioResultAssetPaths, studioResultAssetReferences, verifyStudioManage
 import type { StudioAudioSeparationRequest, StudioCapabilityRunResult, StudioManagedArtifact } from './runtime-types.js';
 import { isAudioSeparationRequest } from './audio-separation-request.js';
 
-type Storage = Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
+export type StudioJobRecoveryAssets = Pick<NimiLocalAppClient['storage']['assets'], 'list' | 'read' | 'write' | 'remove'>;
+
+export type StudioJobRecoveryState = 'pending' | 'acknowledged' | 'completed' | 'rejected';
+
 export type StudioJobRecoveryEntry = {
+  readonly id: string;
+  readonly state: StudioJobRecoveryState;
   readonly details?: StudioJobRecoveryDetails;
   readonly clientSubmissionId: string;
   readonly createdAt: string;
@@ -23,7 +28,9 @@ export type StudioJobRecoveryEntry = {
   readonly prompt?: string;
   readonly runConfig?: StudioRunConfigSnapshot;
 };
-export type StudioJobRecoveryCapability = keyof typeof paths;
+
+export type StudioJobRecoveryCapability = (typeof STUDIO_JOB_RECOVERY_CAPABILITY_LIST)[number];
+
 export type StudioJobRecoveryDetails = {
   readonly sourceImage?: StudioManagedArtifact;
   readonly scenarioType: import('@nimiplatform/sdk/runtime/generated').ScenarioType;
@@ -33,133 +40,430 @@ export type StudioJobRecoveryDetails = {
   readonly texts?: readonly string[];
   readonly faceSwap?: import('./runtime-types.js').StudioFaceSwap;
 };
-const paths = { 'image.upscale': 'studio/image-upscale-recovery.json', 'video.upscale': 'studio/video-upscale-recovery.json', 'audio.speaker.embed': 'studio/speaker-embedding-recovery.json', 'image.generate': 'studio/image-recovery.json', 'video.generate': 'studio/video-recovery.json', 'audio.synthesize': 'studio/speech-recovery.json', 'audio.transcribe': 'studio/transcript-recovery.json', 'voice.create': 'studio/voice-recovery.json', 'vision.locate': 'studio/locate-recovery.json', 'text.annotate': 'studio/annotation-recovery.json', 'image.face_swap': 'studio/image-face-recovery.json', 'video.face_swap': 'studio/video-face-recovery.json', 'music.generate': 'studio/music-recovery.json', 'music.transcribe': 'studio/music-transcription-recovery.json', 'audio.voice.convert': 'studio/voice-convert-recovery.json', 'audio.separate': 'studio/audio-separation-recovery.json' };
-let mutationTail: Promise<unknown> = Promise.resolve();
 
-export async function readStudioJobRecovery(storage: Storage, capability: StudioJobRecoveryCapability = 'music.generate'): Promise<readonly StudioJobRecoveryEntry[]> {
-  let value: unknown;
-  try { value = (await storage.readJson(paths[capability])).value; }
-  catch (cause) {
-    const error = cause as { reasonCode?: string; code?: string };
-    const code = String(error?.reasonCode ?? error?.code ?? '').toLowerCase().replaceAll('-', '_');
-    if (code === 'not_found' || code === 'app_storage_entry_not_found') return [];
+export const STUDIO_JOB_RECOVERY_PREFIX = 'studio/recovery/';
+
+const STUDIO_JOB_RECOVERY_CAPABILITY_LIST = [
+  'image.upscale',
+  'video.upscale',
+  'audio.speaker.embed',
+  'image.generate',
+  'video.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+  'voice.create',
+  'vision.locate',
+  'text.annotate',
+  'image.face_swap',
+  'video.face_swap',
+  'music.generate',
+  'music.transcribe',
+  'audio.voice.convert',
+  'audio.separate',
+] as const;
+
+const STUDIO_JOB_RECOVERY_CAPABILITIES = new Set<string>(STUDIO_JOB_RECOVERY_CAPABILITY_LIST);
+const MAX_RECOVERY_RECORD_BYTES = 240 * 1024;
+const MAX_RECOVERY_ENTRIES_PER_CAPABILITY = 128;
+
+export function studioJobRecoveryPrefix(capability: StudioJobRecoveryCapability): string {
+  return `${STUDIO_JOB_RECOVERY_PREFIX}${capability}`;
+}
+
+export function studioJobRecoveryRecordPath(capability: StudioJobRecoveryCapability, id: string): string {
+  return `${studioJobRecoveryPrefix(capability)}/${encodeURIComponent(id)}.json`;
+}
+
+function isStorageNotFoundError(cause: unknown): boolean {
+  if (!cause || typeof cause !== 'object') return false;
+  const error = cause as { reasonCode?: unknown; code?: unknown };
+  const code = String(error.reasonCode ?? error.code ?? '').toLowerCase().replaceAll('-', '_');
+  return code === 'not_found' || code === 'app_storage_entry_not_found' || code === 'app_asset_not_found';
+}
+
+function parseStudioJobRecoveryEntry(capability: StudioJobRecoveryCapability, item: unknown): StudioJobRecoveryEntry {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) {
+    throw new Error('Invalid saved task recovery entry');
+  }
+  const record = item as Record<string, unknown>;
+  const allowedKeys = [
+    'id',
+    'state',
+    'clientSubmissionId',
+    'createdAt',
+    'message',
+    'result',
+    'prompt',
+    'runConfig',
+    'jobId',
+    'details',
+    ...(capability === 'music.generate' ? [] : ['sourceAudio']),
+    ...(capability === 'audio.voice.convert' ? ['targetAudio'] : []),
+    ...(capability === 'audio.separate' ? ['separationRequest'] : []),
+  ];
+  if (
+    typeof record.clientSubmissionId !== 'string'
+    || !/^[A-Za-z0-9_-]{1,128}$/.test(record.clientSubmissionId)
+    || record.id !== record.clientSubmissionId
+    || !['pending', 'acknowledged', 'completed', 'rejected'].includes(String(record.state))
+    || typeof record.createdAt !== 'string'
+    || !Number.isFinite(Date.parse(record.createdAt))
+    || Object.keys(record).some((key) => !allowedKeys.includes(key))
+  ) {
+    throw new Error('Invalid saved task recovery entry');
+  }
+  const state = record.state as StudioJobRecoveryState;
+  if (record.details !== undefined) validateRecoveryDetails(record.details);
+  if (record.prompt !== undefined && typeof record.prompt !== 'string') throw new Error('Invalid saved task prompt');
+  if (record.runConfig !== undefined) {
+    validateRunConfig(record.runConfig, 'task recovery request');
+    if ((record.runConfig as StudioRunConfigSnapshot).target.capabilityId !== capability) {
+      throw new Error('Task recovery request has a different capability');
+    }
+  }
+  if (record.separationRequest !== undefined && !isAudioSeparationRequest(record.separationRequest)) {
+    throw new Error('Invalid saved separation request');
+  }
+  if (
+    record.jobId !== undefined
+    && (typeof record.jobId !== 'string' || record.jobId.length < 1 || record.jobId.length > 256 || record.jobId !== record.jobId.trim())
+  ) {
+    throw new Error('Invalid saved task recovery entry');
+  }
+  if ((state === 'pending' || state === 'rejected') && (record.jobId !== undefined || record.result !== undefined)) {
+    throw new Error('Invalid saved task recovery state');
+  }
+  if (state === 'acknowledged' && record.jobId === undefined) {
+    throw new Error('Acknowledged task recovery entry is missing jobId');
+  }
+  if (['music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability)) {
+    validateManagedArtifact(record.sourceAudio, 'task recovery source');
+  }
+  if (capability === 'audio.voice.convert' && record.targetAudio !== undefined) {
+    validateManagedArtifact(record.targetAudio, 'voice conversion recovery target');
+  }
+  if (record.result !== undefined) {
+    validateStudioHistoryResult(record.result, 'task recovery');
+    const result = record.result as StudioRunHistoryResultSnapshot;
+    const complete = capability === 'music.transcribe' ? (result.ok && result.kind === 'artifacts' ? result.musicTranscription : undefined)
+      : capability === 'audio.voice.convert' ? (result.ok && result.kind === 'artifacts' ? result.voiceConversion : undefined)
+      : capability === 'audio.separate' ? (result.ok && result.kind === 'artifacts' ? result.audioSeparation : undefined)
+      : capability === 'music.generate' ? (result.ok && result.kind === 'artifacts' ? result.musicGeneration : undefined)
+      : true;
+    if (!result.ok || !complete || typeof record.message !== 'string') {
+      throw new Error('Incomplete saved task result');
+    }
+    const savedRequest = capability === 'audio.separate' && result.ok && result.kind === 'artifacts'
+      ? result.audioSeparation?.request
+      : undefined;
+    const separationRequest = record.separationRequest as StudioAudioSeparationRequest | undefined;
+    if (
+      savedRequest
+      && separationRequest
+      && (
+        savedRequest.kind !== separationRequest.kind
+        || (savedRequest.kind === 'range' && separationRequest.kind === 'range'
+          && (savedRequest.startSeconds !== separationRequest.startSeconds || savedRequest.endSeconds !== separationRequest.endSeconds))
+      )
+    ) {
+      throw new Error('Saved separation request conflicts with its result');
+    }
+  } else if (state === 'completed') {
+    throw new Error('Completed task recovery entry is missing result');
+  }
+  return record as unknown as StudioJobRecoveryEntry;
+}
+
+function recoveryStore(assets: StudioJobRecoveryAssets, capability: StudioJobRecoveryCapability) {
+  return createNimiAppRecordStore<StudioJobRecoveryEntry>(
+    assets,
+    studioJobRecoveryPrefix(capability),
+    (value) => parseStudioJobRecoveryEntry(capability, value),
+  );
+}
+
+export async function readStudioJobRecovery(
+  assets: StudioJobRecoveryAssets,
+  capability: StudioJobRecoveryCapability = 'music.generate',
+): Promise<readonly StudioJobRecoveryEntry[]> {
+  try {
+    const versions = await recoveryStore(assets, capability).listVersions();
+    return versions
+      .map((item) => item.record)
+      .filter((entry) => entry.state !== 'rejected')
+      .sort((left, right) => (
+        Date.parse(left.createdAt) - Date.parse(right.createdAt)
+        || left.clientSubmissionId.localeCompare(right.clientSubmissionId)
+      ));
+  } catch (cause) {
+    if (isStorageNotFoundError(cause)) return [];
     throw cause;
   }
-  if (!Array.isArray(value)) throw new Error('Invalid saved task recovery entries');
-  const ids = new Set<string>();
-  for (const item of value) {
-    if (!item || typeof item !== 'object' || typeof item.clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(item.clientSubmissionId)
-      || ids.has(item.clientSubmissionId) || typeof item.createdAt !== 'string' || !Number.isFinite(Date.parse(item.createdAt))
-      || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result', 'prompt', 'runConfig', 'jobId', 'details',
-        ...(capability === 'music.generate' ? [] : ['sourceAudio']),
-        ...(capability === 'audio.voice.convert' ? ['targetAudio'] : []),
-        ...(capability === 'audio.separate' ? ['separationRequest'] : [])].includes(key))) throw new Error('Invalid saved task recovery entry');
-    ids.add(item.clientSubmissionId);
-    if (item.details !== undefined) validateRecoveryDetails(item.details);
-    if (item.prompt !== undefined && typeof item.prompt !== 'string') throw new Error('Invalid saved task prompt');
-    if (item.runConfig !== undefined) {
-      validateRunConfig(item.runConfig, 'task recovery request');
-      if (item.runConfig.target.capabilityId !== capability) throw new Error('Task recovery request has a different capability');
-    }
-    if (item.separationRequest !== undefined && !isAudioSeparationRequest(item.separationRequest)) throw new Error('Invalid saved separation request');
-    if (item.jobId !== undefined
-      && (typeof item.jobId !== 'string' || item.jobId.length < 1 || item.jobId.length > 256 || item.jobId !== item.jobId.trim())) throw new Error('Invalid saved task recovery entry');
-    if (['music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability)) validateManagedArtifact(item.sourceAudio, 'task recovery source');
-    if (capability === 'audio.voice.convert' && item.targetAudio !== undefined) validateManagedArtifact(item.targetAudio, 'voice conversion recovery target');
-    if (item.result !== undefined) {
-      validateStudioHistoryResult(item.result, 'task recovery');
-      const complete = capability === 'music.transcribe' ? item.result.musicTranscription
-        : capability === 'audio.voice.convert' ? item.result.voiceConversion
-        : capability === 'audio.separate' ? item.result.audioSeparation : capability === 'music.generate' ? item.result.musicGeneration : true;
-      if (!item.result.ok || !complete || typeof item.message !== 'string') throw new Error('Incomplete saved task result');
-      const savedRequest = capability === 'audio.separate' ? item.result.audioSeparation?.request : undefined;
-      if (savedRequest && item.separationRequest && (savedRequest.kind !== item.separationRequest.kind
-        || savedRequest.startSeconds !== item.separationRequest.startSeconds
-        || savedRequest.endSeconds !== item.separationRequest.endSeconds)) throw new Error('Saved separation request conflicts with its result');
-    }
+}
+
+export class StudioRecoveryWriteUnconfirmed extends Error {
+  constructor(readonly submissionId: string, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
   }
-  return value as StudioJobRecoveryEntry[];
 }
 
-async function mutate(storage: Storage, update: (entries: readonly StudioJobRecoveryEntry[]) => StudioJobRecoveryEntry[], capability: StudioJobRecoveryCapability) {
-  const next = mutationTail.then(async () => {
-    const entries = update(await readStudioJobRecovery(storage, capability));
-    // This is bounded recovery storage, not business-history retention. Never
-    // discard an unindexed result to make room for a newer author action.
-    if (new TextEncoder().encode(JSON.stringify(entries)).length > 240 * 1024) {
-      throw new Error('Task recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
-    }
-    await storage.writeJson(paths[capability], JSON.parse(JSON.stringify(entries)) as JsonValue);
-  });
-  mutationTail = next.catch(() => undefined);
-  await next;
-}
-
-export async function beginStudioJobRecovery(storage: Storage, capability: StudioJobRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact, separationRequest?: StudioAudioSeparationRequest, runConfig?: StudioRunConfigSnapshot, prompt?: string, details?: StudioJobRecoveryDetails): Promise<string> {
-  if (['music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability)) validateManagedArtifact(sourceAudio, 'task recovery source');
+export async function beginStudioJobRecovery(
+  assets: StudioJobRecoveryAssets,
+  capability: StudioJobRecoveryCapability = 'music.generate',
+  sourceAudio?: StudioManagedArtifact,
+  targetAudio?: StudioManagedArtifact,
+  separationRequest?: StudioAudioSeparationRequest,
+  runConfig?: StudioRunConfigSnapshot,
+  prompt?: string,
+  details?: StudioJobRecoveryDetails,
+): Promise<string> {
+  if (['music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability)) {
+    validateManagedArtifact(sourceAudio, 'task recovery source');
+  }
   if (targetAudio !== undefined) validateManagedArtifact(targetAudio, 'voice conversion recovery target');
-  if (separationRequest !== undefined && (capability !== 'audio.separate' || !isAudioSeparationRequest(separationRequest))) throw new Error('Invalid separation request');
+  if (separationRequest !== undefined && (capability !== 'audio.separate' || !isAudioSeparationRequest(separationRequest))) {
+    throw new Error('Invalid separation request');
+  }
   if (details) validateRecoveryDetails(details);
   const clientSubmissionId = crypto.randomUUID();
-  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}), ...(separationRequest ? { separationRequest } : {}), ...(runConfig ? { runConfig } : {}), ...(prompt === undefined ? {} : { prompt }), ...(details ? { details } : {}) }], capability);
+  const entry: StudioJobRecoveryEntry = {
+    id: clientSubmissionId,
+    state: 'pending',
+    clientSubmissionId,
+    createdAt: new Date().toISOString(),
+    ...(sourceAudio ? { sourceAudio } : {}),
+    ...(targetAudio ? { targetAudio } : {}),
+    ...(separationRequest ? { separationRequest } : {}),
+    ...(runConfig ? { runConfig } : {}),
+    ...(prompt === undefined ? {} : { prompt }),
+    ...(details ? { details } : {}),
+  };
+  if (new TextEncoder().encode(JSON.stringify(entry)).byteLength > MAX_RECOVERY_RECORD_BYTES) {
+    throw new Error('Task recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
+  }
+  const existing = await readStudioJobRecovery(assets, capability);
+  if (existing.length >= MAX_RECOVERY_ENTRIES_PER_CAPABILITY) {
+    throw new Error('Task recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
+  }
+  try {
+    await recoveryStore(assets, capability).write(entry, null);
+  } catch (cause) {
+    // The file may already own its inputs when the write receipt is lost.
+    throw new StudioRecoveryWriteUnconfirmed(clientSubmissionId, cause);
+  }
   return clientSubmissionId;
 }
 
-export async function captureStudioJobRecoveryJobId(storage: Storage, id: string, jobId: string, capability: StudioJobRecoveryCapability = 'music.generate') {
-  if (!jobId || jobId.length > 256 || jobId !== jobId.trim()) throw new Error('Invalid task recovery job identity');
-  await mutate(storage, (entries) => {
-    const current = entries.find(entry => entry.clientSubmissionId === id);
-    if (!current || (current.jobId && current.jobId !== jobId)) throw new Error('Saved action has a different Job identity');
-    return entries.map(entry => entry.clientSubmissionId === id ? { ...entry, jobId } : entry);
-  }, capability);
+export async function captureStudioJobRecoveryJobId(
+  assets: StudioJobRecoveryAssets,
+  id: string,
+  jobId: string,
+  capability: StudioJobRecoveryCapability = 'music.generate',
+) {
+  if (!jobId || jobId.length > 256 || jobId !== jobId.trim()) {
+    throw new Error('Invalid task recovery job identity');
+  }
+  const store = recoveryStore(assets, capability);
+  const current = await store.readVersion(id);
+  if (!current || current.record.state === 'rejected') {
+    throw new Error('Saved action was already rejected or removed');
+  }
+  if (current.record.jobId && current.record.jobId !== jobId) {
+    throw new Error('Saved action has a different Job identity');
+  }
+  if (current.record.jobId === jobId && (current.record.state === 'acknowledged' || current.record.state === 'completed')) {
+    return;
+  }
+  const next: StudioJobRecoveryEntry = {
+    ...current.record,
+    jobId,
+    state: current.record.state === 'completed' ? 'completed' : 'acknowledged',
+  };
+  await store.write(next, current.sha256);
 }
 
-export async function saveStudioJobRecoveryResult(storage: Storage, id: string, result: StudioCapabilityRunResult, capability: StudioJobRecoveryCapability = 'music.generate') {
+export async function saveStudioJobRecoveryResult(
+  assets: StudioJobRecoveryAssets,
+  id: string,
+  result: StudioCapabilityRunResult,
+  capability: StudioJobRecoveryCapability = 'music.generate',
+) {
   if (!result.ok) return;
   if (result.capabilityId !== capability) throw new Error('Saved result belongs to a different capability');
-  if (['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability) && result.output.kind !== 'artifacts') throw new Error('Recovery requires the complete adopted result');
+  if (['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability) && result.output.kind !== 'artifacts') {
+    throw new Error('Recovery requires the complete adopted result');
+  }
   const media = result.output.kind === 'artifacts' ? result.output : undefined;
   const complete = capability === 'music.transcribe' ? media?.musicTranscription
     : capability === 'audio.voice.convert' ? media?.voiceConversion
-    : capability === 'audio.separate' ? media?.audioSeparation : capability === 'music.generate' ? media?.musicGeneration : true;
+    : capability === 'audio.separate' ? media?.audioSeparation
+    : capability === 'music.generate' ? media?.musicGeneration
+    : true;
   if (!complete) throw new Error('Task recovery requires the complete adopted result');
   const snapshot = createStudioRunHistoryResultSnapshot(result);
-  await mutate(storage, (entries) => {
-    const entry = entries.find(item => item.clientSubmissionId === id);
-    if (!entry || !('jobId' in result.output) || (entry.jobId && entry.jobId !== result.output.jobId)) throw new Error('Saved result does not belong to the recorded action');
-    return entries.map((entry) => entry.clientSubmissionId === id ? { ...entry, message: result.message, result: snapshot } : entry);
-  }, capability);
+  const store = recoveryStore(assets, capability);
+  const current = await store.readVersion(id);
+  if (
+    !current
+    || current.record.state === 'rejected'
+    || !('jobId' in result.output)
+    || (current.record.jobId && current.record.jobId !== result.output.jobId)
+  ) {
+    throw new Error('Saved result does not belong to the recorded action');
+  }
+  const next: StudioJobRecoveryEntry = {
+    ...current.record,
+    jobId: current.record.jobId ?? result.output.jobId,
+    state: 'completed',
+    message: result.message,
+    result: snapshot,
+  };
+  if (new TextEncoder().encode(JSON.stringify(next)).byteLength > MAX_RECOVERY_RECORD_BYTES) {
+    throw new Error('Task recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
+  }
+  await store.write(next, current.sha256);
 }
 
-export async function forgetStudioJobRecovery(storage: Storage, id: string, capability: StudioJobRecoveryCapability = 'music.generate') {
-  await mutate(storage, (entries) => entries.filter((entry) => entry.clientSubmissionId !== id), capability);
+export async function forgetStudioJobRecovery(
+  assets: StudioJobRecoveryAssets,
+  id: string,
+  capability: StudioJobRecoveryCapability = 'music.generate',
+) {
+  try {
+    await assets.remove(studioJobRecoveryRecordPath(capability, id));
+  } catch (cause) {
+    if (!isStorageNotFoundError(cause)) throw cause;
+  }
 }
 
-export async function restoreSavedStudioJobResult(entry: StudioJobRecoveryEntry, label: string, capability: StudioJobRecoveryCapability,
-  assets: Pick<NimiLocalAppClient['storage']['assets'], 'read'>, signal?: AbortSignal): Promise<StudioCapabilityRunResult | null> {
+export type ForgetPendingRecoveryResult =
+  | { readonly removed: true; readonly entry: StudioJobRecoveryEntry }
+  | { readonly removed: false; readonly reason: 'missing' | 'already-acknowledged' | 'cas-conflict' | 'remove-unconfirmed' };
+
+/**
+ * Two-phase atomic cleanup for a definite pre-admission rejection:
+ * 1. Read current record + sha256 and require state === 'pending' with no jobId/result.
+ * 2. CAS-transition the record to state === 'rejected' with expectedSha256.
+ *    If another observer already filled jobId, CAS fails and we leave the record intact.
+ * 3. Only the CAS winner calls assets.remove(path), returning removed: true only when
+ *    assets.remove confirms { removed: true }.
+ */
+export async function forgetPendingStudioJobRecoveryIfUnacknowledged(
+  assets: StudioJobRecoveryAssets,
+  capability: StudioJobRecoveryCapability,
+  id: string,
+): Promise<ForgetPendingRecoveryResult> {
+  const store = recoveryStore(assets, capability);
+  const current = await store.readVersion(id);
+  if (!current) return { removed: false, reason: 'missing' };
+  if (current.record.state !== 'pending' || current.record.jobId || current.record.result) {
+    return { removed: false, reason: 'already-acknowledged' };
+  }
+  try {
+    await store.write({ ...current.record, state: 'rejected' }, current.sha256);
+  } catch {
+    return { removed: false, reason: 'cas-conflict' };
+  }
+  try {
+    const deletion = await assets.remove(studioJobRecoveryRecordPath(capability, id));
+    if (deletion?.removed === true) {
+      return { removed: true, entry: current.record };
+    }
+    return { removed: false, reason: 'remove-unconfirmed' };
+  } catch {
+    return { removed: false, reason: 'remove-unconfirmed' };
+  }
+}
+
+function normalizedReasonCode(cause: unknown): string {
+  if (!cause || typeof cause !== 'object' || !('reasonCode' in cause)) return '';
+  const raw = (cause as { reasonCode?: unknown }).reasonCode;
+  if (typeof raw !== 'string') return '';
+  return raw.trim().replaceAll('-', '_').toUpperCase();
+}
+
+/**
+ * Narrow D1 pre-admission rejection classifier:
+ * - AI_LOCAL_ASSET_SLOT_MISSING is guaranteed pre-Job-persistence in Runtime.
+ * - AI_MEDIA_OPTION_UNSUPPORTED on vision.locate is guaranteed pre-Job-persistence
+ *   (local_vision_execution.go:70).
+ * Explicitly excludes PROTOCOL_ENVELOPE_INVALID / invalid-payload, timeouts,
+ * aborts, network errors, and post-acknowledgement local persistence failures.
+ */
+export function isDefiniteStudioPreAdmissionRejection(
+  capability: StudioJobRecoveryCapability,
+  cause: unknown,
+): boolean {
+  const reasonCode = normalizedReasonCode(cause);
+  if (reasonCode === 'AI_LOCAL_ASSET_SLOT_MISSING') return true;
+  if (capability === 'vision.locate' && reasonCode === 'AI_MEDIA_OPTION_UNSUPPORTED') return true;
+  return false;
+}
+
+export function isDefiniteUninvokedRunnerRejection(cause: unknown): boolean {
+  return normalizedReasonCode(cause) === 'SDK_LOCAL_APP_INPUT_INVALID';
+}
+
+export async function cleanupRejectedStudioRecoveryEntry(
+  assets: StudioJobRecoveryAssets,
+  capability: StudioJobRecoveryCapability,
+  id: string,
+): Promise<ForgetPendingRecoveryResult> {
+  const outcome = await forgetPendingStudioJobRecoveryIfUnacknowledged(assets, capability, id);
+  if (!outcome.removed) return outcome;
+  const ownedInputPaths = [
+    ...new Set([
+      ...(outcome.entry.sourceAudio ? [outcome.entry.sourceAudio.relativePath] : []),
+      ...(outcome.entry.targetAudio ? [outcome.entry.targetAudio.relativePath] : []),
+      ...(outcome.entry.details?.sourceImage ? [outcome.entry.details.sourceImage.relativePath] : []),
+    ]),
+  ];
+  for (const relativePath of ownedInputPaths) {
+    await assets.remove(relativePath).catch(() => undefined);
+  }
+  return outcome;
+}
+
+export async function restoreSavedStudioJobResult(
+  entry: StudioJobRecoveryEntry,
+  label: string,
+  capability: StudioJobRecoveryCapability,
+  assets: Pick<NimiLocalAppClient['storage']['assets'], 'read'>,
+  signal?: AbortSignal,
+): Promise<StudioCapabilityRunResult | null> {
   if (!entry.result) return null;
   await verifySavedStudioJobAssets(entry, assets, signal);
   signal?.throwIfAborted();
   const result = restoreStudioCapabilityRunResult({ capabilityId: capability, result: entry.result, message: entry.message ?? '' }, () => label);
   if (capability === 'audio.separate' && entry.separationRequest && result?.ok && result.output.kind === 'artifacts' && result.output.audioSeparation) {
-    return { ...result, output: { ...result.output,
-      audioSeparation: { ...result.output.audioSeparation, request: entry.separationRequest } } };
+    return {
+      ...result,
+      output: {
+        ...result.output,
+        audioSeparation: { ...result.output.audioSeparation, request: entry.separationRequest },
+      },
+    };
   }
   return result;
 }
 
-export async function verifySavedStudioJobAssets(entry: StudioJobRecoveryEntry,
-  assets: Pick<NimiLocalAppClient['storage']['assets'], 'read'>, signal?: AbortSignal): Promise<void> {
+export async function verifySavedStudioJobAssets(
+  entry: StudioJobRecoveryEntry,
+  assets: Pick<NimiLocalAppClient['storage']['assets'], 'read'>,
+  signal?: AbortSignal,
+): Promise<void> {
   if (!entry.result) return;
   const refs = studioResultAssetReferences(entry.result);
   for (const path of studioResultAssetPaths(entry.result)) {
-    const references = refs.filter(ref => ref.relativePath === path);
+    const references = refs.filter((ref) => ref.relativePath === path);
     const expected: { relativePath: string; sha256?: string; sizeBytes?: number; mediaType?: string } = { relativePath: path };
     for (const ref of references) {
       for (const key of ['sha256', 'sizeBytes', 'mediaType'] as const) {
         const value = ref[key];
         if (value === undefined) continue;
-        if ((key === 'sizeBytes' ? typeof value !== 'number' : typeof value !== 'string') || (expected[key] !== undefined && expected[key] !== value)) throw new Error('Saved asset roles disagree');
+        if ((key === 'sizeBytes' ? typeof value !== 'number' : typeof value !== 'string') || (expected[key] !== undefined && expected[key] !== value)) {
+          throw new Error('Saved asset roles disagree');
+        }
         Object.assign(expected, { [key]: value });
       }
     }
@@ -167,56 +471,104 @@ export async function verifySavedStudioJobAssets(entry: StudioJobRecoveryEntry,
   }
 }
 
-/** Submit only after beginStudioJobRecovery has durably recorded this action. */
-export function recordedStudioScenarioJobClient(context: import('./runtime.js').StudioCapabilityRuntimeContext,
-  clientSubmissionId: string, capability: StudioJobRecoveryCapability) {
+export function createRecordedStudioScenarioJobSession(
+  context: import('./runtime.js').StudioCapabilityRuntimeContext,
+  clientSubmissionId: string,
+  capability: StudioJobRecoveryCapability,
+) {
   const api = context.host.client.ai;
-  return context.host.createScenarioJobClient({ ...api, scenarioJobs: { ...api.scenarioJobs,
-    async submit(spec, options) {
-      context.input.observationSignal?.throwIfAborted();
-      context.input.signal?.throwIfAborted();
-      const entry = (await readStudioJobRecovery(context.host.client.storage, capability)).find(item => item.clientSubmissionId === clientSubmissionId);
-      if (!entry || entry.jobId) throw new Error('The recorded action is missing or already submitted');
-      context.input.observationSignal?.throwIfAborted();
-      context.input.signal?.throwIfAborted();
-      const response = await api.scenarioJobs.submit(spec, { ...options, clientSubmissionId });
-      await captureStudioJobRecoveryJobId(context.host.client.storage, clientSubmissionId, response.job.jobId, capability);
-      return response;
+  const assets = context.host.client.storage.assets;
+  let submitInvoked = false;
+  const client = context.host.createScenarioJobClient({
+    ...api,
+    scenarioJobs: {
+      ...api.scenarioJobs,
+      async submit(spec, options) {
+        context.input.observationSignal?.throwIfAborted();
+        context.input.signal?.throwIfAborted();
+        const current = await recoveryStore(assets, capability).readVersion(clientSubmissionId);
+        if (!current || current.record.state !== 'pending' || current.record.jobId) {
+          throw new Error('The recorded action is missing or already submitted');
+        }
+        context.input.observationSignal?.throwIfAborted();
+        context.input.signal?.throwIfAborted();
+        submitInvoked = true;
+        let response;
+        try {
+          response = await api.scenarioJobs.submit(spec, { ...options, clientSubmissionId });
+        } catch (cause) {
+          if (isDefiniteStudioPreAdmissionRejection(capability, cause)) {
+            await cleanupRejectedStudioRecoveryEntry(assets, capability, clientSubmissionId);
+          }
+          throw cause;
+        }
+        // Post-acknowledgement local persistence failure must never remove the recovery record.
+        await captureStudioJobRecoveryJobId(assets, clientSubmissionId, response.job.jobId, capability);
+        return response;
+      },
     },
-  } });
+  });
+  return {
+    client,
+    wasSubmitInvoked: () => submitInvoked,
+  };
 }
 
-export async function recoverStudioJobId(client: { readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>; readonly storage: Storage }, entry: StudioJobRecoveryEntry, capability: StudioJobRecoveryCapability): Promise<string> {
-  const response = entry.jobId ? await client.ai.scenarioJobs.get(entry.jobId) : await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
-  await captureStudioJobRecoveryJobId(client.storage, entry.clientSubmissionId, response.job.jobId, capability);
+/** Submit only after beginStudioJobRecovery has durably recorded this action. */
+export function recordedStudioScenarioJobClient(
+  context: import('./runtime.js').StudioCapabilityRuntimeContext,
+  clientSubmissionId: string,
+  capability: StudioJobRecoveryCapability,
+) {
+  return createRecordedStudioScenarioJobSession(context, clientSubmissionId, capability).client;
+}
+
+export async function recoverStudioJobId(
+  client: { readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>; readonly storage: { readonly assets: StudioJobRecoveryAssets } },
+  entry: StudioJobRecoveryEntry,
+  capability: StudioJobRecoveryCapability,
+): Promise<string> {
+  const response = entry.jobId
+    ? await client.ai.scenarioJobs.get(entry.jobId)
+    : await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
+  await captureStudioJobRecoveryJobId(client.storage.assets, entry.clientSubmissionId, response.job.jobId, capability);
   return response.job.jobId;
 }
 
 export function isStudioJobRecoveryCapability(value: string): value is StudioJobRecoveryCapability {
-  return Object.hasOwn(paths, value);
+  return STUDIO_JOB_RECOVERY_CAPABILITIES.has(value);
 }
 
 function validateRecoveryDetails(value: unknown): asserts value is StudioJobRecoveryDetails {
   const fail = () => { throw new Error('Saved task inputs are invalid'); };
-  if (!isJsonObject(value) || Object.keys(value).some(key => !['scenarioType', 'sourceImage', 'expectedVision', 'creationSource', 'timestamps', 'texts', 'faceSwap'].includes(key))
-    || typeof value.scenarioType !== 'number' || value.scenarioType <= 0 || !Object.values(ScenarioType).includes(value.scenarioType)) return fail();
+  if (
+    !isJsonObject(value)
+    || Object.keys(value).some((key) => !['scenarioType', 'sourceImage', 'expectedVision', 'creationSource', 'timestamps', 'texts', 'faceSwap'].includes(key))
+    || typeof value.scenarioType !== 'number'
+    || value.scenarioType <= 0
+    || !Object.values(ScenarioType).includes(value.scenarioType)
+  ) return fail();
   if (value.expectedVision !== undefined || value.sourceImage !== undefined) {
-    if (value.scenarioType !== ScenarioType.VISION_LOCATE || !isJsonObject(value.expectedVision)
-      || Object.keys(value.expectedVision).some(key => !['imageArtifactId', 'geometry'].includes(key))
-      || typeof value.expectedVision.imageArtifactId !== 'string' || !value.expectedVision.imageArtifactId.trim()
-      || ![VisionLocateGeometry.BOX, VisionLocateGeometry.POINT].includes(Number(value.expectedVision.geometry))) return fail();
+    if (
+      value.scenarioType !== ScenarioType.VISION_LOCATE
+      || !isJsonObject(value.expectedVision)
+      || Object.keys(value.expectedVision).some((key) => !['imageArtifactId', 'geometry'].includes(key))
+      || typeof value.expectedVision.imageArtifactId !== 'string'
+      || !value.expectedVision.imageArtifactId.trim()
+      || ![VisionLocateGeometry.BOX, VisionLocateGeometry.POINT].includes(Number(value.expectedVision.geometry))
+    ) return fail();
     validateManagedArtifact(value.sourceImage, 'saved Locate image');
   }
   if (value.creationSource !== undefined && (value.scenarioType !== ScenarioType.VOICE_CREATE || !['reference-audio', 'text-description'].includes(String(value.creationSource)))) return fail();
   if (value.timestamps !== undefined && (value.scenarioType !== ScenarioType.SPEECH_TRANSCRIBE || typeof value.timestamps !== 'boolean')) return fail();
-  if (value.texts !== undefined && (value.scenarioType !== ScenarioType.TEXT_ANNOTATE || !Array.isArray(value.texts) || !value.texts.length || value.texts.length > 64 || value.texts.some(text => typeof text !== 'string'))) return fail();
+  if (value.texts !== undefined && (value.scenarioType !== ScenarioType.TEXT_ANNOTATE || !Array.isArray(value.texts) || !value.texts.length || value.texts.length > 64 || value.texts.some((text) => typeof text !== 'string'))) return fail();
   if (value.faceSwap !== undefined) {
     if (![ScenarioType.IMAGE_FACE_SWAP, ScenarioType.VIDEO_FACE_SWAP].includes(value.scenarioType)) return fail();
     validateFaceSwapHistory(value.faceSwap, 'saved face replacement');
   }
 }
 
-export const studioJobRecoveryCapabilities = Object.freeze(Object.keys(paths) as StudioJobRecoveryCapability[]);
+export const studioJobRecoveryCapabilities = Object.freeze([...STUDIO_JOB_RECOVERY_CAPABILITY_LIST]);
 
 /** Local result work stops for either view disposal or the current user action. */
 export function studioJobRecoverySignal(input: { readonly signal?: AbortSignal; readonly observationSignal?: AbortSignal }): AbortSignal {

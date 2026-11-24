@@ -789,13 +789,29 @@ test('music recovery opens success only after the workspace commits formal histo
   const result = { ok: true, capabilityId: 'audio.separate', capabilityLabel: 'Synthetic', message: 'synthetic',
     output: { kind: 'artifacts', jobId: 'synthetic-job', jobState: 'completed', artifactCount: 2,
       artifacts: [vocals, background], firstArtifact: vocals, audioSeparation: separation } };
-  const entry = { clientSubmissionId: 'synthetic-recovery', createdAt: '2026-10-05T00:00:00Z', prompt: 'original prompt',
+  const entry = { id: 'synthetic-recovery', state: 'completed', clientSubmissionId: 'synthetic-recovery', jobId: 'synthetic-job', createdAt: '2026-10-05T00:00:00Z', prompt: 'original prompt',
     sourceAudio, message: result.message, result: { ok: true, summary: 'synthetic', ...result.output } };
+  const entryPath = 'studio/recovery/audio.separate/synthetic-recovery.json';
+  const entryBytes = new TextEncoder().encode(JSON.stringify(entry));
+  const entryAsset = { relativePath: entryPath, mediaType: 'application/json', sizeBytes: entryBytes.byteLength, sha256: `sha256:${'b'.repeat(64)}` };
   const assets = new Map([sourceAudio, vocals, background].map(ref => [ref.relativePath, ref]));
   const calls = [], deferred = Promise.withResolvers();
   const host = { translate: key => key, locale: 'en',
     app: { events: { subscribeAIConfigRefresh: () => () => {} } },
-    sdk: { storage: { readJson: async () => ({ value: [entry] }) }, assets: { async read({ relativePath }) { const asset = assets.get(relativePath); return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() }; } },
+    sdk: {
+      storage: { readJson: async () => ({ value: [] }) },
+      assets: {
+        async list({ prefix = '' } = {}) { return { assets: entryPath.startsWith(prefix) ? [entryAsset] : [], nextCursor: '' }; },
+        async read({ relativePath }) {
+          if (relativePath === entryPath) {
+            return { asset: entryAsset, range: { offset: 0, length: entryBytes.byteLength, totalSize: entryBytes.byteLength }, body: (async function* () { yield entryBytes; })() };
+          }
+          const asset = assets.get(relativePath);
+          return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() };
+        },
+        async write() {},
+        async remove() { return { removed: true }; },
+      },
       runCapability: async input => { calls.push(input); return result; } } };
   const commits = [], selected = [];
   const commit = async (...args) => { commits.push(args); await deferred.promise; return { id: 'formal-record' }; };
@@ -1285,8 +1301,22 @@ for(const geometry of ['box','point']) for(const withDraft of [false,true]) {
 
 test('leaving recovery detaches the view without requesting Cancel on the original Job', async () => {
   const pending = Promise.withResolvers(); const calls = []; let commits = 0;
+  const entry = { id: 'saved-action', state: 'pending', clientSubmissionId: 'saved-action', createdAt: '2026-10-05T00:00:00Z' };
+  const entryPath = 'studio/recovery/audio.transcribe/saved-action.json';
+  const entryBytes = new TextEncoder().encode(JSON.stringify(entry));
+  const entryAsset = { relativePath: entryPath, mediaType: 'application/json', sizeBytes: entryBytes.byteLength, sha256: `sha256:${'b'.repeat(64)}` };
   const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: () => () => {} } },
-    sdk: { storage: { readJson: async () => ({ value: [{ clientSubmissionId: 'saved-action', createdAt: '2026-10-05T00:00:00Z' }] }) }, assets: {},
+    sdk: {
+      storage: { readJson: async () => ({ value: [] }) },
+      assets: {
+        async list({ prefix = '' } = {}) { return { assets: entryPath.startsWith(prefix) ? [entryAsset] : [], nextCursor: '' }; },
+        async read({ relativePath }) {
+          if (relativePath !== entryPath) throw { code: 'not-found' };
+          return { asset: entryAsset, range: { offset: 0, length: entryBytes.byteLength, totalSize: entryBytes.byteLength }, body: (async function* () { yield entryBytes; })() };
+        },
+        async write() {},
+        async remove() { return { removed: true }; },
+      },
       runCapability: input => { calls.push(input); return pending.promise; } } };
   const renderer = createRoot(document.getElementById('root'));
   await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host }, createElement(StudioHistoryResultContext.Provider, { value: async () => { commits++; } }, createElement(StudioJobRecoveryPanel, { capability: 'audio.transcribe', disabled: false })))));
@@ -1305,18 +1335,29 @@ for (const stop of ['leave-view', 'cancel-open']) {
   test(`saved-result ${stop} stops the actual reader and commits no History; list refresh reads no media`, async () => {
     const asset = name => ({ relativePath: `saved/${name}.wav`, mediaType: 'audio/wav', sizeBytes: 58, sha256: 'sha256:' + 'a'.repeat(64), previewSource: 'managed-asset' });
     const sourceAudio = asset('source'), vocals = asset('vocals'), background = asset('background');
-    const entry = { clientSubmissionId: 'saved-reader-action', createdAt: '2026-10-05T00:00:00Z', sourceAudio, message: 'saved',
+    const entry = { id: 'saved-reader-action', state: 'completed', clientSubmissionId: 'saved-reader-action', jobId: 'original-job', createdAt: '2026-10-05T00:00:00Z', sourceAudio, message: 'saved',
       result: { ok: true, kind: 'artifacts', summary: 'saved', jobId: 'original-job', jobState: 'completed', artifactCount: 2,
         artifacts: [vocals, background], firstArtifact: vocals, audioSeparation: { sourceAudio, vocals, background } } };
+    const entryPath = 'studio/recovery/audio.separate/saved-reader-action.json';
+    const entryBytes = new TextEncoder().encode(JSON.stringify(entry));
+    const entryAsset = { relativePath: entryPath, mediaType: 'application/json', sizeBytes: entryBytes.byteLength, sha256: 'sha256:' + 'b'.repeat(64) };
     const metadata = new Map([sourceAudio, vocals, background].map(value => [value.relativePath, value]));
     const entered = Promise.withResolvers(), next = Promise.withResolvers(); let reads = 0, returns = 0, commits = 0, cancels = 0, refresh;
-    const assets = { read: async ({ relativePath }) => {
-      reads++; const value = metadata.get(relativePath);
-      return { asset: value, range: { offset: 0, length: value.sizeBytes, totalSize: value.sizeBytes }, body: {
-        [Symbol.asyncIterator]: () => ({ next: () => { entered.resolve(); return next.promise; }, return: async () => { returns++; next.resolve({ done: true }); return { done: true }; } }),
-      } };
-    } };
-    const client = { storage: { readJson: async () => ({ value: [entry] }), assets }, ai: { scenarioJobs: { cancel: async () => { cancels++; } } } };
+    const assets = {
+      list: async ({ prefix = '' } = {}) => ({ assets: entryPath.startsWith(prefix) ? [entryAsset] : [], nextCursor: '' }),
+      write: async () => {},
+      remove: async () => ({ removed: true }),
+      read: async ({ relativePath }) => {
+        if (relativePath === entryPath) {
+          return { asset: entryAsset, range: { offset: 0, length: entryBytes.byteLength, totalSize: entryBytes.byteLength }, body: (async function* () { yield entryBytes; })() };
+        }
+        reads++; const value = metadata.get(relativePath);
+        return { asset: value, range: { offset: 0, length: value.sizeBytes, totalSize: value.sizeBytes }, body: {
+          [Symbol.asyncIterator]: () => ({ next: () => { entered.resolve(); return next.promise; }, return: async () => { returns++; next.resolve({ done: true }); return { done: true }; } }),
+        } };
+      },
+    };
+    const client = { storage: { readJson: async () => ({ value: [] }), assets }, ai: { scenarioJobs: { cancel: async () => { cancels++; } } } };
     const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: callback => { refresh = callback; return () => {}; } } },
       sdk: { storage: client.storage, assets, runCapability: input => runLabCapability(input, {
         getRuntimeProjection: async () => ({ status: 'ready', mode: 'local-app' }), getLocalAppClient: () => client,
@@ -1359,11 +1400,28 @@ async function openRecoveryRecords() {
 
 test('recovery records stay compact by default; folding only changes presentation and Cancel stays explicit', async () => {
   const pending = Promise.withResolvers(); const calls = [];
+  const entries = [
+    { id: 'action-a', state: 'pending', clientSubmissionId: 'action-a', createdAt: '2026-10-10T07:09:29Z' },
+    { id: 'action-b', state: 'pending', clientSubmissionId: 'action-b', createdAt: '2026-10-10T06:49:17Z' },
+  ];
+  const recordMap = new Map(entries.map((item) => {
+    const path = `studio/recovery/music.generate/${item.id}.json`;
+    const bytes = new TextEncoder().encode(JSON.stringify(item));
+    return [path, { asset: { relativePath: path, mediaType: 'application/json', sizeBytes: bytes.byteLength, sha256: 'sha256:' + 'b'.repeat(64) }, bytes }];
+  }));
   const host = { translate: key => key, locale: 'en', app: { events: { subscribeAIConfigRefresh: () => () => {} } },
-    sdk: { storage: { readJson: async () => ({ value: [
-      { clientSubmissionId: 'action-a', createdAt: '2026-10-10T07:09:29Z' },
-      { clientSubmissionId: 'action-b', createdAt: '2026-10-10T06:49:17Z' },
-    ] }) }, assets: { read: async () => assert.fail('a collapsed record list must not read media') },
+    sdk: {
+      storage: { readJson: async () => ({ value: [] }) },
+      assets: {
+        list: async ({ prefix = '' } = {}) => ({ assets: [...recordMap.values()].filter((item) => item.asset.relativePath.startsWith(prefix)).map((item) => item.asset), nextCursor: '' }),
+        read: async ({ relativePath }) => {
+          const item = recordMap.get(relativePath);
+          if (!item) assert.fail('a collapsed record list must not read media');
+          return { asset: item.asset, range: { offset: 0, length: item.bytes.byteLength, totalSize: item.bytes.byteLength }, body: (async function* () { yield item.bytes; })() };
+        },
+        write: async () => {},
+        remove: async () => ({ removed: true }),
+      },
       runCapability: input => { calls.push(input); return pending.promise; } } };
   const renderer = createRoot(document.getElementById('root'));
   try {

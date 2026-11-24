@@ -3,6 +3,10 @@ import type { NimiRuntimeAIScenarioClient } from '@nimiplatform/sdk/ai';
 import type { NimiLocalAppTextTurnEvent } from '@nimiplatform/sdk/app';
 import { ExecutionMode, FinishReason, ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
+import {
+  isSupportedStudioTextMediaMime,
+  studioTextMediaExtension,
+} from '../../ai-studio-core/section-ai-testing-input.js';
 import type { StudioEmbeddingRetrieval } from '../../ai-studio-core/runtime-types.js';
 import {
   projectStudioRunnerNonSuccess,
@@ -34,10 +38,11 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
   const attachments = context.input.attachments ?? [];
   if (attachments.length > 0) {
     const image = attachments[0];
-    if (attachments.length !== 1 || !image || !['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(image.mimeType)) {
+    if (attachments.length !== 1 || !image || !isSupportedStudioTextMediaMime(image.mimeType)) {
       return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageInvalid'));
     }
-    const prefix = `data:${image.mimeType};base64,`;
+    const mediaType = image.mimeType;
+    const prefix = `data:${mediaType};base64,`;
     if (!image.dataUrl.startsWith(prefix) || image.dataUrl.length > prefix.length + 4 * Math.ceil(32 * 1024 * 1024 / 3)) {
       return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.profiles.textGenerate.imageTooLarge'));
     }
@@ -55,7 +60,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
     }
     const upload = await context.host.client.ai.artifacts.upload({
       bytes,
-      mimeType: image.mimeType as Parameters<typeof context.host.client.ai.artifacts.upload>[0]['mimeType'],
+      mimeType: mediaType,
     });
     if (studioRequestSignal(context)?.aborted) {
       return context.host.nonSuccess(context.capability, 'operation-aborted', context.host.translate('Studio.profiles.textGenerate.imageStopped'));
@@ -67,7 +72,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
         text: '',
         parts: [
           { type: 'text', text: context.prompt },
-          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType: image.mimeType as 'image/jpeg' | 'audio/wav' | 'audio/mpeg' | 'video/mp4', displayName: image.name },
+          { type: 'artifact-ref', artifactId: upload.artifactId, mediaType, displayName: image.name },
         ],
       }],
       ...textCandidateParameters(parameters),
@@ -82,7 +87,7 @@ async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
     if (response.output.type !== 'text-generate' || response.output.finishReason !== 'stop' || !answer.trim()) {
       return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.profiles.textGenerate.imageOutputInvalid'));
     }
-    const extension = image.mimeType === 'audio/wav' ? 'wav' : image.mimeType === 'audio/mpeg' ? 'mp3' : image.mimeType === 'video/mp4' ? 'mp4' : 'jpg';
+    const extension = studioTextMediaExtension(mediaType);
     const relativePath = `studio/text-generate-inputs/${crypto.randomUUID()}.${extension}`;
     let sourceImage;
     let message = context.host.translate('Studio.profiles.textGenerate.imageCompleted');

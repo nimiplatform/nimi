@@ -328,7 +328,9 @@
       "markupFileHint": "与参考图尺寸一致的独立透明 PNG 标注图层，不能与蒙版同时使用。",
       "layerPngRequired": "请选择不超过 32 MiB 的 PNG 文件。",
       "clearLayer": "清除图层",
-      "imageFormatHint": "请选择模型支持的格式。SVG 和 GIF 仅用于生成；SVG 可能产生供方额外绘制费用，GIF 每帧时间按 10 毫秒取整。"
+      "imageFormatHint": "请选择模型支持的格式。SVG 和 GIF 仅用于生成；SVG 可能产生供方额外绘制费用，GIF 每帧时间按 10 毫秒取整。",
+      "imageInputSlotMissingHint": "当前本机实现支持图像输入（如 ControlNet 或图生图），但所选 Loadout 尚未绑定对应的可选伴生模型槽位。请在 Nimi Home 绑定后再使用；现在提交图像输入会被 Runtime 明确拒绝。",
+      "imageInputUnsupportedHint": "当前配置未声明支持图像输入（仅文生图）。提交参考图、控制图或蒙版会被 Runtime 明确拒绝。"
     }
   },
   "Music": {

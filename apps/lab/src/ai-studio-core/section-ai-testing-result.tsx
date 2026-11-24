@@ -486,6 +486,7 @@ export function TextStudioResultState({
                 intentLabel={intentLabel}
                 streamingText={streamingText}
                 jobStatus={activeRun.jobStatus}
+                jobProgress={activeRun.jobProgress}
                 verboseConsole={verboseConsole}
                 onCopy={onCopy}
                 onDownload={onDownload}
