@@ -303,7 +303,6 @@ export function isLightQaRouteResponse(response: RouteAndSubmitInputResponse): b
     && (
       response.sessionKind === 'general_inbox'
       || response.ownerBodyKind === 'brain'
-      || response.ownerBodyKind === 'brain_inline'
     )
   );
 }
@@ -313,7 +312,6 @@ export function isPcWorkRouteResponse(response: RouteAndSubmitInputResponse): bo
     response.outcome === RouteAndSubmitOutcome.DEFERRED_BODY_OFFLINE
     || response.sessionKind === 'pc_work'
     || response.ownerBodyKind === 'os.pc.workspace'
-    || response.ownerBodyKind === 'pc_harness'
   );
 }
 
@@ -439,8 +437,7 @@ export function projectSessionOverviewAttention(input: {
   if (!input.carrierOnline) {
     for (const session of input.sessions) {
       const isPcBody = session.sessionKind === 'pc_work'
-        || session.ownerBodyKind === 'os.pc.workspace'
-        || session.ownerBodyKind === 'pc_harness';
+        || session.ownerBodyKind === 'os.pc.workspace';
       const isPendingOffline = session.status === 'queued_body_offline' || session.status === 'active';
       if (isPcBody && isPendingOffline) {
         result.push({

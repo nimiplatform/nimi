@@ -30,7 +30,6 @@ function view(overrides: Partial<HomeAgentCardViewProps> = {}) {
     onOpenChatWithDraft: noop,
     onOpenPartner: noop,
     onManagePartner: noop,
-    onOpenAssistantChat: noop,
     onOpenAll: noop,
     onExplore: noop,
     ...overrides,
@@ -81,7 +80,8 @@ test('ready state renders multiple recent conversations simultaneously with mess
   assert.match(html, /data-state="ready"/);
   assert.match(html, /data-testid="home-recent-chats-title">最近对话/);
   assert.match(html, /data-testid="home-recent-chats-open-all"[^>]*><span[^>]*>查看全部伙伴/);
-  assert.match(html, /data-testid="home-recent-chats-assistant"[^>]*>[\s\S]*?Nimi Chat/);
+  // Independent Nimi Chat entry is retired in v2.1 (replaced by Home Omni-Composer).
+  assert.doesNotMatch(html, /data-testid="home-recent-chats-assistant"/);
   // All 3 conversations render simultaneously in the vertical list!
   assert.match(html, /data-testid="home-recent-chat-row:lumi"/);
   assert.match(html, /data-testid="home-recent-chat-row:aria"/);

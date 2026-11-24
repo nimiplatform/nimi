@@ -76,7 +76,7 @@ export function buildHomeQuickJumpItems(input: {
   const { t, apps, partners, actions } = input;
   const capabilityList = input.capabilities?.length ? input.capabilities : QUICK_JUMP_CAPABILITIES;
 
-  const bundledAppIds = new Set<string>(['nimi.zhiyu', ...(actions.onOpenHarness ? ['nimi.harness'] : [])]);
+  const bundledAppIds = new Set<string>(['nimi.zhiyu']);
   const installedApps = [
     ...new Map(
       apps
@@ -86,16 +86,6 @@ export function buildHomeQuickJumpItems(input: {
   ];
 
   const appItems: HomeQuickJumpItem[] = [
-    ...(actions.onOpenHarness
-      ? [{
-          id: 'app:harness',
-          group: 'apps' as const,
-          label: 'Nimi Harness',
-          keywords: 'Nimi Harness harness pc workspace assistant',
-          icon: <AppWindow size={15} aria-hidden="true" />,
-          onSelect: actions.onOpenHarness,
-        }]
-      : []),
     {
       id: 'app:zhiyu',
       group: 'apps',

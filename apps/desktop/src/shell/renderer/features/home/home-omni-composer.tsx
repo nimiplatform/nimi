@@ -1,3 +1,4 @@
+import { hasElectronInvoke, openShellFileDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Button, ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   RouteAndSubmitInputResponse,
@@ -71,12 +72,21 @@ export type HomeOmniComposerProps = Readonly<{
   humanContacts?: readonly OmniHumanContactOption[];
   recentSessions?: readonly WorkSessionRecord[];
   cloudRouteActive?: boolean;
+  cloudRouteStatus?: 'cloud' | 'local' | 'loading' | 'unknown';
   cloudModelLabel?: string | null;
   onOpenHumanChatDraft: (contactId: string, draftText: string) => void;
   onOpenPartnerZhiyu: (localAgentRef: string, draftText?: string) => void;
   onOpenHarness: (workSessionRef?: string) => void;
   onOpenModelSwitch: () => void;
 }>;
+
+function isOtherEditableElement(target: EventTarget | null, composerInput: HTMLTextAreaElement | null): boolean {
+  if (!target || !(target instanceof HTMLElement)) return false;
+  if (target === composerInput) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
 
 function randomRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -93,6 +103,7 @@ export function HomeOmniComposer({
   humanContacts = [],
   recentSessions = [],
   cloudRouteActive = false,
+  cloudRouteStatus,
   cloudModelLabel = null,
   onOpenHumanChatDraft,
   onOpenPartnerZhiyu,
@@ -121,8 +132,10 @@ export function HomeOmniComposer({
   const isComposingRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
+  const accountGenerationRef = useRef(0);
 
   useEffect(() => {
+    accountGenerationRef.current += 1;
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
     setDraft('');
@@ -163,6 +176,7 @@ export function HomeOmniComposer({
   useEffect(() => {
     if (activeTrigger?.kind !== 'session') return;
     let canceled = false;
+    const capturedGeneration = accountGenerationRef.current;
     const query = activeTrigger.query.trim();
     void sdk.accountProduct().sessions
       .listSessions({
@@ -175,7 +189,7 @@ export function HomeOmniComposer({
         pageToken: '',
       })
       .then((res) => {
-        if (!canceled && Array.isArray(res.items)) {
+        if (!canceled && capturedGeneration === accountGenerationRef.current && Array.isArray(res.items)) {
           setSessionSearchItems(res.items);
         }
       })
@@ -437,6 +451,7 @@ export function HomeOmniComposer({
       }
 
       const requestId = options?.requestId ?? randomRequestId();
+      const capturedGeneration = accountGenerationRef.current;
       setSubmitting(true);
       setSubmitError(null);
       try {
@@ -450,14 +465,18 @@ export function HomeOmniComposer({
           selectedCandidateRef: options?.selectedCandidateRef,
         });
         const response = await sdk.accountProduct().sessions.routeAndSubmitInput(request);
+        if (capturedGeneration !== accountGenerationRef.current) return;
         handleRouteResponse(response, trimmed, requestId, resolvedPartner.handle, resolvedPartner.name);
       } catch (error) {
+        if (capturedGeneration !== accountGenerationRef.current) return;
         const message = error instanceof Error && error.message.trim()
           ? error.message
           : t('runtimeConfig.overview.omni.submitFailed');
         setSubmitError(message);
       } finally {
-        setSubmitting(false);
+        if (capturedGeneration === accountGenerationRef.current) {
+          setSubmitting(false);
+        }
       }
     },
     [
@@ -494,6 +513,7 @@ export function HomeOmniComposer({
     const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
       if (isComposingRef.current || event.isComposing || event.keyCode === 229) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isOtherEditableElement(event.target, inputRef.current)) return;
       if (document.activeElement === inputRef.current && draft.trim() !== disambiguation.draftText.trim()) return;
       if (event.key === '1' || event.key === '2' || event.key === '3') {
         const idx = Number(event.key) - 1;
@@ -524,6 +544,7 @@ export function HomeOmniComposer({
 
   const handleSplitLightQaToTask = async () => {
     if (!lightQa) return;
+    const capturedGeneration = accountGenerationRef.current;
     setSubmitError(null);
     try {
       const response = await sdk.accountProduct().sessions.splitOrRedirectInput({
@@ -537,6 +558,7 @@ export function HomeOmniComposer({
         title: '',
         requestId: randomRequestId(),
       });
+      if (capturedGeneration !== accountGenerationRef.current) return;
       setLightQa((current) => (current ? {
         ...current,
         streaming: false,
@@ -544,23 +566,45 @@ export function HomeOmniComposer({
       } : current));
       onOpenHarness(response.targetWorkSessionRef);
     } catch (error) {
+      if (capturedGeneration !== accountGenerationRef.current) return;
       setSubmitError(error instanceof Error ? error.message : t('runtimeConfig.overview.omni.submitFailed'));
     }
   };
 
   const handleAttachReadOnlyFile = async () => {
     setPlusMenuOpen(false);
-    const picked = await commands.pickLocalRuntimeAssetFile().catch(() => null);
-    if (!picked) return;
-    setAttachments((prev) => addReadOnlyAttachmentPaths(prev, [picked]));
+    const capturedGeneration = accountGenerationRef.current;
+    let picked: string | null = null;
+    if (hasElectronInvoke()) {
+      const dialogResult = await openShellFileDialog({
+        kind: 'file',
+        title: t('runtimeConfig.overview.omni.menuAttachReadOnly'),
+        filters: [{ name: 'All Files', extensions: ['*'] }],
+      }).catch(() => null);
+      picked = dialogResult && !dialogResult.canceled ? (dialogResult.paths[0]?.trim() || null) : null;
+    } else {
+      picked = await commands.pickLocalRuntimeAssetFile().catch(() => null);
+    }
+    if (!picked || capturedGeneration !== accountGenerationRef.current) return;
+    setAttachments((prev) => addReadOnlyAttachmentPaths(prev, [picked!]));
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
   const handleAuthorizeWorkspace = async () => {
     setPlusMenuOpen(false);
-    const pickedDir = await commands.pickLocalRuntimeAssetDirectory().catch(() => null);
-    if (!pickedDir) return;
-    setAttachments((prev) => bindWritableWorkspaceRoot(prev, pickedDir));
+    const capturedGeneration = accountGenerationRef.current;
+    let pickedDir: string | null = null;
+    if (hasElectronInvoke()) {
+      const dialogResult = await openShellFileDialog({
+        kind: 'directory',
+        title: t('runtimeConfig.overview.omni.menuAuthorizeWorkspace'),
+      }).catch(() => null);
+      pickedDir = dialogResult && !dialogResult.canceled ? (dialogResult.paths[0]?.trim() || null) : null;
+    } else {
+      pickedDir = await commands.pickLocalRuntimeAssetDirectory().catch(() => null);
+    }
+    if (!pickedDir || capturedGeneration !== accountGenerationRef.current) return;
+    setAttachments((prev) => bindWritableWorkspaceRoot(prev, pickedDir!));
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
@@ -569,16 +613,43 @@ export function HomeOmniComposer({
     const resolveElectronFilePath = (
       globalThis as { __NIMI_DESKTOP_FILE_PATH__?: (file: File) => string }
     ).__NIMI_DESKTOP_FILE_PATH__;
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length === 0) return;
     const droppedPaths: string[] = [];
-    for (const file of Array.from(event.dataTransfer.files)) {
+    for (const file of files) {
       const electronPath = typeof resolveElectronFilePath === 'function' ? resolveElectronFilePath(file) : '';
-      const pathValue = electronPath || (file as File & { path?: string }).path || file.name;
-      if (pathValue) droppedPaths.push(pathValue);
+      const rawPath = (electronPath || (file as File & { path?: string }).path || '').trim();
+      // Never fall back to bare file.name — require a real OS filesystem path.
+      if (rawPath && (rawPath.startsWith('/') || /^[A-Za-z]:[\\/]/u.test(rawPath) || rawPath.startsWith('\\\\'))) {
+        droppedPaths.push(rawPath);
+      }
     }
-    if (droppedPaths.length === 0) return;
+    if (droppedPaths.length === 0) {
+      setSubmitError(t('runtimeConfig.overview.omni.dropPathUnavailable', {
+        defaultValue: 'Could not read local file path from drag-and-drop. Use the + button to attach files.',
+      }));
+      return;
+    }
+    setSubmitError(null);
     // Strict v2.1 rule: drag-and-drop ALWAYS defaults to read-only attachments, NEVER silently grants workspace write!
     setAttachments((prev) => addReadOnlyAttachmentPaths(prev, droppedPaths));
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
+  };
+
+  const dispatchEmptySubmitByTarget = () => {
+    if (target.kind === 'human') {
+      onOpenHumanChatDraft(target.contactId, '');
+      return;
+    }
+    if (target.kind === 'partner' && resolveEffectivePartnerMode(target.mode, attachments) === 'zhiyu') {
+      onOpenPartnerZhiyu(target.agentHandle, '');
+      return;
+    }
+    if (target.kind === 'session') {
+      onOpenHarness(target.workSessionRef);
+      return;
+    }
+    onOpenHarness();
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -623,7 +694,7 @@ export function HomeOmniComposer({
         return;
       }
       if (!draft.trim()) {
-        onOpenHarness();
+        dispatchEmptySubmitByTarget();
         return;
       }
       void submitToRuntime(draft);
@@ -633,7 +704,7 @@ export function HomeOmniComposer({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!draft.trim()) {
-      onOpenHarness();
+      dispatchEmptySubmitByTarget();
       return;
     }
     void submitToRuntime(draft);
@@ -644,7 +715,9 @@ export function HomeOmniComposer({
   const effectivePartnerMode = target.kind === 'partner'
     ? resolveEffectivePartnerMode(target.mode, attachments)
     : null;
-  const showCloudDataNotice = hasOmniFileContext(attachments) && cloudRouteActive;
+  const effectiveCloudRouteStatus = cloudRouteStatus ?? (cloudRouteActive ? 'cloud' : 'local');
+  const showCloudDataNotice = hasOmniFileContext(attachments)
+    && (effectiveCloudRouteStatus === 'cloud' || effectiveCloudRouteStatus === 'unknown');
 
   const submitLabel = isHumanTarget
     ? t('runtimeConfig.overview.omni.openHumanChatWithDraft')
@@ -864,9 +937,13 @@ export function HomeOmniComposer({
             <span className="inline-flex items-center gap-1.5">
               <ShieldAlert size={12} aria-hidden="true" />
               <span>
-                {t('runtimeConfig.overview.omni.cloudDataDestinationNotice', {
-                  model: cloudModelLabel || t('runtimeConfig.systemEntry.cloud'),
-                })}
+                {effectiveCloudRouteStatus === 'unknown'
+                  ? t('runtimeConfig.overview.omni.cloudDataDestinationUnknown', {
+                    defaultValue: 'Current model route could not be verified; review your active model before sharing local files.',
+                  })
+                  : t('runtimeConfig.overview.omni.cloudDataDestinationNotice', {
+                    model: cloudModelLabel || t('runtimeConfig.systemEntry.cloud'),
+                  })}
               </span>
             </span>
             <button
@@ -895,7 +972,9 @@ export function HomeOmniComposer({
               type="button"
               onClick={() => {
                 setPlusMenuOpen(false);
-                setDraft((prev) => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}@`);
+                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}@`;
+                setDraft(next);
+                setCaretIndex(next.length);
                 inputRef.current?.focus();
               }}
               className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
@@ -907,7 +986,9 @@ export function HomeOmniComposer({
               type="button"
               onClick={() => {
                 setPlusMenuOpen(false);
-                setDraft((prev) => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}~`);
+                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}~`;
+                setDraft(next);
+                setCaretIndex(next.length);
                 inputRef.current?.focus();
               }}
               className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
@@ -919,7 +1000,9 @@ export function HomeOmniComposer({
               type="button"
               onClick={() => {
                 setPlusMenuOpen(false);
-                setDraft((prev) => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}#`);
+                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}#`;
+                setDraft(next);
+                setCaretIndex(next.length);
                 inputRef.current?.focus();
               }}
               className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"

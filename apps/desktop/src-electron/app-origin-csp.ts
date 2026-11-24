@@ -44,12 +44,3 @@ export const ZHIYU_APP_CONTENT_SECURITY_POLICY = [
   "font-src 'self' data:",
   "connect-src 'self' https: data: blob: nimi-app-asset:",
 ].join('; ');
-
-export const HARNESS_APP_CONTENT_SECURITY_POLICY = [
-  ...COMMON,
-  "script-src 'self'",
-  "img-src 'self' data: blob: nimi-app-asset:",
-  "media-src 'self' data: blob: nimi-app-asset:",
-  "font-src 'self' data:",
-  "connect-src 'self' data: blob: nimi-app-asset:",
-].join('; ');

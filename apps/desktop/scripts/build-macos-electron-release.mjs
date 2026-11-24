@@ -57,7 +57,6 @@ const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
 const avatarRoot = path.join(repoRoot, 'apps', 'avatar');
 const zhiyuRoot = path.join(repoRoot, 'apps', 'zhiyu');
-const harnessRoot = path.join(repoRoot, 'apps', 'harness');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
 const layoutOnly = process.argv.includes('--layout-only');
 const localDevelopment = process.argv.includes('--local-development-candidate');
@@ -239,7 +238,6 @@ async function buildReleaseInputs({
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', avatarRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', zhiyuRoot, 'run', 'build'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--dir', harnessRoot, 'run', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit'], { cwd: repoRoot, inherit: true });
   runReleaseCommand(process.execPath, [
     path.join(scriptRoot, 'bundle-electron-main.mjs'),
@@ -289,7 +287,6 @@ async function buildReleaseInputs({
     desktopRoot,
     avatarRoot,
     zhiyuRoot,
-    harnessRoot,
     debugRoot: path.join(transactionRoot, 'source-maps'),
     nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
     supervisorPath: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'target', 'release', 'nimi-app-supervisor'),

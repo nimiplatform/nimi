@@ -15,6 +15,8 @@ import { createZhiyuElectronResourcePackPlacementHost } from '../../zhiyu/src-el
 import { redeemDesktopZhiyuResourcePackPlacement } from '../../zhiyu/src-electron/resource-pack-placement-redemption.js';
 import { resolveZhiyuResourcePackPlacementAgentHandle } from '../../zhiyu/src-electron/resource-pack-placement-agent-resolution.js';
 import { ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL } from '../../zhiyu/src-electron/resource-pack-placement-ipc.js';
+import { registerZhiyuHarnessHandoffIpc } from '../../zhiyu/src-electron/harness-handoff-ipc.js';
+import { createNimiLocalAppAgentSessionClient } from '@nimiplatform/sdk/app';
 import { createDesktopAppOriginProtocol } from './app-origin-protocol.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
 
@@ -39,6 +41,7 @@ export function createDesktopBundledZhiyuHost(input: {
   let current: {
     window: BrowserWindow;
     owner: ReturnType<typeof createNimiElectronBundledAppLocalHostOwner>;
+    agentSession: ReturnType<typeof createNimiLocalAppAgentSessionClient>;
     bridge: ReturnType<typeof registerNimiElectronRuntimeBridge>;
     media: ReturnType<typeof createNimiElectronLocalAppAssetMediaHost>;
     chrome: ReturnType<typeof createNimiElectronAppChromeHost>;
@@ -49,7 +52,16 @@ export function createDesktopBundledZhiyuHost(input: {
 
   const conversationDelivery = createZhiyuConversationDelivery(() => current?.window.webContents.send(ZHIYU_CONVERSATION_OPEN_EVENT));
   const ownsSender = (event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => Boolean(current && input.canOpen()
-    && event.sender === current.window.webContents && event.senderFrame === event.sender.mainFrame);
+    && !current.window.isDestroyed()
+    && event.sender === current.window.webContents
+    && !(typeof current.window.webContents.isDestroyed === 'function' && current.window.webContents.isDestroyed())
+    && event.senderFrame === event.sender.mainFrame
+    && isAllowedElectronRendererUrl(event.senderFrame.url, [rendererUrl]));
+  const harnessHandoffIpc = registerZhiyuHarnessHandoffIpc({
+    ipcMain,
+    authorizeSender: ownsSender,
+    getAgentSessionClient: () => current?.agentSession,
+  });
   ipcMain.handle(ZHIYU_CONVERSATION_OPEN_READ, event => ownsSender(event) ? conversationDelivery.read() : null);
   const acknowledgeConversation = (event: Electron.IpcMainEvent, value: unknown) => { if (ownsSender(event)) conversationDelivery.acknowledge(value); };
   ipcMain.on(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
@@ -91,6 +103,7 @@ export function createDesktopBundledZhiyuHost(input: {
     if (current) return focus();
     opening = (async () => {
       const owner = createNimiElectronBundledAppLocalHostOwner({ appId: 'nimi.zhiyu', revealInOs: target => shell.showItemInFolder(target) });
+      const agentSession = createNimiLocalAppAgentSessionClient(owner.host);
       const chrome = createNimiElectronAppChromeHost({
         metadata: { name: '织羽', version: input.version }, allowedRendererUrls: [rendererUrl],
         appCommands: [{ id: 'zhiyu.account.manage', menu: 'file', labels: { en: 'Manage account in Home', zh: '在 Home 管理账号' } }],
@@ -129,7 +142,7 @@ export function createDesktopBundledZhiyuHost(input: {
         },
       });
       if (input.onFocus) window.on('focus', input.onFocus);
-      const record = { window, owner, bridge, media, chrome, placement: undefined as Awaited<ReturnType<typeof createZhiyuElectronResourcePackPlacementHost>> | undefined };
+      const record = { window, owner, agentSession, bridge, media, chrome, placement: undefined as Awaited<ReturnType<typeof createZhiyuElectronResourcePackPlacementHost>> | undefined };
       current = record;
       chrome.bindWindow(window);
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -173,6 +186,7 @@ export function createDesktopBundledZhiyuHost(input: {
       ipcMain.removeListener(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, acknowledge);
       ipcMain.removeListener(ZHIYU_CONVERSATION_OPEN_ACK, acknowledgeConversation);
       ipcMain.removeHandler(ZHIYU_CONVERSATION_OPEN_READ);
+      harnessHandoffIpc.dispose();
     },
   };
 }

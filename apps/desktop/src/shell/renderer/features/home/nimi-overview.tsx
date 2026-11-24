@@ -342,10 +342,10 @@ export function NimiOverview() {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
   };
   const openHarness = (workSessionRef?: string) => {
-    const normalizedRef = typeof workSessionRef === 'string' && workSessionRef.trim() ? workSessionRef.trim() : undefined;
-    recordHomeRecentAppOpen(messagesAccountKey, 'nimi.harness');
+    void workSessionRef;
     const harnessEntry = entries.find((entry) => entry.identity.appId === 'nimi.harness');
-    if (harnessEntry && !normalizedRef) {
+    if (harnessEntry) {
+      recordHomeRecentAppOpen(messagesAccountKey, harnessEntry.identity.appId);
       const liveBridge = createDesktopAppsLiveBridge();
       const running = harnessEntry.run?.state === 'running';
       if (running) {
@@ -366,23 +366,10 @@ export function NimiOverview() {
         );
         return;
       }
+      openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
+      return;
     }
-    void invokeChecked(
-      'bundled_harness_open',
-      normalizedRef ? { workSessionRef: normalizedRef } : {},
-      (value) => {
-        if (!value || typeof value !== 'object' || !('opened' in value) || value.opened !== true) {
-          throw new Error('bundled-harness-open-invalid');
-        }
-        return value;
-      },
-    ).catch(() => {
-      if (harnessEntry) {
-        openApp(harnessEntry.identity.appId, harnessEntry.identity.entryKey);
-        return;
-      }
-      emitFeedbackToast({ kind: 'error', message: t('Apps.bundled.openFailed') });
-    });
+    void navigation.push({ id: 'apps' });
   };
   const openHumanChatDraft = (contactId: string, draftText: string) => {
     const trimmed = draftText.trim();
@@ -557,34 +544,7 @@ export function NimiOverview() {
       : t('runtimeConfig.overview.messages.hasUnread');
 
     const attentionItems: HomeAttentionItem[] = [];
-
-    // Reader-authorized Runtime session attention items (02 §2.3):
-    // PC approvals strictly focus Harness as the single approval authority (zero duplicated approve buttons in Home).
-    const sessionAttention = projectSessionOverviewAttention({
-      attentionItems: sessionOverview.attentionItems,
-      sessions: sessionOverview.sessions,
-      carrierOnline: sessionOverview.carrierOnline,
-    });
-    for (const item of sessionAttention) {
-      const prefix = item.kind === 'pending_approval'
-        ? item.remainingLabel
-          ? t('runtimeConfig.overview.attention.sessionApprovalTtl', { ttl: item.remainingLabel })
-          : t('runtimeConfig.overview.attention.sessionApproval')
-        : item.kind === 'body_offline'
-          ? t('runtimeConfig.overview.attention.sessionBodyOffline')
-          : item.kind === 'interrupted'
-            ? t('runtimeConfig.overview.attention.sessionInterrupted')
-            : t('runtimeConfig.overview.attention.sessionAlarm');
-      attentionItems.push({
-        id: item.id,
-        tone: item.tone,
-        message: `${prefix} · ${item.title}`,
-        actionLabel: item.kind === 'body_offline'
-          ? t('runtimeConfig.overview.attention.openHarnessAction')
-          : t('runtimeConfig.overview.attention.reviewAction'),
-        onAction: () => openHarness(item.workSessionRef),
-      });
-    }
+    const deferredOfflineAttentionItems: HomeAttentionItem[] = [];
 
     if (runtimeState === 'unavailable') {
       attentionItems.push({
@@ -602,6 +562,58 @@ export function NimiOverview() {
         actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
         onAction: () => openDiagnostics('services'),
       });
+    }
+
+    if (diskCritical && diskPercent !== null) {
+      attentionItems.push({
+        id: 'disk-critical',
+        tone: 'warning',
+        message: t('runtimeConfig.overview.attention.diskCritical', { percent: diskPercent }),
+        actionLabel: t('runtimeConfig.overview.attention.manageStorageAction'),
+        onAction: () => void openHomeSettings(navigation, 'data'),
+      });
+    } else if (memoryCritical) {
+      attentionItems.push({
+        id: 'memory-critical',
+        tone: 'warning',
+        message: t('runtimeConfig.overview.attention.memoryCritical'),
+        actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
+        onAction: () => openDiagnostics('services'),
+      });
+    }
+
+    // Reader-authorized Runtime session attention items (02 §2.3):
+    // Urgent approvals/interruptions stay visible right after critical system health alerts;
+    // low-priority body_offline items are appended after system alerts so they never mask critical notices.
+    const sessionAttention = projectSessionOverviewAttention({
+      attentionItems: sessionOverview.attentionItems,
+      sessions: sessionOverview.sessions,
+      carrierOnline: sessionOverview.carrierOnline,
+    });
+    for (const item of sessionAttention) {
+      const prefix = item.kind === 'pending_approval'
+        ? item.remainingLabel
+          ? t('runtimeConfig.overview.attention.sessionApprovalTtl', { ttl: item.remainingLabel })
+          : t('runtimeConfig.overview.attention.sessionApproval')
+        : item.kind === 'body_offline'
+          ? t('runtimeConfig.overview.attention.sessionBodyOffline')
+          : item.kind === 'interrupted'
+            ? t('runtimeConfig.overview.attention.sessionInterrupted')
+            : t('runtimeConfig.overview.attention.sessionAlarm');
+      const entry: HomeAttentionItem = {
+        id: item.id,
+        tone: item.tone,
+        message: `${prefix} · ${item.title}`,
+        actionLabel: item.kind === 'body_offline'
+          ? t('runtimeConfig.overview.attention.openHarnessAction')
+          : t('runtimeConfig.overview.attention.reviewAction'),
+        onAction: () => openHarness(item.workSessionRef),
+      };
+      if (item.kind === 'body_offline') {
+        deferredOfflineAttentionItems.push(entry);
+      } else {
+        attentionItems.push(entry);
+      }
     }
 
     if (remoteSummary.pendingConfirmCount > 0) {
@@ -654,24 +666,6 @@ export function NimiOverview() {
       });
     }
 
-    if (diskCritical && diskPercent !== null) {
-      attentionItems.push({
-        id: 'disk-critical',
-        tone: 'warning',
-        message: t('runtimeConfig.overview.attention.diskCritical', { percent: diskPercent }),
-        actionLabel: t('runtimeConfig.overview.attention.manageStorageAction'),
-        onAction: () => void openHomeSettings(navigation, 'data'),
-      });
-    } else if (memoryCritical) {
-      attentionItems.push({
-        id: 'memory-critical',
-        tone: 'warning',
-        message: t('runtimeConfig.overview.attention.memoryCritical'),
-        actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
-        onAction: () => openDiagnostics('services'),
-      });
-    }
-
     if (localAppsUnavailable) {
       attentionItems.push({
         id: 'apps-unavailable',
@@ -681,6 +675,8 @@ export function NimiOverview() {
         onAction: () => void apps.refreshUpdates(),
       });
     }
+
+    attentionItems.push(...deferredOfflineAttentionItems);
 
     return (
       <div
@@ -738,11 +734,15 @@ export function NimiOverview() {
               partners={agents.data ?? []}
               humanContacts={omniHumanContacts}
               recentSessions={sessionOverview.sessions}
-              cloudRouteActive={
-                committedCloudRoute.active
-                || activeExecutions.some(
-                  (execution) => execution.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD,
-                )
+              cloudRouteActive={committedCloudRoute.active}
+              cloudRouteStatus={
+                sharedAgentAIConfigQuery.isPending
+                  ? 'loading'
+                  : sharedAgentAIConfigQuery.isError
+                    ? 'unknown'
+                    : committedCloudRoute.active
+                      ? 'cloud'
+                      : 'local'
               }
               cloudModelLabel={committedCloudRoute.modelLabel}
               onOpenHumanChatDraft={openHumanChatDraft}

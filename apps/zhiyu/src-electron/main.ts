@@ -30,6 +30,7 @@ import {
 } from './resource-pack-placement-host.js';
 import { redeemDesktopZhiyuResourcePackPlacement } from './resource-pack-placement-redemption.js';
 import { resolveZhiyuResourcePackPlacementAgentHandle } from './resource-pack-placement-agent-resolution.js';
+import { registerZhiyuHarnessHandoffIpc } from './harness-handoff-ipc.js';
 
 const APP_ID = 'nimi.zhiyu';
 
@@ -70,65 +71,21 @@ ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, (event, payload) => {
   resourcePackPlacementHost?.acknowledge(payload);
 });
 
-const ZHIYU_HANDOFF_ALLOWED_KEYS = new Set(['agentHandle', 'requestId', 'text', 'handoffBriefText']);
-
-ipcMain.handle('nimi:zhiyu:harness-handoff:submit', async (event, rawPayload: unknown) => {
-  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
-  if (
-    !window
-    || event.sender !== window.webContents
-    || window.webContents.isDestroyed()
-    || !event.senderFrame
-    || event.senderFrame !== event.sender.mainFrame
-    || !isAllowedElectronRendererUrl(event.senderFrame.url, allowedRendererUrls())
-  ) {
-    throw new Error('zhiyu-handoff-sender-unauthorized');
-  }
-  if (!registeredAppBridge) {
-    throw new Error('zhiyu-host-not-ready');
-  }
-  const record = rawPayload && typeof rawPayload === 'object' && !Array.isArray(rawPayload)
-    ? rawPayload as Record<string, unknown>
-    : null;
-  if (!record || Object.keys(record).some((k) => !ZHIYU_HANDOFF_ALLOWED_KEYS.has(k))) {
-    throw new Error('zhiyu-handoff-invalid-brief');
-  }
-  const agentHandle = typeof record.agentHandle === 'string' ? record.agentHandle.trim() : '';
-  const requestId = typeof record.requestId === 'string' ? record.requestId.trim() : '';
-  const text = typeof record.text === 'string' ? record.text.trim() : '';
-  const handoffBriefText = typeof record.handoffBriefText === 'string' ? record.handoffBriefText.trim() : '';
-  if (
-    !agentHandle || agentHandle.length > 256 || /[\x00-\x1f]/u.test(agentHandle)
-    || !requestId || requestId.length > 128 || /[\x00-\x1f]/u.test(requestId)
-    || text.length > 2000 || /\x00/u.test(text)
-    || !handoffBriefText || handoffBriefText.length > 4000 || /\x00/u.test(handoffBriefText)
-  ) {
-    throw new Error('zhiyu-handoff-invalid-brief');
-  }
-  const res = await registeredAppBridge.services.agentSession.routeAndSubmitInput({
-    agentHandle,
-    requestId,
-    text: text || handoffBriefText.slice(0, 200),
-    explicitWorkSessionRef: '',
-    entrySurface: 'zhiyu_handoff',
-    workspaceRoot: '',
-    workspaceWritable: false,
-    attachmentPaths: [],
-    cardSourceSessionRef: '',
-    cardSourceMaxSeq: '0',
-    handoffBriefText,
-    replyToMessageRef: '',
-    delegationObjectId: '',
-    selectedCandidateRef: '',
-    trustTierHint: 'trusted',
-  });
-  return {
-    resolvedWorkSessionRef: res.resolvedWorkSessionRef,
-    sessionKind: res.sessionKind,
-    ownerBodyKind: res.ownerBodyKind,
-    deduplicated: res.deduplicated,
-    routeReason: res.routeReason,
-  };
+registerZhiyuHarnessHandoffIpc({
+  ipcMain,
+  authorizeSender: (event) => {
+    const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+    return Boolean(
+      !quitting
+      && window
+      && event.sender === window.webContents
+      && !window.webContents.isDestroyed()
+      && event.senderFrame
+      && event.senderFrame === event.sender.mainFrame
+      && isAllowedElectronRendererUrl(event.senderFrame.url, allowedRendererUrls()),
+    );
+  },
+  getAgentSessionClient: () => registeredAppBridge?.services.agentSession,
 });
 
 const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = async (payload) => {

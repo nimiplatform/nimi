@@ -5,7 +5,7 @@ import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { AppCardSurface, Avatar, Button, IconButton, LoadingSkeleton, Tooltip } from '@nimiplatform/kit/ui';
 import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Compass, MessageSquare, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ArrowRight, Compass, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -40,7 +40,6 @@ export type HomeAgentCardViewProps = {
   onOpenChatWithDraft: (partnerId: string, text: string) => void;
   onOpenPartner: (id: string) => void;
   onManagePartner?: (id: string) => void;
-  onOpenAssistantChat?: () => void;
   onOpenAll: () => void;
   onExplore: () => void;
 };
@@ -251,7 +250,6 @@ export function HomeAgentCardView({
   onOpenChatWithDraft,
   onOpenPartner,
   onManagePartner,
-  onOpenAssistantChat,
   onOpenAll,
   onExplore,
 }: HomeAgentCardViewProps) {
@@ -297,11 +295,6 @@ export function HomeAgentCardView({
               {t('runtimeConfig.overview.agentCard.none')}
             </span>
           </div>
-          {onOpenAssistantChat ? (
-            <Button tone="ghost" size="sm" onClick={onOpenAssistantChat}>
-              {t('runtimeConfig.overview.firstRun.chat.action')}
-            </Button>
-          ) : null}
         </header>
 
         <div className="flex flex-1 flex-wrap items-center justify-between gap-4 rounded-2xl bg-[var(--nimi-home-soft-well)] p-5">
@@ -349,12 +342,6 @@ export function HomeAgentCardView({
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
-          {onOpenAssistantChat ? (
-            <Button tone="ghost" size="sm" onClick={onOpenAssistantChat} data-testid="home-recent-chats-assistant">
-              <MessageSquare size={14} aria-hidden="true" />
-              {t('runtimeConfig.overview.recentChats.openAssistantChat')}
-            </Button>
-          ) : null}
           <Button tone="ghost" size="sm" onClick={onOpenAll} data-testid="home-recent-chats-open-all">
             {t('runtimeConfig.overview.recentChats.openAll')}
           </Button>
@@ -542,14 +529,13 @@ export function useHomeRecentPartners(active = true, maxPartners = HOME_RECENT_C
 }
 
 /** Live wrapper used by Home. Conversation truth comes from Runtime; prompt actions route into the agent conversation with text prefilled. */
-export function HomeAgentCard({ onOpenAssistantChat }: { onOpenAssistantChat?: () => void } = {}) {
+export function HomeAgentCard() {
   const { ownerUserId, ...partnerProps } = useHomeRecentPartners(true);
   return (
     <HomeAgentCardView
       key={ownerUserId}
       {...partnerProps}
       visibleCount={HOME_RECENT_CONVERSATIONS_LIMIT}
-      onOpenAssistantChat={onOpenAssistantChat}
     />
   );
 }

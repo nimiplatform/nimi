@@ -770,6 +770,10 @@ export function ZhiyuAgentChatSurface({
         partnerName={currentPartnerName}
         agentHandle={evidence.localAgent.agentHandle ?? null}
         currentDraft={draft}
+        recentTopicHints={displayMessages
+          .filter((message) => message.role === 'user' && typeof message.text === 'string' && message.text.trim().length > 0)
+          .slice(-5)
+          .map((message) => message.text.trim())}
         onClose={() => setHarnessHandoffOpen(false)}
       />
     </main>

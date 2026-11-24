@@ -72,7 +72,7 @@ test('Windows Electron ASAR inventory carries the current shell and rejects reti
     entries.map((entry) => `\\${entry.replaceAll('/', '\\')}`),
     mainSource,
   ));
-  for (const required of ['avatar/dist/index.html', 'zhiyu/dist/index.html', 'harness/dist/index.html']) {
+  for (const required of ['avatar/dist/index.html', 'zhiyu/dist/index.html']) {
     assert.throws(
       () => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== required), mainSource),
       error => error.message.includes(required),
@@ -90,8 +90,6 @@ test('Windows Electron ASAR inventory carries the current shell and rejects reti
     assert.throws(() => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== required), mainSource), /system-entry/u);
   }
   assert.throws(() => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== 'dist-electron/zhiyu-preload.cjs'), mainSource), /zhiyu-preload/u);
-  assert.throws(() => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== 'dist-electron/harness-preload.cjs'), mainSource), /harness-preload/u);
-  assert.throws(() => assertWindowsElectronAsarInventory(entries.filter(entry => entry !== 'dist-electron/harness-engine-worker.js'), mainSource), /harness-engine-worker/u);
   assert.throws(
     () => assertWindowsElectronAsarInventory([
       ...entries,

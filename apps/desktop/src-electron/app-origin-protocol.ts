@@ -4,7 +4,6 @@ import type { Protocol } from 'electron';
 import {
   AVATAR_APP_CONTENT_SECURITY_POLICY,
   DESKTOP_APP_CONTENT_SECURITY_POLICY,
-  HARNESS_APP_CONTENT_SECURITY_POLICY,
   ZHIYU_APP_CONTENT_SECURITY_POLICY,
 } from './app-origin-csp.js';
 
@@ -12,7 +11,6 @@ const CONTENT_SECURITY_POLICY: Readonly<Record<AppHost, string>> = {
   desktop: DESKTOP_APP_CONTENT_SECURITY_POLICY,
   avatar: AVATAR_APP_CONTENT_SECURITY_POLICY,
   zhiyu: ZHIYU_APP_CONTENT_SECURITY_POLICY,
-  harness: HARNESS_APP_CONTENT_SECURITY_POLICY,
 };
 
 export const NIMI_DESKTOP_APP_PROTOCOL_SCHEME = 'nimi-app';
@@ -32,7 +30,7 @@ export function desktopRendererOrigin(rendererUrl: string): string {
     : parsed.origin;
 }
 
-type AppHost = 'desktop' | 'avatar' | 'zhiyu' | 'harness';
+type AppHost = 'desktop' | 'avatar' | 'zhiyu';
 
 export function createDesktopAppOriginProtocol(input: {
   readonly protocol: Pick<Protocol, 'handle'>;

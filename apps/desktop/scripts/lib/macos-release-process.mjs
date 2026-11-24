@@ -6,11 +6,11 @@ import { stageReleaseTree } from './release-source-maps.mjs';
 
 // Called while the existing workspace build lock is held. Packaging and
 // signing subsequently read only this transaction's built inputs.
-export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, harnessRoot, nativeRoot, supervisorPath, debugRoot }) {
+export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot, supervisorPath, debugRoot }) {
   const desktopSource = path.join(sourceRoot, 'desktop-app');
   const nativeSource = path.join(sourceRoot, 'native-carrier');
   const hostBuild = path.join(sourceRoot, 'local-app-host-build');
-  await Promise.all(['dist-electron', 'avatar', 'zhiyu', 'harness'].map(name => mkdir(path.join(desktopSource, name), { recursive: true })));
+  await Promise.all(['dist-electron', 'avatar', 'zhiyu'].map(name => mkdir(path.join(desktopSource, name), { recursive: true })));
   await mkdir(nativeSource, { recursive: true });
   await mkdir(hostBuild, { recursive: true });
   await Promise.all([
@@ -21,12 +21,10 @@ export async function stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoo
     stageReleaseTree(path.join(desktopRoot, 'dist'), path.join(desktopSource, 'dist'), path.join(debugRoot, 'dist')),
     stageReleaseTree(path.join(avatarRoot, 'dist'), path.join(desktopSource, 'avatar', 'dist'), path.join(debugRoot, 'avatar', 'dist')),
     stageReleaseTree(path.join(zhiyuRoot, 'dist'), path.join(desktopSource, 'zhiyu', 'dist'), path.join(debugRoot, 'zhiyu', 'dist')),
-    stageReleaseTree(path.join(harnessRoot, 'dist'), path.join(desktopSource, 'harness', 'dist'), path.join(debugRoot, 'harness', 'dist')),
     cp(path.join(avatarRoot, 'NIMI_APP.md'), path.join(desktopSource, 'avatar', 'NIMI_APP.md')),
     cp(path.join(zhiyuRoot, 'NIMI_APP.md'), path.join(desktopSource, 'zhiyu', 'NIMI_APP.md')),
-    cp(path.join(harnessRoot, 'NIMI_APP.md'), path.join(desktopSource, 'harness', 'NIMI_APP.md')),
     cp(path.join(desktopRoot, 'assets'), path.join(desktopSource, 'assets'), { recursive: true, force: false }),
-    ...['main.js', 'chat-ai-store-worker.js', 'harness-bundled-controller.js', 'harness-engine-worker.js', 'preload.cjs', 'system-entry-preload.cjs', 'zhiyu-preload.cjs', 'harness-preload.cjs'].map((name) => (
+    ...['main.js', 'chat-ai-store-worker.js', 'preload.cjs', 'system-entry-preload.cjs', 'zhiyu-preload.cjs'].map((name) => (
       cp(path.join(desktopRoot, 'dist-electron', name), path.join(desktopSource, 'dist-electron', name), { force: false })
     )),
     ...['index.cjs', 'nimi_shell_protected_local.node', 'package.json'].map((name) => (

@@ -36,6 +36,7 @@ export function ZhiyuHarnessHandoffDialog({
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<ZhiyuHandoffSubmitResult | null>(null);
   const wasOpenRef = useRef(false);
+  const stableRequestIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
@@ -52,15 +53,18 @@ export function ZhiyuHarnessHandoffDialog({
     setStayedNotice(draft.stayedInZhiyuNotice);
     setError(null);
     setReceipt(null);
+    stableRequestIdRef.current = undefined;
   }, [open, partnerName, currentDraft, recentTopicHints]);
 
   if (!open) return null;
 
   const togglePoint = (id: string) => {
+    stableRequestIdRef.current = undefined;
     setPoints((prev) => prev.map((pt) => (pt.id === id ? { ...pt, selected: !pt.selected } : pt)));
   };
 
   const updatePointText = (id: string, text: string) => {
+    stableRequestIdRef.current = undefined;
     setPoints((prev) => prev.map((pt) => (pt.id === id ? { ...pt, text } : pt)));
   };
 
@@ -72,7 +76,9 @@ export function ZhiyuHarnessHandoffDialog({
         goal,
         points,
         extraNotes,
+        requestId: stableRequestIdRef.current,
       });
+      stableRequestIdRef.current = payload.requestId;
       setSubmitting(true);
       const res = await submitZhiyuHarnessHandoff(payload);
       setReceipt(res);
@@ -119,7 +125,10 @@ export function ZhiyuHarnessHandoffDialog({
               type="text"
               data-testid="zhiyu-handoff-goal-input"
               value={goal}
-              onChange={(e) => setGoal(e.target.value)}
+              onChange={(e) => {
+                stableRequestIdRef.current = undefined;
+                setGoal(e.target.value);
+              }}
               placeholder="例如：把刚才聊的五一出行计划整理成桌面 Markdown 文档"
               className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]"
             />
@@ -153,7 +162,10 @@ export function ZhiyuHarnessHandoffDialog({
               rows={2}
               data-testid="zhiyu-handoff-notes-input"
               value={extraNotes}
-              onChange={(e) => setExtraNotes(e.target.value)}
+              onChange={(e) => {
+                stableRequestIdRef.current = undefined;
+                setExtraNotes(e.target.value);
+              }}
               placeholder="例如：输出路径、预算范围、期望格式…"
               className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs text-[var(--nimi-text-primary)]"
             />
@@ -185,7 +197,11 @@ export function ZhiyuHarnessHandoffDialog({
             className="flex items-center gap-2 rounded-xl bg-[var(--nimi-status-success-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-success-soft-text)]"
           >
             <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
-            <span>已交给 Harness 启动本机任务（会话编号：{receipt.resolvedWorkSessionRef}）。</span>
+            <span>
+              {receipt.outcome === 'DEFERRED_BODY_OFFLINE'
+                ? `已排队等待 PC 执行体上线（会话编号：${receipt.resolvedWorkSessionRef}）。打开 Nimi Harness 后将自动继续。`
+                : `已交给 Harness 启动本机任务（会话编号：${receipt.resolvedWorkSessionRef}）。`}
+            </span>
           </div>
         ) : null}
 

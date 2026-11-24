@@ -111,4 +111,35 @@ test('only the active Zhiyu main frame can read or acknowledge a target', async 
   assert.equal(read(event), null);
   await appHost.shutdown();
   assert.equal(state.handlers.has('nimi:zhiyu:conversation-open:read'), false);
+  assert.equal(state.handlers.has('nimi:zhiyu:harness-handoff:submit'), false);
+});
+
+test('bundled Zhiyu registers the strict harness handoff IPC and blocks spoofed senders', async () => {
+  state.placement = async () => ({ async shutdown() {} });
+  const appHost = host();
+  await appHost.open();
+  const sender = state.windows.at(-1).webContents;
+  const handoff = state.handlers.get('nimi:zhiyu:harness-handoff:submit');
+  assert.ok(handoff, 'bundled Zhiyu host must register nimi:zhiyu:harness-handoff:submit');
+  await assert.rejects(
+    handoff({ sender: {}, senderFrame: sender.mainFrame }, {
+      agentHandle: 'agent_1',
+      requestId: 'req-1',
+      text: 'Do task',
+      handoffBriefText: 'Task brief',
+    }),
+    /zhiyu-handoff-sender-unauthorized/,
+  );
+  await assert.rejects(
+    handoff({ sender, senderFrame: sender.mainFrame }, {
+      agentHandle: 'agent_1',
+      requestId: 'req-1',
+      text: 'Do task',
+      handoffBriefText: 'Task brief',
+      entrySurface: 'forged',
+    }),
+    /zhiyu-handoff-invalid-brief/,
+  );
+  await appHost.shutdown();
+  assert.equal(state.handlers.has('nimi:zhiyu:harness-handoff:submit'), false);
 });

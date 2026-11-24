@@ -17,14 +17,20 @@ export interface ZhiyuHandoffSubmitPayload {
   readonly requestId: string;
   readonly text: string;
   readonly handoffBriefText: string;
-  readonly entrySurface: 'zhiyu_handoff';
-  readonly trustTierHint: 'trusted';
 }
 
+export type ZhiyuHandoffOutcome =
+  | 'ACCEPTED'
+  | 'AMBIGUOUS_CANDIDATES'
+  | 'DEFERRED_BODY_OFFLINE'
+  | 'UNSPECIFIED';
+
 export interface ZhiyuHandoffSubmitResult {
+  readonly outcome?: ZhiyuHandoffOutcome;
   readonly resolvedWorkSessionRef: string;
   readonly sessionKind: string;
   readonly ownerBodyKind: string;
+  readonly routeReason?: string;
   readonly deduplicated: boolean;
 }
 
@@ -121,8 +127,6 @@ export function composeHandoffBriefPayload(input: {
     requestId: input.requestId?.trim() || randomRequestId(),
     text,
     handoffBriefText,
-    entrySurface: 'zhiyu_handoff',
-    trustTierHint: 'trusted',
   };
 }
 

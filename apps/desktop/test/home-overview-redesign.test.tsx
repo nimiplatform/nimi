@@ -103,7 +103,8 @@ test('Home human chat navigation preserves validated draft without auto-sending 
     },
   });
   const appGroupIds = items.filter((item) => item.group === 'apps').map((item) => item.id);
-  assert.deepEqual(appGroupIds, ['app:harness', 'app:zhiyu', 'app:example.custom']);
+  // Fork A: Zhiyu is bundled (deduplicated into app:zhiyu), while Harness is an independent installed App.
+  assert.deepEqual(appGroupIds, ['app:zhiyu', 'app:nimi.harness', 'app:example.custom']);
 });
 
 test('HomeAttentionStrip collapses to empty markup when idle and enforces caps of 3 attention and 3 active work items', async () => {

@@ -9,9 +9,7 @@ import { WindowsProductUpdateAdapter } from './windows-product-update-adapter.js
 import { ProductUpdateFailureStore, readUpdateFailureDiagnostic } from './product-update-failure-store.js';
 import desktopPackage from '../package.json' with { type: 'json' };
 import zhiyuPackage from '../../zhiyu/package.json' with { type: 'json' };
-import harnessPackage from '../../harness/package.json' with { type: 'json' };
 import { createDesktopBundledZhiyuHost } from './bundled-zhiyu-host.js';
-import { createDesktopBundledHarnessHost } from './bundled-harness-host.js';
 import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 import { verifyProductInstaller } from './product-update-installer-verification.js';
@@ -228,7 +226,6 @@ let installedAppHost: DesktopInstalledAppHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let bundledZhiyuHost: ReturnType<typeof createDesktopBundledZhiyuHost> | undefined;
-let bundledHarnessHost: ReturnType<typeof createDesktopBundledHarnessHost> | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let systemEntryHost: DesktopSystemEntryHost | undefined;
 let systemEntryAdmission: ReturnType<typeof createSystemEntryAdmission> | undefined;
@@ -683,7 +680,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         await localDevelopmentHost?.quiesceDataRoot();
         await installedAppHost?.shutdown();
         await bundledZhiyuHost?.close();
-        await bundledHarnessHost?.close();
         await bundledAvatarHost?.quiesceDataRoot();
         await registeredRuntimeBridge?.quiesceFormalAppResources?.();
         await localAssetProtocolHost.quiesceDataRootReadableGrants();
@@ -806,14 +802,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         && !ownerQuitRequested && !quitCleanup && !systemSessionEnding,
       onInvalidated: () => {
         void bundledZhiyuHost?.close().catch(error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`));
-        void bundledHarnessHost?.close().catch(error => writeDesktopStderr(`[bundled-harness] ${desktopBootstrapFailureCode(error)}\n`));
         executionNotices.disableNotifications();
         clearHumanChatNotices();
         systemEntryHost?.invalidate(); systemEntryActionRelay?.invalidate();
       },
       onScopeChanged: (previous) => {
         if (previous.state === 'ready') void bundledZhiyuHost?.close().catch(error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`));
-        if (previous.state === 'ready') void bundledHarnessHost?.close().catch(error => writeDesktopStderr(`[bundled-harness] ${desktopBootstrapFailureCode(error)}\n`));
         if (previous.state === 'ready') executionNotices.disableNotifications();
         if (previous.state === 'ready') clearHumanChatNotices();
         systemEntryActionRelay?.invalidate();
@@ -920,17 +914,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       canOpen: () => normalHomeWorkAllowed() && !desktopQuitCoordinator.isLaunchBlocked(),
       onFocus: clearPartnerChatNotices,
       reportError: error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`),
-    });
-    bundledHarnessHost = createDesktopBundledHarnessHost({
-      rendererIndexPath: ELECTRON_DEVELOPMENT_BUILD
-        ? path.resolve(appRoot, '../harness/dist/index.html')
-        : path.join(appRoot, 'harness/dist/index.html'),
-      preloadPath: path.join(currentDir, 'harness-preload.cjs'),
-      controllerPath: path.join(currentDir, 'harness-bundled-controller.js'),
-      engineWorkerPath: path.join(currentDir, 'harness-engine-worker.js'),
-      version: harnessPackage.version,
-      canOpen: () => normalHomeWorkAllowed() && !desktopQuitCoordinator.isLaunchBlocked(),
-      reportError: error => writeDesktopStderr(`[bundled-harness] ${desktopBootstrapFailureCode(error)}\n`),
     });
     const appActivitySourceLaunch = createDesktopAppActivitySourceLaunch({
       isAvailable: normalHomeWorkAllowed,
@@ -1140,25 +1123,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           if (!bundledZhiyuHost) throw new Error('bundled-zhiyu-host-unavailable');
           if (payload.target === undefined) await bundledZhiyuHost.open();
           else await bundledZhiyuHost.openConversation(parseZhiyuConversationOpenTarget(payload.target));
-          return { opened: true };
-        },
-        // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
-        bundled_harness_open: async ({ payload, event }) => {
-          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).some(key => key !== 'workSessionRef')) {
-            throw new Error('bundled-harness-home-request-required');
-          }
-          if (!bundledHarnessHost) throw new Error('bundled-harness-host-unavailable');
-          let workSessionRef: string | undefined;
-          if (payload.workSessionRef !== undefined) {
-            if (typeof payload.workSessionRef !== 'string'
-              || !payload.workSessionRef.trim()
-              || payload.workSessionRef.trim().length > 256
-              || /[\x00-\x1f]/u.test(payload.workSessionRef)) {
-              throw new Error('bundled-harness-session-ref-invalid');
-            }
-            workSessionRef = payload.workSessionRef.trim();
-          }
-          await bundledHarnessHost.open(workSessionRef);
           return { opened: true };
         },
         // @nimi-authority: rule.nimi.runtime.agent-participation.r197
@@ -1694,7 +1658,6 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
       forUpdate || homeRelaunchRequested || maintenanceRelaunchRequested ? 'required' : 'quit-after-process-exit',
     ) },
     { operation: 'bundled-zhiyu-host', critical: true, timeoutMs: 30_000, run: () => bundledZhiyuHost?.shutdown() },
-    { operation: 'bundled-harness-host', critical: true, timeoutMs: 30_000, run: () => bundledHarnessHost?.shutdown() },
     { operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: () => runtimeBridge?.disposeFormalAppResources?.() },
     { operation: 'avatar-host', critical: true, timeoutMs: 30_000, run: stopAvatar },
     { operation: 'chat-store', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => chatStoreHost?.close() },
