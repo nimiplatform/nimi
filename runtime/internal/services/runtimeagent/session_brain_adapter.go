@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
@@ -222,6 +223,7 @@ func (s *Service) ExecuteAgentBodyStep(
 	if agentRef == "" || accountID == "" || workRef == "" {
 		return BodyStepRuntimeResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
 
 	execID := "body_step_" + ulid.Make().String()
 	releaseSlot, err := s.AcquireSessionExecutionSlot(agentRef, workRef, execID)
@@ -410,6 +412,11 @@ func (s *Service) ExecuteBrainInlineTurn(
 	if s == nil || s.isClosed() || !s.HasPublicChatTurnExecutor() || !s.HasPublicChatBindingResolver() {
 		return localAppConversationOwnerUnavailable()
 	}
+	accountID := strings.TrimSpace(in.AccountID)
+	if accountID == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
 	execID := "brain_turn_" + ulid.Make().String()
 	releaseSlot, err := s.AcquireSessionExecutionSlot(in.LocalAgentRef, in.WorkSessionRef, execID)
 	if err != nil {
@@ -521,6 +528,11 @@ func (s *Service) RunAlarmLLM(
 	if s == nil || s.isClosed() || !s.HasPublicChatTurnExecutor() || !s.HasPublicChatBindingResolver() {
 		return "", "", 0, localAppConversationOwnerUnavailable()
 	}
+	trimmedAccountID := strings.TrimSpace(accountID)
+	if trimmedAccountID == "" {
+		return "", "", 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	ctx = executionintent.WithRuntimeAccountSubject(ctx, trimmedAccountID)
 	execID := "alarm_llm_" + ulid.Make().String()
 	sessionKey := strings.TrimSpace(workSessionRef)
 	if sessionKey == "" {

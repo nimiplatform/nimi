@@ -94,7 +94,8 @@ func looksLikePCWorkIntent(req *runtimev1.RouteAndSubmitInputRequest) bool {
 	if strings.TrimSpace(req.GetHandoffBriefText()) != "" {
 		return true
 	}
-	if strings.TrimSpace(req.GetEntrySurface()) == "harness" || strings.TrimSpace(req.GetEntrySurface()) == "pc_work" {
+	entry := strings.TrimSpace(req.GetEntrySurface())
+	if entry == "harness" || entry == "harness_new_session" || entry == "pc_work" {
 		return true
 	}
 	return false
@@ -442,11 +443,16 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	}
 
 	// --- Layer 2C: Explicit workspace root routing ---
+	forceNewSession := entrySurface == "new_session" || entrySurface == "harness_new_session"
 	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
 		wsRoot := strings.TrimSpace(req.GetWorkspaceRoot())
-		existing, err := s.store.FindActiveSessionByWorkspace(ctx, decision.AccountID, agentBinding, wsRoot)
-		if err != nil {
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+		var existing *sessionRow
+		if !forceNewSession {
+			var err error
+			existing, err = s.store.FindActiveSessionByWorkspace(ctx, decision.AccountID, agentBinding, wsRoot)
+			if err != nil {
+				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+			}
 		}
 		if existing != nil && readerCanAccessSession(decision, existing.Record) {
 			targetRow = existing
@@ -479,7 +485,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	}
 
 	// --- Layer 3: Local FTS5 Chinese Bigram BM25 + low-entropy short follow-up gate (strictly OUTSIDE write tx!) ---
-	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetText()) != "" && entrySurface != "new_session" {
+	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetText()) != "" && !forceNewSession {
 		matches, err := s.store.QueryFTSCandidates(ctx, decision.AccountID, agentBinding, req.GetText(), 5)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -669,6 +675,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		targetRow.Record.DeviceId = deviceID
 		if !online {
 			commitIn.Outcome = runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_DEFERRED_BODY_OFFLINE
+			targetRow.Record.Status = "queued_body_offline"
 		}
 		payloadMap := map[string]any{
 			"requestId":         requestID,
@@ -767,13 +774,29 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	movedText := ""
-	if len(events) > 0 {
-		last := events[len(events)-1]
-		var payload map[string]any
-		_ = json.Unmarshal([]byte(last.GetPayloadJson()), &payload)
-		if t, ok := payload["text"].(string); ok {
-			movedText = t
+	fallbackText := ""
+	for i := len(events) - 1; i >= 0; i-- {
+		ev := events[i]
+		if ev == nil {
+			continue
 		}
+		var payload map[string]any
+		_ = json.Unmarshal([]byte(ev.GetPayloadJson()), &payload)
+		text, _ := payload["text"].(string)
+		text = strings.TrimSpace(text)
+		if text == "" {
+			continue
+		}
+		if fallbackText == "" {
+			fallbackText = text
+		}
+		if strings.EqualFold(strings.TrimSpace(ev.GetEventType()), "user_message") {
+			movedText = text
+			break
+		}
+	}
+	if movedText == "" {
+		movedText = fallbackText
 	}
 
 	targetKind := strings.ToLower(strings.TrimSpace(req.GetTargetSessionKind()))
@@ -798,7 +821,13 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	}
 	title := strings.TrimSpace(req.GetTitle())
 	if title == "" {
-		title = deriveSessionTitle(movedText, req.GetWorkspaceRoot())
+		if strings.TrimSpace(movedText) != "" {
+			title = deriveSessionTitle(movedText, req.GetWorkspaceRoot())
+		} else if srcTitle := strings.TrimSpace(src.Record.GetTitle()); srcTitle != "" && srcTitle != "Untitled Session" {
+			title = srcTitle
+		} else {
+			title = deriveSessionTitle(movedText, req.GetWorkspaceRoot())
+		}
 	}
 	permMode := "plan-readonly"
 	if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
@@ -848,6 +877,7 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 		deviceID, _, _ := s.store.FindActiveCarrierDevice(ctx, decision.AccountID, ownerBodyKind, now)
 		if deviceID == "" {
 			deviceID = "local-default"
+			targetRow.Record.Status = "queued_body_offline"
 		}
 		targetRow.Record.DeviceId = deviceID
 		payloadBytes, _ := json.Marshal(map[string]any{

@@ -1223,3 +1223,122 @@ func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverge
 		t.Fatalf("step after ACKing epoch 42->0 invalidation MUST succeed, got %v", err)
 	}
 }
+
+func TestSplitOrRedirectAfterTurnErrorPreservesUserTextAndMarksOfflineStatus(t *testing.T) {
+	svc := newStage2Service(t, Options{
+		BrainTurnExecutor: func(_ context.Context, _ BrainTurnExecutionInput, _ func(eventType, payloadJSON string, persist bool) error) error {
+			return status.Error(codes.Internal, "simulated transient turn failure")
+		},
+	})
+
+	routeCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage)
+	routed, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:  "agent-1",
+		RequestId:    "req-split-src-1",
+		Text:         "Audit the build pipeline logs",
+		EntrySurface: "home",
+	})
+	if err != nil {
+		t.Fatalf("RouteAndSubmitInput: %v", err)
+	}
+	srcRef := routed.GetResolvedWorkSessionRef()
+	// Wait briefly for detached BrainTurnExecutor to persist turn_error after user_message.
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		evs, _ := svc.Store().ListBrainEvents(context.Background(), srcRef, 0, 0, 16)
+		if len(evs) >= 2 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	splitCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionSplitRedirect, DomainAgentLocal+","+DomainAgentSessionManage)
+	splitResp, err := svc.SplitOrRedirectInput(splitCtx, &runtimev1.SplitOrRedirectInputRequest{
+		AgentHandle:          "agent-1",
+		SourceWorkSessionRef: srcRef,
+		TargetSessionKind:    "pc_work",
+		RequestId:            "req-split-dst-1",
+	})
+	if err != nil {
+		t.Fatalf("SplitOrRedirectInput: %v", err)
+	}
+	rec := splitResp.GetWorkSessionRecord()
+	if rec.GetTitle() != "Audit the build pipeline logs" {
+		t.Fatalf("expected split session title to preserve user prompt, got %q", rec.GetTitle())
+	}
+	if rec.GetStatus() != "queued_body_offline" {
+		t.Fatalf("expected split PC session with offline carrier to be queued_body_offline, got %q", rec.GetStatus())
+	}
+	_, intents, err := svc.Store().ListPendingOutbox(context.Background(), "acct-1", "local-default", DefaultPCNamespace)
+	if err != nil || len(intents) == 0 {
+		t.Fatalf("expected queued outbox intent for split PC session, got %+v err=%v", intents, err)
+	}
+	if !strings.Contains(intents[0].GetPayloadJson(), "Audit the build pipeline logs") {
+		t.Fatalf("expected outbox payload to contain user prompt text, got %s", intents[0].GetPayloadJson())
+	}
+}
+
+func TestHarnessNewSessionDoesNotCollideOnSharedWorkspaceRoot(t *testing.T) {
+	svc := newStage2Service(t, Options{})
+	routeCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage+","+DomainAgentBodyPC)
+
+	// First unbound Harness session on /repo/shared (carrier offline -> also verifies queued_body_offline status).
+	first, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-harness-new-1",
+		Text:              "Investigate build flake",
+		EntrySurface:      "harness_new_session",
+		WorkspaceRoot:     "/repo/shared",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("first harness_new_session: %v", err)
+	}
+	if first.GetRouteReason() != "l2_workspace_new_pc_work" {
+		t.Fatalf("expected l2_workspace_new_pc_work for first harness_new_session, got %q", first.GetRouteReason())
+	}
+	if first.GetOutcome() != runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_DEFERRED_BODY_OFFLINE ||
+		first.GetWorkSessionRecord().GetStatus() != "queued_body_offline" {
+		t.Fatalf("expected offline PC route to report queued_body_offline, got outcome=%v status=%q",
+			first.GetOutcome(), first.GetWorkSessionRecord().GetStatus())
+	}
+
+	// While exactly 1 session exists on /repo/shared, normal Home Omni-Composer routing reuses it.
+	homeCtx := callerCtxWithExactDomains("app.home", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage)
+	homeMatch, err := svc.RouteAndSubmitInput(homeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-home-ws-match",
+		Text:              "Follow up on workspace task from Home",
+		EntrySurface:      "home_omni",
+		WorkspaceRoot:     "/repo/shared",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("home_omni workspace match: %v", err)
+	}
+	if homeMatch.GetRouteReason() != "l2_workspace_root_match" ||
+		homeMatch.GetResolvedWorkSessionRef() != first.GetResolvedWorkSessionRef() {
+		t.Fatalf("expected home_omni to match existing workspace session %q, got reason=%q ref=%q",
+			first.GetResolvedWorkSessionRef(), homeMatch.GetRouteReason(), homeMatch.GetResolvedWorkSessionRef())
+	}
+
+	// Second independent unbound Harness session on the EXACT SAME workspaceRoot (with len(found)==1)
+	// MUST allocate a brand-new work_session_ref rather than colliding on first.
+	second, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle:       "agent-1",
+		RequestId:         "req-harness-new-2",
+		Text:              "Start a fresh independent task in same workspace",
+		EntrySurface:      "harness_new_session",
+		WorkspaceRoot:     "/repo/shared",
+		WorkspaceWritable: true,
+	})
+	if err != nil {
+		t.Fatalf("second harness_new_session: %v", err)
+	}
+	if second.GetRouteReason() != "l2_workspace_new_pc_work" {
+		t.Fatalf("expected l2_workspace_new_pc_work for second harness_new_session, got %q", second.GetRouteReason())
+	}
+	if second.GetResolvedWorkSessionRef() == first.GetResolvedWorkSessionRef() {
+		t.Fatalf("second unbound Harness session collided on existing work_session_ref %q", first.GetResolvedWorkSessionRef())
+	}
+}
