@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLoadoutRecipe,
+  NimiMachineLoadout,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
+} from '@nimiplatform/sdk/runtime';
 import { capabilityIcon, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import { Check, CheckCircle2, Lock } from 'lucide-react';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -42,6 +47,7 @@ export function ProfileExportPanel(props: {
 
   const [inventory, setInventory] = useState<RuntimeConfigShareInventory | null>(null);
   const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
+  const [catalog, setCatalog] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [recipes, setRecipes] = useState<readonly NimiLoadoutRecipe[]>([]);
   const [choices, setChoices] = useState<RuntimeConfigShareChoices>(shareDraft.choices);
   const [title, setTitle] = useState(shareDraft.title);
@@ -60,9 +66,10 @@ export function ProfileExportPanel(props: {
   const reload = useCallback(async () => {
     setLoadError('');
     try {
-      const [machine, assetList, recipeList] = await Promise.all([
+      const [machine, assetList, verifiedList, recipeList] = await Promise.all([
         loadoutsClient.get(),
         modelAssetsClient.listModelAssets(),
+        modelAssetsClient.listVerifiedAssets(),
         loadoutsClient.listRecipes(),
       ]);
       const next = buildRuntimeConfigShareInventory({ loadouts: machine.loadouts, selections: machine.selections, assets: assetList });
@@ -73,6 +80,7 @@ export function ProfileExportPanel(props: {
       setRepairedUses(before ? [...nowShareable].filter((id) => !before.has(id)) : []);
       previousShareable.current = nowShareable;
       setAssets(assetList);
+      setCatalog(verifiedList);
       setRecipes(recipeList);
       setInventory(next);
       setChoices((current) => resolveRuntimeConfigShareChoices(next, current));
@@ -99,8 +107,8 @@ export function ProfileExportPanel(props: {
     [inventory, choices],
   );
   const modelName = useCallback(
-    (loadout: NimiMachineLoadout) => capabilityModelIdentity(loadout, recipes).shortTitle || loadout.displayName,
-    [recipes],
+    (loadout: NimiMachineLoadout) => capabilityModelIdentity(loadout, recipes, catalog, assets).shortTitle || loadout.displayName,
+    [assets, catalog, recipes],
   );
   const useLabel = useCallback((id: string) => displayRuntimeConfigCapabilityLabel(id, t), [t]);
 

@@ -20,13 +20,17 @@ import {
   type NimiCapabilityAIConfig,
   type NimiPortableAIProfile,
   type NimiPortableAIProfileImplementation,
+  type NimiPortableAIProfileLoadoutAxis,
   type NimiPortableAIProfileLoadoutIntent,
   type NimiPortableAIProfileResourceOccurrence,
 } from '@nimiplatform/sdk/ai';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 import type {
   NimiLoadoutRecipe,
+  NimiMachineLoadout,
   NimiMachineLoadouts,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 
 export type RuntimeConfigAIProfileCapabilityContract = string;
@@ -35,6 +39,8 @@ export type RuntimeConfigAIProfileLocalDraft = {
   readonly includeImplementation: boolean;
   readonly recipeId: string;
   readonly portableConfigJson: string;
+  readonly importedPortableConfigOmitted?: boolean;
+  readonly portableConfigEdited?: boolean;
   readonly resourceOccurrences?: readonly NimiPortableAIProfileResourceOccurrence[];
   readonly loadout?: NimiPortableAIProfileLoadoutIntent;
   readonly importedIntent?: {
@@ -105,6 +111,7 @@ export type RuntimeConfigAIProfileAuthoringCurrentProjection = {
   readonly sharedAIConfig: NimiCapabilityAIConfig | null;
   readonly machine: NimiAIProfileAuthoringMachineProjection;
   readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly rawLoadouts?: readonly NimiMachineLoadout[];
 };
 
 export type RuntimeConfigAIProfileAuthoringRequirementView = {
@@ -380,7 +387,9 @@ export function importRuntimeConfigAIProfileAuthoring(
   input: string | Uint8Array | NimiJsonObject,
   recipes: readonly NimiLoadoutRecipe[],
 ): RuntimeConfigAIProfileAuthoringDraft {
-  const profile = importNimiAIProfileAuthoring(input).build();
+  // Parse with PREVIEW_VALIDATION so ordinary share files (which may omit provenance/license)
+  // open cleanly for editing while all secret/machine-private prohibitions still fail closed.
+  const profile = importNimiAIProfileAuthoring(input).build(PREVIEW_VALIDATION);
   return draftFromProfile(profile, recipes);
 }
 
@@ -489,7 +498,8 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
       capabilityContract: loadout.capabilityContract,
       implementation: Object.freeze({ ...loadout.implementation }),
       portableConfig: loadout.options as unknown as NimiJsonObject,
-      supportedFeatures: Object.freeze([...loadout.implementationSupportedFeatures]),
+      implementationSupportedFeatures: Object.freeze([...loadout.implementationSupportedFeatures]),
+      configuredFeatures: Object.freeze([...loadout.configuredFeatures]),
       requirementResolution: loadout.validationState === 'configured'
         ? 'configured' as const
         : 'unresolved' as const,
@@ -534,6 +544,7 @@ export async function loadRuntimeConfigAIProfileAuthoringCurrentProjection(input
     sharedAIConfig,
     machine: projectRuntimeConfigAIProfileAuthoringMachine(machine),
     recipes: Object.freeze([...recipes]),
+    rawLoadouts: Object.freeze([...machine.loadouts]),
   });
 }
 
@@ -596,26 +607,49 @@ function authoringBuilderFromDraft(
       const recipe = capability.local.includeImplementation
         ? recipeForCapabilityDraft(draft, capability.capabilityContract, recipes)
         : undefined;
-      const portableConfig = recipe
+      const omitPortableConfig = Boolean(
+        capability.local.importedPortableConfigOmitted && !capability.local.portableConfigEdited,
+      );
+      const portableConfig = recipe && !omitPortableConfig
         ? parseJsonObject(capability.local.portableConfigJson, `${capability.capabilityContract} portable config`)
         : undefined;
-      // Persist an authored Recipe choice using the existing portable intent.
-      // Empty axes mean no resources were chosen; never infer model identities.
-      // Preserve an unchanged imported intent without adding a Loadout.
-      const loadout = capability.local.loadout ?? (recipe && portableConfig && (
-        !capability.local.importedIntent
-        || !capability.local.importedIntent.recipeId
-        || hasExplicitRecipeSelection(capability.local)
-      ) ? { recipeId: recipe.recipeId, axes: [], options: portableConfig } : undefined);
+      // Preserve an unchanged imported loadout (including independent loadout.options) without overwriting it;
+      // when portableConfig was edited by the author, sync loadout.options so export stays coherent.
+      const loadout: NimiPortableAIProfileLoadoutIntent | undefined = (() => {
+        if (capability.local.loadout) {
+          if (capability.local.portableConfigEdited && portableConfig) {
+            return {
+              ...capability.local.loadout,
+              recipeId: recipe?.recipeId ?? capability.local.loadout.recipeId,
+              options: portableConfig,
+            };
+          }
+          return capability.local.loadout;
+        }
+        if (
+          recipe
+          && portableConfig
+          && (
+            !capability.local.importedIntent
+            || !capability.local.importedIntent.recipeId
+            || hasExplicitRecipeSelection(capability.local)
+          )
+        ) {
+          return { recipeId: recipe.recipeId, axes: [], options: portableConfig };
+        }
+        return undefined;
+      })();
       builder.setLocalCapability({
         capabilityContract: capability.capabilityContract,
         requiredFeatures,
         ...(defaults !== undefined ? { defaults } : {}),
-        ...(recipe && portableConfig
+        ...(recipe
           ? {
             localConfiguration: createNimiAIProfileLocalImplementation({
               recipe,
-              portableConfig,
+              ...(omitPortableConfig
+                ? { omitPortableConfig: true }
+                : { portableConfig }),
             }),
             ...(capability.local.resourceOccurrences !== undefined
               ? { resourceOccurrences: capability.local.resourceOccurrences }
@@ -782,8 +816,9 @@ function draftFromProfile(
         includeImplementation: true,
         recipeId: recipe?.recipeId ?? '',
         portableConfigJson: prettyJson(
-          capability.driverPortableConfig ?? recipe?.defaultOptions ?? {},
+          capability.driverPortableConfig ?? capability.loadout?.options ?? recipe?.defaultOptions ?? {},
         ),
+        ...(capability.driverPortableConfig === undefined ? { importedPortableConfigOmitted: true } : {}),
         importedIntent: Object.freeze({
           recipeId: capability.loadout?.recipeId ?? recipe?.recipeId ?? '',
           implementation: Object.freeze({
@@ -866,10 +901,163 @@ function clearImportedRecipeIntent(
     includeImplementation: local.includeImplementation,
     recipeId: local.recipeId,
     portableConfigJson: local.portableConfigJson,
+    ...(local.importedPortableConfigOmitted ? { importedPortableConfigOmitted: true } : {}),
+    ...(local.portableConfigEdited ? { portableConfigEdited: true } : {}),
     ...(local.resourceOccurrences !== undefined
       ? { resourceOccurrences: local.resourceOccurrences }
       : {}),
     ...(local.loadout !== undefined ? { loadout: local.loadout } : {}),
+  };
+}
+
+function normalizePortableSha256(raw: string | undefined): `sha256:${string}` | null {
+  if (!raw) return null;
+  const hex = raw.trim().toLowerCase().replace(/^sha256:/u, '');
+  return /^[a-f0-9]{64}$/u.test(hex) ? `sha256:${hex}` : null;
+}
+
+export function buildPortableAxisFromAsset(
+  slotId: string,
+  asset: NimiRuntimeModelAssetRecord,
+): NimiPortableAIProfileLoadoutAxis | null {
+  const entry = asset.files.find((file) => file.relativePath === asset.entry) ?? asset.files[0];
+  const expectedHash = normalizePortableSha256(entry?.sha256);
+  const contentId = normalizePortableSha256(asset.contentId);
+  if (!entry || !expectedHash || !contentId) return null;
+  const repo = typeof asset.provenance?.source_repo === 'string' ? asset.provenance.source_repo.trim() : '';
+  const revision = typeof asset.provenance?.source_revision === 'string' ? asset.provenance.source_revision.trim() : '';
+  return Object.freeze({
+    slotId,
+    contentId,
+    expectedHash,
+    ...(repo && revision
+      ? {
+        source: Object.freeze({
+          repo,
+          revision,
+          file: entry.relativePath,
+          ...(asset.totalSizeBytes > 0 ? { sizeBytes: asset.totalSizeBytes } : {}),
+        }),
+      }
+      : {}),
+  });
+}
+
+export function buildPortableAxisFromVerifiedDescriptor(
+  slotId: string,
+  descriptor: NimiRuntimeLocalVerifiedAssetDescriptor,
+): NimiPortableAIProfileLoadoutAxis | null {
+  const entryHash = descriptor.hashes[descriptor.entry]
+    ?? Object.entries(descriptor.hashes).find(
+      ([file]) => file.trim().replaceAll('\\', '/') === descriptor.entry.trim().replaceAll('\\', '/'),
+    )?.[1];
+  const expectedHash = normalizePortableSha256(entryHash);
+  const contentId = normalizePortableSha256(descriptor.contentId);
+  if (!expectedHash || !contentId) return null;
+  const repo = String(descriptor.repo ?? '').trim();
+  const revision = String(descriptor.revision ?? '').trim();
+  const file = String(descriptor.entry ?? '').trim();
+  return Object.freeze({
+    slotId,
+    contentId,
+    expectedHash,
+    ...(repo && revision && file
+      ? {
+        source: Object.freeze({
+          repo,
+          revision,
+          file,
+          ...((descriptor.totalSizeBytes ?? 0) > 0 ? { sizeBytes: descriptor.totalSizeBytes! } : {}),
+        }),
+      }
+      : {}),
+  });
+}
+
+/**
+ * Fills one capability's local implementation intent from a saved Machine Loadout
+ * while preserving the author's existing `requiredFeatures` and `defaults`.
+ */
+export function fillRuntimeConfigAIProfileCapabilityFromLoadout(input: {
+  readonly draft: RuntimeConfigAIProfileAuthoringDraft;
+  readonly draftId: string;
+  readonly loadout: NimiMachineLoadout;
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+}): RuntimeConfigAIProfileAuthoringDraft {
+  const assetsById = new Map(input.assets.map((asset) => [asset.modelAssetId, asset]));
+  const axes: NimiPortableAIProfileLoadoutAxis[] = [];
+  for (const axis of input.loadout.modelAxes) {
+    if (axis.resolution === 'not-configured' || !axis.modelAssetId) continue;
+    const asset = assetsById.get(axis.modelAssetId);
+    if (!asset) continue;
+    const portableAxis = buildPortableAxisFromAsset(axis.slotId, asset);
+    if (portableAxis) axes.push(portableAxis);
+  }
+  axes.sort((left, right) => left.slotId.localeCompare(right.slotId));
+  const options = JSON.parse(JSON.stringify(input.loadout.options ?? {})) as NimiJsonObject;
+  return {
+    ...input.draft,
+    capabilities: input.draft.capabilities.map((capability) => (
+      capability.draftId === input.draftId
+        ? {
+          ...capability,
+          route: 'local',
+          local: {
+            includeImplementation: true,
+            recipeId: input.loadout.recipeId,
+            portableConfigJson: prettyJson(options),
+            portableConfigEdited: true,
+            importedPortableConfigOmitted: false,
+            loadout: Object.freeze({
+              recipeId: input.loadout.recipeId,
+              axes: Object.freeze(axes),
+              options,
+            }),
+          },
+        }
+        : capability
+    )),
+  };
+}
+
+export function bindRuntimeConfigAIProfileCapabilitySlotAxis(input: {
+  readonly draft: RuntimeConfigAIProfileAuthoringDraft;
+  readonly draftId: string;
+  readonly recipe: NimiLoadoutRecipe;
+  readonly slotId: string;
+  readonly axis: NimiPortableAIProfileLoadoutAxis | null;
+}): RuntimeConfigAIProfileAuthoringDraft {
+  return {
+    ...input.draft,
+    capabilities: input.draft.capabilities.map((capability) => {
+      if (capability.draftId !== input.draftId) return capability;
+      let options: NimiJsonObject;
+      try {
+        options = parseJsonObject(capability.local.portableConfigJson, 'portable config');
+      } catch {
+        options = (capability.local.loadout?.options ?? input.recipe.defaultOptions ?? {}) as NimiJsonObject;
+      }
+      const existingAxes = capability.local.loadout?.axes ?? [];
+      const nextAxes = [
+        ...existingAxes.filter((item) => item.slotId !== input.slotId),
+        ...(input.axis ? [input.axis] : []),
+      ].sort((left, right) => left.slotId.localeCompare(right.slotId));
+      return {
+        ...capability,
+        local: {
+          ...capability.local,
+          includeImplementation: true,
+          recipeId: input.recipe.recipeId,
+          importedPortableConfigOmitted: false,
+          portableConfigEdited: true,
+          loadout: Object.freeze({
+            recipeId: input.recipe.recipeId,
+            axes: Object.freeze(nextAxes),
+            options,
+          }),
+        },
+      };
+    }),
   };
 }
 

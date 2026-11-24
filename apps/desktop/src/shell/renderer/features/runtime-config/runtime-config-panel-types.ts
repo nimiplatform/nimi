@@ -13,10 +13,11 @@ import type { RuntimeConfigInstallConfirmationRequest, RuntimeConfigInstallResul
 
 // @nimi-authority: rule.nimi.runtime.model-catalog.r037
 export type RuntimeConfigLoadoutNavigationContext = {
-  readonly capabilityContract: string;
+  readonly capabilityContract?: string;
   readonly recipeId?: string;
   readonly recipeRevision?: string;
   readonly slotId?: string;
+  readonly preselectedAssetId?: string;
   readonly draft?: RuntimeConfigLoadoutCreateDraft;
   /** Offer the user installed during a Model Market detour; auto-selected for slotId on return. */
   readonly autoSelectOfferRef?: string;
@@ -46,7 +47,7 @@ export type RuntimeConfigModelMarketContext =
 
 /** Owner context when the profile library runs "use profile" for a consumer. */
 export type RuntimeConfigProfileUseOwner =
-  | { readonly kind: 'app'; readonly ownerAppId: string; readonly returnFocus?: string }
+  | { readonly kind: 'app'; readonly ownerAppId: string; readonly configRef?: string; readonly returnFocus?: string }
   | { readonly kind: 'local-agent'; readonly returnFocus?: string };
 
 export type RuntimeConfigPanelControllerModel = {

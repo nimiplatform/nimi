@@ -450,7 +450,8 @@
       "sttModel": "语音转写模型",
       "voiceModel": "声音模型",
       "textEncoder": "文本编码器",
-      "vae": "VAE"
+      "vae": "VAE",
+      "controlnet": "ControlNet 控图模型"
     },
     "quantSemantic": {
       "spaceSaving": "最省空间",
@@ -468,6 +469,12 @@
       "installedSection": "已安装",
       "installableSection": "可安装",
       "installAndUse": "安装并使用",
+      "queuedForDownload": "待下载",
+      "queueForDownload": "设为待下载",
+      "selectVerified": "选用",
+      "matchingFormatSection": "本机匹配格式文件",
+      "otherFilesSection": "本机其他模型文件",
+      "backToSettings": "返回设置",
       "unsupportedToggle": "{{count}} 个版本与当前设备不兼容"
     },
     "missingSlots": "还有 {{count}} 个必需模型未选择。请选择已有模型，或先下载、导入所需模型。",
@@ -521,7 +528,7 @@
     "contextualEmpty": "「{{capability}}」还没有已保存的配置",
     "contextualEmptyBody": "你可以返回本机模型直接选择预设模型，或在此新建自定义模型配置。",
     "name": "配置名称",
-    "recipe": "用途",
+    "recipe": "引擎契约",
     "model": "模型",
     "commit": "保存配置",
     "cancel": "取消",
@@ -579,9 +586,10 @@
         "structured-output": "结构化输出"
       },
       "state": {
-        "implementation-supported": "支持，未启用",
+        "implementation-supported": "待选择模型",
         "configured": "已配置",
-        "unavailable": "不可用"
+        "unavailable": "不可用",
+        "model-unsupported": "当前配置无法使用"
       },
       "typedReasons": "Runtime 原因"
     },
@@ -637,7 +645,15 @@
     "optional": "可选",
     "optionalFor": "可选，用于{{features}}",
     "imageInput": "图像输入",
-    "optionalNotConfigured": "未启用"
+    "controlnetInput": "ControlNet 控图",
+    "optionalNotConfigured": "未启用",
+    "retiredRecipeHint": "此配置关联的引擎方案已退役，无法继续编辑。请新建替代配置或删除它。",
+    "createReplacement": "新建替代配置",
+    "recipesLoadFailedHint": "暂时无法从 Runtime 读取可用引擎方案，请重试后再管理配置。",
+    "missingAssetError": "所选模型文件已不存在于本机，请重新选择模型后再保存。",
+    "preselectedSlotHint": "请确认下方已预填的模型槽位，或手动选择要绑定的槽位。",
+    "saveOptions": "保存参数",
+    "revisionConflict": "此配置已在别处被更新。请刷新查看最新版本；当前未保存的修改已保留。"
   },
   "environment": {
     "dataLoadFailed": "暂时无法读取存储信息。",
@@ -1858,7 +1874,14 @@
       "requiredFeatures": "所需标准化特性",
       "supportedFeatures": "实现支持的特性",
       "featuresHint": "使用逗号或换行分隔精确的特性 ID。",
-      "featuresPlaceholder": "input.image, tool.use",
+      "featuresPlaceholder": "input.image, input.audio",
+      "fillFromSaved": "从已保存配置填充",
+      "fillFromSavedPlaceholder": "选择一个已保存的配置…",
+      "bindSlotsTitle": "模型槽位",
+      "onlyContractMode": "此能力仅打包能力契约意图。",
+      "missingVerifiedHash": "此候选项缺少已验证的 SHA-256 哈希，无法直接选用。",
+      "needsMetadataToExport": "导入的分享文件未包含来源或协议元数据。如需作为完整 AIProfile 导出，请先在「Profile 信息」中补全。",
+      "advancedTitle": "技术标识符",
       "defaults": "可移植默认值 JSON",
       "localIntentOnly": "此能力可编写本地 AIConfig 意图，但 Desktop 暂未提供对应的类型化本地 Driver 配置项，因此不会推断具体实现配置。",
       "localImplementationTitle": "本地实现意图",
@@ -3050,6 +3073,7 @@
     "configurationMissing": "这份配置已不存在，请返回本机模型刷新查看。",
     "view": "查看{{capability}}",
     "openLibrary": "在模型库查看",
+    "useForNewConfig": "用于新建配置…",
     "configurations": "使用此资源的配置",
     "environmentCheck": "运行组件",
     "checkNow": "立即检查",
@@ -3223,8 +3247,9 @@
       "chooseConfiguration": "选择要编辑的配置。打开设置不会切换当前模型。",
       "useRecommended": "从推荐配置开始",
       "review": "版本与运行参数",
-      "currentScope": "正在编辑本机默认配置。应用后，共享本机模型的应用将使用新配置，各应用的专属设置仍会保留。",
-      "otherScope": "正在编辑这份配置。应用后，它将成为此能力的本机默认配置，各应用的专属设置仍会保留。",
+      "currentScope": "应用后将另存一份配置并设为本机默认。跟随本机设置的应用将使用新配置。",
+      "newScope": "应用后将为所选模型创建配置，并设为本机默认。",
+      "otherScope": "应用后将另存一份配置并设为本机默认。原配置可在已保存的配置中再次选择。",
       "applyAndSelect": "应用并设为默认",
       "applyUnavailable": "暂时无法应用设置，请稍后重试。",
       "empty": "暂时没有可选模型。可以前往模型市场，或导入已有模型文件。",
@@ -3286,6 +3311,12 @@
     "currentComposition": "当前配置组成",
     "notEnabled": "未启用",
     "manageSaved": "管理保存的配置",
+    "newConfiguration": "新建配置",
+    "savedConfigurationsTitle": "已保存的配置",
+    "availableModelsToSetup": "可配置的模型与方案",
+    "optionalFeatureHint": "可选：未绑定{{slot}}",
+    "selectionConflict": "其他窗口刚刚更新了此能力的选择，请刷新后重试。",
+    "recommendationUnavailable": "暂时无法确认推荐版本。请刷新模型库，或在模型设置中选择具体版本。",
     "pendingSetup": {
       "preparing": "正在准备 {{model}}",
       "preparingUnnamed": "正在准备模型",

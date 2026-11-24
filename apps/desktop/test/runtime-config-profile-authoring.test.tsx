@@ -214,7 +214,8 @@ function currentProjection(): RuntimeConfigAIProfileAuthoringCurrentProjection {
         capabilityContract: 'text.generate',
         implementation: { ...TEXT_RECIPE.implementation },
         portableConfig: {},
-        supportedFeatures: [],
+        implementationSupportedFeatures: ['input.image'],
+        configuredFeatures: [],
         requirementResolution: 'configured',
       }],
       selections: [{
@@ -803,4 +804,103 @@ test('capability navigation edits one item, preserves drafts, and recovers selec
       else Reflect.deleteProperty(globalThis, key);
     }
   }
+});
+
+test('share-file import without provenance or license loads cleanly, rejects secrets, and preserves omitted driverPortableConfig', async () => {
+  const { fillRuntimeConfigAIProfileCapabilityFromLoadout } = await import(
+    '../src/shell/renderer/features/runtime-config/runtime-config-profile-authoring-state.js'
+  );
+  const shareJson = JSON.stringify({
+    profileId: 'profile.shared.no-meta',
+    title: 'Shared profile',
+    capabilities: {
+      'text.generate': {
+        route: 'local',
+        requiredFeatures: ['input.image'],
+        implementation: {
+          ...TEXT_RECIPE.implementation,
+          supportedFeatures: ['input.image'],
+        },
+        loadout: {
+          recipeId: TEXT_RECIPE.recipeId,
+          axes: [],
+          options: { contextSize: 8192 },
+        },
+      },
+    },
+  });
+  const draft = importRuntimeConfigAIProfileAuthoring(shareJson, RECIPES);
+  assert.equal(draft.profileId, 'profile.shared.no-meta');
+  assert.equal(draft.provenanceJson, '');
+  assert.equal(draft.licenseJson, '');
+  assert.equal(draft.capabilities[0]?.local.importedPortableConfigOmitted, true);
+  assert.equal(draft.capabilities[0]?.requiredFeaturesText, 'input.image');
+
+  // Adding authored metadata and exporting must preserve omitted driverPortableConfig without synthesizing {}.
+  const readyForExport: RuntimeConfigAIProfileAuthoringDraft = {
+    ...draft,
+    provenanceJson: '{"publisher":"example.test"}',
+    licenseJson: '"Apache-2.0"',
+  };
+  const exported = exportRuntimeConfigAIProfileAuthoring(readyForExport, RECIPES).profile;
+  const textCap = exported.capabilities['text.generate'];
+  assert.equal(textCap?.route, 'local');
+  if (textCap?.route !== 'local') assert.fail('expected local');
+  assert.equal('driverPortableConfig' in textCap, false);
+  assert.deepEqual(textCap.loadout?.options, { contextSize: 8192 });
+
+  // Machine-private/secret fields are still rejected during share import.
+  assert.throws(() => importRuntimeConfigAIProfileAuthoring(JSON.stringify({
+    profileId: 'profile.secret',
+    title: 'Bad',
+    capabilities: {
+      'text.generate': {
+        route: 'cloud',
+        requiredFeatures: [],
+        apiKey: 'sk-secret',
+      },
+    },
+  }), RECIPES));
+
+  // Filling from a saved Loadout preserves author-set requiredFeaturesText and fills sorted axes.
+  const mainHash = 'a'.repeat(64);
+  const filled = fillRuntimeConfigAIProfileCapabilityFromLoadout({
+    draft: readyForExport,
+    draftId: readyForExport.capabilities[0]!.draftId,
+    loadout: {
+      loadoutId: 'loadout-saved',
+      capabilityContract: 'text.generate',
+      implementation: TEXT_RECIPE.implementation,
+      recipeId: TEXT_RECIPE.recipeId,
+      recipeRevision: TEXT_RECIPE.revision,
+      options: { contextSize: 16384 },
+      modelAxes: [
+        { slotId: 'vision.adapter', displayLabel: 'Vision', modelAssetId: 'a-vision', expectedContentId: `sha256:${'b'.repeat(64)}`, recipeCompatible: true, reasons: [], presence: 'optional-conditional', conditionalFeatures: ['input.image'], resolution: 'configured' },
+        { slotId: 'main.weights', displayLabel: 'Main', modelAssetId: 'a-main', expectedContentId: `sha256:${mainHash}`, recipeCompatible: true, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'configured' },
+      ],
+      recipeCustody: [],
+      implementationSupportedFeatures: ['input.image'],
+      configuredFeatures: ['input.image'],
+      textBehaviors: [],
+      validationState: 'configured',
+      reasons: [],
+      displayName: 'Saved',
+      provenance: {},
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      revision: 'r1',
+    },
+    assets: [
+      { modelAssetId: 'a-main', contentId: `sha256:${mainHash}`, displayName: 'Main', entry: 'main.gguf', totalSizeBytes: 100, contentVerified: true, files: [{ relativePath: 'main.gguf', sha256: mainHash.toUpperCase(), sizeBytes: 100, nonExecutableContent: false }] } as never,
+      { modelAssetId: 'a-vision', contentId: `sha256:${'b'.repeat(64)}`, displayName: 'Vision', entry: 'mmproj.gguf', totalSizeBytes: 50, contentVerified: true, files: [{ relativePath: 'mmproj.gguf', sha256: 'b'.repeat(64), sizeBytes: 50, nonExecutableContent: false }] } as never,
+    ],
+  });
+  assert.equal(filled.capabilities[0]?.requiredFeaturesText, 'input.image');
+  assert.deepEqual(
+    filled.capabilities[0]?.local.loadout?.axes.map((axis) => [axis.slotId, axis.expectedHash]),
+    [
+      ['main.weights', `sha256:${mainHash}`],
+      ['vision.adapter', `sha256:${'b'.repeat(64)}`],
+    ],
+  );
 });

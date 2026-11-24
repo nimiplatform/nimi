@@ -68,6 +68,8 @@ function makeRecipe(input: {
             ...(input.installedModelAssetId ? { installedModelAssetId: input.installedModelAssetId } : {}),
             candidate: {
               offerRef: `offer-${input.recipeId}`,
+              title: `Model ${input.variantId ?? input.recipeId}`,
+              variantLabel: `${input.variantId ?? input.recipeId}.gguf`,
               installable: true,
               totalSizeBytes: input.downloadSizeBytes ?? 4_294_967_296,
               downloadSizeBytes: input.downloadSizeBytes ?? 4_294_967_296,
@@ -86,6 +88,7 @@ const SHA_ZIMAGE = `sha256:${'c'.repeat(64)}`;
 function makeCatalogAsset(templateId: string, contentId: string, totalSizeBytes: number): NimiRuntimeLocalVerifiedAssetDescriptor {
   return {
     templateId,
+    title: `Model ${templateId}`,
     contentId,
     repo: 'nimi/test-models',
     revision: 'main',

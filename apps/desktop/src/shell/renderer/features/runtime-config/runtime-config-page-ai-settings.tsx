@@ -1,5 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
-import { capabilityIcon, Button, InlineAlert, ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { capabilityIcon, Button, ConfirmDialog, InlineAlert, ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, FolderOpen, LayoutGrid, LoaderCircle, SlidersHorizontal } from 'lucide-react';
@@ -12,12 +13,29 @@ import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capabi
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import { resetRuntimePageViewport } from './runtime-config-page-shell.js';
 import { type CapabilityPreparationState, capabilityPreparationState, useCapabilityInventory } from './runtime-capability-inventory.js';
-import { capabilityModelIdentity, capabilityRecommendedFilesOnDevice, capabilityRecommendedRecipeOnDevice, groupCapabilities, setupPlanAllowsDirectUse, setupTaskModelTitle } from './runtime-capability-presentation.js';
+import {
+  capabilityModelIdentity,
+  capabilityRecommendedFilesOnDevice,
+  capabilityRecommendedRecipeOnDevice,
+  exactRecommendedSlotOffer,
+  groupCapabilities,
+  setupPlanAllowsDirectUse,
+  setupTaskModelTitle,
+} from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeEnvironmentObservation } from './runtime-environment-observation.js';
+import {
+  createRuntimeConfigLoadoutImpactState,
+  type RuntimeConfigLoadoutPendingImpact,
+} from './runtime-config-loadout-impact-state.js';
+import { loadoutDisplayNameSource } from './runtime-config-loadout-model-display.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import type { RuntimeConfigLoadoutNavigationContext, RuntimeConfigModelMarketContext, RuntimeConfigProfileUseOwner } from './runtime-config-panel-types.js';
+import {
+  checkExistingLoadoutEnvironment,
+  commitExistingLoadoutSelection,
+} from './runtime-config-select-loadout.js';
 import { RuntimeConfigSetupTaskView } from './runtime-config-setup-task-view.js';
 import type { RuntimeConfigActionFocus } from './runtime-config-state-types.js';
 import { homeRuntimeDestination, type HomeRuntimePosition } from '../../app-shell/providers/home-navigation.js';
@@ -28,7 +46,12 @@ import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
 import { RuntimeSetupFailureMessage, runtimeSetupFailureText, type RuntimeSetupFailureNotice } from './runtime-setup-failure-message.js';
 import { resolveRuntimeSetupReturnTarget, returnFromRuntimeSetup } from './runtime-setup-task-open.js';
 import { createRuntimeSetupTaskRunnerPorts, currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
-import { createRuntimeSetupCandidate, resolveRuntimeSetupPreparation, runRuntimeSetupPreparation } from './runtime-setup-task-runner.js';
+import {
+  createRuntimeSetupCandidate,
+  resolveRuntimeSetupPreparation,
+  reuseRuntimeSetupCurrent,
+  runRuntimeSetupPreparation,
+} from './runtime-setup-task-runner.js';
 import { getRuntimeSetupTaskStore, type RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
@@ -84,6 +107,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const navigation = useHomeNavigation();
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
+  const queryClient = useQueryClient();
 
   const destination = useHomeDestination();
   const position = destination.runtime;
@@ -93,6 +117,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const store = getRuntimeSetupTaskStore();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
+  const impactState = useMemo(() => createRuntimeConfigLoadoutImpactState(), []);
   const entryKey = useHomeEntryKey();
   const capability = position?.capabilityContract ?? null;
   const section = position?.section ?? 'models';
@@ -101,6 +126,17 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
+  const [openCreateOnSaved, setOpenCreateOnSaved] = useState(false);
+  const [, setImpactRevision] = useState(0);
+  const pendingImpact = impactState.current();
+  const requestImpact = (pending: RuntimeConfigLoadoutPendingImpact) => {
+    impactState.request(pending);
+    setImpactRevision((current) => current + 1);
+  };
+  const cancelImpact = () => {
+    impactState.cancel();
+    setImpactRevision((current) => current + 1);
+  };
   const focusedTask = props.focusedTaskId ? store.getTask(props.focusedTaskId) : undefined;
   const focusedReturnTarget = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
   const cloudEntryTask = focusedReturnTarget?.kind === 'destination' && focusedReturnTarget.destination.id === 'cloud';
@@ -112,7 +148,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     enabled: inventoryEnabled,
     includePreparation: inventoryEnabled && !visibleCapability && !toolActive,
   });
-  const library = useRuntimeModelLibrary(inventoryEnabled && !toolActive);
+  // Keep library data active whenever the rail is visible so sidebar model names never fall back to raw recipe titles.
+  const library = useRuntimeModelLibrary(inventoryEnabled);
   const contentViewportRef = useRef<HTMLDivElement>(null);
   const diagnosticsActive = !!props.advancedDiagnostics;
   useEffect(() => {
@@ -150,15 +187,17 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       });
       const itemSelection = inventory.data?.aggregate.selections.find((item) => item.capabilityContract === id);
       const itemSelected = inventory.data?.aggregate.loadouts.find((item) => item.loadoutId === itemSelection?.loadoutId);
-      const identity = capabilityModelIdentity(itemSelected, inventory.data?.recipes ?? []);
+      const catalog = library.data?.catalog ?? [];
+      const assets = library.data?.assets ?? [];
+      const identity = capabilityModelIdentity(itemSelected, inventory.data?.recipes ?? [], catalog, assets);
       // Files on device are a reading aid for unset capabilities, never readiness.
-      const downloaded = state.state === 'unset' && capabilityRecommendedFilesOnDevice(id, inventory.data?.recipes ?? []);
+      const downloaded = state.state === 'unset' && capabilityRecommendedFilesOnDevice(id, inventory.data?.recipes ?? [], assets, catalog);
       const taskModel = state.replacement && state.task
-        ? setupTaskModelTitle(state.task, inventory.data?.aggregate.loadouts ?? [], inventory.data?.recipes ?? [])
+        ? setupTaskModelTitle(state.task, inventory.data?.aggregate.loadouts ?? [], inventory.data?.recipes ?? [], catalog, assets)
         : '';
       return { id, state, model: identity.shortTitle, taskModel, downloaded };
     }),
-    [inventory.capabilities, observedInventory, inventory.tasks, inventory.isError],
+    [inventory.capabilities, observedInventory, inventory.tasks, inventory.isError, library.data],
   );
   const railStateLabel = (entry: { state: { state: CapabilityPreparationState }; downloaded: boolean }) =>
     t(entry.downloaded && entry.state.state === 'unset'
@@ -173,15 +212,24 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const openSetupTask = (taskId: string) => {
     props.onOpenSetupTask(taskId);
   };
-  const taskModel = status?.task ? setupTaskModelTitle(status.task, inventory.data?.aggregate.loadouts ?? [], recipes) : '';
-  // Every saved configuration keeps its own identity and settings entry.
-  const saved = inventory.data?.aggregate.loadouts.filter(
-    item => item.capabilityContract === visibleCapability && item.validationState === 'configured',
+  const taskModel = status?.task
+    ? setupTaskModelTitle(
+      status.task,
+      inventory.data?.aggregate.loadouts ?? [],
+      recipes,
+      library.data?.catalog ?? [],
+      library.data?.assets ?? [],
+    )
+    : '';
+  const allCapabilityLoadouts = inventory.data?.aggregate.loadouts.filter(
+    item => item.capabilityContract === visibleCapability,
   ) ?? [];
+  // Every saved configuration keeps its own identity and settings entry.
+  const saved = allCapabilityLoadouts.filter(item => item.validationState === 'configured');
   // Files on this device are a preparation hint, never a readiness claim.
   const downloadedRecipe =
     visibleCapability && status?.state === 'unset'
-      ? capabilityRecommendedRecipeOnDevice(visibleCapability, recipes)
+      ? capabilityRecommendedRecipeOnDevice(visibleCapability, recipes, library.data?.assets ?? [], library.data?.catalog ?? [])
       : null;
   const createSetupTask = async (targetCapability = visibleCapability) => {
     const owner = props.profileUseOwner;
@@ -199,19 +247,51 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const noticeUnlessShownByTask = (taskId: string, failure: RuntimeSetupFailureNotice) => {
     if (!store.getTask(taskId)?.failure) setError(failure);
   };
+  const createRecommendedCandidate = (taskId: string, recipeId: string) => {
+    const recipe = recipes.find(item => item.recipeId === recipeId);
+    if (!recipe) throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
+    const preferredOffers: Record<string, string> = {};
+    const axes: { slotId: string; modelAssetId: string; expectedContentId: string }[] = [];
+    for (const slot of recipe.slots) {
+      if (slot.presence !== 'required') continue;
+      const exact = exactRecommendedSlotOffer(slot, library.data?.catalog, library.data?.assets);
+      if (!exact) continue;
+      if (exact.installedAsset) {
+        axes.push({ slotId: slot.slotId, modelAssetId: exact.installedAsset.modelAssetId, expectedContentId: exact.contentId });
+        if (exact.offer?.installedModelAssetId) preferredOffers[slot.slotId] = exact.offer.candidate.offerRef;
+      } else if (exact.offer) {
+        preferredOffers[slot.slotId] = exact.offer.candidate.offerRef;
+      } else {
+        throw new Error(t('runtimeConfig.product.recommendationUnavailable'));
+      }
+    }
+    store.updateTask(taskId, current => ({ draft: { ...current.draft, route: 'local', recipeId, preferredOffers } }));
+    return createRuntimeSetupCandidate(store, taskId, ports, { recipeId, axes });
+  };
   const onStart = async (recipeId?: string, previous?: NimiMachineLoadout, targetCapability = visibleCapability) => {
     if (!targetCapability) return;
     setBusy(true);
     setError(null);
     try {
       const task = await createSetupTask(targetCapability);
-      if (recipeId) {
-        const result = await createRuntimeSetupCandidate(store, task.taskId, ports, {
-          recipeId,
-          ...(previous
-            ? { axes: previous.modelAxes, options: previous.options, displayName: previous.displayName }
-            : {}),
-        });
+      if (previous) {
+        // Point directly at the existing Loadout instead of creating a duplicate candidate.
+        store.updateTask(task.taskId, (current) => ({
+          candidateLoadoutId: previous.loadoutId,
+          candidateRevisionBaseline: previous.revision,
+          draft: {
+            ...(current.draft ?? {}),
+            route: 'local',
+            recipeId: previous.recipeId,
+            axes: previous.modelAxes
+              .filter((axis) => axis.modelAssetId && axis.expectedContentId)
+              .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId })),
+            options: previous.options as RuntimeSetupTaskDraft['options'],
+          },
+        }));
+        await resolveRuntimeSetupPreparation(store, task.taskId, ports);
+      } else if (recipeId) {
+        const result = await createRecommendedCandidate(task.taskId, recipeId);
         if (result.status !== 'ok') noticeUnlessShownByTask(task.taskId, result.failure);
         else await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       }
@@ -222,21 +302,98 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       setBusy(false);
     }
   };
-  // Enabling and changing a model use the same task pipeline as "select".
-  // A saved choice keeps its exact axes and options; the review is skipped only
-  // when the resolved plan has nothing to download, install or choose; any
-  // other outcome (missing components, a choice, a failure) opens the task so
-  // the person sees the same review or failure they would have seen before.
+  const onSelectLoadout = async (loadout: NimiMachineLoadout) => {
+    if (!visibleCapability || busy || props.runtimeWritesDisabled) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const envCheck = await checkExistingLoadoutEnvironment({
+        loadout,
+        resolveEnvironmentPlan: ports.environment.resolveEnvironmentPlan,
+      });
+      if (!envCheck.ready) {
+        // Environment needs installation/repair: open setup task directly against this existing Loadout (no duplicate).
+        const task = await createSetupTask(loadout.capabilityContract);
+        store.updateTask(task.taskId, (current) => ({
+          candidateLoadoutId: loadout.loadoutId,
+          candidateRevisionBaseline: loadout.revision,
+          draft: {
+            ...(current.draft ?? {}),
+            route: 'local',
+            recipeId: loadout.recipeId,
+            axes: loadout.modelAxes
+              .filter((axis) => axis.modelAssetId && axis.expectedContentId)
+              .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId })),
+            options: loadout.options as RuntimeSetupTaskDraft['options'],
+          },
+        }));
+        await resolveRuntimeSetupPreparation(store, task.taskId, ports);
+        openSetupTask(task.taskId);
+        return;
+      }
+      requestImpact({
+        kind: 'select',
+        title: loadout.displayName,
+        run: async () => {
+          const result = await commitExistingLoadoutSelection({
+            loadout,
+            aggregate: inventory.data?.aggregate,
+            selectLoadout: ports.loadouts.select,
+            queryClient,
+          });
+          if (result.status !== 'selected') {
+            await inventory.refetch();
+            throw new Error(t('runtimeConfig.product.selectionConflict'));
+          }
+          if (props.profileUseOwner) {
+            const ownerTask = await createSetupTask(loadout.capabilityContract);
+            const ownerResult = await reuseRuntimeSetupCurrent(store, ownerTask.taskId, ports);
+            await inventory.refetch();
+            if (ownerResult.status !== 'ok') {
+              openSetupTask(ownerTask.taskId);
+              return;
+            }
+          } else {
+            await inventory.refetch();
+          }
+          emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
+        },
+      });
+    } catch (caught) {
+      setError({ message: caught instanceof Error ? caught.message : String(caught) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmImpact = () => {
+    if (busy) return;
+    const pending = impactState.confirm();
+    if (!pending) return;
+    setImpactRevision((current) => current + 1);
+    setBusy(true);
+    setError(null);
+    void pending.run()
+      .catch((caught: unknown) => {
+        setError({ message: caught instanceof Error ? caught.message : String(caught) });
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  };
+  // Enabling a recipe recommendation uses the exact Runtime recommendation
+  // (single narrowed offer per required slot) so another installed quant is
+  // never silently substituted.
   const onEnable = async (recipeId: string, previous?: NimiMachineLoadout) => {
     if (!visibleCapability) return;
+    if (previous) {
+      await onSelectLoadout(previous);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const task = await createSetupTask();
-      const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
-        recipeId,
-        ...(previous ? { axes: previous.modelAxes, options: previous.options, displayName: previous.displayName } : {}),
-      });
+      const created = await createRecommendedCandidate(task.taskId, recipeId);
       if (created.status !== 'ok') {
         noticeUnlessShownByTask(task.taskId, created.failure);
         openSetupTask(task.taskId);
@@ -250,7 +407,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       const used = await runRuntimeSetupPreparation(store, task.taskId, ports, {
         mode: 'prepare-and-use',
         reviewedPlan: resolved.value,
-        choices: {},
+        choices: store.getTask(task.taskId)?.draft?.preferredOffers ?? {},
       });
       // Read the actual selection even when a later consumer save fails.
       await inventory.refetch();
@@ -293,9 +450,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     try {
       const task = await createSetupTask();
       store.updateTask(task.taskId, () => ({ draft }));
+      const previousNameSource = previous ? loadoutDisplayNameSource(previous.provenance) : 'auto';
+      const preserveCustomName = Boolean(previous && previousNameSource !== 'auto');
       const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
         recipeId: recipe.recipeId,
-        displayName: previous?.displayName,
+        ...(preserveCustomName ? { displayName: previous?.displayName, displayNameSource: 'user' as const } : { displayNameSource: 'auto' as const }),
         axes: draft.axes,
         options: draft.options,
       });
@@ -621,6 +780,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                         tasks={inventory.tasks}
                         onOpenCapability={openCapability}
                         onOpenConfiguration={openModelConfiguration}
+                        onUseAssetForNewConfig={(modelAssetId) => props.onOpenSavedConfigs({ preselectedAssetId: modelAssetId })}
                         onOpenTask={openSetupTask}
                         onOpenModelFiles={props.onOpenModelFiles}
                       />
@@ -634,6 +794,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   selected={selected}
                   downloadedRecipe={downloadedRecipe ?? undefined}
                   loadouts={saved}
+                  hasAnyLoadouts={allCapabilityLoadouts.length > 0}
                   recipes={recipes}
                   catalog={library.data?.catalog ?? []}
                   assets={library.data?.assets ?? []}
@@ -660,6 +821,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   navigationContext={props.savedConfigsContext}
                   onStart={onStart}
                   onEnable={onEnable}
+                  onSelectLoadout={onSelectLoadout}
+                  onCreate={() => {
+                    setOpenCreateOnSaved(true);
+                    openSection('saved');
+                  }}
+                  initialCreateOnSaved={openCreateOnSaved}
+                  onClearInitialCreate={() => setOpenCreateOnSaved(false)}
                   onApplyCustomization={onApplyCustomization}
                   onRetryCustomization={() => { void inventory.refetch(); void library.refetch(); }}
                   onTask={openSetupTask}
@@ -692,6 +860,17 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           )}
         </ScrollArea>}
       </Surface>
+      <ConfirmDialog
+        open={pendingImpact !== null}
+        title={t('runtimeConfig.loadouts.impactTitle')}
+        message={t('runtimeConfig.loadouts.impactBody', { name: pendingImpact?.title ?? '' })}
+        confirmLabel={t('runtimeConfig.loadouts.confirm')}
+        cancelLabel={t('runtimeConfig.loadouts.cancel')}
+        confirmTone="primary"
+        pending={busy}
+        onConfirm={confirmImpact}
+        onClose={cancelImpact}
+      />
     </div>
   );
 }

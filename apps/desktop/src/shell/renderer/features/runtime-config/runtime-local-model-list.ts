@@ -7,7 +7,12 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { describeModelAssetPresentation } from './runtime-config-local-model-center-asset-presentation.js';
-import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
+import {
+  cleanAssetDisplayName,
+  loadoutModelPresentation,
+  resolvePrimaryRecipeSlot,
+  resolveUnambiguousCatalogDescriptor,
+} from './runtime-config-loadout-model-display.js';
 import { modelDisplayTitle } from './runtime-capability-presentation.js';
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.local-model-overview
@@ -79,8 +84,28 @@ export type LocalModelListInput = {
   readonly selections: readonly NimiLoadoutSelection[];
 };
 
-export function localModelSlotRole(slotId: string): LocalModelSlotRole {
-  return slotId.startsWith('main.') ? 'model' : 'companion';
+const COMPANION_SLOT_PREFIXES = ['companion.', 'vae.', 'encoder.'] as const;
+const COMPANION_SLOT_SUFFIXES = ['.vae', '.aligner', '.segmenter', '.vad'] as const;
+
+export function localModelSlotRole(
+  slotId: string,
+  recipe?: Pick<NimiLoadoutRecipe, 'slots'>,
+): LocalModelSlotRole {
+  if (slotId.startsWith('companion.')) return 'companion';
+  if (slotId.startsWith('main.')) return 'model';
+  if (recipe) {
+    const primary = resolvePrimaryRecipeSlot(recipe);
+    if (primary.kind === 'single') {
+      return primary.slot.slotId === slotId ? 'model' : 'companion';
+    }
+  }
+  if (
+    COMPANION_SLOT_PREFIXES.some((prefix) => slotId.startsWith(prefix))
+    || COMPANION_SLOT_SUFFIXES.some((suffix) => slotId.endsWith(suffix))
+  ) {
+    return 'companion';
+  }
+  return 'model';
 }
 
 const APPLICABILITY_RANK: Readonly<Record<NimiLoadoutRecommendationApplicability, number>> = {
@@ -103,7 +128,8 @@ function variantTitle(
     };
   }
   const presentation = describeModelAssetPresentation(asset);
-  return { title: presentation.title, quantLabel: '', family: presentation.title };
+  const cleanedTitle = cleanAssetDisplayName(presentation.title);
+  return { title: cleanedTitle, quantLabel: '', family: cleanedTitle };
 }
 
 /**
@@ -136,12 +162,8 @@ function companionServedByTitle(input: {
  * merged by display name or file name.
  */
 export function buildLocalModelList(input: LocalModelListInput): readonly LocalModelEntry[] {
-  const descriptorByContent = new Map<string, NimiRuntimeLocalVerifiedAssetDescriptor>();
-  for (const descriptor of input.catalog) {
-    if (descriptor.contentId && !descriptorByContent.has(descriptor.contentId)) {
-      descriptorByContent.set(descriptor.contentId, descriptor);
-    }
-  }
+  const catalogContentIds = new Set(input.catalog.map((item) => item.contentId).filter(Boolean));
+  const recipeById = new Map(input.recipes.map((recipe) => [recipe.recipeId, recipe]));
   const selectedByCapability = new Map(input.selections.map((item) => [item.capabilityContract, item.loadoutId]));
   const recipeTitleById = new Map(input.recipes.map((recipe) => [recipe.recipeId, modelDisplayTitle(recipe.title)]));
   const assetById = new Map(input.assets.map((asset) => [asset.modelAssetId, asset]));
@@ -150,7 +172,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
   const configurableByAsset = new Map<string, LocalModelConfigurable[]>();
   for (const recipe of input.recipes) {
     for (const slot of recipe.slots) {
-      const role = localModelSlotRole(slot.slotId);
+      const role = localModelSlotRole(slot.slotId, recipe);
       for (const offer of slot.offers) {
         const assetId = offer.installedModelAssetId;
         if (!assetId) continue;
@@ -172,15 +194,16 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
   // asset id -> titles of the model setups it serves as a companion, in Loadout order
   const companionServedByAsset = new Map<string, string[]>();
   for (const loadout of input.loadouts) {
-    const primaryModels = loadout.modelAxes.filter((axis) => localModelSlotRole(axis.slotId) === 'model').flatMap((axis) => {
+    const loadoutRecipe = recipeById.get(loadout.recipeId);
+    const primaryModels = loadout.modelAxes.filter((axis) => localModelSlotRole(axis.slotId, loadoutRecipe) === 'model').flatMap((axis) => {
       const asset = assetById.get(axis.modelAssetId);
       if (!asset) return [];
-      const naming = variantTitle(asset, descriptorByContent.get(asset.contentId));
+      const naming = variantTitle(asset, resolveUnambiguousCatalogDescriptor(asset.contentId, input.catalog));
       return [[naming.title, naming.quantLabel].filter(Boolean).join(' · ')];
     });
     for (const axis of loadout.modelAxes) {
       if (!axis.modelAssetId) continue;
-      const role = localModelSlotRole(axis.slotId);
+      const role = localModelSlotRole(axis.slotId, loadoutRecipe);
       if (role === 'companion') {
         const servedTitle = recipeTitleById.get(loadout.recipeId);
         if (servedTitle) {
@@ -209,7 +232,8 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
   const variantsByContent = new Map<string, { variant: LocalModelVariant; family: string; modelKey: string }>();
   const orderedContent: string[] = [];
   for (const asset of input.assets) {
-    const descriptor = descriptorByContent.get(asset.contentId);
+    const descriptor = resolveUnambiguousCatalogDescriptor(asset.contentId, input.catalog);
+    const hasAnyCatalogMatch = catalogContentIds.has(asset.contentId);
     const existing = variantsByContent.get(asset.contentId);
     const configurableFor = configurableByAsset.get(asset.modelAssetId) ?? [];
     const configurations = configurationsByAsset.get(asset.modelAssetId) ?? [];
@@ -242,7 +266,7 @@ export function buildLocalModelList(input: LocalModelListInput): readonly LocalM
         sizeBytes: asset.totalSizeBytes,
         fileCount: asset.files.length,
         addedAt: asset.createdAt,
-        useNotIdentified: !descriptor && configurableFor.length === 0 && configurations.length === 0,
+        useNotIdentified: !hasAnyCatalogMatch && configurableFor.length === 0 && configurations.length === 0,
         configurableFor: sortConfigurable(configurableFor),
         configurations,
       },

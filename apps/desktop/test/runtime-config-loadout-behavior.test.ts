@@ -71,15 +71,22 @@ function recipeOffer(
 }
 
 test('Loadout mutations invalidate App effective projections and one-click selection reads', async () => {
-  const source = await readFile(path.join(
+  const pageSource = await readFile(path.join(
     rendererDir,
     'features',
     'runtime-config',
     'runtime-config-page-loadouts.tsx',
   ), 'utf8');
-  assert.match(source, /invalidateQueries\(\{ queryKey: \['app-ai-config'\] \}\)/u);
-  assert.match(source, /invalidateQueries\(\{ queryKey: \['desktop', 'machine-local-ai-config-selections'\] \}\)/u);
-  assert.match(source, /await refresh\(\);\s*refreshAIConfigProjections\(\);/u);
+  const selectSource = await readFile(path.join(
+    rendererDir,
+    'features',
+    'runtime-config',
+    'runtime-config-select-loadout.ts',
+  ), 'utf8');
+  assert.match(selectSource, /invalidateQueries\(\{ queryKey: \['app-ai-config'\] \}\)/u);
+  assert.match(selectSource, /invalidateQueries\(\{ queryKey: \['desktop', 'machine-local-ai-config-selections'\] \}\)/u);
+  assert.match(pageSource, /invalidateDesktopLoadoutQueries\(queryClient\)/u);
+  assert.match(pageSource, /await refresh\(\);\s*refreshAIConfigProjections\(\);/u);
 });
 
 test('Loadout slot incompatibility preserves the Runtime typed reason', () => {
@@ -177,6 +184,7 @@ test('Loadout card and manage view present canonical text behavior truth without
     assert.deepEqual(Object.keys(document.loadouts.textBehaviors.state).sort(), [
       'configured',
       'implementation-supported',
+      'model-unsupported',
       'unavailable',
     ]);
     assert.ok(document.loadouts.textBehaviors.typedReasons);
@@ -621,13 +629,68 @@ test('Loadout axis update omits unresolved axes and preserves inventory-missing 
   const assets = [{ modelAssetId: 'asset-next', contentId: nextContentId }] as NimiRuntimeModelAssetRecord[];
 
   // Runtime rejects a half-bound axis (expectedContentId without
-  // modelAssetId), so the unresolved companion slot stays out of modelAxes;
-  // the stored Loadout keeps its own unresolved axis projection.
+  // modelAssetId) and silently auto-fills an omitted required slot when a
+  // unique recommended asset is installed (service_loadout.go:774). Send an
+  // explicit empty axis so the unresolved companion slot stays unresolved.
   assert.deepEqual(
     runtimeConfigLoadoutUpdateModelAxes(loadout, {}, assets, 'main', 'asset-next'),
     [
       { slotId: 'main', modelAssetId: 'asset-next', expectedContentId: nextContentId },
+      { slotId: 'companion', modelAssetId: '', expectedContentId: '' },
       { slotId: 'custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId },
     ],
   );
+});
+
+test('commitExistingLoadoutSelection sends expectNoPriorSelection or expectedSelectionRevision and returns conflict on applied: false', async () => {
+  const { commitExistingLoadoutSelection } = await import(
+    '../src/shell/renderer/features/runtime-config/runtime-config-select-loadout.js'
+  );
+  const calls: Array<Record<string, unknown>> = [];
+  const invalidated: unknown[] = [];
+  const loadout = {
+    loadoutId: 'loadout-1',
+    capabilityContract: 'text.generate',
+    revision: 'rev-1',
+  } as NimiMachineLoadout;
+  const queryClient = {
+    invalidateQueries: async (filter: unknown) => { invalidated.push(filter); },
+  } as never;
+
+  const conflict = await commitExistingLoadoutSelection({
+    loadout,
+    aggregate: { loadouts: [loadout], selections: [], selectionRevisions: {} } as never,
+    selectLoadout: async (capabilityContract, loadoutId, confirmed, options) => {
+      calls.push({ capabilityContract, loadoutId, confirmed, ...(options as Record<string, unknown>) });
+      return { applied: false, reasonCode: 'AI_LOADOUT_CONDITION_CONFLICT', selectionRevision: 'rev-other' } as never;
+    },
+    queryClient,
+  });
+  assert.equal(conflict.status, 'conflict');
+  assert.deepEqual(calls[0], {
+    capabilityContract: 'text.generate',
+    loadoutId: 'loadout-1',
+    confirmed: true,
+    expectedCandidateRevision: 'rev-1',
+    expectNoPriorSelection: true,
+  });
+  assert.equal(invalidated.length, 4);
+
+  const selected = await commitExistingLoadoutSelection({
+    loadout,
+    aggregate: { loadouts: [loadout], selections: [], selectionRevisions: { 'text.generate': 'sel-2' } } as never,
+    selectLoadout: async (capabilityContract, loadoutId, confirmed, options) => {
+      calls.push({ capabilityContract, loadoutId, confirmed, ...(options as Record<string, unknown>) });
+      return { applied: true, selectionRevision: 'sel-3' } as never;
+    },
+    queryClient,
+  });
+  assert.equal(selected.status, 'selected');
+  assert.deepEqual(calls[1], {
+    capabilityContract: 'text.generate',
+    loadoutId: 'loadout-1',
+    confirmed: true,
+    expectedCandidateRevision: 'rev-1',
+    expectedSelectionRevision: 'sel-2',
+  });
 });

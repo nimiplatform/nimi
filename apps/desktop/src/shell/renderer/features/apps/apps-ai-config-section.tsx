@@ -1,6 +1,5 @@
-import { useState as useRecordState } from 'react';
+import { useCallback, useEffect, useMemo, useState as useRecordState } from 'react';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/kit/ui';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
@@ -328,6 +327,21 @@ export function AppsAIConfigSection({
   const [recordRef,setRecordRef]=useRecordState<string>();
   const [recordError,setRecordError]=useRecordState('');
   const appAIConfig = useDesktopNimiAppAIConfig(appId,{includeRecords:true,configRef:recordRef});
+  // Retain the last records snapshot for this app so switching to a cold configRef
+  // keeps AIConfigRecordControls mounted and preserves keyboard focus while fetching.
+  const [recordsSnapshotState, setRecordsSnapshotState] = useRecordState<{
+    readonly appId: string;
+    readonly snapshot: typeof appAIConfig.data;
+  } | null>(null);
+  useEffect(() => {
+    if (appAIConfig.data?.records) {
+      setRecordsSnapshotState({ appId, snapshot: appAIConfig.data });
+    }
+  }, [appId, appAIConfig.data]);
+  const recordsSnapshot = appAIConfig.data?.records
+    ? appAIConfig.data
+    : (recordsSnapshotState?.appId === appId ? recordsSnapshotState.snapshot : undefined);
+  const activeConfigRef = recordRef ?? appAIConfig.data?.record?.configRef;
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const { t, i18n } = useTranslation();
   const copy = useAppsModelConfigCopy(appDisplayName);
@@ -384,7 +398,7 @@ export function AppsAIConfigSection({
   }, [onAIConfigChanged, overwriteAppAIConfig,appAIConfig.data?.record]);
   const openMachineLoadout = useCallback((capabilityContract: string) => {
     // Consumer entries open the shared setup task with the exact owner,
-    // account snapshot, and return handle; the task view owns the route from
+    // account snapshot, configRef, and return handle; the task view owns the route from
     // here and never re-sends app input.
     void currentDesktopAccountIdForSetup().then((accountId) => {
       openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
@@ -392,6 +406,7 @@ export function AppsAIConfigSection({
         source: {
           kind: 'app',
           ownerAppId: appId,
+          ...(activeConfigRef ? { configRef: activeConfigRef } : {}),
           accountId,
           returnFocus: `apps:${appId}`,
         },
@@ -401,27 +416,29 @@ export function AppsAIConfigSection({
         },
       });
     });
-  }, [appId, runtimeConfigNavigation, navigation]);
+  }, [activeConfigRef, appId, runtimeConfigNavigation, navigation]);
 
   const openProfileUse = useCallback(() => {
-    // The profile library opens in this app's owner context: the selected
-    // capabilities prepare on this machine and the app routes save once.
+    // The profile library opens in this app's owner context (including active configRef):
+    // the selected capabilities prepare on this machine and the app routes save once.
 
     runtimeConfigNavigation.openProfileUse({
       kind: 'app',
       ownerAppId: appId,
+      ...(activeConfigRef ? { configRef: activeConfigRef } : {}),
       returnFocus: `apps:${appId}`,
     });
-  }, [appId, runtimeConfigNavigation, navigation]);
+  }, [activeConfigRef, appId, runtimeConfigNavigation, navigation]);
 
   return (
     <section data-testid={`apps-ai-config-${appId}`}>
-      {appAIConfig.data?.records && <AIConfigRecordControls snapshot={appAIConfig.data} busy={appAIConfig.isFetching || overwriteAppAIConfig.isPending} language={i18n.language}
-        onSelect={ref=>{setRecordError('');setRecordRef(ref);}} onEdit={async edit=>{
+      {recordsSnapshot?.records && <AIConfigRecordControls snapshot={recordsSnapshot} selectedRef={recordRef} busy={overwriteAppAIConfig.isPending} readPending={appAIConfig.isFetching || !appAIConfig.data} language={i18n.language}
+        onSelect={ref=>{setRecordError('');setRecordRef(ref);}} onEdit={async (edit, copyCapabilities = true)=>{
           try {
             setRecordError('');
-            const result=await overwriteAndRefreshSummary({expectedRevision:edit.action==='create'?'0':appAIConfig.data!.revision,
-              capabilities:edit.action==='create'?appAIConfig.data!.config?.capabilities ?? []:[], record:edit});
+            const targetSnapshot = appAIConfig.data ?? recordsSnapshot;
+            const result=await overwriteAndRefreshSummary({expectedRevision:edit.action==='create'?'0':targetSnapshot!.revision,
+              capabilities:edit.action==='create' && copyCapabilities ? targetSnapshot!.config?.capabilities ?? []:[], record:edit});
             if(result.outcome==='conflict'){setRecordError(copy.saveFailed ?? 'Configuration changed.');return false;}
             setRecordRef(result.record?.configRef);return true;
           }catch(e){setRecordError(e instanceof Error?e.message:String(e));return false;}

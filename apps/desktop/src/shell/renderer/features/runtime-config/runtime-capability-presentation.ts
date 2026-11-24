@@ -5,9 +5,20 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
 import {
-  loadoutCompositionKey,
+  deriveLoadoutDefaultDisplayName,
+  isGenericEngineRecipeTitle,
+  loadoutModelPresentation,
+  resolvePrimaryRecipeSlot,
+  resolveVerifiedAssetIdentity,
+} from './runtime-config-loadout-model-display.js';
+export {
+  deriveLoadoutDefaultDisplayName,
+  isGenericEngineRecipeTitle,
+  resolvePrimaryRecipeSlot,
+  resolveVerifiedAssetIdentity,
+} from './runtime-config-loadout-model-display.js';
+import {
   runtimeSetupContextApplication,
   runtimeSetupPlanContextFit,
   type RuntimeSetupPreparationPlan,
@@ -62,31 +73,21 @@ export function modelFamilySeed(title: string): string {
   return modelDisplayTitle(title).split(/[\s\-_/]+/u)[0]?.toLowerCase() ?? title;
 }
 
-/**
- * What tells a configuration apart where its model name is already shown. A
- * generated name ("<recipe> · Gemma 4 2B · Q8") keeps only its variant
- * ("2B · Q8"); a name the person gave is kept whole.
- */
-export function configurationVariantLabel(displayName: string, recipeTitle: string, modelName: string): string {
-  const name = displayName.trim();
-  const recipe = recipeTitle.trim();
-  if (!recipe || name === recipe) return '';
-  if (!name.startsWith(`${recipe} · `)) return name;
-  const variant = name.slice(recipe.length + 3).trim();
-  const rest = modelName && variant.startsWith(modelName) ? variant.slice(modelName.length) : null;
-  // "Gemma 40B" is a different size of "Gemma 4", not its variant "0B".
-  return rest !== null && (rest === '' || /^[\s·]/u.test(rest)) ? rest.replace(/^[\s·]+/u, '') : variant;
-}
-
 /** Display title of the model a setup task works on, or '' when its candidate is not known. */
 export function setupTaskModelTitle(
   task: { readonly candidateLoadoutId?: string },
   loadouts: readonly NimiMachineLoadout[],
   recipes: readonly NimiLoadoutRecipe[],
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = [],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
 ): string {
   const candidate = task.candidateLoadoutId
     ? loadouts.find((item) => item.loadoutId === task.candidateLoadoutId)
     : undefined;
+  if (candidate) {
+    const identity = capabilityModelIdentity(candidate, recipes, catalog, assets);
+    if (identity.shortTitle) return identity.shortTitle;
+  }
   const title = candidate?.displayName || recipes.find((item) => item.recipeId === candidate?.recipeId)?.title || '';
   return title ? modelDisplayTitle(title) : '';
 }
@@ -97,66 +98,60 @@ export const MODEL_FEATURE_LOCALE_KEYS: Readonly<Record<string, string>> = Objec
   'input.audio': 'runtimeConfig.product.feature.input-audio',
   'input.mask': 'runtimeConfig.product.feature.input-mask',
 });
-export function modelFeatureLocaleKeys(features: readonly string[]): readonly string[] {
-  return features.map((feature) => MODEL_FEATURE_LOCALE_KEYS[feature]).filter((key): key is string => !!key);
+export function modelFeatureLocaleKeys(features: readonly string[] | undefined = []): readonly string[] {
+  return (features ?? []).map((feature) => MODEL_FEATURE_LOCALE_KEYS[feature]).filter((key): key is string => !!key);
 }
 
 export function capabilityModelIdentity(
   loadout: NimiMachineLoadout | undefined,
   recipes: readonly NimiLoadoutRecipe[],
   catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = [],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
 ) {
   const recipe = recipes.find((item) => item.recipeId === loadout?.recipeId);
-  const main =
-    loadout?.modelAxes.find((axis) => axis.slotId.startsWith('main.') && axis.modelAssetId) ??
-    loadout?.modelAxes.find((axis) => axis.modelAssetId);
-  const descriptor = catalog.find((item) => item.contentId === main?.expectedContentId);
-  const version = descriptor
-    ? loadoutModelPresentation({ title: descriptor.title, variantLabel: descriptor.entry }).quant.technical
-    : '';
-  const quant = descriptor
-    ? loadoutModelPresentation({ title: descriptor.title, variantLabel: descriptor.entry }).quant
+  const recipeTitle = recipe?.title ?? '';
+  const recipeShortTitle = recipeTitle ? modelDisplayTitle(recipeTitle) : '';
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  const main = primary.kind === 'single'
+    ? loadout?.modelAxes.find((axis) => axis.slotId === primary.slot.slotId && axis.modelAssetId)
+    : primary.kind === 'none'
+      ? (loadout?.modelAxes.find((axis) => axis.slotId.startsWith('main.') && axis.modelAssetId)
+        ?? loadout?.modelAxes.find((axis) => !axis.slotId.startsWith('companion.') && axis.modelAssetId))
+      : undefined;
+  const asset = main ? assets.find((item) => item.modelAssetId === main.modelAssetId) : undefined;
+  const resolved = main ? resolveVerifiedAssetIdentity(asset, main.expectedContentId, catalog) : null;
+  const presentation = resolved?.title
+    ? loadoutModelPresentation({ title: resolved.title, variantLabel: resolved.variantLabel })
     : null;
+  const modelBase = presentation
+    ? (presentation.sizeLabel ? `${presentation.family} ${presentation.sizeLabel}` : presentation.family)
+    : '';
+  const fallbackTitle = primary.kind === 'composite'
+    ? (loadout?.displayName || recipeTitle)
+    : (recipeTitle || loadout?.displayName || '');
+  const shortTitle = modelBase || modelDisplayTitle(fallbackTitle);
+  const unbound = Boolean(primary.kind === 'single' && loadout && !main);
   return {
-    title: recipe?.title ?? loadout?.displayName ?? '',
-    /** Title with the capability noun removed, for headings and rails. */
-    shortTitle: modelDisplayTitle(recipe?.title ?? loadout?.displayName ?? ''),
-    version,
+    title: recipeTitle || loadout?.displayName || '',
+    /** Model-first title for headings, cards, and rails. */
+    shortTitle,
+    /** Secondary engine contract label, distinct from shortTitle. */
+    recipeShortTitle: recipeShortTitle && recipeShortTitle !== shortTitle ? recipeShortTitle : '',
+    /** Seed derived from the actual model family so icons match the model. */
+    seed: modelFamilySeed(shortTitle || recipeShortTitle || loadout?.displayName || ''),
+    version: presentation?.quant.technical ?? '',
     /** Headline quantization ("Q4") without the technical suffix. */
-    versionShort: quant?.short ?? '',
-    sizeBytes: descriptor?.totalSizeBytes && descriptor.totalSizeBytes > 0 ? descriptor.totalSizeBytes : null,
+    versionShort: presentation?.quant.short ?? '',
+    sizeBytes: resolved?.sizeBytes ?? null,
+    entryPath: asset?.entry || resolved?.descriptor?.entry || '',
     alias: loadout?.displayName ?? '',
+    unbound,
+    composite: primary.kind === 'composite',
     recipe,
     main,
-    descriptor,
+    asset,
+    descriptor: resolved?.descriptor,
   };
-}
-
-/**
- * Saved configurations the user can tell apart. Loadouts that run exactly the
- * same thing (same recipe, revision, options, model files and name) collapse
- * into one entry, so a pile of leftovers from repeated "enable" or "use this
- * configuration" reads as the single configuration it really is. The entry
- * shown for a group is the selected Loadout when the group holds it,
- * otherwise the oldest one. This is a presentation grouping only; selecting
- * a configuration never deletes another saved configuration.
- */
-export function distinctSavedLoadouts(
-  loadouts: readonly NimiMachineLoadout[],
-  selectedLoadoutId?: string,
-): NimiMachineLoadout[] {
-  const groups = new Map<string, NimiMachineLoadout>();
-  for (const loadout of loadouts) {
-    const key = loadoutCompositionKey(loadout);
-    const shown = groups.get(key);
-    if (!shown) {
-      groups.set(key, loadout);
-      continue;
-    }
-    if (shown.loadoutId === selectedLoadoutId) continue;
-    if (loadout.loadoutId === selectedLoadoutId || loadout.createdAt < shown.createdAt) groups.set(key, loadout);
-  }
-  return [...groups.values()];
 }
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
@@ -220,7 +215,11 @@ export type RecipeOfferSummary = {
 };
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
-export function recipeOfferSummary(recipe: NimiLoadoutRecipe): RecipeOfferSummary {
+export function recipeOfferSummary(
+  recipe: NimiLoadoutRecipe,
+  catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
+): RecipeOfferSummary {
   const required = recipe.slots.filter((slot) => slot.presence === 'required');
   let installed = 0;
   let missing = 0;
@@ -229,7 +228,8 @@ export function recipeOfferSummary(recipe: NimiLoadoutRecipe): RecipeOfferSummar
   let downloadVariesByVersion = false;
   const counted = new Set<string>();
   for (const slot of required) {
-    const usable = slot.offers.filter((offer) => offer.applicability !== 'unsupported');
+    const exact = catalog && exactRecommendedSlotOffer(slot, catalog, assets);
+    const usable = exact ? (exact.offer ? [exact.offer] : []) : slot.offers.filter((offer) => offer.applicability !== 'unsupported');
     if (usable.some((offer) => offer.installedModelAssetId)) {
       installed++;
       continue;
@@ -292,20 +292,53 @@ export function setupPlanAllowsDirectUse(
 }
 
 /**
- * The first supported recipe for the capability whose recommended model
- * offers Runtime reports as installed on this device, or null. This is a
- * reading aid for the "downloaded but never selected" gap: it never claims
- * readiness, since the capability still has no machine selection and no
- * environment check.
+ * Exact Runtime-recommended offer for a single required slot when Runtime has
+ * narrowed the device recommendation to one template and content identity.
+ */
+export function exactRecommendedSlotOffer(
+  slot: NimiLoadoutRecipe['slots'][number],
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = [],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
+) {
+  if (slot.recommendedVariantIds.length !== 1 || slot.recommendedContentIds.length !== 1) return undefined;
+  const templateId = slot.recommendedVariantIds[0]!;
+  const contentId = slot.recommendedContentIds[0]!;
+  const descriptor = catalog.find((item) => item.templateId === templateId && item.contentId === contentId);
+  const installed = assets.filter(asset => asset.contentVerified && asset.contentId === contentId);
+  const offer = slot.offers.find(item => item.applicability !== 'unsupported'
+    && descriptor && item.candidate.title === descriptor.title && item.candidate.variantLabel === descriptor.entry
+    && (item.installedModelAssetId
+      ? installed.some(asset => asset.modelAssetId === item.installedModelAssetId)
+      : item.candidate.installable));
+  const installedAsset = installed.find(asset => asset.modelAssetId === offer?.installedModelAssetId);
+  return { templateId, contentId, descriptor, installedAsset, offer };
+}
+
+/**
+ * The first supported recipe for the capability whose exact recommended model
+ * files are installed on this device, or null. When Runtime narrows a required
+ * slot to a single recommended contentId, another installed quantization of
+ * the same slot does not masquerade as that exact recommendation.
  */
 export function capabilityRecommendedRecipeOnDevice(
   capability: string,
   recipes: readonly NimiLoadoutRecipe[],
+  assets?: readonly NimiRuntimeModelAssetRecord[],
+  catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
 ): NimiLoadoutRecipe | null {
   return recipes.find((recipe) => {
     if (recipe.capabilityContract !== capability || recipe.applicability !== 'supported') return false;
-    const summary = recipeOfferSummary(recipe);
-    return summary.required > 0 && summary.installed === summary.required;
+    const required = recipe.slots.filter((slot) => slot.presence === 'required');
+    if (required.length === 0) return false;
+    return required.every((slot) => {
+      const exact = catalog && exactRecommendedSlotOffer(slot, catalog, assets);
+      if (exact) return Boolean(exact.installedAsset);
+      if (slot.recommendedContentIds.length === 1 && assets) {
+        const expectedContentId = slot.recommendedContentIds[0]!;
+        return assets.some((asset) => asset.contentId === expectedContentId && asset.contentVerified);
+      }
+      return slot.offers.some((offer) => offer.applicability !== 'unsupported' && Boolean(offer.installedModelAssetId));
+    });
   }) ?? null;
 }
 
@@ -313,6 +346,8 @@ export function capabilityRecommendedRecipeOnDevice(
 export function capabilityRecommendedFilesOnDevice(
   capability: string,
   recipes: readonly NimiLoadoutRecipe[],
+  assets?: readonly NimiRuntimeModelAssetRecord[],
+  catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
 ): boolean {
-  return capabilityRecommendedRecipeOnDevice(capability, recipes) !== null;
+  return capabilityRecommendedRecipeOnDevice(capability, recipes, assets, catalog) !== null;
 }

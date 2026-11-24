@@ -27,13 +27,18 @@ export function modelConfigJsonHasExactCloudTarget(
     && Boolean(exactCloudTargetText(fields.remoteModelCatalogId));
 }
 
+const LOCAL_CAPABILITY_MISMATCH_REASON = 'AI_LOCAL_CAPABILITY_MISMATCH';
+
 export function modelConfigMissingRequiredFeatures(
   intent: NimiPortableAppAIConfigIntent | null | undefined,
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
 ): readonly string[] {
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
-  if (!intent || intent.route.oneofKind !== 'local' || selection?.state !== 'ready' || !local) return [];
-	const supported = new Set(local.implementationSupportedFeatures);
+  if (!intent || intent.route.oneofKind !== 'local' || !local) return [];
+  const eligible = selection?.state === 'ready'
+    || (selection?.state === 'blocked' && selection.reasons.includes(LOCAL_CAPABILITY_MISMATCH_REASON));
+  if (!eligible) return [];
+  const supported = new Set(local.configuredFeatures);
   return intent.requiredFeatures.filter((feature) => !supported.has(feature));
 }
 
@@ -59,7 +64,17 @@ export function modelConfigCapabilityPosture(
   if (selection === undefined) return 'local-configured';
   if (selection === null || selection.state === 'unavailable') return 'local-configuration-unavailable';
   if (selection.state === 'missing') return 'local-selection-missing';
-  if (selection.state === 'blocked') return 'local-configuration-blocked';
+  if (selection.state === 'blocked') {
+    const missing = modelConfigMissingRequiredFeatures(intent, selection);
+    if (
+      missing.length > 0
+      && selection.reasons.length > 0
+      && selection.reasons.every((reason) => reason === LOCAL_CAPABILITY_MISMATCH_REASON)
+    ) {
+      return 'local-feature-mismatch';
+    }
+    return 'local-configuration-blocked';
+  }
   if (selection.resource?.oneofKind !== 'local') return 'local-configuration-unavailable';
   return modelConfigMissingRequiredFeatures(intent, selection).length > 0
     ? 'local-feature-mismatch'

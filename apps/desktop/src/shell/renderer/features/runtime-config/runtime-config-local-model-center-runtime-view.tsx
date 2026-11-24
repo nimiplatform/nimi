@@ -3,6 +3,7 @@ import type { ReactNode, RefObject } from 'react';
 import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeModelAssetRecord,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { SearchField } from '@nimiplatform/kit/ui';
 
@@ -22,6 +23,7 @@ type LocalAssetsRuntimeViewProps = {
   readonly assetImportError: string;
   readonly loadingInstalledAssets: boolean;
   readonly modelAssets: readonly NimiRuntimeModelAssetRecord[];
+  readonly catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly runtimeInventoryError: string;
   readonly importMenuRef: RefObject<HTMLDivElement | null>;
   readonly showImportMenu: boolean;
@@ -44,6 +46,7 @@ type LocalAssetsRuntimeViewProps = {
   readonly onResumeDownload: (installSessionId: string) => void;
   readonly onToggleImportMenu: () => void;
   readonly onOpenDiscover?: () => void;
+  readonly onUseAssetForNewConfig?: (modelAssetId: string) => void;
 };
 
 export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
@@ -111,6 +114,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
         </div>
       ) : null}
       <LocalModelCenterInstalledAssetsSection
+        catalog={props.catalog}
         modelAssets={[...props.modelAssets]}
         query={query}
         loadingInstalledAssets={props.loadingInstalledAssets}
@@ -119,6 +123,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
         onRefreshAssets={props.onRefreshAssets}
         onInspectRemoval={props.onInspectRemoval}
         onRemoveAsset={props.onRemoveAsset}
+        onUseAssetForNewConfig={props.onUseAssetForNewConfig}
         onOpenDiscover={props.onOpenDiscover}
         onImportFile={props.runtimeWritesDisabled ? undefined : () => { void props.onImportFile().catch(() => undefined); }}
       />

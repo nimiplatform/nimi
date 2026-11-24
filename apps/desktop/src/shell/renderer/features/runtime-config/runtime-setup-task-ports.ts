@@ -44,8 +44,11 @@ export function createRuntimeSetupTaskRunnerPorts(
           ? sdk.appProduct().aiConfig
           : sdk.accountProduct().appAIConfig(ownerAppId);
         return {
-          get: () => surface.get(),
-          overwrite: (input) => surface.overwrite(input),
+          get: () => surface.get(source.configRef ? { configRef: source.configRef } : undefined),
+          overwrite: (input) => surface.overwrite({
+            ...input,
+            ...(source.configRef ? { record: { action: 'save', configRef: source.configRef } } : {}),
+          }),
           listOptions: (query) => surface.listOptions(query),
         };
       }

@@ -1,5 +1,6 @@
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
+import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import type {
   NimiLoadoutRecipe,
   NimiRuntimeLocalVerifiedAssetDescriptor,
@@ -214,6 +215,7 @@ const SLOT_LABEL_KEYS: Readonly<Record<string, string>> = {
   'main.gguf': 'runtimeConfig.loadouts.slotLabels.mainModel',
   'main.diffusion': 'runtimeConfig.loadouts.slotLabels.mainModel',
   'companion.mmproj': 'runtimeConfig.loadouts.slotLabels.mediaProjector',
+  'companion.controlnet': 'runtimeConfig.loadouts.slotLabels.controlnet',
   'vision.model': 'runtimeConfig.loadouts.slotLabels.visionModel',
   'embedding.gguf': 'runtimeConfig.loadouts.slotLabels.embeddingModel',
   'tts.model': 'runtimeConfig.loadouts.slotLabels.ttsModel',
@@ -227,12 +229,305 @@ export function loadoutSlotLabelKey(slotId: string): string | null {
   return SLOT_LABEL_KEYS[slotId] ?? null;
 }
 
+const TRAILING_ULID_PATTERN = /(?:[-_\s]+)(?:01|02|00)[0-9A-HJKMNP-TV-Z]{24}$/iu;
+
+/** Display-only normalization that trims an importer-appended trailing ULID suffix. */
+export function cleanAssetDisplayName(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const cleaned = trimmed.replace(TRAILING_ULID_PATTERN, '').trim();
+  return cleaned || trimmed;
+}
+
+/**
+ * Returns the catalog descriptor matching contentId only when the catalog
+ * identifies one unambiguous logical model for that content identity (avoiding
+ * guessing the first entry when multiple logical models share content bytes).
+ */
+export function resolveUnambiguousCatalogDescriptor(
+  contentId: string | undefined,
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): NimiRuntimeLocalVerifiedAssetDescriptor | undefined {
+  const id = contentId?.trim() ?? '';
+  if (!id) return undefined;
+  const matches = catalog.filter((item) => item.contentId === id);
+  if (matches.length === 0) return undefined;
+  const distinctModels = new Set(matches.map((item) => item.logicalModelId || item.templateId));
+  return distinctModels.size === 1 ? matches[0] : undefined;
+}
+
+export type ResolvedVerifiedAssetIdentity = {
+  readonly descriptor: NimiRuntimeLocalVerifiedAssetDescriptor | undefined;
+  readonly title: string;
+  readonly variantLabel: string;
+  readonly sizeBytes: number | null;
+};
+
+export function resolveVerifiedAssetIdentity(
+  asset: Pick<NimiRuntimeModelAssetRecord, 'contentId' | 'displayName' | 'entry' | 'modelAssetId' | 'totalSizeBytes'> | undefined,
+  expectedContentId: string | undefined,
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): ResolvedVerifiedAssetIdentity {
+  const contentId = asset?.contentId || expectedContentId || '';
+  const descriptor = resolveUnambiguousCatalogDescriptor(contentId, catalog);
+  if (descriptor) {
+    const assetSize = asset?.totalSizeBytes && asset.totalSizeBytes > 0 ? asset.totalSizeBytes : 0;
+    const descriptorSize = descriptor.totalSizeBytes && descriptor.totalSizeBytes > 0 ? descriptor.totalSizeBytes : 0;
+    const size = assetSize || descriptorSize;
+    return {
+      descriptor,
+      title: descriptor.title.trim() || cleanAssetDisplayName(asset?.displayName || descriptor.entry),
+      variantLabel: asset?.entry?.trim() || descriptor.entry,
+      sizeBytes: size > 0 ? size : null,
+    };
+  }
+  if (asset) {
+    const raw = asset.displayName.trim() || asset.entry.trim() || asset.modelAssetId;
+    return {
+      descriptor: undefined,
+      title: cleanAssetDisplayName(raw),
+      variantLabel: asset.entry,
+      sizeBytes: asset.totalSizeBytes > 0 ? asset.totalSizeBytes : null,
+    };
+  }
+  return { descriptor: undefined, title: '', variantLabel: '', sizeBytes: null };
+}
+
 export function loadoutAssetLabel(
-  asset: Pick<NimiRuntimeModelAssetRecord, 'contentId' | 'displayName' | 'entry' | 'modelAssetId'>,
+  asset: Pick<NimiRuntimeModelAssetRecord, 'contentId' | 'displayName' | 'entry' | 'modelAssetId'> & { readonly totalSizeBytes?: number },
   verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
 ): string {
-  const catalogTitle = verifiedAssets.find((item) => item.contentId === asset.contentId)?.title?.trim();
-  return catalogTitle || asset.displayName.trim() || asset.entry.trim() || asset.modelAssetId;
+  const resolved = resolveVerifiedAssetIdentity(
+    { ...asset, totalSizeBytes: asset.totalSizeBytes ?? 0 },
+    asset.contentId,
+    verifiedAssets,
+  );
+  return resolved.title || cleanAssetDisplayName(asset.displayName) || asset.entry.trim() || asset.modelAssetId;
+}
+
+export const LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY = 'display_name_source';
+export type LoadoutDisplayNameSource = 'auto' | 'user' | 'unknown';
+
+export function loadoutDisplayNameSource(
+  provenance: Readonly<Record<string, unknown>> | undefined,
+): LoadoutDisplayNameSource {
+  const value = provenance?.[LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY];
+  if (value === 'auto' || value === 'user') return value;
+  return 'unknown';
+}
+
+export type PrimaryRecipeSlotResolution =
+  | { readonly kind: 'single'; readonly slot: NimiLoadoutRecipeSlot }
+  | { readonly kind: 'composite'; readonly slots: readonly NimiLoadoutRecipeSlot[] }
+  | { readonly kind: 'none' };
+
+/**
+ * Resolves the primary model slot role of a Recipe before looking up Loadout
+ * axis bindings, preventing alphabetical axis order (e.g. companion.text-encoder
+ * before main.diffusion in Z-Image) from misidentifying a companion as the model.
+ */
+export function resolvePrimaryRecipeSlot(
+  recipe: Pick<NimiLoadoutRecipe, 'slots'> | undefined,
+): PrimaryRecipeSlotResolution {
+  const slots = recipe?.slots ?? [];
+  if (slots.length === 0) return { kind: 'none' };
+  const required = slots.filter((slot) => slot.presence !== 'optional-conditional');
+  const mainRequired = required.filter((slot) => slot.slotId.startsWith('main.'));
+  if (mainRequired.length === 1) return { kind: 'single', slot: mainRequired[0]! };
+  const nonCompanionRequired = required.filter((slot) => !slot.slotId.startsWith('companion.'));
+  if (nonCompanionRequired.length === 1) return { kind: 'single', slot: nonCompanionRequired[0]! };
+  if (nonCompanionRequired.length > 1) return { kind: 'composite', slots: nonCompanionRequired };
+  if (required.length === 1) return { kind: 'single', slot: required[0]! };
+  return { kind: 'none' };
+}
+
+const GENERIC_ENGINE_TITLE_STOPWORDS = new Set([
+  'llama',
+  'llama.cpp',
+  'llamacpp',
+  'gguf',
+  'ggml',
+  'onnx',
+  'safetensors',
+  'stable-diffusion.cpp',
+  'sd.cpp',
+  'audio.cpp',
+  'transformers',
+  'embeddings',
+  'text',
+  'image',
+  'video',
+  'audio',
+  'speech',
+  'voice',
+  'music',
+  'model',
+]);
+
+function stripTrailingCapabilityNoun(title: string): string {
+  const trimmed = title.trim();
+  const stripped = trimmed.replace(
+    /(?:\s+(?:text|image|video|music|speech|audio))?\s+(?:generation|synthesis|transcription|upscaling)$/u,
+    '',
+  );
+  return stripped.trim() || trimmed;
+}
+
+/**
+ * True when a Recipe title consists solely of generic engine/format/modality
+ * tokens (e.g. "llama.cpp GGUF text generation") and carries no concrete model
+ * name of its own.
+ */
+export function isGenericEngineRecipeTitle(title: string): boolean {
+  const short = stripTrailingCapabilityNoun(title);
+  const tokens = short
+    .split(/\s+/u)
+    .map((token) => token.replace(/^[()]+|[()]+$/gu, '').toLowerCase())
+    .filter(Boolean);
+  return tokens.length === 0 || tokens.every((token) => GENERIC_ENGINE_TITLE_STOPWORDS.has(token));
+}
+
+export function deriveLoadoutDefaultDisplayName(
+  recipe: Pick<NimiLoadoutRecipe, 'title' | 'slots'>,
+  modelAxes: readonly { readonly slotId: string; readonly modelAssetId: string; readonly expectedContentId?: string }[],
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = [],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
+  preferredOffers?: Readonly<Record<string, string>>,
+): string {
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  if (primary.kind === 'single') {
+    const { slot } = primary;
+    const bound = modelAxes.find((axis) => axis.slotId === slot.slotId && axis.modelAssetId);
+    if (bound) {
+      const asset = assets.find((item) => item.modelAssetId === bound.modelAssetId);
+      const offer = slot.offers.find((item) => item.installedModelAssetId === bound.modelAssetId);
+      const identity = resolveVerifiedAssetIdentity(asset, bound.expectedContentId, catalog);
+      if (identity.title) {
+        const headline = loadoutModelPresentation({
+          title: identity.title,
+          variantLabel: identity.variantLabel,
+        }).headline.trim();
+        if (headline) return headline;
+      }
+      if (offer) {
+        const headline = loadoutCandidatePresentation(offer.candidate).headline.trim();
+        if (headline) return headline;
+      }
+    }
+    const preferredRef = preferredOffers?.[slot.slotId];
+    if (preferredRef) {
+      const offer = slot.offers.find((item) => item.candidate.offerRef === preferredRef);
+      if (offer) {
+        const headline = loadoutCandidatePresentation(offer.candidate).headline.trim();
+        if (headline) return headline;
+      }
+    }
+  }
+  return stripTrailingCapabilityNoun(recipe.title) || recipe.title;
+}
+
+const KNOWN_SLOT_FORMAT_EXTENSIONS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  gguf: ['.gguf', '.gguf_file'],
+  'gguf-bundle': ['.gguf', '.gguf_file'],
+  safetensors: ['.safetensors'],
+  'safetensors-bundle': ['.safetensors'],
+  onnx: ['.onnx'],
+  'onnx-bundle': ['.onnx'],
+});
+
+export type SlotCandidateAssetPartition = {
+  readonly recommended: readonly NimiRuntimeModelAssetRecord[];
+  readonly formatMatched: readonly NimiRuntimeModelAssetRecord[];
+  readonly other: readonly NimiRuntimeModelAssetRecord[];
+  readonly hasFormatFilter: boolean;
+};
+
+function assetMatchesFormatExtensions(
+  asset: Pick<NimiRuntimeModelAssetRecord, 'entry' | 'files'>,
+  extensions: readonly string[],
+): boolean {
+  const matches = (path: string | undefined) => {
+    const lower = (path ?? '').trim().toLowerCase();
+    return extensions.some((ext) => lower.endsWith(ext));
+  };
+  return matches(asset.entry) || asset.files.some((file) => matches(file.relativePath));
+}
+
+/**
+ * Pure visual grouping of local ModelAssets for a slot picker. Never hides any
+ * installed file; Runtime Prepare remains the sole Model Contract authority.
+ */
+export function partitionSlotCandidateAssets(
+  slot: Pick<NimiLoadoutRecipeSlot, 'recommendedContentIds' | 'offers' | 'modelContract'> | undefined,
+  assets: readonly NimiRuntimeModelAssetRecord[],
+  selectedAssetId = '',
+): SlotCandidateAssetPartition {
+  if (!slot) {
+    return { recommended: [], formatMatched: [], other: assets, hasFormatFilter: false };
+  }
+  const ordered = runtimeConfigLoadoutCandidateAssets(slot, assets);
+  const recommendedContentIds = new Set(slot.recommendedContentIds);
+  const installedOfferIds = new Set((slot.offers ?? [])
+    .filter((offer) => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
+    .map((offer) => offer.installedModelAssetId));
+  const format = typeof slot.modelContract?.format === 'string'
+    ? slot.modelContract.format.trim().toLowerCase()
+    : '';
+  const extensions = KNOWN_SLOT_FORMAT_EXTENSIONS[format];
+  const recommended: NimiRuntimeModelAssetRecord[] = [];
+  const formatMatched: NimiRuntimeModelAssetRecord[] = [];
+  const other: NimiRuntimeModelAssetRecord[] = [];
+  for (const asset of ordered) {
+    if (
+      asset.modelAssetId === selectedAssetId
+      || installedOfferIds.has(asset.modelAssetId)
+      || recommendedContentIds.has(asset.contentId)
+    ) {
+      recommended.push(asset);
+    } else if (extensions && assetMatchesFormatExtensions(asset, extensions)) {
+      formatMatched.push(asset);
+    } else {
+      other.push(asset);
+    }
+  }
+  return { recommended, formatMatched, other, hasFormatFilter: Boolean(extensions) };
+}
+
+export const LLAMA_CPP_DRIVER_ID = 'nimi.runtime.driver.llama-cpp';
+
+export function supportsLlamaTextContextSize(
+  recipe: (Pick<NimiLoadoutRecipe, 'capabilityContract'> & {
+    readonly implementation?: Partial<NimiLoadoutRecipe['implementation']>;
+  }) | undefined,
+): boolean {
+  return recipe?.capabilityContract === 'text.generate'
+    && recipe.implementation?.driverId === LLAMA_CPP_DRIVER_ID;
+}
+
+export function parseLoadoutOptionsJson(text: string): NimiJsonObject | null {
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as NimiJsonObject : null;
+  } catch {
+    return null;
+  }
+}
+
+export function patchLoadoutTextContextOption(
+  currentOptions: Readonly<NimiJsonObject> | undefined,
+  contextSizeDraft: string,
+): { readonly valid: true; readonly options: NimiJsonObject } | { readonly valid: false } {
+  const next: Record<string, NimiJsonObject[string]> = { ...(currentOptions ?? {}) };
+  const trimmed = contextSizeDraft.trim();
+  if (!trimmed) {
+    delete next.contextSize;
+    return { valid: true, options: next };
+  }
+  if (!/^[1-9]\d*$/u.test(trimmed)) return { valid: false };
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) return { valid: false };
+  next.contextSize = parsed;
+  return { valid: true, options: next };
 }
 
 /**

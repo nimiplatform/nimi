@@ -5,9 +5,11 @@ import {
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
 import { capabilityIcon, ActionMenu, Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollShell, SelectField, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { deriveNimiAIProfileLocalConfigurationPreview, deriveNimiAIProfileSelectionMismatchPreview } from '@nimiplatform/sdk/ai';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
   NimiLoadoutRecipe,
+  NimiMachineLoadouts,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
@@ -24,8 +26,14 @@ import { groupAppsEntries } from '../apps/apps-entry-groups.js';
 import { prepareRuntimeConfigAIProfilePreview } from './runtime-config-ai-profile-preview.js';
 import type { RuntimeConfigAIProfileTransferPlan } from './runtime-config-ai-profile-transfer.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
+import {
+  cleanAssetDisplayName,
+  resolvePrimaryRecipeSlot,
+  resolveUnambiguousCatalogDescriptor,
+} from './runtime-config-loadout-model-display.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.js';
+import { projectRuntimeConfigAIProfileAuthoringMachine } from './runtime-config-profile-authoring-state.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigProfileUseOwner,
@@ -302,6 +310,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
               viewId={viewId!}
               draft={view!}
               profile={mode.profile}
+              catalog={props.catalog}
+              assets={props.assets}
               store={props.store}
               ports={props.ports}
               runtimeWritesDisabled={props.runtimeWritesDisabled}
@@ -540,6 +550,8 @@ function ProfileUsePanel(props: {
   readonly autoReview?: boolean;
   readonly saved?: boolean;
   readonly profile: Pick<NimiDesktopPortableAIProfileCatalogRecord, 'source' | 'artifactJson'>;
+  readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -637,15 +649,47 @@ function ProfileUsePanel(props: {
         ? {
           kind: owner.kind,
           ...(owner.kind === 'app' ? { ownerAppId: owner.ownerAppId } : {}),
+          ...(owner.kind === 'app' && owner.configRef ? { configRef: owner.configRef } : {}),
           accountId,
           ...(owner.returnFocus ? { returnFocus: owner.returnFocus } : {}),
         }
         : { kind: 'runtime', accountId, returnFocus: 'runtime.aiSettings' };
       const profileUseId = `profile-use-${crypto.randomUUID()}`;
+      const needsLocalAggregate = startablePlans.some((plan) => plan.state === 'ready' && plan.candidate);
+      const machineAggregate = needsLocalAggregate ? await props.ports.loadouts.get() : null;
+      const machineProjection = machineAggregate ? projectRuntimeConfigAIProfileAuthoringMachine(machineAggregate) : null;
+      const existingByContract = new Map<string, NimiMachineLoadouts['loadouts'][number]>();
+      if (machineAggregate && machineProjection && transferPlan) {
+        for (const plan of startablePlans) {
+          if (plan.state !== 'ready') continue;
+          const recipe = transferPlan.capabilities.find(entry => entry.capabilityContract === plan.capabilityContract)?.recipe;
+          const capability = transferPlan.profile.capabilities[plan.capabilityContract];
+          if (!recipe || capability?.route !== 'local' || !capability.implementation) continue;
+          const { decision } = deriveNimiAIProfileLocalConfigurationPreview({
+            profile: transferPlan.profile,
+            capabilityContract: plan.capabilityContract,
+            recipe,
+            machine: machineProjection,
+            validation: { requireProvenance: false, requireLicense: false },
+          });
+          if (decision.kind !== 'reuse-equivalent') continue;
+          const selectedId = machineAggregate.selections.find(entry => entry.capabilityContract === plan.capabilityContract)?.loadoutId;
+          const choices = decision.matches.length === 1
+            ? [decision.matches[0]!.loadoutId]
+            : deriveNimiAIProfileSelectionMismatchPreview({
+              profile: transferPlan.profile,
+              capabilityContract: plan.capabilityContract,
+              machine: machineProjection,
+              validation: { requireProvenance: false, requireLicense: false },
+            }).branches[1].loadoutIds;
+          const id = selectedId && choices.includes(selectedId) ? selectedId : choices[0];
+          existingByContract.set(plan.capabilityContract, machineAggregate.loadouts.find(entry => entry.loadoutId === id)!);
+        }
+      }
       const nextOutcomes: { capabilityContract: string; taskId?: string; error?: string; }[] = [];
       for (const plan of startablePlans) {
-        // One task per capability; each keeps the exact owner/account context
-        // and walks the shared preparation flow.
+        // One task per capability; each keeps the exact owner/account/configRef context
+        // and carries profile requiredFeatures + defaults into the shared preparation flow.
         const task = props.store.createTask({
           capabilityContract: plan.capabilityContract,
           source,
@@ -658,6 +702,8 @@ function ProfileUsePanel(props: {
               profileId: profile.source.profileId,
               profileUseId,
               profileTitle: profile.source.title,
+              requiredFeatures: plan.requiredFeatures,
+              ...(plan.defaults !== undefined ? { defaults: plan.defaults } : {}),
               cloudRecommendation: plan.cloudRecommendation,
             },
           }));
@@ -671,12 +717,24 @@ function ProfileUsePanel(props: {
             profileTitle: profile.source.title,
             recipeId: plan.candidate!.recipeId,
             route: 'local',
+            requiredFeatures: plan.requiredFeatures,
+            ...(plan.defaults !== undefined ? { defaults: plan.defaults } : {}),
             options: plan.candidate!.options,
             ...(plan.candidate!.axes.length > 0 ? { axes: plan.candidate!.axes } : {}),
             ...(plan.candidate!.pendingAxes.length > 0 ? { pendingAxes: plan.candidate!.pendingAxes } : {}),
             profileId: profile.source.profileId,
           },
         }));
+        const existing = existingByContract.get(plan.capabilityContract);
+        if (existing) {
+          props.store.updateTask(task.taskId, () => ({
+            candidateLoadoutId: existing.loadoutId,
+            candidateRevisionBaseline: existing.revision,
+            nextAction: 'review-preparation',
+          }));
+          nextOutcomes.push({ capabilityContract: plan.capabilityContract, taskId: task.taskId });
+          continue;
+        }
         const created = await createRuntimeSetupCandidate(props.store, task.taskId, props.ports, {
           recipeId: plan.candidate.recipeId,
           options: plan.candidate.options,
@@ -703,7 +761,7 @@ function ProfileUsePanel(props: {
       request.dispose();
       views.update(props.viewId, () => ({ busy: false }));
     });
-  }, [navigation, views, owner, profile.source.profileId, props, startablePlans, t]);
+  }, [navigation, views, owner, profile.source.profileId, props, startablePlans, t, transferPlan]);
 
   useEffect(() => {
     if (!props.autoReview || props.draft.autoReviewStarted || !transferPlan || busy || previewError || startablePlans.length !== selectedPlans.length || !startablePlans.length) return;
@@ -756,8 +814,34 @@ function ProfileUsePanel(props: {
             const Icon = capabilityIcon(plan.capabilityContract);
             const capability = profile.source.capabilities[plan.capabilityContract];
             const transfer = transferPlan?.capabilities.find((entry) => entry.capabilityContract === plan.capabilityContract);
+            const localModelTitle = (() => {
+              if (capability?.route !== 'local') return '';
+              const primarySlot = transfer?.recipe ? resolvePrimaryRecipeSlot(transfer.recipe) : { kind: 'none' as const };
+              const targetAxis = primarySlot.kind === 'single'
+                ? transfer?.axes.find((axis) => axis.slotId === primarySlot.slot.slotId)
+                : transfer?.axes[0];
+              if (targetAxis) {
+                const installed = targetAxis.modelAssetId
+                  ? props.assets.find((asset) => asset.modelAssetId === targetAxis.modelAssetId)
+                  : undefined;
+                if (installed) {
+                  const descriptor = resolveUnambiguousCatalogDescriptor(installed.contentId, props.catalog);
+                  if (descriptor?.title) return descriptor.title;
+                  const cleaned = cleanAssetDisplayName(installed.displayName);
+                  if (cleaned) return cleaned;
+                }
+                const byTemplate = targetAxis.templateId
+                  ? props.catalog.find((item) => item.templateId === targetAxis.templateId)
+                  : undefined;
+                if (byTemplate?.title) return byTemplate.title;
+                const byContent = props.catalog.filter((item) => item.contentId === targetAxis.contentId);
+                if (byContent.length === 1 && byContent[0]!.title) return byContent[0]!.title;
+                if (targetAxis.source?.file) return cleanAssetDisplayName(targetAxis.source.file);
+              }
+              return transfer?.recipe?.title || capability.loadout?.recipeId || '';
+            })();
             const description = capability?.route === 'local'
-              ? transfer?.recipe?.title || capability.loadout?.recipeId
+              ? localModelTitle
               : capability?.implementation?.implementationId;
             const needsAttention = plan.state !== 'ready' && !(owner && plan.state === 'cloud-requires-owner');
             const StatusIcon = plan.state === 'ready' ? CircleCheck : needsAttention ? CircleAlert : CircleHelp;

@@ -6,6 +6,7 @@ import {
   type LocalModelCenterSection,
 } from './runtime-config-local-model-center-runtime-view';
 import { useLocalModelCenterRuntimeState } from './runtime-config-use-local-model-center-runtime-state';
+import { useRuntimeAssetCatalog } from './use-runtime-model-library.js';
 
 export function LocalModelCenter(props: {
   readonly activeSection: LocalModelCenterSection;
@@ -15,10 +16,12 @@ export function LocalModelCenter(props: {
   readonly importMenuRequest?: number;
   /** Empty-state shortcut back to the Discover tab. */
   readonly onOpenDiscover?: () => void;
+  readonly onUseAssetForNewConfig?: (modelAssetId: string) => void;
   readonly runtimeWritesDisabled: boolean;
 }) {
   const commands = useDesktopRendererCommands();
   const runtimeState = useLocalModelCenterRuntimeState();
+  const catalog = useRuntimeAssetCatalog(props.activeSection === 'downloaded');
   const { importMenuRequest } = props;
   const { setShowImportMenu } = runtimeState;
   useEffect(() => {
@@ -33,6 +36,7 @@ export function LocalModelCenter(props: {
       assetImportError={runtimeState.assetImportError}
       loadingInstalledAssets={runtimeState.loadingInstalledAssets}
       modelAssets={runtimeState.modelAssets}
+      catalog={catalog.data}
       runtimeInventoryError={runtimeState.runtimeInventoryError}
       importMenuRef={runtimeState.importMenuRef}
       showImportMenu={runtimeState.showImportMenu}
@@ -61,6 +65,7 @@ export function LocalModelCenter(props: {
       onResumeDownload={runtimeState.onResumeDownload}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((previous) => !previous)}
       onOpenDiscover={props.onOpenDiscover}
+      onUseAssetForNewConfig={props.onUseAssetForNewConfig}
     />
   );
 }

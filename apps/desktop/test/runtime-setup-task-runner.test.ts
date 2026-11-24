@@ -12,6 +12,7 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import { createNimiLocalAIConfigCapabilityIntent } from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/types';
 
 import {
@@ -953,6 +954,26 @@ test('Desktop reuse keeps the exact configuration association after restart with
   assert.equal(restored.candidateRevisionBaseline, 'reused-revision');
   assert.equal(restored.status, 'done');
   assert.deepEqual(calls.filter((entry) => !entry.method.endsWith('.get') && !entry.method.includes('list')), []);
+});
+
+test('applying a Local Profile replaces the old owner defaults without copying its Loadout', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState({
+    loadouts: [loadout({ loadoutId: 'current', validationState: 'configured' })],
+    selections: [{ capabilityContract: CAPABILITY, loadoutId: 'current', effectiveDefaults: {} }],
+    aiConfig: {
+      config: { capabilities: [createNimiLocalAIConfigCapabilityIntent({ capabilityContract: CAPABILITY, defaults: { seed: 42 } })] },
+      revision: '7',
+    },
+  });
+  const taskId = await createAppTask(store);
+  store.updateTask(taskId, () => ({ draft: { profileId: 'profile.test', requiredFeatures: ['input.image'] } }));
+  const result = await reuseRuntimeSetupCurrent(store, taskId, createPorts(state, calls));
+  assert.equal(result.status, 'ok');
+  assert.equal(state.aiConfig.config?.capabilities[0]?.defaults, undefined);
+  assert.deepEqual(state.aiConfig.config?.capabilities[0]?.requiredFeatures, ['input.image']);
+  assert.deepEqual(state.loadouts.map(item => item.loadoutId), ['current']);
 });
 
 test('reuseCurrent only overwrites the owner AIConfig when the route must change', async () => {

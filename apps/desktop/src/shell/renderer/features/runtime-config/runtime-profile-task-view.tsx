@@ -2,6 +2,8 @@ import { capabilityIcon, Button, InlineAlert, LoadingSkeleton } from '@nimiplatf
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateDesktopLoadoutQueries } from './runtime-config-select-loadout.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useCapabilityInventory } from './runtime-capability-inventory.js';
 import { modelDisplayTitle, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
@@ -37,6 +39,7 @@ export function RuntimeProfileTaskView(props: {
   readonly onReturn: () => void;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const sdk = useDesktopRendererSdk();
   const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled, includePreparation: false });
   const ownerLabel = (appId?: string) =>
@@ -128,7 +131,8 @@ export function RuntimeProfileTaskView(props: {
       plans,
       choices,
       mode,
-    }).catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
+    }).then(() => invalidateDesktopLoadoutQueries(queryClient))
+      .catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
   };
   if (detail && !tasks.some((task) => task.taskId === detail)) return (
     <InlineAlert tone="warning">

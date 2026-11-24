@@ -17,6 +17,7 @@ export type HomeRuntimePosition = {
   readonly loadoutId?: string;
   readonly profileOwner?: RuntimeConfigProfileUseOwner;
   readonly recipeId?: string; readonly recipeRevision?: string; readonly slotId?: string;
+  readonly preselectedAssetId?: string;
   readonly market?: 'browse' | 'slot'; readonly offerRef?: string;
   readonly connectorId?: string;
   readonly pane?: RuntimeAdvancedDiagnosticsPane;
@@ -155,11 +156,11 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     if (!position || typeof position !== 'object' || Array.isArray(position)) throw new Error('Invalid Runtime position.');
     const fields = position as Record<string, unknown>;
     const allowed = id === 'cloud' ? ['connectorId'] : id === 'diagnostics' ? ['pane']
-      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'market', 'offerRef'];
+      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'preselectedAssetId', 'market', 'offerRef'];
     if (Object.keys(fields).some(key => !allowed.includes(key))) throw new Error('Unexpected Runtime position fields.');
     const normalized: Record<string, unknown> = {};
     for (const key of allowed) if (fields[key] !== undefined) normalized[key] = fields[key];
-    for (const key of ['capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
+    for (const key of ['capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'preselectedAssetId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
     if (id === 'runtime') {
       normalized.page ??= 'aiSettings';
       if (!['aiSettings', 'modelLibrary'].includes(normalized.page as string)) throw new Error('Invalid Runtime page.');
@@ -175,9 +176,13 @@ export function validateHomeDestination(value: unknown): HomeDestination {
       if (normalized.profileOwner !== undefined) {
         const owner = normalized.profileOwner as Record<string, unknown>;
         if (!owner || typeof owner !== 'object' || Array.isArray(owner) || !['app', 'local-agent'].includes(owner.kind as string)
-          || Object.keys(owner).some(key => !['kind', 'ownerAppId', 'returnFocus'].includes(key)) || owner.kind === 'local-agent' && owner.ownerAppId !== undefined) throw new Error('Invalid profile owner reference.');
+          || Object.keys(owner).some(key => !['kind', 'ownerAppId', 'configRef', 'returnFocus'].includes(key))
+          || owner.kind === 'local-agent' && (owner.ownerAppId !== undefined || owner.configRef !== undefined)) throw new Error('Invalid profile owner reference.');
         const copy: Record<string, string> = { kind: owner.kind as string };
-        if (owner.kind === 'app') copy.ownerAppId = stringRef(owner.ownerAppId);
+        if (owner.kind === 'app') {
+          copy.ownerAppId = stringRef(owner.ownerAppId);
+          if (owner.configRef !== undefined) copy.configRef = stringRef(owner.configRef);
+        }
         if (owner.returnFocus !== undefined) copy.returnFocus = stringRef(owner.returnFocus);
         normalized.profileOwner = copy;
       }

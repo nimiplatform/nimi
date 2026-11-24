@@ -439,17 +439,17 @@ test('the conversation quick start explains a missing model file instead of show
   const task = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'failed', failure: MISSING_MODEL_FILES });
   const markup = renderView(
     <RuntimeProfileQuickStart
-      capabilities={[]}
+      pending={false}
+      capabilities={[{
+        id: 'text.generate',
+        model: 'Gemma 4',
+        state: { state: 'attention', task, replacement: false },
+      }]}
+      onRetry={() => {}}
       onOpenCapability={() => {}}
+      onOpenTask={() => {}}
       disabled={false}
       onUse={() => {}}
-      conversation={{
-        pending: false,
-        preparation: { state: 'attention', task, replacement: false },
-        onOpenDetail: () => {},
-        onOpenTask: () => {},
-        onRetry: () => {},
-      }}
     />,
   );
   assert.match(markup, /data-quick-start-state="attention"/);

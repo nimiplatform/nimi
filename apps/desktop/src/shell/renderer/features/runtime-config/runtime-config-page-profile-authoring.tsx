@@ -16,19 +16,35 @@ import {
   type NimiAIProfileLocalConfigurationDecision,
   type NimiAIProfileSelectionMismatchPreview,
 } from '@nimiplatform/sdk/ai';
-import type { NimiLoadoutRecipe } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLoadoutRecipe,
+  NimiMachineLoadout,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeModelAssetRecord,
+} from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { Button, InlineAlert, ScrollShell, SearchField, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
+import { ArrowLeft } from 'lucide-react';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import {
+  loadoutSlotLabelKey,
+  type NimiLoadoutRecipeSlotOffer,
+} from './runtime-config-loadout-model-display.js';
+import { LoadoutSlotModelPickerBody } from './runtime-config-loadout-model-picker.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
   addRuntimeConfigAIProfileCapability,
+  bindRuntimeConfigAIProfileCapabilitySlotAxis,
+  buildPortableAxisFromAsset,
+  buildPortableAxisFromVerifiedDescriptor,
   changeRuntimeConfigAIProfileCapabilityContract,
   createRuntimeConfigAIProfileAuthoringState,
   exportRuntimeConfigAIProfileAuthoring,
+  fillRuntimeConfigAIProfileCapabilityFromLoadout,
   importRuntimeConfigAIProfileAuthoring,
   inspectRuntimeConfigAIProfileAuthoring,
   loadRuntimeConfigAIProfileAuthoringCurrentProjection,
@@ -53,6 +69,9 @@ export type AIProfileAuthoringViewProps = {
   readonly projectionStatus: ProjectionStatus;
   readonly projectionTechnicalError: string;
   readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly loadouts?: readonly NimiMachineLoadout[];
+  readonly assets?: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly onDraftChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly onImportFile: (file: File) => void;
   readonly onExport: () => void;
@@ -64,6 +83,7 @@ export function AIProfileAuthoringPage() {
   const subjectUserId = useAppStore((state) => String(state.auth.user?.id ?? '').trim());
   const appAIConfig = useMemo(() => sdk.appProduct().aiConfig, [sdk]);
   const loadouts = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
+  const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const sharedAIConfig = useMemo(() => createRuntimeAgentAIConfigAdapter({
     runtime: {
       get appId() { return sdk.appId(); },
@@ -79,6 +99,8 @@ export function AIProfileAuthoringPage() {
     createRuntimeConfigAIProfileAuthoringState,
   );
   const [current, setCurrent] = useState<RuntimeConfigAIProfileAuthoringCurrentProjection | null>(null);
+  const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
+  const [verifiedAssets, setVerifiedAssets] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [projectionStatus, setProjectionStatus] = useState<ProjectionStatus>('loading');
   const [projectionTechnicalError, setProjectionTechnicalError] = useState('');
 
@@ -86,18 +108,24 @@ export function AIProfileAuthoringPage() {
     setProjectionStatus('loading');
     setProjectionTechnicalError('');
     try {
-      const next = await loadRuntimeConfigAIProfileAuthoringCurrentProjection({
-        appId: sdk.appId(),
-        getAppAIConfig: () => readOptionalAIConfig(async () => (
-          (await appAIConfig.get()).config as unknown as NimiCapabilityAIConfig | null
-        )),
-        getSharedAIConfig: () => readOptionalAIConfig(async () => (
-          await sharedAIConfig.get({ subjectUserId })
-        ).config),
-        getLoadouts: () => loadouts.get(),
-        getRecipes: () => loadouts.listRecipes(),
-      });
+      const [next, nextAssets, nextVerified] = await Promise.all([
+        loadRuntimeConfigAIProfileAuthoringCurrentProjection({
+          appId: sdk.appId(),
+          getAppAIConfig: () => readOptionalAIConfig(async () => (
+            (await appAIConfig.get()).config as unknown as NimiCapabilityAIConfig | null
+          )),
+          getSharedAIConfig: () => readOptionalAIConfig(async () => (
+            await sharedAIConfig.get({ subjectUserId })
+          ).config),
+          getLoadouts: () => loadouts.get(),
+          getRecipes: () => loadouts.listRecipes(),
+        }),
+        localEnvironment.listModelAssets().catch(() => [] as readonly NimiRuntimeModelAssetRecord[]),
+        localEnvironment.listVerifiedAssets().catch(() => [] as readonly NimiRuntimeLocalVerifiedAssetDescriptor[]),
+      ]);
       setCurrent(next);
+      setAssets(nextAssets);
+      setVerifiedAssets(nextVerified);
       dispatch({ type: 'recipes-loaded', recipes: next.recipes });
       setProjectionStatus('ready');
     } catch (error) {
@@ -105,7 +133,7 @@ export function AIProfileAuthoringPage() {
       setProjectionStatus('failed');
       setProjectionTechnicalError(technicalErrorDetail(error));
     }
-  }, [appAIConfig, loadouts, sdk, sharedAIConfig, subjectUserId]);
+  }, [appAIConfig, loadouts, localEnvironment, sdk, sharedAIConfig, subjectUserId]);
 
   useEffect(() => {
     void reloadProjection();
@@ -163,6 +191,9 @@ export function AIProfileAuthoringPage() {
       projectionStatus={projectionStatus}
       projectionTechnicalError={projectionTechnicalError}
       recipes={current?.recipes ?? []}
+      loadouts={current?.rawLoadouts ?? []}
+      assets={assets}
+      verifiedAssets={verifiedAssets}
       onDraftChange={(draft) => dispatch({ type: 'draft-changed', draft })}
       onImportFile={importFile}
       onExport={exportArtifact}
@@ -370,6 +401,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
             <ProfileMetadataForm draft={props.state.draft} onChange={updateDraft} t={t} />
           ) : activeView === 'preview' ? (
             <JourneyPreviewPanel
+              draft={props.state.draft}
               inspection={props.inspection}
               projectionStatus={props.projectionStatus}
               projectionTechnicalError={props.projectionTechnicalError}
@@ -384,6 +416,9 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
               index={props.state.draft.capabilities.indexOf(activeCapability)}
               draft={props.state.draft}
               recipes={props.recipes}
+              loadouts={props.loadouts ?? []}
+              assets={props.assets ?? []}
+              verifiedAssets={props.verifiedAssets ?? []}
               capabilityContracts={capabilityContracts}
               requirement={requirementsByCapability.get(activeCapability.capabilityContract)}
               onChange={updateDraft}
@@ -490,6 +525,9 @@ function CapabilityAuthoringCard(props: {
   readonly index: number;
   readonly draft: RuntimeConfigAIProfileAuthoringDraft;
   readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly loadouts: readonly NimiMachineLoadout[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly capabilityContracts: readonly string[];
   readonly requirement: RuntimeConfigAIProfileAuthoringRequirementView | undefined;
   readonly onChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
@@ -595,8 +633,13 @@ function CapabilityAuthoringCard(props: {
 
       {capability.route === 'local' ? (
         <LocalImplementationFields
+          draft={props.draft}
           capability={capability}
           recipes={props.recipes}
+          loadouts={props.loadouts}
+          assets={props.assets}
+          verifiedAssets={props.verifiedAssets}
+          onChangeDraft={props.onChange}
           updateCapability={updateCapability}
           t={props.t}
         />
@@ -616,26 +659,49 @@ function CapabilityAuthoringCard(props: {
 }
 
 function LocalImplementationFields(props: {
+  readonly draft: RuntimeConfigAIProfileAuthoringDraft;
   readonly capability: RuntimeConfigAIProfileCapabilityDraft;
   readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly loadouts: readonly NimiMachineLoadout[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly onChangeDraft: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly updateCapability: (
     update: (current: RuntimeConfigAIProfileCapabilityDraft) => RuntimeConfigAIProfileCapabilityDraft,
   ) => void;
   readonly t: TFunction;
 }) {
   const { capability } = props;
+  const [pickingSlotId, setPickingSlotId] = useState<string | null>(null);
   const candidates = runtimeConfigAIProfileRecipeCandidates(capability, props.recipes);
   const unresolvedImport = capability.local.importedIntent?.recipeId === '';
   const selected = candidates.find((recipe) => recipe.recipeId === capability.local.recipeId);
+  const savedLoadouts = props.loadouts.filter(
+    (loadout) => loadout.capabilityContract === capability.capabilityContract && loadout.validationState === 'configured',
+  );
   const updateLocal = (next: Partial<RuntimeConfigAIProfileCapabilityDraft['local']>) => {
     props.updateCapability((current) => ({
       ...current,
       local: { ...current.local, ...next },
     }));
   };
+  const resolveVerifiedDescriptorForOffer = (offer: NimiLoadoutRecipeSlotOffer) => {
+    const title = offer.candidate.title.trim();
+    const variant = offer.candidate.variantLabel.trim();
+    const byExact = props.verifiedAssets.filter((item) => (
+      item.title.trim() === title && item.entry.trim() === variant
+    ));
+    if (byExact.length === 1) return byExact[0];
+    const byEntry = props.verifiedAssets.filter((item) => item.entry.trim() === variant);
+    if (byEntry.length === 1) return byEntry[0];
+    return undefined;
+  };
   if (candidates.length === 0) {
     return <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.localIntentOnly')}</InlineAlert>;
   }
+  const pickingSlot = pickingSlotId && selected
+    ? selected.slots.find((slot) => slot.slotId === pickingSlotId) ?? null
+    : null;
   return (
     <div className="space-y-4 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-4" data-testid="ai-profile-authoring-local-section">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -654,12 +720,36 @@ function LocalImplementationFields(props: {
       </div>
       {capability.local.includeImplementation ? (
         <>
+          {savedLoadouts.length > 0 ? (
+            <AuthoringSelect
+              label={props.t('runtimeConfig.profiles.authoring.fillFromSaved')}
+              placeholder={props.t('runtimeConfig.profiles.authoring.fillFromSavedPlaceholder')}
+              value=""
+              field="fill-from-saved"
+              onChange={(loadoutId) => {
+                const chosen = savedLoadouts.find((item) => item.loadoutId === loadoutId);
+                if (!chosen) return;
+                setPickingSlotId(null);
+                props.onChangeDraft(fillRuntimeConfigAIProfileCapabilityFromLoadout({
+                  draft: props.draft,
+                  draftId: capability.draftId,
+                  loadout: chosen,
+                  assets: props.assets,
+                }));
+              }}
+              options={savedLoadouts.map((loadout) => ({
+                value: loadout.loadoutId,
+                label: loadout.displayName,
+              }))}
+            />
+          ) : null}
           {unresolvedImport && !capability.local.recipeId ? (
             <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.recipeSelectionRequired')}</InlineAlert>
           ) : null}
           <AuthoringSelect label={props.t('runtimeConfig.loadouts.recipe')} placeholder={props.t('runtimeConfig.profiles.authoring.selectRecipe')} value={capability.local.recipeId} field="local-recipe" onChange={(recipeId) => {
             const recipe = candidates.find((candidate) => candidate.recipeId === recipeId);
             if (!recipe) return;
+            setPickingSlotId(null);
             if (unresolvedImport) {
               updateLocal({ recipeId, recipeRefreshBlocked: undefined });
               return;
@@ -667,6 +757,8 @@ function LocalImplementationFields(props: {
             updateLocal({
               recipeId,
               portableConfigJson: recipe ? JSON.stringify(recipe.defaultOptions, null, 2) : '',
+              portableConfigEdited: true,
+              importedPortableConfigOmitted: false,
               resourceOccurrences: undefined,
               loadout: undefined,
             });
@@ -678,12 +770,119 @@ function LocalImplementationFields(props: {
           />
           {selected ? (
             <>
-              <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
-                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.implementationId')} value={selected.implementation.implementationId} />
-                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverId')} value={selected.implementation.driverId} />
-                <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverDialect')} value={selected.implementation.driverDialect} />
-              </div>
-              <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')} value={selected.implementationSupportedFeatures.join(', ') || props.t('runtimeConfig.profiles.authoring.none')} />
+              {pickingSlot ? (
+                <div className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" data-testid={`ai-profile-authoring-slot-picker:${pickingSlot.slotId}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button size="sm" tone="ghost" onClick={() => setPickingSlotId(null)}>
+                      <ArrowLeft size={14} />
+                      {props.t('runtimeConfig.loadouts.picker.backToSettings')}
+                    </Button>
+                    <span className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                      {pickingSlot.displayLabel}
+                    </span>
+                  </div>
+                  <LoadoutSlotModelPickerBody
+                    slot={pickingSlot}
+                    assets={props.assets}
+                    verifiedAssets={props.verifiedAssets}
+                    selectedAssetId={(() => {
+                      const boundAxis = capability.local.loadout?.axes.find((axis) => axis.slotId === pickingSlot.slotId);
+                      if (!boundAxis) return '';
+                      return props.assets.find((asset) => asset.contentId === boundAxis.contentId)?.modelAssetId ?? '';
+                    })()}
+                    allowClear
+                    offerActionMode="select-verified-hash"
+                    offerDisabledReason={(offer) => {
+                      const descriptor = resolveVerifiedDescriptorForOffer(offer);
+                      const axis = descriptor ? buildPortableAxisFromVerifiedDescriptor(pickingSlot.slotId, descriptor) : null;
+                      return axis ? null : props.t('runtimeConfig.profiles.authoring.missingVerifiedHash');
+                    }}
+                    onSelectAsset={(modelAssetId) => {
+                      if (!modelAssetId) {
+                        props.onChangeDraft(bindRuntimeConfigAIProfileCapabilitySlotAxis({
+                          draft: props.draft,
+                          draftId: capability.draftId,
+                          recipe: selected,
+                          slotId: pickingSlot.slotId,
+                          axis: null,
+                        }));
+                        setPickingSlotId(null);
+                        return;
+                      }
+                      const asset = props.assets.find((item) => item.modelAssetId === modelAssetId);
+                      const axis = asset ? buildPortableAxisFromAsset(pickingSlot.slotId, asset) : null;
+                      if (!axis) return;
+                      props.onChangeDraft(bindRuntimeConfigAIProfileCapabilitySlotAxis({
+                        draft: props.draft,
+                        draftId: capability.draftId,
+                        recipe: selected,
+                        slotId: pickingSlot.slotId,
+                        axis,
+                      }));
+                      setPickingSlotId(null);
+                    }}
+                    onSelectOffer={(offer) => {
+                      const descriptor = resolveVerifiedDescriptorForOffer(offer);
+                      const axis = descriptor ? buildPortableAxisFromVerifiedDescriptor(pickingSlot.slotId, descriptor) : null;
+                      if (!axis) return;
+                      props.onChangeDraft(bindRuntimeConfigAIProfileCapabilitySlotAxis({
+                        draft: props.draft,
+                        draftId: capability.draftId,
+                        recipe: selected,
+                        slotId: pickingSlot.slotId,
+                        axis,
+                      }));
+                      setPickingSlotId(null);
+                    }}
+                  />
+                </div>
+              ) : selected.slots.length > 0 ? (
+                <div className="space-y-2" data-testid="ai-profile-authoring-slots">
+                  <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
+                    {props.t('runtimeConfig.profiles.authoring.bindSlotsTitle')}
+                  </div>
+                  {selected.slots.map((slot) => {
+                    const boundAxis = capability.local.loadout?.axes.find((axis) => axis.slotId === slot.slotId);
+                    const slotKey = loadoutSlotLabelKey(slot.slotId);
+                    const slotTitle = slotKey ? props.t(slotKey, { defaultValue: slot.displayLabel }) : slot.displayLabel;
+                    return (
+                      <div
+                        key={slot.slotId}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2.5 text-xs"
+                        data-testid={`ai-profile-authoring-slot:${slot.slotId}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-[var(--nimi-text-primary)]">{slotTitle}</div>
+                          <div className="mt-0.5 truncate font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                            {boundAxis ? (boundAxis.source?.file || boundAxis.contentId) : props.t('runtimeConfig.loadouts.unresolved')}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          tone="secondary"
+                          onClick={() => setPickingSlotId(slot.slotId)}
+                          data-testid={`ai-profile-authoring-slot-choose:${slot.slotId}`}
+                        >
+                          {props.t(boundAxis ? 'runtimeConfig.loadouts.picker.change' : 'runtimeConfig.loadouts.picker.choose')}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <details className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-xs" data-testid="ai-profile-authoring-technical-ids">
+                <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">
+                  {props.t('runtimeConfig.profiles.authoring.advancedTitle')}
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <div className="grid gap-3 md:grid-cols-3" data-testid="ai-profile-authoring-local-identity">
+                    <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.implementationId')} value={selected.implementation.implementationId} />
+                    <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverId')} value={selected.implementation.driverId} />
+                    <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverDialect')} value={selected.implementation.driverDialect} />
+                  </div>
+                  <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')} value={selected.implementationSupportedFeatures.join(', ') || props.t('runtimeConfig.profiles.authoring.none')} />
+                </div>
+              </details>
               <AuthoringTextArea
                 label={props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
                 hint={props.t('runtimeConfig.profiles.authoring.requirementsRuntimeTruth')}
@@ -691,14 +890,20 @@ function LocalImplementationFields(props: {
                 field="local-portable-config"
                 rows={8}
                 placeholder="{}"
-                onChange={(portableConfigJson) => updateLocal({ portableConfigJson })}
+                onChange={(portableConfigJson) => updateLocal({
+                  portableConfigJson,
+                  portableConfigEdited: true,
+                  importedPortableConfigOmitted: false,
+                })}
               />
             </>
           ) : (
             <InlineAlert tone="danger">{props.t('runtimeConfig.profiles.authoring.requirementsPending')}</InlineAlert>
           )}
         </>
-      ) : null}
+      ) : (
+        <p className="text-xs text-[var(--nimi-text-muted)]">{props.t('runtimeConfig.profiles.authoring.onlyContractMode')}</p>
+      )}
     </div>
   );
 }
@@ -800,6 +1005,7 @@ function RequirementProjectionSurface(props: {
 }
 
 function JourneyPreviewPanel(props: {
+  readonly draft: RuntimeConfigAIProfileAuthoringDraft;
   readonly inspection: RuntimeConfigAIProfileAuthoringInspection;
   readonly projectionStatus: ProjectionStatus;
   readonly projectionTechnicalError: string;
@@ -807,6 +1013,7 @@ function JourneyPreviewPanel(props: {
   readonly onEditMetadata: () => void;
   readonly t: TFunction;
 }) {
+  const missingAuthoredMetadata = !props.draft.provenanceJson.trim() || !props.draft.licenseJson.trim();
   return (
     <Surface tone="card" className="space-y-4 p-5" data-testid="ai-profile-authoring-preview" data-preview-commits="false">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -839,7 +1046,9 @@ function JourneyPreviewPanel(props: {
           ) : (
             <>
               <InlineAlert tone="info">
-                {props.t('runtimeConfig.profiles.authoring.exportNeedsMetadata')}
+                {props.t(missingAuthoredMetadata
+                  ? 'runtimeConfig.profiles.authoring.needsMetadataToExport'
+                  : 'runtimeConfig.profiles.authoring.exportNeedsMetadata')}
               </InlineAlert>
               <Button type="button" size="sm" onClick={props.onEditMetadata}>
                 {props.t('runtimeConfig.profiles.authoring.editMetadata')}

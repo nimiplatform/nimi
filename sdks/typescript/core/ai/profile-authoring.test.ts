@@ -338,7 +338,8 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
       capabilityContract: 'text.generate',
       implementation: { ...TEXT_RECIPE.implementation },
       portableConfig: add.proposal.portableConfig,
-      supportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
+      implementationSupportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
+      configuredFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
       requirementResolution: 'configured',
       provenance: profile.provenance,
       sourceProfileId: profile.profileId,
@@ -379,7 +380,8 @@ test('selection mismatch preview remains generic across implementation identitie
       capabilityContract: 'text.generate',
       implementation: { ...TEXT_RECIPE.implementation },
       portableConfig: { contextSize: 4096 },
-      supportedFeatures: [],
+      implementationSupportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
+      configuredFeatures: [],
       requirementResolution: 'configured',
     }],
     selections: [{
@@ -409,6 +411,114 @@ test('selection mismatch preview remains generic across implementation identitie
   assert.equal(preview.branches[1].featureSubset.status, 'compatible');
   assert.equal(preview.branches[2].featureSubset.status, 'compatible');
   assert.equal(preview.commits, false);
+
+  // When the same Loadout matches equivalence digest but lacks optional configuredFeatures,
+  // both branches must consistently report feature-mismatch instead of contradicting each other.
+  const equivalentUnboundMachine: NimiAIProfileAuthoringMachineProjection = {
+    loadouts: [{
+      loadoutId: 'loadout-same-unbound',
+      capabilityContract: 'text.generate',
+      implementation: { ...TEXT_RECIPE.implementation },
+      portableConfig: { ...TEXT_RECIPE.defaultOptions },
+      implementationSupportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
+      configuredFeatures: [],
+      requirementResolution: 'configured',
+    }],
+    selections: [{
+      capabilityContract: 'text.generate',
+      loadoutId: 'loadout-same-unbound',
+    }],
+  };
+  const equivalentPreview = deriveNimiAIProfileLocalConfigurationPreview({
+    profile,
+    capabilityContract: 'text.generate',
+    recipe: TEXT_RECIPE,
+    machine: equivalentUnboundMachine,
+  });
+  assert.equal(equivalentPreview.decision.kind, 'reuse-equivalent');
+  const mismatchPreview = deriveNimiAIProfileSelectionMismatchPreview({
+    profile,
+    capabilityContract: 'text.generate',
+    machine: equivalentUnboundMachine,
+  });
+  assert.equal(mismatchPreview.branches[0].featureSubset.status, 'feature-mismatch');
+  assert.deepEqual(mismatchPreview.branches[0].featureSubset.missingFeatures, ['input.image']);
+  assert.equal(mismatchPreview.branches[1].loadoutIds[0], 'loadout-same-unbound');
+  assert.equal(mismatchPreview.branches[1].featureSubset.status, 'feature-mismatch');
+  assert.deepEqual(mismatchPreview.branches[1].featureSubset.missingFeatures, ['input.image']);
+  const mixed = deriveNimiAIProfileSelectionMismatchPreview({
+    profile,
+    capabilityContract: 'text.generate',
+    machine: {
+      ...equivalentUnboundMachine,
+      loadouts: [...equivalentUnboundMachine.loadouts, {
+        ...equivalentUnboundMachine.loadouts[0]!,
+        loadoutId: 'loadout-with-image',
+        configuredFeatures: ['input.image'],
+      }],
+    },
+  });
+  assert.deepEqual(mixed.branches[1].loadoutIds, ['loadout-with-image']);
+  assert.equal(mixed.branches[1].changesSelection, true);
+});
+
+test('equivalence digest sorts loadout axes canonically and setLocalCapability can preserve omitted driverPortableConfig', () => {
+  const hashA = `sha256:${'a'.repeat(64)}`;
+  const hashB = `sha256:${'b'.repeat(64)}`;
+  const profile = createNimiAIProfileAuthoringBuilder({
+    profileId: 'profile.axis-order',
+    title: 'Axis order profile',
+    provenance: { publisher: 'example.test' },
+    license: 'Apache-2.0',
+  }).setLocalCapability({
+    capabilityContract: 'text.generate',
+    requiredFeatures: ['input.image'],
+    localConfiguration: {
+      recipe: TEXT_RECIPE,
+      omitPortableConfig: true,
+    },
+    loadout: {
+      recipeId: TEXT_RECIPE.recipeId,
+      axes: [
+        { slotId: 'companion.mmproj', contentId: hashB, expectedHash: hashB },
+        { slotId: 'main.gguf', contentId: hashA, expectedHash: hashA },
+      ],
+      options: { contextSize: 4096, gpuLayers: 99 },
+    },
+  }).build();
+
+  const textCap = profile.capabilities['text.generate'];
+  assert.equal(textCap?.route, 'local');
+  if (textCap?.route !== 'local') assert.fail('expected local capability');
+  assert.equal(Object.hasOwn(textCap, 'driverPortableConfig'), false);
+
+  const machine: NimiAIProfileAuthoringMachineProjection = {
+    loadouts: [{
+      loadoutId: 'loadout-canonical-order',
+      capabilityContract: 'text.generate',
+      implementation: { ...TEXT_RECIPE.implementation },
+      portableConfig: {},
+      implementationSupportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
+      configuredFeatures: ['input.image'],
+      requirementResolution: 'configured',
+      loadout: {
+        recipeId: TEXT_RECIPE.recipeId,
+        axes: [
+          { slotId: 'main.gguf', contentId: hashA },
+          { slotId: 'companion.mmproj', contentId: hashB },
+        ],
+        options: { contextSize: 4096, gpuLayers: 99 },
+      },
+    }],
+    selections: [],
+  };
+  const preview = deriveNimiAIProfileLocalConfigurationPreview({
+    profile,
+    capabilityContract: 'text.generate',
+    recipe: TEXT_RECIPE,
+    machine,
+  });
+  assert.equal(preview.decision.kind, 'reuse-equivalent');
 });
 
 test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', () => {

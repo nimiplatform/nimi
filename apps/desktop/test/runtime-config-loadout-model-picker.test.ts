@@ -265,6 +265,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       };
     };
     assert.deepEqual(Object.keys(document.loadouts.slotLabels).sort(), [
+      'controlnet',
       'embeddingModel',
       'mainModel',
       'mediaProjector',
@@ -284,6 +285,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       'spaceSaving',
     ]);
     assert.deepEqual(Object.keys(document.loadouts.picker).sort(), [
+      'backToSettings',
       'change',
       'choose',
       'current',
@@ -291,6 +293,11 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       'installAndUse',
       'installableSection',
       'installedSection',
+      'matchingFormatSection',
+      'otherFilesSection',
+      'queueForDownload',
+      'queuedForDownload',
+      'selectVerified',
       'title',
       'unsupportedToggle',
     ]);

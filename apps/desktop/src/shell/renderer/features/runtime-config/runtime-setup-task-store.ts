@@ -24,6 +24,8 @@ export type RuntimeSetupTaskSource = {
   readonly kind: RuntimeSetupTaskSourceKind;
   /** Exact consumer App id when the task was opened for one App owner. */
   readonly ownerAppId?: string;
+  /** Exact named App AIConfig record reference when editing a specific record. */
+  readonly configRef?: string;
   /** Account snapshot at task creation; writes stop when it no longer matches. */
   readonly accountId: string;
   /** Navigation-only return handle; grants no authority by itself. */
@@ -115,6 +117,10 @@ export type RuntimeSetupTaskDraft = {
   /** One explicitly reviewed use of a portable Profile; UI task association only. */
   readonly profileUseId?: string;
   readonly profileTitle?: string;
+  /** App capability required features carried from an AIProfile apply prefill. */
+  readonly requiredFeatures?: readonly string[];
+  /** App capability default parameters carried from an AIProfile apply prefill. */
+  readonly defaults?: Readonly<NimiJsonObject>;
 };
 
 export type RuntimeSetupCloudRecommendation = {
@@ -289,6 +295,7 @@ function normalizeSource(raw: unknown): RuntimeSetupTaskSource | null {
   return {
     kind,
     ...(normalizeText(record.ownerAppId) ? { ownerAppId: normalizeText(record.ownerAppId) } : {}),
+    ...(normalizeText(record.configRef) ? { configRef: normalizeText(record.configRef) } : {}),
     accountId: normalizeText(record.accountId),
     ...(normalizeText(record.returnFocus) ? { returnFocus: normalizeText(record.returnFocus) } : {}),
   };
@@ -450,6 +457,10 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
   };
   const preferredOffers = normalizeChoices(record.preferredOffers);
   const reviewChoices = normalizeChoices(record.reviewChoices);
+  const requiredFeatures = Array.isArray(record.requiredFeatures)
+    ? normalizeStringList(record.requiredFeatures)
+    : undefined;
+  const defaults = normalizeDraftOptions(record.defaults);
   const draft: RuntimeSetupTaskDraft = {
     ...(normalizeText(record.recipeId) ? { recipeId: normalizeText(record.recipeId) } : {}),
     ...(record.route === 'local' || record.route === 'cloud' ? { route: record.route } : {}),
@@ -467,6 +478,8 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
     ...(normalizeText(record.profileId) ? { profileId: normalizeText(record.profileId) } : {}),
     ...(normalizeText(record.profileUseId) ? { profileUseId: normalizeText(record.profileUseId) } : {}),
     ...(normalizeText(record.profileTitle) ? { profileTitle: normalizeText(record.profileTitle) } : {}),
+    ...(requiredFeatures !== undefined ? { requiredFeatures } : {}),
+    ...(defaults ? { defaults } : {}),
   };
   return Object.keys(draft).length > 0 ? draft : undefined;
 }

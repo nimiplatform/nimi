@@ -10,17 +10,21 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
-import { Button, InlineAlert, SelectField } from '@nimiplatform/kit/ui';
-import { formatBytes } from '../../components/download-format.js';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import {
-  loadoutAssetLabel,
-  loadoutCandidatePresentation,
   loadoutSlotLabelKey,
-  runtimeConfigLoadoutCandidateAssets,
+  patchLoadoutTextContextOption,
+  parseLoadoutOptionsJson,
+  supportsLlamaTextContextSize,
   type NimiLoadoutRecipeSlot,
   type NimiLoadoutRecipeSlotOffer,
 } from './runtime-config-loadout-model-display.js';
+import {
+  LoadoutSelectedModelCard,
+  LoadoutSlotModelPicker,
+} from './runtime-config-loadout-model-picker.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
+import { RuntimeTextContextSizeField } from './runtime-config-text-context-field.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { updateRuntimeSetupCandidate } from './runtime-setup-task-runner.js';
 import type {
@@ -61,9 +65,11 @@ export function RuntimeLoadoutOptionsEditor(props: {
 }) {
   const { t } = useTranslation();
   const { recipe, candidate, assets, verifiedAssets, draft, onChange: writeDraft } = props;
+  const hasLlamaContextField = supportsLlamaTextContextSize(recipe);
   const [offerHint, setOfferHint] = useState('');
   const [applyError, setApplyError] = useState('');
   const [applying, setApplying] = useState(false);
+  const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
 
   const baseOptions: JsonObject = useMemo(() => (
     (draft?.options as JsonObject | undefined)
@@ -72,7 +78,22 @@ export function RuntimeLoadoutOptionsEditor(props: {
     ?? {}
   ), [candidate?.options, draft?.options, recipe.defaultOptions]);
   const [optionsJson, setOptionsJson] = useState(() => JSON.stringify(baseOptions, null, 2));
-  useEffect(() => setOptionsJson(JSON.stringify(baseOptions, null, 2)), [baseOptions]);
+  const parsedOptions = useMemo(() => parseLoadoutOptionsJson(optionsJson), [optionsJson]);
+  const [contextSizeDraft, setContextSizeDraft] = useState(() => (
+    typeof baseOptions.contextSize === 'number' && Number.isFinite(baseOptions.contextSize)
+      ? String(baseOptions.contextSize)
+      : ''
+  ));
+  useEffect(() => {
+    setOptionsJson(JSON.stringify(baseOptions, null, 2));
+    setContextSizeDraft(
+      typeof baseOptions.contextSize === 'number' && Number.isFinite(baseOptions.contextSize)
+        ? String(baseOptions.contextSize)
+        : '',
+    );
+  }, [baseOptions]);
+
+  const contextInvalid = hasLlamaContextField && !patchLoadoutTextContextOption({}, contextSizeDraft).valid;
 
   const boundAxes: readonly RuntimeSetupTaskDraftAxis[] = draft?.axes
     ?? (candidate?.modelAxes ?? [])
@@ -87,25 +108,41 @@ export function RuntimeLoadoutOptionsEditor(props: {
   );
 
   const onOptionChange = useCallback((key: string, value: NimiJsonValue) => {
-    writeDraft({ options: { ...baseOptions, [key]: value } });
-  }, [baseOptions, writeDraft]);
+    if (parsedOptions) writeDraft({ options: { ...parsedOptions, [key]: value } });
+  }, [parsedOptions, writeDraft]);
+
+  const onContextSizeChange = useCallback((nextText: string) => {
+    setContextSizeDraft(nextText);
+    if (!parsedOptions) return;
+    const patched = patchLoadoutTextContextOption(parsedOptions, nextText);
+    if (patched.valid) {
+      writeDraft({ options: patched.options });
+    }
+  }, [parsedOptions, writeDraft]);
 
   const onResetOptions = useCallback(() => {
     writeDraft({ options: { ...(recipe.defaultOptions as JsonObject | undefined) ?? {} } });
   }, [recipe.defaultOptions, writeDraft]);
 
-  const onSelectAxis = useCallback((slotId: string, modelAssetId: string) => {
+  const onSelectAxis = useCallback((slot: NimiLoadoutRecipeSlot, modelAssetId: string) => {
+    const isOptional = slot.presence === 'optional-conditional';
     const asset = assets.find((entry) => entry.modelAssetId === modelAssetId);
-    const nextAxes = boundAxes.filter((axis) => axis.slotId !== slotId);
+    const nextAxes = boundAxes.filter((axis) => axis.slotId !== slot.slotId);
     if (asset) {
-      nextAxes.push({ slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
+      nextAxes.push({ slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
     }
+    const nextDisabled = isOptional
+      ? (asset
+        ? [...disabledOptionalSlots].filter((id) => id !== slot.slotId)
+        : [...new Set([...disabledOptionalSlots, slot.slotId])])
+      : [...disabledOptionalSlots];
     writeDraft({
       axes: nextAxes,
-      pendingAxes: (draft?.pendingAxes ?? []).filter((axis) => axis.slotId !== slotId),
-      preferredOffers: Object.fromEntries(Object.entries(draft?.preferredOffers ?? {}).filter(([id]) => id !== slotId)),
+      disabledOptionalSlots: nextDisabled,
+      pendingAxes: (draft?.pendingAxes ?? []).filter((axis) => axis.slotId !== slot.slotId),
+      preferredOffers: Object.fromEntries(Object.entries(draft?.preferredOffers ?? {}).filter(([id]) => id !== slot.slotId)),
     });
-  }, [assets, boundAxes, draft?.pendingAxes, draft?.preferredOffers, writeDraft]);
+  }, [assets, boundAxes, disabledOptionalSlots, draft?.pendingAxes, draft?.preferredOffers, writeDraft]);
 
   const onToggleOptionalSlot = useCallback((slot: NimiLoadoutRecipeSlot, enabled: boolean) => {
     if (enabled) {
@@ -124,41 +161,43 @@ export function RuntimeLoadoutOptionsEditor(props: {
 
   const onOpenOffer = useCallback((slot: NimiLoadoutRecipeSlot, offer: NimiLoadoutRecipeSlotOffer) => {
     // Acquisition is reviewed in the preparation list; an advanced offer pick
-    // is recorded as the preferred choice for that review.
+    // is recorded as the preferred choice and clears stale axes / disabled flags.
     writeDraft({
+      axes: boundAxes.filter((axis) => axis.slotId !== slot.slotId),
       preferredOffers: { ...(draft?.preferredOffers ?? {}), [slot.slotId]: offer.candidate.offerRef },
       pendingAxes: (draft?.pendingAxes ?? []).filter((axis) => axis.slotId !== slot.slotId),
+      disabledOptionalSlots: [...disabledOptionalSlots].filter((slotId) => slotId !== slot.slotId),
     });
-    setOfferHint(t('runtimeConfig.setupTask.advanced.offerQueued', {
+    setOfferHint(offer.installedModelAssetId ? '' : t('runtimeConfig.setupTask.advanced.offerQueued', {
       defaultValue: 'This variant is queued as the preferred choice and will be downloaded during the reviewed preparation.',
     }));
-  }, [draft?.pendingAxes, draft?.preferredOffers, t, writeDraft]);
+  }, [boundAxes, disabledOptionalSlots, draft?.pendingAxes, draft?.preferredOffers, t, writeDraft]);
 
   const onApply = useCallback(async () => {
-    if (!props.onApply || props.disabled || applying) return;
-    let options: NimiJsonObject;
-    try {
-      const value: unknown = JSON.parse(optionsJson);
-      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('object required');
-      options = value as NimiJsonObject;
-    } catch {
+    if (!props.onApply || props.disabled || applying || contextInvalid) return;
+    if (!parsedOptions) {
       setApplyError(t('runtimeConfig.setupTask.advanced.optionsInvalid'));
       return;
     }
     setApplying(true);
     setApplyError('');
     try {
-      await props.onApply({ ...draft, options, axes: boundAxes });
+      await props.onApply({ ...draft, options: parsedOptions, axes: boundAxes });
     } catch (error) {
       setApplyError(error instanceof Error ? error.message : String(error));
     } finally {
       setApplying(false);
     }
-  }, [optionsJson, boundAxes, draft, props, applying, t]);
+  }, [parsedOptions, boundAxes, contextInvalid, draft, props, applying, t]);
 
-  const optionKeys = Object.keys(baseOptions).filter((key) => !candidate || optionValueType(baseOptions[key]) !== 'json');
-  const changed = props.changed || optionsJson !== JSON.stringify(baseOptions, null, 2);
+  const optionKeys = Object.keys(parsedOptions ?? {}).filter((key) => (
+    (!candidate || optionValueType(parsedOptions?.[key]) !== 'json')
+    && !(hasLlamaContextField && key === 'contextSize')
+  ));
+  const changed = props.changed || contextInvalid || optionsJson !== JSON.stringify(baseOptions, null, 2);
   const disabled = props.disabled || applying;
+  const pickerSlot = pickerSlotId ? recipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null : null;
+  const pickerIsOptional = pickerSlot?.presence === 'optional-conditional';
 
   return (
     <fieldset disabled={disabled} className="min-w-0 space-y-5" data-testid="runtime-setup-task-advanced">
@@ -172,45 +211,20 @@ export function RuntimeLoadoutOptionsEditor(props: {
         {recipe.slots.map((slot) => {
           const isOptional = slot.presence === 'optional-conditional';
           const bound = boundAxes.find((axis) => axis.slotId === slot.slotId) ?? null;
-          const preferredOffer = draft?.preferredOffers?.[slot.slotId];
+          const preferredOfferRef = draft?.preferredOffers?.[slot.slotId];
           const optionalEnabled = !isOptional || !disabledOptionalSlots.has(slot.slotId);
           const slotLabel = slotDisplayLabel(slot, t);
-          const candidates = runtimeConfigLoadoutCandidateAssets(slot, assets);
-          const offers = slot.offers.filter((offer) => !offer.installedModelAssetId
-            || !candidates.some((asset) => asset.modelAssetId === offer.installedModelAssetId));
-          const value = preferredOffer ? `offer:${preferredOffer}` : bound ? `asset:${bound.modelAssetId}` : '__unresolved__';
-          const choices = [
-            { value: '__unresolved__', label: t('runtimeConfig.loadouts.unresolved') },
-            ...candidates.map((asset) => ({
-              value: `asset:${asset.modelAssetId}`,
-              label: `${loadoutAssetLabel(asset, verifiedAssets)} · ${t('runtimeConfig.loadouts.installed')}${asset.totalSizeBytes ? ` · ${formatBytes(asset.totalSizeBytes)}` : ''}`,
-            })),
-            ...offers.map((offer) => {
-              const presentation = loadoutCandidatePresentation(offer.candidate);
-              // A download names the offer's source transfer size, which is
-              // not its installed total when the source is an archive.
-              const acquisitionLabel = offer.installedModelAssetId
-                ? t('runtimeConfig.loadouts.installed')
-                : !offer.candidate.installable
-                  ? t('runtimeConfig.recommend.notInstallable')
-                  : offer.candidate.downloadSizeBytes
-                    ? t('runtimeConfig.product.downloadSize', { size: formatBytes(offer.candidate.downloadSizeBytes) })
-                    : t('runtimeConfig.product.downloadSizeUnknown');
-              return {
-                value: `offer:${offer.candidate.offerRef}`,
-                label: [presentation.headline,
-                  offer.candidate.variantLabel || presentation.quant.technical,
-                  t(`runtimeConfig.product.modelFit.${offer.applicability}`),
-                  acquisitionLabel,
-                ].filter(Boolean).join(' · '),
-                disabled: offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable),
-              };
-            }),
-          ];
-          // Keep a missing current binding visible rather than silently showing another version.
-          if (!choices.some((choice) => choice.value === value)) {
-            choices.push({ value, label: candidate?.modelAxes.find((axis) => axis.slotId === slot.slotId)?.displayLabel || slotLabel });
-          }
+          const preferredOffer = optionalEnabled && preferredOfferRef
+            ? slot.offers.find((item) => item.candidate.offerRef === preferredOfferRef) ?? null
+            : null;
+          const preferredInstalledAsset = preferredOffer?.installedModelAssetId
+            ? assets.find((entry) => entry.modelAssetId === preferredOffer.installedModelAssetId) ?? null
+            : null;
+          const asset = preferredInstalledAsset
+            ?? (optionalEnabled && !preferredOfferRef && bound
+              ? assets.find((entry) => entry.modelAssetId === bound.modelAssetId) ?? null
+              : null);
+          const queuedOffer = preferredInstalledAsset ? null : preferredOffer;
           return (
             <div key={slot.slotId} data-testid={`runtime-setup-advanced-slot:${slot.slotId}`}>
               <div className="mb-1 flex items-center justify-between gap-2">
@@ -235,26 +249,43 @@ export function RuntimeLoadoutOptionsEditor(props: {
                 ) : null}
               </div>
               {!isOptional || optionalEnabled ? (
-                <SelectField
-                  aria-label={slotLabel}
-                  data-testid={`runtime-setup-advanced-version:${slot.slotId}`}
-                  value={value}
-                  options={choices}
+                <LoadoutSelectedModelCard
+                  slot={slot}
+                  asset={asset}
+                  queuedOffer={queuedOffer}
                   disabled={disabled}
-                  onValueChange={(next) => {
-                    setOfferHint('');
-                    if (next.startsWith('offer:')) {
-                      const offer = slot.offers.find((item) => item.candidate.offerRef === next.slice(6));
-                      if (offer && offer.applicability !== 'unsupported' && (offer.installedModelAssetId || offer.candidate.installable)) onOpenOffer(slot, offer);
-                    } else onSelectAxis(slot.slotId, next.startsWith('asset:') ? next.slice(6) : '');
-                  }}
+                  verifiedAssets={verifiedAssets}
+                  onOpenPicker={() => setPickerSlotId(slot.slotId)}
                 />
               ) : null}
             </div>
           );
         })}
+        <LoadoutSlotModelPicker
+          key={pickerSlotId ?? 'closed'}
+          slot={pickerSlot}
+          assets={assets}
+          verifiedAssets={verifiedAssets}
+          selectedAssetId={pickerSlot ? (boundAxes.find((axis) => axis.slotId === pickerSlot.slotId)?.modelAssetId ?? '') : ''}
+          selectedOfferRef={pickerSlot ? (draft?.preferredOffers?.[pickerSlot.slotId] ?? '') : ''}
+          allowClear
+          clearLabel={pickerIsOptional ? t('runtimeConfig.product.customization.notUsed') : undefined}
+          offerActionMode="queue-offer"
+          onSelect={(modelAssetId) => {
+            if (!pickerSlot) return;
+            setOfferHint('');
+            onSelectAxis(pickerSlot, modelAssetId);
+          }}
+          onOpenOffer={(offer) => {
+            if (!pickerSlot) return;
+            if (offer.applicability !== 'unsupported' && (offer.installedModelAssetId || offer.candidate.installable)) {
+              onOpenOffer(pickerSlot, offer);
+            }
+          }}
+          onClose={() => setPickerSlotId(null)}
+        />
       </div>
-      {optionKeys.length > 0 ? (
+      {hasLlamaContextField || optionKeys.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
@@ -264,8 +295,16 @@ export function RuntimeLoadoutOptionsEditor(props: {
               {t('runtimeConfig.setupTask.advanced.resetOptions', { defaultValue: 'Reset to recipe defaults' })}
             </Button>
           </div>
+          {hasLlamaContextField ? (
+            <RuntimeTextContextSizeField
+              value={contextSizeDraft}
+              onChange={onContextSizeChange}
+              disabled={disabled || !parsedOptions}
+              testId="runtime-setup-advanced-context-size"
+            />
+          ) : null}
           {optionKeys.map((key) => {
-            const value = baseOptions[key];
+            const value = parsedOptions?.[key];
             const valueType = optionValueType(value);
             return (
               <div key={key} className="flex items-center justify-between gap-3" data-testid={`runtime-setup-advanced-option:${key}`}>
@@ -319,12 +358,17 @@ export function RuntimeLoadoutOptionsEditor(props: {
         <details className="space-y-2 text-sm" data-testid="runtime-setup-options-json">
           <summary className="cursor-pointer font-medium">{t('runtimeConfig.setupTask.advanced.optionsJson')}</summary>
           <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.advanced.optionsJsonHelp')}</p>
-          <textarea aria-label={t('runtimeConfig.setupTask.advanced.optionsJson')} className="min-h-32 w-full rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]" value={optionsJson} onChange={event => setOptionsJson(event.currentTarget.value)} />
+          <textarea aria-label={t('runtimeConfig.setupTask.advanced.optionsJson')} className="min-h-32 w-full rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]" value={optionsJson} onChange={event => {
+            const text = event.currentTarget.value;
+            setOptionsJson(text);
+            const options = parseLoadoutOptionsJson(text);
+            if (options) setContextSizeDraft(options.contextSize === undefined ? '' : String(options.contextSize));
+          }} />
         </details>
       ) : null}
       {props.onApply ? (
         <div className="flex flex-wrap items-center gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
-          <Button tone={props.applyLabel ? 'primary' : 'secondary'} disabled={disabled || (props.changed !== undefined && !changed)} onClick={() => { void onApply(); }} data-testid="runtime-setup-advanced-apply">
+          <Button tone={props.applyLabel ? 'primary' : 'secondary'} disabled={disabled || contextInvalid || (props.changed !== undefined && !changed)} onClick={() => { void onApply(); }} data-testid="runtime-setup-advanced-apply">
             {applying
               ? t('runtimeConfig.setupTask.advanced.applying', { defaultValue: 'Applying…' })
               : props.applyLabel ?? t('runtimeConfig.setupTask.advanced.apply', { defaultValue: 'Apply changes to the saved configuration' })}

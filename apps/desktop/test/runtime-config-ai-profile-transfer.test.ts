@@ -1311,3 +1311,25 @@ test('Loadout export skips an unbound optional slot and fails clearly on an unbo
 function reparseAxes(capability: { loadout?: { axes: readonly { slotId: string }[] } }): string[] {
   return capability.loadout?.axes.map((axis) => axis.slotId) ?? [];
 }
+
+test('AIProfile plan matches duplicate contentId assets by declared entry and file hash regardless of inventory order', async () => {
+  const otherHash = `sha256:${'9'.repeat(64)}`;
+  const wrongEntry = asset({ id: 'asset-wrong-entry', contentId: B, hash: otherHash });
+  const rightEntry = {
+    ...asset({ id: 'asset-right-entry', contentId: B, hash: B }),
+    entry: 'model.gguf',
+    files: [{ relativePath: 'model.gguf', sha256: B.replace(/^sha256:/u, ''), sizeBytes: 200, nonExecutableContent: false }],
+  };
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  for (const orderedAssets of [[textAsset, wrongEntry, rightEntry], [textAsset, rightEntry, wrongEntry]]) {
+    const plan = await planRuntimeConfigAIProfileTransfer({
+      profile: loadoutProfile(B),
+      assets: orderedAssets,
+      recipes: RECIPES,
+      verifiedAssets: VERIFIED,
+    });
+    const imageCap = plan.capabilities.find((item) => item.capabilityContract === 'image.generate');
+    assert.equal(imageCap?.axes[0]?.state, 'matched');
+    assert.equal(imageCap?.axes[0]?.modelAssetId, 'asset-right-entry');
+  }
+});

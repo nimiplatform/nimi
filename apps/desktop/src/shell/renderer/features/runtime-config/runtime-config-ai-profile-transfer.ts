@@ -136,7 +136,9 @@ export function exportRuntimeConfigAIProfileFromLoadouts(input: {
             }),
           } : {}),
         });
-      });
+      })
+      .sort((left, right) => left.slotId.localeCompare(right.slotId));
+    const portableOptions = portableJsonObject(loadout.options);
     capabilities[loadout.capabilityContract] = Object.freeze({
       route: 'local',
       requiredFeatures: Object.freeze([...loadout.configuredFeatures]),
@@ -144,10 +146,11 @@ export function exportRuntimeConfigAIProfileFromLoadouts(input: {
         ...loadout.implementation,
         supportedFeatures: Object.freeze([...loadout.implementationSupportedFeatures]),
       }),
+      driverPortableConfig: portableOptions,
       loadout: Object.freeze({
         recipeId: loadout.recipeId,
         axes: Object.freeze(axes),
-        options: portableJsonObject(loadout.options),
+        options: portableOptions,
       }),
     });
   }
@@ -168,7 +171,12 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
   readonly loadouts?: readonly NimiMachineLoadout[];
 }): Promise<RuntimeConfigAIProfileTransferPlan> {
   const profile = parseNimiPortableAIProfile(input.profile);
-  const assetsByContent = new Map(input.assets.map((asset) => [asset.contentId, asset]));
+  const assetsByContent = new Map<string, NimiRuntimeModelAssetRecord[]>();
+  for (const asset of input.assets) {
+    const list = assetsByContent.get(asset.contentId);
+    if (list) list.push(asset);
+    else assetsByContent.set(asset.contentId, [asset]);
+  }
   const capabilities: RuntimeConfigAIProfileTransferCapability[] = [];
   for (const [capabilityContract, capability] of Object.entries(profile.capabilities)) {
     if (capability.route !== 'local' || !capability.loadout) continue;
@@ -213,9 +221,11 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
           ...(axis.source ? { source: axis.source } : {}),
         });
       }
-      const existing = assetsByContent.get(axis.contentId);
-      if (existing) {
-        const hashMatches = matchesExpectedAxisIntegrity(existing, axis);
+      const existingCandidates = assetsByContent.get(axis.contentId) ?? [];
+      if (existingCandidates.length > 0) {
+        const matched = existingCandidates.find((candidate) => matchesExpectedAxisIntegrity(candidate, axis));
+        const existing = matched ?? existingCandidates[0]!;
+        const hashMatches = matched !== undefined;
         return Object.freeze({
           capabilityContract,
           slotId: axis.slotId,

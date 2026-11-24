@@ -20,7 +20,18 @@ test('installed assets retain tokenized name, entry and content-ID search', asyn
     displayName: 'local.tts.qwen3-tts-customvoice-1.7b.audio-cpp.q8-0.cuda',
     entry: 'Qwen3-TTS-12Hz-1.7B-CustomVoice-GGUF/qwen3-tts-12hz-1.7b-customvoice-q8_0.gguf',
     contentId: 'sha256:3cfa',
-  } as import('@nimiplatform/sdk/runtime').NimiRuntimeModelAssetRecord;
+    files: [],
+    totalSizeBytes: 0,
+    contentVerified: true,
+    catalogVerification: 'not_matched',
+    catalogVerified: false,
+    unclassified: false,
+    createdAt: '',
+    updatedAt: '',
+    latestIntegrityCheckedAt: '',
+    duplicateContent: false,
+    containsNonExecutableCode: false,
+  } satisfies import('@nimiplatform/sdk/runtime').NimiRuntimeModelAssetRecord;
   for (const query of ['qwen3-tts-audio-cpp', ' QWEN3.tts_audio cpp ', 'sha256:3cfa', 'model_qwen q8_0']) {
     assert.deepEqual(filterModelAssetsForSearch([asset], query), [asset], query);
   }

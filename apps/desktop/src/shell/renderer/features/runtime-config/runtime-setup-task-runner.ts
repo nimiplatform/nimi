@@ -24,10 +24,16 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import {
   createNimiCloudAIConfigCapabilityIntent,
+  createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
 } from '@nimiplatform/sdk/ai';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
+import {
+  deriveLoadoutDefaultDisplayName,
+  LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY,
+  loadoutDisplayNameSource,
+  resolvePrimaryRecipeSlot,
+} from './runtime-config-loadout-model-display.js';
 import type {
   RuntimeSetupAuthorization,
   RuntimeSetupAuthorizationMode,
@@ -213,7 +219,7 @@ function sleepFor(ports: RuntimeSetupRunnerPorts, ms: number): Promise<void> {
  * Saves for the same account-scoped owner share one read/merge/write queue.
  */
 function ownerRouteKey(source: RuntimeSetupTaskSource): string {
-  return `${source.kind}:${source.ownerAppId ?? ''}:${source.accountId}`;
+  return `${source.kind}:${source.ownerAppId ?? ''}:${source.configRef ?? ''}:${source.accountId}`;
 }
 
 /**
@@ -568,6 +574,7 @@ function planSlot(
     // content matched the current binding, so this is always new content.
     return { kind: 'acquire', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, offer: acquireOptionFromOffer(preferred) };
   }
+  if (preferredOfferRef) return { kind: 'unavailable', slotId: slot.slotId, label: slot.displayLabel || slot.slotId };
   if (bound) {
     return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
@@ -1129,27 +1136,25 @@ function buildAuthorization(input: {
  * draft resolves one, so multiple candidates of one recipe stay
  * distinguishable in Saved configurations.
  */
-function candidateDisplayName(
+async function resolveAutoDisplayNameForAxes(
   recipe: NimiLoadoutRecipe,
-  axes: readonly { readonly slotId: string; readonly modelAssetId: string }[],
+  modelAxes: readonly { readonly slotId: string; readonly modelAssetId: string; readonly expectedContentId?: string }[],
   preferredOffers: Readonly<Record<string, string>> | undefined,
-): string {
-  for (const slot of recipe.slots) {
-    if (slot.presence === 'optional-conditional') continue;
-    const bound = axes.find((axis) => axis.slotId === slot.slotId);
-    const preferredRef = preferredOffers?.[slot.slotId];
-    const offer = slot.offers.find((item) => (
-      (bound && item.installedModelAssetId === bound.modelAssetId)
-      || (preferredRef && item.candidate.offerRef === preferredRef)
-    ));
-    if (!offer) continue;
-    const headline = loadoutModelPresentation({
-      title: offer.candidate.title,
-      variantLabel: offer.candidate.variantLabel,
-    }).headline.trim();
-    if (headline) return `${recipe.title} · ${headline}`;
+  ports: RuntimeSetupRunnerPorts,
+  existingAssets?: readonly NimiRuntimeModelAssetRecord[],
+): Promise<string> {
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  let assets = existingAssets;
+  if (primary.kind === 'single' && !assets) {
+    const bound = modelAxes.find((axis) => axis.slotId === primary.slot.slotId && axis.modelAssetId);
+    const matchedOffer = bound
+      ? primary.slot.offers.find((offer) => offer.installedModelAssetId === bound.modelAssetId)
+      : undefined;
+    if (bound && !matchedOffer) {
+      assets = await ports.install.listModelAssets();
+    }
   }
-  return recipe.title;
+  return deriveLoadoutDefaultDisplayName(recipe, modelAxes, [], assets ?? [], preferredOffers);
 }
 
 export async function createRuntimeSetupCandidate(
@@ -1160,6 +1165,7 @@ export async function createRuntimeSetupCandidate(
     readonly recipeId: string;
     readonly options?: NimiPrepareLoadoutInput['options'];
     readonly displayName?: string;
+    readonly displayNameSource?: 'auto' | 'user';
     readonly axes?: readonly { readonly slotId: string; readonly modelAssetId: string; readonly expectedContentId: string }[];
     /** Extra provenance facts (e.g. source_profile_id) merged over the task reference. */
     readonly provenance?: Readonly<Record<string, string>>;
@@ -1193,6 +1199,11 @@ export async function createRuntimeSetupCandidate(
       failTask(store, taskId, 'failed', failure);
       return failed(failure);
     }
+    const explicitName = input.displayName?.trim() ?? '';
+    const nameSource: 'auto' | 'user' = input.displayNameSource ?? (explicitName ? 'user' : 'auto');
+    const resolvedDisplayName = nameSource === 'user' && explicitName
+      ? explicitName
+      : await resolveAutoDisplayNameForAxes(recipe, modelAxes, task.draft?.preferredOffers, ports);
     const prepareAdmission = await guardWrite(store, taskId, ports, { stage });
     if (!('task' in prepareAdmission)) return prepareAdmission;
     const prepared = await ports.loadouts.prepare({
@@ -1200,8 +1211,12 @@ export async function createRuntimeSetupCandidate(
       recipeId: recipe.recipeId,
       options: input.options ?? recipe.defaultOptions,
       modelAxes,
-      displayName: input.displayName?.trim() || candidateDisplayName(recipe, modelAxes, task.draft?.preferredOffers),
-      provenance: { desktop_setup_task_id: task.taskId, ...(input.provenance ?? {}) },
+      displayName: resolvedDisplayName,
+      provenance: {
+        desktop_setup_task_id: task.taskId,
+        [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: nameSource,
+        ...(input.provenance ?? {}),
+      },
     });
     // A fresh unselected draft must not carry a machine-impact confirmation;
     // if Runtime ever requires one, the typed failure surfaces instead.
@@ -1264,6 +1279,18 @@ export async function updateRuntimeSetupCandidate(
     const modelAxes = draftAxes
       .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
       .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
+    const existingNameSource = loadoutDisplayNameSource(candidate.provenance);
+    let nextDisplayName = input.displayName?.trim() || candidate.displayName;
+    let nextProvenance = candidate.provenance;
+    if (input.displayName?.trim()) {
+      nextProvenance = { ...candidate.provenance, [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: 'user' };
+    } else if (existingNameSource === 'auto') {
+      const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
+      const recipe = recipes.find((item) => item.recipeId === candidate.recipeId);
+      if (recipe) {
+        nextDisplayName = await resolveAutoDisplayNameForAxes(recipe, modelAxes, task.draft?.preferredOffers, ports);
+      }
+    }
     const prepareAdmission = await guardWrite(store, taskId, ports, { stage });
     if (!('task' in prepareAdmission)) return prepareAdmission;
     const prepared = await ports.loadouts.prepare({
@@ -1272,8 +1299,8 @@ export async function updateRuntimeSetupCandidate(
       recipeId: candidate.recipeId,
       options: input.options ?? candidate.options,
       modelAxes,
-      displayName: input.displayName?.trim() || candidate.displayName,
-      provenance: candidate.provenance,
+      displayName: nextDisplayName,
+      provenance: nextProvenance,
       ...(task.candidateRevisionBaseline ? { expectedLoadoutRevision: task.candidateRevisionBaseline } : {}),
     });
     const commitAdmission = await guardWrite(store, taskId, ports, { stage });
@@ -1544,10 +1571,11 @@ export async function runRuntimeSetupPreparation(
           (axis) => axis.slotId === item.slotId && axis.modelAssetId === item.modelAssetId,
         ),
     );
+    let cachedAssets: readonly NimiRuntimeModelAssetRecord[] | undefined;
     if (reusesToBind.length > 0) {
-        const assets = await ports.install.listModelAssets();
+      cachedAssets = await ports.install.listModelAssets();
       for (const item of reusesToBind) {
-        const asset = assets.find((asset) => asset.modelAssetId === item.modelAssetId);
+        const asset = cachedAssets.find((asset) => asset.modelAssetId === item.modelAssetId);
         if (!asset) throw new Error(`The model to reuse is no longer present: ${item.label}`);
         bindings.set(item.slotId, {
           modelAssetId: asset.modelAssetId,
@@ -1562,6 +1590,20 @@ export async function runRuntimeSetupPreparation(
     for (const [slotId, binding] of bindings) {
       modelAxes.push({ slotId, modelAssetId: binding.modelAssetId, expectedContentId: binding.expectedContentId });
     }
+    let nextDisplayName = candidate.displayName;
+    if (loadoutDisplayNameSource(candidate.provenance) === 'auto') {
+      const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
+      const recipe = recipes.find((item) => item.recipeId === candidate.recipeId);
+      if (recipe) {
+        nextDisplayName = await resolveAutoDisplayNameForAxes(
+          recipe,
+          modelAxes,
+          { ...task.draft?.preferredOffers, ...choices },
+          ports,
+          cachedAssets,
+        );
+      }
+    }
     const context = runtimeSetupContextApplication(task.draft?.options, runtimeSetupPlanContextFit(freshPlan));
     const prepared = await ports.loadouts.prepare({
       loadoutId: candidate.loadoutId,
@@ -1569,7 +1611,7 @@ export async function runRuntimeSetupPreparation(
       recipeId: candidate.recipeId,
       options: context.options ?? candidate.options,
       modelAxes,
-      displayName: candidate.displayName,
+      displayName: nextDisplayName,
       provenance: candidate.provenance,
       ...(task.candidateRevisionBaseline ? { expectedLoadoutRevision: task.candidateRevisionBaseline } : {}),
     });
@@ -1683,25 +1725,6 @@ function canonicalJson(value: unknown): string {
 }
 
 /**
- * Identity of what a Loadout runs: recipe, implementation, bound model
- * files, options and the user-facing name. Provenance, timestamps, derived
- * feature projections and the Loadout id itself are deliberately excluded.
- */
-export function loadoutCompositionKey(loadout: NimiMachineLoadout): string {
-  return canonicalJson({
-    capabilityContract: loadout.capabilityContract,
-    recipeId: loadout.recipeId,
-    recipeRevision: loadout.recipeRevision,
-    implementation: loadout.implementation,
-    options: loadout.options,
-    displayName: loadout.displayName.trim(),
-    modelAxes: [...loadout.modelAxes]
-      .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }))
-      .sort((left, right) => (left.slotId < right.slotId ? -1 : left.slotId > right.slotId ? 1 : 0)),
-  });
-}
-
-/**
  * Final use: conditional machine selection, then — only when the source has
  * an owner route — the whole-object AIConfig save under the baseline CAS.
  * A declined condition or AIConfig conflict never triggers a blind retry.
@@ -1763,11 +1786,10 @@ export async function commitRuntimeSetupUse(
     updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source' });
     return ok({ selected: true, selectionRevision: selection.selectionRevision, ownerRouteSaved: false });
   }
-  const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => (
-    snapshot.config?.capabilities.some((entry) => (
-      entry.capabilityContract === task.capabilityContract && entry.route.oneofKind === 'local'
-    )) ? null : [buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract)]
-  ), {
+  const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
+    const desired = buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract, task.draft);
+    return isLocalOwnerIntentUnchanged(snapshot, task.capabilityContract, desired) ? null : [desired];
+  }, {
     requireClaim: true,
     machineSelected: true,
     conflictMessage: 'The machine selection switched, but the app route was not saved because the app configuration changed elsewhere.',
@@ -1827,11 +1849,10 @@ export async function reuseRuntimeSetupCurrent(
       updateLiveTask(store, taskId, { ...reusedConfiguration, status: 'done', nextAction: 'return-to-source' });
       return ok({ machineWrites: 0, ownerRouteSaved: false, alreadyLocalIntent: true, selectedLoadoutId });
     }
-    const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => (
-      snapshot.config?.capabilities.some((entry) => (
-        entry.capabilityContract === task.capabilityContract && entry.route.oneofKind === 'local'
-      )) ? null : [buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract)]
-    ), {
+    const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
+      const desired = buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract, task.draft);
+      return isLocalOwnerIntentUnchanged(snapshot, task.capabilityContract, desired) ? null : [desired];
+    }, {
       conflictMessage: 'The app configuration changed elsewhere before the route could be saved.',
       machineSelected: task.failure?.machineSelected,
     });
@@ -1918,23 +1939,47 @@ export function reopenRuntimeSetupTask(
   return ok({ reopened: true });
 }
 
+function isLocalOwnerIntentUnchanged(
+  snapshot: NimiAIConfigSnapshot,
+  capabilityContract: string,
+  desired: NimiPortableAppAIConfigIntent,
+): boolean {
+  const existing = snapshot.config?.capabilities.find(
+    (entry) => entry.capabilityContract === capabilityContract,
+  );
+  if (!existing || existing.route.oneofKind !== 'local') return false;
+  const existingFeatures = [...existing.requiredFeatures].sort();
+  const desiredFeatures = [...desired.requiredFeatures].sort();
+  if (canonicalJson(existingFeatures) !== canonicalJson(desiredFeatures)) return false;
+  const existingDefaults = existing.defaults ? runtimeAIConfigStructToJson(existing.defaults) : {};
+  const desiredDefaults = desired.defaults ? runtimeAIConfigStructToJson(desired.defaults) : {};
+  return canonicalJson(existingDefaults) === canonicalJson(desiredDefaults);
+}
+
 /**
  * The owner intent "follow this machine's local configuration" for one
- * capability, preserving the owner's existing required features and defaults.
+ * capability, carrying explicit Profile requiredFeatures/defaults when present
+ * and otherwise preserving the owner's existing required features and defaults.
  */
 export function buildRuntimeSetupLocalOwnerIntent(
   snapshot: NimiAIConfigSnapshot,
   capabilityContract: string,
+  draft?: Pick<NonNullable<RuntimeSetupTask['draft']>, 'profileId' | 'requiredFeatures' | 'defaults'>,
 ): NimiPortableAppAIConfigIntent {
   const current = snapshot.config?.capabilities.find(
     (entry) => entry.capabilityContract === capabilityContract,
   );
-  return {
+  const requiredFeatures = draft?.requiredFeatures !== undefined
+    ? [...draft.requiredFeatures]
+    : current ? [...current.requiredFeatures] : [];
+  const defaults = draft?.profileId || draft?.defaults !== undefined
+    ? draft.defaults
+    : current?.defaults ? runtimeAIConfigStructToJson(current.defaults) : undefined;
+  return createNimiLocalAIConfigCapabilityIntent({
     capabilityContract,
-    requiredFeatures: current ? [...current.requiredFeatures] : [],
-    ...(current?.defaults ? { defaults: current.defaults } : {}),
-    route: { oneofKind: 'local', local: {} },
-  };
+    requiredFeatures,
+    ...(defaults && Object.keys(defaults).length > 0 ? { defaults } : {}),
+  });
 }
 
 /**
@@ -1970,16 +2015,21 @@ function buildCloudIntent(
   snapshot: NimiAIConfigSnapshot,
   capabilityContract: string,
   selection: RuntimeSetupCloudTargetSelection,
+  draft?: Pick<NonNullable<RuntimeSetupTask['draft']>, 'profileId' | 'requiredFeatures' | 'defaults'>,
 ): NimiPortableAppAIConfigIntent {
   const existing = snapshot.config?.capabilities.find(
     (entry) => entry.capabilityContract === capabilityContract,
   );
   const existingDefaults = existing?.defaults ? runtimeAIConfigStructToJson(existing.defaults) : undefined;
+  const requiredFeatures = draft?.requiredFeatures !== undefined
+    ? [...draft.requiredFeatures]
+    : existing ? [...existing.requiredFeatures] : undefined;
+  const defaults = draft?.profileId || draft?.defaults !== undefined ? draft.defaults : existingDefaults;
   return createNimiCloudAIConfigCapabilityIntent({
     capabilityContract,
     connectorRef: selection.connectorRef,
-    ...(existing ? { requiredFeatures: [...existing.requiredFeatures] } : {}),
-    ...(existingDefaults && Object.keys(existingDefaults).length > 0 ? { defaults: existingDefaults } : {}),
+    ...(requiredFeatures ? { requiredFeatures } : {}),
+    ...(defaults && Object.keys(defaults).length > 0 ? { defaults } : {}),
     implementation: selection.implementation,
     providerModelTarget: selection.providerModelTarget,
   });
@@ -2000,7 +2050,7 @@ export async function commitRuntimeSetupCloudUse(
 ): Promise<RuntimeSetupRunnerResult<RuntimeSetupCloudUseValue>> {
   const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
     const task = store.getTask(taskId)!;
-    return [buildCloudIntent(snapshot, task.capabilityContract, input)];
+    return [buildCloudIntent(snapshot, task.capabilityContract, input, task.draft)];
   }, { conflictMessage: 'The app configuration changed elsewhere before the cloud route could be saved. The draft is kept; review the current value.' });
   if (saved.status !== 'ok') return saved;
   updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source', failure: undefined });

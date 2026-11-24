@@ -450,7 +450,8 @@
       "sttModel": "Transcription model",
       "voiceModel": "Voice model",
       "textEncoder": "Text encoder",
-      "vae": "VAE"
+      "vae": "VAE",
+      "controlnet": "ControlNet"
     },
     "quantSemantic": {
       "spaceSaving": "Smallest size",
@@ -468,6 +469,12 @@
       "installedSection": "Installed",
       "installableSection": "Available to install",
       "installAndUse": "Install and use",
+      "queuedForDownload": "Queued to download",
+      "queueForDownload": "Queue for download",
+      "selectVerified": "Select",
+      "matchingFormatSection": "Matching format on this device",
+      "otherFilesSection": "Other files on this device",
+      "backToSettings": "Back to settings",
       "unsupportedToggle": "{{count}} version(s) not compatible with this device"
     },
     "missingSlots": "{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.",
@@ -521,7 +528,7 @@
     "contextualEmpty": "No saved setups for {{capability}} yet",
     "contextualEmptyBody": "Return to on-device models to pick a ready-made model, or create a custom model setup here.",
     "name": "Setup name",
-    "recipe": "Use",
+    "recipe": "Engine contract",
     "model": "Model",
     "commit": "Save setup",
     "cancel": "Cancel",
@@ -579,9 +586,10 @@
         "structured-output": "Structured Output"
       },
       "state": {
-        "implementation-supported": "Supported, not enabled",
+        "implementation-supported": "Choose a model first",
         "configured": "Configured",
-        "unavailable": "Unavailable"
+        "unavailable": "Unavailable",
+        "model-unsupported": "Not supported by this configuration"
       },
       "typedReasons": "Runtime reason"
     },
@@ -637,7 +645,15 @@
     "optional": "Optional",
     "optionalFor": "Optional for {{features}}",
     "imageInput": "image input",
-    "optionalNotConfigured": "Not enabled"
+    "controlnetInput": "ControlNet control image",
+    "optionalNotConfigured": "Not enabled",
+    "retiredRecipeHint": "This configuration references a retired engine plan and can no longer be edited. Create a replacement configuration or delete it.",
+    "createReplacement": "New replacement configuration",
+    "recipesLoadFailedHint": "Could not load available engine plans from Runtime. Retry before editing configurations.",
+    "missingAssetError": "The selected model file is no longer available on this device. Choose another model before saving.",
+    "preselectedSlotHint": "Confirm the prefilled model slot below or choose which slot to bind the selected file to.",
+    "saveOptions": "Save options",
+    "revisionConflict": "This configuration changed elsewhere. Refresh to review the latest version; your unsaved edits are kept."
   },
   "environment": {
     "dataLoadFailed": "Storage information is unavailable.",
@@ -1858,7 +1874,14 @@
       "requiredFeatures": "Required standardized features",
       "supportedFeatures": "Implementation-supported features",
       "featuresHint": "Comma- or line-separated exact feature IDs.",
-      "featuresPlaceholder": "input.image, tool.use",
+      "featuresPlaceholder": "input.image, input.audio",
+      "fillFromSaved": "Fill from saved configuration",
+      "fillFromSavedPlaceholder": "Choose a saved configuration…",
+      "bindSlotsTitle": "Model slots",
+      "onlyContractMode": "This capability uses contract intent only.",
+      "missingVerifiedHash": "No verified SHA-256 hash is available for this offer.",
+      "needsMetadataToExport": "This imported share file omits provenance or license metadata. Fill them in Profile information before exporting as an authored AIProfile.",
+      "advancedTitle": "Technical identifiers",
       "defaults": "Portable defaults JSON",
       "localIntentOnly": "You can set a Local AIConfig intent for this capability, but Desktop has no typed Local Driver section for it. No implementation configuration is inferred.",
       "localImplementationTitle": "Local implementation intent",
@@ -3050,6 +3073,7 @@
     "configurationMissing": "This configuration no longer exists. Return to on-device models to refresh the list.",
     "view": "View {{capability}}",
     "openLibrary": "Open in Model Library",
+    "useForNewConfig": "Use in new configuration…",
     "configurations": "Configurations using this resource",
     "environmentCheck": "Runtime components",
     "checkNow": "Check now",
@@ -3223,8 +3247,9 @@
       "chooseConfiguration": "Choose a configuration to edit. Opening settings does not switch the current model.",
       "useRecommended": "Start from the recommended configuration",
       "review": "Versions and runtime options",
-      "currentScope": "Editing the default configuration on this device. Applying updates it for apps sharing the local model; app-specific settings are preserved.",
-      "otherScope": "Editing this configuration. Applying makes it the default for this capability on this device; app-specific settings are preserved.",
+      "currentScope": "Applying saves a new configuration and sets it as the device default. Apps following this device will use the new configuration.",
+      "newScope": "Applying creates a configuration for the selected models and sets it as the device default.",
+      "otherScope": "Applying saves a new configuration and sets it as the device default. You can select the original again in saved configurations.",
       "applyAndSelect": "Apply and set as default",
       "applyUnavailable": "Settings cannot be applied right now. Please try again.",
       "empty": "No models are available yet. Browse the model market or import model files.",
@@ -3286,6 +3311,12 @@
     "currentComposition": "Current configuration",
     "notEnabled": "Not enabled",
     "manageSaved": "Manage saved configurations",
+    "newConfiguration": "New configuration",
+    "savedConfigurationsTitle": "Saved configurations",
+    "availableModelsToSetup": "Available models & engine plans",
+    "optionalFeatureHint": "Optional: {{slot}} not bound",
+    "selectionConflict": "Another window updated this capability's selection. Refresh and try again.",
+    "recommendationUnavailable": "The recommended version could not be verified. Refresh the model library or choose a version in model settings.",
     "pendingSetup": {
       "preparing": "Preparing {{model}}",
       "preparingUnnamed": "Preparing a model",

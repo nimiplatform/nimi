@@ -25,14 +25,18 @@ import type { capabilityPreparationState } from './runtime-capability-inventory.
 import {
   capabilityGroup,
   contextFitReduced,
+  exactRecommendedSlotOffer,
   formatContextTokens,
   groupCapabilities,
   modelDisplayTitle,
-  recipeOfferSummary,
   recipeRecommendedContextFit,
   recipeResourceSummary,
   type CapabilityGroup,
 } from './runtime-capability-presentation.js';
+import {
+  isGenericEngineRecipeTitle,
+  resolvePrimaryRecipeSlot,
+} from './runtime-config-loadout-model-display.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 
@@ -528,17 +532,48 @@ function StarterCapabilityCard(props: {
     selected && props.catalog.length > 0
       ? recipeResourceSummary(selected, props.catalog, props.assets)
       : null;
-  const offerSummary = selected ? recipeOfferSummary(selected) : null;
 
-  const filesOnDevice = Boolean(
-    (offerSummary && offerSummary.required > 0 && offerSummary.installed === offerSummary.required)
-    || (resourceSummary && resourceSummary.required > 0 && resourceSummary.missing === 0),
-  );
-  const downloadBytes = filesOnDevice
-    ? 0
-    : resourceSummary?.bytes ?? offerSummary?.downloadBytes ?? null;
+  const exactRequiredSlots = selected
+    ? selected.slots.filter((slot) => slot.presence === 'required')
+    : [];
+  const exactSlotOffers = exactRequiredSlots.map((slot) => ({
+    slot,
+    exact: exactRecommendedSlotOffer(slot, props.catalog, props.assets),
+  }));
+  const hasExactRecommendation = exactRequiredSlots.length > 0
+    && exactSlotOffers.every((entry) => entry.exact !== undefined);
 
-  const modelTitle = selected ? modelDisplayTitle(selected.title) : '';
+  const filesOnDevice = hasExactRecommendation
+    ? exactSlotOffers.every(({ exact }) => Boolean(exact?.installedAsset))
+    : Boolean(resourceSummary && resourceSummary.required > 0 && resourceSummary.missing === 0);
+
+  const exactDownloadBytes = (() => {
+    if (!hasExactRecommendation) return resourceSummary?.bytes ?? null;
+    if (filesOnDevice) return 0;
+    let total = 0;
+    for (const { exact } of exactSlotOffers) {
+      if (exact?.installedAsset) continue;
+      const size = exact?.offer?.candidate.downloadSizeBytes ?? exact?.descriptor?.totalSizeBytes;
+      if (!size || size <= 0) return null;
+      total += size;
+    }
+    return total;
+  })();
+  const downloadBytes = filesOnDevice ? 0 : exactDownloadBytes;
+
+  const primaryExactTitle = (() => {
+    if (!selected) return '';
+    if (isGenericEngineRecipeTitle(selected.title)) {
+      const primary = resolvePrimaryRecipeSlot(selected);
+      if (primary.kind === 'single') {
+        const exact = exactRecommendedSlotOffer(primary.slot, props.catalog, props.assets);
+        const title = exact?.descriptor?.title || exact?.offer?.candidate.title;
+        if (title) return title;
+      }
+    }
+    return modelDisplayTitle(selected.title);
+  })();
+  const modelTitle = primaryExactTitle;
   const contextFit = selected ? recipeRecommendedContextFit(selected) : undefined;
 
   const actionLabel = !selected
