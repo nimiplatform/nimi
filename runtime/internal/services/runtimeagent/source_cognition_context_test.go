@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -360,8 +361,8 @@ func TestActiveSourceCognitionRebuildReplaysSingularSnapshotPartition(t *testing
 	if err := svc.rebuildActiveSourceCognition(context.Background(), "owner-1"); err != nil {
 		t.Fatal(err)
 	}
-	if bridge.ingestCalls != 1 || bridge.ingestedSnapshot != snapshot.SnapshotHash || bridge.ingestedPartition != snapshot.Partition.PartitionHash || bridge.ingestedUnitCount != len(partition.CognitionUnits) || bridge.ingestedOmissionsNil {
-		t.Fatalf("rebuild projection = %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.calls != 1 || seen.snapshot != snapshot.SnapshotHash || seen.partition != snapshot.Partition.PartitionHash || seen.unitCount != len(partition.CognitionUnits) || seen.omissionsNil {
+		t.Fatalf("rebuild projection = %#v", seen)
 	}
 }
 
@@ -383,8 +384,8 @@ func TestSettingSourceCognitionBridgeReplaysMissingActiveSnapshot(t *testing.T) 
 		t.Fatal("startup bridge binding did not replay the missing source generation")
 	}
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestedSnapshot != snapshot.SnapshotHash || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
-		t.Fatalf("startup replay binding = %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.snapshot != snapshot.SnapshotHash || seen.partition != snapshot.Partition.PartitionHash {
+		t.Fatalf("startup replay binding = %#v", seen)
 	}
 }
 
@@ -401,8 +402,8 @@ func TestSettingSourceCognitionBridgePreservesReadyGeneration(t *testing.T) {
 	}
 	svc.SetSourceCognitionBridge(bridge)
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestCalls != 0 {
-		t.Fatalf("startup validation rotated ready generation: %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.calls != 0 {
+		t.Fatalf("startup validation rotated ready generation: %#v", seen)
 	}
 }
 
@@ -434,8 +435,8 @@ func TestSettingSourceCognitionBridgeReplaysZeroReadyGeneration(t *testing.T) {
 		t.Fatal("zero ready generation did not trigger snapshot replay")
 	}
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestCalls != 1 || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
-		t.Fatalf("zero-generation replay = %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.calls != 1 || seen.partition != snapshot.Partition.PartitionHash {
+		t.Fatalf("zero-generation replay = %#v", seen)
 	}
 }
 
@@ -482,8 +483,8 @@ func TestSourceCognitionConfigChangeRetainsForceDuringActiveReplay(t *testing.T)
 	svc.scheduleActiveSourceCognitionRebuild(context.Background(), "owner-1", true)
 	close(release)
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestCalls != 1 {
-		t.Fatalf("embedding configuration force was lost or duplicated during replay: ingestCalls=%d", bridge.ingestCalls)
+	if seen := bridge.ingestObservation(); seen.calls != 1 {
+		t.Fatalf("embedding configuration force was lost or duplicated during replay: ingestCalls=%d", seen.calls)
 	}
 }
 
@@ -519,15 +520,15 @@ func TestSourceCognitionSearchFailureSchedulesSnapshotOnlyReplay(t *testing.T) {
 		t.Fatal("missing generation did not trigger snapshot-only replay")
 	}
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestedSnapshot != snapshot.SnapshotHash || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
-		t.Fatalf("query recovery replay binding = %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.snapshot != snapshot.SnapshotHash || seen.partition != snapshot.Partition.PartitionHash {
+		t.Fatalf("query recovery replay binding = %#v", seen)
 	}
 	bridge.searchErr = fmt.Errorf("index read budget: %w", context.DeadlineExceeded)
-	before := bridge.ingestCalls
+	before := bridge.ingestObservation().calls
 	result = runtime.retrievePublicChatSourceCognition(context.Background(), publicChatAnchorState{OwnerUserID: "owner-1", LocalAgentRef: snapshot.LocalAgentRef}, source, agentTurnCurrentUserInput{Text: "bounded lookup"}, nil, nil, nil, publicChatAvailableActions{})
 	svc.sourceCognitionWG.Wait()
-	if result.AdapterStatus != "unavailable" || bridge.ingestCalls != before {
-		t.Fatalf("query budget expiry rebuilt a valid source generation: %+v calls=%d", result, bridge.ingestCalls)
+	if seen := bridge.ingestObservation(); result.AdapterStatus != "unavailable" || seen.calls != before {
+		t.Fatalf("query budget expiry rebuilt a valid source generation: %+v calls=%d", result, seen.calls)
 	}
 }
 
@@ -559,32 +560,40 @@ func TestSourceCognitionGenerationCountMismatchForcesSnapshotReplay(t *testing.T
 		t.Fatal("generation count mismatch did not force snapshot replay")
 	}
 	svc.sourceCognitionWG.Wait()
-	if bridge.ingestCalls != 1 || bridge.ingestedPartition != snapshot.Partition.PartitionHash {
-		t.Fatalf("mismatch replay = %#v", bridge)
+	if seen := bridge.ingestObservation(); seen.calls != 1 || seen.partition != snapshot.Partition.PartitionHash {
+		t.Fatalf("mismatch replay = %#v", seen)
 	}
 }
 
 type sourceCognitionBridgeStub struct {
-	search               cognitionservice.AgentSourceOutcome
-	searchErr            error
-	inspectOutcome       cognitionservice.AgentSourceOutcome
-	inspectErr           error
-	ingestCalls          int
-	ingestedSnapshot     string
-	ingestedPartition    string
-	ingestedUnitCount    int
-	ingestedOmissionsNil bool
-	deleteOutcome        cognitionservice.AgentSourceOutcome
-	deleteErr            error
-	ingestNotify         chan struct{}
+	search         cognitionservice.AgentSourceOutcome
+	searchErr      error
+	inspectOutcome cognitionservice.AgentSourceOutcome
+	inspectErr     error
+	mu             sync.Mutex
+	seen           sourceIngestObservation
+	deleteOutcome  cognitionservice.AgentSourceOutcome
+	deleteErr      error
+	ingestNotify   chan struct{}
+}
+
+type sourceIngestObservation struct {
+	calls               int
+	snapshot, partition string
+	unitCount           int
+	omissionsNil        bool
+}
+
+func (s *sourceCognitionBridgeStub) ingestObservation() sourceIngestObservation {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.seen
 }
 
 func (s *sourceCognitionBridgeStub) IngestAgentSource(_ context.Context, _, _, scopeID, snapshot, partition string, units []cognitionservice.AgentSourceUnit, omissions []cognitionservice.AgentSourceOmission) (cognitionservice.AgentSourceOutcome, error) {
-	s.ingestCalls++
-	s.ingestedSnapshot = snapshot
-	s.ingestedPartition = partition
-	s.ingestedUnitCount = len(units)
-	s.ingestedOmissionsNil = omissions == nil
+	s.mu.Lock()
+	s.seen = sourceIngestObservation{calls: s.seen.calls + 1, snapshot: snapshot, partition: partition, unitCount: len(units), omissionsNil: omissions == nil}
+	s.mu.Unlock()
 	if s.ingestNotify != nil {
 		select {
 		case s.ingestNotify <- struct{}{}:

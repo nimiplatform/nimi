@@ -225,13 +225,11 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 	originalGOOS := localRuntimeGOOS
 	originalGOARCH := localRuntimeGOARCH
 	originalLookPath := localRuntimeLookPath
-	originalCommand := localRuntimeCommand
 	originalTimeout := localRuntimeGPUProbeTimeout
 	t.Cleanup(func() {
 		localRuntimeGOOS = originalGOOS
 		localRuntimeGOARCH = originalGOARCH
 		localRuntimeLookPath = originalLookPath
-		localRuntimeCommand = originalCommand
 		localRuntimeGPUProbeTimeout = originalTimeout
 	})
 
@@ -250,9 +248,9 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 		shellName = "cmd"
 		shellArgs = []string{"/c", "ping -n 3 127.0.0.1 >NUL"}
 	}
-	localRuntimeCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
-		return exec.CommandContext(ctx, shellName, shellArgs...)
-	}
+	setLocalRuntimeCommandOutputForTest(t, func(ctx context.Context, _ string, _ ...string) ([]byte, error) {
+		return exec.CommandContext(ctx, shellName, shellArgs...).Output()
+	})
 
 	caps := probeGPUCapabilities(context.Background())
 	if caps.profile.GetAvailable() || caps.driverVisible {
