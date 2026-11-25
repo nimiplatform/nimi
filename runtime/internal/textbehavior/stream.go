@@ -70,6 +70,17 @@ type toolCallActivityObserverKey struct{}
 // ToolCallActivityObserver receives transient non-public tool-call argument
 // liveness progress so transport layers can refresh idle timers or forward
 // ephemeral heartbeats without publishing incomplete tool-call payloads.
+type sessionInferenceKey struct{}
+
+// WithSessionInference marks Runtime-owned session inference that uses its explicit
+// end-to-end deadline, including silent prefill and private reasoning.
+func WithSessionInference(ctx context.Context) context.Context {
+	return context.WithValue(ctx, sessionInferenceKey{}, true)
+}
+func IsSessionInference(ctx context.Context) bool {
+	return ctx.Value(sessionInferenceKey{}) == true
+}
+
 type ToolCallActivityObserver func(ToolCallActivity) error
 
 func WithToolCallActivityObserver(ctx context.Context, observer ToolCallActivityObserver) context.Context {

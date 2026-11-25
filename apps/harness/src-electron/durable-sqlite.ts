@@ -12,6 +12,7 @@ import { openNodeSqliteDatabase, type NodeSqliteDatabase } from '@earendil-works
 export type OutboxReceiptRecord = {
   requestId: string;
   outboxId?: string;
+  localRequestId?: string;
   payloadHash: string;
   submissionId: number | null;
   withdrawState: 'active' | 'withdrawn' | 'settled';

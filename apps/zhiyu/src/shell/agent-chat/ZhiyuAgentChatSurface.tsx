@@ -766,6 +766,7 @@ export function ZhiyuAgentChatSurface({
       </div>
       </div>
       <ZhiyuHarnessHandoffDialog
+        key={evidence.localAgent.agentHandle ?? ''}
         open={harnessHandoffOpen}
         partnerName={currentPartnerName}
         agentHandle={evidence.localAgent.agentHandle ?? null}

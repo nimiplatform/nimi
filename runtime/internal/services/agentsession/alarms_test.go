@@ -13,6 +13,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestCronSkipsTwoHourFold(t *testing.T) {
+	cron, err := parseFiveFieldCron("*/15 1,2 * * *", "Antarctica/Troll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The first 02:45 is 00:45 UTC. The UTC+0 repetition is not a new occurrence.
+	next, err := cron.nextAfter(time.Date(2026, 10, 25, 0, 45, 0, 0, time.UTC))
+	want := time.Date(2026, 10, 26, 1, 0, 0, 0, time.UTC)
+	if err != nil || !next.Equal(want) {
+		t.Fatalf("next=%v err=%v want=%v", next, err, want)
+	}
+}
+
 func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *testing.T) {
 	clock := time.Now().UTC().Truncate(time.Second)
 	llmInvocations := 0
@@ -32,9 +45,12 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 				Detail:             "delivered",
 			}
 		},
-		AlarmLLMRunner: func(_ context.Context, _ string, alarm *runtimev1.SessionAlarmRecord) (string, string, int64, error) {
+		AlarmLLMRunner: func(_ context.Context, _ string, alarm *runtimev1.SessionAlarmRecord, reserve func(int64) error) (string, string, int64, error) {
+			if err := reserve(90); err != nil {
+				return "", "", 0, err
+			}
 			llmInvocations++
-			return "LLM " + alarm.GetTemplateTitle(), "Synthesized body", 120, nil
+			return "LLM " + alarm.GetTemplateTitle(), "Synthesized body", 85, nil
 		},
 	})
 
@@ -172,7 +188,7 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 		t.Fatalf("expected cron fire #3 to trigger auto-sleep at unack_streak==3, got %+v err=%v", cronFire3, err)
 	}
 
-	// 5. Daily background LLM token budget cap (100 tokens): first LLM alarm uses 120 tokens, second hits AGENT_ALARM_BUDGET_EXCEEDED!
+	// 5. Daily background LLM token budget cap (100 tokens): first LLM alarm uses 85 tokens from a 90-token reservation, second hits AGENT_ALARM_BUDGET_EXCEEDED!
 	freshDesktopCreateCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
 		AccountID:            "acct-1",
 		AppID:                "nimi.desktop",

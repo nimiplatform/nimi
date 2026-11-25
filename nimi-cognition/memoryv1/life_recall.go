@@ -16,7 +16,7 @@ func (c *Core) includeRecentLife(ctx context.Context, request RecallRequest, res
 	if err := validateRecallSnapshotTx(ctx, tx, request); err != nil {
 		return result, err
 	}
-	query := `SELECT m.memory_ref,m.bank_ref,m.content,m.epistemic_status,m.lifecycle,m.occurred_at,m.updated_at,m.source_explanation,m.event_ref,m.scope_tag,m.slot_key FROM memories m WHERE m.bank_ref=? AND m.lifecycle=? AND EXISTS (SELECT 1 FROM memory_lineage l WHERE l.memory_ref=m.memory_ref AND l.ref_type='source' AND l.ref_kind='life_change')`
+	query := `SELECT m.memory_ref,m.bank_ref,m.content,m.epistemic_status,m.lifecycle,m.occurred_at,m.updated_at,m.source_explanation,m.event_ref,m.scope_tag,m.slot_key FROM visible_session_memories m WHERE m.bank_ref=? AND m.lifecycle=? AND EXISTS (SELECT 1 FROM memory_lineage l WHERE l.memory_ref=m.memory_ref AND l.ref_type='source' AND l.ref_kind='life_change')`
 	args := []any{request.BankRef, LifecycleCurrent}
 	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
 		query += ` AND ` + scopeClause

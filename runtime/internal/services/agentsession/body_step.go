@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -193,6 +194,28 @@ func normalizeCompactionSummaryText(raw string) string {
 	return text
 }
 
+func bodyInputContent(raw string) (string, bool) {
+	var text string
+	if err := json.Unmarshal([]byte(raw), &text); err == nil {
+		return text, text != ""
+	}
+	var blocks []struct {
+		Type string
+		Text string
+	}
+	if json.Unmarshal([]byte(raw), &blocks) != nil {
+		return "", false
+	}
+	var content strings.Builder
+	for _, block := range blocks {
+		if block.Type != "text" {
+			return "", false
+		}
+		content.WriteString(block.Text)
+	}
+	return content.String(), content.Len() > 0
+}
+
 func extractSemanticTextContent(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -287,8 +310,8 @@ func extractSemanticAssistantTurn(raw string) (string, []semanticToolCall) {
 			if argsVal, ok := blk["arguments"]; ok && argsVal != nil {
 				if s, ok := argsVal.(string); ok {
 					argsRaw = canonicalJSONString(s)
-				} else if encoded, err := json.Marshal(argsVal); err == nil {
-					argsRaw = string(encoded)
+				} else if encoded, err := jsonMarshalNoEscape(argsVal); err == nil {
+					argsRaw = encoded
 				}
 			}
 			calls = append(calls, semanticToolCall{
@@ -556,8 +579,42 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	ctx := stream.Context()
 	// End-to-end 600s deadline covers step serialization wait, inference, ledger commit, and flushing.
 	stepCtx, stepCancel := context.WithTimeout(ctx, bodyStepMaxDuration)
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		stepCancel()
+		return status.Error(codes.Unavailable, "Agent sessions are quiescing")
+	}
+	s.stepSeq++
+	stepID := s.stepSeq
+	if s.stepCancels == nil {
+		s.stepCancels = make(map[uint64]context.CancelFunc)
+	}
+	s.stepCancels[stepID] = stepCancel
+	s.stepWG.Add(1)
+	s.mu.Unlock()
+	// A transport send can be flow-controlled after our local deadline. Returning
+	// the RPC closes that transport, while shutdown still waits for the worker.
+	finished := make(chan error, 1)
+	go func() {
+		defer func() {
+			s.mu.Lock()
+			delete(s.stepCancels, stepID)
+			s.mu.Unlock()
+			s.stepWG.Done()
+		}()
+		finished <- s.executeBodyStep(stepCtx, stepCancel, req, stream)
+	}()
 	defer stepCancel()
+	select {
+	case err := <-finished:
+		return err
+	case <-stepCtx.Done():
+		return status.FromContextError(stepCtx.Err()).Err()
+	}
+}
 
+func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.CancelFunc, req *runtimev1.StreamLocalAgentBodyStepRequest, stream grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]) error {
 	decision, err := s.authorize(stepCtx, localappop.OperationAgentBodyPCStepStream, localappop.OperationAgentBodyAppStepStream)
 	if err != nil {
 		return err
@@ -568,7 +625,7 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	if proto.Size(req) > bodyStepMaxRequestBytes {
 		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(stepCtx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return err
 	}
@@ -641,12 +698,63 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	canonicalKeptTail := canonicalOrderWorkingMessages(req.GetKeptTailMessages())
 	stepReqID := strings.TrimSpace(req.GetStepRequestId())
 
+	// 3. Synchronously qualify Cognition read set BEFORE inference.
+	originalReadEpoch := ledger.ReadSetEpoch
+	readSetEpoch := originalReadEpoch
+	if s.readSetQualifier != nil {
+		valid, currentEpoch, qErr := s.readSetQualifier(stepCtx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
+		if qErr != nil {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+		}
+		if !valid {
+			invPayload, _ := jsonMarshalNoEscape(map[string]any{
+				"workSessionRef": ref,
+				"epoch":          currentEpoch,
+				"previousEpoch":  ledger.ReadSetEpoch,
+			})
+			invEnv := &runtimev1.BodyOutboxEnvelope{
+				OutboxId:            newID("outbox"),
+				DeviceId:            deviceID,
+				CapabilityNamespace: ns,
+				WorkSessionRef:      ref,
+				CommandKind:         runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY,
+				PayloadJson:         invPayload,
+				CreatedAt:           formatRFC3339(now),
+				AgentBinding:        sess.Record.GetAgentBinding(),
+			}
+			if err := s.store.EnqueueOutbox(stepCtx, decision.AccountID, invEnv, ""); err != nil {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+			}
+			s.notifyOutboxSubscribers(decision.AccountID, invEnv.GetDeviceId(), ns, invEnv)
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_MEMORY_INVALIDATED)
+		}
+		readSetEpoch = currentEpoch
+	}
+
+	pending, err := s.store.HasPendingTombstones(stepCtx, decision.AccountID, deviceID, ns, ref, sess.Record.GetAgentBinding())
+	if err != nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	}
+	if pending {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_MEMORY_INVALIDATED)
+	}
+	requestDigest := ""
 	if stepReqID != "" {
+		semantic := proto.Clone(req).(*runtimev1.StreamLocalAgentBodyStepRequest)
+		semantic.LeaseEpoch = 0 // A recovering carrier has already proved its new lease.
+		encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(semantic)
+		if err != nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		requestDigest = sha256HexString(string(encoded))
 		journal, jErr := s.store.GetStepJournal(stepCtx, decision.AccountID, ref, stepReqID)
 		if jErr != nil {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
 		if journal != nil && journal.Done != nil {
+			if journal.RequestDigest != requestDigest || journal.NextStepMAC != ledger.LastStepMAC {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
 			prevOK := false
 			if journal.PrevCommittedCount == 0 && journal.PrevStepMAC == "" {
 				prevOK = true
@@ -662,6 +770,27 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 				stream:       stream,
 				budgetTokens: journal.Done.GetEffectiveContextBudgetTokens(),
 			}
+			if journal.StreamBudget != 0 {
+				replayEmitter.budgetTokens = journal.StreamBudget
+			}
+			hasText := false
+			for _, delta := range journal.PublicDeltas {
+				var sendErr error
+				if delta.ReasoningSummary {
+					sendErr = replayEmitter.SendReasoningSummaryDelta(delta.Text)
+				} else {
+					hasText = true
+					sendErr = replayEmitter.SendTextDelta(delta.Text)
+				}
+				if sendErr != nil {
+					return sendErr
+				}
+			}
+			if !hasText && journal.AssistantText != "" {
+				if err := replayEmitter.SendTextDelta(journal.AssistantText); err != nil {
+					return err
+				}
+			}
 			for _, tc := range journal.ToolCalls {
 				if err := replayEmitter.send(&runtimev1.BodyStepStreamEvent{
 					Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: tc},
@@ -675,6 +804,9 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		}
 	}
 
+	if err := stream.SendHeader(nil); err != nil {
+		return err
+	}
 	issuedWindow := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
 	prevStepMAC := ledger.LastStepMAC
 	prevCommittedCount := ledger.LastCommittedCount
@@ -694,14 +826,15 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	// - NEVER allow fabricated role=="assistant" messages appended by the Body!
 	// - Every appended toolResult MUST reference a Runtime-issued call_id in issuedWindow
 	//   that has NOT already been settled in a previous step or duplicated in this step.
-	// - Any appended user message carrying an outbox_id MUST match an actual NEW_INTENT
+	// - Every appended user message MUST identify and match an unconsumed NEW_INTENT
 	//   outbox envelope for this account & work_session_ref.
 	checkFrom := ledger.LastCommittedCount
 	if checkFrom < 0 || checkFrom > len(canonicalWorking) {
 		checkFrom = 0
 	}
 	seenSuffixToolCalls := make(map[string]struct{})
-	var settledToolCallIDs []string
+	var settledToolCallIDs, inputIDs []string
+	seenInput := make(map[string]bool)
 	for idx := checkFrom; idx < len(canonicalWorking); idx++ {
 		msg := canonicalWorking[idx]
 		role := strings.ToLower(strings.TrimSpace(msg.GetRole()))
@@ -726,15 +859,23 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 			seenSuffixToolCalls[callID] = struct{}{}
 			settledToolCallIDs = append(settledToolCallIDs, callID)
 		case "user":
-			if outboxID := strings.TrimSpace(msg.GetOutboxId()); outboxID != "" {
-				validOutbox, oErr := s.store.VerifyOutboxIntentExists(stepCtx, decision.AccountID, ref, outboxID)
-				if oErr != nil {
-					return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
-				}
-				if !validOutbox {
-					return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
-				}
+			id := strings.TrimSpace(msg.GetOutboxId())
+			if id == "" || seenInput[id] {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 			}
+			text, validText := bodyInputContent(msg.GetContentJson())
+			if !validText {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			valid, err := s.store.verifyOutboxInput(stepCtx, decision.AccountID, ref, id, text)
+			if err != nil {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+			}
+			if !valid {
+				return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
+			}
+			seenInput[id] = true
+			inputIDs = append(inputIDs, id)
 		}
 	}
 	// On COMPACTION, kept_tail_messages MUST be an exact suffix of canonicalWorking
@@ -743,36 +884,6 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		if !isExactMessageSuffix(canonicalWorking, canonicalKeptTail) {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 		}
-	}
-
-	// 3. Synchronously qualify Cognition read set BEFORE inference.
-	readSetEpoch := ledger.ReadSetEpoch
-	if s.readSetQualifier != nil {
-		valid, currentEpoch, qErr := s.readSetQualifier(stepCtx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
-		if qErr != nil {
-			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
-		}
-		if !valid {
-			invPayload, _ := jsonMarshalNoEscape(map[string]any{
-				"workSessionRef": ref,
-				"epoch":          currentEpoch,
-				"previousEpoch":  ledger.ReadSetEpoch,
-			})
-			invEnv := &runtimev1.BodyOutboxEnvelope{
-				OutboxId:            newID("outbox"),
-				DeviceId:            deviceID,
-				CapabilityNamespace: ns,
-				WorkSessionRef:      ref,
-				CommandKind:         runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY,
-				PayloadJson:         invPayload,
-				CreatedAt:           formatRFC3339(now),
-				AgentBinding:        sess.Record.GetAgentBinding(),
-			}
-			_ = s.store.EnqueueOutbox(stepCtx, decision.AccountID, invEnv, "")
-			s.notifyOutboxSubscribers(decision.AccountID, invEnv.GetDeviceId(), ns, invEnv)
-			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_MEMORY_INVALIDATED)
-		}
-		readSetEpoch = currentEpoch
 	}
 
 	// 4. Single-owner physical-endpoint admission:
@@ -792,9 +903,10 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	emitter := &bodyStepStreamEmitter{
-		ctx:          stepCtx,
-		stream:       stream,
-		budgetTokens: budgetTokens,
+		captureDeltas: stepReqID != "",
+		ctx:           stepCtx,
+		stream:        stream,
+		budgetTokens:  budgetTokens,
 	}
 
 	// Compaction MUST NEVER declare or emit executable tools.
@@ -859,11 +971,11 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	var (
-		stepMAC            string
-		postCompactionMAC  string
-		compactionSummary  string
-		nextIssuedWindow   = issuedWindow
-		commitIssuedCalls  = allIssuedCalls
+		stepMAC           string
+		postCompactionMAC string
+		compactionSummary string
+		nextIssuedWindow  = issuedWindow
+		commitIssuedCalls = allIssuedCalls
 	)
 	if isCompaction {
 		summaryCanon := normalizeCompactionSummaryText(execResult.CompactionSummary)
@@ -916,14 +1028,36 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 		EffectiveContextBudgetTokens: budgetTokens,
 	}
 
+	// Preflight the exact final frames before granting tools or advancing the signed head.
+	terminal := make([]*runtimev1.BodyStepStreamEvent, 0, len(commitIssuedCalls)+1)
+	for _, call := range commitIssuedCalls {
+		terminal = append(terminal, &runtimev1.BodyStepStreamEvent{Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: call}})
+	}
+	terminal = append(terminal, &runtimev1.BodyStepStreamEvent{Payload: &runtimev1.BodyStepStreamEvent_Done{Done: doneMsg}})
+	total := emitter.bytesSent
+	for i, ev := range terminal {
+		ev.EventIndex = emitter.seq + uint32(i+1)
+		ev.EffectiveContextBudgetTokens = emitter.budgetTokens
+		total += proto.Size(ev)
+	}
+	if total > bodyStepMaxResponseBytes {
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE)
+	}
+
 	commitErr := s.store.CommitStepLedger(stepCtx, commitStepLedgerInput{
 		Ledger:               ledger,
+		OriginalReadEpoch:    originalReadEpoch,
+		InputIDs:             inputIDs,
 		DeviceID:             deviceID,
 		Namespace:            ns,
 		CarrierSubject:       decision.RegisteredAppSubject,
 		LeaseEpoch:           req.GetLeaseEpoch(),
 		SettledToolCallIDs:   settledToolCallIDs,
 		NewlyIssuedToolCalls: commitIssuedCalls,
+		AssistantText:        execResult.AssistantText,
+		PublicDeltas:         emitter.publicDeltas,
+		StreamBudget:         emitter.budgetTokens,
+		RequestDigest:        requestDigest,
 		StepRequestID:        stepReqID,
 		PrevStepMAC:          prevStepMAC,
 		PrevCommittedCount:   prevCommittedCount,
@@ -939,6 +1073,9 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	if errors.Is(commitErr, errBodyNamespaceMismatch) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
+	if errors.Is(commitErr, errTombstoneFence) {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_MEMORY_INVALIDATED)
+	}
 	if errors.Is(commitErr, errSessionConflict) {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_LEDGER_INVALID)
 	}
@@ -947,16 +1084,23 @@ func (s *Service) StreamLocalAgentBodyStep(req *runtimev1.StreamLocalAgentBodySt
 	}
 
 	// Flush executable tool_call frames strictly AFTER the ledger + relational grant transaction commits!
-	if err := emitter.flushBufferedToolCalls(); err != nil {
-		return err
+	for _, ev := range terminal {
+		if err := emitter.send(ev); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	return emitter.send(&runtimev1.BodyStepStreamEvent{
-		Payload: &runtimev1.BodyStepStreamEvent_Done{Done: doneMsg},
-	})
+// Public Body protocol deltas only. Tool-call activity is transient.
+type bodyJournalDelta struct {
+	Text             string
+	ReasoningSummary bool
 }
 
 type bodyStepStreamEmitter struct {
+	captureDeltas     bool
+	publicDeltas      []bodyJournalDelta
 	ctx               context.Context
 	stream            grpc.ServerStreamingServer[runtimev1.BodyStepStreamEvent]
 	budgetTokens      uint32
@@ -979,7 +1123,18 @@ func (e *bodyStepStreamEmitter) send(ev *runtimev1.BodyStepStreamEvent) error {
 		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE)
 	}
 	e.bytesSent += frameBytes
-	return e.stream.Send(ev)
+	if err := e.stream.Send(ev); err != nil {
+		return err
+	}
+	if e.captureDeltas {
+		switch part := ev.Payload.(type) {
+		case *runtimev1.BodyStepStreamEvent_TextDelta:
+			e.publicDeltas = append(e.publicDeltas, bodyJournalDelta{Text: part.TextDelta})
+		case *runtimev1.BodyStepStreamEvent_ReasoningSummaryDelta:
+			e.publicDeltas = append(e.publicDeltas, bodyJournalDelta{Text: part.ReasoningSummaryDelta, ReasoningSummary: true})
+		}
+	}
+	return nil
 }
 
 func (e *bodyStepStreamEmitter) SendTextDelta(delta string) error {
@@ -1016,18 +1171,6 @@ func (e *bodyStepStreamEmitter) SendToolCall(call *runtimev1.BodyToolCall) error
 	return nil
 }
 
-func (e *bodyStepStreamEmitter) flushBufferedToolCalls() error {
-	for _, call := range e.bufferedToolCalls {
-		if err := e.send(&runtimev1.BodyStepStreamEvent{
-			Payload: &runtimev1.BodyStepStreamEvent_ToolCall{ToolCall: call},
-		}); err != nil {
-			return err
-		}
-	}
-	e.bufferedToolCalls = nil
-	return nil
-}
-
 // AuthorizeBodySideEffect is the synchronous fail-closed fence called by the Body
 // immediately before launching any high-risk side effect (file mutation, shell, etc.).
 // Enforces closed action_kind + permission_mode allowlist, non-empty tool_name +
@@ -1044,7 +1187,7 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 			DenyReason: "invalid_request_envelope",
 		}, nil
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized: false,
@@ -1170,6 +1313,62 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 	return resp, nil
 }
 
+// Retry after owner outages without moving the projection sequence backwards.
+func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
+	s.milestoneMu.Lock()
+	defer s.milestoneMu.Unlock()
+	s.mu.Lock()
+	hook := s.milestoneHook
+	s.mu.Unlock()
+	if hook == nil {
+		return nil
+	}
+	rows, err := s.store.readDB.QueryContext(ctx, "SELECT id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables FROM runtime_session_milestone WHERE (?='' OR work_session_ref=?) ORDER BY id", ref, ref)
+	if err != nil {
+		return err
+	}
+	type entry struct {
+		id                                              int64
+		account, agent, ref, body, kind, summary, paths string
+	}
+	var pending []entry
+	for rows.Next() {
+		var e entry
+		if err := rows.Scan(&e.id, &e.account, &e.agent, &e.ref, &e.body, &e.kind, &e.summary, &e.paths); err != nil {
+			rows.Close()
+			return err
+		}
+		pending = append(pending, e)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	var failures error
+	blocked := make(map[string]bool)
+	for _, e := range pending {
+		if blocked[e.ref] {
+			continue
+		}
+		var paths []string
+		err := json.Unmarshal([]byte(e.paths), &paths)
+		if err == nil {
+			err = hook(ctx, e.account, e.agent, e.ref, e.body, e.kind, e.summary, paths)
+		}
+		if err == nil {
+			_, err = s.store.writeDB.ExecContext(ctx, "DELETE FROM runtime_session_milestone WHERE id=?", e.id)
+		}
+		if err != nil {
+			failures = errors.Join(failures, err)
+			blocked[e.ref] = true
+		}
+	}
+	return failures
+}
+
 // ReportBodySessionProjection persists Body-owned session progress with
 // strictly monotonic (lease_epoch, projection_seq) fencing and tombstone drain enforcement.
 func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev1.ReportBodySessionProjectionRequest) (*runtimev1.ReportBodySessionProjectionResponse, error) {
@@ -1180,11 +1379,16 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 	if req == nil || strings.TrimSpace(req.GetWorkSessionRef()) == "" || strings.TrimSpace(req.GetDeviceId()) == "" || req.GetLeaseEpoch() <= 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return nil, err
 	}
 	now := s.now().UTC()
+	switch strings.TrimSpace(req.GetStatus()) {
+	case "", "active", "idle", "running", "waiting", "waiting_approval", "error", "completed", "archived", "paused", "stopped":
+	default:
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	resp, updatedRow, err := s.store.ApplyBodyProjection(ctx, decision.AccountID, ns, decision.RegisteredAppSubject, req, now)
 	if errors.Is(err, errLeaseConflict) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
@@ -1203,21 +1407,10 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 	}
 	if resp.GetApplied() && updatedRow != nil {
 		s.notifyOverviewChange(decision.AccountID, []*runtimev1.WorkSessionRecord{updatedRow.Record}, nil)
-		// Taint gate: ONLY trusted, non-external sessions may propose Cognition session pointers!
-		if milestone := strings.TrimSpace(req.GetMilestoneKind()); milestone != "" &&
-			s.milestoneHook != nil &&
-			updatedRow.Record.GetTrustTier() == "trusted" &&
-			updatedRow.Record.GetSessionKind() != "channel_external" {
-			_ = s.milestoneHook(
-				ctx,
-				decision.AccountID,
-				updatedRow.Record.GetAgentBinding(),
-				updatedRow.Record.GetWorkSessionRef(),
-				updatedRow.Record.GetOwnerBodyKind(),
-				milestone,
-				req.GetTopicSummary(),
-				req.GetDeliverablePaths(),
-			)
+	}
+	if req.GetMilestoneKind() != "" {
+		if err := s.deliverMilestones(ctx, req.GetWorkSessionRef()); err != nil {
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
 	}
 	return resp, nil

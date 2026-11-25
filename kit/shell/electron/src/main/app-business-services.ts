@@ -1,6 +1,7 @@
 import {
   createNimiLocalAppAIConsumptionClient,
   createNimiLocalAppAgentSessionClient,
+  createNimiLocalAppAgentReferencesClient,
   createNimiLocalAppAgentWorkClient,
   createNimiLocalAppIntegrationClient,
   createNimiLocalAppActivityClient,
@@ -212,8 +213,8 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
   const agentSessionStreamClosers = new Map<string, () => Promise<void>>();
   const services: NimiElectronAppBusinessServices = Object.freeze({
     ai,
-    agents: Object.freeze({
-      listReferences: async () => (await request('agentReferenceList')) as unknown as readonly NimiLocalAppAgentReference[],
+    agents: createNimiLocalAppAgentReferencesClient({
+      listReferences: () => request('agentReferenceList'),
     }),
     agentSession: createNimiLocalAppAgentSessionClient({
       agentSessionUnary: async (input) => {

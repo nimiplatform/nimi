@@ -31,7 +31,7 @@ func (c *Core) prepareEmbeddingDelta(ctx context.Context, operationID, bankRef s
 		// Materialize the reusable subset once. Retry reads this same subset even
 		// if a competing build subsequently retires the source generation.
 		_, err = tx.ExecContext(ctx, `INSERT INTO memory_vector_items(generation_ref,memory_ref,dimension,vector_json)
-			SELECT ?,v.memory_ref,v.dimension,v.vector_json FROM memory_vector_items v JOIN memories m ON m.memory_ref=v.memory_ref
+			SELECT ?,v.memory_ref,v.dimension,v.vector_json FROM memory_vector_items v JOIN visible_session_memories m ON m.memory_ref=v.memory_ref
 			WHERE m.bank_ref=? AND m.lifecycle=? AND v.generation_ref=(SELECT generation_ref FROM memory_derived_generations WHERE bank_ref=? AND kind='embedding' AND lifecycle_ref=? AND embedding_space_ref=? AND status='ready' AND canonical_version<=? ORDER BY canonical_version DESC,updated_at DESC,generation_ref LIMIT 1)`, operationID, bankRef, LifecycleCurrent, bankRef, lifecycle, snapshot.EmbeddingSpaceRef, version)
 		if err != nil {
 			return
@@ -44,7 +44,7 @@ func (c *Core) prepareEmbeddingDelta(ctx context.Context, operationID, bankRef s
 	}
 	if state == "building" {
 		var rows *sql.Rows
-		rows, err = tx.QueryContext(ctx, `SELECT m.memory_ref,m.content FROM memories m LEFT JOIN memory_vector_items v ON v.memory_ref=m.memory_ref AND v.generation_ref=? WHERE m.bank_ref=? AND m.lifecycle=? AND v.memory_ref IS NULL ORDER BY m.memory_ref`, operationID, bankRef, LifecycleCurrent)
+		rows, err = tx.QueryContext(ctx, `SELECT m.memory_ref,m.content FROM visible_session_memories m LEFT JOIN memory_vector_items v ON v.memory_ref=m.memory_ref AND v.generation_ref=? WHERE m.bank_ref=? AND m.lifecycle=? AND v.memory_ref IS NULL ORDER BY m.memory_ref`, operationID, bankRef, LifecycleCurrent)
 		if err != nil {
 			return
 		}
@@ -94,7 +94,7 @@ func (c *Core) advanceFTSDelta(ctx context.Context, tx *sql.Tx, bankRef string, 
 		}
 		for _, ref := range added {
 			var content string
-			err := tx.QueryRowContext(ctx, `SELECT content FROM memories WHERE bank_ref=? AND memory_ref=? AND lifecycle=?`, bankRef, ref, LifecycleCurrent).Scan(&content)
+			err := tx.QueryRowContext(ctx, `SELECT content FROM visible_session_memories WHERE bank_ref=? AND memory_ref=? AND lifecycle=?`, bankRef, ref, LifecycleCurrent).Scan(&content)
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			}
@@ -131,7 +131,7 @@ func (c *Core) ensureFTSCurrent(ctx context.Context, bankRef string) error {
 // The V1 Remember plan uses only identity, lifecycle and text. Provenance is
 // validated by Core at commit; it is not loaded per row for this lexical plan.
 func (c *Core) rememberInputs(ctx context.Context, bankRef string) ([]Memory, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref,content,lifecycle,scope_tag FROM memories WHERE bank_ref=? AND lifecycle=? ORDER BY updated_at DESC,memory_ref`, bankRef, LifecycleCurrent)
+	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref,content,lifecycle,scope_tag FROM visible_session_memories WHERE bank_ref=? AND lifecycle=? ORDER BY updated_at DESC,memory_ref`, bankRef, LifecycleCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (c *Core) rememberInputs(ctx context.Context, bankRef string) ([]Memory, er
 }
 
 func (c *Core) rememberActivityInputs(ctx context.Context, bankRef string, activity TypedRef) ([]Memory, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT m.memory_ref,m.lifecycle FROM memories m JOIN memory_lineage l ON l.memory_ref=m.memory_ref WHERE m.bank_ref=? AND l.ref_type='source' AND l.ref_kind=? AND l.ref_value=?`, bankRef, activity.Kind, activity.Value)
+	rows, err := c.db.QueryContext(ctx, `SELECT m.memory_ref,m.lifecycle FROM visible_session_memories m JOIN memory_lineage l ON l.memory_ref=m.memory_ref WHERE m.bank_ref=? AND l.ref_type='source' AND l.ref_kind=? AND l.ref_value=?`, bankRef, activity.Kind, activity.Value)
 	if err != nil {
 		return nil, fmt.Errorf("load activity memory lineage: %w", err)
 	}

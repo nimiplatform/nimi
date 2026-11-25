@@ -77,7 +77,7 @@ func TestSessionBrainAdapterPropagatesRuntimeAccountSubjectOnDetachedContext(t *
 		agentRef,
 		"Standup reminder",
 		"Starts in 5 minutes",
-		"ws_alarm_1",
+		"ws_alarm_1", func(int64) error { return nil },
 	); err != nil {
 		t.Fatalf("RunAlarmLLM: %v", err)
 	}

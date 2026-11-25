@@ -25,7 +25,7 @@ type fakeBodyStepStream struct {
 	events []*runtimev1.BodyStepStreamEvent
 }
 
-func (f *fakeBodyStepStream) Context() context.Context    { return f.ctx }
+func (f *fakeBodyStepStream) Context() context.Context     { return f.ctx }
 func (f *fakeBodyStepStream) SetHeader(metadata.MD) error  { return nil }
 func (f *fakeBodyStepStream) SendHeader(metadata.MD) error { return nil }
 func (f *fakeBodyStepStream) SetTrailer(metadata.MD)       {}
@@ -45,7 +45,7 @@ type fakeOutboxStream struct {
 	events    []*runtimev1.BodyOutboxEnvelope
 }
 
-func (f *fakeOutboxStream) Context() context.Context    { return f.ctx }
+func (f *fakeOutboxStream) Context() context.Context     { return f.ctx }
 func (f *fakeOutboxStream) SetHeader(metadata.MD) error  { return nil }
 func (f *fakeOutboxStream) SendHeader(metadata.MD) error { return nil }
 func (f *fakeOutboxStream) SetTrailer(metadata.MD)       {}
@@ -445,7 +445,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 	}
 
 	// 4. Valid Turn 1 executes, wraps advisory context with 128-bit random nonce, emits ToolCallActivity & ToolCall, and updates ledger.
-	msgUser1 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"修复登录页样式"`}
+	msgUser1 := &runtimev1.BodyWorkingMessage{Role: "user", OutboxId: routed.GetOutboxId(), ContentJson: `"修复登录页样式"`}
 	stream1 := &fakeBodyStepStream{ctx: stepCtx}
 	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
@@ -530,7 +530,7 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 		ArgumentsJson: `{"path":"src/app.ts"}`,
 	}})
 	msgToolResult1 := &runtimev1.BodyWorkingMessage{Role: "toolResult", ToolCallId: "call_edit_1", ContentJson: `"ok"`}
-	msgTail := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"tail question"`}
+	msgTail := testRoutedInput(t, svc, routeCtx, wsRef, "agent-coder", "tail question")
 	keptTail := []*runtimev1.BodyWorkingMessage{msgTail}
 	compStream := &fakeBodyStepStream{ctx: stepCtx}
 	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{

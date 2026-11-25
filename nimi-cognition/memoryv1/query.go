@@ -138,7 +138,7 @@ func (c *Core) ListMemories(ctx context.Context, bankRef string, includeHistory 
 	if bankState != "active" {
 		return nil, contractError(OutcomeConflict, "bank_deleted")
 	}
-	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM memories WHERE bank_ref = ?`
+	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM visible_session_memories WHERE bank_ref = ?`
 	if includeHistory {
 		query += ` AND lifecycle <> 'forgotten'`
 	} else {
@@ -207,7 +207,7 @@ func (c *Core) ListMemoriesPage(ctx context.Context, request MemoryPageRequest) 
 	if bankState != "active" {
 		return MemoryPage{}, contractError(OutcomeConflict, "bank_deleted")
 	}
-	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM memories WHERE bank_ref = ? AND lifecycle <> 'forgotten'`
+	query := `SELECT memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, scope_tag, slot_key FROM visible_session_memories WHERE bank_ref = ? AND lifecycle <> 'forgotten'`
 	args := []any{request.BankRef}
 	if request.AfterUpdatedAt != "" {
 		query += ` AND (updated_at < ? OR (updated_at = ? AND memory_ref > ?))`

@@ -42,6 +42,7 @@ const (
 type AgentHandleResolver func(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentHandle string) (string, error)
 
 type Options struct {
+	BodyNamespaceOwner        func(context.Context, string) (string, error)
 	Logger                    *slog.Logger
 	Now                       func() time.Time
 	Store                     *Store
@@ -102,6 +103,10 @@ type brainEventSubscriber struct {
 }
 
 type Service struct {
+	stepCancels        map[uint64]context.CancelFunc
+	stepSeq            uint64
+	stepWG             sync.WaitGroup
+	bodyNamespaceOwner func(context.Context, string) (string, error)
 	runtimev1.UnimplementedAgentSessionServiceServer
 
 	logger              *slog.Logger
@@ -116,6 +121,7 @@ type Service struct {
 
 	bodyStepExecutor          BodyStepExecutor
 	readSetQualifier          ReadSetQualifier
+	milestoneMu               sync.Mutex
 	milestoneHook             MilestoneHook
 	memoryCleanupHook         MemoryCleanupHook
 	brainTurnExecutor         BrainTurnExecutor
@@ -213,6 +219,7 @@ func Open(opts Options) (*Service, error) {
 		brainTurnExecutor:         opts.BrainTurnExecutor,
 		alarmDeliverySender:       opts.AlarmDeliverySender,
 		supportedDeliveryChannel:  opts.SupportedDeliveryChannel,
+		bodyNamespaceOwner:        opts.BodyNamespaceOwner,
 		alarmLLMRunner:            opts.AlarmLLMRunner,
 		dailyAlarmLLMBudgetTokens: opts.DailyAlarmLLMBudgetTokens,
 		agentTerminatedChecker:    opts.AgentTerminatedChecker,
@@ -245,7 +252,9 @@ func (s *Service) Quiesce() {
 	alarmCancel := s.alarmTickerCancel
 	alarmDone := s.alarmTickerDone
 	s.alarmTickerCancel = nil
-	s.alarmTickerDone = nil
+	for _, cancel := range s.stepCancels {
+		cancel()
+	}
 	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
 	for ref, entry := range s.brainTurnCancels {
 		cancels = append(cancels, entry.cancel)
@@ -262,6 +271,7 @@ func (s *Service) Quiesce() {
 		<-alarmDone
 	}
 	s.brainTurnsWg.Wait()
+	s.stepWG.Wait()
 }
 
 // Close cancels active brain turns and closes any owned sessions.db store.
@@ -359,6 +369,11 @@ func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duratio
 	ctx, cancel := context.WithCancel(parent)
 	done := make(chan struct{})
 	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		cancel()
+		return
+	}
 	prevCancel := s.alarmTickerCancel
 	prevDone := s.alarmTickerDone
 	s.alarmTickerParent = parent
@@ -378,6 +393,7 @@ func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duratio
 		// Run immediate startup recovery for interrupted deletes/purges and wake-merge alarm sweep.
 		_ = s.RecoverPendingDeletions(ctx)
 		_ = s.RecoverPendingAgentPurges(ctx)
+		_ = s.deliverMilestones(ctx, "")
 		_, _ = s.TickAlarms(ctx, s.now().UTC())
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -388,6 +404,7 @@ func (s *Service) StartAlarmTicker(parent context.Context, interval time.Duratio
 			case <-ticker.C:
 				_ = s.RecoverPendingDeletions(ctx)
 				_ = s.RecoverPendingAgentPurges(ctx)
+				_ = s.deliverMilestones(ctx, "")
 				_, _ = s.TickAlarms(ctx, s.now().UTC())
 			}
 		}
@@ -405,7 +422,9 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 	alarmCancel := s.alarmTickerCancel
 	alarmDone := s.alarmTickerDone
 	s.alarmTickerCancel = nil
-	s.alarmTickerDone = nil
+	for _, cancel := range s.stepCancels {
+		cancel()
+	}
 	cancels := make([]context.CancelFunc, 0, len(s.brainTurnCancels))
 	for ref, entry := range s.brainTurnCancels {
 		if entry.cancel != nil {
@@ -430,6 +449,7 @@ func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
 	turnsDone := make(chan struct{})
 	go func() {
 		s.brainTurnsWg.Wait()
+		s.stepWG.Wait()
 		close(turnsDone)
 	}()
 	select {
@@ -490,26 +510,18 @@ func buildDesktopAlarmAttention(alarm *runtimev1.SessionAlarmRecord, renderedTit
 	}
 }
 
-// NotifyDesktopAlarm records a durable desktop pending-attention entry for a
-// fired alarm and broadcasts it to live overview subscribers without
-// misusing the public app.activity channel (P-ACTV-002).
-func (s *Service) NotifyDesktopAlarm(
-	ctx context.Context,
-	accountID string,
-	alarm *runtimev1.SessionAlarmRecord,
-	renderedTitle string,
-	renderedBody string,
-) (string, error) {
+// NotifyDesktopAlarm prepares the Home attention item. TickAlarms commits it with its
+// receipt only while the occurrence's claim version is still current.
+func (s *Service) NotifyDesktopAlarm(alarm *runtimev1.SessionAlarmRecord, title, body string) AlarmDeliveryOutcome {
 	if s == nil || s.store == nil || alarm == nil {
-		return "", fmt.Errorf("desktop alarm notification unavailable")
+		return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED, Detail: "desktop alarm notification unavailable"}
 	}
-	now := s.now().UTC()
-	att := buildDesktopAlarmAttention(alarm, renderedTitle, renderedBody, now)
-	if err := s.store.UpsertPendingAttention(ctx, accountID, att, now); err != nil {
-		return "", err
+	att := buildDesktopAlarmAttention(alarm, title, body, s.now().UTC())
+	return AlarmDeliveryOutcome{
+		ReceiptState:       runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED,
+		ProviderMessageRef: "desktop-attention:" + att.GetAttentionId(),
+		desktopAttention:   att,
 	}
-	s.notifyOverviewChange(accountID, nil, nil)
-	return "desktop-attention:" + att.GetAttentionId(), nil
 }
 
 // EnqueueAndPurgeAgent durably records a pending agent purge BEFORE cascading
@@ -749,7 +761,7 @@ func subjectScopeKey(decision accountservice.LocalAppCallerDecision) string {
 	return "subject:" + sub
 }
 
-func normalizeBodyNamespace(decision accountservice.LocalAppCallerDecision, requested string) (string, error) {
+func (s *Service) normalizeBodyNamespace(ctx context.Context, decision accountservice.LocalAppCallerDecision, requested string) (string, error) {
 	ns := strings.TrimSpace(requested)
 	switch decision.OperationCapability {
 	case DomainAgentBodyPC:
@@ -767,14 +779,29 @@ func normalizeBodyNamespace(decision accountservice.LocalAppCallerDecision, requ
 		}
 		return ns, nil
 	case DomainAgentBodyApp:
-		expectedPrefix := "app." + decision.AppID + "."
-		if decision.AppID == "" || !strings.HasPrefix(ns, expectedPrefix) || len(ns) <= len(expectedPrefix) || len(ns) > 128 {
-			return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
-		}
-		return ns, nil
+		return s.appBodyNamespace(ctx, decision, ns)
 	default:
 		return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
+}
+
+func (s *Service) appBodyNamespace(ctx context.Context, decision accountservice.LocalAppCallerDecision, ns string) (string, error) {
+	if !decision.HasActivatedDomain(DomainAgentBodyApp) {
+		return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if s.bodyNamespaceOwner != nil {
+		owner, err := s.bodyNamespaceOwner(ctx, ns)
+		if err != nil || owner != decision.AppID {
+			return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
+	} else if i := strings.LastIndexByte(ns, '.'); i < 0 || ns[:i] != "app."+decision.AppID {
+		return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	expectedPrefix := "app." + decision.AppID + "."
+	if decision.AppID == "" || !strings.HasPrefix(ns, expectedPrefix) || len(ns) <= len(expectedPrefix) || len(ns) > 128 {
+		return "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	return ns, nil
 }
 
 func leaseMapKey(accountID, deviceID, namespace string) string {
@@ -792,7 +819,7 @@ func (s *Service) RegisterBodyCarrier(ctx context.Context, req *runtimev1.Regist
 	if req == nil || strings.TrimSpace(req.GetDeviceId()) == "" || strings.TrimSpace(req.GetInstanceId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return nil, err
 	}
@@ -839,7 +866,7 @@ func (s *Service) HeartbeatBodyCarrier(ctx context.Context, req *runtimev1.Heart
 	if req == nil || strings.TrimSpace(req.GetDeviceId()) == "" || req.GetLeaseEpoch() <= 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return nil, err
 	}
@@ -865,7 +892,7 @@ func (s *Service) UnregisterBodyCarrier(ctx context.Context, req *runtimev1.Unre
 	if req == nil || strings.TrimSpace(req.GetDeviceId()) == "" || req.GetLeaseEpoch() <= 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return nil, err
 	}
@@ -908,7 +935,7 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 	if req == nil || strings.TrimSpace(req.GetDeviceId()) == "" || req.GetLeaseEpoch() <= 0 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return err
 	}
@@ -944,6 +971,10 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 		}
 		s.mu.Unlock()
 	}()
+
+	if err := stream.SendHeader(nil); err != nil {
+		return err
+	}
 
 	// Bounded sent-cursor tracking: only tracks currently-pending unacked IDs
 	// and prunes any ID no longer pending in SQLite so memory stays strictly bounded
@@ -1026,7 +1057,7 @@ func (s *Service) AckBodyOutbox(ctx context.Context, req *runtimev1.AckBodyOutbo
 	if req == nil || strings.TrimSpace(req.GetOutboxId()) == "" || strings.TrimSpace(req.GetDeviceId()) == "" || req.GetLeaseEpoch() <= 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	ns, err := normalizeBodyNamespace(decision, req.GetCapabilityNamespace())
+	ns, err := s.normalizeBodyNamespace(ctx, decision, req.GetCapabilityNamespace())
 	if err != nil {
 		return nil, err
 	}
@@ -1111,7 +1142,7 @@ func (s *Service) notifyOutboxSubscribers(accountID, deviceID, capabilityNamespa
 
 func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.WorkSessionRecord, removed []*runtimev1.WorkSessionRecord) {
 	_, activePCCarrierAppID, carrierOnline, _ := s.store.FindActiveCarrier(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
-	allAtt, _ := s.store.ListPendingAttention(context.Background(), accountID)
+	allAtt, _ := s.store.ListPendingAttention(context.Background(), accountID, s.now().UTC())
 
 	s.mu.Lock()
 	subs := make([]*overviewSubscriber, 0, len(s.overviewSubscribers))

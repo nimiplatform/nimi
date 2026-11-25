@@ -153,12 +153,18 @@ func (f *Facade) CommitSessionPointer(
 			return false, fmt.Errorf("commit session pointer drain: %w", err)
 		}
 		if !drained.Drained {
-			break
+			return false, nil
 		}
 		if drained.Outcome != memoryv1.OutcomeNoEffect {
-			if _, err := f.processRememberLocked(ctx, localAgentRef, drained.OperationID); err != nil {
+			result, err := f.processRememberLocked(ctx, localAgentRef, drained.OperationID)
+			if err != nil {
 				return false, fmt.Errorf("commit session pointer remember: %w", err)
 			}
+			if drained.OperationID == operationID && result.Outcome == memoryv1.OutcomeNoEffect {
+				return false, nil
+			}
+		} else if drained.OperationID == operationID {
+			return false, nil
 		}
 		if drained.OperationID == operationID {
 			break
@@ -208,14 +214,7 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 	}
 	defer unlock()
 
-	// Step 0: Record durable Runtime-side session deletion cutoff FIRST so even if
-	// no Cognition bank exists yet (BankRef == "") or binding rotates later, late
-	// CommitSessionPointer calls can never resurrect this deleted session.
-	if err := f.store.RecordDeletedSessionCutoff(ctx, localAgentRef, workSessionRef); err != nil {
-		return 0, 0, err
-	}
-
-	// Step 1: Neutralize pending outbox rows BEFORE touching canonical memories.
+	// Commit the Runtime cutoff and neutralize queued payloads in a single transaction.
 	neutralized, err := f.store.NeutralizeSessionOutbox(ctx, localAgentRef, workSessionRef)
 	if err != nil {
 		return 0, 0, err
@@ -242,6 +241,19 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		return 0, neutralized, err
 	}
 
+	// Step 4: Look up all committed memory_refs via memory_lineage.
+	refs, err := f.owner.FindMemoryRefsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
+	if err != nil {
+		return 0, neutralized, err
+	}
+	if len(refs) > 0 {
+		n, err := f.store.neutralizeSessionCorrections(ctx, localAgentRef, refs)
+		if err != nil {
+			return 0, neutralized, err
+		}
+		neutralized += n
+	}
+
 	// Step 2: Neutralize any already-received or processing receipts in Cognition.
 	neutralizedReceipts, err := f.owner.NeutralizePendingReceiptsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
 	if err != nil {
@@ -253,7 +265,10 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 	if f.bridge != nil && binding.Enabled && !binding.AdoptionRequired {
 		for {
 			nextItem, nextErr := f.store.NextPending(ctx, binding.BindingRef)
-			if nextErr != nil || nextItem.State != "cutoff_non_effecting" {
+			if nextErr != nil && !errors.Is(nextErr, sql.ErrNoRows) {
+				return 0, neutralized, nextErr
+			}
+			if errors.Is(nextErr, sql.ErrNoRows) || nextItem.State != "cutoff_non_effecting" {
 				break
 			}
 			if _, drainErr := f.bridge.drainOneLocked(ctx, localAgentRef); drainErr != nil {
@@ -262,11 +277,6 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		}
 	}
 
-	// Step 4: Look up all committed memory_refs via memory_lineage.
-	refs, err := f.owner.FindMemoryRefsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
-	if err != nil {
-		return 0, neutralized, err
-	}
 	clearThrottle := func() {
 		f.pointerThrottleMu.Lock()
 		delete(f.pointerThrottleCache, sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef})

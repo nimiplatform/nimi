@@ -18,7 +18,6 @@ import {
   Settings,
   Sun,
   Trash2,
-  Upload,
   X,
 } from 'lucide-react';
 import { useI18n } from '../i18n.js';
@@ -45,11 +44,9 @@ export function SessionSidebar({
   sessions,
   activeSessionId,
   activeDestination,
-  records,
   disabled,
   onSelectSession,
   onCreateSession,
-  onImportHomeFile,
   onPinSession,
   onRenameSession,
   onExportSession,
@@ -59,11 +56,9 @@ export function SessionSidebar({
   sessions: HarnessSessionSummary[];
   activeSessionId?: string;
   activeDestination: 'conversations' | 'models';
-  records: readonly { configRef: string; name: string; isDefault: boolean }[];
   disabled: boolean;
   onSelectSession: (id: string) => void;
-  onCreateSession: (configRef?: string, pickFolder?: boolean) => void;
-  onImportHomeFile: (file: File) => void;
+  onCreateSession: (pickFolder?: boolean) => void;
   onPinSession: (id: string, pinned: boolean) => void;
   onRenameSession: (id: string, title: string) => void;
   onExportSession: (id: string) => void;
@@ -78,7 +73,6 @@ export function SessionSidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingId, setEditingId] = useState<string>();
   const [editTitle, setEditTitle] = useState('');
-  const homeFileRef = useRef<HTMLInputElement>(null);
   const activeRowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -243,8 +237,8 @@ export function SessionSidebar({
                 type="button"
                 className="harness-new-menu-btn"
                 disabled={disabled}
-                aria-label={t('sidebar.newSessionWithModel')}
-                title={t('sidebar.newSessionWithModel')}
+                aria-label={t('sidebar.newSessionInFolder')}
+                title={t('sidebar.newSessionInFolder')}
               >
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
@@ -254,52 +248,17 @@ export function SessionSidebar({
                 <button
                   type="button"
                   className="harness-popover__item"
-                  onClick={() => { setMenuOpen(false); onCreateSession(undefined, true); }}
+                  onClick={() => { setMenuOpen(false); onCreateSession(true); }}
                 >
                   <span className="harness-popover__item-lead">
                     <FolderPlus size={14} aria-hidden="true" />
                     <span>{t('sidebar.newSessionInFolder')}</span>
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="harness-popover__item"
-                  title={t('sidebar.importHomeHint')}
-                  onClick={() => { setMenuOpen(false); homeFileRef.current?.click(); }}
-                >
-                  <span className="harness-popover__item-lead">
-                    <Upload size={14} aria-hidden="true" />
-                    <span>{t('sidebar.importHomeChat')}</span>
-                  </span>
-                </button>
-                {records.length > 0 && <div className="harness-popover__divider" />}
-                {records.map(row => (
-                  <button
-                    key={row.configRef}
-                    type="button"
-                    className="harness-popover__item"
-                    onClick={() => { setMenuOpen(false); onCreateSession(row.configRef); }}
-                  >
-                    <span>{t('sidebar.startWith', { name: row.name })}</span>
-                  </button>
-                ))}
               </div>
             </PopoverContent>
           </Popover>
         </div>
-
-        <input
-          hidden
-          type="file"
-          ref={homeFileRef}
-          accept=".json"
-          aria-label={t('sidebar.importHomeChat')}
-          onChange={event => {
-            const file = event.currentTarget.files?.[0];
-            event.currentTarget.value = '';
-            if (file) onImportHomeFile(file);
-          }}
-        />
 
         <div className="harness-sidebar__search">
           <Search size={13} className="harness-sidebar__search-icon" aria-hidden="true" />

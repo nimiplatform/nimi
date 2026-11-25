@@ -138,7 +138,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	idleTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
 	firstTimeout := s.streamFirstPacketTimeout
-	if totalTimeout > 0 && totalTimeout < firstTimeout {
+	if textbehavior.IsSessionInference(requestCtx) || (totalTimeout > 0 && totalTimeout < firstTimeout) {
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
@@ -168,7 +168,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}
 	}
 	idleTimeout := s.streamIdleTimeout
-	if totalTimeout > 0 && totalTimeout < idleTimeout {
+	if textbehavior.IsSessionInference(requestCtx) || (totalTimeout > 0 && totalTimeout < idleTimeout) {
 		idleTimeout = totalTimeout
 	}
 	var idleTimer *time.Timer

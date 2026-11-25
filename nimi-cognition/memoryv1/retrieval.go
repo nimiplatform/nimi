@@ -95,7 +95,7 @@ func (c *Core) RebuildFTS(ctx context.Context, bankRef string) error {
 		}
 		return fmt.Errorf("rebuild memory fts: inspect bank: %w", err)
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT memory_ref, content FROM memories WHERE bank_ref = ? AND lifecycle = ? ORDER BY memory_ref`, bankRef, LifecycleCurrent)
+	rows, err := tx.QueryContext(ctx, `SELECT memory_ref, content FROM visible_session_memories WHERE bank_ref = ? AND lifecycle = ? ORDER BY memory_ref`, bankRef, LifecycleCurrent)
 	if err != nil {
 		return fmt.Errorf("rebuild memory fts: load canonical memories: %w", err)
 	}
@@ -270,7 +270,7 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallFTS}, err
 	}
 	_ = version
-	ftsSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key FROM memory_fts JOIN memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ?`
+	ftsSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key FROM memory_fts JOIN visible_session_memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ?`
 	ftsArgs := []any{request.BankRef, query, request.BankRef, LifecycleCurrent}
 	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
 		ftsSQL += ` AND ` + scopeClause
@@ -505,7 +505,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallEmbedding}, err
 	}
 	_ = version
-	vecSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key, v.vector_json FROM memory_vector_items v JOIN memories m ON m.memory_ref = v.memory_ref WHERE v.generation_ref = ? AND m.bank_ref = ? AND m.lifecycle = ?`
+	vecSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key, v.vector_json FROM memory_vector_items v JOIN visible_session_memories m ON m.memory_ref = v.memory_ref WHERE v.generation_ref = ? AND m.bank_ref = ? AND m.lifecycle = ?`
 	vecArgs := []any{generationRef, request.BankRef, LifecycleCurrent}
 	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
 		vecSQL += ` AND ` + scopeClause

@@ -3,6 +3,7 @@ package cognitionmemory
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -30,6 +31,17 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 	facade := NewFacade(store, ownerPort, bridge, authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
 		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
 	})
+
+	// Deletion before first bank creation must also fence the general enqueue entry.
+	if _, _, err := facade.ForgetSessionLineage(ctx, agentRef, "ws_prebank"); err != nil {
+		t.Fatal(err)
+	}
+	late := testEnvelope("prebank-late", "prebank-late-op", "late text")
+	late.Sources = append(late.Sources, &runtimev1.CognitionMemorySourceRef{Kind: "session", Value: "ws_prebank"})
+	err = backend.WriteTx(ctx, func(tx *sql.Tx) error { _, err := store.EnqueueCommittedEventTx(tx, agentRef, late); return err })
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("late secondary session source: %v", err)
+	}
 
 	// 1. Commit initial_goal pointer -> succeeds immediately (and ensures bank via bridge).
 	baseTime := time.Date(2026, 11, 24, 14, 0, 0, 0, time.UTC)

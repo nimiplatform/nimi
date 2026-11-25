@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { createAssistantMessageEventStream, type AssistantMessage, type Model, type ProviderStreams, type TranscriptContext } from '@earendil-works/pi-ai';
 import { createProvider } from '@earendil-works/pi-ai/models';
 import { createNimiLocalAppTextModel, type NimiGenerateTextRequest } from '@nimiplatform/sdk/ai';
@@ -100,12 +100,9 @@ export function nimiBodySymbiosisProvider(options: {
   permissionMode: () => string;
   contextWindow?: number;
   onBudgetUpdated?: (budgetTokens: number) => void;
-  resolveOutboxId?: (userContent: unknown) => string | undefined;
+  readInputResolver?: () => Promise<(message: { timestamp: number; content: unknown }) => string | undefined>;
 }) {
   const modelId = logicalAgentModelId(options.agentBinding);
-  // Reuse the same stepRequestId if a prior stream attempt dropped before observing `done`,
-  // so Runtime's step journal replays the committed step instead of rejecting MAC chain mismatch.
-  const inflightStepRequestIds = new Map<string, string>();
   const model: Model<'nimi-text'> = {
     api: 'nimi-text',
     provider: 'nimi',
@@ -139,19 +136,12 @@ export function nimiBodySymbiosisProvider(options: {
 
     void (async () => {
       try {
-        const { workingMessages, tools } = translateContextToBodyStep(context, streamOptions?.signal, options.resolveOutboxId);
-        const stepKey = createHash('sha256')
-          .update(JSON.stringify([options.workSessionRef, workingMessages]))
-          .digest('hex');
-        let stepRequestId = inflightStepRequestIds.get(stepKey);
-        if (!stepRequestId) {
-          stepRequestId = randomUUID();
-          if (inflightStepRequestIds.size > 64) {
-            const oldestKey = inflightStepRequestIds.keys().next().value;
-            if (oldestKey) inflightStepRequestIds.delete(oldestKey);
-          }
-          inflightStepRequestIds.set(stepKey, stepRequestId);
-        }
+        const { workingMessages, tools } = translateContextToBodyStep(context, streamOptions?.signal, await options.readInputResolver?.());
+        const workspaceName = options.workspaceName();
+        const permissionMode = options.permissionMode();
+        const stepRequestId = createHash('sha256').update(JSON.stringify([
+          'inference', options.workSessionRef, options.agentBinding, workingMessages, tools, workspaceName, permissionMode,
+        ])).digest('hex');
         let finish: 'stop' | 'length' | 'toolUse' | undefined;
         let textIndex: number | undefined;
         let thinkingIndex: number | undefined;
@@ -163,8 +153,8 @@ export function nimiBodySymbiosisProvider(options: {
           workSessionRef: options.workSessionRef,
           workingMessages,
           tools,
-          workspaceName: options.workspaceName(),
-          permissionMode: options.permissionMode(),
+          workspaceName,
+          permissionMode,
           toolNames: tools.map(t => t.name),
           stepRequestId,
         }, streamOptions?.signal)) {
@@ -243,7 +233,6 @@ export function nimiBodySymbiosisProvider(options: {
         if (!finish) {
           throw new Error('Runtime Body step stream closed before terminal done event.');
         }
-        inflightStepRequestIds.delete(stepKey);
         for (const [index, item] of output.content.entries()) {
           if (item.type === 'text') events.push({ type: 'text_end', contentIndex: index, content: item.text, partial: output });
           if (item.type === 'thinking') events.push({ type: 'thinking_end', contentIndex: index, content: item.thinking, partial: output });
@@ -282,11 +271,10 @@ function parseBodyToolCallArgs(rawJson: string): NimiJsonObject {
 function translateContextToBodyStep(
   context: TranscriptContext,
   signal?: AbortSignal,
-  resolveOutboxId?: (userContent: unknown) => string | undefined,
+  resolveOutboxId?: (message: { timestamp: number; content: unknown }) => string | undefined,
 ): { workingMessages: BodyStepMessage[]; tools: BodyStepToolDef[] } {
   const workingMessages: BodyStepMessage[] = [];
   const toolsMap = new Map<string, BodyStepToolDef>();
-
   for (const message of context.messages) {
     signal?.throwIfAborted();
     if (message.role === 'system') {
@@ -304,7 +292,7 @@ function translateContextToBodyStep(
       continue;
     }
     if (message.role === 'user') {
-      const outboxId = resolveOutboxId?.(message.content);
+      const outboxId = resolveOutboxId?.(message);
       workingMessages.push({
         role: 'user',
         contentJson: JSON.stringify(message.content),

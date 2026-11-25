@@ -104,7 +104,7 @@ export function ZhiyuHarnessHandoffDialog({
       }
     } catch (err) {
       if (generation !== openGenerationRef.current) return;
-      setError(err instanceof Error ? err.message : '转交 Harness 失败，请稍后重试。');
+      setError(err instanceof Error ? err.message : '转交本机工作台失败，请稍后重试。');
     } finally {
       if (generation === openGenerationRef.current) {
         setSubmitting(false);
@@ -116,7 +116,7 @@ export function ZhiyuHarnessHandoffDialog({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="转交 Harness 办理（可编辑简报）"
+      aria-label="转交电脑工作台（可编辑简报）"
       data-testid="zhiyu-harness-handoff-dialog"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
     >
@@ -124,7 +124,7 @@ export function ZhiyuHarnessHandoffDialog({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Briefcase size={17} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-            <h2 className="text-base font-semibold">转交 Harness 办理（可编辑简报）</h2>
+            <h2 className="text-base font-semibold">转交电脑工作台（可编辑简报）</h2>
           </div>
           <button
             type="button"
@@ -139,7 +139,7 @@ export function ZhiyuHarnessHandoffDialog({
         {/* Zone 1: What WILL be sent to Harness (editable & opt-in) */}
         <div className="flex flex-col gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3.5 text-xs">
           <p className="font-semibold text-[var(--nimi-text-primary)]">
-            将带给 Harness 的简报（仅发送你确认和编辑后的内容）
+            交给电脑工作台的简报（仅发送你确认和编辑后的内容）
           </p>
 
           <label className="flex flex-col gap-1">
@@ -258,7 +258,7 @@ export function ZhiyuHarnessHandoffDialog({
               onClick={() => void handleSubmit()}
               className="rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? '正在转交…' : '确认转交 Harness'}
+              {submitting ? '正在转交…' : '确认转交'}
             </button>
           ) : null}
         </div>

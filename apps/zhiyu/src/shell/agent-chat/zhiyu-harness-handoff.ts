@@ -38,7 +38,7 @@ export interface ZhiyuHarnessHandoffBridge {
   submit(payload: ZhiyuHandoffSubmitPayload): Promise<ZhiyuHandoffSubmitResult>;
 }
 
-const DEFAULT_STAYED_NOTICE = '全部原始陪伴聊天记录、日常闲聊与情绪上下文均保留在织羽，不会传给 Harness。';
+const DEFAULT_STAYED_NOTICE = '原始陪伴聊天记录、日常闲聊与情绪上下文保留在织羽。电脑工作台只会收到上方确认的简报。';
 
 function randomRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -93,7 +93,7 @@ export function composeHandoffBriefPayload(input: {
 }): ZhiyuHandoffSubmitPayload {
   const agentHandle = input.agentHandle.trim();
   if (!agentHandle) {
-    throw new Error('请先选择一位本地伙伴后再转交 Harness。');
+    throw new Error('请先选择一位本地伙伴后再转交电脑工作台。');
   }
   const goal = input.goal.trim();
   const checkedPoints = input.points
@@ -102,7 +102,7 @@ export function composeHandoffBriefPayload(input: {
   const notes = (input.extraNotes ?? '').trim();
 
   if (!goal && checkedPoints.length === 0 && !notes) {
-    throw new Error('请填写要交给 Harness 办理的目标或至少勾选一条简报要点。');
+    throw new Error('请填写要交给电脑工作台办理的目标或至少勾选一条简报要点。');
   }
 
   const lines: string[] = [];

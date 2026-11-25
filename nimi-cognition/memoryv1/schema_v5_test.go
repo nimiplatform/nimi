@@ -8,6 +8,28 @@ import (
 	"time"
 )
 
+func TestConcurrentFirstOpen(t *testing.T) {
+	root := t.TempDir()
+	start := make(chan struct{})
+	results := make(chan error, 8)
+	for range 8 {
+		go func() {
+			<-start
+			core, err := Open(root)
+			if err == nil {
+				err = core.Close()
+			}
+			results <- err
+		}()
+	}
+	close(start)
+	for range 8 {
+		if err := <-results; err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestSchemaV4ToV5MigrationSingleSlotSupersedeAndScopeTagRecall(t *testing.T) {
 	dir := t.TempDir()
 	storePath := filepath.Join(dir, storeFilename)

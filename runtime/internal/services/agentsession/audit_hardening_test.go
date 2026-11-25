@@ -186,7 +186,7 @@ func TestAuditHardeningCapabilityIdempotencyCronDSTLedgerAndLeaseRestart(t *test
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg1.GetLeaseEpoch(),
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: `"step 1 message"`}},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", OutboxId: firstRoute.GetOutboxId(), ContentJson: `"build project alpha"`}},
 	}, st1); err != nil {
 		t.Fatalf("step 1 failed: %v", err)
 	}

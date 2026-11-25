@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ChatComposer } from '@nimiplatform/kit/features/chat';
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
-import { Brain, Check, ChevronDown, Cloud, Cpu, ExternalLink, Eye, Loader2, Paperclip, Play, Search, Settings, Shield, ShieldCheck, Sparkles, Square, X } from 'lucide-react';
+import { Brain, Check, ChevronDown, Eye, Loader2, Paperclip, Play, Settings, Shield, ShieldCheck, Sparkles, Square, X } from 'lucide-react';
 import { useI18n } from '../i18n.js';
 import { emptyDraft, type Material, type SessionDrafts, type TaskDraft } from './session-drafts.js';
 import type { PermissionMode, ReasoningChoice } from './harness-types.js';
-import type { NimiEnsureRouteInput, NimiModelRouteCatalog, NimiSavedConfigOption } from './model-routes.js';
-
-type RouteFilter = 'all' | 'cloud' | 'local' | 'saved';
-
 export function TaskComposer({
   sessionId,
   store,
@@ -20,10 +16,6 @@ export function TaskComposer({
   stopped,
   queued,
   modelLabel,
-  configRef,
-  records,
-  routeCatalog,
-  loadingRoutes,
   reasoningChoices,
   reasoningEffort,
   permissionMode,
@@ -32,10 +24,6 @@ export function TaskComposer({
   focusOnOpen,
   focusToken,
   lastRequest,
-  onSelectModel,
-  onSelectRoute,
-  onRefreshRoutes,
-  onOpenHomeModels,
   onSelectReasoningEffort,
   onSelectPermissionMode,
   onOpenModels,
@@ -53,10 +41,6 @@ export function TaskComposer({
   stopped: boolean;
   queued: { id: number; text: string }[];
   modelLabel?: string;
-  configRef?: string;
-  records: readonly { configRef: string; name: string; isDefault: boolean }[];
-  routeCatalog?: NimiModelRouteCatalog;
-  loadingRoutes?: boolean;
   reasoningChoices: ReasoningChoice[];
   reasoningEffort: string;
   permissionMode: PermissionMode;
@@ -65,10 +49,6 @@ export function TaskComposer({
   focusToken?: number;
   lastRequest?: string;
   openFile(ref: string, opener: HTMLButtonElement): void;
-  onSelectModel(configRef: string): Promise<void>;
-  onSelectRoute?(route: NimiEnsureRouteInput): Promise<void>;
-  onRefreshRoutes?(): void;
-  onOpenHomeModels?(): void;
   onSelectReasoningEffort(effort: string): Promise<void>;
   onSelectPermissionMode(mode: PermissionMode): Promise<void>;
   onOpenModels(): void;
@@ -83,10 +63,6 @@ export function TaskComposer({
   const draftReady = Boolean(draft);
   const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
   const [permPopoverOpen, setPermPopoverOpen] = useState(false);
-  const [switchingModel, setSwitchingModel] = useState(false);
-  const [modelSearch, setModelSearch] = useState('');
-  const [routeFilter, setRouteFilter] = useState<RouteFilter>('all');
-
   useEffect(() => {
     if (draftReady && initialFocus.current) {
       initialFocus.current = false;
@@ -165,84 +141,6 @@ export function TaskComposer({
     return mapped === key ? val : mapped;
   }
 
-  const savedOptions = useMemo<readonly NimiSavedConfigOption[]>(() => {
-    if (routeCatalog?.configs.length) return routeCatalog.configs;
-    return records.map(r => ({
-      configRef: r.configRef,
-      name: r.name,
-      isDefault: r.isDefault,
-      revision: '',
-      routeKind: 'unset' as const,
-      ready: true,
-    }));
-  }, [routeCatalog, records]);
-
-  const activeConfigRef = configRef || savedOptions.find(c => c.isDefault)?.configRef;
-  const searchQuery = modelSearch.trim().toLowerCase();
-
-  const filteredSaved = useMemo(() => {
-    if (routeFilter !== 'all' && routeFilter !== 'saved') return [];
-    return savedOptions.filter(item => {
-      if (!searchQuery) return true;
-      const hay = [item.name, item.targetLabel, item.connectorLabel, item.provider, item.routeKind].filter(Boolean).join(' ').toLowerCase();
-      return hay.includes(searchQuery);
-    });
-  }, [savedOptions, routeFilter, searchQuery]);
-
-  const showLocalSection = useMemo(() => {
-    if (!routeCatalog) return false;
-    if (routeFilter !== 'all' && routeFilter !== 'local') return false;
-    if (!searchQuery) return true;
-    const hay = ['local', '本机', 'on-device', routeCatalog.local.label ?? ''].join(' ').toLowerCase();
-    return hay.includes(searchQuery);
-  }, [routeCatalog, routeFilter, searchQuery]);
-
-  const filteredCloudConnectors = useMemo(() => {
-    if (!routeCatalog) return [];
-    if (routeFilter !== 'all' && routeFilter !== 'cloud') return [];
-    return routeCatalog.cloudConnectors
-      .map(group => ({
-        ...group,
-        targets: group.targets.filter(target => {
-          if (!searchQuery) return true;
-          const hay = [
-            target.label,
-            target.providerModelId,
-            group.label,
-            group.provider,
-            target.matchedConfigName,
-            'cloud',
-            '云端',
-          ].filter(Boolean).join(' ').toLowerCase();
-          return hay.includes(searchQuery);
-        }),
-      }))
-      .filter(group => group.targets.length > 0);
-  }, [routeCatalog, routeFilter, searchQuery]);
-
-  const hasVisibleResults = filteredSaved.length > 0 || showLocalSection || filteredCloudConnectors.length > 0;
-
-  async function pickConfigRef(targetRef: string) {
-    setSwitchingModel(true);
-    try {
-      await onSelectModel(targetRef);
-      setModelPopoverOpen(false);
-    } finally {
-      setSwitchingModel(false);
-    }
-  }
-
-  async function pickRoute(route: NimiEnsureRouteInput) {
-    if (!onSelectRoute) return;
-    setSwitchingModel(true);
-    try {
-      await onSelectRoute(route);
-      setModelPopoverOpen(false);
-    } finally {
-      setSwitchingModel(false);
-    }
-  }
-
   const PermIcon = permissionMode === 'strict' ? Shield : permissionMode === 'workspace-edit' ? ShieldCheck : Eye;
   const permLabel = permissionMode === 'strict'
     ? t('permission.strict')
@@ -252,19 +150,9 @@ export function TaskComposer({
 
   const leadingControls = (
     <div className="harness-composer-controls">
-      <Popover
-        open={modelPopoverOpen}
-        onOpenChange={open => {
-          setModelPopoverOpen(open);
-          if (open) {
-            setModelSearch('');
-            setRouteFilter('all');
-            onRefreshRoutes?.();
-          }
-        }}
-      >
+      <Popover open={modelPopoverOpen} onOpenChange={setModelPopoverOpen}>
         <PopoverTrigger asChild>
-          <button type="button" className="harness-composer-pill" disabled={switchingModel}>
+          <button type="button" className="harness-composer-pill">
             <Sparkles size={12} aria-hidden="true" />
             <span className="harness-composer-pill__label">{modelLabel ?? t('model.choose')}</span>
             {reasoningChoices.length > 0 && reasoningEffort !== 'default' && (
@@ -277,170 +165,6 @@ export function TaskComposer({
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" side="top" className="harness-popover harness-popover--models">
-          {running && <p className="harness-muted harness-muted--xs">{t('model.stopBeforeSwitch')}</p>}
-
-          <div className="harness-model-search">
-            <Search size={13} aria-hidden="true" />
-            <input
-              type="text"
-              value={modelSearch}
-              placeholder={t('model.searchPlaceholder')}
-              aria-label={t('model.searchPlaceholder')}
-              onChange={event => setModelSearch(event.target.value)}
-            />
-            {modelSearch && (
-              <button
-                type="button"
-                className="harness-icon-btn"
-                aria-label="Clear"
-                onClick={() => setModelSearch('')}
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          {routeCatalog && (
-            <div className="harness-model-tabs" role="tablist" aria-label={t('model.configuration')}>
-              {([
-                ['all', t('model.filter.all')],
-                ['cloud', t('model.filter.cloud')],
-                ['local', t('model.filter.local')],
-                ['saved', t('model.filter.saved')],
-              ] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={routeFilter === key}
-                  className={`harness-model-tab ${routeFilter === key ? 'harness-model-tab--active' : ''}`}
-                  onClick={() => setRouteFilter(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="harness-model-scroll">
-            {loadingRoutes && !routeCatalog && (
-              <p className="harness-muted harness-muted--xs">{t('model.loadingRoutes')}</p>
-            )}
-
-            {filteredSaved.length > 0 && (
-              <div className="harness-model-group">
-                <div className="harness-popover__title">{t('model.group.saved')}</div>
-                <div className="harness-popover__list">
-                  {filteredSaved.map(row => {
-                    const active = row.configRef === activeConfigRef;
-                    const sub = row.routeKind === 'local'
-                      ? `${t('model.badge.local')}${row.targetLabel ? ` · ${row.targetLabel}` : ''}`
-                      : row.routeKind === 'cloud'
-                        ? [row.connectorLabel ?? row.provider, row.targetLabel].filter(Boolean).join(' · ')
-                        : undefined;
-                    return (
-                      <button
-                        key={row.configRef}
-                        type="button"
-                        disabled={running || switchingModel}
-                        className={`harness-popover__item ${active ? 'harness-popover__item--active' : ''}`}
-                        onClick={() => void pickConfigRef(row.configRef)}
-                      >
-                        <span className="harness-model-item-main">
-                          <span className="harness-model-item-name">{row.name}</span>
-                          {sub && <span className="harness-model-item-sub">{sub}</span>}
-                        </span>
-                        {row.routeKind !== 'unset' && (
-                          <span className={`harness-model-badge ${row.routeKind === 'local' ? 'harness-model-badge--local' : ''}`}>
-                            {row.routeKind === 'local' ? t('model.badge.local') : t('model.badge.cloud')}
-                          </span>
-                        )}
-                        {active && <Check size={14} aria-hidden="true" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {showLocalSection && routeCatalog && (
-              <div className="harness-model-group">
-                <div className="harness-popover__title">{t('model.group.local')}</div>
-                <div className="harness-popover__list">
-                  {routeCatalog.local.available ? (
-                    <button
-                      type="button"
-                      disabled={running || switchingModel}
-                      className={`harness-popover__item ${routeCatalog.local.matchedConfigRef && routeCatalog.local.matchedConfigRef === activeConfigRef ? 'harness-popover__item--active' : ''}`}
-                      onClick={() => void pickRoute({ route: 'local' })}
-                    >
-                      <span className="harness-popover__item-lead">
-                        <Cpu size={13} aria-hidden="true" />
-                        <span className="harness-model-item-name">{routeCatalog.local.label ?? t('model.badge.local')}</span>
-                      </span>
-                      <span className="harness-model-badge harness-model-badge--local">{t('model.badge.local')}</span>
-                      {routeCatalog.local.matchedConfigRef === activeConfigRef && <Check size={14} aria-hidden="true" />}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="harness-popover__item"
-                      onClick={() => {
-                        setModelPopoverOpen(false);
-                        if (onOpenHomeModels) onOpenHomeModels();
-                        else onOpenModels();
-                      }}
-                    >
-                      <span className="harness-popover__item-lead">
-                        <Cpu size={13} aria-hidden="true" />
-                        <span className="harness-model-item-name">{t('model.localUnconfigured')}</span>
-                      </span>
-                      <span className="harness-model-badge harness-model-badge--warn">{t('model.badge.notSet')}</span>
-                      <ExternalLink size={12} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {filteredCloudConnectors.map(group => (
-              <div key={group.connectorRef} className="harness-model-group">
-                <div className="harness-popover__title">{t('model.group.cloud', { name: group.label })}</div>
-                <div className="harness-popover__list">
-                  {group.targets.map(target => {
-                    const active = Boolean(target.matchedConfigRef && target.matchedConfigRef === activeConfigRef);
-                    return (
-                      <button
-                        key={`${group.connectorRef}:${target.targetKey}`}
-                        type="button"
-                        disabled={running || switchingModel}
-                        className={`harness-popover__item ${active ? 'harness-popover__item--active' : ''}`}
-                        onClick={() => void pickRoute({
-                          route: 'cloud',
-                          connectorRef: target.connectorRef,
-                          targetKey: target.targetKey,
-                        })}
-                      >
-                        <span className="harness-popover__item-lead">
-                          <Cloud size={12} aria-hidden="true" />
-                          <span className="harness-model-item-name">{target.label}</span>
-                        </span>
-                        {target.matchedConfigName && (
-                          <span className="harness-model-badge">{target.matchedConfigName}</span>
-                        )}
-                        {active && <Check size={14} aria-hidden="true" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            {!loadingRoutes && !hasVisibleResults && (
-              <p className="harness-muted harness-muted--xs">{t('model.emptySearch')}</p>
-            )}
-          </div>
-
           {reasoningChoices.length > 0 && (
             <div className="harness-popover__section">
               <div className="harness-popover__title">{t('model.reasoning')}</div>

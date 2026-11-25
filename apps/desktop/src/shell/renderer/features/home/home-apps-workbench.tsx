@@ -44,7 +44,7 @@ async function launchDesktopApp(
   }
   if (entry.committedRelease && liveBridge.launchInstalled) {
     const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
-    if (run.state === 'crashed') {
+    if (run.state === 'crashed' || run.state === 'stopped') {
       throw new Error(installedLaunchFailureMessage(run, t));
     }
     return;

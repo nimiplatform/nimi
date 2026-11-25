@@ -509,8 +509,9 @@ func (c *Core) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef
 			return 0, fmt.Errorf("neutralize pending receipts: scan: %w", err)
 		}
 		var req CommitRequest
-		if json.Unmarshal(raw, &req) != nil {
-			continue
+		if err := json.Unmarshal(raw, &req); err != nil {
+			_ = rows.Close()
+			return 0, err
 		}
 		matched := false
 		for _, src := range req.Sources {
@@ -522,9 +523,21 @@ func (c *Core) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef
 		if !matched && sourceKind == "session" && req.Fact.SessionPointer != nil && req.Fact.SessionPointer.WorkSessionRef == sourceValue {
 			matched = true
 		}
+		if !matched && sourceKind == "session" && req.Fact.Correction != nil {
+			var err error
+			matched, err = requestHasSessionCutoffTx(ctx, tx, req, nil)
+			if err != nil {
+				_ = rows.Close()
+				return 0, err
+			}
+		}
 		if matched {
 			matchingOps = append(matchingOps, opID)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return 0, err
 	}
 	if err := rows.Close(); err != nil {
 		return 0, fmt.Errorf("neutralize pending receipts: close rows: %w", err)

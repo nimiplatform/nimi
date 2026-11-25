@@ -3,7 +3,7 @@ import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, Search } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -68,6 +68,7 @@ const PC_BODY_CAPABILITY_DOMAIN = 'agent.body.pc';
 
 function entryDeclaresPcBodyCapability(entry: DesktopAppsEntry): boolean {
   if (entry.localDevelopment?.appAccess?.includes(PC_BODY_CAPABILITY_DOMAIN)) return true;
+  if (entry.committedRelease?.appAccess?.includes(PC_BODY_CAPABILITY_DOMAIN)) return true;
   if (entry.appInfo?.appAccess?.includes(PC_BODY_CAPABILITY_DOMAIN)) return true;
   return false;
 }
@@ -248,15 +249,18 @@ export function NimiOverview() {
   }), [ownerUserId, sdk]);
   const sharedAgentAIConfigQuery = useQuery({
     queryKey: ['nimi-overview', 'shared-agent-ai-config', ownerUserId],
-    queryFn: async () => (await sharedAgentAIConfig.get({ subjectUserId: ownerUserId })).config,
+    queryFn: async () => sharedAgentAIConfig.get({ subjectUserId: ownerUserId }),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
     staleTime: 0,
     refetchOnMount: 'always',
     retry: false,
   });
   const committedCloudRoute = useMemo(() => {
-    const capabilities = sharedAgentAIConfigQuery.data?.capabilities ?? [];
+    const snapshot = sharedAgentAIConfigQuery.data;
+    const selection = snapshot?.effectiveSelections.find(item => item.capabilityContract === 'text.generate');
+    const capabilities = snapshot?.config?.capabilities ?? [];
     const textIntent = capabilities.find((entry) => entry.capabilityContract === 'text.generate');
+    if (!selection || selection.state !== 'ready') return { active: false, unknown: true, modelLabel: null };
     if (textIntent?.route?.oneofKind !== 'cloud') {
       return { active: false, modelLabel: null as string | null };
     }
@@ -381,7 +385,12 @@ export function NimiOverview() {
   const openDiagnostics = (pane: RuntimeAdvancedDiagnosticsPane) => {
     commands.runtimeConfigNavigation.openPage('advancedDiagnostics', { pane });
   };
+  const locatingSession = useRef<AbortController | null>(null);
+  useEffect(() => () => locatingSession.current?.abort(), [messagesAccountKey]);
   const openHarness = (workSessionRef?: string) => {
+    locatingSession.current?.abort();
+    const controller = new AbortController();
+    locatingSession.current = controller;
     const carrierEntry = resolvePcBodyCarrierEntry(entries, sessionOverview.activePcCarrierAppId);
     const trimmedRef = workSessionRef?.trim() ?? '';
 
@@ -399,7 +408,7 @@ export function NimiOverview() {
       }
       if (targetEntry.committedRelease && liveBridge.launchInstalled) {
         const run = await liveBridge.launchInstalled(targetEntry.committedRelease.launchSelector.slice());
-        if (run.state === 'crashed') {
+        if (run.state === 'crashed' || run.state === 'stopped') {
           throw new Error(installedLaunchFailureMessage(run, t));
         }
         return;
@@ -413,21 +422,39 @@ export function NimiOverview() {
       // PC Body App and delivers the exact work-session target to it.
       if (trimmedRef) {
         try {
-          const activityPage = await sdk.appProduct().activity.list({ pageSize: 50 });
-          const expectedObjectRef = `work-session:${trimmedRef}`;
-          const matched = activityPage.records.find((item) => (
-            (item.objectRef === expectedObjectRef || item.objectRef === trimmedRef)
-            && (!carrierEntry || item.source.appId === carrierEntry.identity.appId)
-          ));
-          if (matched) {
-            const opened = await sdk.appProduct().activity.open({ activityId: matched.activityId });
-            if (opened.outcome === 'opened') {
-              if (carrierEntry) recordHomeRecentAppOpen(messagesAccountKey, carrierEntry.identity.appId);
-              return;
-            }
+          if (!carrierEntry) throw new Error(t('Apps.actionFailed'));
+          const activity = sdk.appProduct().activity;
+          const locate = async () => {
+            let pageToken: string | undefined;
+            do {
+              const page = await activity.list({ pageSize: 100, pageToken });
+              controller.signal.throwIfAborted();
+              const record = page.records.find(item => (
+                (item.objectRef === 'work-session:' + trimmedRef || item.objectRef === trimmedRef)
+                && item.source.appId === carrierEntry.identity.appId
+              ));
+              if (record) {
+                const result = await activity.open({ activityId: record.activityId });
+                if (result.outcome !== 'opened') throw new Error(t('Apps.actionFailed'));
+                recordHomeRecentAppOpen(messagesAccountKey, carrierEntry.identity.appId);
+                return true;
+              }
+              pageToken = page.nextPageToken ?? undefined;
+            } while (pageToken);
+            return false;
+          };
+          if (await locate()) return;
+          if (carrierEntry.run?.state !== 'running') await launchOrFocusCarrier(carrierEntry);
+          for (const delay of [200, 500, 1000, 2000, 3000]) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            controller.signal.throwIfAborted();
+            if (await locate()) return;
           }
-        } catch {
-          // Fall through to launching/focusing the active/declared PC Body carrier App.
+          throw new Error(t('runtimeConfig.overview.omni.sessionNotLocated'));
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          emitFeedbackToast({ kind: 'error', message: error instanceof Error ? error.message : t('Apps.actionFailed') });
+          return;
         }
       }
 
@@ -813,9 +840,9 @@ export function NimiOverview() {
               recentSessions={sessionOverview.sessions}
               cloudRouteActive={committedCloudRoute.active}
               cloudRouteStatus={
-                sharedAgentAIConfigQuery.isPending
+                sharedAgentAIConfigQuery.isPending || sharedAgentAIConfigQuery.isFetching
                   ? 'loading'
-                  : sharedAgentAIConfigQuery.isError
+                  : sharedAgentAIConfigQuery.isError || committedCloudRoute.unknown
                     ? 'unknown'
                     : committedCloudRoute.active
                       ? 'cloud'

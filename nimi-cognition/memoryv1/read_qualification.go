@@ -41,7 +41,7 @@ func qualifyMemoryRefsTx(ctx context.Context, tx *sql.Tx, bankRef string, refs [
 	if err != nil {
 		return nil, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT memory_ref FROM memories WHERE bank_ref=? AND lifecycle=? AND memory_ref IN (SELECT value FROM json_each(?))`, bankRef, LifecycleCurrent, string(raw))
+	rows, err := tx.QueryContext(ctx, `SELECT memory_ref FROM visible_session_memories WHERE bank_ref=? AND lifecycle=? AND memory_ref IN (SELECT value FROM json_each(?))`, bankRef, LifecycleCurrent, string(raw))
 	if err != nil {
 		return nil, fmt.Errorf("qualify memory reads: %w", err)
 	}

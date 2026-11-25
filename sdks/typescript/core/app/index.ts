@@ -73,6 +73,7 @@ export {
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
+export { createNimiLocalAppAgentReferencesClient } from './local-app-runtime-platform-agent-references.js';
 export {
   createNimiLocalAppClient,
   validateNimiLocalAppConversationQuoteInput,

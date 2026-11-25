@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -18,6 +19,28 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+type droppedDoneStream struct{ *fakeBodyStepStream }
+
+func (f *droppedDoneStream) Send(ev *runtimev1.BodyStepStreamEvent) error {
+	if ev.GetDone() != nil {
+		return context.Canceled
+	}
+	return f.fakeBodyStepStream.Send(ev)
+}
+
+func testRoutedInput(t *testing.T, svc *Service, ctx context.Context, ref, agent, text string) *runtimev1.BodyWorkingMessage {
+	t.Helper()
+	routed, err := svc.RouteAndSubmitInput(ctx, &runtimev1.RouteAndSubmitInputRequest{AgentHandle: agent, Text: text, RequestId: newID("req"), ExplicitWorkSessionRef: ref})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: string(data), OutboxId: routed.GetOutboxId()}
+}
 
 func TestComposedEndpointSchedulerNoDeadlockAndPreemption(t *testing.T) {
 	sched := scheduler.New(scheduler.Config{
@@ -107,7 +130,7 @@ func TestComposedEndpointSchedulerNoDeadlockAndPreemption(t *testing.T) {
 			CapabilityNamespace: DefaultPCNamespace,
 			LeaseEpoch:          reg.GetLeaseEpoch(),
 			Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_COMPACTION,
-			WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: `"compact me"`}},
+			WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", OutboxId: r1.GetOutboxId(), ContentJson: `"task one"`}},
 		}, stP2)
 	}()
 
@@ -127,7 +150,7 @@ func TestComposedEndpointSchedulerNoDeadlockAndPreemption(t *testing.T) {
 			CapabilityNamespace: DefaultPCNamespace,
 			LeaseEpoch:          reg.GetLeaseEpoch(),
 			Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-			WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: `"urgent foreground"`}},
+			WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", OutboxId: r2.GetOutboxId(), ContentJson: `"task two"`}},
 		}, stP0)
 	}()
 
@@ -219,7 +242,7 @@ func TestComposedSingleAnchorRollingLedgerCompactionAndOnceOnlySideEffects(t *te
 	authCtx := testCallerCtx("com.custom.pcbody", "subj-pc", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize)
 
 	// Step 1 on writable session
-	u1 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"edit a.txt"`}
+	u1 := &runtimev1.BodyWorkingMessage{Role: "user", OutboxId: writableRoute.GetOutboxId(), ContentJson: `"edit a.txt"`}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsW,
 		DeviceId:            "dev-1",
@@ -238,7 +261,7 @@ func TestComposedSingleAnchorRollingLedgerCompactionAndOnceOnlySideEffects(t *te
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg.GetLeaseEpoch(),
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: `"plan only"`}},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{{Role: "user", OutboxId: roRoute.GetOutboxId(), ContentJson: `"plan only"`}},
 	}, &fakeBodyStepStream{ctx: stepCtx}); err != nil {
 		t.Fatalf("readonly step 1: %v", err)
 	}
@@ -323,7 +346,7 @@ func TestComposedSingleAnchorRollingLedgerCompactionAndOnceOnlySideEffects(t *te
 		ArgumentsJson: `{"path":"a.txt","content":"hi"}`,
 	}})
 	tr1 := &runtimev1.BodyWorkingMessage{Role: "toolResult", ToolCallId: "call_write_1", ContentJson: `"written"`}
-	uTail := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"next step"`}
+	uTail := testRoutedInput(t, svc, routeCtx, wsW, "agent-1", "next step")
 
 	// COMPACTION smuggling a fabricated kept_tail NOT matching suffix of WorkingMessages MUST fail!
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
@@ -421,7 +444,7 @@ func TestComposedReadSetInvalidationAckAdvancesEpochAndProjectionHardening(t *te
 	wsRef := routed.GetResolvedWorkSessionRef()
 	stepCtx := testCallerCtx("com.custom.pcbody", "subj-pc", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream)
 
-	u1 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"step 1"`}
+	u1 := &runtimev1.BodyWorkingMessage{Role: "user", OutboxId: routed.GetOutboxId(), ContentJson: `"plan task"`}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-1",
@@ -436,7 +459,7 @@ func TestComposedReadSetInvalidationAckAdvancesEpochAndProjectionHardening(t *te
 	// Memory forgotten -> epoch advances to 42 -> step fails and enqueues INVALIDATE_MEMORY!
 	currentEpoch = 42
 	asst1 := buildAssistantWorkingMessage("ok", nil)
-	u2 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"step 2"`}
+	u2 := testRoutedInput(t, svc, routeCtx, wsRef, "agent-1", "step 2")
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-1",
@@ -585,11 +608,7 @@ func TestComposedHonestDesktopAlarmsAndFailClosedExternalChannels(t *testing.T) 
 			}
 		},
 		AlarmDeliverySender: func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, channel, renderedTitle, renderedBody string, _ time.Duration) AlarmDeliveryOutcome {
-			ref, err := svc.NotifyDesktopAlarm(ctx, accountID, alarm, renderedTitle, renderedBody)
-			if err != nil {
-				return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED, Detail: err.Error()}
-			}
-			return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED, ProviderMessageRef: ref}
+			return svc.NotifyDesktopAlarm(alarm, renderedTitle, renderedBody)
 		},
 	})
 
@@ -624,7 +643,7 @@ func TestComposedHonestDesktopAlarmsAndFailClosedExternalChannels(t *testing.T) 
 	if fires[0].Deliveries[0].ReceiptState != runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED {
 		t.Fatalf("expected PROVIDER_ACCEPTED for desktop notification, got %+v", fires[0].Deliveries[0])
 	}
-	att, err := svc.Store().ListPendingAttention(context.Background(), "acct-1")
+	att, err := svc.Store().ListPendingAttention(context.Background(), "acct-1", clock)
 	if err != nil || len(att) != 1 || att[0].GetAttentionKind() != "alarm_reminder" {
 		t.Fatalf("expected durable desktop alarm PendingAttentionRecord, got %+v err=%v", att, err)
 	}
@@ -657,7 +676,7 @@ type fakeOverviewStream struct {
 	deltas []*runtimev1.SessionOverviewDelta
 }
 
-func (f *fakeOverviewStream) Context() context.Context    { return f.ctx }
+func (f *fakeOverviewStream) Context() context.Context     { return f.ctx }
 func (f *fakeOverviewStream) SetHeader(metadata.MD) error  { return nil }
 func (f *fakeOverviewStream) SendHeader(metadata.MD) error { return nil }
 func (f *fakeOverviewStream) SetTrailer(metadata.MD)       {}
@@ -678,7 +697,7 @@ type fakeBrainEventStream struct {
 	target int
 }
 
-func (f *fakeBrainEventStream) Context() context.Context    { return f.ctx }
+func (f *fakeBrainEventStream) Context() context.Context     { return f.ctx }
 func (f *fakeBrainEventStream) SetHeader(metadata.MD) error  { return nil }
 func (f *fakeBrainEventStream) SendHeader(metadata.MD) error { return nil }
 func (f *fakeBrainEventStream) SetTrailer(metadata.MD)       {}
@@ -864,6 +883,12 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 				return BodyStepExecutionResult{FinishReason: "stop", CompactionSummary: ""}, nil
 			}
 			if n == 1 {
+				if err := emitter.SendReasoningSummaryDelta("Checking the file."); err != nil {
+					return BodyStepExecutionResult{}, err
+				}
+				if err := emitter.SendTextDelta("Writing App.tsx"); err != nil {
+					return BodyStepExecutionResult{}, err
+				}
 				// Emit tool call containing HTML/JSX characters `<`, `>`, `&&`!
 				call := &runtimev1.BodyToolCall{
 					CallId:        "call_html_1",
@@ -926,8 +951,17 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
 		WorkingMessages:     []*runtimev1.BodyWorkingMessage{userMsg},
 		StepRequestId:       "step-req-1",
-	}, stream1); err != nil {
-		t.Fatalf("step 1: %v", err)
+	}, &droppedDoneStream{stream1}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected lost Done after commit, got %v", err)
+	}
+
+	altered := &runtimev1.StreamLocalAgentBodyStepRequest{
+		WorkSessionRef: ref, DeviceId: "pc-dev-1", CapabilityNamespace: DefaultPCNamespace,
+		LeaseEpoch: reg.GetLeaseEpoch(), Purpose: runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE, StepRequestId: "step-req-1",
+		WorkingMessages: []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: "\"different input\"", OutboxId: routed.GetOutboxId()}},
+	}
+	if err := svc.StreamLocalAgentBodyStep(altered, &fakeBodyStepStream{ctx: stepCtx}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("changed replay payload: %v", err)
 	}
 
 	// Simulate stream drop before Body persisted -> retry with SAME step_request_id="step-req-1" and old prefix!
@@ -966,9 +1000,19 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 	}
 
 	// Forged assistant message appended in suffix MUST be rejected!
-	committedAssistant := buildAssistantWorkingMessage("Writing App.tsx", []*runtimev1.BodyToolCall{{
-		CallId: "call_html_1", Name: "write", ArgumentsJson: `{"content":"<div>a && b</div>","path":"App.tsx"}`,
-	}})
+	var replayText, replaySummary string
+	var replayCalls []*runtimev1.BodyToolCall
+	for _, frame := range streamReplay.events {
+		replayText += frame.GetTextDelta()
+		replaySummary += frame.GetReasoningSummaryDelta()
+		if call := frame.GetToolCall(); call != nil {
+			replayCalls = append(replayCalls, call)
+		}
+	}
+	if replayText != "Writing App.tsx" || replaySummary != "Checking the file." || len(replayCalls) != 1 {
+		t.Fatalf("incomplete committed replay: %q, %v", replayText, replayCalls)
+	}
+	committedAssistant := buildAssistantWorkingMessage(replayText, replayCalls)
 	forgedStream := &fakeBodyStepStream{ctx: stepCtx}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      ref,
@@ -1047,11 +1091,7 @@ func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverge
 			return strings.ToLower(strings.TrimSpace(ch)) == "desktop_notification"
 		},
 		AlarmDeliverySender: func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, _, title, body string, _ time.Duration) AlarmDeliveryOutcome {
-			ref, err := svc.NotifyDesktopAlarm(ctx, accountID, alarm, title, body)
-			if err != nil {
-				return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED}
-			}
-			return AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED, ProviderMessageRef: ref}
+			return svc.NotifyDesktopAlarm(alarm, title, body)
 		},
 		ReadSetQualifier: func(_ context.Context, _, _, _ string, lastEpoch int64) (bool, int64, error) {
 			cur := memEpoch.Load()
@@ -1164,14 +1204,15 @@ func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverge
 	}); err != nil {
 		t.Fatalf("ReportBodySessionProjection with strict mode & ClearPendingAttention failed: %v", err)
 	}
-	atts, err := svc.Store().ListPendingAttention(context.Background(), "acct-1")
+	atts, err := svc.Store().ListPendingAttention(context.Background(), "acct-1", clock)
 	if err != nil || len(atts) != 1 || atts[0].GetAttentionKind() != "alarm_reminder" {
 		t.Fatalf("ClearPendingAttention MUST preserve alarm_reminder, got %+v err=%v", atts, err)
 	}
 
 	// 3. Verify disabling memory (epoch 42 -> 0) converges cleanly after ACK instead of infinite invalidation!
 	stepCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCStepStream, DomainAgentBodyPC)
-	msg1 := &runtimev1.BodyWorkingMessage{Role: "user", ContentJson: `"turn 1"`}
+	msg1 := testRoutedInput(t, svc, routeCtx, pcRef, "agent-1", "turn 1")
+	msg2 := testRoutedInput(t, svc, routeCtx, pcRef, "agent-1", "turn 2")
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      pcRef,
 		DeviceId:            "pc-1",
@@ -1191,7 +1232,7 @@ func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverge
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg.GetLeaseEpoch(),
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), {Role: "user", ContentJson: `"turn 2"`}},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), msg2},
 		StepRequestId:       "epoch-step-2",
 	}, &fakeBodyStepStream{ctx: stepCtx}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected AGENT_SESSION_MEMORY_INVALIDATED on epoch 42->0, got %v", err)
@@ -1217,7 +1258,7 @@ func TestAuditBrainLiveDeltasAndClearAttentionPreservesAlarmAndZeroEpochConverge
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg.GetLeaseEpoch(),
 		Purpose:             runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE,
-		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), {Role: "user", ContentJson: `"turn 2"`}},
+		WorkingMessages:     []*runtimev1.BodyWorkingMessage{msg1, buildAssistantWorkingMessage("ok", nil), msg2},
 		StepRequestId:       "epoch-step-3",
 	}, &fakeBodyStepStream{ctx: stepCtx}); err != nil {
 		t.Fatalf("step after ACKing epoch 42->0 invalidation MUST succeed, got %v", err)
@@ -1275,6 +1316,88 @@ func TestSplitOrRedirectAfterTurnErrorPreservesUserTextAndMarksOfflineStatus(t *
 	}
 	if !strings.Contains(intents[0].GetPayloadJson(), "Audit the build pipeline logs") {
 		t.Fatalf("expected outbox payload to contain user prompt text, got %s", intents[0].GetPayloadJson())
+	}
+}
+
+type backpressuredDoneStream struct {
+	*fakeBodyStepStream
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (s *backpressuredDoneStream) Send(frame *runtimev1.BodyStepStreamEvent) error {
+	if frame.GetDone() != nil {
+		close(s.entered)
+		<-s.release
+		return context.Canceled
+	}
+	return s.fakeBodyStepStream.Send(frame)
+}
+
+func TestRegisteredAppBodyRoutesItsOwnExecution(t *testing.T) {
+	const app = "example.editor"
+	const namespace = "app.example.editor.task"
+	svc := newStage2Service(t, Options{
+		BodyNamespaceOwner: func(_ context.Context, ns string) (string, error) {
+			if ns == namespace {
+				return app, nil
+			}
+			return "example.editor.child", nil
+		},
+		BodyStepExecutor: func(_ context.Context, _ BodyStepExecutionInput, emitter BodyStepEmitter) (BodyStepExecutionResult, error) {
+			return BodyStepExecutionResult{FinishReason: "stop", AssistantText: "ok"}, emitter.SendTextDelta("ok")
+		},
+	})
+	caller := func(domain string, op localappop.Operation) context.Context {
+		return callerCtxWithExactDomains(app, "registered-editor", domain, op, DomainAgentLocal+","+DomainAgentBodyApp)
+	}
+	reg, err := svc.RegisterBodyCarrier(caller(DomainAgentBodyApp, localappop.OperationAgentBodyAppRegister), &runtimev1.RegisterBodyCarrierRequest{CapabilityNamespace: namespace, DeviceId: "device", InstanceId: "instance"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	route := caller(DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit)
+	if _, err := svc.RouteAndSubmitInput(route, &runtimev1.RouteAndSubmitInputRequest{RequestId: "foreign", AgentHandle: "agent-1", Text: "start", EntrySurface: "app.example.editor.child.task"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("foreign registered namespace: %v", err)
+	}
+	res, err := svc.RouteAndSubmitInput(route, &runtimev1.RouteAndSubmitInputRequest{RequestId: "own", AgentHandle: "agent-1", Text: "start", EntrySurface: namespace})
+	if err != nil || res.GetWorkSessionRecord().GetSessionKind() != "app_work" || res.GetOutboxId() == "" {
+		t.Fatalf("own app route: %v %v", res, err)
+	}
+	stream := &fakeBodyStepStream{ctx: caller(DomainAgentBodyApp, localappop.OperationAgentBodyAppStepStream)}
+	req := &runtimev1.StreamLocalAgentBodyStepRequest{
+		DeviceId: "device", CapabilityNamespace: namespace, WorkSessionRef: res.GetResolvedWorkSessionRef(), LeaseEpoch: reg.GetLeaseEpoch(), StepRequestId: "first",
+		Purpose: runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE, WorkingMessages: []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: "\"start\"", OutboxId: res.GetOutboxId()}},
+	}
+	if err := svc.StreamLocalAgentBodyStep(req, stream); err != nil {
+		t.Fatal(err)
+	}
+
+	// A real gRPC handler returning releases a transport send blocked on flow control.
+	held := &backpressuredDoneStream{fakeBodyStepStream: stream, entered: make(chan struct{}), release: make(chan struct{})}
+	release := sync.OnceFunc(func() { close(held.release) })
+	defer release()
+	returned := make(chan error, 1)
+	go func() { returned <- svc.StreamLocalAgentBodyStep(req, held) }()
+	select {
+	case <-held.entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("replay did not reach Done")
+	}
+	drained := make(chan struct{})
+	go func() { svc.Quiesce(); close(drained) }()
+	select {
+	case err := <-returned:
+		if status.Code(err) != codes.Canceled {
+			t.Fatalf("expected quiesce cancellation, got %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("blocked transport prevented RPC return")
+	}
+	release()
+	select {
+	case <-drained:
+	case <-time.After(3 * time.Second):
+		t.Fatal("worker remained after transport closed")
 	}
 }
 

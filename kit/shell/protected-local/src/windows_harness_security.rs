@@ -101,35 +101,52 @@ fn wide_str(value: &str) -> Result<Vec<u16>, HarnessSecurityError> {
 /// Converts a normalized absolute Windows path into an extended-length (`\\?\`)
 /// path so Win32 `CreateFileW` / directory creation work past the 260-char
 /// `MAX_PATH` limit (e.g. Harness per-session snapshot roots under app user-data).
-fn win32_extended_path(path: &Path) -> PathBuf {
-    let raw = path.to_string_lossy();
-    if raw.starts_with(r"\\?\") || raw.starts_with(r"\\.\") {
-        return path.to_path_buf();
-    }
+fn win32_extended_path(path: &Path) -> Result<PathBuf, HarnessSecurityError> {
+    let raw = path
+        .to_str()
+        .ok_or_else(|| HarnessSecurityError::new("invalid-path", "path is not valid Unicode"))?;
     let normalized = raw.replace('/', r"\");
-    let has_dot_component = normalized
+    let plain = if let Some(rest) = normalized.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else {
+        normalized
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&normalized)
+            .to_owned()
+    };
+    if plain.starts_with(r"\\.\") || plain.split('\\').any(|seg| seg == "." || seg == "..") {
+        return Err(HarnessSecurityError::new(
+            "invalid-path",
+            "device paths and dot segments are not admitted",
+        ));
+    }
+    if let Some(unc) = plain.strip_prefix(r"\\") {
+        let parts: Vec<_> = unc.split('\\').filter(|seg| !seg.is_empty()).collect();
+        if parts.len() < 2 {
+            return Err(HarnessSecurityError::new(
+                "invalid-path",
+                "incomplete UNC root",
+            ));
+        }
+        return Ok(PathBuf::from(format!(r"\\?\UNC\{}", parts.join(r"\"))));
+    }
+    let bytes = plain.as_bytes();
+    if bytes.len() < 3 || !bytes[0].is_ascii_alphabetic() || &bytes[1..3] != b":\\" {
+        return Err(HarnessSecurityError::new(
+            "invalid-path",
+            "absolute drive or UNC root is required",
+        ));
+    }
+    let tail = plain[3..]
         .split('\\')
-        .any(|seg| seg == "." || seg == "..");
-    if has_dot_component {
-        return path.to_path_buf();
-    }
-    if let Some(unc) = normalized.strip_prefix(r"\\") {
-        return PathBuf::from(format!(r"\\?\UNC\{unc}"));
-    }
-    let bytes = normalized.as_bytes();
-    if bytes.len() >= 3
-        && bytes[0].is_ascii_alphabetic()
-        && bytes[1] == b':'
-        && bytes[2] == b'\\'
-    {
-        return PathBuf::from(format!(r"\\?\{normalized}"));
-    }
-    path.to_path_buf()
+        .filter(|seg| !seg.is_empty())
+        .collect::<Vec<_>>()
+        .join(r"\");
+    Ok(PathBuf::from(format!(r"\\?\{}{tail}", &plain[..3])))
 }
 
 fn wide_extended_path(path: &Path) -> Result<Vec<u16>, HarnessSecurityError> {
-    let ext = win32_extended_path(path);
-    wide_null_terminated(ext.as_os_str())
+    wide_null_terminated(win32_extended_path(path)?.as_os_str())
 }
 
 fn win32_err(reason: &str, api: &str, code: u32) -> HarnessSecurityError {
@@ -182,10 +199,8 @@ fn quote_windows_arg(arg: &str) -> String {
 fn build_explicit_unicode_env_block(
     env: &BTreeMap<String, String>,
 ) -> Result<Vec<u16>, HarnessSecurityError> {
-    let mut entries: Vec<(&str, &str)> = env
-        .iter()
-        .map(|(k, v)| (k.as_str(), v.as_str()))
-        .collect();
+    let mut entries: Vec<(&str, &str)> =
+        env.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
     // Win32 CreateProcessW with CREATE_UNICODE_ENVIRONMENT requires case-insensitive ASCII sort.
     entries.sort_by(|a, b| a.0.to_ascii_uppercase().cmp(&b.0.to_ascii_uppercase()));
     let mut block = Vec::new();
@@ -217,11 +232,9 @@ fn create_inheritable_pipe() -> Result<(OwnedHandle, OwnedHandle), HarnessSecuri
     let mut read_handle: HANDLE = std::ptr::null_mut();
     let mut write_handle: HANDLE = std::ptr::null_mut();
     if unsafe { CreatePipe(&mut read_handle, &mut write_handle, &sa, 0) } == 0 {
-        return Err(win32_err(
-            "process-pipe-failed",
-            "CreatePipe",
-            unsafe { GetLastError() },
-        ));
+        return Err(win32_err("process-pipe-failed", "CreatePipe", unsafe {
+            GetLastError()
+        }));
     }
     // Parent read handle MUST NOT be inherited by child processes!
     if unsafe { SetHandleInformation(read_handle, HANDLE_FLAG_INHERIT, 0) } == 0 {
@@ -272,11 +285,9 @@ fn open_inheritable_nul_stdin() -> Result<OwnedHandle, HarnessSecurityError> {
 fn create_kill_on_close_job() -> Result<OwnedHandle, HarnessSecurityError> {
     let job = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
     if job.is_null() {
-        return Err(win32_err(
-            "job-object-failed",
-            "CreateJobObjectW",
-            unsafe { GetLastError() },
-        ));
+        return Err(win32_err("job-object-failed", "CreateJobObjectW", unsafe {
+            GetLastError()
+        }));
     }
     let job_owned = unsafe { OwnedHandle::from_raw_handle(job.cast()) };
     let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
@@ -345,10 +356,7 @@ fn terminate_and_drain_job(job: &OwnedHandle) -> Result<u32, HarnessSecurityErro
     }
 }
 
-fn spawn_pipe_drainer(
-    handle: OwnedHandle,
-    max_bytes: usize,
-) -> mpsc::Receiver<PipeReadOutcome> {
+fn spawn_pipe_drainer(handle: OwnedHandle, max_bytes: usize) -> mpsc::Receiver<PipeReadOutcome> {
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let mut collected = Vec::new();
@@ -390,9 +398,11 @@ fn spawn_pipe_drainer(
 
 fn resolve_windows_executable(raw: &str) -> PathBuf {
     let trimmed = raw.trim();
-    if trimmed.eq_ignore_ascii_case("powershell.exe") || trimmed.eq_ignore_ascii_case("powershell") {
+    if trimmed.eq_ignore_ascii_case("powershell.exe") || trimmed.eq_ignore_ascii_case("powershell")
+    {
         let sys_root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".to_string());
-        let candidate = PathBuf::from(&sys_root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        let candidate =
+            PathBuf::from(&sys_root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
         if candidate.is_file() {
             return candidate;
         }
@@ -608,9 +618,7 @@ pub fn wait_job_process(
                     timed_out = true;
                     break;
                 }
-                dl.saturating_duration_since(now)
-                    .as_millis()
-                    .min(50) as u32
+                dl.saturating_duration_since(now).as_millis().min(50) as u32
             }
             None => 50,
         };
@@ -738,7 +746,9 @@ fn final_path_from_handle(handle: HANDLE) -> Result<String, HarnessSecurityError
     Ok(normalize_dos_final_path(raw))
 }
 
-fn file_info_from_handle(handle: HANDLE) -> Result<BY_HANDLE_FILE_INFORMATION, HarnessSecurityError> {
+fn file_info_from_handle(
+    handle: HANDLE,
+) -> Result<BY_HANDLE_FILE_INFORMATION, HarnessSecurityError> {
     let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { zeroed() };
     if unsafe { GetFileInformationByHandle(handle, &mut info) } == 0 {
         return Err(win32_err(
@@ -751,13 +761,7 @@ fn file_info_from_handle(handle: HANDLE) -> Result<BY_HANDLE_FILE_INFORMATION, H
 }
 
 fn is_within_workspace_root(canonical_root: &str, candidate_final: &str) -> bool {
-    let root = canonical_root.trim_end_matches('\\').to_lowercase();
-    let cand = candidate_final.trim_end_matches('\\').to_lowercase();
-    if cand == root {
-        return true;
-    }
-    let prefix = format!("{root}\\");
-    cand.starts_with(&prefix)
+    canonical_relative_posix_win(canonical_root, candidate_final).is_ok()
 }
 
 fn canonicalize_workspace_root(workspace_root: &Path) -> Result<String, HarnessSecurityError> {
@@ -842,10 +846,7 @@ fn ensure_no_reparse_points_in_chain(
     Ok(())
 }
 
-fn read_all_from_handle(
-    handle: HANDLE,
-    max_bytes: usize,
-) -> Result<Vec<u8>, HarnessSecurityError> {
+fn read_all_from_handle(handle: HANDLE, max_bytes: usize) -> Result<Vec<u8>, HarnessSecurityError> {
     let info = file_info_from_handle(handle)?;
     let size = ((info.nFileSizeHigh as u64) << 32) | (info.nFileSizeLow as u64);
     if size as usize > max_bytes {
@@ -915,6 +916,52 @@ fn write_all_to_handle(handle: HANDLE, content: &[u8]) -> Result<(), HarnessSecu
     Ok(())
 }
 
+// Hold each validated directory without write/delete sharing until the final file
+// handle is acquired. A pathname mkdir is only issued beneath a pinned parent.
+fn pin_parent_directories(
+    root: &str,
+    segments: &[String],
+    create: bool,
+) -> Result<Vec<OwnedHandle>, HarnessSecurityError> {
+    let mut pins = Vec::with_capacity(segments.len() + 1);
+    let mut path = PathBuf::from(root);
+    for depth in 0..=segments.len() {
+        if depth > 0 {
+            path.push(&segments[depth - 1]);
+            if create {
+                match std::fs::create_dir(win32_extended_path(&path)?) {
+                    Ok(()) => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    Err(e) => return Err(HarnessSecurityError::new("write-failed", e.to_string())),
+                }
+            }
+        }
+        let wide = wide_extended_path(&path)?;
+        let handle = unsafe {
+            CreateFileW(
+                wide.as_ptr(),
+                0,
+                FILE_SHARE_READ,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+                std::ptr::null_mut(),
+            )
+        };
+        if handle == INVALID_HANDLE_VALUE || handle.is_null() {
+            return Err(win32_err(
+                "path-inspection-failed",
+                "CreateFileW(pin parent)",
+                unsafe { GetLastError() },
+            ));
+        }
+        let owned = unsafe { OwnedHandle::from_raw_handle(handle.cast()) };
+        verify_open_file_handle(owned.as_raw_handle().cast(), root, &segments[..depth], true)?;
+        pins.push(owned);
+    }
+    Ok(pins)
+}
+
 fn write_snapshot_file(
     snapshot_root: Option<&str>,
     snapshot_path: &str,
@@ -926,36 +973,20 @@ fn write_snapshot_file(
             "snapshot_root is required whenever snapshot_path is provided",
         ));
     };
-    let raw_path = Path::new(snapshot_path);
     let canonical_snap_root = canonicalize_workspace_root(Path::new(root_str))?;
-    let rel = raw_path
-        .strip_prefix(Path::new(root_str))
-        .or_else(|_| raw_path.strip_prefix(Path::new(&canonical_snap_root)))
+    let lexical = snapshot_path.replace('/', r"\");
+    let rel_str = canonical_relative_posix_win(&canonical_snap_root, &lexical)
+        .or_else(|_| canonical_relative_posix_win(&root_str.replace('/', r"\"), &lexical))
         .map_err(|_| {
             HarnessSecurityError::new(
                 "snapshot-escape",
-                "snapshot_path escapes declared snapshot_root",
+                "snapshot path escapes declared snapshot root",
             )
         })?;
-    let rel_str = rel.to_string_lossy().replace('\\', "/");
     let segments = validate_relative_workspace_path(&rel_str, false)?;
     ensure_no_reparse_points_in_chain(&canonical_snap_root, &segments, false)?;
-    if segments.len() > 1 {
-        let mut dir = PathBuf::from(&canonical_snap_root);
-        for seg in &segments[..segments.len() - 1] {
-            dir.push(seg);
-            let ext_dir = win32_extended_path(&dir);
-            if !ext_dir.exists() {
-                std::fs::create_dir(&ext_dir)
-                    .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
-            }
-        }
-        ensure_no_reparse_points_in_chain(
-            &canonical_snap_root,
-            &segments[..segments.len() - 1],
-            true,
-        )?;
-    }
+    let _parents =
+        pin_parent_directories(&canonical_snap_root, &segments[..segments.len() - 1], true)?;
     let mut anchored_path = PathBuf::from(&canonical_snap_root);
     for seg in &segments {
         anchored_path.push(seg);
@@ -1048,11 +1079,9 @@ fn write_snapshot_file(
         return Err(err);
     }
     if unsafe { SetFilePointerEx(raw, 0, std::ptr::null_mut(), FILE_BEGIN) } == 0 {
-        return Err(win32_err(
-            "snapshot-failed",
-            "SetFilePointerEx",
-            unsafe { GetLastError() },
-        ));
+        return Err(win32_err("snapshot-failed", "SetFilePointerEx", unsafe {
+            GetLastError()
+        }));
     }
     if unsafe { SetEndOfFile(raw) } == 0 {
         return Err(win32_err("snapshot-failed", "SetEndOfFile", unsafe {
@@ -1080,7 +1109,10 @@ fn utf16_eq_ignore_case(a: &[u16], b: &[u16]) -> bool {
     unsafe { CompareStringOrdinal(a.as_ptr(), a_len, b.as_ptr(), b_len, 1) == CSTR_EQUAL }
 }
 
-fn canonical_relative_posix_win(canonical_root: &str, candidate_final: &str) -> Result<String, HarnessSecurityError> {
+fn canonical_relative_posix_win(
+    canonical_root: &str,
+    candidate_final: &str,
+) -> Result<String, HarnessSecurityError> {
     // Compare strictly on UTF-16 code units via Win32 CompareStringOrdinal so NTFS
     // 1:1 ordinal case-folding matches the kernel and multi-byte Unicode folding
     // (e.g. İ, K, ẞ, Ⱥ) can NEVER panic or match a distinct sibling directory!
@@ -1369,11 +1401,9 @@ pub fn secure_write_file(
             }
             // Rewind the exact verified handle, overwrite, truncate, and flush.
             if unsafe { SetFilePointerEx(raw, 0, std::ptr::null_mut(), FILE_BEGIN) } == 0 {
-                return Err(win32_err(
-                    "write-failed",
-                    "SetFilePointerEx",
-                    unsafe { GetLastError() },
-                ));
+                return Err(win32_err("write-failed", "SetFilePointerEx", unsafe {
+                    GetLastError()
+                }));
             }
             if unsafe { SetEndOfFile(raw) } == 0 {
                 return Err(win32_err("write-failed", "SetEndOfFile", unsafe {
@@ -1415,26 +1445,7 @@ pub fn secure_write_file(
         }
     }
 
-    // Create missing parent directories safely under canonical_root, checking reparse points at each step.
-    if segments.len() > 1 {
-        let mut dir = PathBuf::from(&canonical_root);
-        for seg in &segments[..segments.len() - 1] {
-            dir.push(seg);
-            let ext_dir = win32_extended_path(&dir);
-            match std::fs::create_dir(&ext_dir) {
-                Ok(()) => {}
-                Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
-                Err(err) => {
-                    return Err(HarnessSecurityError::new("write-failed", err.to_string()));
-                }
-            }
-        }
-        ensure_no_reparse_points_in_chain(
-            &canonical_root,
-            &segments[..segments.len() - 1],
-            true,
-        )?;
-    }
+    let _parents = pin_parent_directories(&canonical_root, &segments[..segments.len() - 1], true)?;
 
     let new_handle = unsafe {
         CreateFileW(
@@ -1743,7 +1754,10 @@ mod tests {
         })
         .unwrap();
         assert!(restored.created);
-        assert_eq!(std::fs::read(workspace.join("src/app.ts")).unwrap(), b"export const v = 1;\n");
+        assert_eq!(
+            std::fs::read(workspace.join("src/app.ts")).unwrap(),
+            b"export const v = 1;\n"
+        );
 
         // Unicode length-changing case-fold characters (İ, K, ẞ, Ⱥ) must not panic or mis-slice
         let rel_i = canonical_relative_posix_win(r"C:\İroot", r"C:\İroot\sub\file.txt").unwrap();
@@ -1757,8 +1771,11 @@ mod tests {
                 .reason_code(),
             "workspace-escape"
         );
-        verify_segments_match_case_insensitive(&["İ_dir".to_string(), "file.txt".to_string()], "İ_dir/FILE.txt")
-            .unwrap();
+        verify_segments_match_case_insensitive(
+            &["İ_dir".to_string(), "file.txt".to_string()],
+            "İ_dir/FILE.txt",
+        )
+        .unwrap();
 
         // Sensitive .envrc and alias mismatch checks
         assert!(is_sensitive_relative_path(".envrc"));
@@ -1844,7 +1861,7 @@ mod tests {
         ] {
             snap_root.push(seg);
         }
-        std::fs::create_dir_all(win32_extended_path(&snap_root)).unwrap();
+        std::fs::create_dir_all(win32_extended_path(&snap_root).unwrap()).unwrap();
         let snap_path = snap_root.join("11111111-2222-3333-4444-555555555555.bak");
         assert!(
             snap_path.to_string_lossy().len() > 260,
@@ -1865,12 +1882,12 @@ mod tests {
         .unwrap();
         assert!(written.snapshot_written);
         assert_eq!(
-            std::fs::read(win32_extended_path(&snap_path)).unwrap(),
+            std::fs::read(win32_extended_path(&snap_path).unwrap()).unwrap(),
             b"original-v1"
         );
         let read_back = secure_read_file(&workspace, "notes.txt", 1024).unwrap();
         assert_eq!(read_back.content, b"updated-v2");
 
-        let _ = std::fs::remove_dir_all(win32_extended_path(&base));
+        let _ = std::fs::remove_dir_all(win32_extended_path(&base).unwrap());
     }
 }

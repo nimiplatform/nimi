@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, rm, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -5,7 +6,7 @@ import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import { createModels } from '@earendil-works/pi-ai/models';
 import type { ToolCall } from '@earendil-works/pi-ai';
-import { AgentDoc, CompactionTask, configure, createRegistry, createSession, type Session, type SubmissionId, type TaskId, DEFAULT_COMPACTION_POLICY, defineDoc, defineExtension, defineSignal, GenerationTask, Harness, hook, InboxDoc, LiveDoc, ROOT_CONVERSATION_ID, ToolResultEntry, ToolTask } from '@earendil-works/pi-durable';
+import { AgentDoc, CompactionTask, configure, createRegistry, createSession, type Session, type ToolRegistration, type SubmissionId, type TaskId, DEFAULT_COMPACTION_POLICY, defineDoc, defineExtension, defineSignal, GenerationTask, Harness, hook, InboxDoc, LiveDoc, ROOT_CONVERSATION_ID, ToolResultEntry, ToolTask } from '@earendil-works/pi-durable';
 import { CodingTools, createEditTool, createPowerShellTool, createReadTool, createWriteTool } from '@earendil-works/pi-durable/tools';
 import { bool, obj, opt, str } from '@earendil-works/pi-schema';
 import { NimiElectronLocalAppHostError, type NimiElectronAppBusinessServices } from '@nimiplatform/kit/shell/electron/main';
@@ -24,6 +25,15 @@ import { hashOutboxPayload, openDurableFullStorage, OutboxReceiptsDoc } from './
 import { SecureWorkspaceExecutionEnv, type PreWriteSnapshotRecord, type RecentAiEditRecord } from './secure-workspace-env.js';
 import { isControlPlanePath, isSensitivePath, resolveSafeWorkspacePath } from './security-policy.js';
 import { logicalAgentModelId, type BodyStepMessage, type HarnessBodySymbiosisClient } from './body-symbiosis.js';
+
+type SessionTx = Parameters<Parameters<ReturnType<typeof createSession>['commit']>[0]>[0];
+async function readSubmission(tx: SessionTx, conversationId: Parameters<SessionTx['submissionByRequest']>[0], requestId: string) {
+  const direct = await tx.submissionByRequest(conversationId, requestId);
+  if (direct) return direct;
+  const receipts = await tx.doc(OutboxReceiptsDoc, conversationId);
+  const receipt = Object.values(receipts.byRequestId).find(item => item.localRequestId === requestId);
+  return receipt ? tx.submissionByRequest(conversationId, receipt.requestId) : undefined;
+}
 
 export type PermissionMode = 'strict' | 'workspace-edit' | 'plan-readonly';
 export type SessionStatus = 'idle' | 'running' | 'waiting' | 'error';
@@ -97,6 +107,7 @@ function sessionDatabase(folder: string, id: string) {
 }
 
 type SessionRecord = {
+  initialRequestId?: string;
   id: string;
   title: string;
   workSessionRef?: string;
@@ -172,12 +183,12 @@ async function removeIgnoreNotFound(targetPath: string, recursive = false): Prom
 }
 
 type AuthorizedSideEffectGrant = {
+  argsHash: string;
   callId: string;
   toolName: string;
   actionKind: string;
   targetPath?: string;
   leaseEpoch: number;
-  remainingUses: number;
 };
 
 function workspaceLabelOf(workspaceDir?: string): string | undefined {
@@ -197,10 +208,24 @@ function createApprovalsExtension(options: {
   requireSymbiosis?: boolean;
   getWorkSessionRef: () => string;
   authorizedGrants: Map<string, AuthorizedSideEffectGrant>;
+  activeTool: AsyncLocalStorage<string>;
   signal: AbortSignal;
 }) {
   return defineExtension({
     name: 'nimi-harness.approvals',
+    wraps: ['write', 'edit', process.platform === 'win32' ? 'powershell' : 'bash'].map(name => ({
+      tool: name,
+      wrap: (tool: ToolRegistration): ToolRegistration => ({
+        ...tool,
+        execute(args, api, ctx) {
+          const grant = options.authorizedGrants.get(api.callId);
+          if (options.requireSymbiosis && (!grant || grant.toolName !== name || grant.argsHash !== hashOutboxPayload(canonicalJsonStringify(args)))) {
+            throw new Error('Tool invocation differs from its authorized arguments.');
+          }
+          return options.activeTool.run(api.callId, () => tool.execute(args, api, ctx));
+        },
+      }),
+    })),
     hooks: [hook(ToolTask, {
       async beforeTool(call, api, ctx) {
         const args = (call.arguments ?? {}) as Record<string, unknown>;
@@ -266,7 +291,7 @@ function createApprovalsExtension(options: {
           && await isInsideWorkspace(options.getWorkspace(), targetPath);
 
         // Gate 4: Free Shell & control-plane files ALWAYS require explicit allow_once (never sessionAllowlist).
-        const autoApprovedBySession = !isFreeShell && !isControlPlane && !isOutboundNetwork && options.sessionAllowlist.has(call.name);
+        const autoApprovedBySession = !isFreeShell && !isControlPlane && !isOutboundNetwork && call.name !== 'invoke_nimi_integration' && options.sessionAllowlist.has(call.name);
 
         if (!autoApprovedByWorkspaceEdit && !autoApprovedBySession) {
           const answer = await api.readSignal(decision, 'decision', ctx);
@@ -307,24 +332,14 @@ function createApprovalsExtension(options: {
                 actionKind,
                 payloadHash: hashOutboxPayload(canonicalJsonStringify(call.arguments ?? {})),
               });
-              // Only workspace write/edit (with exact normalizedTargetRel) and shell tools consume
-              // SecureWorkspaceExecutionEnv grants. Never mint wildcard targetPath: undefined grants!
-              if (isFreeShell) {
+              if (isFreeShell || isWriteIntegration || normalizedTargetRel) {
                 options.authorizedGrants.set(call.id, {
                   callId: call.id,
                   toolName: call.name,
-                  actionKind: 'shell_exec',
-                  leaseEpoch,
-                  remainingUses: 1,
-                });
-              } else if ((call.name === 'write' || call.name === 'edit') && normalizedTargetRel) {
-                options.authorizedGrants.set(call.id, {
-                  callId: call.id,
-                  toolName: call.name,
-                  actionKind: 'file_write',
+                  argsHash: hashOutboxPayload(canonicalJsonStringify(call.arguments ?? {})),
+                  actionKind,
                   targetPath: normalizedTargetRel,
                   leaseEpoch,
-                  remainingUses: 1,
                 });
               }
             } catch (error) {
@@ -364,8 +379,6 @@ function toBodyStepWorkingMessage(msg: {
   };
 }
 
-const EXCLUDED_COMPACTION_STOP_REASONS = new Set(['aborted', 'error', 'deferred']);
-
 type RawTranscriptMessage = {
   role: string;
   content: unknown;
@@ -375,35 +388,12 @@ type RawTranscriptMessage = {
   isError?: boolean;
 };
 
-function orderKeptToolResults(messages: readonly RawTranscriptMessage[]): RawTranscriptMessage[] {
-  const ordered: RawTranscriptMessage[] = [];
-  for (let index = 0; index < messages.length; index++) {
-    const message = messages[index]!;
-    if (message.role === 'toolResult') continue;
-    ordered.push(message);
-    if (message.role !== 'assistant' || !Array.isArray(message.content)) continue;
-    const calls = (message.content as Array<{ type?: string; id?: string }>).filter(
-      part => part?.type === 'toolCall' && typeof part.id === 'string',
-    );
-    if (calls.length === 0) continue;
-    const results = new Map<string, number>();
-    for (let next = index + 1; next < messages.length && messages[next]!.role !== 'assistant'; next++) {
-      const candidate = messages[next]!;
-      if (candidate.role === 'toolResult' && candidate.toolCallId && !results.has(candidate.toolCallId)) {
-        results.set(candidate.toolCallId, next);
-      }
-    }
-    for (const call of calls) {
-      const resultIndex = call.id ? results.get(call.id) : undefined;
-      if (resultIndex !== undefined) {
-        ordered.push(messages[resultIndex]!);
-      }
-    }
-  }
-  return ordered;
-}
+type ActiveContext = Awaited<ReturnType<import('@earendil-works/pi-durable').Conversation['context']>>;
+type InputResolver = (message: { timestamp: number; content: unknown }) => string | undefined;
 
 function createCompactionExtension(options: {
+  readInputResolver(view: ActiveContext): Promise<InputResolver>;
+  readContext: (id: Parameters<Harness['conversation']>[0], ctx: typeof context) => ReturnType<import('@earendil-works/pi-durable').Conversation['context']>;
   getWorkSessionRef: () => string;
   getAgentBinding: () => string;
   getAgentHandle: () => string;
@@ -416,7 +406,7 @@ function createCompactionExtension(options: {
     hooks: [hook(CompactionTask, {
       async beforeCompact(compaction, api, ctx) {
         const activeSymbiosis = options.getSymbiosis();
-        if (!activeSymbiosis || !activeSymbiosis.isRunning()) {
+        if (!activeSymbiosis || !activeSymbiosis.isReadyForProjections()) {
           // Never fall back to pi-durable's built-in system-prompt summarizer in symbiosis mode!
           return options.requireSymbiosis ? { decline: true as const } : undefined;
         }
@@ -426,71 +416,31 @@ function createCompactionExtension(options: {
           if (converted) summarizedNonSystem.push(converted);
         }
 
-        // Read authoritative committed entries >= compaction.firstKept directly from SQLite via HookApi,
-        // matching pi-durable@1.6.0 active-view derivation (skip prior compaction heads, apply edits,
-        // filter excluded stopReasons, and fail closed if pagination cap is exceeded).
-        type ScannedEntry = {
-          id: number;
-          head?: unknown;
-          model?: readonly RawTranscriptMessage[];
-          edits?: readonly { target: number; action: string; messages?: readonly RawTranscriptMessage[] }[];
-        };
-        const rawKeptEntries: ScannedEntry[] = [];
-        let cursor: Parameters<typeof api.entries>[2] = undefined;
-        const maxPages = 100;
-        let exhausted = false;
-        for (let page = 0; page < maxPages; page++) {
-          const batch = await api.entries(
-            { minEntryId: compaction.firstKept, order: 'ascending' } as Parameters<typeof api.entries>[0],
-            200,
-            cursor,
-            ctx,
-          );
-          for (const entry of batch.items) {
-            if (entry.id < compaction.firstKept) continue;
-            rawKeptEntries.push(entry as unknown as ScannedEntry);
-          }
-          if (!batch.next) {
-            exhausted = true;
-            break;
-          }
-          cursor = batch.next;
-        }
-        if (!exhausted) {
-          // Fail closed rather than sending a silently truncated keptTailMessages to Runtime's rolling MAC ledger!
+        // Read pi-durable's own immutable model projection. This also supplies its
+        // synthetic missing tool results and the edits visible at this boundary.
+        const view = await options.readContext(api.conversationId, ctx);
+        const cut = view.entries.findIndex(entry => entry.id === compaction.firstKept);
+        if (cut !== compaction.entries.length || compaction.entries.some((entry, i) => entry.id !== view.entries[i]?.id)) {
           return { decline: true as const };
         }
-
-        const editsByTarget = new Map<number, { action: string; messages?: readonly RawTranscriptMessage[] }>();
-        for (const entry of rawKeptEntries) {
-          for (const edit of entry.edits ?? []) {
-            editsByTarget.set(edit.target, edit);
+        const workingMessages = view.messages.flatMap(message => {
+          const converted = toBodyStepWorkingMessage(message as RawTranscriptMessage);
+          return converted ? [converted] : [];
+        });
+        if (summarizedNonSystem.some((msg, i) => JSON.stringify(msg) !== JSON.stringify(workingMessages[i]))) {
+          return { decline: true as const };
+        }
+        const resolveInput = await options.readInputResolver(view);
+        let index = 0;
+        for (const message of view.messages) {
+          if (message.role === 'system') continue;
+          if (message.role === 'user') {
+            const id = resolveInput(message);
+            if (id) workingMessages[index] = { ...workingMessages[index]!, outboxId: id };
           }
+          index++;
         }
-        const activeKeptRaw: RawTranscriptMessage[] = [];
-        for (const entry of rawKeptEntries) {
-          // pi-durable selectActive drops prior head markers (compaction/reset headers) from range entries.
-          if (entry.head !== undefined) continue;
-          const edit = editsByTarget.get(entry.id);
-          if (edit?.action === 'omit') continue;
-          const contributed = edit?.action === 'replace' ? (edit.messages ?? []) : (entry.model ?? []);
-          for (const msg of contributed) {
-            if (msg.role === 'assistant' && msg.stopReason && EXCLUDED_COMPACTION_STOP_REASONS.has(msg.stopReason)) {
-              continue;
-            }
-            activeKeptRaw.push(msg);
-          }
-        }
-
-        const keptTailMessages: BodyStepMessage[] = [];
-        for (const msg of orderKeptToolResults(activeKeptRaw)) {
-          const converted = toBodyStepWorkingMessage(msg);
-          if (converted) keptTailMessages.push(converted);
-        }
-
-        // Runtime's single-anchor rolling ledger verifies workingMessages[:LastCommittedCount]
-        // AND verifies keptTailMessages is an exact suffix of workingMessages!
-        const workingMessages = [...summarizedNonSystem, ...keptTailMessages];
+        const keptTailMessages = workingMessages.slice(summarizedNonSystem.length);
         const agentBinding = options.getAgentBinding();
         const result = await activeSymbiosis.executeCompactionWithRetries({
           agentHandle: options.getAgentHandle() || agentBinding,
@@ -612,6 +562,7 @@ export async function openHarness(
       return {
         id: item.id,
         title: item.title,
+        ...(typeof item.initialRequestId === 'string' ? { initialRequestId: item.initialRequestId } : {}),
         ...(typeof item.workSessionRef === 'string' && item.workSessionRef.trim() ? { workSessionRef: item.workSessionRef.trim() } : {}),
         ...(typeof item.agentBinding === 'string' && item.agentBinding.trim() ? { agentBinding: item.agentBinding.trim() } : {}),
         ...(typeof item.agentHandle === 'string' && item.agentHandle.trim() ? { agentHandle: item.agentHandle.trim() } : {}),
@@ -636,6 +587,7 @@ export async function openHarness(
     await services.storage.writeJson(sessionsFile, catalog);
   }
   const progressChanges = new EventTarget();
+  const opening = new Map<string, ReturnType<typeof openSession>>();
   const opened = new Map<string, ReturnType<typeof openSession>>();
   const sessionMeta = new Map<string, SessionRuntimeMeta>();
   const lastActivity = new Map<string, { marker: string; revision: number; wasRunning: boolean }>();
@@ -693,8 +645,15 @@ export async function openHarness(
       }).catch(() => {});
       return;
     }
-    if (meta.status === 'running') {
-      lastActivity.set(id, { marker: prev?.marker ?? '', revision: prev?.revision ?? 0, wasRunning: true });
+    if (meta.status === 'running' || (!prev && catalogItem?.workSessionRef)) {
+      const marker = 'open:' + objectRef;
+      if (prev?.marker === marker || !catalogItem?.workSessionRef) return;
+      const revision = Math.max(Date.now(), (prev?.revision ?? 0) + 1);
+      lastActivity.set(id, { marker, revision, wasRunning: meta.status === 'running' });
+      void services.activity.put({ key, revision, kind: 'activity', attention: false, title,
+        summary: title, type: sessionActivityType, objectRef, occurredAt: new Date() }).catch(() => {
+        if (lastActivity.get(id)?.revision === revision) lastActivity.delete(id);
+      });
       return;
     }
     if (prev?.wasRunning) {
@@ -717,103 +676,108 @@ export async function openHarness(
   }
 
   const session = (id: string) => {
-    const item = recordOf(id);
-    let pending = opened.get(id);
+    recordOf(id);
+    let pending = opened.get(id) ?? opening.get(id);
     if (!pending) {
       // Serialize a first writer with cold receipt reads of an existing file.
-      pending = mutate(() => openSession({
-        folder,
-        forbiddenWorkspaceRoots,
-        sessionId: id,
-        workSessionRef: item.workSessionRef,
-        agentBinding: item.agentBinding ?? defaultAgentBinding,
-        agentHandle: item.agentHandle ?? defaultAgentHandle,
-        agentDisplayName: defaultAgentDisplayName,
-        symbiosis: symbiosisClient,
-        requireSymbiosis: options?.requireSymbiosis,
-        allowSourceLocalDev: options?.allowSourceLocalDev,
-        allowInsecureTestFallback: options?.allowInsecureTestFallback,
-        services,
-        signal,
-        configRef: item.configRef,
-        workspaceDir: item.workspaceDir,
-        permissionMode: item.permissionMode ?? 'strict',
-        reasoningEffort: item.reasoningEffort,
-        onStatus: (meta, latestTaskId, lastStepAt) => {
-          const prevStatus = sessionMeta.get(id)?.status;
-          syncSessionActivity(id, meta, latestTaskId, lastStepAt);
-          const currentRecord = catalog.sessions.find(s => s.id === id);
-          // NEVER report an unbound local placeholder (e.g. initial 'main') to Runtime!
-          const ref = currentRecord?.workSessionRef;
-          if (ref && symbiosisClient?.isReadyForProjections()) {
-            const mappedStatus = meta.status === 'waiting'
-              ? 'waiting_approval'
-              : meta.status === 'running'
-                ? 'running'
-                : meta.status === 'error'
-                  ? 'error'
-                  : 'idle';
-            const turnJustCompleted = prevStatus === 'running' && meta.status === 'idle';
-            void (async () => {
-              let pendingAttention:
-                | {
-                  attentionId: string;
-                  attentionKind: string;
-                  summaryJson: string;
-                  expiresAt: string;
+      pending = mutate(() => {
+        const item = recordOf(id);
+        const active = openSession({
+          folder,
+          forbiddenWorkspaceRoots,
+          sessionId: id,
+          workSessionRef: item.workSessionRef,
+          agentBinding: item.agentBinding ?? defaultAgentBinding,
+          agentHandle: item.agentHandle ?? defaultAgentHandle,
+          agentDisplayName: defaultAgentDisplayName,
+          symbiosis: symbiosisClient,
+          requireSymbiosis: options?.requireSymbiosis,
+          allowSourceLocalDev: options?.allowSourceLocalDev,
+          allowInsecureTestFallback: options?.allowInsecureTestFallback,
+          services,
+          signal,
+          configRef: item.configRef,
+          workspaceDir: item.workspaceDir,
+          permissionMode: item.permissionMode ?? 'strict',
+          reasoningEffort: item.reasoningEffort,
+          onStatus: (meta, latestTaskId, lastStepAt) => {
+            const prevStatus = sessionMeta.get(id)?.status;
+            syncSessionActivity(id, meta, latestTaskId, lastStepAt);
+            const currentRecord = catalog.sessions.find(s => s.id === id);
+            // NEVER report an unbound local placeholder (e.g. initial 'main') to Runtime!
+            const ref = currentRecord?.workSessionRef;
+            if (ref && symbiosisClient?.isReadyForProjections()) {
+              const mappedStatus = meta.status === 'waiting'
+                ? 'waiting_approval'
+                : meta.status === 'running'
+                  ? 'running'
+                  : meta.status === 'error'
+                    ? 'error'
+                    : 'idle';
+              const turnJustCompleted = prevStatus === 'running' && meta.status === 'idle';
+              void (async () => {
+                let pendingAttention:
+                  | {
+                    attentionId: string;
+                    attentionKind: string;
+                    summaryJson: string;
+                    expiresAt: string;
+                  }
+                  | undefined;
+                if (meta.status === 'waiting') {
+                  const pendingDec = await pendingDecision(id, latestTaskId).catch(() => ({ state: 'none' as const }));
+                  if (pendingDec.state === 'review') {
+                    pendingAttention = {
+                      attentionId: `${ref}:task:${pendingDec.taskId}`,
+                      attentionKind: 'tool_approval',
+                      summaryJson: JSON.stringify({
+                        summary: pendingDec.summary || `Approval needed: ${pendingDec.tool}`,
+                        tool: pendingDec.tool,
+                        ...(pendingDec.diffPreview?.path ? { targetPath: pendingDec.diffPreview.path } : {}),
+                        revision: pendingDec.revision,
+                      }),
+                      expiresAt: new Date(pendingDec.expiresAt).toISOString(),
+                    };
+                  }
                 }
-                | undefined;
-              if (meta.status === 'waiting') {
-                const pendingDec = await pendingDecision(id, latestTaskId).catch(() => ({ state: 'none' as const }));
-                if (pendingDec.state === 'review') {
-                  pendingAttention = {
-                    attentionId: `${ref}:task:${pendingDec.taskId}`,
-                    attentionKind: 'tool_approval',
-                    summaryJson: JSON.stringify({
-                      summary: pendingDec.summary || `Approval needed: ${pendingDec.tool}`,
-                      tool: pendingDec.tool,
-                      ...(pendingDec.diffPreview?.path ? { targetPath: pendingDec.diffPreview.path } : {}),
-                      revision: pendingDec.revision,
-                    }),
-                    expiresAt: new Date(pendingDec.expiresAt).toISOString(),
-                  };
+                let milestoneKind: string | undefined;
+                let topicSummary: string | undefined;
+                let deliverablePaths: readonly string[] | undefined;
+                if (turnJustCompleted) {
+                  milestoneKind = reportedInitialMilestone.has(ref) ? 'completed' : 'initial_goal';
+                  reportedInitialMilestone.add(ref);
+                  const resolvedSess = await opened.get(id)?.catch(() => undefined);
+                  const milestoneInfo = resolvedSess?.getLatestMilestoneSummary();
+                  topicSummary = milestoneInfo?.topicSummary || currentRecord?.title || item.title;
+                  if (milestoneInfo?.deliverablePaths.length) {
+                    deliverablePaths = milestoneInfo.deliverablePaths;
+                  }
                 }
-              }
-              let milestoneKind: string | undefined;
-              let topicSummary: string | undefined;
-              let deliverablePaths: readonly string[] | undefined;
-              if (turnJustCompleted) {
-                milestoneKind = reportedInitialMilestone.has(ref) ? 'completed' : 'initial_goal';
-                reportedInitialMilestone.add(ref);
-                const resolvedSess = await opened.get(id)?.catch(() => undefined);
-                const milestoneInfo = resolvedSess?.getLatestMilestoneSummary();
-                topicSummary = milestoneInfo?.topicSummary || currentRecord?.title || item.title;
-                if (milestoneInfo?.deliverablePaths.length) {
-                  deliverablePaths = milestoneInfo.deliverablePaths;
-                }
-              }
-              await symbiosisClient?.reportProjection({
-                workSessionRef: ref,
-                status: mappedStatus,
-                title: currentRecord?.title ?? item.title,
-                workspaceRoot: currentRecord?.workspaceDir,
-                permissionMode: currentRecord?.permissionMode ?? 'strict',
-                ...(milestoneKind ? { milestoneKind } : {}),
-                ...(topicSummary ? { topicSummary } : {}),
-                ...(deliverablePaths ? { deliverablePaths } : {}),
-                ...(pendingAttention ? { pendingAttention } : {}),
-                ...(prevStatus === 'waiting' && meta.status !== 'waiting' ? { clearPendingAttention: true } : {}),
-              });
-            })().catch(() => {});
-          }
-        },
-        onProgress: () => {
-          progressChanges.dispatchEvent(new Event(id));
-          if (catalog.selected === id) viewChanged?.();
-        },
-      }));
-      opened.set(id, pending);
-      void pending.catch(() => { if (opened.get(id) === pending) opened.delete(id); });
+                await symbiosisClient?.reportProjection({
+                  workSessionRef: ref,
+                  status: mappedStatus,
+                  title: currentRecord?.title ?? item.title,
+                  workspaceRoot: currentRecord?.workspaceDir,
+                  permissionMode: currentRecord?.permissionMode ?? 'strict',
+                  ...(milestoneKind ? { milestoneKind } : {}),
+                  ...(topicSummary ? { topicSummary } : {}),
+                  ...(deliverablePaths ? { deliverablePaths } : {}),
+                  ...(pendingAttention ? { pendingAttention } : {}),
+                  ...(prevStatus === 'waiting' && meta.status !== 'waiting' ? { clearPendingAttention: true } : {}),
+                });
+              })().catch(() => {});
+            }
+          },
+          onProgress: () => {
+            progressChanges.dispatchEvent(new Event(id));
+            if (catalog.selected === id) viewChanged?.();
+          },
+        });
+        opened.set(id, active);
+        return active.catch(error => { opened.delete(id); throw error; });
+      });
+      opening.set(id, pending);
+      void pending.finally(() => { if (opening.get(id) === pending) opening.delete(id); }).catch(() => {});
     }
     return pending;
   };
@@ -838,7 +802,7 @@ export async function openHarness(
   }
 
   const inputStatus = (id: string, requestId: string) => readSession(id, 'not-found' as const, reader => reader.commit(async tx => {
-    const input = await tx.submissionByRequest(ROOT_CONVERSATION_ID, requestId);
+    const input = await readSubmission(tx, ROOT_CONVERSATION_ID, requestId);
     return input?.type === 'input' ? input.status : 'not-found' as const;
   }, context));
 
@@ -1045,7 +1009,7 @@ export async function openHarness(
         }
       }
     },
-    importMaterial: (id: string, name: string, data: Uint8Array) => copyMaterial(workspaceOf(id), name, data, signal),
+    importMaterial: async (id: string, name: string, data: Uint8Array) => (await session(id)).importMaterial(name, data),
     listFiles: (id: string, folderName: string, offset: number) => listWorkspace(workspaceOf(id), folderName, offset, signal),
     previewFile: (id: string, ref: string, page?: number) => previewWorkspaceFile(workspaceOf(id), ref, signal, page),
     revealFile: async (id: string, ref: string) => (await workspaceFile(workspaceOf(id), ref, signal)).path,
@@ -1073,14 +1037,13 @@ export async function openHarness(
     },
     async outgoingWorkspaceFile(id: string, ref: string) {
       signal.throwIfAborted();
-      const workspace = workspaceOf(id);
-      return publishWorkspaceFile(services.storage.assets, workspace, id, ref, signal);
+      return (await session(id)).publishFile(ref);
     },
     inputStatus,
     readAnswer(id: string, requestId: string) {
       type Answer = { status: 'not-found' | 'queued' | 'placed' | 'unanswered' } | { status: 'done'; text: string; truncated: boolean };
       return readSession<Answer>(id, { status: 'not-found' }, reader => reader.commit(async tx => {
-        const input = await tx.submissionByRequest(ROOT_CONVERSATION_ID, requestId);
+        const input = await readSubmission(tx, ROOT_CONVERSATION_ID, requestId);
         if (input?.type !== 'input') return { status: 'not-found' };
         if (input.status !== 'done') return { status: input.status };
         const entry = await tx.entry(input.answer);
@@ -1184,7 +1147,8 @@ export async function openHarness(
     setPermissionMode: (id: string, mode: PermissionMode) => mutate(async () => {
       if (!isPermissionMode(mode)) throw new Error('Invalid permission mode.');
       const existing = recordOf(id);
-      if (existing.workSessionRef && symbiosisClient?.isRunning()) {
+      if (existing.workSessionRef) {
+        if (!symbiosisClient?.isRunning()) throw new Error('Reconnect before changing session permissions.');
         await symbiosisClient.getAgentSessionClient().updateSession({
           workSessionRef: existing.workSessionRef,
           permissionMode: mode,
@@ -1215,11 +1179,13 @@ export async function openHarness(
     }),
     deleteSession: (id: string) => mutate(async () => {
       const target = recordOf(id);
-      if (target.workSessionRef && symbiosisClient?.isRunning()) {
-        await symbiosisClient.getAgentSessionClient().deleteSession({
+      if (target.workSessionRef) {
+        if (!symbiosisClient?.isRunning()) throw new Error('Deletion is pending. Reconnect to Runtime and retry.');
+        const result = await symbiosisClient.getAgentSessionClient().deleteSession({
           workSessionRef: target.workSessionRef,
           confirmed: true,
-        }).catch(() => {});
+        });
+        if (!result.deleted || result.workSessionRef !== target.workSessionRef) throw new Error('Runtime has not confirmed deletion. Retry after reconnecting.');
       }
       const active = opened.get(id);
       opened.delete(id);
@@ -1334,7 +1300,7 @@ export async function openHarness(
     }),
     async submit(id: string, text: string, requestId: string, queue = false) {
       const currentRecord = recordOf(id);
-      if (options?.requireSymbiosis && !currentRecord.workSessionRef) {
+      if (options?.requireSymbiosis) {
         if (!symbiosisClient || !symbiosisClient.isRunning()) {
           throw new Error('Harness PC body symbiosis lease is offline. Reconnect to Nimi Runtime before submitting.');
         }
@@ -1354,14 +1320,18 @@ export async function openHarness(
         let routed: Awaited<ReturnType<ReturnType<HarnessBodySymbiosisClient['getAgentSessionClient']>['routeAndSubmitInput']>>;
         let resolvedRef = '';
         try {
+          const persisted = recordOf(id);
+          const boundRef = persisted.initialRequestId === requestId ? '' : persisted.workSessionRef || '';
           routed = await symbiosisClient.getAgentSessionClient().routeAndSubmitInput({
-            agentHandle: resolvedPartner.agentHandle,
+            // A handle is scoped to the issuing connection. An existing session has
+            // the durable agent binding returned by Runtime's routing authority.
+            agentHandle: persisted.workSessionRef && persisted.agentBinding ? persisted.agentBinding : resolvedPartner.agentHandle,
             requestId,
             text,
-            explicitWorkSessionRef: '',
-            entrySurface: 'harness_new_session',
-            workspaceRoot: currentRecord.workspaceDir ?? workspaceOf(id),
-            workspaceWritable: (currentRecord.permissionMode ?? 'strict') !== 'plan-readonly',
+            explicitWorkSessionRef: boundRef,
+            entrySurface: boundRef ? 'harness' : 'harness_new_session',
+            workspaceRoot: boundRef ? '' : currentRecord.workspaceDir ?? workspaceOf(id),
+            workspaceWritable: !boundRef && (currentRecord.permissionMode ?? 'strict') !== 'plan-readonly',
             attachmentPaths: [],
             cardSourceSessionRef: '',
             cardSourceMaxSeq: '0',
@@ -1393,6 +1363,7 @@ export async function openHarness(
                 ...entry,
                 title: nextTitle,
                 workSessionRef: resolvedRef,
+                ...(!boundRef ? { initialRequestId: requestId } : {}),
                 ...(resolvedBinding ? { agentBinding: resolvedBinding } : {}),
                 ...(resolvedHandle ? { agentHandle: resolvedHandle } : {}),
                 updatedAt: Date.now(),
@@ -1408,9 +1379,9 @@ export async function openHarness(
         }
         // Runtime enqueues NEW_INTENT via outbox for this session; submit locally using outboxId
         // if present (idempotent with handleBodyNewIntent's OutboxReceiptsDoc) so UI updates immediately.
-        const outboxId = routed.outboxId?.trim() || undefined;
-        const effectiveRequestId = outboxId || requestId;
-        await (await session(id)).submit(text, effectiveRequestId, queue, outboxId);
+        const outboxId = routed.outboxId?.trim();
+        if (!outboxId) throw new Error("Runtime did not confirm delivery to this execution App.");
+        await (await session(id)).submit(text.trim(), outboxId, queue, outboxId, requestId);
         return;
       }
       await (await session(id)).submit(text, requestId, queue);
@@ -1460,6 +1431,7 @@ export async function openHarness(
       return true;
     },
     async handleBodyPurgeSession(workSessionRef: string) {
+      await pendingRouteSubmit;
       const trimmed = workSessionRef.trim();
       const target = catalog.sessions.find(item => item.workSessionRef === trimmed || item.id === trimmed);
       if (!target) return;
@@ -1566,6 +1538,7 @@ export async function openHarness(
       // before checking catalog.sessions, eliminating dual local session creation races.
       await pendingRouteSubmit;
       let parsed: {
+        bodyInputText?: string;
         text?: string;
         title?: string;
         workspaceRoot?: string;
@@ -1592,6 +1565,7 @@ export async function openHarness(
           const rawAttachments = Array.isArray(raw.attachmentPaths) ? raw.attachmentPaths : [];
           const attachmentPaths = rawAttachments.filter((p): p is string => typeof p === 'string' && p.trim().length > 0);
           parsed = {
+            bodyInputText: typeof raw.bodyInputText === 'string' ? raw.bodyInputText : undefined,
             text: typeof raw.text === 'string' ? raw.text : undefined,
             title: typeof raw.title === 'string' ? raw.title : undefined,
             workspaceRoot: typeof raw.workspaceRoot === 'string' ? raw.workspaceRoot : undefined,
@@ -1666,10 +1640,14 @@ export async function openHarness(
       }
       if (sessionId) {
         const openedSess = await session(sessionId);
-        if (parsed.handoffHistory && parsed.handoffHistory.length > 0) {
-          await openedSess.importHistory(parsed.handoffHistory);
+        if (parsed.handoffHistory?.length) await openedSess.importHistory(parsed.handoffHistory);
+        if (parsed.bodyInputText !== undefined) {
+          if (!parsed.bodyInputText) throw new Error('Runtime delivered an empty input.');
+          await openedSess.submit(parsed.bodyInputText, env.outboxId, true, env.outboxId);
+          return;
         }
         const promptParts: string[] = [];
+        if (parsed.handoffHistory?.length) promptParts.push('Previous Nimi Home dialogue in chronological order:\n' + JSON.stringify(parsed.handoffHistory));
         if (parsed.handoffBriefText?.trim()) {
           promptParts.push(`[Handoff Context]\n${parsed.handoffBriefText.trim()}`);
         }
@@ -1835,8 +1813,41 @@ async function openSession(opts: OpenSessionOptions) {
   let selectedRef: string | undefined = configRef;
   let effectiveContextBudgetTokens: number | undefined;
   const sessionAllowlist = new Set<string>();
+  const activeTool = new AsyncLocalStorage<string>();
   const authorizedGrants = new Map<string, AuthorizedSideEffectGrant>();
-  const outboxIdByPayloadHash = new Map<string, string>();
+  // A queued input has no transcript entry yet. Resolve IDs from placed entries so equal
+  // text, withdrawals and compaction retain the original Runtime delivery identity.
+  const legacyEntries = new Map<number, string>();
+  async function readInputResolver(view: ActiveContext): Promise<InputResolver> {
+    const unknownLegacy = new Set(view.entries.filter(entry => entry.kind === 'pi.user' && !legacyEntries.has(entry.id)).map(entry => entry.id));
+    if (unknownLegacy.size) {
+      const placed = await harness.commit(async tx => {
+        const result: [number, string][] = [];
+        const receipts = await tx.doc(OutboxReceiptsDoc, ROOT_CONVERSATION_ID);
+        for (const rec of Object.values(receipts.byRequestId)) {
+          if (!rec.outboxId || rec.withdrawState === 'withdrawn') continue;
+          const submission = await tx.submissionByRequest(ROOT_CONVERSATION_ID, rec.requestId);
+          if (submission?.type === 'input' && submission.entry !== undefined && unknownLegacy.has(submission.entry)) {
+            result.push([submission.entry, rec.outboxId]);
+          }
+        }
+        return result;
+      }, context);
+      for (const [entry, id] of placed) legacyEntries.set(entry, id);
+    }
+    const ids = new Map<string, (string | undefined)[]>();
+    view.entries.forEach((entry, i) => {
+      const id = entry.kind === 'nimi.body-input' && typeof entry.data === 'string' ? entry.data : legacyEntries.get(entry.id);
+      for (const msg of view.contributions[i] ?? []) {
+        if (msg.role !== 'user') continue;
+        const key = JSON.stringify([msg.timestamp, msg.content]);
+        const group = ids.get(key) ?? [];
+        group.push(id);
+        ids.set(key, group);
+      }
+    });
+    return msg => ids.get(JSON.stringify([msg.timestamp, msg.content]))?.shift();
+  }
 
   if (opts.workspaceDir) {
     currentWorkspace = await validateWorkspaceDir(opts.workspaceDir, opts.forbiddenWorkspaceRoots);
@@ -1854,7 +1865,7 @@ async function openSession(opts: OpenSessionOptions) {
     allowInsecureTestFallback: opts.allowInsecureTestFallback,
     ...(opts.symbiosis || opts.requireSymbiosis ? {
       authorizeSideEffect: async ({ actionKind, relativePath }) => {
-        if (!activeSymbiosis || !activeSymbiosis.isRunning()) {
+        if (!activeSymbiosis || !activeSymbiosis.isReadyForProjections()) {
           if (opts.requireSymbiosis || activeSymbiosis) {
             throw new Error('Side effect denied fail-closed: Harness PC body symbiosis lease is offline.');
           }
@@ -1863,19 +1874,12 @@ async function openSession(opts: OpenSessionOptions) {
         // Verify that beforeTool already synchronously authorized this exact side effect
         // on the CURRENT active leaseEpoch with Runtime's once-only AuthorizeBodySideEffect.
         const currentEpoch = activeSymbiosis.getLeaseEpoch();
-        const normalizedRel = relativePath.toLowerCase();
-        for (const [grantId, grant] of authorizedGrants.entries()) {
-          if (grant.remainingUses <= 0 || grant.leaseEpoch !== currentEpoch) continue;
-          const kindMatches = actionKind === 'shell_exec'
-            ? grant.actionKind === 'shell_exec'
-            : grant.actionKind === 'file_write';
-          const pathMatches = actionKind === 'shell_exec'
-            || (Boolean(grant.targetPath) && grant.targetPath!.toLowerCase() === normalizedRel);
-          if (kindMatches && pathMatches) {
-            grant.remainingUses -= 1;
-            if (grant.remainingUses <= 0) authorizedGrants.delete(grantId);
-            return;
-          }
+        const callId = activeTool.getStore();
+        const grant = callId ? authorizedGrants.get(callId) : undefined;
+        if (grant && grant.leaseEpoch === currentEpoch && actionKind === grant.actionKind
+          && (actionKind === 'shell_exec' || grant.targetPath === relativePath)) {
+          authorizedGrants.delete(grant.callId);
+          return;
         }
         throw new Error(`Side effect denied fail-closed: missing Runtime tool authorization grant for ${actionKind} (${relativePath}).`);
       },
@@ -1892,9 +1896,18 @@ async function openSession(opts: OpenSessionOptions) {
   registry.install(searchTools(() => currentWorkspace, signal, {
     readWorkspaceFile: (rel, maxBytes) => secureEnv.readWorkspaceFileSecure(rel, maxBytes),
   }));
-  registry.install(sessionFileTools(services.storage.assets, () => currentWorkspace, sessionId, signal));
+  registry.install(sessionFileTools(services.storage.assets, sessionId, signal,
+    (ref, bytes) => secureEnv.createImportedFile(ref, bytes), (ref, limit) => secureEnv.readWorkspaceFileSecure(ref, limit)));
   registry.install(transcriptionTools(services.ai, () => currentWorkspace, sessionId, signal, () => selectedRef));
-  registry.install(integrationTools(services.integration, signal));
+  registry.install(integrationTools(services.integration, signal, (callId, args) => {
+    if (!opts.requireSymbiosis && !activeSymbiosis) return;
+    const grant = authorizedGrants.get(callId);
+    if (!activeSymbiosis?.isReadyForProjections() || !grant || grant.leaseEpoch !== activeSymbiosis.getLeaseEpoch()
+      || grant.actionKind !== 'integration_write' || grant.argsHash !== hashOutboxPayload(canonicalJsonStringify(args))) {
+      throw new Error('Integration write requires a matching active tool authorization.');
+    }
+    authorizedGrants.delete(callId);
+  }));
   registry.install(createApprovalsExtension({
     getPermissionMode: () => currentPermissionMode,
     getWorkspace: () => currentWorkspace,
@@ -1905,9 +1918,16 @@ async function openSession(opts: OpenSessionOptions) {
     requireSymbiosis: opts.requireSymbiosis,
     getWorkSessionRef: () => effectiveWorkSessionRef,
     authorizedGrants,
+    activeTool,
     signal,
   }));
   registry.install(createCompactionExtension({
+    readInputResolver,
+    readContext: async (id, ctx) => {
+      const conversation = await harness.conversation(id, ctx);
+      if (!conversation) throw new Error('Compaction conversation no longer exists.');
+      return conversation.context(ctx);
+    },
     getWorkSessionRef: () => effectiveWorkSessionRef,
     getAgentBinding: () => effectiveAgentBinding,
     getAgentHandle: () => effectiveAgentHandle,
@@ -1930,14 +1950,6 @@ async function openSession(opts: OpenSessionOptions) {
   try {
     signal.throwIfAborted();
     const saved = await harness.snapshot(SessionModel, ROOT_CONVERSATION_ID, context);
-    const savedReceipts = await harness.snapshot(OutboxReceiptsDoc, ROOT_CONVERSATION_ID, context);
-    if (savedReceipts?.byRequestId) {
-      for (const rec of Object.values(savedReceipts.byRequestId)) {
-        if (rec.outboxId && rec.payloadHash) {
-          outboxIdByPayloadHash.set(rec.payloadHash, rec.outboxId);
-        }
-      }
-    }
     let reviewedConflict = saved?.reviewedConflict;
     selectedRef = saved?.configRef ?? configRef;
     const conversation = await harness.root(context, {
@@ -1958,19 +1970,6 @@ async function openSession(opts: OpenSessionOptions) {
     }
 
     let bound: Awaited<ReturnType<typeof readSessionModel>>;
-    const resolveOutboxIdForUserContent = (content: unknown): string | undefined => {
-      if (typeof content === 'string') {
-        return outboxIdByPayloadHash.get(hashOutboxPayload(content));
-      }
-      if (Array.isArray(content)) {
-        const text = (content as Array<{ type?: string; text?: string }>)
-          .filter(part => part?.type === 'text' && typeof part.text === 'string')
-          .map(part => part.text!)
-          .join('\n');
-        if (text) return outboxIdByPayloadHash.get(hashOutboxPayload(text));
-      }
-      return undefined;
-    };
     const applySymbiosisProvider = async (nextSymbiosis: HarnessBodySymbiosisClient) => {
       activeSymbiosis = nextSymbiosis;
       const logicalId = logicalAgentModelId(effectiveAgentBinding);
@@ -1985,7 +1984,7 @@ async function openSession(opts: OpenSessionOptions) {
         permissionMode: () => currentPermissionMode,
         contextWindow: budgetTokens,
         onBudgetUpdated: budget => { effectiveContextBudgetTokens = budget; },
-        resolveOutboxId: resolveOutboxIdForUserContent,
+        readInputResolver: async () => readInputResolver(await conversation.context(context)),
       });
       const confirmation = createHash('sha256').update(JSON.stringify(['body-symbiosis', logicalId])).digest('hex');
       const currentAgent = await harness.snapshot(AgentDoc, conversation.id, context);
@@ -2118,6 +2117,8 @@ async function openSession(opts: OpenSessionOptions) {
         explicitDevWorkspace = isExplicitDev;
         secureEnv = buildSecureEnv(currentWorkspace, explicitDevWorkspace);
       },
+      publishFile: (ref: string) => publishWorkspaceFile(services.storage.assets, sessionId, ref, signal, (path, limit) => secureEnv.readWorkspaceFileSecure(path, limit)),
+      importMaterial: (name: string, data: Uint8Array) => copyMaterial(currentWorkspace, name, data, signal, (ref, bytes) => secureEnv.createImportedFile(ref, bytes)),
       listSnapshots(): readonly PreWriteSnapshotRecord[] {
         return secureEnv.getSnapshots();
       },
@@ -2133,10 +2134,6 @@ async function openSession(opts: OpenSessionOptions) {
           signal.throwIfAborted();
           await tx.appendEntry(HomeHistory, conversation.id, {
             data: { messages },
-            model: [{
-              role: 'user', timestamp: Date.now(), content:
-                'Previous Nimi Home dialogue in chronological order. Use it as historical context for the next user message.\n' + JSON.stringify(messages),
-            }],
           });
         }, context);
       },
@@ -2363,7 +2360,7 @@ async function openSession(opts: OpenSessionOptions) {
             name: call.name,
             args: sanitizeDecisionArgsForDisplay(argsObj),
             revision,
-            allowSessionPermitted: !isFreeShell && !isControlPlane,
+            allowSessionPermitted: !isFreeShell && !isControlPlane && call.name !== 'invoke_nimi_integration' && call.name !== 'web_fetch',
             isControlPlane,
             isFreeShell,
             ...(isFreeShell && recentAiEditedPaths.length ? { recentAiEditedWarning: recentAiEditedPaths } : {}),
@@ -2426,7 +2423,7 @@ async function openSession(opts: OpenSessionOptions) {
       },
       async stopInput(requestId: string) {
         const observe = () => harness.commit(async tx => {
-          const input = await tx.submissionByRequest(conversation.id, requestId);
+          const input = await readSubmission(tx, conversation.id, requestId);
           if (input?.type !== 'input') return { status: 'not-found' } as const;
           const live = await tx.doc(LiveDoc, conversation.id);
           return {
@@ -2454,12 +2451,9 @@ async function openSession(opts: OpenSessionOptions) {
         harness.resume(); // On a reopened session, schedule only after the abort mark is durable.
         return 'requested' as const;
       },
-      async submit(text: string, requestId: string, queue: boolean, outboxId?: string) {
+      async submit(text: string, requestId: string, queue: boolean, outboxId?: string, localRequestId?: string) {
         signal.throwIfAborted();
         const payloadHash = hashOutboxPayload(text);
-        if (outboxId) {
-          outboxIdByPayloadHash.set(payloadHash, outboxId);
-        }
         await harness.commit(async tx => {
           signal.throwIfAborted();
           // v2.1 idempotency invariant: inspect durable OutboxReceiptsDoc first so
@@ -2471,6 +2465,7 @@ async function openSession(opts: OpenSessionOptions) {
             if (existingReceipt.payloadHash !== payloadHash) {
               throw new HarnessSubmissionError('HARNESS_REQUEST_CONFLICT', 'This request ID already identifies another input.');
             }
+            if (localRequestId) existingReceipt.localRequestId = localRequestId;
             if (outboxId && !existingReceipt.outboxId) {
               existingReceipt.outboxId = outboxId;
               existingReceipt.updatedAt = Date.now();
@@ -2490,6 +2485,7 @@ async function openSession(opts: OpenSessionOptions) {
               receipts.byRequestId[requestId] = {
                 requestId,
                 ...(outboxId ? { outboxId } : {}),
+                ...(localRequestId ? { localRequestId } : {}),
                 payloadHash,
                 submissionId: typeof prior.id === 'number' ? prior.id : null,
                 withdrawState: 'withdrawn',
@@ -2512,11 +2508,15 @@ async function openSession(opts: OpenSessionOptions) {
           }
           signal.throwIfAborted();
           // pi-durable ordering invariant: submit(tx, ...) runs BEFORE persisting our companion receipt doc.
-          const submissionId = await conversation.submit(tx, { type: 'input', content: text, requestId, whenBusy: queue ? 'followUp' : 'reject' });
+          const submissionId = await conversation.submit(tx, {
+            type: 'input', content: text, requestId, whenBusy: queue ? 'followUp' : 'reject',
+            ...(outboxId ? { entry: { kind: 'nimi.body-input', data: outboxId } } : {}),
+          });
           const now = Date.now();
           receipts.byRequestId[requestId] = {
             requestId,
             ...(outboxId ? { outboxId } : {}),
+            ...(localRequestId ? { localRequestId } : {}),
             payloadHash,
             submissionId: typeof submissionId === 'number' ? submissionId : null,
             withdrawState: 'active',

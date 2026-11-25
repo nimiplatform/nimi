@@ -1787,15 +1787,15 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     readonly timeoutMs?: number;
   }): Promise<Uint8Array> {
     const methodId = exactText(input.methodId);
-    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !isNimiLocalAppByteView(input.requestBytes)) {
+    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !validAgentSessionTimeout(input.timeoutMs) || !isNimiLocalAppByteView(input.requestBytes)) {
       throw untrustedRuntimeError();
     }
     const requestBytes = Buffer.from(input.requestBytes.buffer, input.requestBytes.byteOffset, input.requestBytes.byteLength);
-    const outcome = await this.binding.localAppAgentSessionUnary({
+    const outcome = await nativeAgentSessionCall(() => this.binding.localAppAgentSessionUnary({
       methodId,
       requestBytes,
       ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
-    });
+    }));
     if (outcome?.status === 'error') {
       const reasonCode = typeof outcome.reasonCode === 'string' ? outcome.reasonCode : '';
       if (!ADMITTED_REASON_CODES.has(reasonCode) || typeof outcome.retryable !== 'boolean') {
@@ -1815,7 +1815,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     readonly timeoutMs?: number;
   }): Promise<{ readonly streamId: string }> {
     const methodId = exactText(input.methodId);
-    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !isNimiLocalAppByteView(input.requestBytes)) {
+    if (!methodId.startsWith('/nimi.runtime.v1.AgentSessionService/') || !validAgentSessionTimeout(input.timeoutMs) || !isNimiLocalAppByteView(input.requestBytes)) {
       throw untrustedRuntimeError();
     }
     const requestBytes = Buffer.from(input.requestBytes.buffer, input.requestBytes.byteOffset, input.requestBytes.byteLength);
@@ -1831,7 +1831,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     readonly streamId: string;
   }): Promise<{ readonly completed: true } | { readonly completed: false; readonly chunk: Uint8Array }> {
     const streamId = exactText(input.streamId);
-    const outcome = await this.binding.localAppAgentSessionStreamNext({ streamId });
+    const outcome = await nativeAgentSessionCall(() => this.binding.localAppAgentSessionStreamNext({ streamId }));
     if (outcome?.status === 'error') {
       const reasonCode = typeof outcome.reasonCode === 'string' ? outcome.reasonCode : '';
       if (!ADMITTED_REASON_CODES.has(reasonCode) || typeof outcome.retryable !== 'boolean') {
@@ -2403,6 +2403,14 @@ function validateBinding(value: unknown): NimiElectronProtectedLocalBinding {
     throw untrustedRuntimeError();
   }
   return candidate as NimiElectronProtectedLocalBinding;
+}
+
+function validAgentSessionTimeout(value: number | undefined) {
+  return value === undefined || (Number.isInteger(value) && value >= 0 && value <= 0xffff_ffff);
+}
+
+async function nativeAgentSessionCall<T>(call: () => Promise<T>): Promise<T> {
+  try { return await call(); } catch { throw untrustedRuntimeError(); }
 }
 
 async function invoke(call: () => Promise<NativeLocalAppOutcome>): Promise<unknown> {

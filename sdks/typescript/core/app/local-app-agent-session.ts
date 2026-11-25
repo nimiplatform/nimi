@@ -37,6 +37,18 @@ export interface NimiLocalAppAgentSessionShell {
 
 export type NimiLocalAppAgentSessionClient = RuntimeAgentSessionModule;
 
+// A native read may resolve after its handle has been closed. Remove the
+// listener on every settled read, including long-lived, high-volume streams.
+function readUntilAbort<T>(read: Promise<T>, signal?: AbortSignal): Promise<T | undefined> {
+  if (!signal) return read;
+  return new Promise((resolve, reject) => {
+    const abort = () => resolve(undefined);
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+    read.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+  });
+}
+
 const ADMITTED_AGENT_SESSION_PREFIX = '/nimi.runtime.v1.AgentSessionService/';
 
 function assertAgentSessionMethod(methodId: unknown): asserts methodId is string {
@@ -96,34 +108,29 @@ export function createNimiLocalAppAgentSessionClient(
           if (signal?.aborted) {
             return;
           }
-          const { streamId } = await shell.agentSessionStreamOpen({
+          const opening = shell.agentSessionStreamOpen({
             methodId: request.methodId,
             requestBytes,
             ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
           });
-          let closePromise: Promise<void> | null = null;
+          let cancelOpening!: () => void;
+          const aborted = new Promise<undefined>(resolve => { cancelOpening = () => resolve(undefined); });
+          let closed: Promise<void> | undefined;
           let completedNormally = false;
-          const closeOnce = (): Promise<void> => {
-            if (closePromise) return closePromise;
+          const closeOnce = () => {
             if (completedNormally) return Promise.resolve();
-            closePromise = shell
-              .agentSessionStreamClose({ streamId })
-              .then(() => undefined, () => undefined);
-            return closePromise;
+            return closed ??= opening.then(({ streamId }) => shell.agentSessionStreamClose({ streamId })).then(() => undefined, () => undefined);
           };
-          const onAbort = () => {
-            void closeOnce();
-          };
-          if (signal) {
-            if (signal.aborted) {
-              await closeOnce();
-              return;
-            }
-            signal.addEventListener('abort', onAbort, { once: true });
-          }
+          const onAbort = () => { cancelOpening(); void closeOnce(); };
+          signal?.addEventListener('abort', onAbort, { once: true });
+          if (signal?.aborted) onAbort();
           try {
+            const opened = await Promise.race([opening, aborted]);
+            if (!opened || signal?.aborted) return;
+            const { streamId } = opened;
             while (!signal?.aborted) {
-              const next = await shell.agentSessionStreamNext({ streamId });
+              const next = await readUntilAbort(shell.agentSessionStreamNext({ streamId }), signal);
+              if (!next) return;
               if (next.completed) {
                 completedNormally = true;
                 return;
@@ -135,7 +142,8 @@ export function createNimiLocalAppAgentSessionClient(
             }
           } finally {
             signal?.removeEventListener('abort', onAbort);
-            await closeOnce();
+            if (signal?.aborted) void closeOnce();
+            else await closeOnce();
           }
         },
       };

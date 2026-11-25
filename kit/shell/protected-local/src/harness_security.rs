@@ -309,9 +309,7 @@ pub fn is_sensitive_relative_path(relative_posix: &str) -> bool {
     ) {
         return true;
     }
-    if name.starts_with("id_rsa")
-        || name.starts_with("id_ed25519")
-        || name.starts_with("id_ecdsa")
+    if name.starts_with("id_rsa") || name.starts_with("id_ed25519") || name.starts_with("id_ecdsa")
     {
         return true;
     }
@@ -454,7 +452,6 @@ mod non_windows_fallback {
     ) -> Result<HarnessRunningJob, HarnessSecurityError> {
         let mut cmd = Command::new(&request.executable);
         cmd.args(&request.args)
-            .current_dir(&request.working_directory)
             .env_clear()
             .envs(&request.env)
             .stdin(Stdio::null())
@@ -462,15 +459,35 @@ mod non_windows_fallback {
             .stderr(Stdio::piped());
         #[cfg(unix)]
         {
+            use std::os::fd::AsRawFd;
+            let dir =
+                open_anchored_parent_dir_unix(Path::new(&request.working_directory), &[], false)?;
             cmd.process_group(0);
+            unsafe {
+                cmd.pre_exec(move || {
+                    if libc::fchdir(dir.as_raw_fd()) == 0 {
+                        Ok(())
+                    } else {
+                        Err(std::io::Error::last_os_error())
+                    }
+                });
+            }
         }
+        #[cfg(not(unix))]
+        cmd.current_dir(&request.working_directory);
         let mut child = cmd
             .spawn()
             .map_err(|err| HarnessSecurityError::new("process-spawn-failed", err.to_string()))?;
         let pid = child.id();
-        let max_output = request.max_output_bytes.max(1024);
-        let stdout_rx = child.stdout.take().map(|s| spawn_stream_drainer(s, max_output));
-        let stderr_rx = child.stderr.take().map(|s| spawn_stream_drainer(s, max_output));
+        let max_output = request.max_output_bytes.clamp(1024, 32 * 1024 * 1024);
+        let stdout_rx = child
+            .stdout
+            .take()
+            .map(|s| spawn_stream_drainer(s, max_output));
+        let stderr_rx = child
+            .stderr
+            .take()
+            .map(|s| spawn_stream_drainer(s, max_output));
         Ok(HarnessRunningJob {
             pid,
             child: Arc::new(Mutex::new(Some(child))),
@@ -481,13 +498,12 @@ mod non_windows_fallback {
     }
 
     pub fn kill_job_process(job: &HarnessRunningJob) -> Result<u32, HarnessSecurityError> {
-        job.killed
-            .store(true, std::sync::atomic::Ordering::SeqCst);
-        signal_kill_process_group(job.pid);
+        job.killed.store(true, std::sync::atomic::Ordering::SeqCst);
         // Reap the direct child BEFORE polling kill(-pgid, 0) so a zombie leader
         // does not keep the process group alive during the drain check!
         if let Ok(mut guard) = job.child.lock() {
             if let Some(mut child) = guard.take() {
+                signal_kill_process_group(job.pid);
                 let _ = child.kill();
                 let _ = child.wait();
             }
@@ -541,10 +557,10 @@ mod non_windows_fallback {
         }
 
         let killed = job.killed.load(std::sync::atomic::Ordering::SeqCst);
-        signal_kill_process_group(job.pid);
         // Reap the direct child FIRST, THEN poll -pgid for remaining descendants.
         if let Ok(mut guard) = job.child.lock() {
             if let Some(mut child) = guard.take() {
+                signal_kill_process_group(job.pid);
                 if timed_out || killed {
                     let _ = child.kill();
                 }
@@ -600,6 +616,7 @@ mod non_windows_fallback {
         wait_job_process(&job, timeout_ms)
     }
 
+    #[cfg(not(unix))]
     fn ensure_no_symlinks_in_chain(
         root: &Path,
         segments: &[String],
@@ -631,12 +648,10 @@ mod non_windows_fallback {
         Ok(())
     }
 
+    #[cfg(not(unix))]
     fn canonical_rel_posix(root: &Path, final_path: &Path) -> Result<String, HarnessSecurityError> {
         let rel = final_path.strip_prefix(root).map_err(|_| {
-            HarnessSecurityError::new(
-                "workspace-escape",
-                "resolved path escapes workspace root",
-            )
+            HarnessSecurityError::new("workspace-escape", "resolved path escapes workspace root")
         })?;
         Ok(rel
             .components()
@@ -645,6 +660,7 @@ mod non_windows_fallback {
             .join("/"))
     }
 
+    #[cfg(not(unix))]
     fn verify_segments_match_posix(
         expected_segments: &[String],
         canonical_rel: &str,
@@ -694,6 +710,138 @@ mod non_windows_fallback {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    fn remove_verified_entry(
+        workspace: &Path,
+        parent: i32,
+        leaf: &std::ffi::CStr,
+        root: Option<&str>,
+        expected: (u64, u64),
+    ) -> Result<(), HarnessSecurityError> {
+        use std::ffi::CString;
+        use std::os::fd::AsRawFd;
+        let private = root.filter(|v| !v.is_empty()).ok_or_else(|| {
+            HarnessSecurityError::new(
+                "snapshot-root-required",
+                "deletion needs a private custody directory",
+            )
+        })?;
+        use std::ffi::CStr;
+        use std::os::fd::{FromRawFd, OwnedFd};
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::MetadataExt;
+
+        let snapshot_dir = std::fs::File::from(open_anchored_parent_dir_unix(
+            Path::new(private),
+            &[],
+            false,
+        )?);
+        let mut staging_path = None;
+        let custody = if snapshot_dir
+            .metadata()
+            .map_err(|e| HarnessSecurityError::new("snapshot-root-invalid", e.to_string()))?
+            .dev()
+            == expected.0
+        {
+            OwnedFd::from(snapshot_dir)
+        } else {
+            extern "C" {
+                fn nimi_open_delete_staging(
+                    parent: i32,
+                    workspace: *const libc::c_char,
+                    path: *mut libc::c_char,
+                    capacity: usize,
+                ) -> i32;
+            }
+            let workspace = CString::new(workspace.as_os_str().as_bytes()).map_err(|_| {
+                HarnessSecurityError::new("invalid-workspace-root", "root contains NUL")
+            })?;
+            let mut path = [0 as libc::c_char; libc::PATH_MAX as usize];
+            let fd = unsafe {
+                nimi_open_delete_staging(parent, workspace.as_ptr(), path.as_mut_ptr(), path.len())
+            };
+            if fd < 0 {
+                return Err(HarnessSecurityError::new(
+                    "private-staging-unavailable",
+                    std::io::Error::last_os_error().to_string(),
+                ));
+            }
+            staging_path = Some(std::path::PathBuf::from(std::ffi::OsStr::from_bytes(
+                unsafe { CStr::from_ptr(path.as_ptr()) }.to_bytes(),
+            )));
+            unsafe { OwnedFd::from_raw_fd(fd) }
+        };
+        let private = staging_path.as_deref().unwrap_or(Path::new(private));
+        let mut nonce = [0u8; 16];
+        unsafe {
+            libc::arc4random_buf(nonce.as_mut_ptr().cast(), nonce.len());
+        }
+        let name = format!("pending-delete-{}", u128::from_ne_bytes(nonce));
+        let held = CString::new(name.as_str()).unwrap();
+        let dest = custody.as_raw_fd();
+        // Take exclusive custody before choosing whether to unlink. Never unlink a name in
+        // the mutable workspace after checking its inode.
+        let claim = unsafe {
+            libc::renameatx_np(
+                parent,
+                leaf.as_ptr(),
+                dest,
+                held.as_ptr(),
+                libc::RENAME_EXCL,
+            )
+        };
+        if claim != 0 {
+            let err = std::io::Error::last_os_error();
+            if let Some(path) = &staging_path {
+                let _ = std::fs::remove_dir(path);
+            }
+            return Err(HarnessSecurityError::new("delete-failed", err.to_string()));
+        }
+        let mut st: libc::stat = unsafe { std::mem::zeroed() };
+        let checked =
+            unsafe { libc::fstatat(dest, held.as_ptr(), &mut st, libc::AT_SYMLINK_NOFOLLOW) };
+        if checked != 0 || (st.st_dev as u64, st.st_ino as u64) != expected || st.st_nlink != 1 {
+            let restored = unsafe {
+                libc::renameatx_np(
+                    dest,
+                    held.as_ptr(),
+                    parent,
+                    leaf.as_ptr(),
+                    libc::RENAME_EXCL,
+                )
+            };
+            if restored == 0 {
+                if let Some(path) = &staging_path {
+                    let _ = std::fs::remove_dir(path);
+                }
+            }
+            return Err(HarnessSecurityError::new(
+                "precondition-failed",
+                if restored == 0 {
+                    "Target changed before deletion; the displaced entry was restored.".to_owned()
+                } else {
+                    format!(
+                        "Target changed. The displaced entry was preserved at {}",
+                        Path::new(private).join(name).display()
+                    )
+                },
+            ));
+        }
+        if unsafe { libc::unlinkat(dest, held.as_ptr(), 0) } != 0 {
+            return Err(HarnessSecurityError::new(
+                "delete-failed",
+                format!(
+                    "File retained in custody at {}",
+                    Path::new(private).join(name).display()
+                ),
+            ));
+        }
+        if let Some(path) = staging_path {
+            let _ = std::fs::remove_dir(path);
+        }
+        Ok(())
+    }
+
     #[cfg(unix)]
     fn open_anchored_parent_dir_unix(
         root: &Path,
@@ -704,12 +852,17 @@ mod non_windows_fallback {
         use std::os::unix::ffi::OsStrExt;
         use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
 
-        let root_c = CString::new(root.as_os_str().as_bytes())
-            .map_err(|_| HarnessSecurityError::new("invalid-workspace-root", "root path contains NUL"))?;
+        let root_c = CString::new(root.as_os_str().as_bytes()).map_err(|_| {
+            HarnessSecurityError::new("invalid-workspace-root", "root path contains NUL")
+        })?;
+        #[cfg(target_os = "macos")]
+        let no_links = libc::O_NOFOLLOW_ANY;
+        #[cfg(not(target_os = "macos"))]
+        let no_links = 0;
         let root_fd = unsafe {
             libc::open(
                 root_c.as_ptr(),
-                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
+                no_links | libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
             )
         };
         if root_fd < 0 {
@@ -726,7 +879,11 @@ mod non_windows_fallback {
                 libc::openat(
                     dir_fd.as_raw_fd(),
                     seg_c.as_ptr(),
-                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    libc::O_RDONLY
+                        | libc::O_DIRECTORY
+                        | libc::O_NONBLOCK
+                        | libc::O_NOFOLLOW
+                        | libc::O_CLOEXEC,
                 )
             };
             if next_fd >= 0 {
@@ -745,14 +902,21 @@ mod non_windows_fallback {
                 if mk < 0 {
                     let mk_err = std::io::Error::last_os_error();
                     if mk_err.kind() != std::io::ErrorKind::AlreadyExists {
-                        return Err(HarnessSecurityError::new("write-failed", mk_err.to_string()));
+                        return Err(HarnessSecurityError::new(
+                            "write-failed",
+                            mk_err.to_string(),
+                        ));
                     }
                 }
                 let created_fd = unsafe {
                     libc::openat(
                         dir_fd.as_raw_fd(),
                         seg_c.as_ptr(),
-                        libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                        libc::O_RDONLY
+                            | libc::O_DIRECTORY
+                            | libc::O_NONBLOCK
+                            | libc::O_NOFOLLOW
+                            | libc::O_CLOEXEC,
                     )
                 };
                 if created_fd < 0 {
@@ -763,17 +927,44 @@ mod non_windows_fallback {
                             format!("symlink rejected at parent segment '{seg}'"),
                         ));
                     }
-                    return Err(HarnessSecurityError::new("write-failed", open_err.to_string()));
+                    return Err(HarnessSecurityError::new(
+                        "write-failed",
+                        open_err.to_string(),
+                    ));
                 }
                 dir_fd = unsafe { OwnedFd::from_raw_fd(created_fd) };
                 continue;
             }
             return Err(HarnessSecurityError::new(
-                if err.kind() == std::io::ErrorKind::NotFound { "not-found" } else { "open-failed" },
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    "not-found"
+                } else {
+                    "open-failed"
+                },
                 err.to_string(),
             ));
         }
         Ok(dir_fd)
+    }
+
+    fn anchored_root(path: impl AsRef<Path>) -> std::io::Result<std::path::PathBuf> {
+        #[cfg(target_os = "macos")]
+        {
+            let path = path.as_ref();
+            if !path.is_absolute()
+                || path
+                    .components()
+                    .any(|c| matches!(c, std::path::Component::ParentDir))
+            {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "absolute canonical workspace root required",
+                ));
+            }
+            Ok(path.to_owned())
+        }
+        #[cfg(not(target_os = "macos"))]
+        std::fs::canonicalize(path)
     }
 
     fn write_snapshot_file_posix(
@@ -788,7 +979,7 @@ mod non_windows_fallback {
             ));
         };
         let raw_path = Path::new(snapshot_path);
-        let root = std::fs::canonicalize(root_str)
+        let root = anchored_root(root_str)
             .map_err(|err| HarnessSecurityError::new("snapshot-failed", err.to_string()))?;
         let rel = raw_path
             .strip_prefix(Path::new(root_str))
@@ -808,14 +999,19 @@ mod non_windows_fallback {
         let mut f = {
             use std::ffi::CString;
             use std::os::unix::io::{AsRawFd, FromRawFd};
-            let parent_fd = open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], true)?;
+            let parent_fd =
+                open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], true)?;
             let leaf_c = CString::new(leaf.as_bytes())
                 .map_err(|_| HarnessSecurityError::new("snapshot-failed", "leaf contains NUL"))?;
             let fd = unsafe {
                 libc::openat(
                     parent_fd.as_raw_fd(),
                     leaf_c.as_ptr(),
-                    libc::O_WRONLY | libc::O_CREAT | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    libc::O_WRONLY
+                        | libc::O_CREAT
+                        | libc::O_NONBLOCK
+                        | libc::O_NOFOLLOW
+                        | libc::O_CLOEXEC,
                     0o600 as libc::c_uint,
                 )
             };
@@ -827,7 +1023,10 @@ mod non_windows_fallback {
                         "snapshot target is a symlink",
                     ));
                 }
-                return Err(HarnessSecurityError::new("snapshot-failed", err.to_string()));
+                return Err(HarnessSecurityError::new(
+                    "snapshot-failed",
+                    err.to_string(),
+                ));
             }
             unsafe { std::fs::File::from_raw_fd(fd) }
         };
@@ -873,7 +1072,7 @@ mod non_windows_fallback {
         expect_directory: bool,
     ) -> Result<HarnessVerifiedPath, HarnessSecurityError> {
         let segments = validate_relative_workspace_path(relative_path, expect_directory)?;
-        let root = std::fs::canonicalize(workspace_root)
+        let root = anchored_root(workspace_root)
             .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
         let lexical_rel = segments.join("/");
         if !expect_directory && is_sensitive_relative_path(&lexical_rel) {
@@ -890,7 +1089,10 @@ mod non_windows_fallback {
 
             let (file, final_path) = if segments.is_empty() {
                 let root_fd = open_anchored_parent_dir_unix(&root, &[], false)?;
-                (unsafe { std::fs::File::from_raw_fd(root_fd.into_raw_fd()) }, root.clone())
+                (
+                    unsafe { std::fs::File::from_raw_fd(root_fd.into_raw_fd()) },
+                    root.clone(),
+                )
             } else {
                 let parent_fd =
                     open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], false)?;
@@ -898,9 +1100,13 @@ mod non_windows_fallback {
                 let leaf_c = CString::new(leaf.as_bytes())
                     .map_err(|_| HarnessSecurityError::new("invalid-path", "leaf contains NUL"))?;
                 let flags = if expect_directory {
-                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC
+                    libc::O_RDONLY
+                        | libc::O_DIRECTORY
+                        | libc::O_NONBLOCK
+                        | libc::O_NOFOLLOW
+                        | libc::O_CLOEXEC
                 } else {
-                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC
+                    libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC
                 };
                 let fd = unsafe { libc::openat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), flags) };
                 if fd < 0 {
@@ -1022,7 +1228,7 @@ mod non_windows_fallback {
         max_bytes: usize,
     ) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
         let segments = validate_relative_workspace_path(relative_path, false)?;
-        let root = std::fs::canonicalize(workspace_root)
+        let root = anchored_root(workspace_root)
             .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
         let lexical_rel = segments.join("/");
         if is_sensitive_relative_path(&lexical_rel) {
@@ -1033,7 +1239,7 @@ mod non_windows_fallback {
         }
 
         #[cfg(unix)]
-        let (mut file, final_path_str) = {
+        let (file, final_path_str) = {
             use std::ffi::CString;
             use std::os::unix::io::{AsRawFd, FromRawFd};
 
@@ -1046,7 +1252,7 @@ mod non_windows_fallback {
                 libc::openat(
                     parent_fd.as_raw_fd(),
                     leaf_c.as_ptr(),
-                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
                 )
             };
             if fd < 0 {
@@ -1073,7 +1279,7 @@ mod non_windows_fallback {
         };
 
         #[cfg(not(unix))]
-        let (mut file, final_path_str) = {
+        let (file, final_path_str) = {
             let verified = verify_workspace_path(workspace_root, relative_path, false)?;
             let f = std::fs::OpenOptions::new()
                 .read(true)
@@ -1128,7 +1334,7 @@ mod non_windows_fallback {
         request: HarnessSecureWriteRequest,
     ) -> Result<HarnessSecureWriteResult, HarnessSecurityError> {
         let segments = validate_relative_workspace_path(&request.relative_path, false)?;
-        let root = std::fs::canonicalize(&request.workspace_root)
+        let root = anchored_root(&request.workspace_root)
             .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
         let lexical_rel = segments.join("/");
         if is_sensitive_relative_path(&lexical_rel) {
@@ -1145,12 +1351,17 @@ mod non_windows_fallback {
         #[cfg(unix)]
         {
             use std::ffi::CString;
-            use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+            use std::os::unix::io::{AsRawFd, FromRawFd};
 
             let parent_fd = open_anchored_parent_dir_unix(
                 &root,
                 &segments[..segments.len() - 1],
-                request.allow_create,
+                request.allow_create
+                    && request
+                        .precondition_sha256
+                        .as_deref()
+                        .unwrap_or("")
+                        .is_empty(),
             )?;
             let leaf = &segments[segments.len() - 1];
             let leaf_c = CString::new(leaf.as_bytes())
@@ -1163,7 +1374,7 @@ mod non_windows_fallback {
                     libc::openat(
                         parent_fd.as_raw_fd(),
                         leaf_c.as_ptr(),
-                        libc::O_RDWR | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                        libc::O_RDWR | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
                     )
                 };
                 if fd >= 0 {
@@ -1216,7 +1427,9 @@ mod non_windows_fallback {
                         .and_then(|_| f.set_len(0))
                         .and_then(|_| f.write_all(&request.content))
                         .and_then(|_| f.sync_all())
-                        .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                        .map_err(|err| {
+                            HarnessSecurityError::new("write-failed", err.to_string())
+                        })?;
                     return Ok(HarnessSecureWriteResult {
                         final_path: target.to_string_lossy().into_owned(),
                         sha256: sha256_hex(&request.content),
@@ -1240,7 +1453,10 @@ mod non_windows_fallback {
                     ));
                 }
                 if open_err.kind() != std::io::ErrorKind::NotFound {
-                    return Err(HarnessSecurityError::new("write-failed", open_err.to_string()));
+                    return Err(HarnessSecurityError::new(
+                        "write-failed",
+                        open_err.to_string(),
+                    ));
                 }
             }
 
@@ -1263,7 +1479,12 @@ mod non_windows_fallback {
                 libc::openat(
                     parent_fd.as_raw_fd(),
                     leaf_c.as_ptr(),
-                    libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    libc::O_WRONLY
+                        | libc::O_CREAT
+                        | libc::O_EXCL
+                        | libc::O_NONBLOCK
+                        | libc::O_NOFOLLOW
+                        | libc::O_CLOEXEC,
                     0o600 as libc::c_uint,
                 )
             };
@@ -1284,21 +1505,11 @@ mod non_windows_fallback {
                 return Err(HarnessSecurityError::new("write-failed", err.to_string()));
             }
             let mut f = unsafe { std::fs::File::from_raw_fd(new_fd) };
-            let meta_after = match f.metadata() {
-                Ok(m) => m,
-                Err(err) => {
-                    drop(f);
-                    unsafe {
-                        libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0);
-                    }
-                    return Err(HarnessSecurityError::new("write-failed", err.to_string()));
-                }
-            };
+            // The leaf may already have changed owner. Never clean it up by its old name.
+            let meta_after = f
+                .metadata()
+                .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
             if !meta_after.is_file() || check_nlink_one(&meta_after).is_err() {
-                drop(f);
-                unsafe {
-                    libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0);
-                }
                 return Err(HarnessSecurityError::new(
                     "hardlink-rejected",
                     "newly created file failed regular-file/nlink verification",
@@ -1361,11 +1572,15 @@ mod non_windows_fallback {
             }
 
             if !request.must_not_exist {
-                match std::fs::OpenOptions::new().read(true).write(true).open(&target) {
+                match std::fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(&target)
+                {
                     Ok(mut f) => {
-                        let meta = f
-                            .metadata()
-                            .map_err(|err| HarnessSecurityError::new("stat-failed", err.to_string()))?;
+                        let meta = f.metadata().map_err(|err| {
+                            HarnessSecurityError::new("stat-failed", err.to_string())
+                        })?;
                         if !meta.is_file() {
                             return Err(HarnessSecurityError::new(
                                 "is-directory",
@@ -1373,8 +1588,9 @@ mod non_windows_fallback {
                             ));
                         }
                         check_nlink_one(&meta)?;
-                        let final_path = std::fs::canonicalize(&target)
-                            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                        let final_path = std::fs::canonicalize(&target).map_err(|err| {
+                            HarnessSecurityError::new("write-failed", err.to_string())
+                        })?;
                         let canonical_rel = canonical_rel_posix(&root, &final_path)?;
                         verify_segments_match_posix(&segments, &canonical_rel)?;
                         if is_sensitive_relative_path(&canonical_rel) {
@@ -1386,7 +1602,9 @@ mod non_windows_fallback {
                         let mut existing_bytes = Vec::new();
                         (&f).take(64 * 1024 * 1024 + 1)
                             .read_to_end(&mut existing_bytes)
-                            .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
+                            .map_err(|err| {
+                                HarnessSecurityError::new("read-failed", err.to_string())
+                            })?;
                         if existing_bytes.len() > 64 * 1024 * 1024 {
                             return Err(HarnessSecurityError::new(
                                 "file-too-large",
@@ -1415,7 +1633,9 @@ mod non_windows_fallback {
                             .and_then(|_| f.set_len(0))
                             .and_then(|_| f.write_all(&request.content))
                             .and_then(|_| f.sync_all())
-                            .map_err(|err| HarnessSecurityError::new("write-failed", err.to_string()))?;
+                            .map_err(|err| {
+                                HarnessSecurityError::new("write-failed", err.to_string())
+                            })?;
                         return Ok(HarnessSecureWriteResult {
                             final_path: final_path.to_string_lossy().into_owned(),
                             sha256: sha256_hex(&request.content),
@@ -1478,7 +1698,7 @@ mod non_windows_fallback {
         request: HarnessSecureDeleteRequest,
     ) -> Result<HarnessSecureDeleteResult, HarnessSecurityError> {
         let segments = validate_relative_workspace_path(&request.relative_path, false)?;
-        let root = std::fs::canonicalize(&request.workspace_root)
+        let root = anchored_root(&request.workspace_root)
             .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
         let lexical_rel = segments.join("/");
         if is_sensitive_relative_path(&lexical_rel) {
@@ -1491,7 +1711,7 @@ mod non_windows_fallback {
         #[cfg(unix)]
         {
             use std::ffi::CString;
-            use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
+            use std::os::unix::io::{AsRawFd, FromRawFd};
 
             let parent_fd =
                 open_anchored_parent_dir_unix(&root, &segments[..segments.len() - 1], false)?;
@@ -1502,7 +1722,7 @@ mod non_windows_fallback {
                 libc::openat(
                     parent_fd.as_raw_fd(),
                     leaf_c.as_ptr(),
-                    libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                    libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
                 )
             };
             if fd < 0 {
@@ -1561,34 +1781,46 @@ mod non_windows_fallback {
                 write_snapshot_file_posix(request.snapshot_root.as_deref(), snap, &content)?;
                 snapshot_written = true;
             }
-            // Verify directory entry still points to the exact same (st_dev, st_ino) before unlinkat.
-            let mut st: libc::stat = unsafe { std::mem::zeroed() };
-            let rc = unsafe {
-                libc::fstatat(
-                    parent_fd.as_raw_fd(),
-                    leaf_c.as_ptr(),
-                    &mut st,
-                    libc::AT_SYMLINK_NOFOLLOW,
-                )
-            };
-            if rc != 0 {
-                return Err(HarnessSecurityError::new(
-                    "delete-failed",
-                    std::io::Error::last_os_error().to_string(),
-                ));
-            }
-            if (st.st_dev as u64) != open_dev || (st.st_ino as u64) != open_ino {
-                return Err(HarnessSecurityError::new(
-                    "precondition-failed",
-                    "target file inode changed before delete",
-                ));
-            }
-            let unlink_rc = unsafe { libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0) };
-            if unlink_rc != 0 {
-                return Err(HarnessSecurityError::new(
-                    "delete-failed",
-                    std::io::Error::last_os_error().to_string(),
-                ));
+            #[cfg(target_os = "macos")]
+            remove_verified_entry(
+                &root,
+                parent_fd.as_raw_fd(),
+                &leaf_c,
+                request.snapshot_root.as_deref(),
+                (open_dev, open_ino),
+            )?;
+            #[cfg(not(target_os = "macos"))]
+            {
+                // Verify directory entry still points to the exact same (st_dev, st_ino) before unlinkat.
+                let mut st: libc::stat = unsafe { std::mem::zeroed() };
+                let rc = unsafe {
+                    libc::fstatat(
+                        parent_fd.as_raw_fd(),
+                        leaf_c.as_ptr(),
+                        &mut st,
+                        libc::AT_SYMLINK_NOFOLLOW,
+                    )
+                };
+                if rc != 0 {
+                    return Err(HarnessSecurityError::new(
+                        "delete-failed",
+                        std::io::Error::last_os_error().to_string(),
+                    ));
+                }
+                if (st.st_dev as u64) != open_dev || (st.st_ino as u64) != open_ino {
+                    return Err(HarnessSecurityError::new(
+                        "precondition-failed",
+                        "target file inode changed before delete",
+                    ));
+                }
+                let unlink_rc =
+                    unsafe { libc::unlinkat(parent_fd.as_raw_fd(), leaf_c.as_ptr(), 0) };
+                if unlink_rc != 0 {
+                    return Err(HarnessSecurityError::new(
+                        "delete-failed",
+                        std::io::Error::last_os_error().to_string(),
+                    ));
+                }
             }
             let mut target = root.clone();
             for seg in &segments {

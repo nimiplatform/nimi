@@ -33,11 +33,14 @@ enum StreamSlot {
 type Registry = HashMap<String, StreamSlot>;
 const MAX_BUNDLED_AVATAR_STREAMS: usize = 24;
 const MAX_AGENT_SESSION_BUNDLED_STREAMS: usize = 16;
-static STREAMS: OnceLock<Mutex<Registry>> = OnceLock::new();
+static STREAMS: OnceLock<std::sync::Mutex<Registry>> = OnceLock::new();
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
-fn streams() -> &'static Mutex<Registry> {
-    STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+fn streams() -> std::sync::MutexGuard<'static, Registry> {
+    STREAMS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 fn slot_belongs_to_control(slot: &StreamSlot, control: &Arc<dyn NimiDesktopControl>) -> bool {
@@ -98,19 +101,18 @@ async fn next_stream_item<T>(
     feature = "windows-source-local-development"
 )))]
 pub(super) async fn close_all_bundled_avatar_streams() -> usize {
-    let registered = {
-        let mut registry = streams().lock().await;
+    let (registered, active) = {
+        let mut registry = streams();
         let registered = registry.len();
         let active = registry
             .drain()
             .filter_map(|(_, slot)| opened_stream(slot))
             .collect::<Vec<_>>();
-        drop(registry);
-        for stream in active {
-            close_stream(stream).await;
-        }
-        registered
+        (registered, active)
     };
+    for stream in active {
+        close_stream(stream).await;
+    }
     registered
 }
 
@@ -118,7 +120,7 @@ pub(super) async fn close_bundled_avatar_streams_for_control(
     control: &Arc<dyn NimiDesktopControl>,
 ) -> usize {
     let (registered, active) = {
-        let mut registry = streams().lock().await;
+        let mut registry = streams();
         let mut registered = 0;
         let mut active = Vec::new();
         registry.retain(|_, slot| {
@@ -157,36 +159,36 @@ pub async fn desktop_bundled_app_stream_open(
         Err(error) => return NativeJsonOutcome::host_error(error),
     };
     let stream_id = format!("bundled-avatar-{}", COUNTER.fetch_add(1, Ordering::Relaxed));
-    let current = super::DESKTOP_CONTROL.lock().await;
-    if !current
-        .as_ref()
-        .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
-    {
-        return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
-    }
     let is_agent_session = input
         .method_id
         .trim()
         .starts_with("/nimi.runtime.v1.AgentSessionService/");
-    let mut registry = streams().lock().await;
-    let class_count = registry
-        .values()
-        .filter(|slot| slot_is_agent_session(slot) == is_agent_session)
-        .count();
-    let class_limit = if is_agent_session {
-        MAX_AGENT_SESSION_BUNDLED_STREAMS
-    } else {
-        MAX_BUNDLED_AVATAR_STREAMS
-    };
-    if class_count >= class_limit {
-        return NativeJsonOutcome::host_reason("resource-exhausted", false);
+    {
+        let current = super::DESKTOP_CONTROL.lock().await;
+        if !current
+            .as_ref()
+            .is_some_and(|candidate| Arc::ptr_eq(candidate, &control))
+        {
+            return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
+        }
+        let mut registry = streams();
+        let class_count = registry
+            .values()
+            .filter(|slot| slot_is_agent_session(slot) == is_agent_session)
+            .count();
+        let class_limit = if is_agent_session {
+            MAX_AGENT_SESSION_BUNDLED_STREAMS
+        } else {
+            MAX_BUNDLED_AVATAR_STREAMS
+        };
+        if class_count >= class_limit {
+            return NativeJsonOutcome::host_reason("resource-exhausted", false);
+        }
+        registry.insert(
+            stream_id.clone(),
+            StreamSlot::Opening(Arc::downgrade(&control), is_agent_session),
+        );
     }
-    registry.insert(
-        stream_id.clone(),
-        StreamSlot::Opening(Arc::downgrade(&control), is_agent_session),
-    );
-    drop(registry);
-    drop(current);
     struct BundledSlotGuard {
         stream_id: Option<String>,
     }
@@ -200,34 +202,28 @@ pub async fn desktop_bundled_app_stream_open(
             let Some(stream_id) = self.stream_id.take() else {
                 return;
             };
-            if let Ok(mut registry) = streams().try_lock() {
-                if matches!(registry.get(stream_id.as_str()), Some(StreamSlot::Opening(_, _))) {
-                    registry.remove(stream_id.as_str());
-                }
-                return;
-            }
-            if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                handle.spawn(async move {
-                    let mut registry = streams().lock().await;
-                    if matches!(registry.get(stream_id.as_str()), Some(StreamSlot::Opening(_, _))) {
-                        registry.remove(stream_id.as_str());
-                    }
-                });
+            let mut registry = streams();
+            if matches!(
+                registry.get(stream_id.as_str()),
+                Some(StreamSlot::Opening(_, _))
+            ) {
+                registry.remove(stream_id.as_str());
             }
         }
     }
     let mut slot_guard = BundledSlotGuard {
         stream_id: Some(stream_id.clone()),
     };
-    let receiver = match control
-        .open_bundled_app_stream(BundledAppRuntimeRequest {
-            app,
-            method_id: input.method_id,
-            request_bytes: input.request_bytes.to_vec(),
-            timeout,
-        })
-        .await
-    {
+    let opening = control.open_bundled_app_stream(BundledAppRuntimeRequest {
+        app,
+        method_id: input.method_id,
+        request_bytes: input.request_bytes.to_vec(),
+        timeout,
+    });
+    let Ok(opened) = crate::await_stream_open(opening, is_agent_session).await else {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", true);
+    };
+    let receiver = match opened {
         Ok(receiver) => receiver,
         Err(error) => {
             clear_desktop_control_on_transport_reason(
@@ -249,7 +245,7 @@ pub async fn desktop_bundled_app_stream_open(
         close_tx,
         control: Arc::downgrade(&control),
     });
-    let mut registry = streams().lock().await;
+    let mut registry = streams();
     let Some(slot @ StreamSlot::Opening(_, _)) = registry.get_mut(stream_id.as_str()) else {
         slot_guard.disarm();
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
@@ -265,8 +261,6 @@ pub async fn desktop_bundled_app_stream_next(
 ) -> NativeBundledAvatarStreamNextOutcome {
     let stream_id = input.stream_id;
     let stream = streams()
-        .lock()
-        .await
         .get(stream_id.as_str())
         .and_then(|slot| match slot {
             StreamSlot::Opening(_, _) => None,
@@ -288,7 +282,7 @@ pub async fn desktop_bundled_app_stream_next(
             reason_metadata: None,
         },
         Some(Err(error)) => {
-            streams().lock().await.remove(stream_id.as_str());
+            streams().remove(stream_id.as_str());
             if let Some(control) = stream.control.upgrade() {
                 clear_desktop_control_on_transport_reason(
                     &control,
@@ -304,7 +298,7 @@ pub async fn desktop_bundled_app_stream_next(
             )
         }
         None => {
-            streams().lock().await.remove(stream_id.as_str());
+            streams().remove(stream_id.as_str());
             next_completed()
         }
     }
@@ -315,8 +309,6 @@ pub async fn desktop_bundled_app_stream_close(
     input: NativeBundledAvatarStreamInput,
 ) -> NativeJsonOutcome {
     let stream = streams()
-        .lock()
-        .await
         .remove(input.stream_id.as_str())
         .and_then(opened_stream);
     let closed = stream.is_some();

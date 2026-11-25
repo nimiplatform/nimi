@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -223,6 +224,8 @@ func (s *Service) ExecuteAgentBodyStep(
 	if agentRef == "" || accountID == "" || workRef == "" {
 		return BodyStepRuntimeResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	ctx, cancelTurn := context.WithTimeout(textbehavior.WithSessionInference(ctx), 10*time.Minute)
+	defer cancelTurn()
 	ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
 
 	execID := "body_step_" + ulid.Make().String()
@@ -301,13 +304,13 @@ func (s *Service) ExecuteAgentBodyStep(
 	execCtx := withLocalAgentAIObservation(ctx, agentRef, "body-step", execID, false)
 
 	var (
-		assistantText      strings.Builder
-		issuedToolCalls    []*runtimev1.BodyToolCall
-		finishReason       string
-		usageInputTokens   int64
-		usageOutputTokens  int64
-		sawCompletedUsage  bool
-		streamErr          error
+		assistantText     strings.Builder
+		issuedToolCalls   []*runtimev1.BodyToolCall
+		finishReason      string
+		usageInputTokens  int64
+		usageOutputTokens int64
+		sawCompletedUsage bool
+		streamErr         error
 	)
 	err = s.currentPublicChatTurnExecutor().StreamChatTurn(execCtx, req, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
@@ -416,6 +419,8 @@ func (s *Service) ExecuteBrainInlineTurn(
 	if accountID == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	ctx, cancelTurn := context.WithTimeout(textbehavior.WithSessionInference(ctx), 10*time.Minute)
+	defer cancelTurn()
 	ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
 	execID := "brain_turn_" + ulid.Make().String()
 	releaseSlot, err := s.AcquireSessionExecutionSlot(in.LocalAgentRef, in.WorkSessionRef, execID)
@@ -524,6 +529,7 @@ func (s *Service) RunAlarmLLM(
 	title string,
 	body string,
 	workSessionRef string,
+	reserve func(int64) error,
 ) (string, string, int64, error) {
 	if s == nil || s.isClosed() || !s.HasPublicChatTurnExecutor() || !s.HasPublicChatBindingResolver() {
 		return "", "", 0, localAppConversationOwnerUnavailable()
@@ -532,6 +538,8 @@ func (s *Service) RunAlarmLLM(
 	if trimmedAccountID == "" {
 		return "", "", 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	ctx, cancelTurn := context.WithTimeout(textbehavior.WithSessionInference(ctx), 10*time.Minute)
+	defer cancelTurn()
 	ctx = executionintent.WithRuntimeAccountSubject(ctx, trimmedAccountID)
 	execID := "alarm_llm_" + ulid.Make().String()
 	sessionKey := strings.TrimSpace(workSessionRef)
@@ -574,6 +582,15 @@ func (s *Service) RunAlarmLLM(
 		textBinding,
 	); compiledSystem != "" {
 		systemPrompt = compiledSystem
+	}
+	// Reserve against the final compiled identity and actual prompt before dispatch.
+	// UTF-8 bytes conservatively bound text tokens; include message framing and the output ceiling.
+	const outputBudget = 512
+	if reserve == nil {
+		return "", "", 0, errors.New("alarm budget owner unavailable")
+	}
+	if err := reserve(int64(len(systemPrompt) + len(prompt) + 128 + outputBudget)); err != nil {
+		return "", "", 0, err
 	}
 	req := &PublicChatTurnExecutionRequest{
 		AppID:                "nimi.agent-alarm",

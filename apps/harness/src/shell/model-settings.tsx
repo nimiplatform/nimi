@@ -12,9 +12,9 @@ export function ModelSettings({ onBack }: { onBack?: () => void }) {
   const [error, setError] = useState('');
   const scope = access.runtime.status === 'connected' ? access.runtime.scope : undefined;
 
-  async function openHome(section?: 'ai-models') {
+  async function openHome(partner?: boolean) {
     try {
-      const result = await openDesktopIntent({ intent: { kind: 'open-apps', appId, ...(section ? { section } : {}) } });
+      const result = await openDesktopIntent({ intent: partner ? { kind: 'open-partners' } : { kind: 'open-apps', appId } });
       if (result.status !== 'accepted') throw new Error(result.reasonCode);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -53,11 +53,11 @@ export function ModelSettings({ onBack }: { onBack?: () => void }) {
           <div className="harness-access">
             <span className="harness-access__status">
               {locale === 'zh'
-                ? '本工作台通过 Runtime 伙伴（Brain-Body 共生）路由模型与记忆；如需调整默认云端或本地对话模型，请前往 Nimi Home 模型设置。'
-                : 'This workspace routes models and memory through your Nimi Partner (Brain-Body symbiosis). Configure default local or cloud models in Nimi Home.'}
+                ? '本会话使用伙伴的模型设置。可在 Home 的伙伴管理中查看或调整。'
+                : 'This session uses your Partner’s model settings. Manage the Partner in Nimi Home.'}
             </span>
-            <Button size="sm" tone="primary" leadingIcon={<ExternalLink size={14} />} onClick={() => void openHome('ai-models')}>
-              {locale === 'zh' ? '在 Nimi Home 中配置模型' : 'Configure models in Nimi Home'}
+            <Button size="sm" tone="primary" leadingIcon={<ExternalLink size={14} />} onClick={() => void openHome(true)}>
+              {locale === 'zh' ? '在 Home 管理伙伴' : 'Manage Partners in Home'}
             </Button>
           </div>
         )}

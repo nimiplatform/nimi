@@ -5,7 +5,7 @@
 // streaming inference via StreamLocalAgentBodyStep (purpose=INFERENCE) with transient
 // toolCallActivity keepalive, and beforeCompact compaction step with 2 bounded retries.
 // @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { NimiLocalAppAgentSessionClient } from '@nimiplatform/sdk/app';
 
 export const HARNESS_PC_CAPABILITY_NAMESPACE = 'os.pc.workspace';
@@ -424,15 +424,6 @@ export class HarnessBodySymbiosisClient {
     this.handlers.onLeaseLost?.(reason);
   }
 
-  private isTombstoneCommand(kind: unknown): boolean {
-    return kind === 2
-      || kind === 3
-      || kind === 4
-      || kind === 'BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY'
-      || kind === 'BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION'
-      || kind === 'BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT';
-  }
-
   private async consumeOutboxStreamWithReconnect(signal: AbortSignal): Promise<void> {
     let backoffMs = 1_000;
     while (!this.stopped && !signal.aborted) {
@@ -451,19 +442,9 @@ export class HarnessBodySymbiosisClient {
           try {
             await this.handleEnvelopeAndAck(env);
           } catch (envErr) {
-            const msg = envErr instanceof Error ? envErr.message : String(envErr);
-            if (/AGENT_BODY_LEASE_CONFLICT|FAILED_PRECONDITION/i.test(msg)) {
-              throw envErr;
-            }
-            if (this.isTombstoneCommand(env.commandKind)) {
-              // Strict v2.1 tombstone barrier: NEVER advance to subsequent NEW_INTENT items
-              // after a failed PURGE_* or INVALIDATE_MEMORY! Drop the stream and re-register
-              // so RegisterBodyCarrier drains all pending tombstones before any intent runs.
-              this.running = false;
-              this.tombstonesDrained = false;
-              throw envErr;
-            }
-            // Non-tombstone unknown/failed envelopes are NOT ACKed so Runtime can redeliver.
+            this.running = false;
+            this.tombstonesDrained = false;
+            throw envErr;
           }
         }
       } catch (err) {
@@ -602,7 +583,7 @@ export class HarnessBodySymbiosisClient {
     input: BodyInferenceStepInput,
     signal?: AbortSignal,
   ): AsyncIterable<DecodedBodyStepEvent> {
-    if (!this.running || this.leaseEpoch <= 0) {
+    if (!this.isReadyForProjections()) {
       throw new Error('Harness PC body lease is offline; cannot stream inference step.');
     }
     const stream = await this.client.streamLocalAgentBodyStep({
@@ -657,12 +638,12 @@ export class HarnessBodySymbiosisClient {
    * hook with 2 bounded retries and usage / context-budget reporting.
    */
   async executeCompactionWithRetries(input: BodyCompactionInput, maxAttempts = 2): Promise<BodyCompactionOutput> {
-    if (!this.running || this.leaseEpoch <= 0) {
+    if (!this.isReadyForProjections()) {
       throw new Error('Harness PC body lease is offline; cannot execute compaction step.');
     }
     // Keep one stable stepRequestId across all retries so a post-commit stream drop
     // replays the committed Runtime ledger journal idempotently without MAC mismatch.
-    const stepRequestId = randomUUID();
+    const stepRequestId = createHash('sha256').update(JSON.stringify(['compaction', input])).digest('hex');
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {

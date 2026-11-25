@@ -316,6 +316,16 @@ func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, inpu
 	}, nil
 }
 
+// BodyNamespaceOwner resolves nested App IDs at the registration authority. Retired
+// IDs continue to fence their namespace from shorter, surviving App IDs.
+func (store *RegistrationStore) BodyNamespaceOwner(ctx context.Context, namespace string) (string, error) {
+	var appID string
+	err := store.kernel.db.QueryRowContext(ctx, `SELECT app_id FROM canonical_registration
+		WHERE substr(?, 1, length(app_id)+5) = 'app.' || app_id || '.'
+		ORDER BY length(app_id) DESC LIMIT 1`, namespace).Scan(&appID)
+	return appID, err
+}
+
 func (store *RegistrationStore) GetByHandle(ctx context.Context, handle string) (Registration, error) {
 	if store == nil || store.kernel == nil {
 		return Registration{}, ErrInvalidArgument

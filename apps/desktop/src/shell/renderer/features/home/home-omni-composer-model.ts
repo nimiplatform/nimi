@@ -310,8 +310,7 @@ export function isLightQaRouteResponse(response: RouteAndSubmitInputResponse): b
 export function isPcWorkRouteResponse(response: RouteAndSubmitInputResponse): boolean {
   return (
     response.outcome === RouteAndSubmitOutcome.DEFERRED_BODY_OFFLINE
-    || response.sessionKind === 'pc_work'
-    || response.ownerBodyKind === 'os.pc.workspace'
+    || (response.outcome === RouteAndSubmitOutcome.ACCEPTED && (response.sessionKind === 'pc_work' || response.ownerBodyKind === 'os.pc.workspace'))
   );
 }
 

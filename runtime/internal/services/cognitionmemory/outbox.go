@@ -69,21 +69,6 @@ func deletedSessionMetaKey(localAgentRef, workSessionRef string) string {
 	return "cognition_deleted_session:" + strings.TrimSpace(localAgentRef) + ":" + strings.TrimSpace(workSessionRef)
 }
 
-// RecordDeletedSessionCutoff persists an agent+session deletion cutoff marker
-// in Runtime's own store so even before a Cognition bank is created, late
-// CommitSessionPointer calls can never resurrect the deleted session.
-func (s *Store) RecordDeletedSessionCutoff(ctx context.Context, localAgentRef, workSessionRef string) error {
-	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
-		return nil
-	}
-	now := s.now().UTC().Format(time.RFC3339Nano)
-	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES(?, ?)
-			ON CONFLICT(key) DO NOTHING`, deletedSessionMetaKey(localAgentRef, workSessionRef), now)
-		return err
-	})
-}
-
 // IsDeletedSessionCutoff reports whether workSessionRef was fenced for localAgentRef.
 func (s *Store) IsDeletedSessionCutoff(ctx context.Context, localAgentRef, workSessionRef string) (bool, error) {
 	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
@@ -234,6 +219,34 @@ func (s *Store) EnqueueCommittedEventTx(tx *sql.Tx, localAgentRef string, envelo
 	}
 	if err := validateCommittedEnvelope(cloned, binding.BankRef != ""); err != nil {
 		return OutboxItem{}, err
+	}
+	// Test all session provenance in the same transaction that allocates the sequence.
+	sessionRefs := make(map[string]bool)
+	for _, source := range cloned.GetSources() {
+		if source.GetKind() == "session" {
+			sessionRefs[source.GetValue()] = true
+		}
+	}
+	if ref := cloned.GetSessionPointerCommitted().GetWorkSessionRef(); ref != "" {
+		sessionRefs[ref] = true
+	}
+	for ref := range sessionRefs {
+		var deleted bool
+		if err := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM runtime_local_agent_meta WHERE key = ?)", deletedSessionMetaKey(localAgentRef, ref)).Scan(&deleted); err != nil {
+			return OutboxItem{}, err
+		}
+		if deleted {
+			return OutboxItem{}, ErrConflict
+		}
+	}
+	if target := cloned.GetCorrectionCommitted().GetTargetMemory().GetValue(); target != "" {
+		var cut bool
+		if err := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM runtime_local_agent_meta WHERE key=?)", deletedMemoryKey(localAgentRef, target)).Scan(&cut); err != nil {
+			return OutboxItem{}, err
+		}
+		if cut {
+			return OutboxItem{}, ErrConflict
+		}
 	}
 	payload, requestKey, err := marshalEnvelope(cloned)
 	if err != nil {
@@ -710,6 +723,9 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 	}
 	var neutralized int64
 	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO runtime_local_agent_meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO NOTHING", deletedSessionMetaKey(localAgentRef, workSessionRef), s.now().UTC().Format(time.RFC3339Nano)); err != nil {
+			return err
+		}
 		res, err := tx.ExecContext(ctx, `
 			UPDATE runtime_cognition_memory_outbox
 			SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL
@@ -748,8 +764,9 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 				return fmt.Errorf("neutralize session cognition outbox: scan row: %w", scanErr)
 			}
 			var env runtimev1.CognitionMemoryCommittedEventEnvelope
-			if proto.Unmarshal(payload, &env) != nil {
-				continue
+			if err := proto.Unmarshal(payload, &env); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("decode pending cognition envelope: %w", err)
 			}
 			matched := env.GetSessionPointerCommitted() != nil && env.GetSessionPointerCommitted().GetWorkSessionRef() == workSessionRef
 			if !matched {
@@ -763,6 +780,10 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 			if matched {
 				extraOps = append(extraOps, opID)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return err
 		}
 		if closeErr := rows.Close(); closeErr != nil {
 			return fmt.Errorf("neutralize session cognition outbox: close scan: %w", closeErr)
@@ -783,6 +804,32 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 		return nil
 	})
 	return neutralized, err
+}
+
+func deletedMemoryKey(agent, ref string) string {
+	return "cognition_deleted_memory:" + agent + ":" + ref
+}
+
+func (s *Store) neutralizeSessionCorrections(ctx context.Context, agent string, refs []string) (int64, error) {
+	var total int64
+	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		for _, ref := range refs {
+			if _, err := tx.ExecContext(ctx, "INSERT INTO runtime_local_agent_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING", deletedMemoryKey(agent, ref), ref); err != nil {
+				return err
+			}
+			res, err := tx.ExecContext(ctx, "UPDATE runtime_cognition_memory_outbox SET state='cutoff_non_effecting',outcome='no_effect',payload=NULL WHERE state='pending' AND event_ref IN (SELECT c.event_ref FROM runtime_cognition_memory_committed_correction c JOIN runtime_cognition_memory_committed_event e ON e.event_ref=c.event_ref WHERE e.local_agent_ref=? AND c.target_memory_ref=?)", agent, ref)
+			if err != nil {
+				return err
+			}
+			n, err := res.RowsAffected()
+			if err != nil {
+				return err
+			}
+			total += n
+		}
+		return nil
+	})
+	return total, err
 }
 
 func marshalEnvelope(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) ([]byte, string, error) {

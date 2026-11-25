@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
+import { lstat } from 'node:fs/promises';
 import { sessionFilePath, sessionFileTools } from '../dist-electron/session-files.js';
 
 test('import and share preserve bytes, require a session reference, and refuse a link outside the workspace', async t => {
@@ -24,7 +25,12 @@ test('import and share preserve bytes, require a session reference, and refuse a
       sent.set(relativePath, { bytes: Buffer.concat(parts), mediaType });
       return { sha256 };
     },
-  }, workspace, 'main', new AbortController().signal).tools;
+  }, 'main', new AbortController().signal,
+    (name, data) => writeFile(join(workspace, name), data, { flag: 'wx' }),
+    async name => {
+      assert.ok((await lstat(join(workspace, name))).isFile(), 'Choose a regular file.');
+      return readFile(join(workspace, name));
+    }).tools;
   const run = (name, input) => tools.find(t => t.name === name).execute(input, {}, {});
   const input = await run('open_attachment', { id });
   const name = input.output[0].text;

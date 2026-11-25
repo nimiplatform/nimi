@@ -113,14 +113,10 @@ func (st *Store) FlushWAL(ctx context.Context) error {
 	return err
 }
 
-// UpsertPendingAttention persists a standalone attention item (such as a fired
-// desktop alarm notice) and returns it for live overview fan-out.
-func (st *Store) UpsertPendingAttention(ctx context.Context, accountID string, att *runtimev1.PendingAttentionRecord, now time.Time) error {
-	if st == nil || st.writeDB == nil || att == nil || strings.TrimSpace(att.GetAttentionId()) == "" {
-		return nil
-	}
+// putPendingAttention participates in the occurrence receipt and schedule transaction.
+func putPendingAttention(ctx context.Context, tx *sql.Tx, accountID string, att *runtimev1.PendingAttentionRecord, now time.Time) error {
 	nowStr := formatRFC3339(now)
-	_, err := st.writeDB.ExecContext(ctx, `
+	_, err := tx.ExecContext(ctx, `
 		INSERT INTO runtime_session_pending_attention(
 			attention_id, account_id, work_session_ref, agent_binding,
 			attention_kind, trust_scope, summary_json, expires_at, updated_at
@@ -207,6 +203,11 @@ func verifyAndInitStore(db *sql.DB) error {
 			archived_at TEXT NOT NULL DEFAULT '',
 			body_purge_pending INTEGER NOT NULL DEFAULT 0,
 			deleted_at TEXT NOT NULL DEFAULT ''
+		);`,
+		`CREATE TABLE IF NOT EXISTS runtime_session_milestone (
+			id INTEGER PRIMARY KEY, account_id TEXT NOT NULL, agent_binding TEXT NOT NULL,
+			work_session_ref TEXT NOT NULL, body_kind TEXT NOT NULL, kind TEXT NOT NULL,
+			summary TEXT NOT NULL, deliverables TEXT NOT NULL
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_session_acct_agent ON runtime_session(account_id, agent_binding, status, updated_at DESC);`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_session_scope ON runtime_session(account_id, publisher_scope_key, status);`,
@@ -407,7 +408,9 @@ func verifyAndInitStore(db *sql.DB) error {
 		col   string
 		sql   string
 	}{
+		{"runtime_session", "forgotten_memory_count", `ALTER TABLE runtime_session ADD COLUMN forgotten_memory_count INTEGER`},
 		{"runtime_session", "projection_lease_epoch", `ALTER TABLE runtime_session ADD COLUMN projection_lease_epoch INTEGER NOT NULL DEFAULT 0`},
+		{"runtime_body_outbox", "input_committed", "ALTER TABLE runtime_body_outbox ADD COLUMN input_committed INTEGER NOT NULL DEFAULT 0"},
 		{"runtime_body_continuity_ledger", "last_committed_count", `ALTER TABLE runtime_body_continuity_ledger ADD COLUMN last_committed_count INTEGER NOT NULL DEFAULT 0`},
 		{"runtime_body_continuity_ledger", "issued_tool_args_json", `ALTER TABLE runtime_body_continuity_ledger ADD COLUMN issued_tool_args_json TEXT NOT NULL DEFAULT '{}'`},
 		{"runtime_session_alarm", "last_claimed_occurrence", `ALTER TABLE runtime_session_alarm ADD COLUMN last_claimed_occurrence TEXT NOT NULL DEFAULT ''`},
@@ -423,6 +426,34 @@ func verifyAndInitStore(db *sql.DB) error {
 				return fmt.Errorf("migrate sessions.db %s.%s: %w", alt.table, alt.col, err)
 			}
 		}
+	}
+	// Old journals do not identify individual user inputs in their signed prefix.
+	// Retire legacy deliveries before the ledger head, including unacked redeliveries.
+	// Inputs routed after the last step and new-format inputs remain eligible.
+	migration, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = migration.Rollback() }()
+	tag, err := migration.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('outbox_input_receipt_v1','1')")
+	if err != nil {
+		return err
+	}
+	applied, err := tag.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if applied == 1 {
+		if _, err = migration.ExecContext(ctx, `UPDATE runtime_body_outbox AS o SET input_committed=1
+			WHERE o.command_kind=? AND o.input_committed=0 AND json_type(o.payload_json, '$.bodyInputText') IS NULL
+			AND EXISTS (SELECT 1 FROM runtime_body_continuity_ledger l WHERE l.account_id=o.account_id
+			  AND l.work_session_ref=o.work_session_ref AND l.last_step_mac!='' AND julianday(o.created_at)<=julianday(l.updated_at))`,
+			int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT)); err != nil {
+			return fmt.Errorf("fence pre-migration body inputs: %w", err)
+		}
+	}
+	if err := migration.Commit(); err != nil {
+		return err
 	}
 	// Upgrade v1 runtime_session_submission atomically inside a single transaction.
 	hasCallerSubject, err := sqliteTableHasColumn(ctx, db, "runtime_session_submission", "caller_subject")
@@ -799,7 +830,7 @@ func (st *Store) GetSession(ctx context.Context, accountID, workSessionRef strin
 // interrupted DeleteSession calls can be retried idempotently without returning NotFound.
 func (st *Store) GetSessionIncludingDeleting(ctx context.Context, accountID, workSessionRef string) (*sessionRow, error) {
 	row := st.readDB.QueryRowContext(ctx,
-		`SELECT `+sessionSelectColumns+` FROM runtime_session WHERE account_id = ? AND work_session_ref = ? AND deleted_at = '' AND status != 'deleted'`,
+		`SELECT `+sessionSelectColumns+` FROM runtime_session WHERE account_id = ? AND work_session_ref = ?`,
 		accountID, workSessionRef,
 	)
 	res, err := scanSessionRow(row)
@@ -814,7 +845,7 @@ func (st *Store) GetSessionIncludingDeleting(ctx context.Context, accountID, wor
 // and PURGE_SESSION outbox enqueueing after crashes.
 func (st *Store) ListDeletingSessions(ctx context.Context) ([]*sessionRow, error) {
 	rows, err := st.readDB.QueryContext(ctx,
-		`SELECT `+sessionSelectColumns+` FROM runtime_session WHERE status = 'deleting' AND deleted_at = '' ORDER BY updated_at ASC LIMIT 100`,
+		`SELECT `+sessionSelectColumns+` FROM runtime_session WHERE status = 'deleting' OR (deleted_at <> '' AND forgotten_memory_count IS NULL) ORDER BY updated_at ASC`,
 	)
 	if err != nil {
 		return nil, err
@@ -856,7 +887,7 @@ func (st *Store) DeletePendingAgentPurge(ctx context.Context, accountID, agentBi
 
 func (st *Store) ListPendingAgentPurges(ctx context.Context) ([]pendingAgentPurgeItem, error) {
 	rows, err := st.readDB.QueryContext(ctx, `
-		SELECT account_id, agent_binding FROM runtime_pending_agent_purge ORDER BY created_at ASC LIMIT 100`)
+		SELECT account_id, agent_binding FROM runtime_pending_agent_purge ORDER BY created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -878,7 +909,7 @@ func (st *Store) ListDistinctActiveAgentBindings(ctx context.Context) ([]pending
 			SELECT account_id, agent_binding FROM runtime_session WHERE deleted_at = '' AND status != 'deleted'
 			UNION
 			SELECT account_id, agent_binding FROM runtime_session_alarm WHERE status IN ('active', 'sleeping', 'paused')
-		) LIMIT 500`)
+		) ORDER BY account_id, agent_binding`)
 	if err != nil {
 		return nil, err
 	}
@@ -978,8 +1009,9 @@ func (st *Store) ListSessions(ctx context.Context, accountID, agentBinding strin
 			args = append(args, strings.TrimSpace(visibility.SubjectScopeKey))
 		}
 		if strings.TrimSpace(visibility.ChannelPrefix) != "" {
-			scopeParts = append(scopeParts, `publisher_scope_key LIKE ?`)
-			args = append(args, strings.TrimSpace(visibility.ChannelPrefix)+"%")
+			scopeParts = append(scopeParts, `substr(publisher_scope_key, 1, length(?)) = ?`)
+			prefix := strings.TrimSpace(visibility.ChannelPrefix)
+			args = append(args, prefix, prefix)
 		}
 		if len(scopeParts) == 0 {
 			where = append(where, `1 = 0`)
@@ -1502,6 +1534,7 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '')
 		ON CONFLICT(work_session_ref) DO UPDATE SET
 			device_id = CASE WHEN excluded.device_id != '' THEN excluded.device_id ELSE runtime_session.device_id END,
+			status = excluded.status,
 			permission_mode = excluded.permission_mode,
 			head_seq = excluded.head_seq,
 			inbox_turn_count = excluded.inbox_turn_count,
@@ -1809,13 +1842,16 @@ func (st *Store) MarkSessionDeletedAndEnqueuePurge(ctx context.Context, accountI
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	row := tx.QueryRowContext(ctx, `SELECT `+sessionSelectColumns+` FROM runtime_session WHERE account_id = ? AND work_session_ref = ? AND deleted_at = ''`, accountID, workSessionRef)
+	row := tx.QueryRowContext(ctx, `SELECT `+sessionSelectColumns+` FROM runtime_session WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef)
 	existing, err := scanSessionRow(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil, errSessionNotFound
 	}
 	if err != nil {
 		return nil, nil, err
+	}
+	if existing.DeletedAt != "" {
+		return existing, nil, nil
 	}
 	nowStr := formatRFC3339(now)
 	needsBodyPurge := existing.Record.OwnerBodyKind != "" && existing.Record.OwnerBodyKind != "brain"
@@ -1835,6 +1871,9 @@ func (st *Store) MarkSessionDeletedAndEnqueuePurge(ctx context.Context, accountI
 		return nil, nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_session_pending_attention WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef); err != nil {
+		return nil, nil, err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_session_milestone WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef); err != nil {
 		return nil, nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_continuity_ledger WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef); err != nil {
@@ -1968,6 +2007,9 @@ func (st *Store) PurgeAgentSessionsAndAlarms(ctx context.Context, accountID, age
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_session_pending_attention WHERE account_id = ? AND agent_binding = ?`, accountID, agentBinding); err != nil {
 		return nil, nil, err
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_session_milestone WHERE account_id = ? AND agent_binding = ?`, accountID, agentBinding); err != nil {
+		return nil, nil, err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_continuity_ledger WHERE account_id = ? AND agent_binding = ?`, accountID, agentBinding); err != nil {
 		return nil, nil, err
 	}
@@ -2032,13 +2074,24 @@ func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64,
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if strings.HasPrefix(lease.CapabilityNamespace, "app.") {
+		var other int
+		err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM runtime_body_carrier_lease
+			WHERE account_id=? AND capability_namespace=? AND carrier_subject<>?)`, lease.AccountID, lease.CapabilityNamespace, lease.CarrierSubject).Scan(&other)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		if other != 0 {
+			return 0, nil, nil, errLeaseConflict
+		}
+	}
 	// Fork C single-active-subject fence across the ENTIRE (account_id, capability_namespace):
 	// a competing RegisteredAppSubject CANNOT bypass exclusivity by inventing a new device_id!
 	conflictRows, err := tx.QueryContext(ctx, `
 		SELECT device_id, carrier_subject, last_heartbeat_at
 		FROM runtime_body_carrier_lease
-		WHERE account_id = ? AND capability_namespace = ? AND active = 1 AND carrier_subject != ?`,
-		lease.AccountID, lease.CapabilityNamespace, lease.CarrierSubject,
+		WHERE account_id = ? AND capability_namespace = ? AND active = 1 AND (carrier_subject != ? OR device_id != ?)`,
+		lease.AccountID, lease.CapabilityNamespace, lease.CarrierSubject, lease.DeviceID,
 	)
 	if err != nil {
 		return 0, nil, nil, err
@@ -2063,8 +2116,8 @@ func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64,
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE runtime_body_carrier_lease
 		SET active = 0
-		WHERE account_id = ? AND capability_namespace = ? AND carrier_subject != ? AND active = 1`,
-		lease.AccountID, lease.CapabilityNamespace, lease.CarrierSubject,
+		WHERE account_id = ? AND capability_namespace = ? AND (carrier_subject != ? OR device_id != ?) AND active = 1`,
+		lease.AccountID, lease.CapabilityNamespace, lease.CarrierSubject, lease.DeviceID,
 	); err != nil {
 		return 0, nil, nil, err
 	}
@@ -2073,8 +2126,8 @@ func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64,
 	err = tx.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(lease_epoch), 0)
 		FROM runtime_body_carrier_lease
-		WHERE account_id = ? AND device_id = ? AND capability_namespace = ?`,
-		lease.AccountID, lease.DeviceID, lease.CapabilityNamespace,
+		WHERE account_id = ? AND capability_namespace = ?`,
+		lease.AccountID, lease.CapabilityNamespace,
 	).Scan(&prevEpoch)
 	if err != nil {
 		return 0, nil, nil, err
@@ -2351,10 +2404,12 @@ func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrier
 		return false, err
 	}
 	switch runtimev1.BodyOutboxCommandKind(cmdKind) {
+	case runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT:
+		_, err = tx.ExecContext(ctx, `UPDATE runtime_session SET status = 'active' WHERE account_id = ? AND work_session_ref = ? AND status = 'queued_body_offline' AND deleted_at = '' `, accountID, workSessionRef)
 	case runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION:
-		_, _ = tx.ExecContext(ctx, `UPDATE runtime_session SET body_purge_pending = 0 WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef)
+		_, err = tx.ExecContext(ctx, `UPDATE runtime_session SET body_purge_pending = 0 WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef)
 	case runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT:
-		_, _ = tx.ExecContext(ctx, `UPDATE runtime_session SET body_purge_pending = 0 WHERE account_id = ? AND agent_binding = ? AND owner_body_kind = ?`, accountID, agentBinding, ns)
+		_, err = tx.ExecContext(ctx, `UPDATE runtime_session SET body_purge_pending = 0 WHERE account_id = ? AND agent_binding = ? AND owner_body_kind = ?`, accountID, agentBinding, ns)
 	case runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_INVALIDATE_MEMORY:
 		var inv struct {
 			Epoch         int64  `json:"epoch"`
@@ -2362,14 +2417,14 @@ func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrier
 		}
 		if json.Unmarshal([]byte(payloadJSON), &inv) == nil && inv.Epoch >= 0 && strings.TrimSpace(workSessionRef) != "" {
 			if inv.PreviousEpoch != nil {
-				_, _ = tx.ExecContext(ctx, `
+				_, err = tx.ExecContext(ctx, `
 					UPDATE runtime_body_continuity_ledger
 					SET read_set_epoch = ?, updated_at = ?
 					WHERE account_id = ? AND work_session_ref = ? AND read_set_epoch = ?`,
 					inv.Epoch, nowStr, accountID, workSessionRef, *inv.PreviousEpoch,
 				)
 			} else {
-				_, _ = tx.ExecContext(ctx, `
+				_, err = tx.ExecContext(ctx, `
 					UPDATE runtime_body_continuity_ledger
 					SET read_set_epoch = ?, updated_at = ?
 					WHERE account_id = ? AND work_session_ref = ?`,
@@ -2377,6 +2432,9 @@ func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrier
 				)
 			}
 		}
+	}
+	if err != nil {
+		return false, err
 	}
 	if err := tx.Commit(); err != nil {
 		return false, err
@@ -2459,6 +2517,10 @@ func (st *Store) GetLedger(ctx context.Context, accountID, workSessionRef string
 }
 
 type stepJournalRecord struct {
+	PublicDeltas       []bodyJournalDelta
+	StreamBudget       uint32
+	AssistantText      string
+	RequestDigest      string
 	StepRequestID      string
 	PrevStepMAC        string
 	PrevCommittedCount int
@@ -2510,6 +2572,10 @@ func (st *Store) GetStepJournal(ctx context.Context, accountID, workSessionRef, 
 		}
 	}
 	var rawDone struct {
+		PublicDeltas                 []bodyJournalDelta
+		StreamBudget                 uint32
+		AssistantText                string
+		RequestDigest                string
 		FinishReason                 string `json:"finishReason"`
 		UsageInputTokens             int64  `json:"usageInputTokens"`
 		UsageOutputTokens            int64  `json:"usageOutputTokens"`
@@ -2521,6 +2587,10 @@ func (st *Store) GetStepJournal(ctx context.Context, accountID, workSessionRef, 
 	if err := json.Unmarshal([]byte(doneJSON), &rawDone); err != nil {
 		return nil, err
 	}
+	rec.StreamBudget = rawDone.StreamBudget
+	rec.PublicDeltas = rawDone.PublicDeltas
+	rec.AssistantText = rawDone.AssistantText
+	rec.RequestDigest = rawDone.RequestDigest
 	rec.Done = &runtimev1.BodyStepDone{
 		FinishReason:                 rawDone.FinishReason,
 		UsageInputTokens:             rawDone.UsageInputTokens,
@@ -2533,18 +2603,28 @@ func (st *Store) GetStepJournal(ctx context.Context, accountID, workSessionRef, 
 	return &rec, nil
 }
 
-func (st *Store) VerifyOutboxIntentExists(ctx context.Context, accountID, workSessionRef, outboxID string) (bool, error) {
-	var exists int
-	err := st.readDB.QueryRowContext(ctx, `
-		SELECT 1 FROM runtime_body_outbox
-		WHERE account_id = ? AND work_session_ref = ? AND outbox_id = ? AND command_kind = ?`,
-		accountID, workSessionRef, strings.TrimSpace(outboxID),
-		int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT),
-	).Scan(&exists)
+func (st *Store) verifyOutboxInput(ctx context.Context, account, ref, id, text string) (bool, error) {
+	var raw string
+	err := st.readDB.QueryRowContext(ctx, "SELECT payload_json FROM runtime_body_outbox WHERE account_id=? AND work_session_ref=? AND outbox_id=? AND command_kind=? AND input_committed=0", account, ref, id, int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT)).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
-	return err == nil, err
+	if err != nil {
+		return false, err
+	}
+	var input struct {
+		BodyInputText                         *string
+		Text, HandoffBriefText, WorkspaceRoot string
+		AttachmentPaths                       []string
+		HandoffHistory                        []map[string]any
+	}
+	if err := json.Unmarshal([]byte(raw), &input); err != nil {
+		return false, err
+	}
+	if input.BodyInputText != nil {
+		return *input.BodyInputText == text, nil
+	}
+	return bodyIntentText(input.Text, input.HandoffBriefText, input.WorkspaceRoot, input.AttachmentPaths, input.HandoffHistory) == text, nil
 }
 
 func (st *Store) IsToolResultAlreadyCommitted(ctx context.Context, accountID, workSessionRef, callID string) (bool, error) {
@@ -2564,18 +2644,24 @@ func (st *Store) IsToolResultAlreadyCommitted(ctx context.Context, accountID, wo
 }
 
 type commitStepLedgerInput struct {
-	Ledger                 *ledgerRecord
-	DeviceID               string
-	Namespace              string
-	CarrierSubject         string
-	LeaseEpoch             int64
-	SettledToolCallIDs     []string
-	NewlyIssuedToolCalls   []*runtimev1.BodyToolCall
-	StepRequestID          string
-	PrevStepMAC            string
-	PrevCommittedCount     int
-	Done                   *runtimev1.BodyStepDone
-	Now                    time.Time
+	PublicDeltas         []bodyJournalDelta
+	StreamBudget         uint32
+	InputIDs             []string
+	OriginalReadEpoch    int64
+	AssistantText        string
+	RequestDigest        string
+	Ledger               *ledgerRecord
+	DeviceID             string
+	Namespace            string
+	CarrierSubject       string
+	LeaseEpoch           int64
+	SettledToolCallIDs   []string
+	NewlyIssuedToolCalls []*runtimev1.BodyToolCall
+	StepRequestID        string
+	PrevStepMAC          string
+	PrevCommittedCount   int
+	Done                 *runtimev1.BodyStepDone
+	Now                  time.Time
 }
 
 // CommitStepLedger atomically re-verifies the active lease and live session,
@@ -2614,6 +2700,30 @@ func (st *Store) CommitStepLedger(ctx context.Context, in commitStepLedgerInput)
 	}
 	if ownerBodyKind != in.Namespace || (boundDev != "" && boundDev != "local-default" && boundDev != in.DeviceID) {
 		return errBodyNamespaceMismatch
+	}
+
+	pending, err := hasPendingTombstonesTx(ctx, tx, rec.AccountID, in.DeviceID, in.Namespace, "", "")
+	if err != nil {
+		return err
+	}
+	if pending {
+		return errTombstoneFence
+	}
+	var epoch int64
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE((SELECT read_set_epoch FROM runtime_body_continuity_ledger WHERE account_id=? AND work_session_ref=?),0)", rec.AccountID, rec.WorkSessionRef).Scan(&epoch); err != nil {
+		return err
+	}
+	if epoch != in.OriginalReadEpoch {
+		return errTombstoneFence
+	}
+	for _, id := range in.InputIDs {
+		res, err := tx.ExecContext(ctx, "UPDATE runtime_body_outbox SET input_committed=1 WHERE account_id=? AND work_session_ref=? AND outbox_id=? AND input_committed=0", rec.AccountID, rec.WorkSessionRef, id)
+		if err != nil {
+			return err
+		}
+		if n, err := res.RowsAffected(); err != nil || n != 1 {
+			return errSessionConflict
+		}
 	}
 
 	nowStr := formatRFC3339(in.Now)
@@ -2663,13 +2773,17 @@ func (st *Store) CommitStepLedger(ctx context.Context, in commitStepLedgerInput)
 		canonArgs := canonicalJSONString(rawArgs)
 		argsHash := sha256HexString(canonArgs)
 		rawHash := sha256HexString(rawArgs)
+		consumedAt := ""
+		if prev, ok := mergedMeta[cid]; ok && prev.Consumed {
+			consumedAt = nowStr
+		}
 		// Never overwrite an already-issued call_id row or reset its consumed_at!
 		if _, err := tx.ExecContext(ctx, `
 			INSERT OR IGNORE INTO runtime_body_issued_tool_call(
 				account_id, work_session_ref, call_id, tool_name, args_hash, raw_args_hash,
 				consumed_at, result_committed_at, created_at
-			) VALUES (?, ?, ?, ?, ?, ?, '', '', ?)`,
-			rec.AccountID, rec.WorkSessionRef, cid, toolName, argsHash, rawHash, nowStr,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, '', ?)`,
+			rec.AccountID, rec.WorkSessionRef, cid, toolName, argsHash, rawHash, consumedAt, nowStr,
 		); err != nil {
 			return err
 		}
@@ -2737,6 +2851,10 @@ func (st *Store) CommitStepLedger(ctx context.Context, in commitStepLedgerInput)
 		}
 		callsJSON, _ := json.Marshal(callsOut)
 		doneJSON, _ := json.Marshal(struct {
+			PublicDeltas                 []bodyJournalDelta
+			StreamBudget                 uint32
+			AssistantText                string
+			RequestDigest                string
 			FinishReason                 string `json:"finishReason"`
 			UsageInputTokens             int64  `json:"usageInputTokens"`
 			UsageOutputTokens            int64  `json:"usageOutputTokens"`
@@ -2745,6 +2863,10 @@ func (st *Store) CommitStepLedger(ctx context.Context, in commitStepLedgerInput)
 			PostCompactionMAC            string `json:"postCompactionMac"`
 			EffectiveContextBudgetTokens uint32 `json:"effectiveContextBudgetTokens"`
 		}{
+			PublicDeltas:                 in.PublicDeltas,
+			StreamBudget:                 in.StreamBudget,
+			AssistantText:                in.AssistantText,
+			RequestDigest:                in.RequestDigest,
 			FinishReason:                 in.Done.GetFinishReason(),
 			UsageInputTokens:             in.Done.GetUsageInputTokens(),
 			UsageOutputTokens:            in.Done.GetUsageOutputTokens(),
@@ -2901,66 +3023,6 @@ func (st *Store) ConsumeAuthorizedToolCall(ctx context.Context, in consumeToolCa
 	}
 	nowStr := formatRFC3339(in.Now)
 
-	// Primary path: atomic row-level once-only consumption from runtime_body_issued_tool_call.
-	var (
-		relToolName   string
-		relArgsHash   string
-		relRawHash    string
-		relConsumedAt string
-	)
-	relErr := tx.QueryRowContext(ctx, `
-		SELECT tool_name, args_hash, raw_args_hash, consumed_at
-		FROM runtime_body_issued_tool_call
-		WHERE account_id = ? AND work_session_ref = ? AND call_id = ?`,
-		in.AccountID, in.WorkSessionRef, in.CallID,
-	).Scan(&relToolName, &relArgsHash, &relRawHash, &relConsumedAt)
-	if relErr == nil {
-		if strings.TrimSpace(relConsumedAt) != "" {
-			return &runtimev1.AuthorizeBodySideEffectResponse{
-				Authorized: false,
-				DenyReason: "tool_call_already_consumed",
-			}, nil
-		}
-		if strings.TrimSpace(relToolName) == "" || !strings.EqualFold(relToolName, in.ToolName) {
-			return &runtimev1.AuthorizeBodySideEffectResponse{
-				Authorized: false,
-				DenyReason: "tool_name_mismatch",
-			}, nil
-		}
-		if (relArgsHash == "" && relRawHash == "") ||
-			(!strings.EqualFold(reqHash, relArgsHash) && !strings.EqualFold(reqHash, relRawHash)) {
-			return &runtimev1.AuthorizeBodySideEffectResponse{
-				Authorized: false,
-				DenyReason: "tool_payload_hash_mismatch",
-			}, nil
-		}
-		res, execErr := tx.ExecContext(ctx, `
-			UPDATE runtime_body_issued_tool_call
-			SET consumed_at = ?
-			WHERE account_id = ? AND work_session_ref = ? AND call_id = ? AND consumed_at = ''`,
-			nowStr, in.AccountID, in.WorkSessionRef, in.CallID,
-		)
-		if execErr != nil {
-			return nil, execErr
-		}
-		affected, _ := res.RowsAffected()
-		if affected != 1 {
-			return &runtimev1.AuthorizeBodySideEffectResponse{
-				Authorized: false,
-				DenyReason: "tool_call_already_consumed",
-			}, nil
-		}
-		if err := tx.Commit(); err != nil {
-			return nil, err
-		}
-		return &runtimev1.AuthorizeBodySideEffectResponse{Authorized: true}, nil
-	}
-	if !errors.Is(relErr, sql.ErrNoRows) {
-		return nil, relErr
-	}
-
-	// Legacy upgrade fallback: verify against issued_tool_args_json and immediately
-	// record an irreversible consumed row in runtime_body_issued_tool_call.
 	var issuedIDsJSON, issuedArgsJSON string
 	err = tx.QueryRowContext(ctx, `
 		SELECT issued_tool_call_ids_json, issued_tool_args_json
@@ -2985,6 +3047,71 @@ func (st *Store) ConsumeAuthorizedToolCall(ctx context.Context, in consumeToolCa
 			DenyReason: "tool_call_not_issued_by_runtime",
 		}, nil
 	}
+
+	// Primary path: atomic row-level once-only consumption from runtime_body_issued_tool_call.
+	var (
+		relToolName   string
+		relArgsHash   string
+		relRawHash    string
+		relConsumedAt string
+		relSettledAt  string
+	)
+	relErr := tx.QueryRowContext(ctx, `
+		SELECT tool_name, args_hash, raw_args_hash, consumed_at, result_committed_at
+		FROM runtime_body_issued_tool_call
+		WHERE account_id = ? AND work_session_ref = ? AND call_id = ?`,
+		in.AccountID, in.WorkSessionRef, in.CallID,
+	).Scan(&relToolName, &relArgsHash, &relRawHash, &relConsumedAt, &relSettledAt)
+	if relErr == nil {
+		if strings.TrimSpace(relConsumedAt) != "" {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "tool_call_already_consumed",
+			}, nil
+		}
+		if relSettledAt != "" {
+			return &runtimev1.AuthorizeBodySideEffectResponse{DenyReason: "tool_result_already_committed"}, nil
+		}
+		if strings.TrimSpace(relToolName) == "" || !strings.EqualFold(relToolName, in.ToolName) {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "tool_name_mismatch",
+			}, nil
+		}
+		if (relArgsHash == "" && relRawHash == "") ||
+			(!strings.EqualFold(reqHash, relArgsHash) && !strings.EqualFold(reqHash, relRawHash)) {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "tool_payload_hash_mismatch",
+			}, nil
+		}
+		res, execErr := tx.ExecContext(ctx, `
+			UPDATE runtime_body_issued_tool_call
+			SET consumed_at = ?
+			WHERE account_id = ? AND work_session_ref = ? AND call_id = ? AND consumed_at = '' AND result_committed_at = ''`,
+			nowStr, in.AccountID, in.WorkSessionRef, in.CallID,
+		)
+		if execErr != nil {
+			return nil, execErr
+		}
+		affected, _ := res.RowsAffected()
+		if affected != 1 {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "tool_call_already_consumed",
+			}, nil
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return &runtimev1.AuthorizeBodySideEffectResponse{Authorized: true}, nil
+	}
+	if !errors.Is(relErr, sql.ErrNoRows) {
+		return nil, relErr
+	}
+
+	// Legacy upgrade fallback: verify against issued_tool_args_json and immediately
+	// record an irreversible consumed row in runtime_body_issued_tool_call.
 	issuedMeta := decodeIssuedToolMeta(issuedArgsJSON)
 	meta, ok := issuedMeta[in.CallID]
 	if !ok {
@@ -3188,9 +3315,12 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 		}
 	}
 	if att := req.GetPendingAttention(); att != nil && strings.TrimSpace(att.GetAttentionId()) != "" {
-		var existingAcct, existingRef string
-		attErr := tx.QueryRowContext(ctx, `SELECT account_id, work_session_ref FROM runtime_session_pending_attention WHERE attention_id = ?`, att.GetAttentionId()).Scan(&existingAcct, &existingRef)
-		if attErr == nil && (existingAcct != accountID || existingRef != existing.Record.WorkSessionRef) {
+		if strings.EqualFold(strings.TrimSpace(att.GetAttentionKind()), "alarm_reminder") || strings.HasPrefix(att.GetAttentionId(), "alarm_") {
+			return nil, nil, errAttentionScopeConflict
+		}
+		var existingAcct, existingRef, existingKind string
+		attErr := tx.QueryRowContext(ctx, `SELECT account_id, work_session_ref, attention_kind FROM runtime_session_pending_attention WHERE attention_id = ?`, att.GetAttentionId()).Scan(&existingAcct, &existingRef, &existingKind)
+		if attErr == nil && (existingKind == "alarm_reminder" || existingAcct != accountID || existingRef != existing.Record.WorkSessionRef) {
 			return nil, nil, errAttentionScopeConflict
 		}
 		if attErr != nil && !errors.Is(attErr, sql.ErrNoRows) {
@@ -3218,6 +3348,15 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 		}
 	}
 
+	if kind := strings.TrimSpace(req.GetMilestoneKind()); kind != "" && existing.Record.GetTrustTier() == "trusted" && existing.Record.GetSessionKind() != "channel_external" {
+		paths, err := json.Marshal(req.GetDeliverablePaths())
+		if err != nil {
+			return nil, nil, err
+		}
+		if _, err := tx.ExecContext(ctx, "INSERT INTO runtime_session_milestone(account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables) VALUES (?,?,?,?,?,?,?)", accountID, existing.Record.GetAgentBinding(), req.GetWorkSessionRef(), verifiedNS, kind, req.GetTopicSummary(), string(paths)); err != nil {
+			return nil, nil, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, nil, err
 	}
@@ -3228,13 +3367,13 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 	}, existing, nil
 }
 
-func (st *Store) ListPendingAttention(ctx context.Context, accountID string) ([]*runtimev1.PendingAttentionRecord, error) {
+func (st *Store) ListPendingAttention(ctx context.Context, accountID string, now time.Time) ([]*runtimev1.PendingAttentionRecord, error) {
 	rows, err := st.readDB.QueryContext(ctx, `
 		SELECT attention_id, work_session_ref, agent_binding, attention_kind, trust_scope, summary_json, expires_at, updated_at
 		FROM runtime_session_pending_attention
-		WHERE account_id = ?
+		WHERE account_id = ? AND (expires_at = '' OR julianday(expires_at) > julianday(?))
 		ORDER BY updated_at DESC LIMIT 100`,
-		accountID,
+		accountID, formatRFC3339(now),
 	)
 	if err != nil {
 		return nil, err

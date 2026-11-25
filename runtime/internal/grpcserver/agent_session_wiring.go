@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/services/agentsession"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
@@ -25,6 +26,7 @@ func buildProductionAgentSessionService(
 	aiSvc *aiservice.Service,
 	agentSvc *runtimeagentservice.Service,
 	memoryFacade *cognitionmemory.Facade,
+	kernel *localappkernel.Kernel,
 ) (*agentsession.Service, error) {
 	sessionsDBPath := ""
 	requirePersistent := false
@@ -34,9 +36,15 @@ func buildProductionAgentSessionService(
 	}
 
 	var (
-		milestoneHook     agentsession.MilestoneHook
-		memoryCleanupHook agentsession.MemoryCleanupHook
-		readSetQualifier  agentsession.ReadSetQualifier
+		milestoneHook agentsession.MilestoneHook = func(context.Context, string, string, string, string, string, string, []string) error {
+			return errors.New("session milestone awaiting Cognition owner")
+		}
+		memoryCleanupHook agentsession.MemoryCleanupHook = func(context.Context, string, string, string) (uint32, error) {
+			return 0, errors.New("session memory cleanup awaiting Cognition owner")
+		}
+		readSetQualifier agentsession.ReadSetQualifier = func(context.Context, string, string, string, int64) (bool, int64, error) {
+			return false, 0, errors.New("session memory qualification awaiting Cognition owner")
+		}
 	)
 	if memoryFacade != nil {
 		facadeRef := memoryFacade
@@ -178,14 +186,14 @@ func buildProductionAgentSessionService(
 				emit,
 			)
 		}
-		alarmLLMRunner = func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord) (string, string, int64, error) {
+		alarmLLMRunner = func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, reserve func(int64) error) (string, string, int64, error) {
 			return agentRef.RunAlarmLLM(
 				ctx,
 				accountID,
 				alarm.GetAgentBinding(),
 				alarm.GetTemplateTitle(),
 				alarm.GetTemplateBody(),
-				alarm.GetTargetWorkSessionRef(),
+				alarm.GetTargetWorkSessionRef(), reserve,
 			)
 		}
 	}
@@ -202,24 +210,7 @@ func buildProductionAgentSessionService(
 	alarmDeliverySender := func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, channel, renderedTitle, renderedBody string, _ time.Duration) agentsession.AlarmDeliveryOutcome {
 		norm := strings.ToLower(strings.TrimSpace(channel))
 		if isDesktopDeliveryChannel(norm) {
-			if svcRef == nil {
-				return agentsession.AlarmDeliveryOutcome{
-					ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED,
-					Detail:       "agent session owner unavailable",
-				}
-			}
-			msgRef, err := svcRef.NotifyDesktopAlarm(ctx, accountID, alarm, renderedTitle, renderedBody)
-			if err != nil {
-				return agentsession.AlarmDeliveryOutcome{
-					ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED,
-					Detail:       err.Error(),
-				}
-			}
-			return agentsession.AlarmDeliveryOutcome{
-				ReceiptState:       runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED,
-				ProviderMessageRef: msgRef,
-				Detail:             "delivered to desktop overview attention stream",
-			}
+			return svcRef.NotifyDesktopAlarm(alarm, renderedTitle, renderedBody)
 		}
 		// Never fabricate pseudo-success for external/IM channels when no connected provider exists.
 		return agentsession.AlarmDeliveryOutcome{
@@ -235,17 +226,23 @@ func buildProductionAgentSessionService(
 	}
 
 	svc, err := agentsession.Open(agentsession.Options{
-		Logger:                   logger,
-		DBPath:                   sessionsDBPath,
-		RequirePersistentDB:      requirePersistent,
-		Scheduler:                aiSvc.Scheduler(),
-		EndpointResolver:         endpointResolver,
-		AgentHandleResolver:      agentHandleResolver,
-		BodyStepExecutor:         bodyStepExecutor,
-		ReadSetQualifier:         readSetQualifier,
-		MilestoneHook:            milestoneHook,
-		MemoryCleanupHook:        memoryCleanupHook,
-		BrainTurnExecutor:        brainTurnExecutor,
+		Logger:              logger,
+		DBPath:              sessionsDBPath,
+		RequirePersistentDB: requirePersistent,
+		Scheduler:           aiSvc.Scheduler(),
+		EndpointResolver:    endpointResolver,
+		AgentHandleResolver: agentHandleResolver,
+		BodyStepExecutor:    bodyStepExecutor,
+		ReadSetQualifier:    readSetQualifier,
+		MilestoneHook:       milestoneHook,
+		MemoryCleanupHook:   memoryCleanupHook,
+		BrainTurnExecutor:   brainTurnExecutor,
+		BodyNamespaceOwner: func(ctx context.Context, ns string) (string, error) {
+			if kernel == nil {
+				return "", errors.New("registration authority unavailable")
+			}
+			return kernel.Registrations().BodyNamespaceOwner(ctx, ns)
+		},
 		AlarmDeliverySender:      alarmDeliverySender,
 		SupportedDeliveryChannel: isDesktopDeliveryChannel,
 		AlarmLLMRunner:           alarmLLMRunner,

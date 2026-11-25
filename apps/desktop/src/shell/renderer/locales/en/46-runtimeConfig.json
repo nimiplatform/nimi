@@ -830,7 +830,7 @@
     "continueDescription": "Open a conversation or return to your apps. Manage models by capability when you want a change.",
     "startTitle": "Start with an AI capability",
     "startDescription": "Choose a recommended setup or load one shared with you. You can customize its models later.",
-    "openChat": "Open Nimi Harness",
+    "openChat": "Open computer workspace",
     "ai": "AI on this device",
     "manage": "Manage capabilities",
     "apps": "Your apps",
@@ -865,8 +865,8 @@
       },
       "chat": {
         "title": "Try a task",
-        "body": "Ask a quick question in Nimi Home or hand work to Nimi Harness. To talk with a character companion over time, visit Explore or Zhiyu.",
-        "action": "Open Nimi Harness",
+        "body": "Ask a quick question in Nimi Home or hand a task to your authorized workspace app. To talk with a character companion over time, visit Explore or Zhiyu.",
+        "action": "Open computer workspace",
         "partner": "Explore companions"
       },
       "apps": {
@@ -896,7 +896,7 @@
     "recentChats": {
       "title": "Recent chats",
       "openAll": "View all partners",
-      "openAssistantChat": "Nimi Harness",
+      "openAssistantChat": "Computer workspace",
       "countTotal": "{{total}} total",
       "countSliced": "Recent {{shown}} of {{total}}",
       "replyLabel": "Reply to {{name}}",
@@ -1125,6 +1125,11 @@
       "menuSession": "Open or resume past work (#)",
       "menuAttachReadOnly": "Attach reference file (read-only)",
       "menuAuthorizeWorkspace": "Authorize writable workspace folder",
+      "cloudDataDestinationLoading": "Checking the model route before sharing local files…",
+      "cloudDataDestinationUnknown": "The model route is unknown. Check your Partner settings before sharing local files.",
+      "dropPathUnavailable": "The file path is unavailable. Use + to choose a file.",
+      "sessionNotLocated": "The execution App has not published this task yet. Try opening it again.",
+      "routeUnconfirmed": "Runtime could not confirm the destination. Your draft has been kept.",
       "cloudDataDestinationNotice": "Attached local files will be sent to cloud model {{model}}",
       "switchLocalModel": "Switch to local model",
       "noPartnerConfigured": "Add or select a local partner first to route requests.",

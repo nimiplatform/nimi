@@ -74,7 +74,10 @@ pub(crate) async fn open_first_party(
         "x-nimi-app-id",
         tonic::metadata::MetadataValue::from_static("nimi.desktop"),
     );
-    if let Some(timeout) = timeout {
+    if let Some(timeout) = timeout.or_else(|| {
+        crate::bundled_avatar::is_body_step_stream(method_id)
+            .then_some(std::time::Duration::from_secs(600))
+    }) {
         request.set_timeout(timeout);
     }
     let response = grpc
@@ -209,7 +212,10 @@ pub(crate) async fn open_bundled_app(
         "x-nimi-app-id",
         tonic::metadata::MetadataValue::from_static(app.app_id()),
     );
-    if let Some(timeout) = timeout {
+    if let Some(timeout) = timeout.or_else(|| {
+        crate::bundled_avatar::is_body_step_stream(method_id)
+            .then_some(std::time::Duration::from_secs(600))
+    }) {
         request.set_timeout(timeout);
     }
     let response = grpc

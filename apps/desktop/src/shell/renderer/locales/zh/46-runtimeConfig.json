@@ -830,7 +830,7 @@
     "continueDescription": "开始对话，或回到你的应用。想更换模型时，可以按能力进行管理。",
     "startTitle": "从一项 AI 能力开始",
     "startDescription": "采用推荐配置，或导入他人分享的方案；之后可继续调整模型细节。",
-    "openChat": "打开 Nimi Harness",
+    "openChat": "打开电脑工作台",
     "ai": "本机 AI",
     "manage": "管理能力",
     "apps": "我的应用",
@@ -865,8 +865,8 @@
       },
       "chat": {
         "title": "试一个任务",
-        "body": "在首页直接轻问答，或把事务交给 Nimi Harness。想找长期陪伴的角色伙伴交流，可前往“探索”或织羽。",
-        "action": "打开 Nimi Harness",
+        "body": "在首页直接轻问答，或把事务交给已授权的电脑工作台。想找长期陪伴的角色伙伴交流，可前往“探索”或织羽。",
+        "action": "打开电脑工作台",
         "partner": "探索角色伙伴"
       },
       "apps": {
@@ -896,7 +896,7 @@
     "recentChats": {
       "title": "最近对话",
       "openAll": "查看全部伙伴",
-      "openAssistantChat": "Nimi Harness",
+      "openAssistantChat": "电脑工作台",
       "countTotal": "共 {{total}} 位",
       "countSliced": "最近 {{shown}} / {{total}}",
       "replyLabel": "回复 {{name}}",
@@ -1125,6 +1125,11 @@
       "menuSession": "打开/关联旧事 (#)",
       "menuAttachReadOnly": "附带参考文件（只读）",
       "menuAuthorizeWorkspace": "授权可写工作区目录",
+      "cloudDataDestinationLoading": "正在核对本地文件的模型去向…",
+      "cloudDataDestinationUnknown": "模型去向未知。共享本地文件前，请检查伙伴设置。",
+      "dropPathUnavailable": "未能获取文件路径。请使用 + 选择文件。",
+      "sessionNotLocated": "执行应用尚未发布此任务，稍后可再次打开。",
+      "routeUnconfirmed": "Runtime 未确认任务去向，草稿已保留。",
       "cloudDataDestinationNotice": "附带的本地文件将发往云端模型 {{model}}",
       "switchLocalModel": "切换本地模型",
       "noPartnerConfigured": "请先添加或选择一位本地伙伴再发起请求。",

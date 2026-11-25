@@ -708,6 +708,11 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
             if (!ALLOWED_ENGINE_METHODS.has(typed.method)) {
               throw new Error(`Unsupported Harness engine method: ${typed.method}`);
             }
+            const generation = latestRequestedGeneration;
+            await lifecycleQueue;
+            if (generation !== currentGeneration || generation !== latestRequestedGeneration) {
+              throw new Error('Harness account changed.');
+            }
             const h = await getHarness();
             const fn = (h as unknown as Record<string, (...a: unknown[]) => unknown>)[typed.method];
             if (typeof fn !== 'function') {

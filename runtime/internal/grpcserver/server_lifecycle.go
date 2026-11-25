@@ -100,10 +100,10 @@ func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func
 
 	ownersDone := make(chan error, 1)
 	go func(result StopResult) {
-		if result.Err == nil && s.agentSessionService != nil {
+		if s.agentSessionService != nil {
 			// Quiesce AgentSession background brain turns, alarms, and recovery loops
 			// before quiescing LocalAgent and Cognition owners they depend on.
-			s.agentSessionService.Quiesce()
+			result.Err = errors.Join(result.Err, s.agentSessionService.QuiesceDataRootContext(ctx))
 		}
 		if result.Err == nil && s.agentService != nil {
 			// The RPC gate is closed and any root handoff RPC has returned.

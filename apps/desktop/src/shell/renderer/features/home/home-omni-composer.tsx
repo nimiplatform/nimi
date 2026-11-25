@@ -269,7 +269,7 @@ export function HomeOmniComposer({
 
   useEffect(() => {
     setDisambiguation(null);
-  }, [target]);
+  }, [target, pinnedPartnerHandle]);
 
   useEffect(() => {
     setActiveOptionIndex(0);
@@ -368,6 +368,10 @@ export function HomeOmniComposer({
         return;
       }
 
+      if (!response.resolvedWorkSessionRef || (!isPcWorkRouteResponse(response) && !isLightQaRouteResponse(response))) {
+        setSubmitError(t('runtimeConfig.overview.omni.routeUnconfirmed'));
+        return;
+      }
       setDisambiguation(null);
       setDraft('');
       setCaretIndex(0);
@@ -418,7 +422,7 @@ export function HomeOmniComposer({
         onOpenHarness(response.resolvedWorkSessionRef);
       }
     },
-    [lightQa?.lastSeq, lightQa?.workSessionRef, onOpenHarness, startBrainEventStream],
+    [lightQa?.lastSeq, lightQa?.workSessionRef, onOpenHarness, startBrainEventStream, t],
   );
 
   const submitToRuntime = useCallback(

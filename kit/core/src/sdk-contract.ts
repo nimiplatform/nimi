@@ -318,6 +318,7 @@ export {
   createNimiAiRealtimeRuntimeClient,
   createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppAgentConfigureRuntimeShell,
+  createNimiLocalAppAgentReferencesClient,
   createNimiLocalAppAgentReferencesRuntimeClient,
   createNimiLocalAppAgentIntroductionRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,

@@ -20,6 +20,8 @@ func TestRemoteStreamOwnersUseTheNativeStreamAdmissionBoundary(t *testing.T) {
 		{protectedSubscribeConversationMethod, &runtimev1.SubscribeLocalAppConversationEventsRequest{}, localappop.IngressConversationEventsSubscribe},
 		{protectedReadLocalAppAssetMethod, &runtimev1.ReadLocalAppAssetRequest{}, localappop.IngressStorageAssetRead},
 		{protectedWriteLocalAppAssetMethod, &runtimev1.WriteLocalAppAssetRequest{}, localappop.IngressStorageAssetWrite},
+		{protectedAgentBodyOutboxSubscribeMethod, &runtimev1.SubscribeBodyOutboxRequest{CapabilityNamespace: "app.example.execute"}, localappop.IngressAgentBodyAppOutboxSubscribe},
+		{protectedAgentBodyStepStreamMethod, &runtimev1.StreamLocalAgentBodyStepRequest{CapabilityNamespace: "app.example.execute"}, localappop.IngressAgentBodyAppStepStream},
 		{protectedIntegrationSnapshotsMethod, &runtimev1.SubscribeIntegrationSnapshotsRequest{}, localappop.IngressIntegrationSnapshotsSubscribe},
 		{protectedSubscribeAppActivityChangesMethod, &runtimev1.SubscribeAppActivityChangesRequest{}, localappop.IngressAppActivitySubscribe},
 	} {

@@ -129,8 +129,8 @@ export function ComposerModeTools({
           />
           <button
             type="button"
-            aria-label="转交 Harness 办理（可编辑简报）"
-            title="转交 Harness 办理（可编辑简报）"
+            aria-label="转交电脑工作台（可编辑简报）"
+            title="转交电脑工作台（可编辑简报）"
             data-zhiyu-composer-tool="harness-handoff"
             onClick={onOpenHarnessHandoff}
           >

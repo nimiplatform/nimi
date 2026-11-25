@@ -1088,7 +1088,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	var agentSessionSvc *agentsession.Service
 	if protected != nil {
 		var err error
-		agentSessionSvc, err = buildProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade)
+		agentSessionSvc, err = buildProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade, localAppKernel)
 		if err != nil {
 			return nil, fmt.Errorf("initialize AgentSession owner: %w", err)
 		}
@@ -1123,6 +1123,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	remoteDispatcher.register(accountSvc, &runtimev1.RuntimeAccountService_ServiceDesc)
 	remoteDispatcher.register(aiSvc, &runtimev1.RuntimeAiService_ServiceDesc)
 	remoteDispatcher.register(appSvc, &runtimev1.RuntimeAppService_ServiceDesc)
+	if agentSessionSvc != nil {
+		remoteDispatcher.register(agentSessionSvc, &runtimev1.AgentSessionService_ServiceDesc)
+	}
 	remoteDispatcher.register(agentSvc, &runtimev1.RuntimeAgentService_ServiceDesc)
 	remoteDispatcher.register(activitySvc, &runtimev1.RuntimeAppActivityService_ServiceDesc)
 	remoteDispatcher.register(integrationSvc, &runtimev1.RuntimeIntegrationService_ServiceDesc)

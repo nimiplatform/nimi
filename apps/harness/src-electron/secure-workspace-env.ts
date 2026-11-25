@@ -46,6 +46,7 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   buildMinimalShellEnv,
+  safeGitArgs,
   extractWorkspaceEnvCanarySecrets,
   filterSafeCallerEnvOverrides,
   isControlPlanePath,
@@ -60,52 +61,22 @@ export const SPILL_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GiB
 export const SPILL_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 export const MAX_CONTROL_FRAME_BYTES = 256 * 1024; // 256 KiB (UTF-8 bytes)
 
-const NON_DEV_ALLOWED_GIT_SUBCOMMANDS = new Set([
-  'status', 'diff', 'log', 'show', 'rev-parse', 'branch', 'tag', 'ls-files',
-]);
-
-function isDangerousGitCommand(args: readonly string[]): boolean {
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? '';
-    const lower = arg.toLowerCase();
-    if (
-      lower === '-c'
-      || lower.startsWith('-c=')
-      || (arg.startsWith('-c') && arg.length > 2)
-      || arg === '-C'
-      || (arg.startsWith('-C') && arg.length > 2)
-      || lower === '--git-dir'
-      || lower.startsWith('--git-dir=')
-      || lower === '--work-tree'
-      || lower.startsWith('--work-tree=')
-      || lower === '--exec-path'
-      || lower.startsWith('--exec-path=')
-      || lower === '--config-env'
-      || lower.startsWith('--config-env=')
-      || lower.includes('core.pager')
-      || lower.includes('core.fsmonitor')
-      || lower.includes('core.hookspath')
-      || lower.includes('core.sshcommand')
-      || lower.includes('diff.external')
-      || lower === '--upload-pack'
-      || lower.startsWith('--upload-pack=')
-      || lower === '--receive-pack'
-      || lower.startsWith('--receive-pack=')
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
+const READ_ONLY_GIT_OPTIONS: Readonly<Record<string, readonly string[]>> = {
+  status: ['--short', '--branch', '--porcelain', '--porcelain=v1', '-s', '-b'],
+  diff: ['--stat', '--name-only', '--name-status', '--cached', '--staged'],
+  log: ['--oneline', '--decorate', '--all'],
+  show: ['--stat', '--name-only'],
+  'rev-parse': ['HEAD', '--show-toplevel', '--abbrev-ref'],
+  branch: ['--list', '--show-current', '--all'],
+  tag: ['--list'],
+  'ls-files': ['--cached', '--modified', '--deleted'],
+};
 
 function isAllowedNonDevExecCommand(command: string | readonly string[]): boolean {
-  if (typeof command === 'string' || command.length === 0) return false;
-  const execExeBase = basename(command[0] ?? '').toLowerCase();
-  if (execExeBase !== 'git' && execExeBase !== 'git.exe') return false;
-  const args = command.slice(1);
-  if (isDangerousGitCommand(args)) return false;
-  const subcommand = args.find(arg => !arg.startsWith('-'))?.toLowerCase();
-  return Boolean(subcommand && NON_DEV_ALLOWED_GIT_SUBCOMMANDS.has(subcommand));
+  if (typeof command === 'string' || !['git', 'git.exe'].includes(command[0]?.toLowerCase() ?? '')) return false;
+  const subcommand = command[1] ?? '';
+  const options = Object.hasOwn(READ_ONLY_GIT_OPTIONS, subcommand) ? READ_ONLY_GIT_OPTIONS[subcommand] : undefined;
+  return Boolean(options && command.slice(2).every(arg => options.includes(arg)));
 }
 
 const lineScanEncoder = new TextEncoder();
@@ -367,7 +338,8 @@ function tryLoadNativeSecurityHost(
       allowSourceLocalDevFromMain: allowSourceLocalDev,
     });
   } catch {
-    // Fall through only for direct workspace package resolution or source-dev builds.
+    if (!allowSourceLocalDev && process.versions.electron) return null;
+    // Standalone Node tests may load the workspace build.
   }
 
   const packageName = process.platform === 'win32'
@@ -648,6 +620,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           await native.secureDeleteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: record.relativePath,
+            snapshotRoot: this.snapshotDir,
             ...(record.afterSha256 ? { preconditionSha256: record.afterSha256 } : {}),
           });
         } else {
@@ -772,6 +745,23 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
    * Handle-level secure read helper exposed for workspace search tools (grep) so
    * reading candidate files never falls back to racy path-based realpath + open.
    */
+  async createImportedFile(path: string, bytes: Uint8Array): Promise<void> {
+    const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
+    if (bytes.byteLength > 32 * 1024 * 1024 || isControlPlanePath(relativePosix, this.workspaceRoot)) {
+      throw new FileError('permission_denied', 'Attachment exceeds the size limit or targets a protected file.', path);
+    }
+    const native = this.requireNativeHostOrFailClosed('createImportedFile');
+    await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
+      if (native) {
+        await native.secureWriteFile({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix, content: bytes,
+          allowCreate: true, mustNotExist: true });
+        return;
+      }
+      await mkdir(dirname(absolutePath), { recursive: true, mode: 0o700 });
+      await writeFile(absolutePath, bytes, { flag: 'wx', mode: 0o600 });
+    });
+  }
+
   async readWorkspaceFileSecure(relativePath: string, maxBytes: number): Promise<Uint8Array> {
     const { absolutePath, relativePosix } = this.resolveGuardedPath(relativePath);
     const native = this.requireNativeHostOrFailClosed('readWorkspaceFileSecure');
@@ -1223,10 +1213,15 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
       const native = this.requireNativeHostOrFailClosed('createDir');
+      if (native) {
+        // New parents are created by the authorized native write while anchored.
+        // A standalone directory mutation has no grant in the Body protocol.
+        await native.verifyWorkspacePath({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix || '.', expectDirectory: true });
+        return ok(undefined);
+      }
       return await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
         // Walk every existing ancestor segment from workspaceRoot downward and reject symlinks/reparse points.
         const segments = relativePosix ? relativePosix.split('/') : [];
-        let deepestExistingRel = '.';
         let cursor = this.workspaceRoot;
         for (let i = 0; i < segments.length; i++) {
           cursor = join(cursor, segments[i]!);
@@ -1235,18 +1230,10 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
             if (info.isSymbolicLink()) {
               throw new FileError('permission_denied', `Refusing createDir across symlink segment "${segments.slice(0, i + 1).join('/')}".`, path);
             }
-            deepestExistingRel = segments.slice(0, i + 1).join('/');
           } catch (statErr) {
             if ((statErr as NodeJS.ErrnoException)?.code === 'ENOENT') break;
             throw statErr;
           }
-        }
-        if (native) {
-          await native.verifyWorkspacePath({
-            workspaceRoot: this.workspaceRoot,
-            relativePath: deepestExistingRel,
-            expectDirectory: true,
-          });
         }
         return this.inner.createDir(absolutePath, options, context);
       });
@@ -1259,6 +1246,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path);
       const native = this.requireNativeHostOrFailClosed('remove');
+      if (native && options?.recursive) throw new FileError('permission_denied', 'Recursive removal requires individual file authorizations.', path);
       await this.coordinator.withWriteLock(this.workspaceRoot, async () => {
         if (this.authorizeSideEffect) {
           await this.authorizeSideEffect({
@@ -1270,7 +1258,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
         await mkdir(this.snapshotDir, { recursive: true, mode: 0o700 });
         const snapshotId = randomUUID();
         const snapshotPath = join(this.snapshotDir, `${snapshotId}.bak`);
-        if (native && !options?.recursive) {
+        if (native) {
           const del = await native.secureDeleteFile({
             workspaceRoot: this.workspaceRoot,
             relativePath: relativePosix,
@@ -1290,14 +1278,6 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           });
           await this.persistIndex();
         } else {
-          if (native && options?.recursive) {
-            // Verify target directory is strictly inside canonical workspace with no reparse points before recursive rm.
-            await native.verifyWorkspacePath({
-              workspaceRoot: this.workspaceRoot,
-              relativePath: relativePosix,
-              expectDirectory: true,
-            });
-          }
           try {
             const info = await stat(absolutePath);
             if (info.isFile()) {
@@ -1435,7 +1415,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
           executable: process.platform === 'win32' && /^(?:powershell(?:\.exe)?)$/i.test(command[0] ?? '')
             ? resolveWindowsPowerShellAbsolutePath()
             : command[0],
-          args: command.slice(1),
+          args: ['git', 'git.exe'].includes(command[0]?.toLowerCase() ?? '') ? safeGitArgs(command.slice(1)) : command.slice(1),
         };
 
       if (native) {

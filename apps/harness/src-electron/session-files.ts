@@ -1,13 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { constants } from 'node:fs';
-import { lstat, open, realpath, unlink } from 'node:fs/promises';
-import { basename, extname, join, relative, sep } from 'node:path';
-import { pipeline } from 'node:stream/promises';
+import { basename, extname } from 'node:path';
 import { defineExtension, defineTool } from '@earendil-works/pi-durable';
 import { obj, str } from '@earendil-works/pi-schema';
 import type { NimiElectronAppBusinessServices } from '@nimiplatform/kit/shell/electron/main';
-import { workspaceFile } from './workspace-files.js';
-import { isSensitivePath, validateRawWorkspacePathInput } from './security-policy.js';
+import { validateRawWorkspacePathInput } from './security-policy.js';
 
 type Assets = NimiElectronAppBusinessServices['storage']['assets'];
 const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -29,45 +25,23 @@ export function sessionFilePath(sessionId: string, direction: 'in' | 'out', id: 
   return `sessions/${sessionId}/${direction}/${id}`;
 }
 
-export async function publishWorkspaceFile(assets: Assets, workspace: string, sessionId: string, ref: string, signal: AbortSignal) {
+type ReadWorkspace = (ref: string, maxBytes: number) => Promise<Uint8Array>;
+
+export async function publishWorkspaceFile(assets: Assets, sessionId: string, ref: string, signal: AbortSignal, read: ReadWorkspace) {
   signal.throwIfAborted();
-  const { path, info: before } = await workspaceFile(workspace, ref, signal);
-  const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
-  try {
-    const stat = await file.stat();
-    if (!stat.isFile() || stat.nlink > 1 || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) {
-      throw new Error('Choose a nonempty regular non-hardlinked file up to 32 MiB.');
-    }
-    const id = randomUUID();
-    async function* bounded() {
-      let offset = 0;
-      while (offset < stat.size) {
-        signal.throwIfAborted();
-        const bytes = Buffer.allocUnsafe(Math.min(256 * 1024, stat.size - offset));
-        const chunk = await file.read(bytes, 0, bytes.length, offset);
-        if (!chunk.bytesRead) throw new Error('The file changed during publication.');
-        offset += chunk.bytesRead;
-        yield bytes.subarray(0, chunk.bytesRead);
-      }
-      const after = await file.stat();
-      if (after.size !== stat.size || after.mtimeMs !== stat.mtimeMs) throw new Error('The file changed during publication.');
-    }
-    const relativePath = sessionFilePath(sessionId, 'out', id);
-    const mediaType = types[extname(path).toLowerCase()] ?? 'application/octet-stream';
-    const record = await assets.write({ relativePath, mediaType, body: bounded() });
-    return {
-      fileId: id,
-      name: basename(path),
-      relativePath,
-      source: { mediaType: record.mediaType ?? mediaType, sizeBytes: record.sizeBytes ?? stat.size, sha256: record.sha256 },
-    };
-  } finally {
-    await file.close();
-  }
+  const bytes = await read(ref, limit);
+  signal.throwIfAborted();
+  if (!bytes.length || bytes.length > limit) throw new Error('Choose a nonempty file up to 32 MiB.');
+  const fileId = randomUUID();
+  const relativePath = sessionFilePath(sessionId, 'out', fileId);
+  const mediaType = types[extname(ref).toLowerCase()] ?? 'application/octet-stream';
+  const record = await assets.write({ relativePath, mediaType, body: (async function* () { yield bytes; })() });
+  return { fileId, name: basename(ref), relativePath, source: {
+    mediaType: record.mediaType ?? mediaType, sizeBytes: record.sizeBytes ?? bytes.length, sha256: record.sha256,
+  } };
 }
 
-export function sessionFileTools(assets: Assets, workspace: string | (() => string), sessionId: string, account: AbortSignal) {
-  const resolveWorkspace = () => (typeof workspace === 'function' ? workspace() : workspace);
+export function sessionFileTools(assets: Assets, sessionId: string, account: AbortSignal, createExclusive: (ref: string, data: Uint8Array) => Promise<void>, readWorkspace: ReadWorkspace) {
   return defineExtension({ name: 'nimi-harness.session-files', tools: [
     defineTool({
       name: 'open_attachment',
@@ -76,14 +50,19 @@ export function sessionFileTools(assets: Assets, workspace: string | (() => stri
       async execute({ id }, _api, ctx) {
         const signal = ctx.abortSignal ? AbortSignal.any([account, ctx.abortSignal]) : account;
         signal.throwIfAborted();
-        const dir = resolveWorkspace();
         const read = await assets.read({ relativePath: sessionFilePath(sessionId, 'in', id) });
         const extension = Object.keys(types).find(key => types[key] === read.asset.mediaType) ?? '.bin';
         const name = `attachment-${randomUUID()}${extension}`;
-        const file = await open(join(dir, name), 'wx', 0o600);
-        try { await pipeline(read.body, file.createWriteStream(), { signal }); }
-        catch (error) { await unlink(join(dir, name)).catch(() => {}); throw error; }
-        finally { await file.close(); }
+        const chunks: Buffer[] = [];
+        let size = 0;
+        for await (const chunk of read.body) {
+          signal.throwIfAborted();
+          size += chunk.byteLength;
+          if (size > limit) throw new Error('Attachment exceeds 32 MiB.');
+          chunks.push(Buffer.from(chunk));
+        }
+        signal.throwIfAborted();
+        await createExclusive(name, Buffer.concat(chunks, size));
         return { output: [{ type: 'text', text: name }], details: { attachmentId: id, sha256: read.asset.sha256 } };
       },
     }),
@@ -98,44 +77,8 @@ export function sessionFileTools(assets: Assets, workspace: string | (() => stri
           throw new Error('Choose one file in the top level of this session’s workspace.');
         }
         validateRawWorkspacePathInput(filename);
-        const realDir = await realpath(resolveWorkspace());
-        if (isSensitivePath(filename, realDir)) {
-          throw new Error(`Sharing sensitive file "${filename}" is blocked by Harness security policy.`);
-        }
-        // Read the opened regular file; do not follow a workspace link, 8.3 alias, or hardlink.
-        const path = join(realDir, filename);
-        const before = await lstat(path);
-        if (before.isSymbolicLink() || !before.isFile() || before.nlink > 1) throw new Error('Choose a regular non-hardlinked file.');
-        const realTarget = await realpath(path);
-        const rootPrefix = realDir.endsWith(sep) ? realDir : realDir + sep;
-        if (!realTarget.startsWith(rootPrefix)) {
-          throw new Error('File resolved outside the active workspace.');
-        }
-        const realRel = relative(realDir, realTarget).split(sep).join('/');
-        if (isSensitivePath(realRel, realDir) || realRel.toLowerCase() !== filename.toLowerCase()) {
-          throw new Error(`Sharing sensitive or aliased file "${filename}" is blocked by Harness security policy.`);
-        }
-        const file = await open(realTarget, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
-        try {
-          const stat = await file.stat();
-          if (!stat.isFile() || stat.nlink > 1 || before.dev !== stat.dev || before.ino !== stat.ino || stat.size < 1 || stat.size > limit) throw new Error('Choose a nonempty regular file up to 32 MiB.');
-          const id = randomUUID();
-          async function* bounded() {
-            let offset = 0;
-            while (offset < stat.size) {
-              signal.throwIfAborted();
-              const bytes = Buffer.allocUnsafe(Math.min(256 * 1024, stat.size - offset));
-              const chunk = await file.read(bytes, 0, bytes.length, offset);
-              if (!chunk.bytesRead) throw new Error('The file changed during publication.');
-              offset += chunk.bytesRead;
-              yield bytes.subarray(0, chunk.bytesRead);
-            }
-            const after = await file.stat();
-            if (after.size !== stat.size || after.mtimeMs !== stat.mtimeMs) throw new Error('The file changed during publication.');
-          }
-          const record = await assets.write({ relativePath: sessionFilePath(sessionId, 'out', id), mediaType: types[extname(realRel).toLowerCase()] ?? 'application/octet-stream', body: bounded() });
-          return { output: [{ type: 'text', text: `Download ID: ${id}` }], details: { id, sha256: record.sha256 } };
-        } finally { await file.close(); }
+        const result = await publishWorkspaceFile(assets, sessionId, filename, signal, readWorkspace);
+        return { output: [{ type: 'text', text: 'Download ID: ' + result.fileId }], details: { id: result.fileId, sha256: result.source.sha256 } };
       },
     }),
   ] });

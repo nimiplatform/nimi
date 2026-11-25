@@ -219,7 +219,7 @@ func streamLocalTextGenerateScenario(
 	// Loading is bounded by the absolute request cap. The provider's first-packet
 	// budget starts when the captured local model is actually ready to infer.
 	firstTimeout := s.streamFirstPacketTimeout
-	if totalTimeout > 0 && totalTimeout < firstTimeout {
+	if textbehavior.IsSessionInference(requestCtx) || (totalTimeout > 0 && totalTimeout < firstTimeout) {
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
@@ -249,7 +249,7 @@ func streamLocalTextGenerateScenario(
 		}
 	}
 	idleTimeout := s.streamIdleTimeout
-	if totalTimeout > 0 && totalTimeout < idleTimeout {
+	if textbehavior.IsSessionInference(requestCtx) || (totalTimeout > 0 && totalTimeout < idleTimeout) {
 		idleTimeout = totalTimeout
 	}
 	var idleTimer *time.Timer

@@ -611,9 +611,10 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
       },
       async routeAndSubmitInput(req) {
         routeCalls.push(structuredClone(req));
+        const outboxId = routeCalls.length === 1 ? allocatedOutboxId : allocatedOutboxId + "-" + routeCalls.length;
         // Simulate Runtime concurrently pushing NEW_INTENT before routeAndSubmitInput returns!
         pushOutbox({
-          outboxId: allocatedOutboxId,
+          outboxId,
           workSessionRef: allocatedWorkSessionRef,
           agentBinding: partnerBinding,
           commandKind: 1,
@@ -626,7 +627,7 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
         await new Promise(r => setTimeout(r, 30));
         return {
           resolvedWorkSessionRef: allocatedWorkSessionRef,
-          outboxId: allocatedOutboxId,
+          outboxId,
           workSessionRecord: { agentBinding: partnerBinding },
         };
       },
@@ -707,6 +708,14 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
       5000,
       'initial_goal milestone projection',
     );
+    // Two identical inputs are distinct Runtime deliveries and keep their identities
+    // in the committed prefix and new suffix of the second provider request.
+    await client.callEngine('submit', ['main', 'Inspect standalone startup flow', randomUUID(), false]);
+    await waitFor(() => stepRequests.length === 2, 5000, 'repeated input reaches provider');
+    assert.equal(routeCalls[1].agentHandle, partnerBinding, 'bound sessions must survive rotation of the original handle');
+    assert.deepEqual(stepRequests[1].workingMessages.filter(m => m.role === 'user').map(m => m.outboxId),
+      [allocatedOutboxId, allocatedOutboxId + '-2']);
+
   } finally {
     await workerHost.dispose().catch(() => {});
     client.close();

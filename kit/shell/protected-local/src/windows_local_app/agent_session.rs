@@ -218,7 +218,10 @@ pub(crate) async fn open_stream(
         LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUnavailable, true)
     })?;
     let mut tonic_request = tonic::Request::new(request.request_bytes);
-    if let Some(timeout) = request.timeout {
+    if let Some(timeout) = request
+        .timeout
+        .or_else(|| (method == BODY_STEP_METHOD_ID).then_some(BODY_STEP_MAX_TIMEOUT))
+    {
         tonic_request.set_timeout(timeout);
     }
     let response = grpc
@@ -293,6 +296,8 @@ mod tests {
             assert!(admitted_unary_method(stream).is_none());
         }
         assert!(admitted_unary_method("/nimi.runtime.v1.AgentSessionService/Unknown").is_none());
-        assert!(admitted_stream_method("/nimi.runtime.v1.RuntimeAuthService/OpenSession").is_none());
+        assert!(
+            admitted_stream_method("/nimi.runtime.v1.RuntimeAuthService/OpenSession").is_none()
+        );
     }
 }

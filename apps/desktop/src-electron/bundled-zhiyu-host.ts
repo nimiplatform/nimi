@@ -110,7 +110,8 @@ export function createDesktopBundledZhiyuHost(input: {
         record.bridge.unregister(); record.media.close(); record.chrome.dispose();
       }
     })();
-    void closing.then(() => { closing = undefined; }, () => undefined);
+    const clearClosing = () => { closing = undefined; };
+    void closing.then(clearClosing, clearClosing);
     return closing;
   };
 

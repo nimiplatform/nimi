@@ -135,6 +135,7 @@ void app.whenReady().then(async () => {
         if (quitting) return;
         process.stderr.write(`[nimi-harness-worker] engine process exited unexpectedly (code=${code}); side effects will not be auto-replayed.\n`);
         if (engineWorker !== worker) return;
+        engineWorker = undefined;
         const now = Date.now();
         while (crashTimestamps.length > 0 && now - crashTimestamps[0]! > 60_000) {
           crashTimestamps.shift();
@@ -148,7 +149,7 @@ void app.whenReady().then(async () => {
         if (respawnTimer) clearTimeout(respawnTimer);
         respawnTimer = setTimeout(() => {
           respawnTimer = undefined;
-          if (quitting) return;
+          if (quitting || engineWorker) return;
           const nextWorker = spawnEngineWorker();
           engineWorker = nextWorker;
           if (lastActiveServices) {

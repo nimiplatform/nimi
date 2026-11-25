@@ -23,17 +23,16 @@ use nimi_shell_protected_local::{
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
-    LocalAppAgentSessionRequest, LocalAppAgentSessionStreamReceiver,
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
-    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAgentUpdateConversationContextRequest, LocalAppAiRealtimeAppendInputRequest,
-    LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
-    LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
-    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
+    LocalAppAgentReference, LocalAppAgentSessionRequest, LocalAppAgentSessionStreamReceiver,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAgentUpdateConversationContextRequest,
+    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
+    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
+    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetMoveRequest, LocalAppAssetReadReceiver, LocalAppAssetReadRequest,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest,
+    LocalAppAssetStatRequest, LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
     LocalAppConversationArtifactReadRequest, LocalAppConversationAttachmentUploadRequest,
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
     LocalAppConversationInterruptRequest, LocalAppConversationMessageReadRequest,
@@ -142,6 +141,18 @@ mod account_events;
 mod bundled_avatar_streams;
 mod first_party_client_stream;
 mod first_party_streams;
+// Only the protected handshake is bounded. An admitted stream keeps its RPC lifetime.
+async fn await_stream_open<F: std::future::Future>(
+    future: F,
+    agent_session: bool,
+) -> Result<F::Output, tokio::time::error::Elapsed> {
+    if agent_session {
+        tokio::time::timeout(std::time::Duration::from_secs(30), future).await
+    } else {
+        Ok(future.await)
+    }
+}
+
 mod harness_security;
 mod local_app;
 mod native_types;

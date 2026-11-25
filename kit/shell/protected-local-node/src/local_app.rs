@@ -1,9 +1,6 @@
 use super::*;
 use base64::Engine;
-use nimi_shell_protected_local::{
-    LocalAppConversationFollowUpCancelRequest,
-
-};
+use nimi_shell_protected_local::LocalAppConversationFollowUpCancelRequest;
 use nimi_shell_protected_local::{
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
     LocalAppVideoSessionScopeRequest,
@@ -1812,7 +1809,9 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
             Ok(quote) => Some(quote),
             Err(error) => return NativeJsonOutcome::error(error),
         }
-    } else { None };
+    } else {
+        None
+    };
     let (Some(agent_handle), Some(conversation_anchor_id), Some(request_id)) = (
         record["agentHandle"].as_str(),
         record["conversationAnchorId"].as_str(),
@@ -1859,16 +1858,39 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
     .await
 }
 
-fn native_conversation_quote(value: &JsonValue) -> Result<LocalAppConversationQuoteInput, LocalAppOperationError> {
+fn native_conversation_quote(
+    value: &JsonValue,
+) -> Result<LocalAppConversationQuoteInput, LocalAppOperationError> {
     let record = value.as_object().ok_or_else(native_invalid_payload)?;
-    if record.len() != 4 || !["sourceMessageId", "format", "startByte", "endByte"].iter().all(|key| record.contains_key(*key)) {
+    if record.len() != 4
+        || !["sourceMessageId", "format", "startByte", "endByte"]
+            .iter()
+            .all(|key| record.contains_key(*key))
+    {
         return Err(native_invalid_payload());
     }
-    let source_message_id = record["sourceMessageId"].as_str().ok_or_else(native_invalid_payload)?.to_string();
-    let format = record["format"].as_str().ok_or_else(native_invalid_payload)?.to_string();
-    let start_byte = record["startByte"].as_u64().and_then(|value| u32::try_from(value).ok()).ok_or_else(native_invalid_payload)?;
-    let end_byte = record["endByte"].as_u64().and_then(|value| u32::try_from(value).ok()).ok_or_else(native_invalid_payload)?;
-    Ok(LocalAppConversationQuoteInput { source_message_id, format, start_byte, end_byte })
+    let source_message_id = record["sourceMessageId"]
+        .as_str()
+        .ok_or_else(native_invalid_payload)?
+        .to_string();
+    let format = record["format"]
+        .as_str()
+        .ok_or_else(native_invalid_payload)?
+        .to_string();
+    let start_byte = record["startByte"]
+        .as_u64()
+        .and_then(|value| u32::try_from(value).ok())
+        .ok_or_else(native_invalid_payload)?;
+    let end_byte = record["endByte"]
+        .as_u64()
+        .and_then(|value| u32::try_from(value).ok())
+        .ok_or_else(native_invalid_payload)?;
+    Ok(LocalAppConversationQuoteInput {
+        source_message_id,
+        format,
+        start_byte,
+        end_byte,
+    })
 }
 
 #[cfg(test)]
@@ -1883,7 +1905,9 @@ mod quotation_input_tests {
             json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":-1,"endByte":6}),
             json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":1.5,"endByte":6}),
             json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":3,"endByte":6,"text":"caller cannot supply source"}),
-        ] { assert!(native_conversation_quote(&invalid).is_err()); }
+        ] {
+            assert!(native_conversation_quote(&invalid).is_err());
+        }
     }
 }
 
@@ -2138,24 +2162,44 @@ pub async fn local_app_conversation_snapshot(
 // @nimi-authority: rule.nimi.runtime.conversation-message-interaction.message-read
 #[napi(js_name = "localAppConversationMessageRead")]
 pub async fn local_app_conversation_message_read(input: JsonValue) -> NativeJsonOutcome {
-    let Some(record) = input.as_object() else { return NativeJsonOutcome::error(native_invalid_payload()); };
-    if record.len() != 3 || !["agentHandle", "conversationAnchorId", "messageId"].iter().all(|key| record.contains_key(*key)) {
+    let Some(record) = input.as_object() else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    if record.len() != 3
+        || !["agentHandle", "conversationAnchorId", "messageId"]
+            .iter()
+            .all(|key| record.contains_key(*key))
+    {
         return NativeJsonOutcome::error(native_invalid_payload());
     }
     let (Some(agent_handle), Some(conversation_anchor_id), Some(message_id)) = (
-        record["agentHandle"].as_str(), record["conversationAnchorId"].as_str(), record["messageId"].as_str(),
-    ) else { return NativeJsonOutcome::error(native_invalid_payload()); };
-    let request = LocalAppConversationMessageReadRequest { agent_handle: agent_handle.to_owned(), conversation_anchor_id: conversation_anchor_id.to_owned(), message_id: message_id.to_owned() };
+        record["agentHandle"].as_str(),
+        record["conversationAnchorId"].as_str(),
+        record["messageId"].as_str(),
+    ) else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    let request = LocalAppConversationMessageReadRequest {
+        agent_handle: agent_handle.to_owned(),
+        conversation_anchor_id: conversation_anchor_id.to_owned(),
+        message_id: message_id.to_owned(),
+    };
     invoke_agent(|session| async move {
-        session.conversation_message_read(request).await.map(|result| json!({
-            "conversationAnchorId": result.conversation_anchor_id,
-            "readWatermark": result.read_watermark.to_string(),
-            "message": result.message,
-            "quoteText": result.quote_text,
-            "quoteFormat": result.quote_format,
-            "window": result.window,
-        }))
-    }).await
+        session
+            .conversation_message_read(request)
+            .await
+            .map(|result| {
+                json!({
+                    "conversationAnchorId": result.conversation_anchor_id,
+                    "readWatermark": result.read_watermark.to_string(),
+                    "message": result.message,
+                    "quoteText": result.quote_text,
+                    "quoteFormat": result.quote_format,
+                    "window": result.window,
+                })
+            })
+    })
+    .await
 }
 
 #[napi(js_name = "localAppEmbodimentSnapshot")]
@@ -2483,7 +2527,9 @@ pub async fn local_app_ai_realtime_open(input: NativeAiRealtimeOpenInput) -> Nat
         session
             .ai_realtime_open(LocalAppAiRealtimeOpenRequest {
                 input_audio: input.input_audio,
-                interaction_mode: input.interaction_mode.unwrap_or_else(|| "owner-controlled".into()),
+                interaction_mode: input
+                    .interaction_mode
+                    .unwrap_or_else(|| "owner-controlled".into()),
                 audio_output_enabled: input.audio_output_enabled,
                 turn_detection: input.turn_detection.unwrap_or_default(),
                 initial_instruction: input.initial_instruction,
@@ -3096,21 +3142,19 @@ async fn clear_session_on_transport_failure(
     {
         return;
     }
-    let mut invalidated_current = false;
-    {
+    let drained = {
         let mut current = LOCAL_APP_SESSION.lock().await;
-        if current
+        if !current
             .session
             .as_ref()
             .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
         {
-            current.invalidated = Some(error.clone());
-            invalidated_current = true;
+            return;
         }
-    }
-    if invalidated_current {
-        close_all_agent_session_streams().await;
-    }
+        current.invalidated = Some(error.clone());
+        std::mem::take(&mut *agent_session_streams())
+    };
+    close_drained_agent_session_streams(drained).await;
 }
 
 #[cfg(test)]
@@ -3867,12 +3911,25 @@ pub async fn local_app_integration_cancel_connection_setup(input: JsonValue) -> 
         .await
 }
 
-
-
 #[napi(js_name = "localAppConversationFollowUpCancel")]
-pub async fn local_app_conversation_follow_up_cancel(input:NativeConversationFollowUpInput)->NativeJsonOutcome{
- let expected_revision=match decimal_revision(&input.expected_revision,false){Ok(v)=>v,Err(e)=>return NativeJsonOutcome::error(e)};
- invoke_agent(|session|async move{session.conversation_follow_up_cancel(LocalAppConversationFollowUpCancelRequest{agent_handle:input.agent_handle,conversation_anchor_id:input.conversation_anchor_id,task_id:input.task_id,expected_revision}).await}).await
+pub async fn local_app_conversation_follow_up_cancel(
+    input: NativeConversationFollowUpInput,
+) -> NativeJsonOutcome {
+    let expected_revision = match decimal_revision(&input.expected_revision, false) {
+        Ok(v) => v,
+        Err(e) => return NativeJsonOutcome::error(e),
+    };
+    invoke_agent(|session| async move {
+        session
+            .conversation_follow_up_cancel(LocalAppConversationFollowUpCancelRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                task_id: input.task_id,
+                expected_revision,
+            })
+            .await
+    })
+    .await
 }
 
 type AgentSessionStreamRegistry = HashMap<String, AgentSessionStreamEntry>;
@@ -3885,16 +3942,24 @@ struct AgentSessionStream {
     receiver: Mutex<Option<LocalAppAgentSessionStreamReceiver>>,
     close_tx: watch::Sender<bool>,
 }
-static AGENT_SESSION_STREAMS: OnceLock<Mutex<AgentSessionStreamRegistry>> = OnceLock::new();
+static AGENT_SESSION_STREAMS: OnceLock<std::sync::Mutex<AgentSessionStreamRegistry>> =
+    OnceLock::new();
 static AGENT_SESSION_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
 const MAX_AGENT_SESSION_STREAMS: usize = 16;
 
-fn agent_session_streams() -> &'static Mutex<AgentSessionStreamRegistry> {
-    AGENT_SESSION_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+fn agent_session_streams() -> std::sync::MutexGuard<'static, AgentSessionStreamRegistry> {
+    AGENT_SESSION_STREAMS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 async fn close_all_agent_session_streams() {
-    let drained = std::mem::take(&mut *agent_session_streams().lock().await);
+    let drained = std::mem::take(&mut *agent_session_streams());
+    close_drained_agent_session_streams(drained).await;
+}
+
+async fn close_drained_agent_session_streams(drained: AgentSessionStreamRegistry) {
     for (_, entry) in drained {
         if let AgentSessionStreamEntry::Active(stream) = entry {
             stream.close_tx.send_replace(true);
@@ -3956,25 +4021,12 @@ impl Drop for AgentSessionSlotGuard {
         let Some(stream_id) = self.stream_id.take() else {
             return;
         };
-        if let Ok(mut registry) = agent_session_streams().try_lock() {
-            if matches!(
-                registry.get(stream_id.as_str()),
-                Some(AgentSessionStreamEntry::Reserved)
-            ) {
-                registry.remove(stream_id.as_str());
-            }
-            return;
-        }
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            handle.spawn(async move {
-                let mut registry = agent_session_streams().lock().await;
-                if matches!(
-                    registry.get(stream_id.as_str()),
-                    Some(AgentSessionStreamEntry::Reserved)
-                ) {
-                    registry.remove(stream_id.as_str());
-                }
-            });
+        let mut registry = agent_session_streams();
+        if matches!(
+            registry.get(stream_id.as_str()),
+            Some(AgentSessionStreamEntry::Reserved)
+        ) {
+            registry.remove(stream_id.as_str());
         }
     }
 }
@@ -3983,12 +4035,30 @@ impl Drop for AgentSessionSlotGuard {
 pub async fn local_app_agent_session_stream_open(
     input: NativeLocalAppAgentSessionInput,
 ) -> NativeJsonOutcome {
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => {
+            return NativeJsonOutcome::error(error);
+        }
+    };
     let stream_id = format!(
         "agent-session-{}",
         AGENT_SESSION_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
     );
     {
-        let mut registry = agent_session_streams().lock().await;
+        let cache = LOCAL_APP_SESSION.lock().await;
+        if cache.invalidated.is_some()
+            || !cache
+                .session
+                .as_ref()
+                .is_some_and(|candidate| Arc::ptr_eq(candidate, &session))
+        {
+            return NativeJsonOutcome::error(LocalAppOperationError::new(
+                LocalAppReasonCode::SessionInvalid,
+                true,
+            ));
+        }
+        let mut registry = agent_session_streams();
         if registry.len() >= MAX_AGENT_SESSION_STREAMS {
             return NativeJsonOutcome::error(LocalAppOperationError::new(
                 LocalAppReasonCode::ResourceExhausted,
@@ -4004,20 +4074,18 @@ pub async fn local_app_agent_session_stream_open(
         .timeout_ms
         .map(u64::from)
         .map(std::time::Duration::from_millis);
-    let session = match current_or_open_session().await {
-        Ok(session) => session,
-        Err(error) => {
-            return NativeJsonOutcome::error(error);
-        }
+    let opening = session.agent_session_stream(LocalAppAgentSessionRequest {
+        method_id: input.method_id,
+        request_bytes: input.request_bytes.to_vec(),
+        timeout,
+    });
+    let Ok(opened) = crate::await_stream_open(opening, true).await else {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::RuntimeServiceUnavailable,
+            true,
+        ));
     };
-    let receiver = match session
-        .agent_session_stream(LocalAppAgentSessionRequest {
-            method_id: input.method_id,
-            request_bytes: input.request_bytes.to_vec(),
-            timeout,
-        })
-        .await
-    {
+    let receiver = match opened {
         Ok(receiver) => receiver,
         Err(error) => {
             clear_session_on_transport_failure(&session, &error).await;
@@ -4030,7 +4098,7 @@ pub async fn local_app_agent_session_stream_open(
         receiver: Mutex::new(Some(receiver)),
         close_tx,
     });
-    let mut registry = agent_session_streams().lock().await;
+    let mut registry = agent_session_streams();
     if !matches!(
         registry.get(stream_id.as_str()),
         Some(AgentSessionStreamEntry::Reserved)
@@ -4051,7 +4119,7 @@ pub async fn local_app_agent_session_stream_next(
     input: NativeLocalAppAgentSessionStreamInput,
 ) -> NativeBundledAvatarStreamNextOutcome {
     let stream_id = input.stream_id;
-    let stream = match agent_session_streams().lock().await.get(stream_id.as_str()) {
+    let stream = match agent_session_streams().get(stream_id.as_str()) {
         Some(AgentSessionStreamEntry::Active(stream)) => Some(stream.clone()),
         _ => None,
     };
@@ -4067,7 +4135,7 @@ pub async fn local_app_agent_session_stream_next(
     };
     let mut close_rx = stream.close_tx.subscribe();
     if *close_rx.borrow() {
-        agent_session_streams().lock().await.remove(stream_id.as_str());
+        agent_session_streams().remove(stream_id.as_str());
         return NativeBundledAvatarStreamNextOutcome {
             status: "ok".to_string(),
             value: None,
@@ -4088,7 +4156,7 @@ pub async fn local_app_agent_session_stream_next(
         };
     };
     let Some(receiver) = receiver_slot.as_mut() else {
-        agent_session_streams().lock().await.remove(stream_id.as_str());
+        agent_session_streams().remove(stream_id.as_str());
         return NativeBundledAvatarStreamNextOutcome {
             status: "ok".to_string(),
             value: None,
@@ -4114,7 +4182,7 @@ pub async fn local_app_agent_session_stream_next(
             reason_metadata: None,
         },
         Some(Err(error)) => {
-            agent_session_streams().lock().await.remove(stream_id.as_str());
+            agent_session_streams().remove(stream_id.as_str());
             clear_session_on_transport_failure(&stream.session, &error).await;
             NativeBundledAvatarStreamNextOutcome {
                 status: "error".to_string(),
@@ -4127,7 +4195,7 @@ pub async fn local_app_agent_session_stream_next(
             }
         }
         None => {
-            agent_session_streams().lock().await.remove(stream_id.as_str());
+            agent_session_streams().remove(stream_id.as_str());
             NativeBundledAvatarStreamNextOutcome {
                 status: "ok".to_string(),
                 value: None,
@@ -4144,10 +4212,7 @@ pub async fn local_app_agent_session_stream_next(
 pub async fn local_app_agent_session_stream_close(
     input: NativeLocalAppAgentSessionStreamInput,
 ) -> NativeJsonOutcome {
-    let entry = agent_session_streams()
-        .lock()
-        .await
-        .remove(input.stream_id.as_str());
+    let entry = agent_session_streams().remove(input.stream_id.as_str());
     let closed = entry.is_some();
     if let Some(AgentSessionStreamEntry::Active(stream)) = entry {
         stream.close_tx.send_replace(true);

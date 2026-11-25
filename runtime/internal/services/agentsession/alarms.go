@@ -32,6 +32,7 @@ const (
 // AlarmDeliveryOutcome reports the honest four-state Integration receipt after
 // delivering an alarm template to a channel (desktop notification / IM channel).
 type AlarmDeliveryOutcome struct {
+	desktopAttention   *runtimev1.PendingAttentionRecord
 	ReceiptState       runtimev1.AlarmDeliveryReceiptState
 	ProviderMessageRef string
 	Detail             string
@@ -42,7 +43,7 @@ type AlarmDeliveryOutcome struct {
 type AlarmDeliverySender func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, channel, renderedTitle, renderedBody string, lateBy time.Duration) AlarmDeliveryOutcome
 
 // AlarmLLMRunner runs optional background LLM synthesis when alarm.RequiresLlm == true.
-type AlarmLLMRunner func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord) (renderedTitle, renderedBody string, tokensUsed int64, err error)
+type AlarmLLMRunner func(ctx context.Context, accountID string, alarm *runtimev1.SessionAlarmRecord, reserve func(int64) error) (renderedTitle, renderedBody string, tokensUsed int64, err error)
 
 // AlarmFireResult describes the deterministic outcome of firing one due alarm in TickAlarms.
 type AlarmFireResult struct {
@@ -137,14 +138,14 @@ func parseCronField(field string, minVal, maxVal int) (map[int]bool, error) {
 }
 
 type parsedCron struct {
-	minutes       map[int]bool
-	hours         map[int]bool
-	dom           map[int]bool
-	domWildcard   bool
-	months        map[int]bool
-	dow           map[int]bool
-	dowWildcard   bool
-	loc           *time.Location
+	minutes     map[int]bool
+	hours       map[int]bool
+	dom         map[int]bool
+	domWildcard bool
+	months      map[int]bool
+	dow         map[int]bool
+	dowWildcard bool
+	loc         *time.Location
 }
 
 func isCronWildcardField(raw string) bool {
@@ -221,65 +222,40 @@ func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
 	limit := t.Add(9 * 366 * 24 * time.Hour)
 	for !t.After(limit) {
 		local := t.In(c.loc)
-		if !c.months[int(local.Month())] {
-			// Jump to start of next month safely across December->January wrap and midnight DST spring-forward.
-			nextYear := local.Year()
-			nextMonth := local.Month() + 1
-			if nextMonth > time.December {
-				nextYear++
-				nextMonth = time.January
-			}
-			nextLocal := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, c.loc)
-			nextUTC := nextLocal.UTC()
-			if !nextUTC.After(t) {
-				nextUTC = t.Add(24 * time.Hour).Truncate(time.Minute)
-			}
-			// Pull back by up to 2h if midnight spring-forward shifted Date forward past day 1 00:00 UTC boundary.
-			if nextUTC.Sub(t) > 2*time.Hour {
-				probe := nextUTC.Add(-2 * time.Hour)
-				if probe.After(t) && probe.In(c.loc).Month() == nextMonth {
-					nextUTC = probe
+		// Within a constant-offset interval local minutes advance linearly. Stop at
+		// the actual transition instead of constructing an ambiguous local midnight.
+		_, zoneEnd := local.ZoneBounds()
+		wall := time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), local.Minute(), 0, 0, time.UTC)
+		var nextWall time.Time
+		switch {
+		case !c.months[int(local.Month())]:
+			nextWall = time.Date(wall.Year(), wall.Month()+1, 1, 0, 0, 0, 0, time.UTC)
+		case !c.dayMatches(local):
+			nextWall = time.Date(wall.Year(), wall.Month(), wall.Day()+1, 0, 0, 0, 0, time.UTC)
+		case !c.hours[local.Hour()]:
+			nextWall = wall.Truncate(time.Hour).Add(time.Hour)
+		}
+		if !nextWall.IsZero() {
+			next := t.Add(nextWall.Sub(wall))
+			if zoneEnd.After(t) && zoneEnd.Before(next) {
+				next = zoneEnd.UTC().Truncate(time.Minute)
+				if next.Before(zoneEnd) {
+					next = next.Add(time.Minute)
 				}
 			}
-			t = nextUTC
-			continue
-		}
-		if !c.dayMatches(local) {
-			nextLocal := time.Date(local.Year(), local.Month(), local.Day()+1, 0, 0, 0, 0, c.loc)
-			nextUTC := nextLocal.UTC()
-			if !nextUTC.After(t) {
-				nextUTC = t.Add(time.Hour).Truncate(time.Minute)
-			}
-			if nextUTC.Sub(t) > 2*time.Hour {
-				probe := nextUTC.Add(-2 * time.Hour)
-				if probe.After(t) && probe.In(c.loc).Day() != local.Day() {
-					nextUTC = probe
-				}
-			}
-			t = nextUTC
-			continue
-		}
-		if !c.hours[local.Hour()] {
-			remMin := 60 - local.Minute()
-			if remMin <= 0 {
-				remMin = 60
-			}
-			t = t.Add(time.Duration(remMin) * time.Minute)
+			t = next
 			continue
 		}
 		if !c.minutes[local.Minute()] {
 			t = t.Add(time.Minute)
 			continue
 		}
-		// Prevent fall-back DST duplicate firing for BOTH 1-hour and 30-minute folds
-		// (e.g. America/New_York and Australia/Lord_Howe): unconditionally skip the
-		// second occurrence of any repeated local wall-clock minute.
-		sameWallClock := func(candidate time.Time) bool {
-			return candidate.Year() == local.Year() && candidate.Month() == local.Month() &&
-				candidate.Day() == local.Day() && candidate.Hour() == local.Hour() &&
-				candidate.Minute() == local.Minute()
-		}
-		if sameWallClock(afterLocal) || sameWallClock(t.Add(-time.Hour).In(c.loc)) || sameWallClock(t.Add(-30*time.Minute).In(c.loc)) {
+		// ZoneBounds gives the actual transition, including non-hour IANA folds.
+		start, _ := local.ZoneBounds()
+		_, offset := local.Zone()
+		_, previous := start.Add(-time.Second).In(c.loc).Zone()
+		fold := time.Duration(previous-offset) * time.Second
+		if (!start.IsZero() && fold > 0 && t.Before(start.Add(fold))) || local.Format("2006-01-02 15:04") == afterLocal.Format("2006-01-02 15:04") {
 			t = t.Add(time.Minute)
 			continue
 		}
@@ -291,12 +267,12 @@ func (c *parsedCron) nextAfter(after time.Time) (time.Time, error) {
 func scanAlarmRow(scanner interface{ Scan(dest ...any) error }) (*runtimev1.SessionAlarmRecord, string, error) {
 	rec := &runtimev1.SessionAlarmRecord{}
 	var (
-		accountID         string
-		alarmKind         int32
-		requiresLLM       int
-		channelsJSON      string
-		lastReceiptState  int32
-		unackStreak       int32
+		accountID        string
+		alarmKind        int32
+		requiresLLM      int
+		channelsJSON     string
+		lastReceiptState int32
+		unackStreak      int32
 	)
 	err := scanner.Scan(
 		&rec.AlarmId,
@@ -713,6 +689,9 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 	}
 	if req.TimeZone != nil {
 		tz := strings.TrimSpace(req.GetTimeZone())
+		if tz == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 		if _, err := time.LoadLocation(tz); err != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
@@ -922,7 +901,7 @@ func (st *Store) reserveDailyAlarmLLMBudget(ctx context.Context, accountID, day 
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return false, err
 	}
-	if used >= dailyBudget || (reserveTokens > 0 && used+reserveTokens > dailyBudget) {
+	if used >= dailyBudget || (reserveTokens > 0 && reserveTokens > dailyBudget-used) {
 		return false, nil
 	}
 	nextUsed := used + reserveTokens
@@ -937,17 +916,6 @@ func (st *Store) reserveDailyAlarmLLMBudget(ctx context.Context, accountID, day 
 		return false, err
 	}
 	return true, nil
-}
-
-func estimateAlarmLLMTokens(title, body string, dailyBudget int64) int64 {
-	est := int64((len(title)+len(body))/4) + 512
-	if est < 64 {
-		est = 64
-	}
-	if dailyBudget > 0 && est > dailyBudget {
-		est = dailyBudget
-	}
-	return est
 }
 
 func (st *Store) adjustDailyAlarmLLMBudget(ctx context.Context, accountID, day string, delta int64) error {
@@ -1087,34 +1055,39 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		usedLLM := false
 		tokensUsed := int64(0)
 		budgetExceeded := false
-		if alarm.GetRequiresLlm() {
-			reserveTokens := estimateAlarmLLMTokens(alarm.GetTemplateTitle(), alarm.GetTemplateBody(), dailyBudget)
-			reserved, bErr := s.store.reserveDailyAlarmLLMBudget(ctx, accID, dayKey, reserveTokens, dailyBudget)
-			if bErr != nil || !reserved {
-				budgetExceeded = true
-			} else if llmRunner != nil {
-				t, b, toks, llmErr := llmRunner(ctx, accID, alarm)
-				if llmErr == nil {
-					if strings.TrimSpace(t) != "" {
-						renderedTitle = t
-					}
-					if strings.TrimSpace(b) != "" {
-						renderedBody = b
-					}
-					usedLLM = true
-					tokensUsed = toks
-					_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, toks-reserveTokens)
-				} else {
-					// Settle any tokens actually consumed before failure rather than blindly refunding 100%.
-					if toks > 0 {
-						tokensUsed = toks
-						_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, toks-reserveTokens)
-					} else {
-						_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -reserveTokens)
-					}
+		if alarm.GetRequiresLlm() && llmRunner != nil {
+			var reserved int64
+			reserve := func(tokens int64) error {
+				if tokens <= 0 || reserved != 0 {
+					return errors.New("invalid alarm budget reservation")
 				}
-			} else {
-				_ = s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, -reserveTokens)
+				ok, err := s.store.reserveDailyAlarmLLMBudget(ctx, accID, dayKey, tokens, dailyBudget)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					budgetExceeded = true
+					return errors.New("alarm budget exhausted")
+				}
+				reserved = tokens
+				return nil
+			}
+			title, body, usage, runErr := llmRunner(ctx, accID, alarm, reserve)
+			if usage > 0 && reserved > 0 {
+				tokensUsed = usage
+				if err := s.store.adjustDailyAlarmLLMBudget(ctx, accID, dayKey, usage-reserved); err != nil {
+					return results, err
+				}
+			}
+			// Unknown usage after dispatch retains the reservation across retries and restart.
+			if runErr == nil && reserved > 0 {
+				usedLLM = true
+				if strings.TrimSpace(title) != "" {
+					renderedTitle = title
+				}
+				if strings.TrimSpace(body) != "" {
+					renderedBody = body
+				}
 			}
 		}
 		if budgetExceeded {
@@ -1196,6 +1169,12 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		}
 		commitOK := false
 		for _, rec := range recordedDeliveries {
+			if att := rec.outcome.desktopAttention; att != nil {
+				if err := putPendingAttention(ctx, tx, accID, att, nowUTC); err != nil {
+					_ = tx.Rollback()
+					return results, err
+				}
+			}
 			detDeliveryID := fmt.Sprintf("dlv_%s_%s_%s", alarm.GetAlarmId(), alarm.GetNextFireAt(), strings.ToLower(strings.TrimSpace(rec.channel)))
 			if _, execErr := tx.ExecContext(ctx, `
 				INSERT INTO runtime_alarm_delivery(delivery_id, alarm_id, account_id, channel, receipt_state, provider_message_ref, detail, fired_at, updated_at)
@@ -1233,6 +1212,12 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		}
 		if !commitOK {
 			continue
+		}
+		for _, delivery := range deliveries {
+			if delivery.desktopAttention != nil {
+				s.notifyOverviewChange(accID, nil, nil)
+				break
+			}
 		}
 
 		results = append(results, AlarmFireResult{

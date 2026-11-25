@@ -78,7 +78,10 @@ func (d *remoteDispatcher) register(service any, descriptor *grpc.ServiceDesc) {
 // @nimi-authority: rule.nimi.runtime.remote-access.operation-carrier
 func remoteAppMethodSupported(method string) bool {
 	switch method {
-	case protectedInvokeRealmUnaryMethod,
+	case protectedAgentBodyRegisterMethod, protectedAgentBodyHeartbeatMethod, protectedAgentBodyUnregisterMethod,
+		protectedAgentBodyOutboxSubscribeMethod, protectedAgentBodyOutboxAckMethod, protectedAgentBodySideEffectAuthorizeMethod,
+		protectedAgentBodyStepStreamMethod, protectedAgentBodyProjectionReportMethod,
+		protectedInvokeRealmUnaryMethod,
 		protectedPutAppActivityMethod, protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
 		protectedOpenAppActivityMethod, protectedSubscribeAppActivityOpenRequests, protectedCompleteAppActivityOpenRequest,
 		protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
@@ -265,7 +268,7 @@ func (d *remoteDispatcher) dispatch(ctx context.Context, peer *remoteaccess.Peer
 // that distinction while reusing their exact AppOperation classification.
 func remoteAppIngress(method string, request proto.Message, streamRPC bool) (localappop.Ingress, bool) {
 	if streamRPC {
-		ingress := protectedLocalAppStreamIngress(method)
+		ingress := protectedLocalAppStreamIngressForRequest(method, request)
 		return ingress, ingress != localappop.IngressUnknown
 	}
 	ingress := protectedLocalAppUnaryIngress(method, request)

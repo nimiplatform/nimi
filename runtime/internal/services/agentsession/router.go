@@ -3,6 +3,7 @@ package agentsession
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -82,6 +83,41 @@ func deriveSessionTitle(text, workspaceRoot string) string {
 func sha256HexString(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+// bodyIntentText is the literal user input admitted at the routing boundary.
+func bodyIntentText(text, brief, root string, attachments []string, history []map[string]any) string {
+	var parts []string
+	if len(history) > 0 {
+		raw, _ := json.Marshal(history)
+		parts = append(parts, "Previous Nimi Home dialogue in chronological order:\n"+string(raw))
+	}
+	if brief = strings.TrimSpace(brief); brief != "" {
+		parts = append(parts, "[Handoff Context]\n"+brief)
+	}
+	var paths []string
+	for _, raw := range attachments {
+		if raw = strings.TrimSpace(raw); raw == "" {
+			continue
+		}
+		rel := raw
+		if filepath.IsAbs(raw) {
+			var err error
+			rel, err = filepath.Rel(root, raw)
+			if err != nil || root == "" || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				paths = append(paths, "- "+filepath.Base(raw)+" (outside active workspace; import into workspace to inspect)")
+				continue
+			}
+		}
+		paths = append(paths, "- "+filepath.ToSlash(rel))
+	}
+	if len(paths) > 0 {
+		parts = append(parts, "[Attached Workspace Files]\n"+strings.Join(paths, "\n"))
+	}
+	if text = strings.TrimSpace(text); text != "" {
+		parts = append(parts, text)
+	}
+	return strings.Join(parts, "\n\n")
 }
 
 func looksLikePCWorkIntent(req *runtimev1.RouteAndSubmitInputRequest) bool {
@@ -210,6 +246,10 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	requestID := strings.TrimSpace(req.GetRequestId())
 	payloadHash := computeSubmissionPayloadHash(agentBinding, req)
 
+	if (req.GetWorkspaceWritable() || strings.TrimSpace(req.GetWorkspaceRoot()) != "") && !hasSessionManage(decision) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+
 	// Fast read-only idempotency check scoped to (account_id, caller_subject, request_id) + payload_hash.
 	if existing, err := s.store.LookupSubmission(ctx, decision.AccountID, decision.RegisteredAppSubject, requestID, payloadHash); err != nil {
 		if errors.Is(err, errSubmissionPayloadConflict) {
@@ -221,10 +261,6 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			existing.WorkSessionRecord = nil
 		}
 		return existing, nil
-	}
-
-	if req.GetWorkspaceWritable() && !hasSessionManage(decision) {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 
 	var (
@@ -284,6 +320,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	}
 
 	// --- Layer 1: Explicit target, __general_inbox__ sentinel, candidate selection, or alarm reply ---
+	forceNewSession := entrySurface == "new_session" || entrySurface == "harness_new_session"
 	forceGeneralInbox := false
 	if targetRow == nil {
 		explicitRef := strings.TrimSpace(req.GetExplicitWorkSessionRef())
@@ -310,7 +347,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			} else {
 				routeReason = "l1_explicit_session_ref"
 			}
-		} else if replyRef := strings.TrimSpace(req.GetReplyToMessageRef()); replyRef != "" {
+		} else if replyRef := strings.TrimSpace(req.GetReplyToMessageRef()); !forceNewSession && replyRef != "" {
 			if resolvedAlarm, rErr := s.ResolveAlarmReplyTarget(ctx, decision.AccountID, agentBinding, replyRef, now); rErr == nil && resolvedAlarm.MatchedAlarm != nil {
 				if alarmTarget := strings.TrimSpace(resolvedAlarm.MatchedAlarm.GetTargetWorkSessionRef()); alarmTarget != "" {
 					if sess, gErr := s.store.GetSession(ctx, decision.AccountID, alarmTarget); gErr == nil && sess != nil && readerCanAccessSession(decision, sess.Record) {
@@ -320,7 +357,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 					}
 				}
 			}
-		} else if isLikelyAlarmReplyText(req.GetText()) {
+		} else if !forceNewSession && isLikelyAlarmReplyText(req.GetText()) {
 			if resolvedAlarm, rErr := s.ResolveAlarmReplyTarget(ctx, decision.AccountID, agentBinding, "", now); rErr == nil {
 				if resolvedAlarm.MatchedAlarm != nil {
 					if alarmTarget := strings.TrimSpace(resolvedAlarm.MatchedAlarm.GetTargetWorkSessionRef()); alarmTarget != "" {
@@ -363,6 +400,21 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				}
 			}
 		}
+	}
+
+	// A Body App can route an intent into its own registered execution surface.
+	// Explicit anchors and external-channel isolation take precedence.
+	if targetRow == nil && !forceGeneralInbox && strings.HasPrefix(entrySurface, "app."+decision.AppID+".") && decision.HasActivatedDomain(DomainAgentBodyApp) {
+		namespace, err := s.appBodyNamespace(ctx, decision, entrySurface)
+		if err != nil {
+			return nil, err
+		}
+		targetRow = &sessionRow{AccountID: decision.AccountID, Record: &runtimev1.WorkSessionRecord{
+			WorkSessionRef: newID("ws"), AgentBinding: agentBinding, SessionKind: "app_work",
+			OwnerBodyKind: namespace, PublisherScopeKey: callerScope, Title: deriveSessionTitle(req.GetText(), ""),
+			Status: "active", TrustTier: "trusted", PermissionMode: "plan-readonly", LatestReceiptJson: "{}",
+		}}
+		routeReason = "l1_registered_app_body"
 	}
 
 	// --- Layer 2B: Card promotion / Zhiyu editable brief handoff ---
@@ -443,7 +495,6 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 	}
 
 	// --- Layer 2C: Explicit workspace root routing ---
-	forceNewSession := entrySurface == "new_session" || entrySurface == "harness_new_session"
 	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetWorkspaceRoot()) != "" {
 		wsRoot := strings.TrimSpace(req.GetWorkspaceRoot())
 		var existing *sessionRow
@@ -678,6 +729,8 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			targetRow.Record.Status = "queued_body_offline"
 		}
 		payloadMap := map[string]any{
+			"bodyInputText":     bodyIntentText(req.GetText(), req.GetHandoffBriefText(), targetRow.Record.GetWorkspaceRoot(), req.GetAttachmentPaths(), handoffHistoryPayload),
+			"agentHandle":       req.GetAgentHandle(),
 			"requestId":         requestID,
 			"text":              req.GetText(),
 			"entrySurface":      entrySurface,
@@ -769,11 +822,12 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	if sourceSeq <= 0 {
 		sourceSeq = src.Record.GetHeadSeq()
 	}
-	events, err := s.store.ListBrainEvents(ctx, src.Record.GetWorkSessionRef(), 0, sourceSeq, 64)
+	events, err := s.store.ListBrainEvents(ctx, src.Record.GetWorkSessionRef(), max(0, sourceSeq-64), sourceSeq, 64)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	movedText := ""
+	var fallbackSeq, movedSeq int64
 	fallbackText := ""
 	for i := len(events) - 1; i >= 0; i-- {
 		ev := events[i]
@@ -789,14 +843,17 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 		}
 		if fallbackText == "" {
 			fallbackText = text
+			fallbackSeq = ev.GetSeq()
 		}
 		if strings.EqualFold(strings.TrimSpace(ev.GetEventType()), "user_message") {
 			movedText = text
+			movedSeq = ev.GetSeq()
 			break
 		}
 	}
 	if movedText == "" {
 		movedText = fallbackText
+		movedSeq = fallbackSeq
 	}
 
 	targetKind := strings.ToLower(strings.TrimSpace(req.GetTargetSessionKind()))
@@ -808,7 +865,7 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if req.GetWorkspaceWritable() && !hasSessionManage(decision) {
+	if (req.GetWorkspaceWritable() || strings.TrimSpace(req.GetWorkspaceRoot()) != "") && !hasSessionManage(decision) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 	isSourceExternal := src.Record.GetTrustTier() != "trusted" || src.Record.GetSessionKind() == "channel_external"
@@ -868,7 +925,7 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 		SubmissionPayloadHash:  sha256HexString(src.Record.GetWorkSessionRef() + ":" + fmt.Sprintf("%d", sourceSeq) + ":" + targetKind + ":" + title),
 		Session:                targetRow,
 		MoveSourceEventSession: src.Record.GetWorkSessionRef(),
-		MoveSourceEventSeq:     sourceSeq,
+		MoveSourceEventSeq:     movedSeq,
 		Outcome:                runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_ACCEPTED,
 		RouteReason:            "split_or_redirect",
 		Now:                    now,
@@ -1051,29 +1108,43 @@ func (s *Service) completeSessionDeletion(ctx context.Context, accountID string,
 	ref := existing.Record.GetWorkSessionRef()
 	s.cancelBrainTurn(ref)
 
-	// Step 2: Neutralize Cognition outbox + in-flight Cognition receipts & forget session-lineage memories.
-	var forgottenCount uint32
-	if s.memoryCleanupHook != nil {
-		n, cleanErr := s.memoryCleanupHook(ctx, accountID, existing.Record.GetAgentBinding(), ref)
-		if cleanErr != nil {
-			return nil, "", 0, cleanErr
-		}
-		forgottenCount = n
-	}
-
-	// Step 3: Commit deleted_at tombstone & enqueue PURGE_SESSION into runtime_body_outbox.
-	deletedRow, purgeEnv, err := s.store.MarkSessionDeletedAndEnqueuePurge(ctx, accountID, ref, s.now().UTC())
+	// Tombstone and enqueue Body purge in one sessions.db transaction. The nullable
+	// count remains a durable cleanup obligation until Cognition acknowledges it.
+	deleted, env, err := s.store.MarkSessionDeletedAndEnqueuePurge(ctx, accountID, ref, s.now().UTC())
 	if err != nil {
-		return nil, "", forgottenCount, err
+		return nil, "", 0, err
+	}
+	if env != nil {
+		s.notifyOutboxSubscribers(accountID, env.GetDeviceId(), env.GetCapabilityNamespace(), env)
 	}
 	s.deleteSessionStepLock(ref)
-	outboxID := ""
-	if purgeEnv != nil {
-		outboxID = purgeEnv.GetOutboxId()
-		s.notifyOutboxSubscribers(accountID, purgeEnv.GetDeviceId(), purgeEnv.GetCapabilityNamespace(), purgeEnv)
+	s.notifyOverviewChange(accountID, nil, []*runtimev1.WorkSessionRecord{deleted.Record})
+	var count sql.NullInt64
+	var outboxID string
+	err = s.store.readDB.QueryRowContext(ctx, `SELECT forgotten_memory_count,
+		COALESCE((SELECT outbox_id FROM runtime_body_outbox WHERE account_id = s.account_id
+		AND work_session_ref = s.work_session_ref AND command_kind = ? ORDER BY created_at LIMIT 1), '')
+		FROM runtime_session s WHERE account_id = ? AND work_session_ref = ?`,
+		runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_PURGE_SESSION, accountID, ref).Scan(&count, &outboxID)
+	if err != nil {
+		return nil, "", 0, err
 	}
-	s.notifyOverviewChange(accountID, nil, []*runtimev1.WorkSessionRecord{deletedRow.Record})
-	return deletedRow, outboxID, forgottenCount, nil
+	if !count.Valid {
+		var forgotten uint32
+		if s.memoryCleanupHook != nil {
+			forgotten, err = s.memoryCleanupHook(ctx, accountID, deleted.Record.GetAgentBinding(), ref)
+			if err != nil {
+				return nil, "", 0, err
+			}
+		}
+		err = s.store.writeDB.QueryRowContext(ctx, `UPDATE runtime_session SET forgotten_memory_count =
+			COALESCE(forgotten_memory_count, ?) WHERE account_id = ? AND work_session_ref = ?
+			RETURNING forgotten_memory_count`, forgotten, accountID, ref).Scan(&count)
+		if err != nil {
+			return nil, "", 0, err
+		}
+	}
+	return deleted, outboxID, uint32(count.Int64), nil
 }
 
 func (s *Service) DeleteSession(ctx context.Context, req *runtimev1.DeleteSessionRequest) (*runtimev1.DeleteSessionResponse, error) {
@@ -1095,18 +1166,6 @@ func (s *Service) DeleteSession(ctx context.Context, req *runtimev1.DeleteSessio
 	}
 	if !readerCanAccessSession(decision, existing.Record) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
-	}
-
-	// Step 1 (Canonical anti-resurrection fence FIRST):
-	// Irreversibly mark session 'deleting', cancel linked alarms, neutralize pending
-	// Body NEW_INTENTs, and stop any in-flight brain turn BEFORE touching Cognition!
-	if existing.Record.GetStatus() != "deleting" {
-		if _, err := s.store.MarkSessionDeleting(ctx, decision.AccountID, ref, s.now().UTC()); err != nil {
-			if errors.Is(err, errSessionNotFound) {
-				return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
-			}
-			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
-		}
 	}
 
 	deletedRow, outboxID, forgottenCount, err := s.completeSessionDeletion(ctx, decision.AccountID, existing)
@@ -1145,7 +1204,7 @@ func (s *Service) WatchSessionOverview(req *runtimev1.WatchSessionOverviewReques
 	for _, r := range rows {
 		visibleSessions = append(visibleSessions, r.Record)
 	}
-	allAtt, _ := s.store.ListPendingAttention(ctx, decision.AccountID)
+	allAtt, _ := s.store.ListPendingAttention(ctx, decision.AccountID, s.now().UTC())
 	var visibleAtt []*runtimev1.PendingAttentionRecord
 	for _, a := range allAtt {
 		if readerCanAccessAttention(decision, a) {
@@ -1235,6 +1294,9 @@ func (s *Service) SubscribeBrainSessionEvents(req *runtimev1.SubscribeBrainSessi
 		s.mu.Unlock()
 	}()
 
+	if err := stream.SendHeader(nil); err != nil {
+		return err
+	}
 	backlog, err := s.store.ListBrainEvents(ctx, ref, req.GetAfterSeq(), 0, 200)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)

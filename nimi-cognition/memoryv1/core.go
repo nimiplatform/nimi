@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
 
 const (
@@ -52,29 +53,23 @@ func Open(rootDir string, opts ...Option) (*Core, error) {
 		return nil, fmt.Errorf("memory core: create root: %w", err)
 	}
 	storePath := filepath.Join(rootDir, storeFilename)
-	_, statErr := os.Stat(storePath)
-	existing := statErr == nil
-	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
-		return nil, fmt.Errorf("memory core: inspect store: %w", statErr)
+	absolute, err := filepath.Abs(storePath)
+	if err != nil {
+		return nil, err
 	}
-	db, err := sql.Open("sqlite", storePath)
+	uriPath := filepath.ToSlash(absolute)
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	dsn := (&url.URL{Scheme: "file", Path: uriPath, RawQuery: "_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)"}).String()
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("memory core: open store: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`PRAGMA busy_timeout = 5000`); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("memory core: configure busy timeout: %w", err)
-	}
 	core := &Core{db: db, now: time.Now, newRef: randomOpaqueRef}
 	for _, opt := range opts {
 		opt(core)
-	}
-	if existing {
-		if err := core.validateExistingStore(); err != nil {
-			_ = db.Close()
-			return nil, err
-		}
 	}
 	if err := core.initialize(); err != nil {
 		_ = db.Close()
@@ -83,14 +78,7 @@ func Open(rootDir string, opts ...Option) (*Core, error) {
 	return core, nil
 }
 
-func (c *Core) validateExistingStore() error {
-	var version int
-	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
-		return fmt.Errorf("memory core: inspect existing schema version: %w", err)
-	}
-	if version != 4 && version != schemaVersion {
-		return contractError(OutcomeUnsupported, "schema_version")
-	}
+func validateExistingStore(ctx context.Context, conn *sql.Conn, version int) error {
 	checks := []string{
 		`SELECT bank_ref,lifecycle_ref,canonical_version,state,created_at,updated_at FROM memory_banks LIMIT 0`,
 		`SELECT binding_ref,bank_ref,state,created_at,retired_at FROM memory_bank_bindings LIMIT 0`,
@@ -104,7 +92,7 @@ func (c *Core) validateExistingStore() error {
 		checks = append(checks, `SELECT scope_tag,slot_key FROM memories LIMIT 0`)
 	}
 	for _, query := range checks {
-		rows, err := c.db.Query(query)
+		rows, err := conn.QueryContext(ctx, query)
 		if err != nil {
 			return fmt.Errorf("memory core: existing store schema is incomplete: %w", err)
 		}
@@ -132,15 +120,26 @@ func (c *Core) initialize() error {
 	if _, err := c.db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
 		return fmt.Errorf("memory core: enable foreign keys: %w", err)
 	}
-	if _, err := c.db.Exec(`PRAGMA journal_mode = WAL`); err != nil {
-		return fmt.Errorf("memory core: enable wal: %w", err)
-	}
 	ctx := context.Background()
 	conn, err := c.db.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("memory core: acquire schema conn: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
+	// Concurrent transitions to WAL can return SQLITE_BUSY before SQLite invokes its busy handler.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		var mode string
+		err := conn.QueryRowContext(ctx, `PRAGMA journal_mode = WAL`).Scan(&mode)
+		if err == nil && strings.EqualFold(mode, "wal") {
+			break
+		}
+		var busy *sqlite.Error
+		if !errors.As(err, &busy) || busy.Code()&255 != 5 || !time.Now().Before(deadline) {
+			return fmt.Errorf("memory core: enable WAL (mode %q): %v", mode, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	// Acquire an IMMEDIATE SQLite write transaction upfront so concurrent opens
 	// serialize cleanly under busy_timeout without DEFERRED read->write upgrade deadlocks.
 	if _, err := conn.ExecContext(ctx, `BEGIN IMMEDIATE`); err != nil {
@@ -158,6 +157,17 @@ func (c *Core) initialize() error {
 	}
 	if version != 0 && version != 4 && version != schemaVersion {
 		return contractError(OutcomeUnsupported, "schema_version")
+	}
+	if version == 0 {
+		var objects int
+		if err := conn.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE name NOT GLOB 'sqlite_*' `).Scan(&objects); err != nil {
+			return err
+		}
+		if objects != 0 {
+			return contractError(OutcomeUnsupported, "schema_version")
+		}
+	} else if err := validateExistingStore(ctx, conn, version); err != nil {
+		return err
 	}
 	// Controlled incremental migration v4 -> v5: add scope_tag & slot_key columns
 	// and active single-slot unique index before running idempotent DDL.
@@ -311,6 +321,22 @@ func (c *Core) initialize() error {
 			return fmt.Errorf("memory core: initialize schema: %w", err)
 		}
 	}
+	if _, err := conn.ExecContext(ctx, `INSERT OR IGNORE INTO deleted_session_bank_cutoffs(bank_ref,work_session_ref,deleted_at)
+		SELECT b.bank_ref,c.work_session_ref,c.deleted_at FROM deleted_session_cutoffs c
+		JOIN memory_bank_bindings b ON b.binding_ref=c.binding_ref`); err != nil {
+		return err
+	}
+	// All content-bearing reads share the same cutoff fence, including corrected
+	// descendants while exact forgetting is still pending in a different store.
+	if _, err := conn.ExecContext(ctx, `CREATE VIEW IF NOT EXISTS visible_session_memories AS
+		WITH RECURSIVE hidden(ref,bank) AS (
+			SELECT m.memory_ref,m.bank_ref FROM deleted_session_bank_cutoffs c
+			JOIN memory_lineage l ON l.ref_type='source' AND l.ref_kind='session' AND l.ref_value=c.work_session_ref
+			JOIN memories m ON m.memory_ref=l.memory_ref AND m.bank_ref=c.bank_ref
+			UNION SELECT m.memory_ref,m.bank_ref FROM memories m JOIN hidden h ON m.supersedes_ref=h.ref AND m.bank_ref=h.bank
+		) SELECT m.* FROM memories m WHERE NOT EXISTS (SELECT 1 FROM hidden h WHERE h.ref=m.memory_ref AND h.bank=m.bank_ref)`); err != nil {
+		return err
+	}
 	// An interrupted consumer cannot still be using its execution copy. This
 	// changes only disposition; it never replays an AI request after restart.
 	if _, err := conn.ExecContext(ctx, `UPDATE memory_operation_routes SET ai_disposition = 'pending', outcome = 'conflict' WHERE ai_disposition = 'retained' AND operation_kind = 'recall'`); err != nil {
@@ -335,13 +361,13 @@ func (c *Core) FindMemoryRefsBySource(ctx context.Context, bankRef, sourceKind, 
 		return nil, contractError(OutcomeInvalid, "lineage_source_query")
 	}
 	rows, err := c.db.QueryContext(ctx, `
-		SELECT DISTINCT m.memory_ref
-		FROM memories m
-		JOIN memory_lineage l ON l.memory_ref = m.memory_ref
-		WHERE m.bank_ref = ? AND m.lifecycle <> ?
-		  AND l.ref_type = 'source' AND l.ref_kind = ? AND l.ref_value = ?
-		ORDER BY m.memory_ref`,
-		bankRef, LifecycleForgotten, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue),
+		WITH RECURSIVE descendants(ref) AS (
+			SELECT l.memory_ref FROM memory_lineage l JOIN memories m USING(memory_ref)
+			WHERE m.bank_ref = ? AND l.ref_type = 'source' AND l.ref_kind = ? AND l.ref_value = ?
+			UNION SELECT m.memory_ref FROM memories m JOIN descendants d ON d.ref = m.supersedes_ref WHERE m.bank_ref = ?
+		) SELECT m.memory_ref FROM descendants d JOIN memories m ON m.memory_ref = d.ref
+		WHERE m.lifecycle <> ? ORDER BY m.memory_ref`,
+		bankRef, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue), bankRef, LifecycleForgotten,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("find memory refs by source: %w", err)
@@ -461,8 +487,11 @@ func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRe
 	}
 	for _, memRef := range targetMemoryRefs {
 		rows, err := tx.QueryContext(ctx, `
-			SELECT ref_value FROM memory_lineage
-			WHERE memory_ref = ? AND ref_type = 'source' AND ref_kind = 'session'`, memRef)
+			WITH RECURSIVE ancestors(ref) AS (
+				SELECT ? UNION SELECT m.supersedes_ref FROM ancestors a JOIN memories m ON m.memory_ref = a.ref
+				WHERE m.bank_ref = ? AND m.supersedes_ref IS NOT NULL
+			) SELECT ref_value FROM memory_lineage JOIN ancestors ON ref = memory_ref
+			WHERE ref_type = 'source' AND ref_kind = 'session'`, memRef, request.BankRef)
 		if err != nil {
 			return false, err
 		}

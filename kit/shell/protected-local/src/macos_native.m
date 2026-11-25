@@ -31,6 +31,33 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+// Request an OS-owned location on the target volume, outside the tool workspace.
+int nimi_open_delete_staging(int parent, const char *workspace, char *resolved, size_t capacity) {
+    @autoreleasepool {
+        char parent_path[PATH_MAX];
+        if (fcntl(parent, F_GETPATH, parent_path) == -1) return -1;
+        NSURL *target = [NSURL fileURLWithFileSystemRepresentation:parent_path isDirectory:YES relativeToURL:nil];
+        NSURL *root = [NSURL fileURLWithFileSystemRepresentation:workspace isDirectory:YES relativeToURL:nil];
+        NSFileManager *manager = NSFileManager.defaultManager;
+        NSURL *dir = [manager URLForDirectory:NSItemReplacementDirectory inDomain:NSUserDomainMask
+                             appropriateForURL:target create:YES error:NULL];
+        NSURLRelationship relationship;
+        if (!dir || ![manager getRelationship:&relationship ofDirectoryAtURL:root toItemAtURL:dir error:NULL]
+            || relationship != NSURLRelationshipOther) { errno = EACCES; return -1; }
+        if (![dir.URLByResolvingSymlinksInPath getFileSystemRepresentation:resolved maxLength:capacity]) {
+            errno = ENAMETOOLONG; return -1;
+        }
+        int fd = open(resolved, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW_ANY);
+        if (fd < 0) return -1;
+        struct stat owned, source;
+        if (fstat(fd, &owned) || fstat(parent, &source) || owned.st_dev != source.st_dev ||
+            owned.st_uid != geteuid() || (owned.st_mode & 077) != 0) {
+            close(fd); errno = EACCES; return -1;
+        }
+        return fd;
+    }
+}
+
 enum {
     NIMI_MACOS_ACL_SEARCH_DIRECTORY = 1,
     NIMI_MACOS_ACL_PRODUCT_CONTROL_DIRECTORY = 2,

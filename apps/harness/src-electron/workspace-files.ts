@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readdir, realpath, rmdir, stat, unlink, type FileHandle } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -184,7 +185,7 @@ async function resolveItem(workspace: string, ref: string, allowSensitiveRoot = 
   return path;
 }
 
-export async function copyMaterial(workspace: string, name: string, bytes: Uint8Array, signal: AbortSignal) {
+export async function copyMaterial(workspace: string, name: string, bytes: Uint8Array, signal: AbortSignal, createExclusive?: (ref: string, data: Uint8Array) => Promise<void>) {
   if (typeof name !== 'string' || !name.trim() || name === '.' || name === '..' || basename(name) !== name || /[/\\:\x00-\x1f]/u.test(name)) {
     throw new Error('Invalid attachment name.');
   }
@@ -192,6 +193,11 @@ export async function copyMaterial(workspace: string, name: string, bytes: Uint8
   signal.throwIfAborted();
   await mkdir(workspace, { recursive: true, mode: 0o700 });
   const root = await resolveItem(workspace, '');
+  if (createExclusive) {
+    const ref = 'material-' + randomUUID() + '/' + name;
+    await createExclusive(ref, bytes);
+    return { name, ref };
+  }
   const folder = await mkdtemp(join(root, 'material-'));
   const target = join(folder, name);
   let file: FileHandle | undefined;

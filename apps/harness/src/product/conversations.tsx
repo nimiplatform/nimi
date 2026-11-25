@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNimiAppSession } from '@nimiplatform/kit/auth/app';
-import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
@@ -11,19 +10,12 @@ import {
   Gauge,
   PanelRight,
   Pencil,
-  RefreshCw,
   RotateCcw,
 } from 'lucide-react';
 import { useI18n } from '../i18n.js';
-import { appId } from '../shell/auth/app-identity.js';
 import { ModelSettings } from '../shell/model-settings.js';
 import { draftsForScope } from './session-drafts.js';
 import { errorText, type HarnessView } from './harness-types.js';
-import {
-  ensureNimiRouteConfig,
-  type NimiEnsureRouteInput,
-  type NimiModelRouteCatalog,
-} from './model-routes.js';
 import { SessionSidebar } from './session-sidebar.js';
 import { TranscriptThread } from './transcript-thread.js';
 import { ToolDecision } from './tool-decision.js';
@@ -59,34 +51,12 @@ export function Conversations({
   const [workspacePopoverOpen, setWorkspacePopoverOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [adoptingModel, setAdoptingModel] = useState(false);
   const [focusToken, setFocusToken] = useState(0);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
-  const [records, setRecords] = useState<readonly { configRef: string; name: string; isDefault: boolean }[]>([]);
-  const [routeCatalog, setRouteCatalog] = useState<NimiModelRouteCatalog>();
-  const [loadingRoutes, setLoadingRoutes] = useState(false);
-
   const { snapshot: access } = useNimiAppSession();
   const modelScope = access.runtime.status === 'connected' ? access.runtime.scope : undefined;
   const bridge = window.nimiHarness;
-
-  const refreshModelRoutes = useCallback(async () => {
-    if (!modelScope) return;
-    // Harness runs under Brain-Body Symbiosis (agent.local + agent.body.pc);
-    // Runtime LocalAgent owns model routing, so App-level aiConfig is not used here.
-    setLoadingRoutes(false);
-    setRouteCatalog(undefined);
-    setRecords([]);
-  }, [modelScope]);
-
-  useEffect(() => {
-    if (!modelScope) return;
-    void refreshModelRoutes();
-    const onFocus = () => { void refreshModelRoutes(); };
-    window.addEventListener('focus', onFocus);
-    return () => { window.removeEventListener('focus', onFocus); };
-  }, [modelScope, refreshModelRoutes]);
 
   useEffect(() => {
     if (openingSession) return;
@@ -134,19 +104,13 @@ export function Conversations({
     catch (cause) { setError(errorText(cause)); return false; }
   }, []);
 
-  async function openSession(id?: string, configRef?: string, file?: File, pickFolder?: boolean) {
+  async function openSession(id?: string, pickFolder?: boolean) {
     setOpeningSession(true);
     setSelectedFile(undefined);
     setEditingTitle(false);
     openConversations();
     await act(async () => {
-      if (file) {
-        if (!modelScope) throw new Error('Connect to Nimi before opening a Home conversation.');
-        if (file.size > 1024 * 1024) throw new Error('Choose a Home conversation file up to 1 MiB.');
-        const source = await file.text();
-        modelScope.signal.throwIfAborted();
-        await bridge.importHome(source);
-      } else if (id) {
+      if (id) {
         await bridge.select(id);
       } else {
         let workspaceDir: string | undefined;
@@ -155,44 +119,13 @@ export function Conversations({
           if (!chosen) return;
           workspaceDir = chosen;
         }
-        await bridge.create(configRef, workspaceDir);
+        await bridge.create(undefined, workspaceDir);
       }
       const next = await bridge.snapshot();
       setNewlyCreated(id ? undefined : next.sessionId);
       setView(next);
     });
     setOpeningSession(false);
-  }
-
-  async function switchModelOneClick(targetConfigRef?: string) {
-    if (!view) return;
-    setAdoptingModel(true);
-    await act(async () => {
-      const preview = await bridge.reviewModel(view.sessionId, undefined, targetConfigRef ?? view.configRef);
-      await bridge.reviewModel(view.sessionId, preview.confirmation, preview.configRef);
-      setView(await bridge.snapshot());
-    });
-    setAdoptingModel(false);
-  }
-
-  async function selectRouteOneClick(route: NimiEnsureRouteInput) {
-    if (!view || !modelScope) return;
-    setAdoptingModel(true);
-    await act(async () => {
-      const ensured = await ensureNimiRouteConfig(modelScope.client.aiConfig as never, route);
-      const preview = await bridge.reviewModel(view.sessionId, undefined, ensured.configRef);
-      await bridge.reviewModel(view.sessionId, preview.confirmation, preview.configRef);
-      setView(await bridge.snapshot());
-      await refreshModelRoutes();
-    });
-    setAdoptingModel(false);
-  }
-
-  async function openHomeAiModels() {
-    await act(async () => {
-      const result = await openDesktopIntent({ intent: { kind: 'open-apps', appId, section: 'ai-models' } });
-      if (result.status !== 'accepted') throw new Error(result.reasonCode);
-    });
   }
 
   async function bindWorkspaceFolder() {
@@ -259,14 +192,12 @@ export function Conversations({
           sessions={snapshot?.sessions ?? []}
           activeSessionId={snapshot?.sessionId}
           activeDestination={activeDestination}
-          records={records}
           disabled={!snapshot || openingSession}
           onSelectSession={id => {
             if (activeDestination !== 'conversations') openConversations();
             if (id !== snapshot?.sessionId) void openSession(id);
           }}
-          onCreateSession={(ref, pickFolder) => void openSession(undefined, ref, undefined, pickFolder)}
-          onImportHomeFile={file => void openSession(undefined, undefined, file)}
+          onCreateSession={pickFolder => void openSession(undefined, pickFolder)}
           onPinSession={(id, pinned) => void act(() => bridge.pinSession(id, pinned))}
           onRenameSession={(id, title) => void act(() => bridge.rename(id, title))}
           onExportSession={id => void exportSessionMarkdown(id)}
@@ -536,16 +467,6 @@ export function Conversations({
                   <p>{isConflict ? t('model.conflictMessage') : t('model.missingMessage')}</p>
                 </div>
                 <div className="harness-conflict-banner__actions">
-                  {!view.running && (
-                    <Button
-                      size="sm"
-                      disabled={adoptingModel}
-                      leadingIcon={<RefreshCw size={13} className={adoptingModel ? 'harness-spin' : ''} />}
-                      onClick={() => void switchModelOneClick()}
-                    >
-                      {t('model.adoptUpdated')}
-                    </Button>
-                  )}
                   <Button size="sm" tone="ghost" onClick={openModels}>
                     {t('model.openSettings')}
                   </Button>
@@ -576,19 +497,11 @@ export function Conversations({
                 stopped={view.stopped}
                 queued={view.queued}
                 modelLabel={view.model}
-                configRef={view.configRef}
-                records={records}
-                routeCatalog={routeCatalog}
-                loadingRoutes={loadingRoutes}
                 reasoningChoices={view.reasoningChoices}
                 reasoningEffort={view.reasoningEffort}
                 permissionMode={view.permissionMode}
                 report={setError}
                 openFile={ref => openFileInInspector(ref)}
-                onSelectModel={ref => switchModelOneClick(ref)}
-                onSelectRoute={route => selectRouteOneClick(route)}
-                onRefreshRoutes={() => void refreshModelRoutes()}
-                onOpenHomeModels={() => void openHomeAiModels()}
                 onSelectReasoningEffort={async effort => {
                   await act(async () => {
                     await bridge.setReasoningEffort(view.sessionId, effort === 'default' ? null : effort);

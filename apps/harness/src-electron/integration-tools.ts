@@ -98,7 +98,7 @@ async function dispatchAndObserve(client: Client, targetRef: string, operation: 
   return receipt(call);
 }
 
-export function integrationTools(client: Client, account: AbortSignal) {
+export function integrationTools(client: Client, account: AbortSignal, authorizeWrite?: (callId: string, args: object) => void) {
   return defineExtension({ name: 'nimi-harness.integration-reads', tools: [
     defineTool({
       name: 'find_nimi_reads', description: 'Find available read operations already granted to this app in Nimi Home. Narrow your search if more matches exist. Results include the exact input schema.',
@@ -190,7 +190,7 @@ export function integrationTools(client: Client, account: AbortSignal) {
       description: 'Invoke a granted read or write operation on a connected Nimi Integration discovered via find_nimi_integrations. Requires user approval. If the returned status is accepted or unconfirmed, NEVER blindly resubmit; check its callId with read_nimi_receipt.',
       parameters: obj({ targetRef: str(), operation: str(), input: map(unknown()) }),
       replay: 'unsafe',
-      async execute({ targetRef, operation, input }, _api, context) {
+      async execute({ targetRef, operation, input }, api, context) {
         const signal = context.abortSignal ? AbortSignal.any([context.abortSignal, account]) : account;
         signal.throwIfAborted();
         const target = (await client.listCatalog()).find(t => t.targetRef === targetRef && t.available && !isOwnHarnessSessionProvider(t.integrationId));
@@ -199,6 +199,7 @@ export function integrationTools(client: Client, account: AbortSignal) {
           throw new Error('This integration operation is unavailable or is not granted to Harness in Home.');
         }
         signal.throwIfAborted();
+        if (op.effect === 'write') authorizeWrite?.(api.callId, { targetRef, operation, input });
         return dispatchAndObserve(client, targetRef, operation, input, signal);
       },
     }),
