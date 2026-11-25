@@ -13,7 +13,7 @@ func materializeBundleLink(root *os.Root, target, name string) error {
 	if err != nil {
 		return err
 	}
-	defer parent.Close()
+	defer func() { _ = parent.Close() }()
 	fd := int(parent.Fd())
 	base := filepath.Base(name)
 	if err := unix.Symlinkat(target, fd, base); err != nil {

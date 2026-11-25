@@ -19,6 +19,46 @@ import (
 	"time"
 )
 
+// An HTTP/2 peer can reset a response after delivering a valid prefix. In
+// net/http the reset is a stream error, unlike the EOF from a dropped HTTP/1
+// connection. Both must resume at the byte actually received.
+func TestDownloadResumesShortHTTP2Response(t *testing.T) {
+	payload := bytes.Repeat([]byte("model weights"), 1024)
+	const prefix = 1024
+	var requests atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor != 2 {
+			t.Errorf("expected HTTP/2, got %s", r.Proto)
+		}
+		if requests.Add(1) == 1 {
+			w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+			_, _ = w.Write(payload[:prefix])
+			w.(http.Flusher).Flush()
+			panic(http.ErrAbortHandler)
+		}
+		if got := r.Header.Get("Range"); got != "bytes=1024-" {
+			t.Errorf("resume range = %q", got)
+		}
+		serveWithRange(w, r, payload)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+	dest := filepath.Join(t.TempDir(), "model.bin")
+	result, err := Download(context.Background(), Options{
+		Client: server.Client(), URL: server.URL, DestPath: dest, ExpectedSHA256: hashHex(payload),
+		MaxAttempts: 2, RetryBackoff: time.Millisecond,
+		IsTransient: func(err error) bool { return errors.Is(err, io.ErrUnexpectedEOF) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Attempts != 2 || !result.Resumed {
+		t.Fatalf("unexpected download result: %+v", result)
+	}
+	assertFileContents(t, dest, payload)
+}
+
 func hashHex(payload []byte) string {
 	sum := sha256.Sum256(payload)
 	return hex.EncodeToString(sum[:])

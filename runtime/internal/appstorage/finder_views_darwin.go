@@ -70,7 +70,7 @@ func NewFinderViews(stateRoot string) (*FinderViews, error) {
 	ok := false
 	defer func() {
 		if !ok {
-			dir.Close()
+			_ = dir.Close()
 		}
 	}()
 	_, st, err := finderStat(dir)
@@ -130,7 +130,7 @@ func (v *FinderViews) writeRecord(r finderRecord) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmp.Name())
+	defer func() { _ = os.Remove(tmp.Name()) }()
 	_, err = tmp.Write(raw)
 	if err == nil {
 		err = tmp.Sync()
@@ -219,7 +219,7 @@ func (v *FinderViews) publish(session string, uid uint32, dataRoot string, sourc
 	keep := false
 	defer func() {
 		if !keep {
-			base.Close()
+			_ = base.Close()
 		}
 	}()
 	bid, _, err := finderStat(base)
@@ -245,7 +245,7 @@ func (v *FinderViews) publish(session string, uid uint32, dataRoot string, sourc
 	}
 	defer func() {
 		if !keep {
-			dir.Close()
+			_ = dir.Close()
 		}
 	}()
 	did, ds, err := finderStat(dir)
@@ -398,7 +398,7 @@ func (v *FinderViews) recover(r finderRecord) error {
 	if e != nil {
 		return e
 	}
-	defer base.Close()
+	defer func() { _ = base.Close() }()
 	if e = validateFinderBase(base, r.Key.File.Volume); e != nil {
 		return e
 	}
@@ -408,7 +408,7 @@ func (v *FinderViews) recover(r finderRecord) error {
 	}
 	var f *os.File
 	if dir != nil {
-		defer dir.Close()
+		defer func() { _ = dir.Close() }()
 		id, _, err := finderStat(dir)
 		if err != nil || id != r.Directory {
 			return ErrAssetCorrupt
@@ -430,7 +430,7 @@ func (v *FinderViews) recover(r finderRecord) error {
 			return e
 		}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	id, st, e := finderStat(f)
 	if e != nil || id != r.Key.File || st.Uid != uint32(os.Geteuid()) {
 		return ErrAssetCorrupt
@@ -470,8 +470,7 @@ func (v *FinderViews) recordedBase(r finderRecord) (*os.File, error) {
 		if err == nil && id == r.Base {
 			return f, nil
 		}
-		f.Close()
-		return nil, ErrAssetCorrupt
+		return nil, errors.Join(ErrAssetCorrupt, f.Close())
 	}
 	if base, err := open(filepath.Dir(r.Path)); err == nil {
 		return base, nil
@@ -484,12 +483,12 @@ func (v *FinderViews) recordedBase(r finderRecord) (*os.File, error) {
 		id, _, err := finderStat(volume)
 		if err == nil && id.Volume == r.Base.Volume {
 			path, err := recordedFinderPath(volume, r.Base)
-			volume.Close()
+			_ = volume.Close()
 			if err == nil {
 				return open(path)
 			}
 		} else {
-			volume.Close()
+			_ = volume.Close()
 		}
 	}
 	return nil, ErrAssetUnavailable

@@ -248,6 +248,26 @@ func decodeLlamaGGUFProbeBytes(probe []byte) (llamaGGUFProbe, error) {
 	return facts, nil
 }
 
+// b12648 interprets plain inkling2 block_count as physical layers. Some fork
+// exports declare virtual loop passes there and omit the corresponding tensors.
+func validateInkling2LoopLayout(summary ggufmeta.Summary) error {
+	loops, _ := summary.Uint64Value("inkling2.num_loops")
+	if loops <= 1 {
+		return nil
+	}
+	blocks, ok := summary.Uint64Value("inkling2.block_count")
+	if !ok || blocks == 0 {
+		return fmt.Errorf("looped inkling2 model requires a positive physical block count")
+	}
+	for block := uint64(0); block < blocks; block++ {
+		name := fmt.Sprintf("blk.%d.attn_q.weight", block)
+		if _, present := summary.TensorShapes[name]; !present {
+			return fmt.Errorf("inkling2 model is missing physical layer tensor %q required by mainline llama.cpp", name)
+		}
+	}
+	return nil
+}
+
 // @nimi-authority: rule.nimi.runtime.local-compute.r031
 // @nimi-authority: rule.nimi.runtime.local-compute.r112
 func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
@@ -283,6 +303,11 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 		facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
 		if !contains(driver.recipeModelArchitectures(input.RecipeID, input.RequirementID), facts.Architecture) {
 			return nil, fmt.Errorf("GGUF architecture %q is unsupported for recipe %q", facts.Architecture, input.RecipeID)
+		}
+		if facts.Architecture == "inkling2" {
+			if err := validateInkling2LoopLayout(summary); err != nil {
+				return nil, err
+			}
 		}
 		if summary.HasKey(facts.Architecture + ".pooling_type") {
 			pooling, ok := ggufmeta.LLMPoolingType(summary)

@@ -13,6 +13,13 @@ import (
 	"testing"
 )
 
+func closeFinderTestResource(t *testing.T, resource io.Closer) {
+	t.Helper()
+	if err := resource.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
 func newFinderAssetTest(t *testing.T) (*AssetStore, *FinderViews, ManagedOwner, string) {
 	t.Helper()
 	data := t.TempDir()
@@ -25,11 +32,7 @@ func newFinderAssetTest(t *testing.T) (*AssetStore, *FinderViews, ManagedOwner, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		if err := views.Close(); err != nil {
-			t.Error(err)
-		}
-	})
+	t.Cleanup(func() { closeFinderTestResource(t, views) })
 	store.SetRevealViews(views)
 	owner := ManagedOwner{AccountID: "account-a", RegisteredAppSubject: "test-subject"}
 	for _, name := range []string{"audio/one.wav", "audio/private.wav"} {
@@ -88,7 +91,7 @@ func TestFinderViewSameFileAndSessionRevocation(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer f.Close()
+	defer closeFinderTestResource(t, f)
 	if read, e := finderReadACE(f, uid, 0); e != nil || read {
 		t.Fatal("temporary inode ACL survived", read, e)
 	}
@@ -163,12 +166,12 @@ func TestFinderViewsRecoverAfterProcessExit(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer f.Close()
+	defer closeFinderTestResource(t, f)
 	v, e := NewFinderViews(filepath.Join(root, "state"))
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer v.Close()
+	defer closeFinderTestResource(t, v)
 	if _, e = os.Stat(string(raw)); !errors.Is(e, os.ErrNotExist) {
 		t.Fatal("stale view survived recovery", e)
 	}
@@ -214,7 +217,7 @@ func TestFinderViewPreservesExistingReadGrant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer closeFinderTestResource(t, f)
 	if _, err = finderReadACE(f, 1, 1); err != nil {
 		t.Fatal(err)
 	}

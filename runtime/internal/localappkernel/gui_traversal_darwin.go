@@ -78,7 +78,7 @@ func prepareNewAppDirectory(dir string, user VerifiedLocalOSUserIdentity) error 
 		return fmt.Errorf("open installed App directory: %w", err)
 	}
 	f := os.NewFile(uintptr(fd), dir)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	names, err := f.Readdirnames(1)
 	if err != nil && err != io.EOF {
 		return err

@@ -425,6 +425,12 @@ func copyBody(ctx context.Context, dst io.Writer, src io.Reader, params copyPara
 		if readErr == nil {
 			continue
 		}
+		// The transport may report a peer reset instead of EOF. If a known
+		// response body is short, preserve both the incomplete-transfer signal
+		// and the underlying error (including cancellation) for the caller.
+		if params.baseOffset+written < params.total {
+			return written, errors.Join(io.ErrUnexpectedEOF, readErr)
+		}
 		if readErr == io.EOF {
 			return written, nil
 		}

@@ -121,6 +121,42 @@ func TestEmbeddingGemmaRequiresTensorPayload(t *testing.T) {
 	}
 }
 
+func TestInkling2LoopedWeightsRequireMainlineTensorLayout(t *testing.T) {
+	input := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "community.gguf", Entry: true}
+	for _, tc := range []struct {
+		arch      string
+		blocks    uint32
+		wantError bool
+	}{
+		{"inkling2", 2, true},       // A fork-specific loop reuses one physical layer.
+		{"inkling2", 1, false},      // Extra metadata on a complete plain model is harmless.
+		{"inkling2_loop", 1, false}, // Mainline declares its physical layer count.
+	} {
+		var file bytes.Buffer
+		file.WriteString("GGUF")
+		mustWriteLlamaProbeValue(t, &file, uint32(3))
+		mustWriteLlamaProbeValue(t, &file, uint64(1))
+		mustWriteLlamaProbeValue(t, &file, uint64(4))
+		writeLlamaProbeString(t, &file, "general.architecture")
+		mustWriteLlamaProbeValue(t, &file, uint32(ggufmeta.ValueTypeString))
+		writeLlamaProbeString(t, &file, tc.arch)
+		for _, field := range []struct {
+			key   string
+			value uint32
+		}{{"context_length", 8192}, {"block_count", tc.blocks}, {"num_loops", 3}} {
+			writeLlamaProbeString(t, &file, tc.arch+"."+field.key)
+			mustWriteLlamaProbeValue(t, &file, uint32(ggufmeta.ValueTypeUint32))
+			mustWriteLlamaProbeValue(t, &file, field.value)
+		}
+		writeLlamaProbeTensor(t, &file, "blk.0.attn_q.weight", 0, 1)
+		writeLlamaProbePayload(&file, 4)
+		_, err := (LlamaTextDriver{}).ProbeModelAsset(input, bytes.NewReader(file.Bytes()), int64(file.Len()))
+		if (err != nil) != tc.wantError {
+			t.Errorf("%s with %d declared blocks: %v", tc.arch, tc.blocks, err)
+		}
+	}
+}
+
 func TestLlamaV3RequiresCompleteTensorTableAndPayload(t *testing.T) {
 	driver := LlamaTextDriver{}
 	input := ModelAssetFormatProbeInput{RecipeID: LlamaGenericGGUFRecipeID, RequirementID: MainGGUFRequirementID, RelativePath: "model.gguf", Entry: true}

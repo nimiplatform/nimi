@@ -81,7 +81,7 @@ func TestFinderViewCrossUIDReadOnly(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer stdin.Close()
+	defer func() { _ = stdin.Close() }()
 	stdout, e := cmd.StdoutPipe()
 	if e != nil {
 		t.Fatal(e)
@@ -125,7 +125,9 @@ func TestFinderViewCrossUIDReadOnly(t *testing.T) {
 	if e != nil || !os.SameFile(a, b) {
 		t.Fatal("inode identity")
 	}
-	stdin.Close()
+	if err := stdin.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if _, e = io.Copy(io.Discard, reader); e != nil {
 		t.Fatal(e)
 	}
@@ -155,7 +157,7 @@ func runFinderServiceFixture(t *testing.T, root string) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer v.Close()
+	defer closeFinderTestResource(t, v)
 	store.SetRevealViews(v)
 	o := ManagedOwner{AccountID: "isolated", RegisteredAppSubject: "audio"}
 	for _, n := range []string{"audio/one.wav", "audio/other.wav"} {
@@ -204,7 +206,7 @@ func TestFinderViewOnSeparateDataVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer views.Close()
+	defer closeFinderTestResource(t, views)
 	owner := ManagedOwner{AccountID: "a", RegisteredAppSubject: "s"}
 	store.SetRevealViews(views)
 	ctx := context.Background()
@@ -219,7 +221,7 @@ func TestFinderViewOnSeparateDataVolume(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer source.Close()
+	defer closeFinderTestResource(t, source)
 	sid, _, err := finderStat(source)
 	if err != nil {
 		t.Fatal(err)

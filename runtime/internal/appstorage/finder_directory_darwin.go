@@ -36,7 +36,7 @@ func (v *FinderViews) openBase(dataRoot string, source *os.File, fileID finderId
 	if e != nil {
 		return nil, e
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 	name := "Nimi Finder Items-" + strconv.Itoa(os.Geteuid())
 	base, e := openFinderDirectoryAt(root, name)
 	if errors.Is(e, unix.ENOENT) {
@@ -52,7 +52,7 @@ func (v *FinderViews) openBase(dataRoot string, source *os.File, fileID finderId
 			if err != nil {
 				return nil, err
 			}
-			defer staging.Close()
+			defer func() { _ = staging.Close() }()
 			_, st, err := finderStat(staging)
 			if err != nil || st.Uid != uint32(os.Geteuid()) || st.Mode&0o022 != 0 {
 				return nil, ErrAssetUnavailable
@@ -69,12 +69,12 @@ func (v *FinderViews) openBase(dataRoot string, source *os.File, fileID finderId
 		if err = unix.Mkdirat(int(staging.Fd()), stage, 0o700); err != nil {
 			return nil, err
 		}
-		defer unix.Unlinkat(int(staging.Fd()), stage, unix.AT_REMOVEDIR)
+		defer func() { _ = unix.Unlinkat(int(staging.Fd()), stage, unix.AT_REMOVEDIR) }()
 		prepared, err := openFinderDirectoryAt(staging, stage)
 		if err != nil {
 			return nil, err
 		}
-		defer prepared.Close()
+		defer func() { _ = prepared.Close() }()
 		err = setFinderDirectory(prepared, 0)
 		if err == nil {
 			err = prepared.Chmod(0o711)
@@ -94,8 +94,7 @@ func (v *FinderViews) openBase(dataRoot string, source *os.File, fileID finderId
 		return nil, e
 	}
 	if e = validateFinderBase(base, fileID.Volume); e != nil {
-		base.Close()
-		return nil, e
+		return nil, errors.Join(e, base.Close())
 	}
 	return base, nil
 }
