@@ -2250,6 +2250,7 @@ async function openSession(opts: OpenSessionOptions) {
         const activeCalls = new Map<string, ToolCall>();
         const toolCallNodes = new Map<string, TranscriptToolCall>();
         const liveSlotByCallId = new Map((live?.tools ?? []).map(slot => [slot.callId, slot]));
+        let failureReasonCode: string | undefined;
         let workspaceRevision: number | undefined;
         const entries: TranscriptEntry[] = [];
 
@@ -2271,6 +2272,10 @@ async function openSession(opts: OpenSessionOptions) {
               return;
             }
             if (message.role === 'assistant') {
+              if (live?.runFailure?.reason === 'model_error' && entry.byTaskId === live.runFailure.taskId && message.stopReason === 'error') {
+                const code = message.diagnostics?.find(item => item.type === 'nimi.execution-error')?.details?.reasonCode;
+                failureReasonCode = typeof code === 'string' ? code : undefined;
+              }
               const textParts: string[] = [];
               const thinkingParts: string[] = [];
               let hasRedactedThinking = false;
@@ -2441,6 +2446,7 @@ async function openSession(opts: OpenSessionOptions) {
           requestCapacityFloorTokens: bound?.selection.requestCapacityFloorTokens,
           usage,
           running: Boolean(live?.run),
+          failureReasonCode,
           failure: conflict ? (reviewNeeded ? 'ai-config-revision-conflict' : undefined)
             : live?.runFailure && live.runFailure.reason !== 'aborted' ? live.runFailure.detail ?? live.runFailure.reason : undefined,
         };

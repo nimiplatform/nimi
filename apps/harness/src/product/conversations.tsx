@@ -175,8 +175,9 @@ export function Conversations({
   const selectedSession = view?.sessions.find(item => item.id === view.sessionId);
   const selectedTitle = selectedSession?.title ?? t('app.conversations');
   const isConflict = view?.failure === 'ai-config-revision-conflict';
-  const genericFailure = isConflict ? undefined : view?.failure;
-  const lastRequest = (genericFailure || isConflict)
+  const invalidConfig = view?.failureReasonCode === 'AI_CONFIG_INVALID';
+  const genericFailure = isConflict || invalidConfig ? undefined : view?.failure;
+  const lastRequest = view?.failure
     ? view?.entries.filter(entry => entry.role === 'user' && !entry.fromHome).at(-1)?.text
     : undefined;
 
@@ -458,13 +459,12 @@ export function Conversations({
               </div>
             )}
 
-            {/* One-Click Model Revision Conflict Banner (Contract 2.2) */}
-            {view && (isConflict || !view.model) && (
+            {view && (isConflict || invalidConfig || !view.model) && (
               <div className="harness-conflict-banner" role="alert">
                 <AlertTriangle size={16} aria-hidden="true" />
                 <div className="harness-conflict-banner__copy">
                   <strong>{isConflict ? t('model.conflictTitle') : t('model.choose')}</strong>
-                  <p>{isConflict ? t('model.conflictMessage') : t('model.missingMessage')}</p>
+                  <p>{invalidConfig ? t('model.invalidPartnerConfig') : isConflict ? t('model.conflictMessage') : t('model.missingMessage')}</p>
                 </div>
                 <div className="harness-conflict-banner__actions">
                   <Button size="sm" tone="ghost" onClick={openModels}>

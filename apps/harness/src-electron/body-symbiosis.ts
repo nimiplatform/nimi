@@ -7,6 +7,8 @@
 // @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
 import { createHash, randomUUID } from 'node:crypto';
 import type { NimiLocalAppAgentSessionClient } from '@nimiplatform/sdk/app';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { createNimiError } from '@nimiplatform/sdk/types';
 
 export const HARNESS_PC_CAPABILITY_NAMESPACE = 'os.pc.workspace';
 
@@ -52,7 +54,7 @@ export type DecodedBodyStepEvent =
     readonly postCompactionMac: string;
     readonly effectiveContextBudgetTokens: number;
   }
-  | { readonly kind: 'failed'; readonly message: string; readonly memoryInvalidated: boolean };
+  | { readonly kind: 'failed'; readonly error: Error; readonly memoryInvalidated: boolean };
 
 export interface BodyCompactionInput {
   readonly agentHandle?: string;
@@ -116,6 +118,14 @@ export function logicalAgentModelId(agentBinding: string): string {
   return trimmed ? `local-agent:${trimmed}` : 'local-agent:default';
 }
 
+function decodeBodyStepFailure(failed: Record<string, unknown>): DecodedBodyStepEvent {
+  const message = String(failed.message || 'Body step failed.');
+  const code = failed.reasonCode;
+  const reasonCode = typeof code === 'number' && code !== ReasonCode.REASON_CODE_UNSPECIFIED ? ReasonCode[code] : undefined;
+  const error = reasonCode ? createNimiError({ reasonCode, message, source: 'runtime' }) : new Error(message);
+  return { kind: 'failed', error, memoryInvalidated: Boolean(failed.memoryInvalidated) };
+}
+
 /**
  * Decodes a protobuf-ts BodyStepStreamEvent (whose oneof is stored under
  * `ev.payload = { oneofKind, ... }`), with bounded fallback for flat unit mocks.
@@ -163,14 +173,8 @@ export function decodeBodyStepStreamEvent(ev: Record<string, unknown>): DecodedB
           effectiveContextBudgetTokens: Number(done.effectiveContextBudgetTokens ?? budgetTop ?? 0),
         };
       }
-      case 'failed': {
-        const failed = (payload.failed ?? {}) as Record<string, unknown>;
-        return {
-          kind: 'failed',
-          message: String(failed.message ?? 'Body step failed.'),
-          memoryInvalidated: Boolean(failed.memoryInvalidated),
-        };
-      }
+      case 'failed':
+        return decodeBodyStepFailure((payload.failed ?? {}) as Record<string, unknown>);
       default:
         return null;
     }
@@ -215,12 +219,7 @@ export function decodeBodyStepStreamEvent(ev: Record<string, unknown>): DecodedB
     };
   }
   if (ev.failed && typeof ev.failed === 'object') {
-    const failed = ev.failed as Record<string, unknown>;
-    return {
-      kind: 'failed',
-      message: String(failed.message ?? 'Body step failed.'),
-      memoryInvalidated: Boolean(failed.memoryInvalidated),
-    };
+    return decodeBodyStepFailure(ev.failed as Record<string, unknown>);
   }
   return null;
 }
@@ -713,7 +712,7 @@ export class HarnessBodySymbiosisClient {
               budget = decoded.effectiveContextBudgetTokens;
             }
           } else if (decoded.kind === 'failed') {
-            throw new Error(decoded.message || 'Compaction step failed.');
+            throw decoded.error;
           }
         }
         if (!sawDone) {

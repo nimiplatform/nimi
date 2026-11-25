@@ -6,6 +6,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NimiElectronLocalAppHostError } from '@nimiplatform/kit/shell/electron/main';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import {
   attachHarnessEngineWorker,
   HarnessEngineWorkerClient,
@@ -602,6 +603,7 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
   const stepRequests = [];
   const projections = [];
   let firstMilestone = true;
+  let stepFailureCode;
   const outboxQueue = [];
   const outboxWaiters = [];
   let outboxClosed = false;
@@ -691,8 +693,13 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
       },
       streamLocalAgentBodyStep(req) {
         stepRequests.push(structuredClone(req));
+        const reasonCode = stepFailureCode;
         return {
           async *[Symbol.asyncIterator]() {
+            if (reasonCode !== undefined) {
+              yield { payload: { oneofKind: 'failed', failed: { reasonCode, message: 'Cannot execute this step.' } } };
+              return;
+            }
             yield { payload: { oneofKind: 'textDelta', textDelta: 'Standalone task finished cleanly.' } };
             yield {
               payload: {
@@ -778,6 +785,23 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
     assert.equal(routeCalls[1].agentHandle, partnerBinding, 'bound sessions must survive rotation of the original handle');
     assert.deepEqual(stepRequests[1].workingMessages.filter(m => m.role === 'user').map(m => m.outboxId),
       [allocatedOutboxId, allocatedOutboxId + '-2']);
+
+    for (const code of ['AI_CONFIG_INVALID', 'AI_PROVIDER_INTERNAL']) {
+      stepFailureCode = ReasonCode[code];
+      await client.callEngine('submit', ['main', 'Try the step', randomUUID(), false]);
+      const failed = await waitFor(async () => {
+        const snap = await client.callEngine('snapshot');
+        return !snap.running && snap.failureReasonCode === code && snap;
+      }, 5000, code);
+      assert.equal(failed.failure, 'Cannot execute this step.');
+    }
+
+    stepFailureCode = undefined;
+    await client.callEngine('submit', ['main', 'Continue after recovery', randomUUID(), false]);
+    await waitFor(async () => {
+      const snap = await client.callEngine('snapshot');
+      return !snap.running && !snap.failure && !snap.failureReasonCode && snap.entries.at(-1)?.text === 'Standalone task finished cleanly.';
+    }, 5000, 'successful run clears its predecessor’s failure');
 
   } finally {
     await workerHost.dispose().catch(() => {});

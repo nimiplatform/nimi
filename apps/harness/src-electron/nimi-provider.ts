@@ -17,6 +17,20 @@ type Message = NimiGenerateTextRequest['messages'][number];
 type TurnItem = NonNullable<Message['turnItems']>[number];
 type ImageUploader = NimiElectronAppBusinessServices['ai']['artifacts'];
 type ReasoningOptions = NonNullable<NonNullable<NimiGenerateTextRequest['parameters']>['reasoning']>;
+
+function executionFailureEvent(output: AssistantMessage, error: unknown, signal?: AbortSignal) {
+  output.stopReason = signal?.aborted ? 'aborted' : 'error';
+  output.errorMessage = error instanceof Error ? error.message : String(error);
+  if (isNimiError(error)) {
+    const { reasonCode, actionHint, traceId, retryable, interruption } = error;
+    output.diagnostics?.push({
+      type: 'nimi.execution-error', timestamp: Date.now(),
+      details: { reasonCode, actionHint, traceId, retryable, ...(interruption ? { interruption: { ...interruption } } : {}) },
+    });
+  }
+  return { type: 'error' as const, reason: output.stopReason, error: output };
+}
+
 type ReasoningCapabilities = {
   readonly followsModelDefault?: boolean;
   readonly supportsDisabled: boolean;
@@ -226,7 +240,7 @@ export function nimiBodySymbiosisProvider(options: {
               break;
             }
             case 'failed':
-              throw new Error(ev.message || 'Runtime Body step failed.');
+              throw ev.error;
           }
         }
 
@@ -240,9 +254,7 @@ export function nimiBodySymbiosisProvider(options: {
         output.stopReason = finish;
         events.push({ type: 'done', reason: finish, message: output });
       } catch (error) {
-        output.stopReason = streamOptions?.signal?.aborted ? 'aborted' : 'error';
-        output.errorMessage = error instanceof Error ? error.message : String(error);
-        events.push({ type: 'error', reason: output.stopReason, error: output });
+        events.push(executionFailureEvent(output, error, streamOptions?.signal));
       } finally {
         events.end(output);
       }
@@ -430,16 +442,7 @@ export function nimiProvider(
         output.stopReason = finish;
         events.push({ type: 'done', reason: finish, message: output });
       } catch (error) {
-        output.stopReason = options?.signal?.aborted ? 'aborted' : 'error';
-        output.errorMessage = error instanceof Error ? error.message : String(error);
-        if (isNimiError(error)) {
-          const { reasonCode, actionHint, traceId, retryable, interruption } = error;
-          output.diagnostics?.push({
-            type: 'nimi.execution-error', timestamp: Date.now(),
-            details: { reasonCode, actionHint, traceId, retryable, ...(interruption ? { interruption: { ...interruption } } : {}) },
-          });
-        }
-        events.push({ type: 'error', reason: output.stopReason, error: output });
+        events.push(executionFailureEvent(output, error, options?.signal));
       } finally {
         events.end(output);
       }

@@ -421,6 +421,14 @@ test('FT-19..22: HarnessBodySymbiosisClient decodes protobuf-ts payload oneof, e
   assert.equal(compacted.postCompactionMac, 'mac-abc-123');
   assert.equal(symbiosis.getEffectiveContextBudgetTokens(), 128_000);
 
+  const { ReasonCode } = await import('@nimiplatform/sdk/runtime/generated');
+  fakeClient.streamLocalAgentBodyStep = async function* () {
+    yield { payload: { oneofKind: 'failed', failed: { reasonCode: ReasonCode.AI_CONFIG_INVALID, message: 'Missing model.' } } };
+  };
+  await assert.rejects(symbiosis.executeCompactionWithRetries({
+    workSessionRef: 'ws-live', agentBinding: 'agent-alpha', workingMessages: [], keptTailMessages: [],
+  }), { reasonCode: 'AI_CONFIG_INVALID', message: 'Missing model.' });
+
   controller.abort();
   await symbiosis.stop();
 });

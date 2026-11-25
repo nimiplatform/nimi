@@ -128,6 +128,7 @@ export type HarnessView = {
   partial?: string;
   partialThinking?: string;
   failure?: string;
+  failureReasonCode?: string;
   usage?: { inputTokens: number; outputTokens: number };
 };
 
