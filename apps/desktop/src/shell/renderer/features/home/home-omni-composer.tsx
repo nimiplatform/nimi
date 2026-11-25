@@ -614,19 +614,14 @@ export function HomeOmniComposer({
   const handleAttachReadOnlyFile = async () => {
     setPlusMenuOpen(false);
     const capturedGeneration = accountGenerationRef.current;
-    let picked: string | null = null;
-    if (hasElectronInvoke()) {
-      const dialogResult = await openShellFileDialog({
-        kind: 'file',
-        title: t('runtimeConfig.overview.omni.menuAttachReadOnly'),
-        filters: [{ name: 'All Files', extensions: ['*'] }],
-      }).catch(() => null);
-      picked = dialogResult && !dialogResult.canceled ? (dialogResult.paths[0]?.trim() || null) : null;
-    } else {
-      picked = await commands.pickLocalRuntimeAssetFile().catch(() => null);
-    }
+    const dialogResult = await openShellFileDialog({
+      kind: 'file',
+      title: t('runtimeConfig.overview.omni.menuAttachReadOnly'),
+      filters: [{ name: 'All Files', extensions: ['*'] }],
+    }).catch(() => null);
+    const picked = dialogResult && !dialogResult.canceled ? dialogResult.paths[0]?.trim() : undefined;
     if (!picked || capturedGeneration !== accountGenerationRef.current) return;
-    setAttachments((prev) => addReadOnlyAttachmentPaths(prev, [picked!]));
+    setAttachments((prev) => addReadOnlyAttachmentPaths(prev, [picked]));
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
