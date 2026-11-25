@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -20,15 +21,21 @@ import (
 
 type fakeBodyStepStream struct {
 	grpc.ServerStream
-	ctx    context.Context
-	mu     sync.Mutex
-	events []*runtimev1.BodyStepStreamEvent
+	ctx     context.Context
+	mu      sync.Mutex
+	events  []*runtimev1.BodyStepStreamEvent
+	headers chan struct{}
 }
 
-func (f *fakeBodyStepStream) Context() context.Context     { return f.ctx }
-func (f *fakeBodyStepStream) SetHeader(metadata.MD) error  { return nil }
-func (f *fakeBodyStepStream) SendHeader(metadata.MD) error { return nil }
-func (f *fakeBodyStepStream) SetTrailer(metadata.MD)       {}
+func (f *fakeBodyStepStream) Context() context.Context    { return f.ctx }
+func (f *fakeBodyStepStream) SetHeader(metadata.MD) error { return nil }
+func (f *fakeBodyStepStream) SendHeader(metadata.MD) error {
+	if f.headers != nil {
+		close(f.headers)
+	}
+	return nil
+}
+func (f *fakeBodyStepStream) SetTrailer(metadata.MD) {}
 func (f *fakeBodyStepStream) Send(ev *runtimev1.BodyStepStreamEvent) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -71,6 +78,71 @@ func newStage2Service(t *testing.T, opts Options) *Service {
 	}
 	t.Cleanup(func() { _ = svc.Close() })
 	return svc
+}
+
+func TestMilestoneIdentitySurvivesUpgradeAndLostAcknowledgement(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.db")
+	old, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = old.Exec(`CREATE TABLE runtime_session_milestone (
+		id INTEGER PRIMARY KEY, account_id TEXT NOT NULL, agent_binding TEXT NOT NULL,
+		work_session_ref TEXT NOT NULL, body_kind TEXT NOT NULL, kind TEXT NOT NULL,
+		summary TEXT NOT NULL, deliverables TEXT NOT NULL);
+		INSERT INTO runtime_session_milestone VALUES(1,'account','agent','ws-old','os.pc.workspace','completed','Done','[]')`)
+	if closeErr := old.Close(); closeErr != nil || err != nil {
+		t.Fatalf("prepare old database: exec=%v close=%v", err, closeErr)
+	}
+	var delivered []SessionMilestone
+	opts := Options{DBPath: path, MilestoneHook: func(_ context.Context, m SessionMilestone) error {
+		delivered = append(delivered, m)
+		return nil
+	}}
+	ctx := context.Background()
+	t.Run("interrupt after owner accepts", func(t *testing.T) {
+		svc := newStage2Service(t, opts)
+		db := svc.Store().writeDB
+		if _, err := db.Exec(`CREATE TRIGGER lose_ack BEFORE DELETE ON runtime_session_milestone
+			BEGIN SELECT RAISE(ABORT, 'ack interrupted'); END`); err != nil {
+			t.Fatal(err)
+		}
+		if err := svc.deliverMilestones(ctx, ""); err == nil || !strings.Contains(err.Error(), "ack interrupted") {
+			t.Fatalf("expected interrupted acknowledgement, got %v", err)
+		}
+		if _, err := db.Exec("DROP TRIGGER lose_ack"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	svc := newStage2Service(t, opts)
+	if err := svc.deliverMilestones(ctx, ""); err != nil {
+		t.Fatal(err)
+	}
+	if len(delivered) != 2 || delivered[0].DeliveryID == "" || delivered[0].DeliveryID != delivered[1].DeliveryID {
+		t.Fatalf("old pending milestone lost its identity on restart: %+v", delivered)
+	}
+	regCtx := testCallerCtx("nimi.harness", "subj-pc", DomainAgentBodyPC, localappop.OperationAgentBodyPCRegister)
+	reg, err := svc.RegisterBodyCarrier(regCtx, &runtimev1.RegisterBodyCarrierRequest{DeviceId: "pc", CapabilityNamespace: DefaultPCNamespace, InstanceId: "inst"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	routeCtx := testCallerCtx("nimi.desktop", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit)
+	route, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{AgentHandle: "agent", RequestId: "req", Text: "Review", WorkspaceRoot: "/work"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	projCtx := testCallerCtx("nimi.harness", "subj-pc", DomainAgentBodyPC, localappop.OperationAgentBodyPCProjectionReport)
+	req := &runtimev1.ReportBodySessionProjectionRequest{WorkSessionRef: route.GetResolvedWorkSessionRef(), DeviceId: "pc",
+		CapabilityNamespace: DefaultPCNamespace, LeaseEpoch: reg.GetLeaseEpoch(), ProjectionSeq: 1, MilestoneKind: "completed", TopicSummary: "Done"}
+	for _, sequence := range []int64{1, 1, 2} {
+		req.ProjectionSeq = sequence
+		if _, err := svc.ReportBodySessionProjection(projCtx, req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(delivered) != 4 || delivered[2].DeliveryID == delivered[1].DeliveryID || delivered[2].DeliveryID == delivered[3].DeliveryID {
+		t.Fatalf("expected one identity per distinct projection, got %+v", delivered)
+	}
 }
 
 func TestStage2StoreWALFullDurabilityAndZeroDiskHeartbeat(t *testing.T) {
@@ -446,8 +518,8 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 
 	// 4. Valid Turn 1 executes, wraps advisory context with 128-bit random nonce, emits ToolCallActivity & ToolCall, and updates ledger.
 	msgUser1 := &runtimev1.BodyWorkingMessage{Role: "user", OutboxId: routed.GetOutboxId(), ContentJson: `"修复登录页样式"`}
-	stream1 := &fakeBodyStepStream{ctx: stepCtx}
-	err = svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
+	stream1 := &fakeBodyStepStream{ctx: stepCtx, headers: make(chan struct{})}
+	turn1 := &runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-pc-1",
 		CapabilityNamespace: DefaultPCNamespace,
@@ -459,8 +531,20 @@ func TestStage2BodyStepLedgerCompactionAuthSideEffectAndTombstoneFence(t *testin
 			ToolNames:      []string{"read_file", "edit_file"},
 		},
 		WorkingMessages: []*runtimev1.BodyWorkingMessage{msgUser1},
-	}, stream1)
+	}
+	release, err := svc.lockSessionStepContext(stepCtx, wsRef)
 	if err != nil {
+		t.Fatal(err)
+	}
+	finished := make(chan error, 1)
+	go func() { finished <- svc.StreamLocalAgentBodyStep(turn1, stream1) }()
+	select {
+	case <-stream1.headers:
+	case <-time.After(3 * time.Second):
+		t.Error("queued body step did not open its stream while the prior step held the lock")
+	}
+	release()
+	if err := <-finished; err != nil {
 		t.Fatalf("Turn 1 StreamLocalAgentBodyStep failed: %v", err)
 	}
 	if !strings.Contains(observedNonceBlock, "<untrusted_workspace_data nonce=") {

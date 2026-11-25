@@ -542,6 +542,59 @@ test('Stage 5 composed: HarnessBodySymbiosisClient enforces tombstone barrier & 
   }
 });
 
+test('losing the lease on an outbox ACK revokes readiness until the next registration drains tombstones', async () => {
+  const lost = [];
+  const acks = [];
+  const barrier = Promise.withResolvers();
+  let epoch = 0;
+  let purgeStarted = false;
+  const intent = { outboxId: 'intent-1', commandKind: 1, workSessionRef: 'ws-1', payloadJson: '{}' };
+  const client = new HarnessBodySymbiosisClient({
+    deviceId: 'pc-1',
+    client: {
+      async registerBodyCarrier() {
+        epoch++;
+        return { leaseEpoch: String(epoch), pendingTombstones: epoch === 2
+          ? [{ outboxId: 'purge-2', commandKind: 3, workSessionRef: 'ws-2' }] : [] };
+      },
+      async unregisterBodyCarrier() {},
+      async *subscribeBodyOutbox() { yield intent; },
+      async ackBodyOutbox(req) {
+        if (req.leaseEpoch === '1') throw new Error('AGENT_BODY_LEASE_CONFLICT');
+        acks.push(req.outboxId);
+        return { acked: true };
+      },
+    },
+    handlers: {
+      onLeaseLost(reason) { lost.push(reason); },
+      async onNewIntent() {},
+      async onReconcileAfterTombstones() { return []; },
+      async onPurgeSession() { purgeStarted = true; await barrier.promise; },
+    },
+  });
+  const ac = new AbortController();
+  try {
+    await client.start(ac.signal);
+    await waitFor(() => !client.isRunning(), 3000, 'ACK loses first lease');
+    assert.deepEqual(lost, ['AGENT_BODY_LEASE_CONFLICT']);
+    let ready = false;
+    const waiting = client.waitUntilReady().then(() => { ready = true; });
+    await waitFor(() => purgeStarted, 5000, 'replacement lease starts draining');
+    assert.equal(ready, false);
+    assert.equal(client.isReadyForProjections(), false);
+    barrier.resolve();
+    await waiting;
+    await waitFor(() => acks.includes('intent-1'), 3000, 'intent replay acknowledged');
+    assert.deepEqual(acks, ['purge-2', 'intent-1']);
+    assert.equal(client.isReadyForProjections(), true);
+    assert.equal(lost.length, 1);
+  } finally {
+    barrier.resolve();
+    ac.abort();
+    await client.stop();
+  }
+});
+
 test('Stage 5 composed: standalone empty-dir first submit discovers Partner handle, deduplicates concurrent outbox NEW_INTENT, sends outboxId, and emits milestone', async () => {
   const root = await mkdtemp(join(tmpdir(), 'nimi-stage5-standalone-'));
   const dataRoot = join(root, 'data');

@@ -79,8 +79,14 @@ type BodyStepExecutor func(ctx context.Context, input BodyStepExecutionInput, em
 // still valid. Returning (false, epoch, nil) indicates memory was mutated/forgotten.
 type ReadSetQualifier func(ctx context.Context, accountID, agentBinding, workSessionRef string, lastEpoch int64) (valid bool, currentEpoch int64, err error)
 
-// MilestoneHook receives milestone session projections (for Stage 3 Cognition v5 pointer commits).
-type MilestoneHook func(ctx context.Context, accountID, agentBinding, workSessionRef, bodyKind, milestoneKind, topicSummary string, deliverables []string) error
+// SessionMilestone retains its delivery identity across retries and restarts.
+type SessionMilestone struct {
+	DeliveryID, AccountID, AgentBinding, WorkSessionRef string
+	BodyKind, Kind, TopicSummary                        string
+	Deliverables                                        []string
+}
+
+type MilestoneHook func(context.Context, SessionMilestone) error
 
 // MemoryCleanupHook neutralizes Cognition outbox and forgets session-lineage memories during DeleteSession.
 type MemoryCleanupHook func(ctx context.Context, accountID, agentBinding, workSessionRef string) (uint32, error)
@@ -639,6 +645,11 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
 	}
 
+	// Open the authenticated stream before waiting for an earlier step to finish.
+	// Queue time belongs to the step deadline, not the client's stream-open timeout.
+	if err := stream.SendHeader(nil); err != nil {
+		return err
+	}
 	ref := strings.TrimSpace(req.GetWorkSessionRef())
 	unlockStep, lockErr := s.lockSessionStepContext(stepCtx, ref)
 	if lockErr != nil {
@@ -804,9 +815,6 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 		}
 	}
 
-	if err := stream.SendHeader(nil); err != nil {
-		return err
-	}
 	issuedWindow := decodeIssuedWindow(ledger.IssuedToolCallIDsJSON)
 	prevStepMAC := ledger.LastStepMAC
 	prevCommittedCount := ledger.LastCommittedCount
@@ -1323,18 +1331,18 @@ func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
 	if hook == nil {
 		return nil
 	}
-	rows, err := s.store.readDB.QueryContext(ctx, "SELECT id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables FROM runtime_session_milestone WHERE (?='' OR work_session_ref=?) ORDER BY id", ref, ref)
+	rows, err := s.store.readDB.QueryContext(ctx, "SELECT delivery_id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables FROM runtime_session_milestone WHERE (?='' OR work_session_ref=?) ORDER BY id", ref, ref)
 	if err != nil {
 		return err
 	}
 	type entry struct {
-		id                                              int64
-		account, agent, ref, body, kind, summary, paths string
+		SessionMilestone
+		paths string
 	}
 	var pending []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.id, &e.account, &e.agent, &e.ref, &e.body, &e.kind, &e.summary, &e.paths); err != nil {
+		if err := rows.Scan(&e.DeliveryID, &e.AccountID, &e.AgentBinding, &e.WorkSessionRef, &e.BodyKind, &e.Kind, &e.TopicSummary, &e.paths); err != nil {
 			rows.Close()
 			return err
 		}
@@ -1350,20 +1358,19 @@ func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
 	var failures error
 	blocked := make(map[string]bool)
 	for _, e := range pending {
-		if blocked[e.ref] {
+		if blocked[e.WorkSessionRef] {
 			continue
 		}
-		var paths []string
-		err := json.Unmarshal([]byte(e.paths), &paths)
+		err := json.Unmarshal([]byte(e.paths), &e.Deliverables)
 		if err == nil {
-			err = hook(ctx, e.account, e.agent, e.ref, e.body, e.kind, e.summary, paths)
+			err = hook(ctx, e.SessionMilestone)
 		}
 		if err == nil {
-			_, err = s.store.writeDB.ExecContext(ctx, "DELETE FROM runtime_session_milestone WHERE id=?", e.id)
+			_, err = s.store.writeDB.ExecContext(ctx, "DELETE FROM runtime_session_milestone WHERE delivery_id=?", e.DeliveryID)
 		}
 		if err != nil {
 			failures = errors.Join(failures, err)
-			blocked[e.ref] = true
+			blocked[e.WorkSessionRef] = true
 		}
 	}
 	return failures

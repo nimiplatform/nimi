@@ -205,7 +205,7 @@ func verifyAndInitStore(db *sql.DB) error {
 			deleted_at TEXT NOT NULL DEFAULT ''
 		);`,
 		`CREATE TABLE IF NOT EXISTS runtime_session_milestone (
-			id INTEGER PRIMARY KEY, account_id TEXT NOT NULL, agent_binding TEXT NOT NULL,
+			id INTEGER PRIMARY KEY, delivery_id TEXT NOT NULL, account_id TEXT NOT NULL, agent_binding TEXT NOT NULL,
 			work_session_ref TEXT NOT NULL, body_kind TEXT NOT NULL, kind TEXT NOT NULL,
 			summary TEXT NOT NULL, deliverables TEXT NOT NULL
 		);`,
@@ -408,6 +408,7 @@ func verifyAndInitStore(db *sql.DB) error {
 		col   string
 		sql   string
 	}{
+		{"runtime_session_milestone", "delivery_id", `ALTER TABLE runtime_session_milestone ADD COLUMN delivery_id TEXT NOT NULL DEFAULT ''`},
 		{"runtime_session", "forgotten_memory_count", `ALTER TABLE runtime_session ADD COLUMN forgotten_memory_count INTEGER`},
 		{"runtime_session", "projection_lease_epoch", `ALTER TABLE runtime_session ADD COLUMN projection_lease_epoch INTEGER NOT NULL DEFAULT 0`},
 		{"runtime_body_outbox", "input_committed", "ALTER TABLE runtime_body_outbox ADD COLUMN input_committed INTEGER NOT NULL DEFAULT 0"},
@@ -435,6 +436,12 @@ func verifyAndInitStore(db *sql.DB) error {
 		return err
 	}
 	defer func() { _ = migration.Rollback() }()
+	if _, err := migration.ExecContext(ctx, `UPDATE runtime_session_milestone SET delivery_id = 'milestone_' || lower(hex(randomblob(12))) WHERE delivery_id = ''`); err != nil {
+		return fmt.Errorf("assign pending milestone identities: %w", err)
+	}
+	if _, err := migration.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS idx_runtime_session_milestone_delivery ON runtime_session_milestone(delivery_id)`); err != nil {
+		return err
+	}
 	tag, err := migration.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('outbox_input_receipt_v1','1')")
 	if err != nil {
 		return err
@@ -3353,7 +3360,9 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 		if err != nil {
 			return nil, nil, err
 		}
-		if _, err := tx.ExecContext(ctx, "INSERT INTO runtime_session_milestone(account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables) VALUES (?,?,?,?,?,?,?)", accountID, existing.Record.GetAgentBinding(), req.GetWorkSessionRef(), verifiedNS, kind, req.GetTopicSummary(), string(paths)); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO runtime_session_milestone
+			(delivery_id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables)
+			VALUES (?,?,?,?,?,?,?,?)`, newID("milestone"), accountID, existing.Record.GetAgentBinding(), req.GetWorkSessionRef(), verifiedNS, kind, req.GetTopicSummary(), string(paths)); err != nil {
 			return nil, nil, err
 		}
 	}

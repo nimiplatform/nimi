@@ -1130,6 +1130,8 @@
       "dropPathUnavailable": "The file path is unavailable. Use + to choose a file.",
       "sessionNotLocated": "The execution App has not published this task yet. Try opening it again.",
       "routeUnconfirmed": "Runtime could not confirm the destination. Your draft has been kept.",
+      "appTaskSubmitted": "Task sent to the app handling this session.",
+      "appTaskQueued": "Task queued. It will be delivered when the app comes online.",
       "cloudDataDestinationNotice": "Attached local files will be sent to cloud model {{model}}",
       "switchLocalModel": "Switch to local model",
       "noPartnerConfigured": "Add or select a local partner first to route requests.",

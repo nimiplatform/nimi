@@ -14,6 +14,79 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type interruptedPointerOwner struct {
+	OwnerPort
+	commitError, rememberError error
+}
+
+func (o *interruptedPointerOwner) Commit(ctx context.Context, req *runtimev1.CognitionMemoryCommitRequest) (*runtimev1.CognitionMemoryCommitResponse, error) {
+	if o.commitError != nil {
+		return nil, o.commitError
+	}
+	return o.OwnerPort.Commit(ctx, req)
+}
+
+func (o *interruptedPointerOwner) ExecuteRemember(ctx context.Context, op string) (memoryv1.DecisionResult, error) {
+	if o.rememberError != nil {
+		return memoryv1.DecisionResult{}, o.rememberError
+	}
+	return o.OwnerPort.ExecuteRemember(ctx, op)
+}
+
+func TestSessionPointerReplayResumesOneDurableDelivery(t *testing.T) {
+	ctx := context.Background()
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	const agent = "agent-pointer-replay"
+	binding := createTestBinding(t, backend, store, agent, true)
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = core.Close() })
+	owner := &interruptedPointerOwner{OwnerPort: newTestOwnerPort(store, core, nil)}
+	authorize := func(context.Context, Binding) error { return nil }
+	// Use a fresh facade and bridge on every delivery, as on process restart.
+	deliver := func(id string) (bool, error) {
+		facade := NewFacade(store, owner, NewBridge(store, owner, authorize), authorize, nil)
+		return facade.CommitSessionPointer(ctx, id, agent, "ws-replay", "completed", "Review finished", "os.pc.workspace", time.Now())
+	}
+	failure := errors.New("owner unavailable")
+	owner.commitError = failure
+	if _, err := deliver("first"); !errors.Is(err, failure) {
+		t.Fatalf("expected interrupted custody transfer, got %v", err)
+	}
+	owner.commitError, owner.rememberError = nil, failure
+	if _, err := deliver("first"); !errors.Is(err, failure) {
+		t.Fatalf("expected interrupted Remember after receipt, got %v", err)
+	}
+	owner.rememberError = nil
+	for i := 0; i < 2; i++ {
+		if committed, err := deliver("first"); err != nil || !committed {
+			t.Fatalf("resuming or replaying completed milestone: committed=%v err=%v", committed, err)
+		}
+	}
+	items, err := store.ListOutbox(ctx, binding.BindingRef)
+	if err != nil || len(items) != 1 || items[0].State != "received" || items[0].DeliverySequence != 1 {
+		t.Fatalf("expected one received delivery, got %+v err=%v", items, err)
+	}
+	binding, err = store.BindingForAgent(ctx, agent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, err := owner.InspectStatusSummary(ctx, binding.BindingRef, binding.BankRef)
+	if err != nil || status.Current != 1 || status.Superseded != 0 {
+		t.Fatalf("replay changed memory history: status=%+v err=%v", status, err)
+	}
+	if _, err := deliver("second"); err != nil {
+		t.Fatal(err)
+	}
+	items, err = store.ListOutbox(ctx, binding.BindingRef)
+	if err != nil || len(items) != 2 || items[1].DeliverySequence != 2 {
+		t.Fatalf("distinct milestone with identical content lost: items=%+v err=%v", items, err)
+	}
+}
+
 func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *testing.T) {
 	ctx := context.Background()
 	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
@@ -45,19 +118,23 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 
 	// 1. Commit initial_goal pointer -> succeeds immediately (and ensures bank via bridge).
 	baseTime := time.Date(2026, 11, 24, 14, 0, 0, 0, time.UTC)
-	committed, err := facade.CommitSessionPointer(ctx, agentRef, "ws_alpha_001", "initial_goal", "Build multi-session router core", "os.pc.workspace", baseTime)
+	committed, err := facade.CommitSessionPointer(ctx, "initial-alpha", agentRef, "ws_alpha_001", "initial_goal", "Build multi-session router core", "os.pc.workspace", baseTime)
 	if err != nil || !committed {
 		t.Fatalf("initial_goal CommitSessionPointer failed: committed=%v err=%v", committed, err)
 	}
 
 	// 2. Incremental update 5 minutes later (< 30 min cooldown) -> throttled (no spam!).
-	throttled, err := facade.CommitSessionPointer(ctx, agentRef, "ws_alpha_001", "progress", "Build multi-session router core v2", "os.pc.workspace", baseTime.Add(5*time.Minute))
+	throttled, err := facade.CommitSessionPointer(ctx, "progress-alpha-1", agentRef, "ws_alpha_001", "progress", "Build multi-session router core v2", "os.pc.workspace", baseTime.Add(5*time.Minute))
 	if err != nil || throttled {
 		t.Fatalf("expected incremental update within 30m cooldown to be throttled, committed=%v err=%v", throttled, err)
 	}
+	// A delayed redelivery of the initial milestone must not restart the cooldown.
+	if _, err := facade.CommitSessionPointer(ctx, "initial-alpha", agentRef, "ws_alpha_001", "initial_goal", "Build multi-session router core", "os.pc.workspace", baseTime.Add(34*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
 
 	// 3. Incremental update 35 minutes later with real topic change -> commits and atomically supersedes prior active slot!
-	updated, err := facade.CommitSessionPointer(ctx, agentRef, "ws_alpha_001", "progress", "Multi-session router core shipped with FTS5 tests", "os.pc.workspace", baseTime.Add(35*time.Minute))
+	updated, err := facade.CommitSessionPointer(ctx, "progress-alpha-2", agentRef, "ws_alpha_001", "progress", "Multi-session router core shipped with FTS5 tests", "os.pc.workspace", baseTime.Add(35*time.Minute))
 	if err != nil || !updated {
 		t.Fatalf("post-cooldown CommitSessionPointer failed: committed=%v err=%v", updated, err)
 	}
@@ -140,7 +217,7 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 	}
 
 	// 5. Follow-up unrelated event AFTER neutralization MUST NOT stall with delivery_gap!
-	committedBeta, err := facade.CommitSessionPointer(ctx, agentRef, "ws_beta_002", "initial_goal", "Fresh unrelated session after alpha deleted", "os.pc.workspace", baseTime.Add(50*time.Minute))
+	committedBeta, err := facade.CommitSessionPointer(ctx, "initial-beta", agentRef, "ws_beta_002", "initial_goal", "Fresh unrelated session after alpha deleted", "os.pc.workspace", baseTime.Add(50*time.Minute))
 	if err != nil || !committedBeta {
 		t.Fatalf("expected follow-up event after neutralization to succeed without delivery_gap: committed=%v err=%v", committedBeta, err)
 	}
@@ -196,7 +273,7 @@ func TestSessionPointerSingleSlotThrottleAndAntiResurrectionDeleteSession(t *tes
 	}
 
 	// 7. Tainted external source MUST be rejected by CommitSessionPointer.
-	taintedCommitted, err := facade.CommitSessionPointer(ctx, agentRef, "ws_ext_004", "initial_goal", "Untrusted external summary", "channel_external", baseTime.Add(70*time.Minute))
+	taintedCommitted, err := facade.CommitSessionPointer(ctx, "external", agentRef, "ws_ext_004", "initial_goal", "Untrusted external summary", "channel_external", baseTime.Add(70*time.Minute))
 	if err != nil || taintedCommitted {
 		t.Fatalf("expected tainted channel_external source to be rejected, committed=%v err=%v", taintedCommitted, err)
 	}
@@ -223,7 +300,7 @@ func TestSessionPointerAuditRecoveryScopeTagAndCutoffFences(t *testing.T) {
 
 	// 1. Scope-tag isolation: a session_pointer row and a global_fact row with identical
 	//    content MUST NOT deduplicate each other during rememberInputs.
-	committed, err := facade.CommitSessionPointer(ctx, agentRef, "ws_scope_001", "initial_goal", "I prefer dark roast coffee", "os.pc.workspace", baseTime)
+	committed, err := facade.CommitSessionPointer(ctx, "scope", agentRef, "ws_scope_001", "initial_goal", "I prefer dark roast coffee", "os.pc.workspace", baseTime)
 	if err != nil || !committed {
 		t.Fatalf("commit session pointer: committed=%v err=%v", committed, err)
 	}
@@ -311,7 +388,7 @@ func TestSessionPointerAuditRecoveryScopeTagAndCutoffFences(t *testing.T) {
 	}
 
 	// 3. Late CommitSessionPointer after ForgetSessionLineage MUST be blocked by deleted_session_cutoffs!
-	resurrected, err := facade.CommitSessionPointer(ctx, agentRef, "ws_crash_002", "completed", "Late milestone after DeleteSession", "os.pc.workspace", baseTime.Add(5*time.Minute))
+	resurrected, err := facade.CommitSessionPointer(ctx, "late", agentRef, "ws_crash_002", "completed", "Late milestone after DeleteSession", "os.pc.workspace", baseTime.Add(5*time.Minute))
 	if err != nil || resurrected {
 		t.Fatalf("late CommitSessionPointer after DeleteSession MUST NOT resurrect: committed=%v err=%v", resurrected, err)
 	}

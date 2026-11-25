@@ -10,7 +10,6 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -48,6 +47,7 @@ func isTaintedSessionPointerSource(bodyKind string) bool {
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (f *Facade) CommitSessionPointer(
 	ctx context.Context,
+	deliveryID string,
 	localAgentRef string,
 	workSessionRef string,
 	milestoneKind string,
@@ -57,6 +57,9 @@ func (f *Facade) CommitSessionPointer(
 ) (bool, error) {
 	if f == nil || f.store == nil || f.owner == nil || f.bridge == nil {
 		return false, nil
+	}
+	if !validRef(deliveryID) {
+		return false, errors.New("commit session pointer: missing or invalid milestone delivery ID")
 	}
 	summary := strings.TrimSpace(topicSummary)
 	if !validRef(localAgentRef) || !validRef(workSessionRef) || summary == "" {
@@ -76,9 +79,6 @@ func (f *Facade) CommitSessionPointer(
 
 	key := sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef}
 	f.pointerThrottleMu.Lock()
-	if f.pointerThrottleCache == nil {
-		f.pointerThrottleCache = make(map[sessionPointerThrottleKey]sessionPointerThrottleState)
-	}
 	prev, seen := f.pointerThrottleCache[key]
 	if seen && !isBypassMilestone {
 		if prev.lastSummary == summary || now.Sub(prev.lastCommittedAt) < sessionPointerMilestoneCooldown {
@@ -117,8 +117,8 @@ func (f *Facade) CommitSessionPointer(
 	}
 
 	slotKey := "session_ref:" + workSessionRef
-	eventRef := "cmevt_" + ulid.Make().String()
-	operationID := "cmop_" + ulid.Make().String()
+	eventRef := "cmevt_" + deliveryID
+	operationID := "cmop_" + deliveryID
 	envelope := &runtimev1.CognitionMemoryCommittedEventEnvelope{
 		Event:       &runtimev1.CognitionMemoryEventRef{Value: eventRef},
 		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: operationID},
@@ -136,8 +136,24 @@ func (f *Facade) CommitSessionPointer(
 		},
 	}
 
+	// A lost producer acknowledgement can replay after enqueue, receipt, or Remember.
+	// The durable outbox row owns that operation even after its payload is compacted.
+	var state, priorBinding string
+	committedAt := now.UTC()
 	if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := f.store.EnqueueCommittedEventTx(tx, localAgentRef, envelope)
+		var timestamp string
+		err := tx.QueryRowContext(ctx, `SELECT o.state, o.binding_ref, e.committed_at
+			FROM runtime_cognition_memory_outbox o JOIN runtime_cognition_memory_committed_event e ON e.event_ref = o.event_ref
+			WHERE o.operation_id = ?`, operationID).Scan(&state, &priorBinding, &timestamp)
+		if err == nil {
+			committedAt, err = time.Parse(time.RFC3339Nano, timestamp)
+			return err
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		item, err := f.store.EnqueueCommittedEventTx(tx, localAgentRef, envelope)
+		state, priorBinding = item.State, item.BindingRef
 		return err
 	}); err != nil {
 		if errors.Is(err, ErrMemoryDisabled) {
@@ -145,9 +161,11 @@ func (f *Facade) CommitSessionPointer(
 		}
 		return false, err
 	}
-
-	// Drain & commit the session pointer through the standard custody pipeline.
-	for {
+	if priorBinding != binding.BindingRef || state == "cutoff_non_effecting" || state == "terminated" {
+		return false, nil
+	}
+	// Drain in delivery order until the owner has custody of this operation.
+	for state == "pending" {
 		drained, err := f.bridge.drainOneLocked(ctx, localAgentRef)
 		if err != nil {
 			return false, fmt.Errorf("commit session pointer drain: %w", err)
@@ -155,20 +173,24 @@ func (f *Facade) CommitSessionPointer(
 		if !drained.Drained {
 			return false, nil
 		}
-		if drained.Outcome != memoryv1.OutcomeNoEffect {
-			result, err := f.processRememberLocked(ctx, localAgentRef, drained.OperationID)
-			if err != nil {
-				return false, fmt.Errorf("commit session pointer remember: %w", err)
-			}
-			if drained.OperationID == operationID && result.Outcome == memoryv1.OutcomeNoEffect {
+		if drained.OperationID == operationID {
+			if drained.Outcome == memoryv1.OutcomeNoEffect {
 				return false, nil
 			}
-		} else if drained.OperationID == operationID {
-			return false, nil
-		}
-		if drained.OperationID == operationID {
 			break
 		}
+		if drained.Outcome != memoryv1.OutcomeNoEffect {
+			if _, err := f.processRememberLocked(ctx, localAgentRef, drained.OperationID); err != nil {
+				return false, fmt.Errorf("commit session pointer remember: %w", err)
+			}
+		}
+	}
+	result, err := f.processRememberLocked(ctx, localAgentRef, operationID)
+	if err != nil || result.Outcome == memoryv1.OutcomeNoEffect {
+		return false, err
+	}
+	if seen && !committedAt.After(prev.lastCommittedAt) {
+		return true, nil
 	}
 
 	f.pointerThrottleMu.Lock()
@@ -184,7 +206,7 @@ func (f *Facade) CommitSessionPointer(
 		}
 	}
 	f.pointerThrottleCache[key] = sessionPointerThrottleState{
-		lastCommittedAt: now.UTC(),
+		lastCommittedAt: committedAt,
 		lastSummary:     summary,
 	}
 	f.pointerThrottleMu.Unlock()

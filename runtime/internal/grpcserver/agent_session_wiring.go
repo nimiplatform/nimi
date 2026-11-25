@@ -36,7 +36,7 @@ func buildProductionAgentSessionService(
 	}
 
 	var (
-		milestoneHook agentsession.MilestoneHook = func(context.Context, string, string, string, string, string, string, []string) error {
+		milestoneHook agentsession.MilestoneHook = func(context.Context, agentsession.SessionMilestone) error {
 			return errors.New("session milestone awaiting Cognition owner")
 		}
 		memoryCleanupHook agentsession.MemoryCleanupHook = func(context.Context, string, string, string) (uint32, error) {
@@ -48,12 +48,12 @@ func buildProductionAgentSessionService(
 	)
 	if memoryFacade != nil {
 		facadeRef := memoryFacade
-		milestoneHook = func(ctx context.Context, _ string, agentBinding, workSessionRef, bodyKind, milestoneKind, topicSummary string, _ []string) error {
-			effectiveBodyKind := strings.TrimSpace(bodyKind)
+		milestoneHook = func(ctx context.Context, milestone agentsession.SessionMilestone) error {
+			effectiveBodyKind := strings.TrimSpace(milestone.BodyKind)
 			if effectiveBodyKind == "" {
 				effectiveBodyKind = agentsession.DefaultPCNamespace
 			}
-			_, err := facadeRef.CommitSessionPointer(ctx, agentBinding, workSessionRef, milestoneKind, topicSummary, effectiveBodyKind, time.Now().UTC())
+			_, err := facadeRef.CommitSessionPointer(ctx, milestone.DeliveryID, milestone.AgentBinding, milestone.WorkSessionRef, milestone.Kind, milestone.TopicSummary, effectiveBodyKind, time.Now().UTC())
 			return err
 		}
 		memoryCleanupHook = func(ctx context.Context, _ string, agentBinding, workSessionRef string) (uint32, error) {

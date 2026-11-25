@@ -387,20 +387,14 @@ export class HarnessBodySymbiosisClient {
       }, intervalMs);
       this.heartbeatTimer.unref?.();
     } catch (error) {
-      await this.resetLeaseState(true).catch(() => {});
+      this.handleLeaseLost(error instanceof Error ? error.message : String(error));
+      await this.unregisterLease();
       throw error;
     }
   }
 
-  private async resetLeaseState(unregister: boolean): Promise<void> {
-    this.running = false;
-    this.tombstonesDrained = false;
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = undefined;
-    }
-    this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
-    if (unregister && this.leaseEpoch > 0) {
+  private async unregisterLease(): Promise<void> {
+    if (this.leaseEpoch > 0) {
       const epoch = this.leaseEpoch;
       this.leaseEpoch = 0;
       await this.client.unregisterBodyCarrier({
@@ -412,15 +406,21 @@ export class HarnessBodySymbiosisClient {
     }
   }
 
-  private handleLeaseLost(reason: string): void {
-    if (!this.running) return;
+  private clearLeaseState(): void {
+    if (this.tombstonesDrained) {
+      this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
+    }
     this.running = false;
     this.tombstonesDrained = false;
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = undefined;
     }
-    this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
+  }
+
+  private handleLeaseLost(reason: string): void {
+    if (!this.running) return;
+    this.clearLeaseState();
     this.handlers.onLeaseLost?.(reason);
   }
 
@@ -442,8 +442,7 @@ export class HarnessBodySymbiosisClient {
           try {
             await this.handleEnvelopeAndAck(env);
           } catch (envErr) {
-            this.running = false;
-            this.tombstonesDrained = false;
+            this.handleLeaseLost(envErr instanceof Error ? envErr.message : String(envErr));
             throw envErr;
           }
         }
@@ -729,6 +728,7 @@ export class HarnessBodySymbiosisClient {
 
   async stop(): Promise<void> {
     this.stopped = true;
-    await this.resetLeaseState(true);
+    this.clearLeaseState();
+    await this.unregisterLease();
   }
 }

@@ -1130,6 +1130,8 @@
       "dropPathUnavailable": "未能获取文件路径。请使用 + 选择文件。",
       "sessionNotLocated": "执行应用尚未发布此任务，稍后可再次打开。",
       "routeUnconfirmed": "Runtime 未确认任务去向，草稿已保留。",
+      "appTaskSubmitted": "任务已发送至处理该会话的应用。",
+      "appTaskQueued": "任务已排队，应用上线后将接收。",
       "cloudDataDestinationNotice": "附带的本地文件将发往云端模型 {{model}}",
       "switchLocalModel": "切换本地模型",
       "noPartnerConfigured": "请先添加或选择一位本地伙伴再发起请求。",

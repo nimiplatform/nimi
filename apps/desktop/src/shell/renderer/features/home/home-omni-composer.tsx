@@ -1,9 +1,10 @@
 import { hasElectronInvoke, openShellFileDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Button, ScrollArea } from '@nimiplatform/kit/ui';
-import type {
-  RouteAndSubmitInputResponse,
-  SessionRouteCandidate,
-  WorkSessionRecord,
+import {
+  RouteAndSubmitOutcome,
+  type RouteAndSubmitInputResponse,
+  type SessionRouteCandidate,
+  type WorkSessionRecord,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
   ArrowUp,
@@ -34,6 +35,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import {
   addReadOnlyAttachmentPaths,
@@ -257,6 +259,7 @@ export function HomeOmniComposer({
           setTarget({
             kind: 'session',
             workSessionRef: item.workSessionRef,
+            sessionKind: item.sessionKind,
             title: item.title || item.workSessionRef,
             archived: Boolean(item.archivedAt),
             agentHandle: item.agentBinding,
@@ -368,17 +371,18 @@ export function HomeOmniComposer({
         return;
       }
 
-      if (!response.resolvedWorkSessionRef || (!isPcWorkRouteResponse(response) && !isLightQaRouteResponse(response))) {
+      const queued = response.outcome === RouteAndSubmitOutcome.DEFERRED_BODY_OFFLINE;
+      if (!response.resolvedWorkSessionRef || (response.outcome !== RouteAndSubmitOutcome.ACCEPTED && !queued)) {
         setSubmitError(t('runtimeConfig.overview.omni.routeUnconfirmed'));
         return;
       }
       setDisambiguation(null);
       setDraft('');
       setCaretIndex(0);
+      setAttachments(EMPTY_OMNI_ATTACHMENTS);
 
       if (isLightQaRouteResponse(response)) {
         const resolvedRef = response.resolvedWorkSessionRef;
-        setAttachments(EMPTY_OMNI_ATTACHMENTS);
         setLightQa((prev) => {
           const sameSession = prev && prev.workSessionRef === resolvedRef;
           const prevMessages = sameSession ? prev.messages : [];
@@ -418,8 +422,12 @@ export function HomeOmniComposer({
             promotedHandoffTurns: response.promotedHandoffTurns,
           } : prev));
         }
-        setAttachments(EMPTY_OMNI_ATTACHMENTS);
         onOpenHarness(response.resolvedWorkSessionRef);
+      } else {
+        emitFeedbackToast({
+          kind: 'info',
+          message: t(queued ? 'runtimeConfig.overview.omni.appTaskQueued' : 'runtimeConfig.overview.omni.appTaskSubmitted'),
+        });
       }
     },
     [lightQa?.lastSeq, lightQa?.workSessionRef, onOpenHarness, startBrainEventStream, t],
@@ -646,7 +654,9 @@ export function HomeOmniComposer({
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
+  const isAppWorkTarget = target.kind === 'session' && target.sessionKind === 'app_work';
   const dispatchEmptySubmitByTarget = () => {
+    if (isAppWorkTarget) return;
     if (target.kind === 'human') {
       onOpenHumanChatDraft(target.contactId, '');
       return;
@@ -742,7 +752,7 @@ export function HomeOmniComposer({
 
   const submitLabel = isHumanTarget
     ? t('runtimeConfig.overview.omni.openHumanChatWithDraft')
-    : hasDraft
+    : hasDraft || isAppWorkTarget
       ? t('runtimeConfig.overview.quickStart.submitDraft')
       : t('runtimeConfig.overview.omni.openHarnessAction');
 
@@ -934,7 +944,7 @@ export function HomeOmniComposer({
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (isAppWorkTarget && !hasDraft)}
             aria-label={submitLabel}
             title={submitLabel}
             data-testid="home-quick-start-submit"
