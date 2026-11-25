@@ -26,7 +26,7 @@ import {
   type RuntimeClientLoginTransaction,
   type RuntimeClientSession,
 } from '@nimiplatform/sdk/realm/runtime-client';
-import type { RemoteRuntimeConnection } from '@nimiplatform/sdk/runtime/remote';
+import type { RemoteRuntimeConnection, RemoteRuntimeConnectOptions } from '@nimiplatform/sdk/runtime/remote';
 import {
   RemoteSourceAccessState,
   RuntimeServiceMode,
@@ -120,9 +120,13 @@ const remoteModelConfigCopyZh: ModelConfigCopy = {
   confirmSelectionLabel: '使用所选模型',
 };
 
-function deriveLivePhase(connected: boolean, state: string): RuntimeLivePhase {
+type TransportState = Parameters<NonNullable<RemoteRuntimeConnectOptions['onState']>>[0];
+type ManagerState = TransportState | 'running' | 'maintenance' | 'stop' | '';
+
+export function deriveLivePhase(connected: boolean, state: ManagerState): RuntimeLivePhase {
   if (connected) {
-    return state === 'maintenance' ? 'maintenance' : 'connected';
+    if (state === 'maintenance' || state === 'running') return state;
+    return 'connected';
   }
   if (state === 'gathering' || state === 'waiting-for-pc' || state === 'connecting') {
     return 'connecting';
@@ -138,7 +142,7 @@ export type AccountRuntimeManagerViewProps = {
   ready: boolean;
   connected: boolean;
   busy: boolean;
-  state: string;
+  state: ManagerState;
   error: string | null;
   access: GetRemoteAccessStateResponse | null;
   currentClientId?: string | null;
@@ -187,14 +191,15 @@ export function AccountRuntimeManagerView({
   const say = (cn: string, en: string) => (zh ? cn : en);
   const unavailableId = useId();
 
-  const labels: Record<string, string> = {
+  const labels: Partial<Record<ManagerState, string>> = {
     gathering: say('正在准备直连…', 'Preparing a direct connection…'),
     'waiting-for-pc': say(
       '等待 PC 响应；首次接入请在电脑端 Nimi Home 确认此管理来源。',
       'Waiting for your PC. Confirm this management source in Nimi Home on first use.',
     ),
     connecting: say('正在建立加密直连…', 'Establishing direct connection…'),
-    connected: say('已直连主设备，普通服务正在运行。', 'Connected directly; ordinary host services are running.'),
+    connected: say('已直连主设备，服务状态尚未确认。', 'Connected directly. Host service status is unconfirmed.'),
+    running: say('已直连主设备，普通服务正在运行。', 'Connected directly; ordinary host services are running.'),
     closed: say('连接已关闭，需要时可重新连接。', 'The connection closed. Connect again when needed.'),
     maintenance: say('主设备当前处于维护模式。', 'Your primary host is in maintenance mode.'),
     stop: say(
@@ -681,7 +686,7 @@ export function AccountRuntimeManager({
 
   const [connection, setConnection] = useState<ManagerConnection | null>(null);
   const [access, setAccess] = useState<GetRemoteAccessStateResponse | null>(null);
-  const [state, setState] = useState('');
+  const [state, setState] = useState<ManagerState>('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [appId, setAppId] = useState('');
@@ -881,12 +886,19 @@ export function AccountRuntimeManager({
 
   async function readState(current = peer.current) {
     if (!current || current.closed) throw new Error(say('请先连接主 Runtime。', 'Connect the primary Runtime first.'));
+    setState('connected');
     await verifyOwner();
-    const [service, sources] = await Promise.all([current.management.state(), current.management.access()]);
     if (!mounted.current || peer.current !== current || current.closed) return;
-    setState(service.mode === RuntimeServiceMode.ORDINARY ? 'connected' : 'maintenance');
-    setAccess(sources);
+    const [service, sources] = await Promise.allSettled([current.management.state(), current.management.access()]);
+    if (!mounted.current || peer.current !== current || current.closed) return;
+    if (service.status === 'fulfilled') {
+      if (service.value.mode === RuntimeServiceMode.ORDINARY) setState('running');
+      if (service.value.mode === RuntimeServiceMode.MAINTENANCE) setState('maintenance');
+    }
+    setAccess(sources.status === 'fulfilled' ? sources.value : null);
     setPendingPauseClientId(null);
+    if (service.status === 'rejected') throw service.reason;
+    if (sources.status === 'rejected') throw sources.reason;
   }
 
   function isSelected(current: ManagerConnection, id: string) {

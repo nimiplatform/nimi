@@ -17,12 +17,13 @@ import { createNimiError } from '@nimiplatform/sdk/types';
 import { accountReadProblem } from '../src/auth/account-center-copy.js';
 import {
   AccountOverviewView,
-  parseHostedWebAppsPayload,
+  hostedWebAppsFromProducts,
+  loadHostedWebApps,
 } from '../src/auth/account-overview.js';
 import { AccountAvatar, AccountFrame } from '../src/auth/account-center-layout.js';
 import { AccountDownloadView } from '../src/auth/account-download.js';
 import { AccountRuntimeView } from '../src/auth/account-runtime.js';
-import { AccountRuntimeManagerView } from '../src/auth/account-runtime-manager.js';
+import { AccountRuntimeManagerView, deriveLivePhase } from '../src/auth/account-runtime-manager.js';
 import { RemoteSourceAccessState } from '@nimiplatform/sdk/runtime/wire-types';
 import { initializeWebAccountI18n } from '../src/auth/i18n.js';
 import {
@@ -257,39 +258,37 @@ test('visitor platform detection classifies desktop, mobile, and linux user agen
 });
 
 test('hosted web app parser keeps only unblocked products with verified slug-matched Web URLs', () => {
-  const parsed = parseHostedWebAppsPayload({
-    products: [
-      {
-        slug: 'zhiyu',
-        display_name: '织羽',
-        summary: { zh: '日常陪伴应用', en: 'Companion chat app' },
-        blocked: false,
-        icon_url: '/.well-known/nimi-apps/media/abc',
-        web: { url: 'https://zhiyu.nimi.xyz/', version: '0.4.0' },
-      },
-      {
-        slug: 'blocked-app',
-        display_name: 'Suspended',
-        summary: { zh: '已停用', en: 'Suspended' },
-        blocked: true,
-        web: { url: 'https://blocked-app.nimi.xyz/', version: '1.0.0' },
-      },
-      {
-        slug: 'desktop-only',
-        display_name: 'Desktop Only',
-        summary: { zh: '仅桌面', en: 'Desktop only' },
-        blocked: false,
-        web: null,
-      },
-      {
-        slug: 'spoofed',
-        display_name: 'Spoofed',
-        summary: { zh: '异常', en: 'Bad' },
-        blocked: false,
-        web: { url: 'https://evil.example/', version: '1.0.0' },
-      },
-    ],
-  });
+  const parsed = hostedWebAppsFromProducts([
+    {
+      slug: 'zhiyu',
+      display_name: '织羽',
+      summary: { zh: '日常陪伴应用', en: 'Companion chat app' },
+      blocked: false,
+      icon_url: '/.well-known/nimi-apps/media/abc',
+      web: { url: 'https://zhiyu.nimi.xyz/', version: '0.4.0' },
+    },
+    {
+      slug: 'blocked-app',
+      display_name: 'Suspended',
+      summary: { zh: '已停用', en: 'Suspended' },
+      blocked: true,
+      web: { url: 'https://blocked-app.nimi.xyz/', version: '1.0.0' },
+    },
+    {
+      slug: 'desktop-only',
+      display_name: 'Desktop Only',
+      summary: { zh: '仅桌面', en: 'Desktop only' },
+      blocked: false,
+      web: null,
+    },
+    {
+      slug: 'spoofed',
+      display_name: 'Spoofed',
+      summary: { zh: '异常', en: 'Bad' },
+      blocked: false,
+      web: { url: 'https://evil.example/', version: '1.0.0' },
+    },
+  ]);
   assert.deepEqual(parsed, [
     {
       slug: 'zhiyu',
@@ -299,6 +298,30 @@ test('hosted web app parser keeps only unblocked products with verified slug-mat
       web: { url: 'https://zhiyu.nimi.xyz/', version: '0.4.0' },
     },
   ]);
+});
+
+test('launchpad follows directory cursors and requires an explicit unblocked release on every page', async (t) => {
+  const product = (slug: string) => ({
+    slug, display_name: slug, summary: { zh: slug, en: slug },
+    web: { url: `https://${slug}.nimi.xyz/`, version: '1.0' },
+  });
+  const urls: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string) => {
+    urls.push(url);
+    if (url === '/.well-known/nimi-apps') {
+      return Response.json({ products: [
+        product('missing-flag'), { ...product('wrong-flag'), blocked: 'false' },
+        { ...product('first'), blocked: false },
+      ], next: 'first' });
+    }
+    assert.equal(url, '/.well-known/nimi-apps?after=first');
+    return Response.json({ products: [
+      { ...product('second'), blocked: false }, { ...product('blocked'), blocked: true },
+    ], next: null });
+  });
+  const apps = await loadHostedWebApps(new AbortController().signal);
+  assert.deepEqual(apps.map(app => app.slug), ['first', 'second']);
+  assert.equal(urls.length, 2);
 });
 
 test('unbound account overview guides new desktop users with honest Beta disclosures and next steps', () => {
@@ -409,27 +432,25 @@ test('bound account overview surfaces primary host management, verified Web apps
 });
 
 test('hosted web app parser extracts canonical categories and tags while ignoring unknown categories', () => {
-  const parsed = parseHostedWebAppsPayload({
-    products: [
-      {
-        slug: 'open-notebook',
-        display_name: 'Open Notebook',
-        summary: { zh: '个人研究工作区', en: 'Private research workspace' },
-        blocked: false,
-        category: 'research-learning',
-        tags: { zh: ['隐私研究', ''], en: ['Research'] },
-        web: { url: 'https://open-notebook.nimi.xyz/', version: '1.15.1' },
-      },
-      {
-        slug: 'mystery',
-        display_name: 'Mystery',
-        summary: { zh: '测试', en: 'Test' },
-        blocked: false,
-        category: 'not-a-real-category',
-        web: { url: 'https://mystery.nimi.xyz/', version: '0.1.0' },
-      },
-    ],
-  });
+  const parsed = hostedWebAppsFromProducts([
+    {
+      slug: 'open-notebook',
+      display_name: 'Open Notebook',
+      summary: { zh: '个人研究工作区', en: 'Private research workspace' },
+      blocked: false,
+      category: 'research-learning',
+      tags: { zh: ['隐私研究', ''], en: ['Research'] },
+      web: { url: 'https://open-notebook.nimi.xyz/', version: '1.15.1' },
+    },
+    {
+      slug: 'mystery',
+      display_name: 'Mystery',
+      summary: { zh: '测试', en: 'Test' },
+      blocked: false,
+      category: 'not-a-real-category',
+      web: { url: 'https://mystery.nimi.xyz/', version: '0.1.0' },
+    },
+  ]);
   assert.equal(parsed.length, 2);
   assert.equal(parsed[0]?.category, 'research-learning');
   assert.deepEqual(parsed[0]?.tags, { zh: ['隐私研究'], en: ['Research'] });
@@ -738,6 +759,30 @@ test('my host view renders honest standby state, past vs future eligibility, unb
   assert.ok(reinitHtml.includes('重新验证账号'));
 });
 
+test('direct connectivity alone never claims ordinary service or maintenance', () => {
+  assert.equal(deriveLivePhase(true, 'connected'), 'connected');
+  assert.equal(deriveLivePhase(true, 'maintenance'), 'maintenance');
+  assert.equal(deriveLivePhase(true, 'running'), 'running');
+  assert.equal(deriveLivePhase(false, 'closed'), 'idle');
+  for (const [state, label] of [
+    ['connected', '已直连 · 服务状态待确认'],
+    ['running', '已直连 · 服务运行中'],
+    ['maintenance', '已直连 · 维护模式'],
+  ] as const) {
+    const noop = () => {};
+    const html = renderToStaticMarkup(createElement(MemoryRouter, {}, createElement(AccountRuntimeView, {
+      locale: 'zh', platform: 'macos',
+      snapshot: { accountId: 'a', serverTime: '', binding: {
+        bindingId: 'b', runtimeId: 'rt', publicKey: 'pk', displayName: 'PC', validAfter: '',
+      } },
+      intent: null, loading: false, working: false, error: null, completed: false, verifyAgain: false,
+      liveSummary: { phase: deriveLivePhase(true, state), connectedPeers: null },
+      onRefresh: noop, onConfirm: noop, onCancelIntent: noop, onVerifyAgain: noop,
+    })));
+    assert.ok(html.includes(label));
+  }
+});
+
 test('remote runtime manager view covers non-HTTPS unavailability, ready standby, and live console controls', () => {
   const noop = () => {};
 
@@ -843,6 +888,8 @@ test('remote runtime manager view covers non-HTTPS unavailability, ready standby
     }),
   );
   assert.match(connectedHtml, /data-manager-mode="connected"/);
+  assert.ok(connectedHtml.includes('已直连主设备，服务状态尚未确认。'));
+  assert.ok(!connectedHtml.includes('普通服务正在运行'));
   assert.ok(connectedHtml.includes('Nimi Web Manager'));
   assert.ok(connectedHtml.includes('官方管理端'));
   assert.ok(connectedHtml.includes('当前会话'));

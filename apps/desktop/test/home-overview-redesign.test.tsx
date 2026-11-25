@@ -200,7 +200,7 @@ test('HomeAmbientStatusStrip stays calm when idle, omits unconfigured remote/int
     />,
   );
   assert.match(idleHtml, /本机引擎就绪/);
-  assert.match(idleHtml, /1 项 AI 能力可用/);
+  assert.match(idleHtml, /1 项本机 AI 就绪/);
   assert.match(idleHtml, /今日未调用/);
   assert.doesNotMatch(idleHtml, /0\.00|home-ambient-remote|home-ambient-integrations|CPU|内存|磁盘/);
 

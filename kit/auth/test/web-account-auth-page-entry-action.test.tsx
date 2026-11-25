@@ -136,6 +136,37 @@ describe('WebAccountAuthPage entry action semantics', () => {
     container.remove();
   });
 
+  it('initializes Google with the client ID supplied by the Web adapter', async () => {
+    const initialize = vi.fn();
+    vi.stubGlobal('google', { accounts: { id: {
+      initialize,
+      prompt: (notify: (result: { isSkippedMoment: () => boolean }) => void) => {
+        notify({ isSkippedMoment: () => true });
+      },
+    } } });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => root.render(
+        <WebAccountAuthPage
+          initialStage="email"
+          adapter={{ ...authAdapter(), googleClientId: 'web-client-id' }}
+          session={{ mode: 'embedded' }}
+          branding={{ networkLabel: 'Nimi', logo: '/logo.png' }}
+          appearance={{ theme: 'default' }}
+        />,
+      ));
+      act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Auth.alternative"]')!.click());
+      await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Google"]')!.click());
+      expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: 'web-client-id' }));
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('omits wallet entry by default and displays visible disabled reasons for Google and TikTok', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

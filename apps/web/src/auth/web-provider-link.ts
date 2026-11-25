@@ -4,9 +4,24 @@ import {
   loginNimiRealmOAuth,
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
+import { getGoogleClientId, type WebAccountAuthAdapter, type WebAccountAuthAlternatives } from '@nimiplatform/kit/auth';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import { BROWSER_SESSION_RESPONSE, runWebBrowserSessionLogin, createWebBrowserRealm } from './browser-realm.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
+
+export function getWebGoogleClientId(): string {
+  return import.meta.env?.VITE_NIMI_GOOGLE_CLIENT_ID?.trim()
+    || import.meta.env?.VITE_GOOGLE_CLIENT_ID?.trim()
+    || getGoogleClientId();
+}
+
+export function resolveWebAuthAlternatives(adapter: WebAccountAuthAdapter, comingSoon: string): WebAccountAuthAlternatives {
+  return {
+    googleDisabledReason: adapter.googleClientId ? undefined : comingSoon,
+    tikTokDisabledReason: import.meta.env?.VITE_NIMI_TIKTOK_CLIENT_ID?.trim() ? undefined : comingSoon,
+    showWallet: false,
+  };
+}
 
 const TIKTOK_AUTHORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
 const TIKTOK_SCOPE = 'user.info.basic';

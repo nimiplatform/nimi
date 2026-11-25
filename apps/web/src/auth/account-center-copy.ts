@@ -23,6 +23,7 @@ export const accountCenterCopy = {
   runtimeHeroLabel: ['Primary host', '主设备'],
   runtimeStateStandby: ['Bound · Standby', '已绑定 · 未直连'],
   runtimeStateConnecting: ['Connecting…', '正在直连…'],
+  runtimeStateConnected: ['Connected · Service status unconfirmed', '已直连 · 服务状态待确认'],
   runtimeStateRunning: ['Connected · Running', '已直连 · 服务运行中'],
   runtimeStateMaintenance: ['Connected · Maintenance', '已直连 · 维护模式'],
   runtimeStateStopped: ['Stop requested', '已发送停止请求'],
@@ -37,7 +38,7 @@ export const accountCenterCopy = {
   runtimeStep2Title: ['Sign in with this Nimi account', '登录当前 Nimi 账号'],
   runtimeStep2Body: ['On first launch, Nimi Home opens your browser to confirm your account automatically.', '首次启动时，Nimi Home 会自动打开浏览器完成账号登录授权。'],
   runtimeStep3Title: ['Start binding in Connections & access', '在「连接与接入」发起绑定'],
-  runtimeStep3Body: ['Open Settings → Connections & access in Nimi Home; your browser will return here to confirm.', '在「设置 → 连接与接入」发起绑定，浏览器会自动回到本页完成确认。'],
+  runtimeStep3Body: ['Open Connections & access from the Nimi Home main navigation, then choose Bind this PC. Confirm in your browser.', '从 Nimi Home 主导航进入「连接与接入」，选择「前往官方账号页确认绑定」，然后在浏览器中确认。'],
   runtimeBindingOnly: [
     'Recorded as your account’s primary host. Actual availability depends on this PC running Nimi Home and staying reachable.',
     '已记录为当前账号的主设备。服务是否可用取决于这台电脑上的 Nimi Home 运行与网络连接状态。',

@@ -12,7 +12,7 @@ import {
   type AccountTerminationReceipt,
 } from './account-terminal-state.js';
 import { webHomeAuthPalette } from './web-auth-appearance.js';
-import { resolveWebAuthAlternatives } from './web-account-page.js';
+import { resolveWebAuthAlternatives } from './web-provider-link.js';
 import {
   AccountDraftDialog,
   AccountFeedback,
@@ -49,7 +49,8 @@ export function AccountManagementPage() {
   const [deleted, setDeleted] = useState<AccountTerminationReceipt | null>(null);
   const [verifyingOwner, setVerifyingOwner] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [pendingReceivedCount, setPendingReceivedCount] = useState<number | null>(null);
+  const [receivedRequests, setReceivedRequests] = useState<{ owner: string; total: number } | null>(null);
+  const [friendsRevision, setFriendsRevision] = useState(0);
   const request = useRef(0);
   const mounted = useRef(true);
   const blocker = useBlocker(
@@ -128,9 +129,10 @@ export function AccountManagementPage() {
     };
   }, [confirmation, refresh, verifyingOwner]);
   const currentOwnerId = user ? String(user.id) : null;
+  const pendingReceivedCount = receivedRequests && receivedRequests.owner === currentOwnerId ? receivedRequests.total : null;
   useEffect(() => {
     if (!currentOwnerId) {
-      setPendingReceivedCount(null);
+      setReceivedRequests(null);
       return;
     }
     let active = true;
@@ -139,15 +141,15 @@ export function AccountManagementPage() {
       limit: 1,
     })
       .then((page) => {
-        if (active) setPendingReceivedCount(page.total);
+        if (active) setReceivedRequests({ owner: currentOwnerId, total: page.total });
       })
       .catch(() => {
-        if (active) setPendingReceivedCount(null);
+        if (active) setReceivedRequests(null);
       });
     return () => {
       active = false;
     };
-  }, [currentOwnerId, location.pathname]);
+  }, [currentOwnerId, location.pathname, friendsRevision]);
 
   useEffect(() => {
     const route = location.pathname.split('/')[2] || '';
@@ -221,7 +223,7 @@ export function AccountManagementPage() {
           initialStage="email"
           passwordRecoveryLink={<Link to="/account/recovery">{t('Auth.forgotPassword')}</Link>}
           adapter={adapter}
-          alternatives={resolveWebAuthAlternatives(t('Auth.comingSoon'))}
+          alternatives={resolveWebAuthAlternatives(adapter, t('Auth.comingSoon'))}
           session={{
             mode: 'embedded',
             setAuthSession: (next) => {
@@ -307,7 +309,9 @@ export function AccountManagementPage() {
           path="profile"
           element={<AccountProfile key={owner} user={user} onSaved={setUser} onDirty={setDirty} />}
         />
-        <Route path="friends" element={<AccountFriends key={owner} accountId={owner} />} />
+        <Route path="friends" element={
+          <AccountFriends key={owner} accountId={owner} onRequestsChanged={() => setFriendsRevision((value) => value + 1)} />
+        } />
         <Route
           path="privacy"
           element={<AccountPrivacy key={owner} accountId={owner} onDirty={setDirty} />}

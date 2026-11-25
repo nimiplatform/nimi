@@ -28,7 +28,7 @@ type Api = ReturnType<typeof createWebBrowserRealm>['generated'];
 type Snapshot = Awaited<ReturnType<Api['getMyPrimaryRuntime']>>;
 type Intent = Awaited<ReturnType<Api['getMyPrimaryRuntimeIntent']>>;
 
-export type RuntimeLivePhase = 'idle' | 'connecting' | 'connected' | 'maintenance' | 'stopped';
+export type RuntimeLivePhase = 'idle' | 'connecting' | 'connected' | 'running' | 'maintenance' | 'stopped';
 
 export type RuntimeLiveSummary = {
   phase: RuntimeLivePhase;
@@ -50,6 +50,8 @@ function phaseStatusKey(phase: RuntimeLivePhase): AccountCopyKey {
     case 'connecting':
       return 'runtimeStateConnecting';
     case 'connected':
+      return 'runtimeStateConnected';
+    case 'running':
       return 'runtimeStateRunning';
     case 'maintenance':
       return 'runtimeStateMaintenance';

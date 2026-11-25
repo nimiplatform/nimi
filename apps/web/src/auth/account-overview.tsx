@@ -20,6 +20,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
+import { fetchDirectoryPage, isRecord, readProductSummary } from '../pages/hosted-directory-data.js';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { AccountAvatar, AccountFeedback } from './account-center-layout.js';
 import { accountCenterCopy, type AccountCopyKey } from './account-center-copy.js';
@@ -84,13 +85,6 @@ export type HostedWebAppEntry = {
   tags?: { zh?: string[]; en?: string[] };
 };
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const DIRECTORY_ENDPOINT = '/.well-known/nimi-apps';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function parseLocalizedTags(value: unknown): { zh?: string[]; en?: string[] } | undefined {
   if (!isRecord(value)) return undefined;
   const parseList = (raw: unknown): string[] | undefined => {
@@ -110,43 +104,41 @@ function parseLocalizedTags(value: unknown): { zh?: string[]; en?: string[] } | 
   };
 }
 
-export function parseHostedWebAppsPayload(data: unknown): HostedWebAppEntry[] {
-  if (!isRecord(data) || !Array.isArray(data.products)) return [];
+export function hostedWebAppsFromProducts(products: readonly unknown[]): HostedWebAppEntry[] {
   const entries: HostedWebAppEntry[] = [];
-  for (const item of data.products) {
-    if (
-      !isRecord(item)
-      || item.blocked === true
-      || typeof item.slug !== 'string'
-      || !SLUG_RE.test(item.slug)
-      || typeof item.display_name !== 'string'
-      || !isRecord(item.summary)
-      || typeof item.summary.en !== 'string'
-      || typeof item.summary.zh !== 'string'
-      || !isRecord(item.web)
-      || item.web.url !== `https://${item.slug}.nimi.xyz/`
-      || typeof item.web.version !== 'string'
-    ) {
-      continue;
-    }
-    const iconUrl = typeof item.icon_url === 'string' && item.icon_url.startsWith('/.well-known/nimi-apps/media/')
-      ? item.icon_url
-      : null;
+  for (const item of products) {
+    if (!isRecord(item)) continue;
+    const summary = readProductSummary(item);
+    if (!summary || summary.blocked || !summary.web) continue;
     const category = typeof item.category === 'string' && HOSTED_CATEGORY_SET.has(item.category)
       ? (item.category as HostedWebAppCategory)
       : undefined;
     const tags = parseLocalizedTags(item.tags);
     entries.push({
-      slug: item.slug,
-      displayName: item.display_name,
-      summary: { en: item.summary.en, zh: item.summary.zh },
-      iconUrl,
-      web: { url: item.web.url, version: item.web.version },
+      slug: summary.slug,
+      displayName: summary.display_name,
+      summary: summary.summary,
+      iconUrl: summary.icon_url,
+      web: summary.web,
       ...(category ? { category } : {}),
       ...(tags ? { tags } : {}),
     });
   }
   return entries;
+}
+
+export async function loadHostedWebApps(signal: AbortSignal): Promise<HostedWebAppEntry[]> {
+  const apps: HostedWebAppEntry[] = [];
+  const cursors = new Set<string>();
+  let after: string | null = null;
+  do {
+    const page = await fetchDirectoryPage(after, signal);
+    apps.push(...hostedWebAppsFromProducts(page.products));
+    after = page.next;
+    if (after && cursors.has(after)) throw Error('Repeated directory cursor');
+    if (after) cursors.add(after);
+  } while (after);
+  return apps;
 }
 
 function copyForLocale(locale: 'zh' | 'en') {
@@ -839,21 +831,11 @@ export function AccountOverview({
       return;
     }
     const abort = new AbortController();
-    void (async () => {
-      try {
-        const response = await fetch(DIRECTORY_ENDPOINT, {
-          signal: abort.signal,
-          credentials: 'omit',
-        });
-        if (!response.ok) return;
-        const payload: unknown = await response.json();
-        if (!abort.signal.aborted) {
-          setHostedWebApps(parseHostedWebAppsPayload(payload));
-        }
-      } catch {
-        // Directory is optional enhancement; fallback CTA remains available.
-      }
-    })();
+    void loadHostedWebApps(abort.signal).then((apps) => {
+      if (!abort.signal.aborted) setHostedWebApps(apps);
+    }).catch(() => {
+      if (!abort.signal.aborted) setHostedWebApps([]);
+    });
     return () => abort.abort();
   }, [runtimeStatus.kind]);
 

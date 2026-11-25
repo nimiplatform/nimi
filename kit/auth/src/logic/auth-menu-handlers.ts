@@ -128,7 +128,7 @@ export async function handleGoogleLogin(
   setters: AuthMenuSetters,
   adapter: WebAccountAuthAdapter,
 ): Promise<void> {
-  const googleClientId = getGoogleClientId();
+  const googleClientId = adapter.googleClientId ?? getGoogleClientId();
   setters.setLoginError(null);
   if (!googleClientId) {
     setters.setLoginError(AUTH_COPY.googleClientIdMissing);

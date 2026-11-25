@@ -7,9 +7,7 @@ import {
   buttonBase,
   buttonDefault,
   buttonOutline,
-  getGoogleClientId,
   WebAccountAuthPage,
-  type WebAccountAuthAlternatives,
 } from '@nimiplatform/kit/auth';
 import {
   clearWebBrowserSessionForFreshAccountSelection,
@@ -21,6 +19,7 @@ import {
   isFreshOauthContinuation,
   readValidatedOauthNext,
 } from './oauth-continuation.js';
+import { resolveWebAuthAlternatives } from './web-provider-link.js';
 import { webHomeAuthPalette } from './web-auth-appearance.js';
 import type { AccountRouteContext } from '../site-router.js';
 import { BrowserSessionRenewalBlockedError } from './browser-session-reader.js';
@@ -46,17 +45,6 @@ const AUTH_LOCALE_OPTIONS = {
     switchToZh: 'Switch to Chinese',
   },
 } as const;
-
-export function resolveWebAuthAlternatives(comingSoonLabel: string): WebAccountAuthAlternatives {
-  const googleClientId = getGoogleClientId()
-    || String(import.meta.env.VITE_NIMI_GOOGLE_CLIENT_ID || '').trim();
-  const tikTokClientId = String(import.meta.env.VITE_NIMI_TIKTOK_CLIENT_ID || '').trim();
-  return {
-    googleDisabledReason: googleClientId ? undefined : comingSoonLabel,
-    tikTokDisabledReason: tikTokClientId ? undefined : comingSoonLabel,
-    showWallet: false,
-  };
-}
 
 // Keep the landing homepage neutral surfaces; focus and action accents come
 // from the shared Nimi auth theme.
@@ -137,7 +125,6 @@ export function WebAccountPage() {
   const isZh = (explicitLang ?? i18n.resolvedLanguage ?? i18n.language ?? '').toLowerCase().startsWith('zh');
   const locale: LandingLocale = isZh ? 'zh' : 'en';
   const headingKey = resolveWebAuthHeadingKey(location.pathname, activeSearch);
-  const alternatives = useMemo(() => resolveWebAuthAlternatives(t('Auth.comingSoon')), [t]);
   const handleLocaleChange = (next: LandingLocale) => {
     void i18n.changeLanguage(next);
     document.documentElement.lang = next;
@@ -309,7 +296,7 @@ export function WebAccountPage() {
       }}
       branding={{ networkLabel: 'Nimi', logo: '/logo.svg', logoAltText: 'Nimi' }}
       copy={{ title: t(headingKey) }}
-      alternatives={alternatives}
+      alternatives={resolveWebAuthAlternatives(adapter, t('Auth.comingSoon'))}
       consent={{
         checked: legalAccepted,
         onChange: setLegalAccepted,
