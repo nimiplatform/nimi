@@ -144,6 +144,18 @@
   },
   "removePhoto": "移除头像",
   "photoUploaded": "头像已上传。",
+  "defaultAvatarPresets": "默认配色头像",
+  "applyAvatarPreset": "使用{{color}}默认头像",
+  "avatarPresetColors": {
+    "glacier": "冰川蓝",
+    "mint": "薄荷青",
+    "apricot": "暖杏桃",
+    "sage": "鼠尾草",
+    "rose": "柔雾粉",
+    "amber": "琥珀光",
+    "periwinkle": "鸢尾蓝",
+    "slate": "静谧灰蓝"
+  },
   "usernameIdentityHint": "可以把用户名告诉认识的人。更改用户名不会影响已有的好友关系。",
   "usernameWebHandoffHint": "分享给朋友即可找到你；用户名每年限改一次，网页修改后自动同步。",
   "manageUsernameInWeb": "在网页账号中心更改",

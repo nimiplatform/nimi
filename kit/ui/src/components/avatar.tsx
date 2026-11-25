@@ -2,6 +2,11 @@ import React, { type ReactNode } from 'react';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import { cva } from 'class-variance-authority';
 import { cn, type AvatarShape, type AvatarSize, type AvatarTone } from '../design-tokens.js';
+import {
+  getAvatarMonogram,
+  resolveAvatarMeshPalette,
+  type AvatarMeshPaletteId,
+} from '../lib/avatar-mesh.js';
 
 const avatarVariants = cva(
   'relative inline-flex shrink-0 items-center justify-center overflow-hidden',
@@ -17,7 +22,7 @@ const avatarVariants = cva(
         rounded: 'rounded-[var(--nimi-radius-md)]',
       },
       tone: {
-        neutral: 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]',
+        neutral: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]',
         accent: 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
       },
     },
@@ -29,13 +34,11 @@ const avatarVariants = cva(
   },
 );
 
-function getInitial(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || '?';
-}
-
 type AvatarProps = {
   src?: string | null;
   alt: string;
+  seed?: string | null;
+  meshPalette?: AvatarMeshPaletteId | null;
   size?: AvatarSize;
   shape?: AvatarShape;
   tone?: AvatarTone;
@@ -47,6 +50,8 @@ type AvatarProps = {
 export function Avatar({
   src,
   alt,
+  seed,
+  meshPalette,
   size = 'md',
   shape = 'circle',
   tone = 'neutral',
@@ -54,6 +59,7 @@ export function Avatar({
   fallbackClassName,
   fallback,
 }: AvatarProps) {
+  const palette = tone === 'neutral' ? resolveAvatarMeshPalette(seed ?? alt, meshPalette) : null;
   return (
     <AvatarPrimitive.Root className={cn(avatarVariants({ size, shape, tone }), className)}>
       {src ? (
@@ -64,10 +70,14 @@ export function Avatar({
         />
       ) : null}
       <AvatarPrimitive.Fallback
-        className={cn('flex h-full w-full items-center justify-center font-medium', fallbackClassName)}
-        delayMs={src ? 600 : 0}
+        data-nimi-avatar-mesh={palette?.id}
+        className={cn(
+          'flex h-full w-full select-none items-center justify-center font-semibold tracking-[-0.02em]',
+          fallbackClassName,
+        )}
+        delayMs={src ? 600 : undefined}
       >
-        {fallback ?? getInitial(alt)}
+        {fallback ?? getAvatarMonogram(alt)}
       </AvatarPrimitive.Fallback>
     </AvatarPrimitive.Root>
   );

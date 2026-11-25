@@ -25,6 +25,10 @@ function setupFailureGuidance(failure: RuntimeSetupFailureNotice, t: TFunction):
       return t('runtimeConfig.setupTask.localModelRecordsOutdated', {
         defaultValue: "Model records on this device were saved by an earlier version of Nimi and need a format upgrade before local models can be used again. Cloud services aren't affected.",
       });
+    case 'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED':
+      return t('runtimeConfig.setupTask.modelStorageLinkUnsupported', {
+        defaultValue: 'The current data folder does not support the file links required for managed local models. Choose a local folder on a supported filesystem in Settings → Storage & Data, then try again.',
+      });
     default:
       return null;
   }

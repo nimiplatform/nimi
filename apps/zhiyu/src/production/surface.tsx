@@ -29,6 +29,6 @@ export function ZhiyuFrame({ host, client, commands }: { client: NimiAppRuntimeC
   return <div className="flex h-full min-h-0 flex-col overflow-hidden">
     <NimiAppChrome metadata={{ name: '织羽', version: appPackage.version }} locale="zh" commands={commands} navigation={owner.navigation} navigationEnabled={owner.ready}
       sidebar={owner.ready && owner.hasSidebar ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
-    <div className="min-h-0 flex-1 overflow-hidden"><ZhiyuProductionSurface host={host} client={client} /></div><NimiToaster />
+    <div className="min-h-0 flex-1 overflow-hidden"><ZhiyuProductionSurface host={host} client={client} /></div><NimiToaster dismissLabel="关闭" />
   </div>;
 }

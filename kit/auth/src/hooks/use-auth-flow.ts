@@ -314,10 +314,15 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
       setEmbeddedStage('email');
       setPassword('');
     } else if (embeddedStage === 'email') {
-      setView('main');
-      setEmbeddedStage('logo');
-      setShowAlternatives(false);
-      setShowRegisterConfirm(false);
+      if (config.initialStage === 'email') {
+        setShowAlternatives(false);
+        setShowRegisterConfirm(false);
+      } else {
+        setView('main');
+        setEmbeddedStage('logo');
+        setShowAlternatives(false);
+        setShowRegisterConfirm(false);
+      }
     } else {
       setView('main');
       setEmbeddedStage('logo');

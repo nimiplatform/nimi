@@ -95,7 +95,7 @@ export function ZhiyuCharacterDiscovery({ client, cache, inventoryKey, query, se
         {item.avatarUrl ? <img src={item.avatarUrl} alt="" referrerPolicy="no-referrer" /> : <span className="zhiyu-discovery__initial" aria-hidden="true">{Array.from(item.displayName)[0]}</span>}
         <span className="zhiyu-discovery__row-copy"><strong>{item.displayName}</strong><span>{item.worldName}{item.existingPartner ? ' · 已是伙伴' : ''}</span><span className="zhiyu-discovery__summary">{item.summary}</span></span>
       </button>)}</div>
-      <div className="zhiyu-discovery__actions">{page?.nextCursor && <Button tone="secondary" disabled={loading} onClick={() => void read(true)}>{loading ? '正在读取…' : '查看更多角色'}</Button>}<Button tone="ghost" disabled={loading} onClick={() => void read()}>刷新</Button></div>
+      {!(error && !page) && <div className="zhiyu-discovery__actions">{page?.nextCursor && <Button tone="secondary" disabled={loading} onClick={() => void read(true)}>{loading ? '正在读取…' : '查看更多角色'}</Button>}<Button tone="ghost" disabled={loading} onClick={() => void read()}>刷新</Button></div>}
     </>}
   </section>;
 }

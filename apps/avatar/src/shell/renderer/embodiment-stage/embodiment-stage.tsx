@@ -492,14 +492,38 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // click-through state from a prior renderer session (or from an old
   // build that toggled ignoreCursorEvents=true on transparent regions
   // and never recovered) from leaving the avatar permanently
+  const stageRef = useRef<HTMLElement | null>(null);
+
   // unclickable.
   useEffect(() => {
     stopClickThroughRecoveryPoll();
     if (interactive) resetCursorCapture();
   }, [interactive, resetCursorCapture, stopClickThroughRecoveryPoll]);
 
+  useEffect(() => {
+    const node = stageRef.current;
+    if (!node) return;
+    const handleWheel = (event: WheelEvent): void => {
+      if (!interactive) return;
+      if (isInteractiveTarget(event.target)) return;
+      if (computeIgnoreForPoint(event.clientX, event.clientY)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onAvatarWheel?.({
+        deltaY: event.deltaY,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
+    };
+    node.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      node.removeEventListener('wheel', handleWheel);
+    };
+  }, [computeIgnoreForPoint, interactive, onAvatarWheel]);
+
   return (
     <section
+      ref={stageRef}
       className={cn('avatar-embodiment-stage', FOCUS_RING_CLASS_NAME)}
       data-testid="avatar-embodiment-stage"
       tabIndex={interactive ? 0 : -1}
@@ -699,18 +723,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         }
         if (isInteractiveTarget(event.target)) return;
         event.preventDefault();
-      }}
-      onWheel={(event) => {
-        if (!interactive) return;
-        if (isInteractiveTarget(event.target)) return;
-        if (computeIgnoreForPoint(event.clientX, event.clientY)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onAvatarWheel?.({
-          deltaY: event.deltaY,
-          clientX: event.clientX,
-          clientY: event.clientY,
-        });
       }}
       onPointerUp={(event) => {
         if (!interactive) return;

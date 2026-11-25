@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  AVATAR_MESH_PALETTES,
+  getAvatarMonogram,
+  renderAvatarMeshPresetFile,
+  type AvatarMeshPaletteId,
+} from '@nimiplatform/kit/ui';
 import { uploadNimiRealmResourceFile, type RealmModel } from '@nimiplatform/sdk/realm';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
@@ -29,9 +35,12 @@ export function AccountProfile({
   onDirty: (dirty: boolean) => void;
 }) {
   const c = useAccountCopy();
+  const { i18n } = useTranslation();
+  const isZh = (i18n.resolvedLanguage || i18n.language || '').startsWith('zh');
   const [baseline, setBaseline] = useState(user);
   const [draft, setDraft] = useState(() => fields(user));
   const [photo, setPhoto] = useState<{ url: string; resourceId: string } | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState<AvatarMeshPaletteId | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +66,16 @@ export function AccountProfile({
   function reset() {
     setDraft(fields(baseline));
     setPhoto(null);
+    setSelectedPresetId(null);
     setError(null);
     setMessage(null);
     if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
     photoUrl.current = null;
   }
-  async function uploadPhoto(file: File) {
+  async function uploadPhoto(file: File): Promise<boolean> {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setError(c('invalidImage'));
-      return;
+      return false;
     }
     const controller = new AbortController();
     upload.current?.abort();
@@ -75,7 +85,7 @@ export function AccountProfile({
     setMessage(null);
     try {
       if ((await loadWebCurrentAccount())?.id !== user.id) throw new Error(c('changed'));
-      if (!active.current) return;
+      if (!active.current) return false;
       const result = await uploadNimiRealmResourceFile(createWebBrowserRealm(), {
         kind: 'image',
         file,
@@ -83,16 +93,33 @@ export function AccountProfile({
         deliveryAccess: 'PUBLIC',
         options: { signal: controller.signal },
       });
-      if (!active.current || controller.signal.aborted) return;
+      if (!active.current || controller.signal.aborted) return false;
       if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
       photoUrl.current = URL.createObjectURL(file);
       setPhoto({ url: photoUrl.current, resourceId: result.resourceId });
       setMessage(c('avatarPending'));
+      return true;
     } catch (reason) {
       if (active.current && !controller.signal.aborted)
         setError(reason instanceof Error ? reason.message : c('unavailable'));
+      return false;
     } finally {
       if (active.current && upload.current === controller) setUploading(false);
+    }
+  }
+  async function applyPreset(paletteId: AvatarMeshPaletteId) {
+    if (busy || uploading) return;
+    setError(null);
+    try {
+      const displayName = draft.displayName.trim() || String(baseline.displayName || baseline.handle || 'N');
+      const file = await renderAvatarMeshPresetFile({ name: displayName, paletteId });
+      const ok = await uploadPhoto(file);
+      if (ok && active.current) {
+        setSelectedPresetId(paletteId);
+      }
+    } catch (reason) {
+      if (active.current)
+        setError(reason instanceof Error ? reason.message : c('unavailable'));
     }
   }
   return (
@@ -130,7 +157,11 @@ export function AccountProfile({
       >
         <div className="ac-photo-row">
           <AccountAvatar
-            user={{ ...baseline, avatarUrl: photo?.url || baseline.avatarUrl }}
+            user={{
+              ...baseline,
+              displayName: draft.displayName.trim() || baseline.displayName,
+              avatarUrl: photo?.url || baseline.avatarUrl,
+            }}
             size="large"
           />
           <div>
@@ -144,11 +175,41 @@ export function AccountProfile({
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = '';
-                  if (file) void uploadPhoto(file);
+                  if (file) {
+                    setSelectedPresetId(null);
+                    void uploadPhoto(file);
+                  }
                 }}
               />
             </label>
             <p className="ac-muted">{c('avatarHint')}</p>
+          </div>
+        </div>
+        <div className="ac-avatar-presets">
+          <span className="ac-avatar-presets-label">{c('avatarPresets')}</span>
+          <div className="ac-avatar-preset-list" role="group" aria-label={c('avatarPresets')}>
+            {AVATAR_MESH_PALETTES.map((palette) => {
+              const colorLabel = isZh ? palette.labelZh : palette.labelEn;
+              const monogram = getAvatarMonogram(
+                draft.displayName.trim() || String(baseline.displayName || baseline.handle || 'N'),
+              );
+              const selected = selectedPresetId === palette.id;
+              return (
+                <button
+                  key={palette.id}
+                  type="button"
+                  disabled={busy || uploading}
+                  aria-label={`${c('avatarPresetApply')} ${colorLabel}`}
+                  aria-pressed={selected}
+                  title={colorLabel}
+                  data-nimi-avatar-mesh={palette.id}
+                  className={`ac-avatar-preset-btn${selected ? ' is-selected' : ''}`}
+                  onClick={() => { void applyPreset(palette.id); }}
+                >
+                  <span aria-hidden="true">{monogram}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <label className="ac-field">

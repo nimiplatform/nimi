@@ -62,9 +62,9 @@
       "degraded_reauth_required": {
         "badge": "Sign-in required",
         "title": "Sign in to continue",
-        "summary": "Sign in to Nimi Desktop before launching the avatar.",
-        "summary_with_reason": "Sign in to Nimi Desktop before launching the avatar. Reason: {{reason}}.",
-        "recovery": "Sign in through Nimi Desktop, then launch the avatar again."
+        "summary": "Sign in to Nimi Home before launching the avatar.",
+        "summary_with_reason": "Sign in to Nimi Home before launching the avatar. Reason: {{reason}}.",
+        "recovery": "Sign in through Nimi Home, then launch the avatar again."
       },
       "degraded_cloud_offline": {
         "badge": "Cloud offline",
@@ -78,13 +78,13 @@
         "title": "Can't connect to Runtime",
         "summary": "The avatar isn't receiving live data from Runtime.",
         "summary_with_reason": "The avatar isn't receiving live data from Runtime. Reason: {{reason}}.",
-        "recovery": "Start or restart Runtime, then launch the avatar again from Nimi Desktop."
+        "recovery": "Start or restart Runtime, then launch the avatar again from Nimi Home."
       },
       "degraded_launch_context_invalid": {
         "badge": "Launch required",
-        "title": "Open the avatar from Nimi Desktop",
+        "title": "Open the avatar from Nimi Home",
         "summary": "This avatar was opened without a valid agent selection.",
-        "recovery": "Choose an agent in Nimi Desktop, then launch the avatar again."
+        "recovery": "Choose an agent in Nimi Home, then launch the avatar again."
       },
       "error_bootstrap_fatal": {
         "badge": "Surface unavailable",

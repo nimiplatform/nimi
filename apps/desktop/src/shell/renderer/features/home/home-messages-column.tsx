@@ -1,7 +1,7 @@
 import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { ActionMenu, AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HomeMessageCard,
@@ -80,15 +80,19 @@ export function HomeMessageSourceNotices({ messages, systemSources, app = true, 
  * One bounded timeline with its navigation and local filters above the list.
  * Source-owned state and the complete Message center remain independent.
  */
-export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice, variant = 'card' }: {
+export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice, variant = 'card', initialFilter = 'all' }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
   onViewAll: () => void;
   appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
   variant?: 'card' | 'drawer';
+  initialFilter?: HomeTimelineQuickFilter;
 }) {
   const { t } = useTranslation();
-  const [filter, setFilter] = useState<HomeTimelineQuickFilter>('all');
+  const [filter, setFilter] = useState<HomeTimelineQuickFilter>(initialFilter);
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
   const { type, status } = quickFilterSelection(filter);
   const [filterOpen, setFilterOpen] = useState(false);
   const filtered = filter !== 'all';

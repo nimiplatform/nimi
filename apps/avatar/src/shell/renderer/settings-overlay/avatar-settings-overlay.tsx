@@ -101,7 +101,7 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
     <div
       ref={rootRef}
       id="avatar-settings-overlay"
-      className="avatar-settings-popover nimi-material-glass-thick"
+      className="avatar-settings-popover nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       style={{ left: position.left, top: position.top }}
       role="dialog"
       aria-label={t('Avatar.settings.popover_aria')}
@@ -123,8 +123,17 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
         </button>
       </div>
       <label className="avatar-settings-popover__toggle">
+        <span className="avatar-settings-popover__toggle-text">
+          <span className="avatar-settings-popover__toggle-label">
+            {t('Avatar.settings.always_on_top.label')}
+          </span>
+          <span className="avatar-settings-popover__toggle-help">
+            {t('Avatar.settings.always_on_top.help')}
+          </span>
+        </span>
         <input
           type="checkbox"
+          className="avatar-settings-popover__switch"
           checked={settings.alwaysOnTop}
           data-testid="avatar-settings-toggle-always-on-top"
           onChange={(event) => {
@@ -134,18 +143,19 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
             );
           }}
         />
-        <span className="avatar-settings-popover__toggle-text">
-          <span className="avatar-settings-popover__toggle-label">
-            {t('Avatar.settings.always_on_top.label')}
-          </span>
-          <span className="avatar-settings-popover__toggle-help">
-            {t('Avatar.settings.always_on_top.help')}
-          </span>
-        </span>
       </label>
       <label className="avatar-settings-popover__toggle">
+        <span className="avatar-settings-popover__toggle-text">
+          <span className="avatar-settings-popover__toggle-label">
+            {t('Avatar.settings.show_voice_captions.label')}
+          </span>
+          <span className="avatar-settings-popover__toggle-help">
+            {t('Avatar.settings.show_voice_captions.help')}
+          </span>
+        </span>
         <input
           type="checkbox"
+          className="avatar-settings-popover__switch"
           checked={settings.showVoiceCaptions}
           data-testid="avatar-settings-toggle-show-voice-captions"
           onChange={(event) => {
@@ -155,65 +165,68 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
             );
           }}
         />
-        <span className="avatar-settings-popover__toggle-text">
-          <span className="avatar-settings-popover__toggle-label">
-            {t('Avatar.settings.show_voice_captions.label')}
-          </span>
-          <span className="avatar-settings-popover__toggle-help">
-            {t('Avatar.settings.show_voice_captions.help')}
-          </span>
-        </span>
       </label>
       <p className="avatar-settings-popover__note">
         {t('Avatar.settings.show_voice_captions.note')}
       </p>
-      <label className="avatar-settings-popover__select-row">
-        <span>{t('Avatar.settings.caption_size.label')}</span>
-        <SelectField
-          value={settings.captionSize}
-          data-testid="avatar-settings-caption-size"
-          options={[
-            { value: 'small', label: t('Avatar.settings.caption_size.small') },
-            { value: 'medium', label: t('Avatar.settings.caption_size.medium') },
-            { value: 'large', label: t('Avatar.settings.caption_size.large') },
-          ]}
-          onValueChange={(value) => onSettingsChange(
-            { ...settings, captionSize: value as AvatarShellSettings['captionSize'] },
-            'caption_size',
-          )}
-        />
-      </label>
-      <label className="avatar-settings-popover__select-row">
-        <span>{t('Avatar.settings.caption_contrast.label')}</span>
-        <SelectField
-          value={settings.captionContrast}
-          data-testid="avatar-settings-caption-contrast"
-          options={[
-            { value: 'standard', label: t('Avatar.settings.caption_contrast.standard') },
-            { value: 'high', label: t('Avatar.settings.caption_contrast.high') },
-          ]}
-          onValueChange={(value) => onSettingsChange(
-            { ...settings, captionContrast: value as AvatarShellSettings['captionContrast'] },
-            'caption_contrast',
-          )}
-        />
-      </label>
-      <label className="avatar-settings-popover__select-row">
-        <span>{t('Avatar.settings.caption_duration.label')}</span>
-        <SelectField
-          value={settings.captionDuration}
-          data-testid="avatar-settings-caption-duration"
-          options={[
-            { value: 'short', label: t('Avatar.settings.caption_duration.short') },
-            { value: 'standard', label: t('Avatar.settings.caption_duration.standard') },
-            { value: 'long', label: t('Avatar.settings.caption_duration.long') },
-          ]}
-          onValueChange={(value) => onSettingsChange(
-            { ...settings, captionDuration: value as AvatarShellSettings['captionDuration'] },
-            'caption_duration',
-          )}
-        />
-      </label>
+      <div
+        className={
+          settings.showVoiceCaptions
+            ? 'avatar-settings-popover__caption-group'
+            : 'avatar-settings-popover__caption-group avatar-settings-popover__caption-group--muted'
+        }
+      >
+        <label className="avatar-settings-popover__select-row">
+          <span>{t('Avatar.settings.caption_size.label')}</span>
+          <SelectField
+            value={settings.captionSize}
+            className="avatar-settings-popover__select"
+            data-testid="avatar-settings-caption-size"
+            options={[
+              { value: 'small', label: t('Avatar.settings.caption_size.small') },
+              { value: 'medium', label: t('Avatar.settings.caption_size.medium') },
+              { value: 'large', label: t('Avatar.settings.caption_size.large') },
+            ]}
+            onValueChange={(value) => onSettingsChange(
+              { ...settings, captionSize: value as AvatarShellSettings['captionSize'] },
+              'caption_size',
+            )}
+          />
+        </label>
+        <label className="avatar-settings-popover__select-row">
+          <span>{t('Avatar.settings.caption_contrast.label')}</span>
+          <SelectField
+            value={settings.captionContrast}
+            className="avatar-settings-popover__select"
+            data-testid="avatar-settings-caption-contrast"
+            options={[
+              { value: 'standard', label: t('Avatar.settings.caption_contrast.standard') },
+              { value: 'high', label: t('Avatar.settings.caption_contrast.high') },
+            ]}
+            onValueChange={(value) => onSettingsChange(
+              { ...settings, captionContrast: value as AvatarShellSettings['captionContrast'] },
+              'caption_contrast',
+            )}
+          />
+        </label>
+        <label className="avatar-settings-popover__select-row">
+          <span>{t('Avatar.settings.caption_duration.label')}</span>
+          <SelectField
+            value={settings.captionDuration}
+            className="avatar-settings-popover__select"
+            data-testid="avatar-settings-caption-duration"
+            options={[
+              { value: 'short', label: t('Avatar.settings.caption_duration.short') },
+              { value: 'standard', label: t('Avatar.settings.caption_duration.standard') },
+              { value: 'long', label: t('Avatar.settings.caption_duration.long') },
+            ]}
+            onValueChange={(value) => onSettingsChange(
+              { ...settings, captionDuration: value as AvatarShellSettings['captionDuration'] },
+              'caption_duration',
+            )}
+          />
+        </label>
+      </div>
     </div>
   );
 }

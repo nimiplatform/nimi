@@ -45,10 +45,10 @@
 .world-atlas-hero-cta:hover { opacity: .92; transform: translateY(-1px); }
 .world-atlas-arrows { display: flex; gap: 10px; margin-left: auto; }
 .world-atlas-arrows button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--nimi-surface-panel); color: var(--atlas-muted); box-shadow: 0 2px 10px #14233810; }
-.world-atlas-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 24px 0 8px; }
-.world-atlas-filters button { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 16px; border-radius: 999px; background: var(--atlas-tint); color: var(--atlas-muted); font-size: 13px; font-weight: 600; transition: background 150ms ease, color 150ms ease; }
+.world-atlas-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 24px 0 8px; }
+.world-atlas-filters button { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 13px; border-radius: 999px; background: var(--atlas-tint); color: var(--atlas-muted); font-size: 13px; font-weight: 600; transition: background 150ms ease, color 150ms ease; }
 .world-atlas-filters button:hover { color: var(--atlas-ink); }
-.world-atlas-filters [aria-pressed=true] { background: #172334; color: white; box-shadow: 0 3px 8px #14233825; }
+.world-atlas-filters [aria-pressed=true] { background: var(--nimi-text-primary); color: var(--nimi-surface-canvas); box-shadow: 0 3px 8px color-mix(in srgb, var(--nimi-text-primary) 18%, transparent); }
 .world-atlas-section { margin-top: 22px; }
 .world-atlas-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .world-atlas-section-heading > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; min-width: 0; }

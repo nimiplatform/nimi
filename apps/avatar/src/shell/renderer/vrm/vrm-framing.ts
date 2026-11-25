@@ -73,8 +73,8 @@ const INTENT_PARAMS: Record<
     framedHeightRatio: FULL_BODY_HEIGHT_MARGIN,
   },
   'bottom-companion': {
-    cameraYOffsetRatio: 0.55,
-    framedHeightRatio: 1,
+    cameraYOffsetRatio: 0.505,
+    framedHeightRatio: 1.03,
   },
   'head-shoulders': {
     cameraYOffsetRatio: 0.85,

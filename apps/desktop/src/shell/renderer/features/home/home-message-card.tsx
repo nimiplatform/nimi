@@ -135,8 +135,7 @@ export function MessageSourceIcon({ message, context }: { message: HomeMessage; 
   switch (message.sourceKind) {
     case 'realm': {
       const account = realmMessageAccount(message);
-      return <EntityAvatar name={account.name} imageUrl={account.avatarUrl} kind="human" sizeClassName="h-10 w-10 shrink-0"
-        fallbackClassName="bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]" />;
+      return <EntityAvatar name={account.name} seed={account.id || account.name} imageUrl={account.avatarUrl} kind="human" sizeClassName="h-10 w-10 shrink-0" />;
     }
     case 'app': {
       const { appId, sourceRef } = message.record.source;

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { accountReturnTo } from './account-center-model.js';
+import { accountReturnTo, resolveWebAuthHeadingKey } from './account-center-model.js';
 import { useTranslation } from 'react-i18next';
 import {
   buttonBase,
   buttonDefault,
   buttonOutline,
+  getGoogleClientId,
   WebAccountAuthPage,
+  type WebAccountAuthAlternatives,
 } from '@nimiplatform/kit/auth';
 import {
   clearWebBrowserSessionForFreshAccountSelection,
@@ -22,16 +24,54 @@ import {
 import { webHomeAuthPalette } from './web-auth-appearance.js';
 import type { AccountRouteContext } from '../site-router.js';
 import { BrowserSessionRenewalBlockedError } from './browser-session-reader.js';
+import { LanguageToggle } from '../landing/components/language-toggle.js';
+import {
+  applyLocaleToLocation,
+  persistLocale,
+  type LandingLocale,
+} from '../landing/i18n/locale.js';
+import { loadWebLocaleFont } from '../fonts.js';
+
+const AUTH_LOCALE_OPTIONS = {
+  zh: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: '切换为英文',
+    switchToZh: '切换为中文',
+  },
+  en: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: 'Switch to English',
+    switchToZh: 'Switch to Chinese',
+  },
+} as const;
+
+export function resolveWebAuthAlternatives(comingSoonLabel: string): WebAccountAuthAlternatives {
+  const googleClientId = getGoogleClientId()
+    || String(import.meta.env.VITE_NIMI_GOOGLE_CLIENT_ID || '').trim();
+  const tikTokClientId = String(import.meta.env.VITE_NIMI_TIKTOK_CLIENT_ID || '').trim();
+  return {
+    googleDisabledReason: googleClientId ? undefined : comingSoonLabel,
+    tikTokDisabledReason: tikTokClientId ? undefined : comingSoonLabel,
+    showWallet: false,
+  };
+}
 
 // Keep the landing homepage neutral surfaces; focus and action accents come
 // from the shared Nimi auth theme.
-function WebAccountStatusShell({ children }: { children: ReactNode }) {
+function WebAccountStatusShell({ header, children }: { header?: ReactNode; children: ReactNode }) {
   return (
     <main
       className="nimi-shell-auth-root nimi-shell-auth-brand-surface web-account-session-page"
       data-shell-auth-theme="custom"
       style={webHomeAuthPalette}
     >
+      {header ? (
+        <div className="nimi-shell-auth-topbar">
+          {header}
+        </div>
+      ) : null}
       <div className="nimi-shell-auth-shell">
         <div className="nimi-shell-auth-content">{children}</div>
       </div>
@@ -47,6 +87,11 @@ function resolveExplicitLang(search: string): 'zh' | 'en' | null {
 function resolveHomeHref(search: string): string {
   const lang = resolveExplicitLang(search);
   return lang ? `/?lang=${lang}` : '/';
+}
+
+function resolveDownloadHref(search: string): string {
+  const lang = resolveExplicitLang(search);
+  return lang ? `/download?lang=${lang}` : '/download';
 }
 
 function resolveAccountHref(search: string): string {
@@ -74,12 +119,13 @@ export function WebAccountPage() {
   const confirmation = useOutletContext<AccountRouteContext>();
   const activeSearch = location.search || (typeof window === 'undefined' ? '' : window.location.search);
   const params = new URLSearchParams(activeSearch);
-  const ordinaryLogin = location.pathname === '/login'
+  const ordinaryLogin = (location.pathname === '/login' || location.pathname === '/register')
     && !params.has('oauth_next') && !params.has('runtime_confirmation');
   const returnTo = params.has('returnTo') && !params.has('oauth_next')
     ? accountReturnTo(activeSearch)
     : null;
   const homeHref = resolveHomeHref(activeSearch);
+  const downloadHref = resolveDownloadHref(activeSearch);
   const accountHref = resolveAccountHref(activeSearch);
   const { t, i18n } = useTranslation();
   const explicitLang = resolveExplicitLang(activeSearch);
@@ -89,6 +135,30 @@ export function WebAccountPage() {
     }
   }, [explicitLang, i18n]);
   const isZh = (explicitLang ?? i18n.resolvedLanguage ?? i18n.language ?? '').toLowerCase().startsWith('zh');
+  const locale: LandingLocale = isZh ? 'zh' : 'en';
+  const headingKey = resolveWebAuthHeadingKey(location.pathname, activeSearch);
+  const alternatives = useMemo(() => resolveWebAuthAlternatives(t('Auth.comingSoon')), [t]);
+  const handleLocaleChange = (next: LandingLocale) => {
+    void i18n.changeLanguage(next);
+    document.documentElement.lang = next;
+    persistLocale(next, window.localStorage);
+    loadWebLocaleFont(next);
+    void navigate(applyLocaleToLocation(location, next), { replace: true });
+  };
+  const topbar = (
+    <header className="web-auth-topbar">
+      <Link to={homeHref} className="web-auth-brand" aria-label={t('Account.backHome')}>
+        <img src="/logo.svg" alt="" width={28} height={28} draggable={false} />
+        <strong>Nimi</strong>
+      </Link>
+      <LanguageToggle
+        locale={locale}
+        label={isZh ? '语言' : 'Language'}
+        options={AUTH_LOCALE_OPTIONS[locale]}
+        onChange={handleLocaleChange}
+      />
+    </header>
+  );
   useEffect(() => { document.title = `${t('Auth.signIn')} · Nimi`; }, [t]);
   const sessionCheck = useRef<Promise<boolean> | null>(null);
   const adapter = useMemo(() => createWebAccountAuthAdapter(undefined, async () => {
@@ -100,6 +170,7 @@ export function WebAccountPage() {
   }), []);
   const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [sessionFailure, setSessionFailure] = useState<{ error: unknown } | null>(null);
   const sessionError = sessionFailure
     ? formatSessionError(sessionFailure.error, t('Account.sessionUnknown'), isZh)
@@ -151,15 +222,20 @@ export function WebAccountPage() {
     };
   }, [activeSearch, adapter, i18n, ordinaryLogin]);
 
+  const hasOauthNext = params.has('oauth_next');
+  const postLoginDestination = hasOauthNext
+    ? null
+    : (returnTo ?? accountHref);
+
   useEffect(() => {
-    if (!currentUser || !returnTo) return;
+    if (!currentUser || !postLoginDestination) return;
     confirmation.current = { loginLocationKey: location.key, account: currentUser };
-    void navigate(returnTo, { replace: true, state: location.key });
-  }, [confirmation, currentUser, location.key, navigate, returnTo]);
+    void navigate(postLoginDestination, { replace: true, state: location.key });
+  }, [confirmation, currentUser, location.key, navigate, postLoginDestination]);
 
   if (checking && !ordinaryLogin) {
     return (
-      <WebAccountStatusShell>
+      <WebAccountStatusShell header={topbar}>
         <p className="web-account-session-message" role="status">{t('Account.sessionCheck')}</p>
       </WebAccountStatusShell>
     );
@@ -167,7 +243,7 @@ export function WebAccountPage() {
 
   if (sessionError && !ordinaryLogin) {
     return (
-      <WebAccountStatusShell>
+      <WebAccountStatusShell header={topbar}>
         <div className="web-account-session">
           <img src="/logo.svg" alt="Nimi" className="web-account-logo" draggable={false} />
           <div className="web-account-session-heading">
@@ -199,9 +275,9 @@ export function WebAccountPage() {
   }
 
   if (currentUser) {
-    if (returnTo) return null;
+    if (postLoginDestination) return null;
     return (
-      <WebAccountStatusShell>
+      <WebAccountStatusShell header={topbar}>
         <div className="web-account-session">
           <img src="/logo.svg" alt="Nimi" className="web-account-logo" draggable={false} />
           <div className="web-account-session-heading">
@@ -223,8 +299,8 @@ export function WebAccountPage() {
 
   return (
     <WebAccountAuthPage
-      initialStage={ordinaryLogin ? 'email' : 'logo'}
-      passwordRecoveryLink={<Link className="underline" to={{ pathname: '/account/recovery', search: activeSearch }}>{t('Auth.forgotPassword')}</Link>}
+      initialStage="email"
+      passwordRecoveryLink={<Link to={{ pathname: '/account/recovery', search: activeSearch }}>{t('Auth.forgotPassword')}</Link>}
       adapter={adapter}
       session={{
         mode: 'embedded',
@@ -232,21 +308,41 @@ export function WebAccountPage() {
         setAuthSession: (user) => setCurrentUser(user),
       }}
       branding={{ networkLabel: 'Nimi', logo: '/logo.svg', logoAltText: 'Nimi' }}
+      copy={{ title: t(headingKey) }}
+      alternatives={alternatives}
+      consent={{
+        checked: legalAccepted,
+        onChange: setLegalAccepted,
+        requiredMessage: t('Auth.legalRequired'),
+        lang: locale,
+        label: (inputId) => (
+          <>
+            <label htmlFor={inputId}>{t('Auth.legalPrefix')}</label>
+            <a href="/terms.html">{t('Auth.terms')}</a>
+            <label htmlFor={inputId}>{t('Auth.legalAnd')}</label>
+            <a href="/privacy.html">{t('Auth.privacy')}</a>
+          </>
+        ),
+      }}
       appearance={{
         theme: 'custom',
         footerPlacement: 'inside-content',
         rootStyle: webHomeAuthPalette,
       }}
+      header={topbar}
       footer={(
-        <div className="mt-6 flex justify-center">
-          <Link
-            to={homeHref}
-            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition hover:bg-black/5 hover:text-[var(--nimi-text-primary)]"
-          >
-            <span aria-hidden="true">←</span>
-            <span>{t('Account.backHome')}</span>
-          </Link>
-        </div>
+        <footer className="web-auth-footer">
+          <nav className="web-auth-footer-links" aria-label={isZh ? '官网导航' : 'Site navigation'}>
+            <Link to={homeHref} className="web-auth-footer-link">
+              <span aria-hidden="true">←</span>
+              <span>{t('Account.backHome')}</span>
+            </Link>
+            <span aria-hidden="true" className="web-auth-footer-dot">·</span>
+            <Link to={downloadHref} className="web-auth-footer-link">
+              {t('Auth.downloadHome')}
+            </Link>
+          </nav>
+        </footer>
       )}
     />
   );

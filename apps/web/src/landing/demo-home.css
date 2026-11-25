@@ -264,9 +264,11 @@
 .demo-home-frame summary {
   cursor: pointer;
 }
+.demo-home-frame a:focus-visible,
 .demo-home-frame button:focus-visible,
-.demo-home-frame input:focus-visible,
-.demo-home-frame select:focus-visible {
+.demo-home-frame input:not(:where([type='search'], .outline-none)):focus-visible,
+.demo-home-frame select:focus-visible,
+.demo-home-frame summary:focus-visible {
   outline: 2px solid #1577d5;
   outline-offset: 3px;
 }
@@ -421,6 +423,11 @@
   border-radius: 99px;
   background: var(--demo-card);
   padding: 3px 4px 3px 12px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.demo-mini-chat form:focus-within {
+  border-color: var(--nimi-field-focus);
+  box-shadow: 0 0 0 2px var(--nimi-focus-ring-color);
 }
 .demo-mini-chat input {
   min-width: 0;
@@ -428,6 +435,10 @@
   background: transparent;
   outline: none;
   font-size: 12px;
+}
+.demo-home-frame .demo-mini-chat input:focus,
+.demo-home-frame .demo-mini-chat input:focus-visible {
+  outline: none;
 }
 .demo-mini-chat form button {
   display: grid;

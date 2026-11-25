@@ -118,42 +118,48 @@ function isTechnicalPartnerDisplayName(value: string): boolean {
   return /\b(?:Runtime|SDK|LocalAgent|sourceRef|not_projected)\b/i.test(value);
 }
 
+const STATE_DISPLAY_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  projected: '已同步',
+  idle: '空闲',
+  completed: '已完成',
+  streaming: '回复中',
+  blocked: '受阻',
+  focused: '专注',
+  chat_active: '对话中',
+  active: '活跃',
+  calm: '平静',
+  neutral: '平和',
+  listening: '聆听中',
+  thinking: '思考中',
+  speaking: '说话中',
+  waiting: '等待中',
+  sleeping: '休眠中',
+  paused: '已暂停',
+  starting: '启动中',
+  stopping: '停止中',
+  stopped: '已停止',
+  suspended: '已挂起',
+  offline: '离线',
+  inactive: '未激活',
+  error: '异常',
+  failed: '异常',
+  happy: '开心',
+  sad: '难过',
+  angry: '愤怒',
+  anxious: '焦虑',
+  confused: '困惑',
+  curious: '好奇',
+  excited: '兴奋',
+  tired: '疲惫',
+});
+
 export function stateDisplayLabel(value: string | null | undefined): string {
   const normalized = value?.trim();
   if (!normalized || normalized === 'not_projected') {
     return '暂无数据';
   }
-  if (normalized === 'projected') {
-    return '已同步';
-  }
-  if (normalized === 'idle') {
-    return '空闲';
-  }
-  if (normalized === 'completed') {
-    return '已完成';
-  }
-  if (normalized === 'streaming') {
-    return '回复中';
-  }
-  if (normalized === 'blocked') {
-    return '受阻';
-  }
-  if (normalized === 'focused') {
-    return '专注';
-  }
-  if (normalized === 'chat-active') {
-    return '对话中';
-  }
-  if (normalized === 'active') {
-    return '活跃';
-  }
-  if (normalized === 'calm') {
-    return '平静';
-  }
-  if (normalized === 'neutral') {
-    return '平和';
-  }
-  return normalized;
+  const key = normalized.toLowerCase().replaceAll('-', '_');
+  return STATE_DISPLAY_LABELS[key] ?? normalized;
 }
 
 export function agentCenterHeaderStateLabel(value: string | null | undefined): string | null {

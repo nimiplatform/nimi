@@ -48,7 +48,8 @@ export function DesktopPresenceRail({
         {agents.length > 0 ? <div className="zhiyu-agent-rail__separator" aria-hidden="true" /> : null}
         {agents.map((agent) => {
           const displayName = normalizedDisplayName(agent.displayName) ?? currentPartnerName;
-          const isCurrent = hasCurrentPartner && agent.agentHandle === currentAgentHandle;
+          const isSelectedPartner = hasCurrentPartner && agent.agentHandle === currentAgentHandle;
+          const isCurrent = !discovering && isSelectedPartner;
           const canSelect = Boolean(agent.agentHandle) && !isCurrent;
           return (
             <div

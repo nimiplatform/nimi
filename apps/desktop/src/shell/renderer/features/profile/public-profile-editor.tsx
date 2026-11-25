@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import {
+  AVATAR_MESH_PALETTES,
   Button,
   FieldShell,
   OverlayShell,
@@ -7,6 +8,10 @@ import {
   TextareaField,
   TextField,
   cn,
+  getAvatarMonogram,
+  renderAvatarMeshPresetFile,
+  type AvatarMeshPaletteId,
+  type RenderAvatarMeshPresetOptions,
 } from '@nimiplatform/kit/ui';
 import { Camera, Check, Copy, ExternalLink, Eye, Globe, MapPin, Pencil, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +46,7 @@ export type ProfileEditorProps = {
   profileVisibility?: ProfileVisibilitySummary | null;
   onSave: (patch: JsonObject) => Promise<HumanProfileData | null>;
   onUploadAvatar: (file: File) => Promise<Pick<EditableProfileDraft, 'avatarUrl' | 'avatarResourceId' | 'avatarMedia'> | null>;
+  onRenderAvatarPreset?: (options: RenderAvatarMeshPresetOptions) => Promise<File>;
   onCopyHandle?: (handle: string) => Promise<void>;
   onManageUsernameInWeb?: () => Promise<void>;
   onOpenPrivacy?: () => void;
@@ -105,10 +111,11 @@ function ProfilePreviewCard({
               imageUrl={previewProfile.avatarUrl}
               media={previewProfile.avatarMedia}
               name={previewProfile.displayName}
+              seed={previewProfile.id || previewProfile.handle || previewProfile.displayName}
               kind="human"
               sizeClassName="h-14 w-14 shrink-0"
               className="border-2 border-[var(--nimi-surface-card)] ring-1 ring-[var(--nimi-border-subtle)]"
-              fallbackClassName="bg-[var(--nimi-surface-panel)] text-lg font-semibold text-[var(--nimi-text-secondary)]"
+              fallbackClassName="text-xl font-semibold"
             />
             {dirty ? (
               <StatusBadge status="info" text={t('Profile.previewDraftTag')} />
@@ -187,6 +194,7 @@ export function PublicProfileEditor({
   profileVisibility = null,
   onSave,
   onUploadAvatar,
+  onRenderAvatarPreset,
   onCopyHandle,
   onManageUsernameInWeb,
   onOpenPrivacy,
@@ -206,6 +214,7 @@ export function PublicProfileEditor({
   const [uploading, setUploading] = useState(false);
   const [openingWeb, setOpeningWeb] = useState(false);
   const [draggingAvatar, setDraggingAvatar] = useState(false);
+  const [selectedPresetId, setSelectedPresetId] = useState<AvatarMeshPaletteId | null>(null);
   const [copiedHandle, setCopiedHandle] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; message: string } | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -328,6 +337,7 @@ export function PublicProfileEditor({
     const next = buildEditableProfileDraft(latestOwnerProfile.current);
     setBaseline(next);
     setDraft(next);
+    setSelectedPresetId(null);
     setTouchedName(false);
     setSubmittedOnce(false);
     setPreview(false);
@@ -350,6 +360,33 @@ export function PublicProfileEditor({
       const avatar = await onUploadAvatar(file);
       if (mounted.current && avatar) {
         edit(avatar);
+        setSelectedPresetId(null);
+        setFeedback({ kind: 'success', message: t('Profile.avatarUploadSuccess') });
+      }
+    } catch (error) {
+      if (mounted.current) {
+        setFeedback({ kind: 'error', message: error instanceof Error ? error.message : t('Profile.avatarUploadFailed') });
+      }
+    } finally {
+      if (mounted.current) setUploading(false);
+    }
+  };
+
+  const applyAvatarPreset = async (paletteId: AvatarMeshPaletteId) => {
+    if (busy) return;
+    setUploading(true);
+    setFeedback(null);
+    try {
+      const renderPreset = onRenderAvatarPreset ?? renderAvatarMeshPresetFile;
+      const file = await renderPreset({
+        name: draft.displayName.trim() || profile.displayName,
+        paletteId,
+      });
+      if (!mounted.current) return;
+      const avatar = await onUploadAvatar(file);
+      if (mounted.current && avatar) {
+        edit(avatar);
+        setSelectedPresetId(paletteId);
         setFeedback({ kind: 'success', message: t('Profile.avatarUploadSuccess') });
       }
     } catch (error) {
@@ -585,10 +622,11 @@ export function PublicProfileEditor({
                     imageUrl={draft.avatarUrl}
                     media={draft.avatarMedia}
                     name={draft.displayName.trim() || profile.displayName}
+                    seed={profile.id || profile.handle || draft.displayName.trim() || profile.displayName}
                     kind="human"
                     sizeClassName="h-20 w-20"
                     className="ring-1 ring-[var(--nimi-border-subtle)]"
-                    fallbackClassName="bg-[var(--nimi-surface-panel)] text-2xl font-semibold text-[var(--nimi-text-secondary)]"
+                    fallbackClassName="text-3xl font-semibold"
                   />
                   <span
                     aria-hidden="true"
@@ -618,13 +656,58 @@ export function PublicProfileEditor({
                       <Button
                         tone="ghost"
                         size="sm"
-                        onClick={() => edit({ avatarUrl: null, avatarResourceId: null, avatarMedia: null })}
+                        onClick={() => {
+                          setSelectedPresetId(null);
+                          edit({ avatarUrl: null, avatarResourceId: null, avatarMedia: null });
+                        }}
                       >
                         {t('Profile.removePhoto')}
                       </Button>
                     ) : null}
                   </div>
                   <p className="text-xs text-[var(--nimi-text-muted)]">{t('Profile.uploadLimit')}</p>
+                </div>
+              </div>
+
+              <div
+                data-testid="profile-avatar-preset-picker"
+                className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--nimi-border-subtle)] pt-3"
+              >
+                <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">
+                  {t('Profile.defaultAvatarPresets')}
+                </span>
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('Profile.defaultAvatarPresets')}>
+                  {AVATAR_MESH_PALETTES.map((palette) => {
+                    const colorLabel = t(`Profile.avatarPresetColors.${palette.id}`, {
+                      defaultValue: locale.startsWith('zh') ? palette.labelZh : palette.labelEn,
+                    });
+                    const selected = selectedPresetId === palette.id;
+                    const monogram = getAvatarMonogram(draft.displayName.trim() || profile.displayName);
+                    return (
+                      <button
+                        key={palette.id}
+                        type="button"
+                        disabled={busy}
+                        data-testid={`profile-avatar-preset-${palette.id}`}
+                        aria-label={t('Profile.applyAvatarPreset', { color: colorLabel })}
+                        aria-pressed={selected}
+                        title={colorLabel}
+                        onClick={() => { void applyAvatarPreset(palette.id); }}
+                        className={cn(
+                          'relative inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-field-focus)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                          selected && 'ring-2 ring-[var(--nimi-action-primary-bg)] ring-offset-2 ring-offset-[var(--nimi-surface-card)]',
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          data-nimi-avatar-mesh={palette.id}
+                          className="flex h-full w-full items-center justify-center rounded-full tracking-[-0.02em]"
+                        >
+                          {monogram}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

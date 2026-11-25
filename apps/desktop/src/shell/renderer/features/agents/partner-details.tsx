@@ -200,12 +200,22 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
       </div>
       {!active ? <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</p> : null}
       {settings && (reference.isError || actionError || chat.failed) ? <InlineAlert tone="warning" className="mt-4">{actionError || t(chat.failed ? `${P}.actionFailed` : `${P}.managerUnavailable`)}</InlineAlert> : null}
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--nimi-border-subtle)] pt-4 text-sm">
-        {source.data && !source.isError ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'source-detail', sourceRef: source.data.sourceRef }); }}><BookOpen size={15} />{t(`${P}.source`, { name: source.data.displayName })}</Button>
-          : <span className="text-[var(--nimi-text-secondary)]">{t(source.isPending && source.fetchStatus !== 'paused' && partner.sourceRef ? `${P}.sourceLoading` : `${P}.sourceUnavailable`)}</span>}
-        {partner.sourceRef ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'world-detail', worldId: partner.sourceRef!.worldId }); }}><Globe size={15} />{source.data?.worldName || t(`${P}.world`)}</Button> : null}
-        {source.isError ? <Button tone="ghost" size="sm" onClick={() => { void source.refetch(); }}>{t('Common.retry')}</Button> : null}
-      </div>
+      {(() => {
+        const inlineAlertShownBelow = !settings && !showActivity && !publicProfile && !isLoadingPublicProfile && isProfileFailed;
+        const showSourceLink = Boolean(source.data && !source.isError);
+        const showSourceStatus = !showSourceLink && !inlineAlertShownBelow;
+        const showWorldLink = Boolean(partner.sourceRef);
+        const showHeaderRetry = Boolean(source.isError && !inlineAlertShownBelow);
+        if (!showSourceLink && !showSourceStatus && !showWorldLink && !showHeaderRetry) return null;
+        return (
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--nimi-border-subtle)] pt-4 text-sm">
+            {showSourceLink ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'source-detail', sourceRef: source.data!.sourceRef }); }}><BookOpen size={15} />{t(`${P}.source`, { name: source.data!.displayName })}</Button>
+              : showSourceStatus ? <span className="text-[var(--nimi-text-secondary)]">{t(source.isPending && source.fetchStatus !== 'paused' && partner.sourceRef ? `${P}.sourceLoading` : `${P}.sourceUnavailable`)}</span> : null}
+            {showWorldLink ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'world-detail', worldId: partner.sourceRef!.worldId }); }}><Globe size={15} />{source.data?.worldName || t(`${P}.world`)}</Button> : null}
+            {showHeaderRetry ? <Button tone="ghost" size="sm" onClick={() => { void source.refetch(); }}>{t('Common.retry')}</Button> : null}
+          </div>
+        );
+      })()}
       {source.data?.updated && !source.isError ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
     </header> : null}
     {!settings && !showActivity && !publicProfile && !isLoadingPublicProfile ? <div className="space-y-4 px-6">{renderStatusContent('grid')}

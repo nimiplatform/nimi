@@ -33,6 +33,7 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
 
 type MainLayoutSettingsMenuProps = {
   userAvatarUrl?: string | null;
+  userSeed?: string | null;
   displayName: string;
   userEmail?: string | null;
   isItemActive: (itemId: SettingsSubmenuItemId) => boolean;
@@ -62,7 +63,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
     <>
       <Surface tone="overlay" material="glass-thick" padding="none" className={`flex max-h-[calc(100cqh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}>
         <div className="flex items-center gap-3 px-4 py-3">
-          <EntityAvatar imageUrl={props.userAvatarUrl} name={props.displayName} kind="human" sizeClassName="h-10 w-10" textClassName="text-sm font-semibold" />
+          <EntityAvatar imageUrl={props.userAvatarUrl} name={props.displayName} seed={props.userSeed ?? props.displayName} kind="human" sizeClassName="h-10 w-10" textClassName="text-sm font-semibold" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{props.displayName}</p>
             {props.userEmail ? <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail}</p> : null}

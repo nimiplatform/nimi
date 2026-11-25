@@ -9,9 +9,11 @@ import {
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
 import type { HomeMessages } from './home-messages-controller.js';
+import type { HomeTimelineQuickFilter } from './home-messages-model.js';
 
 export type HomeMessagesDrawerProps = {
   open: boolean;
+  initialFilter?: HomeTimelineQuickFilter;
   messages: HomeMessages | null;
   context: HomeMessageCardContext | null;
   appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
@@ -25,6 +27,7 @@ export type HomeMessagesDrawerProps = {
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 export function HomeMessagesDrawer({
   open,
+  initialFilter = 'all',
   messages,
   context,
   appArtworkForNotice,
@@ -129,6 +132,7 @@ export function HomeMessagesDrawer({
         {messages && context ? (
           <HomeMessagesColumn
             variant="drawer"
+            initialFilter={initialFilter}
             messages={messages}
             context={context}
             appArtworkForNotice={appArtworkForNotice}

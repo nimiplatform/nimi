@@ -8,6 +8,18 @@ const en = {
   Common: { back: 'Back' },
   Auth: {
     signIn: 'Sign in to Nimi',
+    signInTitle: 'Sign in or create an account',
+    signUpTitle: 'Create your Nimi account',
+    runtimeSignInTitle: 'Sign in to confirm primary Runtime',
+    connectSignInTitle: 'Sign in to connect application',
+    oauthSignInTitle: 'Sign in to Nimi to continue',
+    comingSoon: 'Coming soon',
+    downloadHome: 'Download Nimi Home',
+    legalPrefix: 'I have read and agree to the ',
+    terms: 'Terms of Service',
+    legalAnd: ' and ',
+    privacy: 'Privacy Policy',
+    legalRequired: 'Please read and agree to the Terms of Service and Privacy Policy first.',
     continue: 'Continue',
     alternative: 'Other sign-in methods',
     emailPlaceholder: 'Email address',
@@ -46,7 +58,7 @@ const en = {
     signedInTitle: 'Signed in to Nimi',
     currentAccountFallback: 'current account',
     manageAccount: 'Manage account',
-    backHome: 'Back to home',
+    backHome: 'Back to Nimi',
     backToLogin: 'Back to sign in',
     loginRequired: 'Sign-in required',
     loginNimi: 'Sign in to Nimi',
@@ -106,6 +118,18 @@ const zh = {
   Common: { back: '返回' },
   Auth: {
     signIn: '登录 Nimi',
+    signInTitle: '登录或注册 Nimi',
+    signUpTitle: '创建你的 Nimi 账号',
+    runtimeSignInTitle: '登录以确认主 Runtime',
+    connectSignInTitle: '登录以连接应用',
+    oauthSignInTitle: '登录 Nimi 以继续',
+    comingSoon: '即将开放',
+    downloadHome: '下载 Nimi Home',
+    legalPrefix: '我已阅读并同意',
+    terms: '《服务条款》',
+    legalAnd: '和',
+    privacy: '《隐私政策》',
+    legalRequired: '请先阅读并同意《服务条款》和《隐私政策》',
     continue: '继续',
     alternative: '其他登录方式',
     emailPlaceholder: '邮箱地址',
@@ -144,7 +168,7 @@ const zh = {
     signedInTitle: '已登录 Nimi',
     currentAccountFallback: '当前账号',
     manageAccount: '管理账号',
-    backHome: '返回首页',
+    backHome: '返回官网首页',
     backToLogin: '返回登录',
     loginRequired: '需要登录',
     loginNimi: '登录 Nimi',
@@ -202,8 +226,19 @@ const zh = {
 
 let pendingInit: Promise<void> | null = null;
 
+function syncWebAccountResources(): void {
+  i18n.addResourceBundle('en', 'translation', { ...en, AccountSecurity: accountSecurityCopy.en }, true, true);
+  i18n.addResourceBundle('zh', 'translation', { ...zh, AccountSecurity: accountSecurityCopy.zh }, true, true);
+  if (i18n.language) {
+    i18n.emit('languageChanged', i18n.language);
+  }
+}
+
 export function initializeWebAccountI18n(): Promise<void> {
-  if (i18n.isInitialized) return Promise.resolve();
+  if (i18n.isInitialized) {
+    syncWebAccountResources();
+    return Promise.resolve();
+  }
   if (pendingInit) return pendingInit;
   // Resolve with the same chain as the landing page (URL > persisted landing
   // locale > browser language). The static HTML hardcodes <html lang="en">,
@@ -222,6 +257,7 @@ export function initializeWebAccountI18n(): Promise<void> {
       lng: language,
       fallbackLng: 'en',
       interpolation: { escapeValue: false },
+      react: { bindI18nStore: 'added' },
       resources: {
         en: { translation: { ...en, AccountSecurity: accountSecurityCopy.en } },
         zh: { translation: { ...zh, AccountSecurity: accountSecurityCopy.zh } },
@@ -232,4 +268,12 @@ export function initializeWebAccountI18n(): Promise<void> {
     throw error;
   });
   return pendingInit;
+}
+
+if (i18n.isInitialized) {
+  syncWebAccountResources();
+}
+
+if (import.meta.hot) {
+  import.meta.hot.accept();
 }

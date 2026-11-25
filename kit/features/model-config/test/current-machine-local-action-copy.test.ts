@@ -15,7 +15,7 @@ describe('Model Config current-machine Local action copy', () => {
 
   it('names the shared LocalAgent scope only for its existing owner', () => {
     expect(resolveModelConfigCurrentMachineLocalActionCopy('en', 'shared-local-agent-ai-config').hint).toContain('all partners and Apps');
-    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh', 'shared-local-agent-ai-config').hint).toContain('共享 LocalAgent');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh', 'shared-local-agent-ai-config').hint).toContain('共享伙伴');
     expect(resolveModelConfigCurrentMachineLocalActionCopy('en', 'app-ai-config:app-a').hint).toContain('this app');
   });
 

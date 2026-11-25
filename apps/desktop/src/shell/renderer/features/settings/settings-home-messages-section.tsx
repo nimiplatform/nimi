@@ -120,18 +120,30 @@ export function HomeMessagesSettingsView({ preferences, sources, sourcesStatus, 
             </InlineAlert>
           ) : null}
           <div className="divide-y divide-[var(--nimi-border-subtle)]">
-            {sources.map((source) => (
-              <ToggleRow
-                key={source.sourceRef}
-                title={source.label}
-                description={source.available
+            {(() => {
+              const labelCounts = new Map<string, number>();
+              for (const source of sources) {
+                labelCounts.set(source.label, (labelCounts.get(source.label) ?? 0) + 1);
+              }
+              return sources.map((source) => {
+                const duplicateLabel = (labelCounts.get(source.label) ?? 0) > 1;
+                const shortRef = source.sourceRef.split(/[:/]/u).filter(Boolean).pop() ?? source.sourceRef;
+                const disambiguator = duplicateLabel ? (shortRef.length > 12 ? shortRef.slice(-8) : shortRef) : null;
+                const baseDescription = source.available
                   ? t('Notifications.homeMessages.appSourceDescription')
-                  : t('Notifications.homeMessages.appSourceUnavailableDescription')}
-                checked={ready ? !ready.appSourcesOffHome.includes(source.sourceRef) : true}
-                disabled={disabled}
-                onChange={(onHome) => void preferences.apply({ kind: 'app-source', sourceRef: source.sourceRef, onHome })}
-              />
-            ))}
+                  : t('Notifications.homeMessages.appSourceUnavailableDescription');
+                return (
+                  <ToggleRow
+                    key={source.sourceRef}
+                    title={disambiguator ? `${source.label} (${disambiguator})` : source.label}
+                    description={baseDescription}
+                    checked={ready ? !ready.appSourcesOffHome.includes(source.sourceRef) : true}
+                    disabled={disabled}
+                    onChange={(onHome) => void preferences.apply({ kind: 'app-source', sourceRef: source.sourceRef, onHome })}
+                  />
+                );
+              });
+            })()}
             {sourcesStatus === 'ready' && sourcesComplete && !sources.length ? (
               <p className="py-3 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.homeMessages.noSources')}</p>
             ) : null}

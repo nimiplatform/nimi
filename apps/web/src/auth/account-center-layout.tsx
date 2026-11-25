@@ -1,54 +1,100 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, type Blocker } from 'react-router-dom';
 import {
+  ArrowDownToLine,
   ArrowLeft,
-  ArrowUpRight,
   ChevronDown,
   ChevronRight,
+  CircleHelp,
+  Cpu,
   Database,
-  Globe2,
   House,
   LogOut,
+  Monitor,
+  Pencil,
   ShieldCheck,
   SlidersHorizontal,
   UserRound,
   UsersRound,
-  Monitor,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getAvatarMonogram, resolveAvatarMeshPalette } from '@nimiplatform/kit/ui';
 import { useAccountCopy, type AccountCopyKey } from './account-center-copy.js';
 import { accountHandle } from './account-center-model.js';
+import { LanguageToggle } from '../landing/components/language-toggle.js';
 import { persistLocale } from '../landing/i18n/locale.js';
+import { withLocaleQuery } from '../landing/config/landing-links.js';
 import { loadWebLocaleFont } from '../fonts.js';
 
-const navigation = [
-  ['/account', 'overview', House],
+const ACCOUNT_LOCALE_OPTIONS = {
+  zh: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: '切换为英文',
+    switchToZh: '切换为中文',
+  },
+  en: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: 'Switch to English',
+    switchToZh: 'Switch to Chinese',
+  },
+} as const;
+
+type SettingsNavItem = readonly [to: string, label: AccountCopyKey, icon: typeof House];
+type SettingsNavGroup = readonly [heading: AccountCopyKey, items: readonly SettingsNavItem[]];
+
+const identityMenuItems: readonly SettingsNavItem[] = [
   ['/account/profile', 'profile', UserRound],
   ['/account/friends', 'friends', UsersRound],
   ['/account/privacy', 'privacy', SlidersHorizontal],
+];
+
+const securityMenuItems: readonly SettingsNavItem[] = [
   ['/account/security', 'security', ShieldCheck],
   ['/account/sessions', 'sessions', Monitor],
-  ['/account/runtime', 'runtime', Monitor],
   ['/account/data', 'data', Database],
-] as const;
+];
+
+const settingsSidebarGroups: readonly SettingsNavGroup[] = [
+  ['navGroupIdentity', identityMenuItems],
+  ['navGroupSecurity', securityMenuItems],
+];
+
+type AccountLayoutMode = 'portal' | 'host' | 'download' | 'settings' | 'connect';
+
+function resolveLayoutMode(pathname: string): AccountLayoutMode {
+  const segment = pathname.replace(/\/+$/, '').split('/')[2] || '';
+  if (!segment) return 'portal';
+  if (segment === 'runtime') return 'host';
+  if (segment === 'download') return 'download';
+  if (segment === 'connect') return 'connect';
+  if (['profile', 'friends', 'privacy', 'security', 'sessions', 'data', 'delete'].includes(segment)) {
+    return 'settings';
+  }
+  return 'portal';
+}
 
 export function AccountAvatar({
   user,
   size = 'normal',
 }: {
-  user: { displayName?: unknown; handle?: unknown; avatarUrl?: unknown };
+  user: { id?: unknown; displayName?: unknown; handle?: unknown; avatarUrl?: unknown };
   size?: 'normal' | 'large' | 'small';
 }) {
-  const [name, url] = [
-    String(user.displayName || user.handle || 'N'),
-    typeof user.avatarUrl === 'string' ? user.avatarUrl : null,
-  ];
+  const name = String(user.displayName || user.handle || 'N');
+  const url = typeof user.avatarUrl === 'string' && user.avatarUrl.trim() ? user.avatarUrl : null;
+  const seed = String(user.id || user.handle || user.displayName || 'N');
+  const palette = url ? null : resolveAvatarMeshPalette(seed);
   return (
-    <span className={`ac-avatar ac-avatar--${size}`}>
+    <span
+      className={`ac-avatar ac-avatar--${size}`}
+      data-nimi-avatar-mesh={palette?.id}
+    >
       {url ? (
         <img src={url} alt="" />
       ) : (
-        <span aria-hidden="true">{Array.from(name)[0]?.toUpperCase()}</span>
+        <span aria-hidden="true">{getAvatarMonogram(name)}</span>
       )}
     </span>
   );
@@ -101,164 +147,307 @@ export function AccountFrame({
   user,
   onSignOut,
   working,
+  pendingReceivedCount = null,
   children,
 }: {
   user: Record<string, unknown>;
   onSignOut: () => void;
   working: boolean;
+  pendingReceivedCount?: number | null;
   children: ReactNode;
 }) {
   const c = useAccountCopy();
   const { i18n } = useTranslation();
   const location = useLocation();
-  const mobileMenu = useRef<HTMLDetailsElement>(null);
-  const selected = navigation.find(([path]) => path === location.pathname)?.[1] ?? 'overview';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const locale = i18n.language.startsWith('zh') ? 'zh' : 'en';
+  const layoutMode = resolveLayoutMode(location.pathname);
+  const displayName = String(user.displayName || user.handle || c('profile'));
+  const handle = accountHandle(user.handle);
+  const email = typeof user.email === 'string' && user.email.trim() ? user.email.trim() : null;
+  const secondaryIdentity = email || (handle ? `@${handle}` : null);
+  const twoFactor = user.isTwoFactorEnabled === true;
+  const hasPendingRequests = Boolean(pendingReceivedCount && pendingReceivedCount > 0);
+  const isDeleteRoute = location.pathname.replace(/\/+$/, '') === '/account/delete';
+
   useEffect(() => {
-    if (mobileMenu.current) mobileMenu.current.open = false;
-  }, [location.pathname]);
-  const links = () =>
-    navigation.map(([to, label, Icon]) => (
-      <NavLink
-        key={to}
-        to={to}
-        end={to === '/account'}
-        className={({ isActive }) => `ac-nav-item${isActive ? ' is-active' : ''}`}
-      >
-        <Icon size={19} />
-        <span>{c(label)}</span>
-      </NavLink>
-    ));
-  const footer = () => (
-    <div className="ac-sidebar-footer">
-      <Link to="/account/recovery">
-        {c('help')}
-        <ArrowUpRight size={14} />
-      </Link>
-      <button type="button" disabled={working} onClick={onSignOut}>
-        <LogOut size={17} />
-        {c('signOut')}
-      </button>
-    </div>
-  );
+    setMenuOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      setMenuOpen(false);
+      menuTriggerRef.current?.focus({ preventScroll: true });
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (menuContainerRef.current?.contains(event.target)) return;
+      setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [menuOpen]);
+
   return (
-    <div className="ac-root">
+    <div className="ac-root" data-account-layout={layoutMode}>
       <a className="ac-skip" href="#account-content">
-        {i18n.language.startsWith('zh') ? '跳到主要内容' : 'Skip to content'}
+        {locale === 'zh' ? '跳到主要内容' : 'Skip to content'}
       </a>
-      <header className="ac-topbar">
-        <Link to="/" className="ac-brand" aria-label={c('home')}>
-          <img src="/logo.svg" alt="" />
-          <span>Nimi</span>
-        </Link>
-        <span className="ac-topbar-title">{c('center')}</span>
-        <div className="ac-topbar-actions">
-          <button
-            type="button"
-            className="ac-icon-button"
-            aria-label={i18n.language.startsWith('zh') ? 'Switch to English' : '切换到中文'}
-            onClick={() => {
-              const locale = i18n.language.startsWith('zh') ? 'en' : 'zh';
-              void i18n.changeLanguage(locale);
-              document.documentElement.lang = locale;
-              persistLocale(locale, window.localStorage);
-              loadWebLocaleFont(locale);
-            }}
-          >
-            <Globe2 size={18} />
-            <span>{i18n.language.startsWith('zh') ? 'EN' : '中文'}</span>
-          </button>
-          <Link to="/" className="ac-home-link">
-            {c('home')}
-            <ArrowUpRight size={16} />
+
+      <div className="ac-topbar-wrap">
+        <header className="ac-topbar">
+          <Link to={withLocaleQuery('/', locale)} className="ac-brand" aria-label={c('home')}>
+            <img src="/logo.svg" alt="" width={29} height={29} />
+            <span>Nimi</span>
           </Link>
-        </div>
-      </header>
-      <div className="ac-workspace">
-        <aside className="ac-sidebar">
-          <div className="ac-desktop-nav">
-            <Link to="/account/profile" className="ac-sidebar-person">
-              <AccountAvatar user={user} />
-              <span>
-                <strong>{String(user.displayName || user.handle || c('profile'))}</strong>
-                <small>@{accountHandle(user.handle)}</small>
-              </span>
-            </Link>
-            <nav aria-label={c('center')}>{links()}</nav>
-            {footer()}
+
+          <nav className="ac-portal-nav" aria-label={c('center')}>
+            <NavLink
+              to="/account"
+              end
+              className={({ isActive }) => `ac-portal-nav-link${isActive ? ' is-active' : ''}`}
+            >
+              {c('navPortal')}
+            </NavLink>
+            <NavLink
+              to="/account/runtime"
+              className={({ isActive }) => `ac-portal-nav-link${isActive ? ' is-active' : ''}`}
+            >
+              {c('runtimeNav')}
+            </NavLink>
+            <NavLink
+              to="/account/download"
+              className={({ isActive }) => `ac-portal-nav-link${isActive ? ' is-active' : ''}`}
+            >
+              {c('navDownloadDesktop')}
+            </NavLink>
+          </nav>
+
+          <div className="ac-topbar-actions">
+            {hasPendingRequests ? (
+              <Link
+                to="/account/friends?view=received"
+                className="ac-friend-alert-pill"
+                aria-label={`${pendingReceivedCount} ${c('overviewPendingRequests')}`}
+              >
+                <span className="ac-friend-alert-dot" aria-hidden="true" />
+                <span>
+                  {pendingReceivedCount} {c('navPendingShort')}
+                </span>
+              </Link>
+            ) : null}
+
+            <div className="ac-topbar-lang">
+              <LanguageToggle
+                locale={locale}
+                label={locale === 'zh' ? '语言' : 'Language'}
+                options={ACCOUNT_LOCALE_OPTIONS[locale]}
+                onChange={(nextLocale) => {
+                  setMenuOpen(false);
+                  void i18n.changeLanguage(nextLocale);
+                  document.documentElement.lang = nextLocale;
+                  persistLocale(nextLocale, window.localStorage);
+                  loadWebLocaleFont(nextLocale);
+                }}
+              />
+            </div>
+
+            <div className="ac-identity-menu" ref={menuContainerRef}>
+              <button
+                ref={menuTriggerRef}
+                type="button"
+                className={`ac-identity-trigger${menuOpen ? ' is-open' : ''}`}
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                aria-controls="ac-identity-popover"
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <AccountAvatar user={user} size="small" />
+                <span className="ac-identity-trigger-name">{displayName}</span>
+                {hasPendingRequests ? (
+                  <span className="ac-identity-trigger-dot" aria-hidden="true" />
+                ) : null}
+                <ChevronDown size={15} aria-hidden="true" className="ac-identity-trigger-chevron" />
+              </button>
+
+              {menuOpen ? (
+                <div id="ac-identity-popover" className="ac-identity-popover" role="menu">
+                  <div className="ac-popover-person">
+                    <AccountAvatar user={user} size="normal" />
+                    <div className="ac-popover-person-copy">
+                      <strong>{displayName}</strong>
+                      {secondaryIdentity ? <small>{secondaryIdentity}</small> : null}
+                    </div>
+                    <Link
+                      to="/account/profile"
+                      role="menuitem"
+                      className="ac-popover-edit"
+                      title={c('edit')}
+                      aria-label={c('edit')}
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </Link>
+                  </div>
+
+                  <div className="ac-popover-divider ac-popover-divider--accent" aria-hidden="true" />
+
+                  <div className="ac-popover-mobile-nav">
+                    <NavLink
+                      to="/account"
+                      end
+                      role="menuitem"
+                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                    >
+                      <House size={16} aria-hidden="true" />
+                      <span className="ac-popover-item-label">{c('navPortal')}</span>
+                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                    </NavLink>
+                    <NavLink
+                      to="/account/runtime"
+                      role="menuitem"
+                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                    >
+                      <Cpu size={16} aria-hidden="true" />
+                      <span className="ac-popover-item-label">{c('runtimeNav')}</span>
+                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                    </NavLink>
+                    <NavLink
+                      to="/account/download"
+                      role="menuitem"
+                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                    >
+                      <ArrowDownToLine size={16} aria-hidden="true" />
+                      <span className="ac-popover-item-label">{c('navDownloadDesktop')}</span>
+                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                    </NavLink>
+                    <div className="ac-popover-divider" aria-hidden="true" />
+                  </div>
+
+                  <div className="ac-popover-group">
+                    <span className="ac-popover-group-label">{c('navGroupIdentity')}</span>
+                    <div className="ac-popover-list">
+                      {identityMenuItems.map(([to, label, Icon]) => (
+                        <NavLink
+                          key={to}
+                          to={to}
+                          role="menuitem"
+                          className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                        >
+                          <Icon size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c(label)}</span>
+                          {to === '/account/friends' && hasPendingRequests ? (
+                            <span className="ac-badge">{pendingReceivedCount}</span>
+                          ) : null}
+                          <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="ac-popover-group">
+                    <span className="ac-popover-group-label">{c('navGroupSecurity')}</span>
+                    <div className="ac-popover-list">
+                      {securityMenuItems.map(([to, label, Icon]) => (
+                        <NavLink
+                          key={to}
+                          to={to}
+                          role="menuitem"
+                          className={({ isActive }) =>
+                            `ac-popover-item${isActive || (to === '/account/data' && isDeleteRoute) ? ' is-active' : ''}`
+                          }
+                        >
+                          <Icon size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c(label)}</span>
+                          {to === '/account/security' ? (
+                            <span className={`ac-popover-pill${twoFactor ? ' is-enabled' : ''}`}>
+                              {c(twoFactor ? 'enabled' : 'notEnabled')}
+                            </span>
+                          ) : null}
+                          <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="ac-popover-divider" aria-hidden="true" />
+
+                  <div className="ac-popover-list ac-popover-list--bottom">
+                    <Link
+                      to="/account/recovery"
+                      role="menuitem"
+                      className="ac-popover-item"
+                    >
+                      <CircleHelp size={16} aria-hidden="true" />
+                      <span className="ac-popover-item-label">{c('help')}</span>
+                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="ac-popover-item ac-popover-item--danger"
+                      disabled={working}
+                      onClick={onSignOut}
+                    >
+                      <LogOut size={16} aria-hidden="true" />
+                      <span className="ac-popover-item-label">{c('signOut')}</span>
+                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
-          <details ref={mobileMenu} className="ac-mobile-nav">
-            <summary>
-              <AccountAvatar user={user} size="small" />
-              <strong>{String(user.displayName || user.handle)}</strong>
-              <span>{c(selected)}</span>
-              <ChevronDown size={17} />
-            </summary>
-            <nav aria-label={c('center')}>{links()}</nav>
-            {footer()}
-          </details>
-        </aside>
+        </header>
+      </div>
+
+      <div className={`ac-workspace ac-workspace--${layoutMode}`}>
+        {layoutMode === 'settings' ? (
+          <aside className="ac-settings-sidebar" aria-label={c('center')}>
+            <Link to="/account" className="ac-back-portal">
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>{c('navBackPortal')}</span>
+            </Link>
+
+            <nav className="ac-settings-nav" aria-label={c('center')}>
+              {settingsSidebarGroups.map(([groupKey, items]) => (
+                <div className="ac-settings-nav-group" key={groupKey}>
+                  <span className="ac-settings-nav-label">{c(groupKey)}</span>
+                  <div className="ac-settings-nav-items">
+                    {items.map(([to, label, Icon]) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        className={({ isActive }) =>
+                          `ac-settings-nav-item${isActive || (to === '/account/data' && isDeleteRoute) ? ' is-active' : ''}`
+                        }
+                      >
+                        <Icon size={17} aria-hidden="true" />
+                        <span className="ac-settings-nav-text">{c(label)}</span>
+                        {to === '/account/friends' && hasPendingRequests ? (
+                          <span className="ac-badge">{pendingReceivedCount}</span>
+                        ) : null}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </aside>
+        ) : null}
+
         <main id="account-content" className="ac-main">
           {children}
         </main>
       </div>
     </div>
-  );
-}
-
-export function AccountOverview({ user }: { user: Record<string, unknown> }) {
-  const c = useAccountCopy();
-  const shortcuts: Array<{
-    to: string;
-    title: AccountCopyKey;
-    hint: AccountCopyKey;
-    icon: typeof UsersRound;
-  }> = [
-    { to: '/account/friends', title: 'friends', hint: 'friendsHint', icon: UsersRound },
-    { to: '/account/privacy', title: 'privacy', hint: 'privacyHint', icon: SlidersHorizontal },
-    { to: '/account/security', title: 'security', hint: 'securityHint', icon: ShieldCheck },
-  ];
-  return (
-    <>
-      <AccountHeading title={c('overview')} description={c('welcome')} />
-      <section className="ac-identity">
-        <AccountAvatar user={user} size="large" />
-        <div className="ac-identity-body">
-          <h2>{String(user.displayName || user.handle)}</h2>
-          <p className="ac-handle">@{accountHandle(user.handle)}</p>
-          {user.bio ? (
-            <p className="ac-bio">{String(user.bio)}</p>
-          ) : (
-            <p className="ac-muted">{c('bioHint')}</p>
-          )}
-          <Link className="ac-button ac-button--secondary" to="/account/profile">
-            {c('edit')}
-          </Link>
-        </div>
-      </section>
-      <div className="ac-shortcuts">
-        {shortcuts.map(({ to, title, hint, icon: Icon }) => (
-          <Link to={to} className="ac-shortcut" key={to}>
-            <span className="ac-shortcut-icon">
-              <Icon size={22} />
-            </span>
-            <span>
-              <strong>{c(title)}</strong>
-              <small>{c(hint)}</small>
-            </span>
-            <ChevronRight size={19} />
-          </Link>
-        ))}
-      </div>
-      <div className="ac-context-note">
-        <img src="/logo.svg" alt="" />
-        <div>
-          <strong>{c('across')}</strong>
-          <p>
-            {c('acrossHint')} {c('chatHome')}
-          </p>
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -272,9 +461,12 @@ export function AccountSignedOut({
   onRetry: () => void;
 }) {
   const c = useAccountCopy();
+  const location = useLocation();
+  const lang = new URLSearchParams(location.search).get('lang')?.trim().toLowerCase();
+  const homeHref = lang === 'zh' || lang === 'en' ? `/?lang=${lang}` : '/';
   return (
     <main className="ac-entry">
-      <Link to="/" className="ac-brand">
+      <Link to={homeHref} className="ac-brand">
         <img src="/logo.svg" alt="" />
         <span>Nimi</span>
       </Link>
@@ -284,18 +476,20 @@ export function AccountSignedOut({
         {!error ? <p>{c('signedOutHint')}</p> : null}
         <AccountFeedback error={error} />
         {error ? (
-            <>
-              <button className="ac-button" onClick={onRetry}>
-                {c('retry')}
-              </button>
-              <Link className="ac-text-link" to={loginUrl}>{c('signedOut')}</Link>
-            </>
+          <>
+            <button className="ac-button" onClick={onRetry}>
+              {c('retry')}
+            </button>
+            <Link className="ac-text-link" to={loginUrl}>
+              {c('signedOut')}
+            </Link>
+          </>
         ) : (
           <Link className="ac-button" to={loginUrl}>
             {c('signedOut')}
           </Link>
         )}
-        <Link to="/" className="ac-text-link">
+        <Link to={homeHref} className="ac-text-link">
           <ArrowLeft size={16} />
           {c('home')}
         </Link>

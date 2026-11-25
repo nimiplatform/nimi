@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
+  Check,
   EyeOff,
   Keyboard,
   LogOut,
   Mic,
   Palette,
   Pin,
-  PinOff,
   Power,
   RotateCcw,
   Settings,
@@ -61,10 +61,11 @@ type MenuItem = {
   icon: ReactNode;
   enabled: boolean;
   checked?: boolean;
+  dividerBefore?: boolean;
 };
 
 const MENU_WIDTH_PX = 220;
-const MENU_ESTIMATED_HEIGHT_PX = 430;
+const MENU_ESTIMATED_HEIGHT_PX = 448;
 const VIEWPORT_PADDING_PX = 8;
 
 function clampPosition(value: number, size: number, viewport: number): number {
@@ -129,7 +130,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       action: 'quiet',
       labelKey: 'Avatar.context_menu.quiet',
       icon: <VolumeX size={15} aria-hidden="true" />,
-      enabled: !quietActive,
+      enabled: true,
       checked: quietActive,
     },
     {
@@ -137,6 +138,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       labelKey: 'Avatar.context_menu.appearance',
       icon: <Palette size={15} aria-hidden="true" />,
       enabled: appearanceEnabled,
+      dividerBefore: true,
     },
     {
       action: 'zoom_in',
@@ -159,11 +161,10 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
     {
       action: 'toggle_always_on_top',
       labelKey: 'Avatar.context_menu.always_on_top',
-      icon: alwaysOnTop
-        ? <PinOff size={15} aria-hidden="true" />
-        : <Pin size={15} aria-hidden="true" />,
+      icon: <Pin size={15} aria-hidden="true" />,
       enabled: true,
       checked: alwaysOnTop,
+      dividerBefore: true,
     },
     {
       action: 'hide',
@@ -188,6 +189,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       labelKey: 'Avatar.context_menu.settings',
       icon: <Settings size={15} aria-hidden="true" />,
       enabled: settingsEnabled,
+      dividerBefore: true,
     },
   ];
 
@@ -224,7 +226,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
   return (
     <div
       ref={rootRef}
-      className="avatar-context-menu nimi-material-glass-thick"
+      className="avatar-context-menu nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       style={{ left: position.left, top: position.top }}
       role="menu"
       aria-label={t('Avatar.context_menu.aria')}
@@ -239,29 +241,35 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       }}
     >
       {items.map((item) => (
-        <button
-          key={item.action}
-          type="button"
-          className={cn(
-            'avatar-context-menu__item',
-            item.checked && 'avatar-context-menu__item--checked',
-          )}
-          role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
-          disabled={!item.enabled}
-          aria-disabled={!item.enabled}
-          aria-checked={item.checked}
-          data-testid={`avatar-context-menu-item-${item.action}`}
-          onClick={() => {
-            if (!item.enabled) return;
-            onAction(item.action);
-          }}
-        >
-          <span className="avatar-context-menu__icon">{item.icon}</span>
-          <span className="avatar-context-menu__label">{t(item.labelKey)}</span>
-          {!item.enabled ? (
-            <span className="avatar-context-menu__pending">{t('Avatar.context_menu.pending')}</span>
+        <div key={item.action} className="avatar-context-menu__entry">
+          {item.dividerBefore ? (
+            <div className="avatar-context-menu__separator" role="separator" aria-hidden="true" />
           ) : null}
-        </button>
+          <button
+            type="button"
+            className={cn(
+              'avatar-context-menu__item',
+              item.checked && 'avatar-context-menu__item--checked',
+            )}
+            role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+            disabled={!item.enabled}
+            aria-disabled={!item.enabled}
+            aria-checked={item.checked}
+            data-testid={`avatar-context-menu-item-${item.action}`}
+            onClick={() => {
+              if (!item.enabled) return;
+              onAction(item.action);
+            }}
+          >
+            <span className="avatar-context-menu__icon">{item.icon}</span>
+            <span className="avatar-context-menu__label">{t(item.labelKey)}</span>
+            {item.checked ? (
+              <span className="avatar-context-menu__check" aria-hidden="true">
+                <Check size={14} />
+              </span>
+            ) : null}
+          </button>
+        </div>
       ))}
     </div>
   );

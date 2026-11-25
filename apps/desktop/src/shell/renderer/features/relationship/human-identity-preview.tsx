@@ -18,13 +18,13 @@ export function HumanIdentityPreview({ id, displayName, handle, avatarUrl, avata
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
       <button type="button" disabled={disabled} data-testid={triggerTestId} className="flex min-w-0 max-w-full items-center gap-3 rounded-lg text-left disabled:cursor-default" aria-label={t('Relationship.contacts.previewPerson', { name })}>
-        <EntityAvatar name={name} imageUrl={disabled ? null : avatarUrl} media={disabled ? null : avatarMedia} kind="human" sizeClassName="h-10 w-10 shrink-0" fallbackClassName={avatarFallbackClassName} />
+        <EntityAvatar name={name} seed={id || handle || name} imageUrl={disabled ? null : avatarUrl} media={disabled ? null : avatarMedia} kind="human" sizeClassName="h-10 w-10 shrink-0" fallbackClassName={avatarFallbackClassName} />
         <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{name}</span>
           {!disabled && handle ? <span className="block truncate text-xs text-[var(--nimi-text-secondary)]">@{handle.replace(/^@+/, '')}</span> : null}</span>
       </button>
     </PopoverTrigger>
     <PopoverContent align="start" sideOffset={8} className="w-72 space-y-4 p-5">
-      <div className="flex items-center gap-3"><EntityAvatar name={name} imageUrl={avatarUrl} media={avatarMedia} kind="human" sizeClassName="h-12 w-12 shrink-0" fallbackClassName={avatarFallbackClassName} />
+      <div className="flex items-center gap-3"><EntityAvatar name={name} seed={id || handle || name} imageUrl={avatarUrl} media={avatarMedia} kind="human" sizeClassName="h-12 w-12 shrink-0" fallbackClassName={avatarFallbackClassName} />
         <div className="min-w-0"><p className="break-words font-semibold">{name}</p>{handle ? <p className="break-words text-sm text-[var(--nimi-text-secondary)]">@{handle.replace(/^@+/, '')}</p> : null}</div></div>
       <div className="flex gap-2">
         <Button size="sm" tone="secondary" data-testid={openProfileTestId} onClick={() => { setOpen(false); void navigation.push({ id: navigation.getSnapshot().current.destination.id === 'contacts' ? 'contacts' : 'profile', profileId: id }); }}>{t('Relationship.contacts.fullProfile')}</Button>

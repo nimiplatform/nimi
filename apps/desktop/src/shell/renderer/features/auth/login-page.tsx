@@ -35,7 +35,7 @@ export function LoginPage() {
         notice={accountNotice}
         autoStart={Boolean((location.state as { accountSwitch?: boolean } | null)?.accountSwitch)}
       />
-      <NimiToaster />
+      <NimiToaster dismissLabel={t('Common.close', { defaultValue: 'Close' })} />
     </div>
   );
 }

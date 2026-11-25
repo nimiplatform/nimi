@@ -103,7 +103,22 @@ function extractQuant(title: string, variantLabel: string): LoadoutQuantPresenta
   return loadoutQuantPresentation('');
 }
 
+const KNOWN_MODEL_TOKEN_CASING: Readonly<Record<string, string>> = Object.freeze({
+  sdxl: 'SDXL',
+  voxcpm: 'VoxCPM',
+  voxcpm2: 'VoxCPM2',
+  tts: 'TTS',
+  stt: 'STT',
+  llm: 'LLM',
+  vlm: 'VLM',
+  vl: 'VL',
+  xl: 'XL',
+  dit: 'DiT',
+});
+
 function capitalizeToken(token: string): string {
+  const known = KNOWN_MODEL_TOKEN_CASING[token.toLowerCase()];
+  if (known) return known;
   return /^[a-z]/u.test(token) ? `${token[0]!.toUpperCase()}${token.slice(1)}` : token;
 }
 

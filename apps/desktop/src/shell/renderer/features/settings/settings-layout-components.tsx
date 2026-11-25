@@ -46,7 +46,12 @@ export function PageShell({
     >
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <NimiText as="h2" role="page-title" tabIndex={-1}>
+          <NimiText
+            as="h2"
+            role="page-title"
+            tabIndex={-1}
+            className="rounded-md outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          >
             {title}
           </NimiText>
           {description ? (

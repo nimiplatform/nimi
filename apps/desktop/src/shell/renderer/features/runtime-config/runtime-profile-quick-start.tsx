@@ -674,9 +674,9 @@ function StarterCapabilityCard(props: {
 
       {selected ? (
         <Button
-          tone="primary"
+          tone="secondary"
           size="sm"
-          className="w-full justify-center border-transparent bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]"
+          className="w-full justify-center border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)] hover:bg-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)]"
           disabled={props.disabled}
           onClick={() => props.onPrepare(selected)}
           data-testid={`ai-starter-use:${props.capability}`}

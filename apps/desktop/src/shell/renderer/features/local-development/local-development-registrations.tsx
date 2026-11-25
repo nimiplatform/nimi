@@ -119,7 +119,11 @@ export function LocalDevelopmentRegistrations() {
                   <StatusBadge tone="info">{t(`LocalDevelopment.shell.${run.shell}`)}</StatusBadge>
                 </div>
               </div>
-              <NimiText role="body" className="text-[13px]">{run.message}</NimiText>
+              <NimiText role="body" className="text-[13px]">
+                {run.message === 'Supervised electron host is running'
+                  ? t('LocalDevelopment.activity.runningMessage')
+                  : run.message}
+              </NimiText>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {run.reasonCode ? <code className="text-[11px] leading-4 text-[var(--nimi-text-secondary)] break-all">{run.reasonCode}</code> : null}
                 {run.hostGeneration > 0 ? <NimiText role="caption">{t('LocalDevelopment.activity.hostGeneration', { count: run.hostGeneration })}</NimiText> : null}

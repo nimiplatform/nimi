@@ -2,6 +2,13 @@ import type { ChatCopy } from './copy.js';
 
 const chinese: ChatCopy = {
   bubbleUserLabel: '你', bubbleAssistantLabel: '伙伴',
+  bubbleVoicePlayingLabel: '正在播放', bubbleVoiceMessageLabel: '语音消息',
+  bubbleGeneratingImageLabel: '正在生成图片…', bubbleGeneratingVideoLabel: '正在生成视频…',
+  bubbleImagePreviewTitle: '图片预览', bubbleOpenImagePreviewLabel: '预览图片',
+  bubbleDownloadOriginalLabel: '下载原图', bubbleDownloadFailedLabel: '未能下载原图，请重试。',
+  bubbleCloseImagePreviewLabel: '关闭图片预览', bubbleImageLabel: '图片',
+  bubbleImageUnavailableLabel: '图片暂不可用', bubbleVideoUnavailableLabel: '视频暂不可用',
+  bubbleStreamingLabel: '正在回复…',
   markdownCopyLabel: '复制代码', markdownCopiedLabel: '已复制',
   composerRemoveAttachmentLabel: (name) => `移除附件 ${name}`,
   composerCancelLabel: '取消', composerVoiceInputLabel: '语音输入', composerRecordVoiceLabel: '录制语音消息', composerSendRecordingLabel: '发送录音',
