@@ -1,0 +1,15 @@
+profile_role: developer-workflow-input
+build_profile_ref: electron-pnpm
+test_command: pnpm run test:app
+build_command: pnpm run build:electron:production
+targets:
+  macos-aarch64:
+    os: macos
+    arch: arm64
+    payload_path: dist-electron-package/nimiplatform-harness-shell-darwin-arm64
+    runtime_entry: payload/nimiplatform-harness-shell.app/Contents/MacOS/nimiplatform-harness-shell
+  windows-x86_64:
+    os: windows
+    arch: x86_64
+    payload_path: dist-electron-package/nimiplatform-harness-shell-win32-x64
+    runtime_entry: payload/nimiplatform-harness-shell.exe

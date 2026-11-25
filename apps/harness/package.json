@@ -1,6 +1,7 @@
 {
   "name": "@nimiplatform/harness",
   "version": "0.3.0",
+  "packageManager": "pnpm@10.34.7",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -16,7 +17,7 @@
     "build:prepared": "pnpm run build && pnpm run build:electron",
     "test": "pnpm run build:electron && node --test test/*.test.mjs",
     "test:app": "pnpm run build:electron && node --test test/*.test.mjs",
-    "build:electron:production": "node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs"
+    "build:electron:production": "node ../../scripts/build-supervised-app-electron-production.mjs --consumer harness"
   },
   "dependencies": {
     "@earendil-works/chord": "1.6.0",

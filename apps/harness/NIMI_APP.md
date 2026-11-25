@@ -1,6 +1,6 @@
 # Nimi Harness
 
-Nimi Harness is the bundled PC work body for your Nimi local partners. It executes multi-step code, document, and local file tasks on your machine with step-by-step approval, file diff review, and pre-write snapshot recovery while Nimi Runtime coordinates your partner's memory, session routing, and model access.
+Nimi Harness is a separate desktop App for work with your Nimi local partners. It executes multi-step code, document, and local file tasks on your machine with step-by-step approval, file diff review, and pre-write snapshot recovery while Nimi Runtime coordinates your partner's memory, session routing, and model access.
 
 ## Getting Started
 

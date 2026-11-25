@@ -2,8 +2,24 @@ schema_version: 1
 app_id: nimi.harness
 version: 0.3.0
 display_name: Nimi Harness
+profile: standalone
+manifest_role: submitted-input
 metadata:
   icon: assets/app-icon.png
+  summary: Review work from your Nimi partners, approve actions, and restore edited workspace files.
+  release_notes: RELEASE_NOTES.md
+capability_contract_refs:
+  - text.generate
+required_standardized_feature_refs: []
+storage_policy:
+  kind: app-owned-os-storage
+  os_storage_disclosure:
+    - path_pattern: "<App user data>/harness/"
+      purpose: Session transcripts, managed workspaces, snapshots and temporary tool output.
+      expected_size_band: Varies with session history and the size of workspace files.
+    - path_pattern: "<user-selected workspace>/"
+      purpose: Project files created or edited during approved tasks.
+      expected_size_band: Varies with the project.
 app_access:
   - agent.local
   - agent.session.manage
