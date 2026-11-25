@@ -6,6 +6,7 @@ import { generatedBy, readText, repoRoot } from './context.mjs';
 // the raw core-generated transport for the explicit runtime/host entrypoint;
 // languages without a native Host consumer receive a hard-cut projection.
 export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
+  '/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile',
   '/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop',
   '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
   '/nimi.runtime.v1.RuntimeAuthService/WaitLocalAppSessionEnd',
@@ -15,6 +16,8 @@ export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
   '/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess',
 ]);
 export const HOST_PRIVATE_RUNTIME_MESSAGE_NAMES = Object.freeze([
+  'ImportSelectedModelFileRequest',
+  'ImportSelectedModelFileResponse',
   'RequestRuntimeStopRequest',
   'RequestRuntimeStopResponse',
   'RebindLocalAppSessionRequest',
@@ -235,7 +238,7 @@ export function projectRuntimeForNonHostPublicSdks(runtime) {
       ...runtime.provenance,
       notes: [
         ...(runtime.provenance?.notes ?? []),
-        'Host-private Avatar target and execution access RPCs and messages are excluded from non-Host public SDK languages.',
+        'Host-private RPCs and their private messages are excluded from non-Host public SDK languages.',
       ],
     },
     services,

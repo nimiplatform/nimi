@@ -27,6 +27,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes

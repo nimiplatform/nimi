@@ -27,6 +27,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes": { kind: "unary" },

@@ -65,6 +65,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile":
+			return FirstPartyMethodServerStream, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset":
@@ -846,6 +848,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes", Kind: FirstPartyMethodUnary},

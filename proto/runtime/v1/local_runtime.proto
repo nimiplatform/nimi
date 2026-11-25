@@ -589,4 +589,23 @@ service RuntimeLocalService {
   rpc AppendInferenceAudit(AppendInferenceAuditRequest) returns (Ack);
   rpc AppendRuntimeAudit(AppendRuntimeAuditRequest) returns (Ack);
 
+  rpc ImportSelectedModelFile(stream ImportSelectedModelFileRequest) returns (ImportSelectedModelFileResponse);
+}
+
+// A trusted Home opens the selected file and streams one bounded frame at a time.
+// The seal is sent only after the host rechecks the selected file's identity.
+message ImportSelectedModelFileRequest {
+  message Header {
+    string file_name = 1;
+    int64 size_bytes = 2;
+  }
+  oneof frame {
+    Header header = 1;
+    bytes data = 2;
+    bool seal = 3;
+  }
+}
+
+message ImportSelectedModelFileResponse {
+  LocalTransferSessionSummary transfer = 1;
 }

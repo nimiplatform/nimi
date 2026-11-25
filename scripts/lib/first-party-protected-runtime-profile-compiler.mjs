@@ -37,6 +37,7 @@ const FORMAL_APP_SESSION_METHODS = new Set([
   '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
 ]);
 const SDK_RAW_HOST_METHOD_IDS = new Set([
+  '/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile',
   '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
   '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
 ]);

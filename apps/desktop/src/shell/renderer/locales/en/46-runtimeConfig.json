@@ -2583,6 +2583,10 @@
     }
   },
   "localModelCenter": {
+    "importSelectedFileUnreadable": "Nimi could not open the selected file. Choose a readable regular file and try again.",
+    "importSelectedFileChanged": "The selected file changed during import. Choose the file again after changes finish.",
+    "importStorageFull": "There is not enough space in the model storage folder. Free space and import the file again.",
+    "importSourceInvalid": "Choose a regular model file or a complete model folder that the local service can read. If the source is private, import a copy from a location shared with the service. ({{reason}})",
     "activeDownloads": "Download Tasks ({{count}})",
     "dismissTransfer": "Dismiss transfer",
     "reimport": "Import again",

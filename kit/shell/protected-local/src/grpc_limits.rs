@@ -3,6 +3,8 @@ use tonic::client::Grpc;
 use tonic::transport::{Channel, Endpoint};
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
+#[cfg(target_os = "macos")]
+use crate::generated::runtime_local_service_client::RuntimeLocalServiceClient;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::runtime_integration_service_client::RuntimeIntegrationServiceClient;
 use crate::generated::runtime_ai_realtime_service_client::RuntimeAiRealtimeServiceClient;
@@ -46,6 +48,8 @@ macro_rules! limited_runtime_client {
 }
 
 limited_runtime_client!(runtime_account_client, RuntimeAccountServiceClient);
+#[cfg(target_os = "macos")]
+limited_runtime_client!(runtime_local_client, RuntimeLocalServiceClient);
 limited_runtime_client!(runtime_agent_client, RuntimeAgentServiceClient);
 limited_runtime_client!(runtime_integration_client, RuntimeIntegrationServiceClient);
 limited_runtime_client!(runtime_ai_client, RuntimeAiServiceClient);

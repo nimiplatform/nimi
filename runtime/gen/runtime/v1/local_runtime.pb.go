@@ -4193,6 +4193,202 @@ func (*ReconcileProductControlFirstRunSetupStateRequest) Descriptor() ([]byte, [
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{68}
 }
 
+// A trusted Home opens the selected file and streams one bounded frame at a time.
+// The seal is sent only after the host rechecks the selected file's identity.
+type ImportSelectedModelFileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Frame:
+	//
+	//	*ImportSelectedModelFileRequest_Header_
+	//	*ImportSelectedModelFileRequest_Data
+	//	*ImportSelectedModelFileRequest_Seal
+	Frame         isImportSelectedModelFileRequest_Frame `protobuf_oneof:"frame"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportSelectedModelFileRequest) Reset() {
+	*x = ImportSelectedModelFileRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportSelectedModelFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportSelectedModelFileRequest) ProtoMessage() {}
+
+func (x *ImportSelectedModelFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportSelectedModelFileRequest.ProtoReflect.Descriptor instead.
+func (*ImportSelectedModelFileRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *ImportSelectedModelFileRequest) GetFrame() isImportSelectedModelFileRequest_Frame {
+	if x != nil {
+		return x.Frame
+	}
+	return nil
+}
+
+func (x *ImportSelectedModelFileRequest) GetHeader() *ImportSelectedModelFileRequest_Header {
+	if x != nil {
+		if x, ok := x.Frame.(*ImportSelectedModelFileRequest_Header_); ok {
+			return x.Header
+		}
+	}
+	return nil
+}
+
+func (x *ImportSelectedModelFileRequest) GetData() []byte {
+	if x != nil {
+		if x, ok := x.Frame.(*ImportSelectedModelFileRequest_Data); ok {
+			return x.Data
+		}
+	}
+	return nil
+}
+
+func (x *ImportSelectedModelFileRequest) GetSeal() bool {
+	if x != nil {
+		if x, ok := x.Frame.(*ImportSelectedModelFileRequest_Seal); ok {
+			return x.Seal
+		}
+	}
+	return false
+}
+
+type isImportSelectedModelFileRequest_Frame interface {
+	isImportSelectedModelFileRequest_Frame()
+}
+
+type ImportSelectedModelFileRequest_Header_ struct {
+	Header *ImportSelectedModelFileRequest_Header `protobuf:"bytes,1,opt,name=header,proto3,oneof"`
+}
+
+type ImportSelectedModelFileRequest_Data struct {
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
+}
+
+type ImportSelectedModelFileRequest_Seal struct {
+	Seal bool `protobuf:"varint,3,opt,name=seal,proto3,oneof"`
+}
+
+func (*ImportSelectedModelFileRequest_Header_) isImportSelectedModelFileRequest_Frame() {}
+
+func (*ImportSelectedModelFileRequest_Data) isImportSelectedModelFileRequest_Frame() {}
+
+func (*ImportSelectedModelFileRequest_Seal) isImportSelectedModelFileRequest_Frame() {}
+
+type ImportSelectedModelFileResponse struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Transfer      *LocalTransferSessionSummary `protobuf:"bytes,1,opt,name=transfer,proto3" json:"transfer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportSelectedModelFileResponse) Reset() {
+	*x = ImportSelectedModelFileResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportSelectedModelFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportSelectedModelFileResponse) ProtoMessage() {}
+
+func (x *ImportSelectedModelFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportSelectedModelFileResponse.ProtoReflect.Descriptor instead.
+func (*ImportSelectedModelFileResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *ImportSelectedModelFileResponse) GetTransfer() *LocalTransferSessionSummary {
+	if x != nil {
+		return x.Transfer
+	}
+	return nil
+}
+
+type ImportSelectedModelFileRequest_Header struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FileName      string                 `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	SizeBytes     int64                  `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportSelectedModelFileRequest_Header) Reset() {
+	*x = ImportSelectedModelFileRequest_Header{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportSelectedModelFileRequest_Header) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportSelectedModelFileRequest_Header) ProtoMessage() {}
+
+func (x *ImportSelectedModelFileRequest_Header) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportSelectedModelFileRequest_Header.ProtoReflect.Descriptor instead.
+func (*ImportSelectedModelFileRequest_Header) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{69, 0}
+}
+
+func (x *ImportSelectedModelFileRequest_Header) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *ImportSelectedModelFileRequest_Header) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
 var File_runtime_v1_local_runtime_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_proto_rawDesc = "" +
@@ -4502,7 +4698,18 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x10ai_profile_alias\x18\x02 \x01(\tR\x0eaiProfileAlias\"<\n" +
 	":CompleteProductControlFirstRunDeviceEnvironmentScanRequest\"|\n" +
 	"%AdmitProductControlReadyForUseRequestJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R%account_default_profile_evidence_jsonR built_in_ai_config_evidence_json\"2\n" +
-	"0ReconcileProductControlFirstRunSetupStateRequest*\x95\x01\n" +
+	"0ReconcileProductControlFirstRunSetupStateRequest\"\xed\x01\n" +
+	"\x1eImportSelectedModelFileRequest\x12P\n" +
+	"\x06header\x18\x01 \x01(\v26.nimi.runtime.v1.ImportSelectedModelFileRequest.HeaderH\x00R\x06header\x12\x14\n" +
+	"\x04data\x18\x02 \x01(\fH\x00R\x04data\x12\x14\n" +
+	"\x04seal\x18\x03 \x01(\bH\x00R\x04seal\x1aD\n" +
+	"\x06Header\x12\x1b\n" +
+	"\tfile_name\x18\x01 \x01(\tR\bfileName\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x02 \x01(\x03R\tsizeBytesB\a\n" +
+	"\x05frame\"k\n" +
+	"\x1fImportSelectedModelFileResponse\x12H\n" +
+	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer*\x95\x01\n" +
 	"\x18LocalTransferDisposition\x12*\n" +
 	"&LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"LOCAL_TRANSFER_DISPOSITION_CREATED\x10\x01\x12%\n" +
@@ -4514,7 +4721,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1cLOCAL_TRANSFER_ACTION_CANCEL\x10\x03\x12\"\n" +
 	"\x1eLOCAL_TRANSFER_ACTION_REIMPORT\x10\x04\x12$\n" +
 	" LOCAL_TRANSFER_ACTION_CHECK_SYNC\x10\x05\x12/\n" +
-	"+LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER\x10\x062\x8a1\n" +
+	"+LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER\x10\x062\x8a2\n" +
 	"\x13RuntimeLocalService\x12m\n" +
 	"\x12ListLoadoutRecipes\x12*.nimi.runtime.v1.ListLoadoutRecipesRequest\x1a+.nimi.runtime.v1.ListLoadoutRecipesResponse\x12m\n" +
 	"\x12GetMachineLoadouts\x12*.nimi.runtime.v1.GetMachineLoadoutsRequest\x1a+.nimi.runtime.v1.GetMachineLoadoutsResponse\x12U\n" +
@@ -4566,7 +4773,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x14CollectDeviceProfile\x12,.nimi.runtime.v1.CollectDeviceProfileRequest\x1a-.nimi.runtime.v1.CollectDeviceProfileResponse\x12d\n" +
 	"\x0fListLocalAudits\x12'.nimi.runtime.v1.ListLocalAuditsRequest\x1a(.nimi.runtime.v1.ListLocalAuditsResponse\x12Z\n" +
 	"\x14AppendInferenceAudit\x12,.nimi.runtime.v1.AppendInferenceAuditRequest\x1a\x14.nimi.runtime.v1.Ack\x12V\n" +
-	"\x12AppendRuntimeAudit\x12*.nimi.runtime.v1.AppendRuntimeAuditRequest\x1a\x14.nimi.runtime.v1.AckB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x12AppendRuntimeAudit\x12*.nimi.runtime.v1.AppendRuntimeAuditRequest\x1a\x14.nimi.runtime.v1.Ack\x12~\n" +
+	"\x17ImportSelectedModelFile\x12/.nimi.runtime.v1.ImportSelectedModelFileRequest\x1a0.nimi.runtime.v1.ImportSelectedModelFileResponse(\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_local_runtime_proto_rawDescOnce sync.Once
@@ -4581,7 +4789,7 @@ func file_runtime_v1_local_runtime_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_local_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 70)
+var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
 var file_runtime_v1_local_runtime_proto_goTypes = []any{
 	(LocalTransferDisposition)(0),                                      // 0: nimi.runtime.v1.LocalTransferDisposition
 	(LocalTransferAction)(0),                                           // 1: nimi.runtime.v1.LocalTransferAction
@@ -4654,56 +4862,59 @@ var file_runtime_v1_local_runtime_proto_goTypes = []any{
 	(*CompleteProductControlFirstRunDeviceEnvironmentScanRequest)(nil), // 68: nimi.runtime.v1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest
 	(*AdmitProductControlReadyForUseRequest)(nil),                      // 69: nimi.runtime.v1.AdmitProductControlReadyForUseRequest
 	(*ReconcileProductControlFirstRunSetupStateRequest)(nil),           // 70: nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
-	nil,                                               // 71: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	(LocalAssetKind)(0),                               // 72: nimi.runtime.v1.LocalAssetKind
-	(*LocalVerifiedAssetDescriptor)(nil),              // 73: nimi.runtime.v1.LocalVerifiedAssetDescriptor
-	(*ModelAssetRecord)(nil),                          // 74: nimi.runtime.v1.ModelAssetRecord
-	(*ModelAssetCatalogSearchResult)(nil),             // 75: nimi.runtime.v1.ModelAssetCatalogSearchResult
-	(*ModelAssetMarketCandidate)(nil),                 // 76: nimi.runtime.v1.ModelAssetMarketCandidate
-	(*structpb.Struct)(nil),                           // 77: google.protobuf.Struct
-	(*LocalInstallPlanDescriptor)(nil),                // 78: nimi.runtime.v1.LocalInstallPlanDescriptor
-	(*LocalDeviceProfile)(nil),                        // 79: nimi.runtime.v1.LocalDeviceProfile
-	(*LocalEnvironmentPlan)(nil),                      // 80: nimi.runtime.v1.LocalEnvironmentPlan
-	(*LocalEnvironmentDependencyJob)(nil),             // 81: nimi.runtime.v1.LocalEnvironmentDependencyJob
-	(*LocalEnvironmentSelectedSourceRecord)(nil),      // 82: nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
-	(*LocalEnvironmentActivationGate)(nil),            // 83: nimi.runtime.v1.LocalEnvironmentActivationGate
-	(*LocalAuditTimeRange)(nil),                       // 84: nimi.runtime.v1.LocalAuditTimeRange
-	(*LocalAuditEvent)(nil),                           // 85: nimi.runtime.v1.LocalAuditEvent
-	(*ListLoadoutRecipesRequest)(nil),                 // 86: nimi.runtime.v1.ListLoadoutRecipesRequest
-	(*GetMachineLoadoutsRequest)(nil),                 // 87: nimi.runtime.v1.GetMachineLoadoutsRequest
-	(*GetLoadoutRequest)(nil),                         // 88: nimi.runtime.v1.GetLoadoutRequest
-	(*PrepareLoadoutRequest)(nil),                     // 89: nimi.runtime.v1.PrepareLoadoutRequest
-	(*CommitLoadoutRequest)(nil),                      // 90: nimi.runtime.v1.CommitLoadoutRequest
-	(*UpdateLoadoutRequest)(nil),                      // 91: nimi.runtime.v1.UpdateLoadoutRequest
-	(*SelectLoadoutRequest)(nil),                      // 92: nimi.runtime.v1.SelectLoadoutRequest
-	(*DeleteLoadoutRequest)(nil),                      // 93: nimi.runtime.v1.DeleteLoadoutRequest
-	(*ListFeaturedModelAssetsRequest)(nil),            // 94: nimi.runtime.v1.ListFeaturedModelAssetsRequest
-	(*ListFactoryProfileRecommendationsRequest)(nil),  // 95: nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
-	(*ListLoadoutRecipesResponse)(nil),                // 96: nimi.runtime.v1.ListLoadoutRecipesResponse
-	(*GetMachineLoadoutsResponse)(nil),                // 97: nimi.runtime.v1.GetMachineLoadoutsResponse
-	(*GetLoadoutResponse)(nil),                        // 98: nimi.runtime.v1.GetLoadoutResponse
-	(*PrepareLoadoutResponse)(nil),                    // 99: nimi.runtime.v1.PrepareLoadoutResponse
-	(*CommitLoadoutResponse)(nil),                     // 100: nimi.runtime.v1.CommitLoadoutResponse
-	(*UpdateLoadoutResponse)(nil),                     // 101: nimi.runtime.v1.UpdateLoadoutResponse
-	(*SelectLoadoutResponse)(nil),                     // 102: nimi.runtime.v1.SelectLoadoutResponse
-	(*DeleteLoadoutResponse)(nil),                     // 103: nimi.runtime.v1.DeleteLoadoutResponse
-	(*ListFeaturedModelAssetsResponse)(nil),           // 104: nimi.runtime.v1.ListFeaturedModelAssetsResponse
-	(*ListFactoryProfileRecommendationsResponse)(nil), // 105: nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
-	(*Ack)(nil), // 106: nimi.runtime.v1.Ack
+	(*ImportSelectedModelFileRequest)(nil),                             // 71: nimi.runtime.v1.ImportSelectedModelFileRequest
+	(*ImportSelectedModelFileResponse)(nil),                            // 72: nimi.runtime.v1.ImportSelectedModelFileResponse
+	nil,                                                                // 73: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	(*ImportSelectedModelFileRequest_Header)(nil),                      // 74: nimi.runtime.v1.ImportSelectedModelFileRequest.Header
+	(LocalAssetKind)(0),                                                // 75: nimi.runtime.v1.LocalAssetKind
+	(*LocalVerifiedAssetDescriptor)(nil),                               // 76: nimi.runtime.v1.LocalVerifiedAssetDescriptor
+	(*ModelAssetRecord)(nil),                                           // 77: nimi.runtime.v1.ModelAssetRecord
+	(*ModelAssetCatalogSearchResult)(nil),                              // 78: nimi.runtime.v1.ModelAssetCatalogSearchResult
+	(*ModelAssetMarketCandidate)(nil),                                  // 79: nimi.runtime.v1.ModelAssetMarketCandidate
+	(*structpb.Struct)(nil),                                            // 80: google.protobuf.Struct
+	(*LocalInstallPlanDescriptor)(nil),                                 // 81: nimi.runtime.v1.LocalInstallPlanDescriptor
+	(*LocalDeviceProfile)(nil),                                         // 82: nimi.runtime.v1.LocalDeviceProfile
+	(*LocalEnvironmentPlan)(nil),                                       // 83: nimi.runtime.v1.LocalEnvironmentPlan
+	(*LocalEnvironmentDependencyJob)(nil),                              // 84: nimi.runtime.v1.LocalEnvironmentDependencyJob
+	(*LocalEnvironmentSelectedSourceRecord)(nil),                       // 85: nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
+	(*LocalEnvironmentActivationGate)(nil),                             // 86: nimi.runtime.v1.LocalEnvironmentActivationGate
+	(*LocalAuditTimeRange)(nil),                                        // 87: nimi.runtime.v1.LocalAuditTimeRange
+	(*LocalAuditEvent)(nil),                                            // 88: nimi.runtime.v1.LocalAuditEvent
+	(*ListLoadoutRecipesRequest)(nil),                                  // 89: nimi.runtime.v1.ListLoadoutRecipesRequest
+	(*GetMachineLoadoutsRequest)(nil),                                  // 90: nimi.runtime.v1.GetMachineLoadoutsRequest
+	(*GetLoadoutRequest)(nil),                                          // 91: nimi.runtime.v1.GetLoadoutRequest
+	(*PrepareLoadoutRequest)(nil),                                      // 92: nimi.runtime.v1.PrepareLoadoutRequest
+	(*CommitLoadoutRequest)(nil),                                       // 93: nimi.runtime.v1.CommitLoadoutRequest
+	(*UpdateLoadoutRequest)(nil),                                       // 94: nimi.runtime.v1.UpdateLoadoutRequest
+	(*SelectLoadoutRequest)(nil),                                       // 95: nimi.runtime.v1.SelectLoadoutRequest
+	(*DeleteLoadoutRequest)(nil),                                       // 96: nimi.runtime.v1.DeleteLoadoutRequest
+	(*ListFeaturedModelAssetsRequest)(nil),                             // 97: nimi.runtime.v1.ListFeaturedModelAssetsRequest
+	(*ListFactoryProfileRecommendationsRequest)(nil),                   // 98: nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
+	(*ListLoadoutRecipesResponse)(nil),                                 // 99: nimi.runtime.v1.ListLoadoutRecipesResponse
+	(*GetMachineLoadoutsResponse)(nil),                                 // 100: nimi.runtime.v1.GetMachineLoadoutsResponse
+	(*GetLoadoutResponse)(nil),                                         // 101: nimi.runtime.v1.GetLoadoutResponse
+	(*PrepareLoadoutResponse)(nil),                                     // 102: nimi.runtime.v1.PrepareLoadoutResponse
+	(*CommitLoadoutResponse)(nil),                                      // 103: nimi.runtime.v1.CommitLoadoutResponse
+	(*UpdateLoadoutResponse)(nil),                                      // 104: nimi.runtime.v1.UpdateLoadoutResponse
+	(*SelectLoadoutResponse)(nil),                                      // 105: nimi.runtime.v1.SelectLoadoutResponse
+	(*DeleteLoadoutResponse)(nil),                                      // 106: nimi.runtime.v1.DeleteLoadoutResponse
+	(*ListFeaturedModelAssetsResponse)(nil),                            // 107: nimi.runtime.v1.ListFeaturedModelAssetsResponse
+	(*ListFactoryProfileRecommendationsResponse)(nil),                  // 108: nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
+	(*Ack)(nil), // 109: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
-	72,  // 0: nimi.runtime.v1.ListVerifiedAssetsRequest.kind_filter:type_name -> nimi.runtime.v1.LocalAssetKind
-	73,  // 1: nimi.runtime.v1.ListVerifiedAssetsResponse.assets:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor
+	75,  // 0: nimi.runtime.v1.ListVerifiedAssetsRequest.kind_filter:type_name -> nimi.runtime.v1.LocalAssetKind
+	76,  // 1: nimi.runtime.v1.ListVerifiedAssetsResponse.assets:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor
 	22,  // 2: nimi.runtime.v1.ImportModelAssetResponse.transfer:type_name -> nimi.runtime.v1.LocalTransferSessionSummary
-	74,  // 3: nimi.runtime.v1.ListModelAssetsResponse.assets:type_name -> nimi.runtime.v1.ModelAssetRecord
-	74,  // 4: nimi.runtime.v1.GetModelAssetResponse.asset:type_name -> nimi.runtime.v1.ModelAssetRecord
-	74,  // 5: nimi.runtime.v1.RemoveModelAssetResponse.asset:type_name -> nimi.runtime.v1.ModelAssetRecord
-	75,  // 6: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.ModelAssetCatalogSearchResult
-	76,  // 7: nimi.runtime.v1.ListCatalogVariantsResponse.variants:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
-	71,  // 8: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	77,  // 9: nimi.runtime.v1.ResolveModelInstallPlanRequest.engine_config:type_name -> google.protobuf.Struct
-	78,  // 10: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
-	74,  // 11: nimi.runtime.v1.InstallModelFromPlanResponse.model_asset:type_name -> nimi.runtime.v1.ModelAssetRecord
+	77,  // 3: nimi.runtime.v1.ListModelAssetsResponse.assets:type_name -> nimi.runtime.v1.ModelAssetRecord
+	77,  // 4: nimi.runtime.v1.GetModelAssetResponse.asset:type_name -> nimi.runtime.v1.ModelAssetRecord
+	77,  // 5: nimi.runtime.v1.RemoveModelAssetResponse.asset:type_name -> nimi.runtime.v1.ModelAssetRecord
+	78,  // 6: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.ModelAssetCatalogSearchResult
+	79,  // 7: nimi.runtime.v1.ListCatalogVariantsResponse.variants:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
+	73,  // 8: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	80,  // 9: nimi.runtime.v1.ResolveModelInstallPlanRequest.engine_config:type_name -> google.protobuf.Struct
+	81,  // 10: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
+	77,  // 11: nimi.runtime.v1.InstallModelFromPlanResponse.model_asset:type_name -> nimi.runtime.v1.ModelAssetRecord
 	0,   // 12: nimi.runtime.v1.InstallModelFromPlanResponse.disposition:type_name -> nimi.runtime.v1.LocalTransferDisposition
 	0,   // 13: nimi.runtime.v1.LocalTransferSessionSummary.disposition:type_name -> nimi.runtime.v1.LocalTransferDisposition
 	1,   // 14: nimi.runtime.v1.LocalTransferSessionSummary.available_actions:type_name -> nimi.runtime.v1.LocalTransferAction
@@ -4713,130 +4924,134 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	22,  // 18: nimi.runtime.v1.PauseLocalTransferResponse.transfer:type_name -> nimi.runtime.v1.LocalTransferSessionSummary
 	22,  // 19: nimi.runtime.v1.ResumeLocalTransferResponse.transfer:type_name -> nimi.runtime.v1.LocalTransferSessionSummary
 	22,  // 20: nimi.runtime.v1.CancelLocalTransferResponse.transfer:type_name -> nimi.runtime.v1.LocalTransferSessionSummary
-	79,  // 21: nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest.host_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	80,  // 22: nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse.plan:type_name -> nimi.runtime.v1.LocalEnvironmentPlan
+	82,  // 21: nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest.host_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	83,  // 22: nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse.plan:type_name -> nimi.runtime.v1.LocalEnvironmentPlan
 	33,  // 23: nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest.resolution:type_name -> nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest
-	80,  // 24: nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse.plan:type_name -> nimi.runtime.v1.LocalEnvironmentPlan
-	81,  // 25: nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse.jobs:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	82,  // 26: nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesResponse.sources:type_name -> nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
-	81,  // 27: nimi.runtime.v1.ListLocalEnvironmentDependencyJobsResponse.jobs:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	79,  // 28: nimi.runtime.v1.ResolveLocalEnvironmentActivationGateRequest.host_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	83,  // 29: nimi.runtime.v1.ResolveLocalEnvironmentActivationGateResponse.gate:type_name -> nimi.runtime.v1.LocalEnvironmentActivationGate
-	81,  // 30: nimi.runtime.v1.StartLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	81,  // 31: nimi.runtime.v1.CancelLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	81,  // 32: nimi.runtime.v1.RetryLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	81,  // 33: nimi.runtime.v1.RepairLocalEnvironmentDependencyResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
-	79,  // 34: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	84,  // 35: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
-	85,  // 36: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
-	77,  // 37: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
-	77,  // 38: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
-	77,  // 39: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
-	86,  // 40: nimi.runtime.v1.RuntimeLocalService.ListLoadoutRecipes:input_type -> nimi.runtime.v1.ListLoadoutRecipesRequest
-	87,  // 41: nimi.runtime.v1.RuntimeLocalService.GetMachineLoadouts:input_type -> nimi.runtime.v1.GetMachineLoadoutsRequest
-	88,  // 42: nimi.runtime.v1.RuntimeLocalService.GetLoadout:input_type -> nimi.runtime.v1.GetLoadoutRequest
-	89,  // 43: nimi.runtime.v1.RuntimeLocalService.PrepareLoadout:input_type -> nimi.runtime.v1.PrepareLoadoutRequest
-	90,  // 44: nimi.runtime.v1.RuntimeLocalService.CommitLoadout:input_type -> nimi.runtime.v1.CommitLoadoutRequest
-	91,  // 45: nimi.runtime.v1.RuntimeLocalService.UpdateLoadout:input_type -> nimi.runtime.v1.UpdateLoadoutRequest
-	92,  // 46: nimi.runtime.v1.RuntimeLocalService.SelectLoadout:input_type -> nimi.runtime.v1.SelectLoadoutRequest
-	93,  // 47: nimi.runtime.v1.RuntimeLocalService.DeleteLoadout:input_type -> nimi.runtime.v1.DeleteLoadoutRequest
-	2,   // 48: nimi.runtime.v1.RuntimeLocalService.ListVerifiedAssets:input_type -> nimi.runtime.v1.ListVerifiedAssetsRequest
-	4,   // 49: nimi.runtime.v1.RuntimeLocalService.ImportModelAsset:input_type -> nimi.runtime.v1.ImportModelAssetRequest
-	6,   // 50: nimi.runtime.v1.RuntimeLocalService.ListModelAssets:input_type -> nimi.runtime.v1.ListModelAssetsRequest
-	8,   // 51: nimi.runtime.v1.RuntimeLocalService.GetModelAsset:input_type -> nimi.runtime.v1.GetModelAssetRequest
-	10,  // 52: nimi.runtime.v1.RuntimeLocalService.RemoveModelAsset:input_type -> nimi.runtime.v1.RemoveModelAssetRequest
-	12,  // 53: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
-	14,  // 54: nimi.runtime.v1.RuntimeLocalService.GetCatalogModelCard:input_type -> nimi.runtime.v1.GetCatalogModelCardRequest
-	16,  // 55: nimi.runtime.v1.RuntimeLocalService.ListCatalogVariants:input_type -> nimi.runtime.v1.ListCatalogVariantsRequest
-	94,  // 56: nimi.runtime.v1.RuntimeLocalService.ListFeaturedModelAssets:input_type -> nimi.runtime.v1.ListFeaturedModelAssetsRequest
-	95,  // 57: nimi.runtime.v1.RuntimeLocalService.ListFactoryProfileRecommendations:input_type -> nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
-	18,  // 58: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
-	20,  // 59: nimi.runtime.v1.RuntimeLocalService.InstallModelFromPlan:input_type -> nimi.runtime.v1.InstallModelFromPlanRequest
-	24,  // 60: nimi.runtime.v1.RuntimeLocalService.ListLocalTransfers:input_type -> nimi.runtime.v1.ListLocalTransfersRequest
-	26,  // 61: nimi.runtime.v1.RuntimeLocalService.PauseLocalTransfer:input_type -> nimi.runtime.v1.PauseLocalTransferRequest
-	28,  // 62: nimi.runtime.v1.RuntimeLocalService.ResumeLocalTransfer:input_type -> nimi.runtime.v1.ResumeLocalTransferRequest
-	30,  // 63: nimi.runtime.v1.RuntimeLocalService.CancelLocalTransfer:input_type -> nimi.runtime.v1.CancelLocalTransferRequest
-	32,  // 64: nimi.runtime.v1.RuntimeLocalService.WatchLocalTransfers:input_type -> nimi.runtime.v1.WatchLocalTransfersRequest
-	33,  // 65: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentPlan:input_type -> nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest
-	35,  // 66: nimi.runtime.v1.RuntimeLocalService.ApplyLocalEnvironmentPlan:input_type -> nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest
-	37,  // 67: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentSelectedSources:input_type -> nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesRequest
-	39,  // 68: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentDependencyJobs:input_type -> nimi.runtime.v1.ListLocalEnvironmentDependencyJobsRequest
-	41,  // 69: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentActivationGate:input_type -> nimi.runtime.v1.ResolveLocalEnvironmentActivationGateRequest
-	43,  // 70: nimi.runtime.v1.RuntimeLocalService.StartLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.StartLocalEnvironmentDependencyJobRequest
-	45,  // 71: nimi.runtime.v1.RuntimeLocalService.CancelLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.CancelLocalEnvironmentDependencyJobRequest
-	47,  // 72: nimi.runtime.v1.RuntimeLocalService.RetryLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.RetryLocalEnvironmentDependencyJobRequest
-	49,  // 73: nimi.runtime.v1.RuntimeLocalService.RepairLocalEnvironmentDependency:input_type -> nimi.runtime.v1.RepairLocalEnvironmentDependencyRequest
-	59,  // 74: nimi.runtime.v1.RuntimeLocalService.GetProductControlRecord:input_type -> nimi.runtime.v1.GetProductControlRecordRequest
-	60,  // 75: nimi.runtime.v1.RuntimeLocalService.GetProductControlSelectedDataRoot:input_type -> nimi.runtime.v1.GetProductControlSelectedDataRootRequest
-	61,  // 76: nimi.runtime.v1.RuntimeLocalService.EnsureProductControlRecordCreated:input_type -> nimi.runtime.v1.EnsureProductControlRecordCreatedRequest
-	62,  // 77: nimi.runtime.v1.RuntimeLocalService.SelectProductControlDataRoot:input_type -> nimi.runtime.v1.SelectProductControlDataRootRequest
-	63,  // 78: nimi.runtime.v1.RuntimeLocalService.InitializeProductControlRootActivation:input_type -> nimi.runtime.v1.InitializeProductControlRootActivationRequest
-	64,  // 79: nimi.runtime.v1.RuntimeLocalService.ReplaceProductControlDataRoot:input_type -> nimi.runtime.v1.ReplaceProductControlDataRootRequest
-	65,  // 80: nimi.runtime.v1.RuntimeLocalService.StartProductControlCheckSync:input_type -> nimi.runtime.v1.StartProductControlCheckSyncRequest
-	66,  // 81: nimi.runtime.v1.RuntimeLocalService.GetProductControlCheckSync:input_type -> nimi.runtime.v1.GetProductControlCheckSyncRequest
-	67,  // 82: nimi.runtime.v1.RuntimeLocalService.SetProductControlFirstRunInstallLevel:input_type -> nimi.runtime.v1.SetProductControlFirstRunInstallLevelRequest
-	68,  // 83: nimi.runtime.v1.RuntimeLocalService.CompleteProductControlFirstRunDeviceEnvironmentScan:input_type -> nimi.runtime.v1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest
-	69,  // 84: nimi.runtime.v1.RuntimeLocalService.AdmitProductControlReadyForUse:input_type -> nimi.runtime.v1.AdmitProductControlReadyForUseRequest
-	70,  // 85: nimi.runtime.v1.RuntimeLocalService.ReconcileProductControlFirstRunSetupState:input_type -> nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
-	51,  // 86: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
-	53,  // 87: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
-	55,  // 88: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
-	56,  // 89: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
-	96,  // 90: nimi.runtime.v1.RuntimeLocalService.ListLoadoutRecipes:output_type -> nimi.runtime.v1.ListLoadoutRecipesResponse
-	97,  // 91: nimi.runtime.v1.RuntimeLocalService.GetMachineLoadouts:output_type -> nimi.runtime.v1.GetMachineLoadoutsResponse
-	98,  // 92: nimi.runtime.v1.RuntimeLocalService.GetLoadout:output_type -> nimi.runtime.v1.GetLoadoutResponse
-	99,  // 93: nimi.runtime.v1.RuntimeLocalService.PrepareLoadout:output_type -> nimi.runtime.v1.PrepareLoadoutResponse
-	100, // 94: nimi.runtime.v1.RuntimeLocalService.CommitLoadout:output_type -> nimi.runtime.v1.CommitLoadoutResponse
-	101, // 95: nimi.runtime.v1.RuntimeLocalService.UpdateLoadout:output_type -> nimi.runtime.v1.UpdateLoadoutResponse
-	102, // 96: nimi.runtime.v1.RuntimeLocalService.SelectLoadout:output_type -> nimi.runtime.v1.SelectLoadoutResponse
-	103, // 97: nimi.runtime.v1.RuntimeLocalService.DeleteLoadout:output_type -> nimi.runtime.v1.DeleteLoadoutResponse
-	3,   // 98: nimi.runtime.v1.RuntimeLocalService.ListVerifiedAssets:output_type -> nimi.runtime.v1.ListVerifiedAssetsResponse
-	5,   // 99: nimi.runtime.v1.RuntimeLocalService.ImportModelAsset:output_type -> nimi.runtime.v1.ImportModelAssetResponse
-	7,   // 100: nimi.runtime.v1.RuntimeLocalService.ListModelAssets:output_type -> nimi.runtime.v1.ListModelAssetsResponse
-	9,   // 101: nimi.runtime.v1.RuntimeLocalService.GetModelAsset:output_type -> nimi.runtime.v1.GetModelAssetResponse
-	11,  // 102: nimi.runtime.v1.RuntimeLocalService.RemoveModelAsset:output_type -> nimi.runtime.v1.RemoveModelAssetResponse
-	13,  // 103: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
-	15,  // 104: nimi.runtime.v1.RuntimeLocalService.GetCatalogModelCard:output_type -> nimi.runtime.v1.GetCatalogModelCardResponse
-	17,  // 105: nimi.runtime.v1.RuntimeLocalService.ListCatalogVariants:output_type -> nimi.runtime.v1.ListCatalogVariantsResponse
-	104, // 106: nimi.runtime.v1.RuntimeLocalService.ListFeaturedModelAssets:output_type -> nimi.runtime.v1.ListFeaturedModelAssetsResponse
-	105, // 107: nimi.runtime.v1.RuntimeLocalService.ListFactoryProfileRecommendations:output_type -> nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
-	19,  // 108: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
-	21,  // 109: nimi.runtime.v1.RuntimeLocalService.InstallModelFromPlan:output_type -> nimi.runtime.v1.InstallModelFromPlanResponse
-	25,  // 110: nimi.runtime.v1.RuntimeLocalService.ListLocalTransfers:output_type -> nimi.runtime.v1.ListLocalTransfersResponse
-	27,  // 111: nimi.runtime.v1.RuntimeLocalService.PauseLocalTransfer:output_type -> nimi.runtime.v1.PauseLocalTransferResponse
-	29,  // 112: nimi.runtime.v1.RuntimeLocalService.ResumeLocalTransfer:output_type -> nimi.runtime.v1.ResumeLocalTransferResponse
-	31,  // 113: nimi.runtime.v1.RuntimeLocalService.CancelLocalTransfer:output_type -> nimi.runtime.v1.CancelLocalTransferResponse
-	23,  // 114: nimi.runtime.v1.RuntimeLocalService.WatchLocalTransfers:output_type -> nimi.runtime.v1.LocalTransferProgressEvent
-	34,  // 115: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentPlan:output_type -> nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
-	36,  // 116: nimi.runtime.v1.RuntimeLocalService.ApplyLocalEnvironmentPlan:output_type -> nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse
-	38,  // 117: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentSelectedSources:output_type -> nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesResponse
-	40,  // 118: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentDependencyJobs:output_type -> nimi.runtime.v1.ListLocalEnvironmentDependencyJobsResponse
-	42,  // 119: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentActivationGate:output_type -> nimi.runtime.v1.ResolveLocalEnvironmentActivationGateResponse
-	44,  // 120: nimi.runtime.v1.RuntimeLocalService.StartLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.StartLocalEnvironmentDependencyJobResponse
-	46,  // 121: nimi.runtime.v1.RuntimeLocalService.CancelLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.CancelLocalEnvironmentDependencyJobResponse
-	48,  // 122: nimi.runtime.v1.RuntimeLocalService.RetryLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.RetryLocalEnvironmentDependencyJobResponse
-	50,  // 123: nimi.runtime.v1.RuntimeLocalService.RepairLocalEnvironmentDependency:output_type -> nimi.runtime.v1.RepairLocalEnvironmentDependencyResponse
-	57,  // 124: nimi.runtime.v1.RuntimeLocalService.GetProductControlRecord:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 125: nimi.runtime.v1.RuntimeLocalService.GetProductControlSelectedDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 126: nimi.runtime.v1.RuntimeLocalService.EnsureProductControlRecordCreated:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 127: nimi.runtime.v1.RuntimeLocalService.SelectProductControlDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 128: nimi.runtime.v1.RuntimeLocalService.InitializeProductControlRootActivation:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 129: nimi.runtime.v1.RuntimeLocalService.ReplaceProductControlDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	58,  // 130: nimi.runtime.v1.RuntimeLocalService.StartProductControlCheckSync:output_type -> nimi.runtime.v1.CheckSyncProjectionJson
-	58,  // 131: nimi.runtime.v1.RuntimeLocalService.GetProductControlCheckSync:output_type -> nimi.runtime.v1.CheckSyncProjectionJson
-	57,  // 132: nimi.runtime.v1.RuntimeLocalService.SetProductControlFirstRunInstallLevel:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 133: nimi.runtime.v1.RuntimeLocalService.CompleteProductControlFirstRunDeviceEnvironmentScan:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 134: nimi.runtime.v1.RuntimeLocalService.AdmitProductControlReadyForUse:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	57,  // 135: nimi.runtime.v1.RuntimeLocalService.ReconcileProductControlFirstRunSetupState:output_type -> nimi.runtime.v1.ProductControlProjectionJson
-	52,  // 136: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
-	54,  // 137: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
-	106, // 138: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
-	106, // 139: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
-	90,  // [90:140] is the sub-list for method output_type
-	40,  // [40:90] is the sub-list for method input_type
-	40,  // [40:40] is the sub-list for extension type_name
-	40,  // [40:40] is the sub-list for extension extendee
-	0,   // [0:40] is the sub-list for field type_name
+	83,  // 24: nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse.plan:type_name -> nimi.runtime.v1.LocalEnvironmentPlan
+	84,  // 25: nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse.jobs:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	85,  // 26: nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesResponse.sources:type_name -> nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
+	84,  // 27: nimi.runtime.v1.ListLocalEnvironmentDependencyJobsResponse.jobs:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	82,  // 28: nimi.runtime.v1.ResolveLocalEnvironmentActivationGateRequest.host_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	86,  // 29: nimi.runtime.v1.ResolveLocalEnvironmentActivationGateResponse.gate:type_name -> nimi.runtime.v1.LocalEnvironmentActivationGate
+	84,  // 30: nimi.runtime.v1.StartLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	84,  // 31: nimi.runtime.v1.CancelLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	84,  // 32: nimi.runtime.v1.RetryLocalEnvironmentDependencyJobResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	84,  // 33: nimi.runtime.v1.RepairLocalEnvironmentDependencyResponse.job:type_name -> nimi.runtime.v1.LocalEnvironmentDependencyJob
+	82,  // 34: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	87,  // 35: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
+	88,  // 36: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
+	80,  // 37: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
+	80,  // 38: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
+	80,  // 39: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
+	74,  // 40: nimi.runtime.v1.ImportSelectedModelFileRequest.header:type_name -> nimi.runtime.v1.ImportSelectedModelFileRequest.Header
+	22,  // 41: nimi.runtime.v1.ImportSelectedModelFileResponse.transfer:type_name -> nimi.runtime.v1.LocalTransferSessionSummary
+	89,  // 42: nimi.runtime.v1.RuntimeLocalService.ListLoadoutRecipes:input_type -> nimi.runtime.v1.ListLoadoutRecipesRequest
+	90,  // 43: nimi.runtime.v1.RuntimeLocalService.GetMachineLoadouts:input_type -> nimi.runtime.v1.GetMachineLoadoutsRequest
+	91,  // 44: nimi.runtime.v1.RuntimeLocalService.GetLoadout:input_type -> nimi.runtime.v1.GetLoadoutRequest
+	92,  // 45: nimi.runtime.v1.RuntimeLocalService.PrepareLoadout:input_type -> nimi.runtime.v1.PrepareLoadoutRequest
+	93,  // 46: nimi.runtime.v1.RuntimeLocalService.CommitLoadout:input_type -> nimi.runtime.v1.CommitLoadoutRequest
+	94,  // 47: nimi.runtime.v1.RuntimeLocalService.UpdateLoadout:input_type -> nimi.runtime.v1.UpdateLoadoutRequest
+	95,  // 48: nimi.runtime.v1.RuntimeLocalService.SelectLoadout:input_type -> nimi.runtime.v1.SelectLoadoutRequest
+	96,  // 49: nimi.runtime.v1.RuntimeLocalService.DeleteLoadout:input_type -> nimi.runtime.v1.DeleteLoadoutRequest
+	2,   // 50: nimi.runtime.v1.RuntimeLocalService.ListVerifiedAssets:input_type -> nimi.runtime.v1.ListVerifiedAssetsRequest
+	4,   // 51: nimi.runtime.v1.RuntimeLocalService.ImportModelAsset:input_type -> nimi.runtime.v1.ImportModelAssetRequest
+	6,   // 52: nimi.runtime.v1.RuntimeLocalService.ListModelAssets:input_type -> nimi.runtime.v1.ListModelAssetsRequest
+	8,   // 53: nimi.runtime.v1.RuntimeLocalService.GetModelAsset:input_type -> nimi.runtime.v1.GetModelAssetRequest
+	10,  // 54: nimi.runtime.v1.RuntimeLocalService.RemoveModelAsset:input_type -> nimi.runtime.v1.RemoveModelAssetRequest
+	12,  // 55: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
+	14,  // 56: nimi.runtime.v1.RuntimeLocalService.GetCatalogModelCard:input_type -> nimi.runtime.v1.GetCatalogModelCardRequest
+	16,  // 57: nimi.runtime.v1.RuntimeLocalService.ListCatalogVariants:input_type -> nimi.runtime.v1.ListCatalogVariantsRequest
+	97,  // 58: nimi.runtime.v1.RuntimeLocalService.ListFeaturedModelAssets:input_type -> nimi.runtime.v1.ListFeaturedModelAssetsRequest
+	98,  // 59: nimi.runtime.v1.RuntimeLocalService.ListFactoryProfileRecommendations:input_type -> nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
+	18,  // 60: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
+	20,  // 61: nimi.runtime.v1.RuntimeLocalService.InstallModelFromPlan:input_type -> nimi.runtime.v1.InstallModelFromPlanRequest
+	24,  // 62: nimi.runtime.v1.RuntimeLocalService.ListLocalTransfers:input_type -> nimi.runtime.v1.ListLocalTransfersRequest
+	26,  // 63: nimi.runtime.v1.RuntimeLocalService.PauseLocalTransfer:input_type -> nimi.runtime.v1.PauseLocalTransferRequest
+	28,  // 64: nimi.runtime.v1.RuntimeLocalService.ResumeLocalTransfer:input_type -> nimi.runtime.v1.ResumeLocalTransferRequest
+	30,  // 65: nimi.runtime.v1.RuntimeLocalService.CancelLocalTransfer:input_type -> nimi.runtime.v1.CancelLocalTransferRequest
+	32,  // 66: nimi.runtime.v1.RuntimeLocalService.WatchLocalTransfers:input_type -> nimi.runtime.v1.WatchLocalTransfersRequest
+	33,  // 67: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentPlan:input_type -> nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest
+	35,  // 68: nimi.runtime.v1.RuntimeLocalService.ApplyLocalEnvironmentPlan:input_type -> nimi.runtime.v1.ApplyLocalEnvironmentPlanRequest
+	37,  // 69: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentSelectedSources:input_type -> nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesRequest
+	39,  // 70: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentDependencyJobs:input_type -> nimi.runtime.v1.ListLocalEnvironmentDependencyJobsRequest
+	41,  // 71: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentActivationGate:input_type -> nimi.runtime.v1.ResolveLocalEnvironmentActivationGateRequest
+	43,  // 72: nimi.runtime.v1.RuntimeLocalService.StartLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.StartLocalEnvironmentDependencyJobRequest
+	45,  // 73: nimi.runtime.v1.RuntimeLocalService.CancelLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.CancelLocalEnvironmentDependencyJobRequest
+	47,  // 74: nimi.runtime.v1.RuntimeLocalService.RetryLocalEnvironmentDependencyJob:input_type -> nimi.runtime.v1.RetryLocalEnvironmentDependencyJobRequest
+	49,  // 75: nimi.runtime.v1.RuntimeLocalService.RepairLocalEnvironmentDependency:input_type -> nimi.runtime.v1.RepairLocalEnvironmentDependencyRequest
+	59,  // 76: nimi.runtime.v1.RuntimeLocalService.GetProductControlRecord:input_type -> nimi.runtime.v1.GetProductControlRecordRequest
+	60,  // 77: nimi.runtime.v1.RuntimeLocalService.GetProductControlSelectedDataRoot:input_type -> nimi.runtime.v1.GetProductControlSelectedDataRootRequest
+	61,  // 78: nimi.runtime.v1.RuntimeLocalService.EnsureProductControlRecordCreated:input_type -> nimi.runtime.v1.EnsureProductControlRecordCreatedRequest
+	62,  // 79: nimi.runtime.v1.RuntimeLocalService.SelectProductControlDataRoot:input_type -> nimi.runtime.v1.SelectProductControlDataRootRequest
+	63,  // 80: nimi.runtime.v1.RuntimeLocalService.InitializeProductControlRootActivation:input_type -> nimi.runtime.v1.InitializeProductControlRootActivationRequest
+	64,  // 81: nimi.runtime.v1.RuntimeLocalService.ReplaceProductControlDataRoot:input_type -> nimi.runtime.v1.ReplaceProductControlDataRootRequest
+	65,  // 82: nimi.runtime.v1.RuntimeLocalService.StartProductControlCheckSync:input_type -> nimi.runtime.v1.StartProductControlCheckSyncRequest
+	66,  // 83: nimi.runtime.v1.RuntimeLocalService.GetProductControlCheckSync:input_type -> nimi.runtime.v1.GetProductControlCheckSyncRequest
+	67,  // 84: nimi.runtime.v1.RuntimeLocalService.SetProductControlFirstRunInstallLevel:input_type -> nimi.runtime.v1.SetProductControlFirstRunInstallLevelRequest
+	68,  // 85: nimi.runtime.v1.RuntimeLocalService.CompleteProductControlFirstRunDeviceEnvironmentScan:input_type -> nimi.runtime.v1.CompleteProductControlFirstRunDeviceEnvironmentScanRequest
+	69,  // 86: nimi.runtime.v1.RuntimeLocalService.AdmitProductControlReadyForUse:input_type -> nimi.runtime.v1.AdmitProductControlReadyForUseRequest
+	70,  // 87: nimi.runtime.v1.RuntimeLocalService.ReconcileProductControlFirstRunSetupState:input_type -> nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
+	51,  // 88: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
+	53,  // 89: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
+	55,  // 90: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
+	56,  // 91: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
+	71,  // 92: nimi.runtime.v1.RuntimeLocalService.ImportSelectedModelFile:input_type -> nimi.runtime.v1.ImportSelectedModelFileRequest
+	99,  // 93: nimi.runtime.v1.RuntimeLocalService.ListLoadoutRecipes:output_type -> nimi.runtime.v1.ListLoadoutRecipesResponse
+	100, // 94: nimi.runtime.v1.RuntimeLocalService.GetMachineLoadouts:output_type -> nimi.runtime.v1.GetMachineLoadoutsResponse
+	101, // 95: nimi.runtime.v1.RuntimeLocalService.GetLoadout:output_type -> nimi.runtime.v1.GetLoadoutResponse
+	102, // 96: nimi.runtime.v1.RuntimeLocalService.PrepareLoadout:output_type -> nimi.runtime.v1.PrepareLoadoutResponse
+	103, // 97: nimi.runtime.v1.RuntimeLocalService.CommitLoadout:output_type -> nimi.runtime.v1.CommitLoadoutResponse
+	104, // 98: nimi.runtime.v1.RuntimeLocalService.UpdateLoadout:output_type -> nimi.runtime.v1.UpdateLoadoutResponse
+	105, // 99: nimi.runtime.v1.RuntimeLocalService.SelectLoadout:output_type -> nimi.runtime.v1.SelectLoadoutResponse
+	106, // 100: nimi.runtime.v1.RuntimeLocalService.DeleteLoadout:output_type -> nimi.runtime.v1.DeleteLoadoutResponse
+	3,   // 101: nimi.runtime.v1.RuntimeLocalService.ListVerifiedAssets:output_type -> nimi.runtime.v1.ListVerifiedAssetsResponse
+	5,   // 102: nimi.runtime.v1.RuntimeLocalService.ImportModelAsset:output_type -> nimi.runtime.v1.ImportModelAssetResponse
+	7,   // 103: nimi.runtime.v1.RuntimeLocalService.ListModelAssets:output_type -> nimi.runtime.v1.ListModelAssetsResponse
+	9,   // 104: nimi.runtime.v1.RuntimeLocalService.GetModelAsset:output_type -> nimi.runtime.v1.GetModelAssetResponse
+	11,  // 105: nimi.runtime.v1.RuntimeLocalService.RemoveModelAsset:output_type -> nimi.runtime.v1.RemoveModelAssetResponse
+	13,  // 106: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
+	15,  // 107: nimi.runtime.v1.RuntimeLocalService.GetCatalogModelCard:output_type -> nimi.runtime.v1.GetCatalogModelCardResponse
+	17,  // 108: nimi.runtime.v1.RuntimeLocalService.ListCatalogVariants:output_type -> nimi.runtime.v1.ListCatalogVariantsResponse
+	107, // 109: nimi.runtime.v1.RuntimeLocalService.ListFeaturedModelAssets:output_type -> nimi.runtime.v1.ListFeaturedModelAssetsResponse
+	108, // 110: nimi.runtime.v1.RuntimeLocalService.ListFactoryProfileRecommendations:output_type -> nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
+	19,  // 111: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
+	21,  // 112: nimi.runtime.v1.RuntimeLocalService.InstallModelFromPlan:output_type -> nimi.runtime.v1.InstallModelFromPlanResponse
+	25,  // 113: nimi.runtime.v1.RuntimeLocalService.ListLocalTransfers:output_type -> nimi.runtime.v1.ListLocalTransfersResponse
+	27,  // 114: nimi.runtime.v1.RuntimeLocalService.PauseLocalTransfer:output_type -> nimi.runtime.v1.PauseLocalTransferResponse
+	29,  // 115: nimi.runtime.v1.RuntimeLocalService.ResumeLocalTransfer:output_type -> nimi.runtime.v1.ResumeLocalTransferResponse
+	31,  // 116: nimi.runtime.v1.RuntimeLocalService.CancelLocalTransfer:output_type -> nimi.runtime.v1.CancelLocalTransferResponse
+	23,  // 117: nimi.runtime.v1.RuntimeLocalService.WatchLocalTransfers:output_type -> nimi.runtime.v1.LocalTransferProgressEvent
+	34,  // 118: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentPlan:output_type -> nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
+	36,  // 119: nimi.runtime.v1.RuntimeLocalService.ApplyLocalEnvironmentPlan:output_type -> nimi.runtime.v1.ApplyLocalEnvironmentPlanResponse
+	38,  // 120: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentSelectedSources:output_type -> nimi.runtime.v1.ListLocalEnvironmentSelectedSourcesResponse
+	40,  // 121: nimi.runtime.v1.RuntimeLocalService.ListLocalEnvironmentDependencyJobs:output_type -> nimi.runtime.v1.ListLocalEnvironmentDependencyJobsResponse
+	42,  // 122: nimi.runtime.v1.RuntimeLocalService.ResolveLocalEnvironmentActivationGate:output_type -> nimi.runtime.v1.ResolveLocalEnvironmentActivationGateResponse
+	44,  // 123: nimi.runtime.v1.RuntimeLocalService.StartLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.StartLocalEnvironmentDependencyJobResponse
+	46,  // 124: nimi.runtime.v1.RuntimeLocalService.CancelLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.CancelLocalEnvironmentDependencyJobResponse
+	48,  // 125: nimi.runtime.v1.RuntimeLocalService.RetryLocalEnvironmentDependencyJob:output_type -> nimi.runtime.v1.RetryLocalEnvironmentDependencyJobResponse
+	50,  // 126: nimi.runtime.v1.RuntimeLocalService.RepairLocalEnvironmentDependency:output_type -> nimi.runtime.v1.RepairLocalEnvironmentDependencyResponse
+	57,  // 127: nimi.runtime.v1.RuntimeLocalService.GetProductControlRecord:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 128: nimi.runtime.v1.RuntimeLocalService.GetProductControlSelectedDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 129: nimi.runtime.v1.RuntimeLocalService.EnsureProductControlRecordCreated:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 130: nimi.runtime.v1.RuntimeLocalService.SelectProductControlDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 131: nimi.runtime.v1.RuntimeLocalService.InitializeProductControlRootActivation:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 132: nimi.runtime.v1.RuntimeLocalService.ReplaceProductControlDataRoot:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	58,  // 133: nimi.runtime.v1.RuntimeLocalService.StartProductControlCheckSync:output_type -> nimi.runtime.v1.CheckSyncProjectionJson
+	58,  // 134: nimi.runtime.v1.RuntimeLocalService.GetProductControlCheckSync:output_type -> nimi.runtime.v1.CheckSyncProjectionJson
+	57,  // 135: nimi.runtime.v1.RuntimeLocalService.SetProductControlFirstRunInstallLevel:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 136: nimi.runtime.v1.RuntimeLocalService.CompleteProductControlFirstRunDeviceEnvironmentScan:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 137: nimi.runtime.v1.RuntimeLocalService.AdmitProductControlReadyForUse:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	57,  // 138: nimi.runtime.v1.RuntimeLocalService.ReconcileProductControlFirstRunSetupState:output_type -> nimi.runtime.v1.ProductControlProjectionJson
+	52,  // 139: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
+	54,  // 140: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
+	109, // 141: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
+	109, // 142: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
+	72,  // 143: nimi.runtime.v1.RuntimeLocalService.ImportSelectedModelFile:output_type -> nimi.runtime.v1.ImportSelectedModelFileResponse
+	93,  // [93:144] is the sub-list for method output_type
+	42,  // [42:93] is the sub-list for method input_type
+	42,  // [42:42] is the sub-list for extension type_name
+	42,  // [42:42] is the sub-list for extension extendee
+	0,   // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_proto_init() }
@@ -4850,13 +5065,18 @@ func file_runtime_v1_local_runtime_proto_init() {
 	file_runtime_v1_local_runtime_device_environment_proto_init()
 	file_runtime_v1_local_runtime_execution_profile_proto_init()
 	file_runtime_v1_local_runtime_recommendation_proto_init()
+	file_runtime_v1_local_runtime_proto_msgTypes[69].OneofWrappers = []any{
+		(*ImportSelectedModelFileRequest_Header_)(nil),
+		(*ImportSelectedModelFileRequest_Data)(nil),
+		(*ImportSelectedModelFileRequest_Seal)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_proto_rawDesc), len(file_runtime_v1_local_runtime_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   70,
+			NumMessages:   73,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

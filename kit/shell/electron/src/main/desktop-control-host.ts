@@ -57,6 +57,7 @@ type NimiElectronDesktopControlClientStreamInput = {
 };
 
 export type NimiElectronDesktopControlBinding = {
+  readonly desktopImportSelectedModelFile?: (path: string) => Promise<NativeBytesOutcome>;
   readonly desktopMachineProductUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
@@ -123,6 +124,7 @@ export type NimiElectronDesktopControlStream = RuntimeGrpcBridgeStream & {
 };
 
 export type NimiElectronDesktopControlHost = {
+  readonly importSelectedModelFile: (path: string) => Promise<void>;
   readonly machineProductUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
   readonly accountProductUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
   readonly machineProductServerStream: (input: {
@@ -170,6 +172,14 @@ export class NimiElectronDesktopControlHostError extends Error {
 
 class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   constructor(private readonly binding: NimiElectronDesktopControlBinding) {}
+
+  async importSelectedModelFile(path: string): Promise<void> {
+    const importFile = this.binding.desktopImportSelectedModelFile;
+    if (typeof importFile !== 'function') {
+      throw new NimiElectronDesktopControlHostError('protected-carrier-required', false);
+    }
+    await this.invokeNative(() => importFile(path));
+  }
 
   async machineProductUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
     if (!isNimiElectronDesktopMachineProductMethod(input.methodId, 'unary')) throw untrusted();
@@ -289,6 +299,11 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
 
 class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   private host: NimiElectronDesktopControlHost | undefined;
+
+  importSelectedModelFile(path: string): Promise<void> {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.importSelectedModelFile(path);
+  }
 
   machineProductUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());

@@ -264,6 +264,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeLocalService/SelectLoadout",
 		"/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
+		"/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
 		"/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
 		"/nimi.runtime.v1.RuntimeLocalService/ApplyLocalEnvironmentPlan",

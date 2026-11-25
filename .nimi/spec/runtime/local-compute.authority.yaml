@@ -126,6 +126,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
+  - id: rule.nimi.runtime.local-compute.desktop-selected-file-import
+    kind: rule
+    title: Fixed-service macOS Home imports only the model file selected in its native picker
+    modality: must
+    statement: On fixed-service macOS a trusted Home host opens the single regular file approved in its native file dialog and delivers its basename, declared length and bounded content through RuntimeLocalService.ImportSelectedModelFile on the authenticated Desktop machine-product channel. Runtime owns the import transfer, writes exclusively into that transfer's quarantine, independently verifies its complete contents, and publishes or reuses through ordinary ModelAsset intake only after the host seals the same unchanged input. The renderer receives no general file-reading capability, no ancestor or sibling access is delegated and the original file and directory permissions are preserved. Cancellation, disconnection, source replacement, incomplete input and restart leave no partially imported asset and reuse existing transfer cleanup and explicit reimport. Directory and existing readable-path imports retain their own input contract.
+    condition: Whenever the installed macOS Home imports one model file chosen by the user.
+    failure: Reject host paths supplied by the renderer for this operation, links and special files, conflicting or unsealed frames and publication before integrity verification. Never require a shared copy, general directory access or another complete staging copy for a selected single file.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
   - id: rule.nimi.runtime.local-compute.r011
     kind: rule
     title: ModelAsset format policy is open

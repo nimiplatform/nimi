@@ -341,7 +341,7 @@ function createCanonicalBindings(input: {
         async openAccountManagement() { throw new Error('unavailable'); },
         async writeClipboardText() {},
         exportRuntimeAuditJson() {},
-        async pickLocalRuntimeAssetFile() { return null; },
+        async importPickedLocalRuntimeAssetFile() { return false; },
         async pickLocalRuntimeAssetDirectory() { return null; },
         async revealLocalRuntimeAssetsRootFolder() {},
         reloadApplication() {},

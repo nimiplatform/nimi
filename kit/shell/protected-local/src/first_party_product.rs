@@ -283,6 +283,9 @@ pub(crate) async fn open_machine_stream(
     channel: tonic::transport::Channel,
     request: DesktopMachineProductStreamRequest,
 ) -> Result<DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductError> {
+    if request.method == DesktopMachineProductStreamMethod::ImportSelectedModelFile {
+        return Err(DesktopFirstPartyProductError::new("invalid-payload", false));
+    }
     crate::desktop_stream::open_first_party(
         channel,
         DesktopFirstPartyProfile::Machine,

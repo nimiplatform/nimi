@@ -67,6 +67,30 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
   };
 }
 
+it('imports the picked file through the protected binding and preserves typed failures', async () => {
+  const selected = '/Users/test/Downloads/model.gguf';
+  const native = vi.fn<NimiElectronDesktopControlBinding['desktopMachineProductUnary']>();
+  const importFile = vi.fn<NonNullable<NimiElectronDesktopControlBinding['desktopImportSelectedModelFile']>>()
+    .mockResolvedValueOnce({ status: 'ok', value: new Uint8Array([1]) })
+    .mockResolvedValueOnce({ status: 'error', reasonCode: 'model-import-source-changed', retryable: false })
+    .mockResolvedValueOnce({ status: 'ok', value: '/private/unexpected' });
+  const host = createNimiElectronDesktopControlHostForBinding(binding({
+    desktopImportSelectedModelFile: importFile,
+    desktopMachineProductUnary: native,
+  }));
+  await expect(host.importSelectedModelFile(selected)).resolves.toBeUndefined();
+  await expect(host.importSelectedModelFile(selected)).rejects.toMatchObject({
+    reasonCode: 'model-import-source-changed',
+    retryable: false,
+  });
+  await expect(host.importSelectedModelFile(selected)).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  expect(importFile.mock.calls).toEqual([[selected], [selected], [selected]]);
+  expect(native).not.toHaveBeenCalled();
+
+  const withoutImport = createNimiElectronDesktopControlHostForBinding(binding());
+  await expect(withoutImport.importSelectedModelFile(selected)).rejects.toMatchObject({ reasonCode: 'protected-carrier-required' });
+});
+
 it('carries only the admitted connector input format through renderer-safe errors', async () => {
   const reasonMetadata = { input_format: 'mubert-customer-pair-v1' };
   const rejected = async () => ({ status: 'error' as const, reasonCode: 'AI_CONNECTOR_INVALID', retryable: false, reasonMetadata });

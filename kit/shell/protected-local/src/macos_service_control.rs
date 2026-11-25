@@ -224,6 +224,15 @@ impl NimiDesktopControl for MacOSDesktopControl {
         })
     }
 
+    fn import_selected_model_file(
+        &self,
+        path: std::path::PathBuf,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError> {
+        Box::pin(async move {
+            crate::selected_model_file::import(self.product_profile_channel()?, path).await
+        })
+    }
+
     fn invoke_machine_product_unary(
         &self,
         request: DesktopMachineProductUnaryRequest,

@@ -24,6 +24,8 @@ pub mod harness_security;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_harness_security;
+#[cfg(target_os = "macos")]
+mod selected_model_file;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod host_profile;
 mod installed_app;

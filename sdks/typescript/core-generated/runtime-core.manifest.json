@@ -2955,6 +2955,15 @@
           "response_type": "Ack",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "ImportSelectedModelFile",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
+          "kind": "client_stream",
+          "request_type": "ImportSelectedModelFileRequest",
+          "response_type": "ImportSelectedModelFileResponse",
+          "request_stream": true,
+          "response_stream": false
         }
       ]
     },
@@ -3394,6 +3403,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
+    "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
     "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
     "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
@@ -5689,6 +5699,14 @@
       "kind": "unary",
       "request_type": "ImportModelAssetRequest",
       "response_type": "ImportModelAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
+      "service": "RuntimeLocalService",
+      "method": "ImportSelectedModelFile",
+      "kind": "client_stream",
+      "request_type": "ImportSelectedModelFileRequest",
+      "response_type": "ImportSelectedModelFileResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
@@ -8309,6 +8327,14 @@
       "response_type": "ImportModelAssetResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
+      "service": "RuntimeLocalService",
+      "method": "ImportSelectedModelFile",
+      "kind": "client_stream",
+      "request_type": "ImportSelectedModelFileRequest",
+      "response_type": "ImportSelectedModelFileResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
       "service": "RuntimeLocalService",
       "method": "InitializeProductControlRootActivation",
@@ -9163,6 +9189,8 @@
       "ImportModelAssetResponse",
       "ImportPortableAIProfileRequest",
       "ImportPortableAIProfileResponse",
+      "ImportSelectedModelFileRequest",
+      "ImportSelectedModelFileResponse",
       "InitializeProductControlRootActivationRequest",
       "InspectLocalAppAgentMemoryRequest",
       "InspectLocalAppAgentMemoryResponse",
@@ -26323,6 +26351,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ImportSelectedModelFileRequest",
+        "fields": [
+          {
+            "name": "header",
+            "type": "Header",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "data",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "seal",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ImportSelectedModelFileResponse",
+        "fields": [
+          {
+            "name": "transfer",
+            "type": "LocalTransferSessionSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "InitializeProductControlRootActivationRequest",

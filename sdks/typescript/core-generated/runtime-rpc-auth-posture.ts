@@ -285,6 +285,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants": "anonymous_read",

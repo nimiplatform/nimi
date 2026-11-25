@@ -2263,6 +2263,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ImportModelAssetResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
+    "service": "RuntimeLocalService",
+    "method": "ImportSelectedModelFile",
+    "kind": "client_stream",
+    "requestType": "ImportSelectedModelFileRequest",
+    "responseType": "ImportSelectedModelFileResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
     "service": "RuntimeLocalService",
     "method": "InitializeProductControlRootActivation",

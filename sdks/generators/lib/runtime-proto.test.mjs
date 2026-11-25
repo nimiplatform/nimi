@@ -8,7 +8,7 @@ import {
   projectRuntimeForNonHostPublicSdks,
 } from './runtime-proto.mjs';
 
-test('non-Host public SDK projection hard-cuts private Avatar and execution access methods and messages', () => {
+test('non-Host public SDK projection omits Host-private Runtime methods and messages', () => {
   const runtime = extractRuntimeProto();
   const projected = projectRuntimeForNonHostPublicSdks(runtime);
   const rawMethods = new Set(runtime.method_ids);
@@ -33,5 +33,18 @@ test('non-Host public SDK projection hard-cuts private Avatar and execution acce
       false,
       `${messageName} must not enter non-Host SDK schemas`,
     );
+  }
+});
+
+test('selected model file import keeps its client stream and messages in the Host projection', () => {
+  const runtime = extractRuntimeProto();
+  const projected = projectRuntimeForNonHostPublicSdks(runtime);
+  const methodId = '/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile';
+  const method = runtime.codec_maps.find((row) => row.method_id === methodId);
+  assert.equal(method?.kind, 'client_stream');
+  assert.equal(projected.method_ids.includes(methodId), false);
+  for (const message of [method.request_type, method.response_type]) {
+    assert.equal(runtime.schema_types.messages.includes(message), true);
+    assert.equal(projected.schema_types.messages.includes(message), false);
   }
 });

@@ -64,10 +64,13 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importPickedAssetFile = useCallback(async () => {
     setAssetImportError('');
-    const filePath = await commands.pickLocalRuntimeAssetFile();
-    if (!filePath) return;
-    return importAssetFromPath(filePath);
-  }, [commands, importAssetFromPath]);
+    try {
+      if (await commands.importPickedLocalRuntimeAssetFile()) await input.onRefreshAssets();
+    } catch (error: unknown) {
+      setAssetImportError(toAssetImportUserMessage(error));
+      throw error;
+    }
+  }, [commands, input.onRefreshAssets]);
 
   const importPickedAssetDirectory = useCallback(async () => {
     setAssetImportError('');

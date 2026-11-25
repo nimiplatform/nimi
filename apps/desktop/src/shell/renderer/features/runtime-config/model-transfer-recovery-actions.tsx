@@ -76,8 +76,10 @@ export function ModelTransferRecoveryActions(props: { readonly event: RecoveryTr
       if (result.error || !result.run || !['running', 'completed'].includes(result.run.state)) {
         throw Error(result.error || t('DataManagement.checkSyncFailed'));
       }
+    } else if (action === 'import_file') {
+      if (!await commands.importPickedLocalRuntimeAssetFile()) return;
     } else {
-      const sourcePath = action === 'import_file' ? await commands.pickLocalRuntimeAssetFile() : await commands.pickLocalRuntimeAssetDirectory();
+      const sourcePath = await commands.pickLocalRuntimeAssetDirectory();
       if (!sourcePath) return;
       await local.importModelAsset({ sourcePath, displayName: basenameFromRuntimePath(sourcePath) || undefined }, { caller: 'core' });
     }

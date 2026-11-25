@@ -2583,6 +2583,10 @@
     }
   },
   "localModelCenter": {
+    "importSelectedFileUnreadable": "Nimi 无法打开所选文件。请选择有读取权限的普通文件后重试。",
+    "importSelectedFileChanged": "所选文件在导入期间发生变化。请在文件写入完成后重新选择。",
+    "importStorageFull": "模型存储目录的可用空间不足。请释放空间后重新导入。",
+    "importSourceInvalid": "请选择本地服务能读取的普通模型文件或完整模型文件夹。如果来源位于私有目录，请从与本地服务共享的位置导入副本。（{{reason}}）",
     "activeDownloads": "下载任务（{{count}}）",
     "dismissTransfer": "关闭传输记录",
     "reimport": "重新导入",

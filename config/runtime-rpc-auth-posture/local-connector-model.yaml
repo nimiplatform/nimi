@@ -50,6 +50,8 @@ methods:
     posture: authenticated_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportModelAsset
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListModelAssets
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetModelAsset

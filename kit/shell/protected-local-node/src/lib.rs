@@ -166,6 +166,22 @@ pub use local_app::*;
 pub use native_types::*;
 use projection::*;
 
+#[cfg(target_os = "macos")]
+#[napi(js_name = "desktopImportSelectedModelFile")]
+pub async fn desktop_import_selected_model_file(path: String) -> NativeBytesOutcome {
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeBytesOutcome::host_error(error),
+    };
+    match control.import_selected_model_file(std::path::PathBuf::from(path)).await {
+        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+        Err(error) => {
+            clear_desktop_control_on_transport_reason(&control, error.reason_code(), error.reason_metadata()).await;
+            NativeBytesOutcome::error_with_metadata(error.reason_code(), error.retryable(), error.reason_metadata())
+        }
+    }
+}
+
 #[napi(js_name = "desktopMachineProductUnary")]
 pub async fn desktop_machine_product_unary(
     input: NativeFirstPartyProductUnaryInput,

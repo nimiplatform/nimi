@@ -170,11 +170,14 @@ pub const DESKTOP_MACHINE_PRODUCT_UNARY_METHODS: &[DesktopMachineProductUnaryMet
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopMachineProductStreamMethod { WatchLocalTransfers, SubscribeRuntimeHealthEvents }
+pub enum DesktopMachineProductStreamMethod { ImportSelectedModelFile, WatchLocalTransfers, SubscribeRuntimeHealthEvents }
 
 impl DesktopMachineProductStreamMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
         Some(match method_id {
+            "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile" => {
+                Self::ImportSelectedModelFile
+            }
             "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers" => Self::WatchLocalTransfers,
             "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents" => {
                 Self::SubscribeRuntimeHealthEvents
@@ -185,6 +188,9 @@ impl DesktopMachineProductStreamMethod {
 
     pub const fn method_id(self) -> &'static str {
         match self {
+            Self::ImportSelectedModelFile => {
+                "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile"
+            }
             Self::WatchLocalTransfers => "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
             Self::SubscribeRuntimeHealthEvents => {
                 "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents"
@@ -194,7 +200,7 @@ impl DesktopMachineProductStreamMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamMethod] = &[DesktopMachineProductStreamMethod::WatchLocalTransfers, DesktopMachineProductStreamMethod::SubscribeRuntimeHealthEvents];
+pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamMethod] = &[DesktopMachineProductStreamMethod::ImportSelectedModelFile, DesktopMachineProductStreamMethod::WatchLocalTransfers, DesktopMachineProductStreamMethod::SubscribeRuntimeHealthEvents];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

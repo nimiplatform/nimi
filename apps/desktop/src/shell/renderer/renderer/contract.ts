@@ -97,7 +97,7 @@ export interface DesktopRendererCommandPort {
     readonly filename: string;
     readonly content: string;
   }): void;
-  pickLocalRuntimeAssetFile(): Promise<string | null>;
+  importPickedLocalRuntimeAssetFile(): Promise<boolean>;
   pickLocalRuntimeAssetDirectory(): Promise<string | null>;
   revealLocalRuntimeAssetsRootFolder(): Promise<void>;
   reloadApplication(): void;

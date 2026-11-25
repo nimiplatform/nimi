@@ -132,7 +132,7 @@ async fn invoke(
     Ok(response.into_inner())
 }
 
-fn map_first_party_status(status: Status) -> DesktopFirstPartyProductError {
+pub(crate) fn map_first_party_status(status: Status) -> DesktopFirstPartyProductError {
     let retryable = retryable(&status);
     match crate::grpc_status::runtime_reason(&status) {
         Some(reason) => DesktopFirstPartyProductError::new(reason, retryable),

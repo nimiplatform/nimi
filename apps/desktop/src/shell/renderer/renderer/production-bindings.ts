@@ -67,7 +67,7 @@ import { hasElectronInvoke, listenShell } from '@nimiplatform/kit/shell/renderer
 import { DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT } from '../../shared/formal-session.js';
 import {
   pickLocalRuntimeAssetDirectory,
-  pickLocalRuntimeAssetFile,
+  importPickedLocalRuntimeAssetFile,
   revealLocalRuntimeAssetsRootFolder,
 } from '../bridge/runtime-bridge/local-runtime-os-helpers.js';
 import { createDesktopProductionWorldFollowPort } from '../features/world/production-world-follow-port.js';
@@ -283,7 +283,7 @@ export function createDesktopProductionBindings(
           anchor.click();
           URL.revokeObjectURL(url);
         },
-        pickLocalRuntimeAssetFile,
+        importPickedLocalRuntimeAssetFile,
         pickLocalRuntimeAssetDirectory,
         revealLocalRuntimeAssetsRootFolder,
         reloadApplication() {

@@ -1459,6 +1459,14 @@ pub trait NimiDesktopControl: Send + Sync {
         >,
     >;
 
+    #[cfg(target_os = "macos")]
+    fn import_selected_model_file(
+        &self,
+        _path: std::path::PathBuf,
+    ) -> Pin<Box<dyn Future<Output = Result<DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError>> + Send + '_>> {
+        Box::pin(async { Err(DesktopFirstPartyProductError::new("protected-carrier-required", false)) })
+    }
+
     fn invoke_machine_product_unary(
         &self,
         request: DesktopMachineProductUnaryRequest,

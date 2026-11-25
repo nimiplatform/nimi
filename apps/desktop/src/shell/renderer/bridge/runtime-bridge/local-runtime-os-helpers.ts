@@ -4,6 +4,7 @@ import {
   revealShellFile,
   type ShellFileDialogOpenResult,
 } from '@nimiplatform/kit/shell/renderer/bridge';
+import { invokeChecked } from './invoke';
 import { getDesktopStorageDirs } from './desktop-storage';
 
 function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
@@ -20,16 +21,12 @@ async function localRuntimeModelsRoot(): Promise<string> {
   return root;
 }
 
-export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
-  if (!hasElectronInvoke()) return null;
-  return firstDialogPath(await openShellFileDialog({
-    kind: 'file',
-    title: 'Select asset file to import',
-    filters: [
-      { name: 'Asset Files', extensions: ['gguf', 'gguf_file', 'safetensors', 'bin', 'pt', 'onnx', 'pth'] },
-      { name: 'All Files', extensions: ['*'] },
-    ],
-  }));
+export async function importPickedLocalRuntimeAssetFile(): Promise<boolean> {
+  if (!hasElectronInvoke()) return false;
+  return invokeChecked('desktop_import_selected_model_file', {}, (value) => {
+    if (typeof value !== 'boolean') throw new Error('Invalid model file import response');
+    return value;
+  });
 }
 
 export async function pickLocalRuntimeAssetDirectory(): Promise<string | null> {

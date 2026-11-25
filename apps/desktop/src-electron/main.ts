@@ -68,6 +68,7 @@ import {
   createDesktopElectronLocalDevelopmentHost,
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
+import { importPickedModelFile } from './model-file-import.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
 import { observeDesktopRuntimeMaintenance, readDesktopRuntimeMaintenance, NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
@@ -629,7 +630,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
     );
     if (!SOURCE_PER_USER_RUNTIME_D2) stopProductRuntime = () => runtimeLifecycleHost.stop();
-    const updateHealthControl = createNimiElectronDesktopControlHost();
+    const machineControl = createNimiElectronDesktopControlHost();
     let activationInFlight: Promise<void> | undefined;
     const readProductRuntimeHealth = async () => {
           const lifecycle = await runtimeLifecycleHost.invoke(runtimeCommandNames.status, runtimeCommandNames) as { running: boolean; managed?: boolean; launchMode?: string; version?: string; lastError?: string };
@@ -640,7 +641,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           }
           const method = '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth';
           const codec = getRuntimeWireCodec(method);
-          const bytes = await updateHealthControl.machineProductUnary({ methodId: method, requestBytes: codec.encodeRequest({}), timeoutMs: 2_000 });
+          const bytes = await machineControl.machineProductUnary({ methodId: method, requestBytes: codec.encodeRequest({}), timeoutMs: 2_000 });
           const health = codec.decodeResponse(bytes) as { status?: number };
           return { ...lifecycle, healthy: lifecycle.managed === true && lifecycle.launchMode === 'RELEASE' && health.status === RuntimeHealthStatus.READY, homeReady: productUpdateHomeReady && normalHomeWorkAllowed() };
     };
@@ -987,6 +988,23 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        desktop_import_selected_model_file: ({ event, payload }) => {
+          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).length !== 0) {
+            throw new Error('desktop-model-file-picker-required');
+          }
+          return dataRootOperationGate.runShared(() => importPickedModelFile(openDesktopStandardFileDialog, async (sourcePath) => {
+            if (process.platform === 'darwin' && runtimeLifecycleProfile === 'fixed') {
+              await machineControl.importSelectedModelFile(sourcePath);
+              return;
+            }
+            const methodId = '/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset';
+            await machineControl.machineProductUnary({
+              methodId,
+              requestBytes: getRuntimeWireCodec(methodId).encodeRequest({ sourcePath, displayName: path.basename(sourcePath) }),
+              timeoutMs: 30_000,
+            });
+          }));
+        },
         // @nimi-authority: rule.nimi.desktop.shell-ui.r038
         [HOME_FOCUS_APP_WINDOW]: async ({ payload, event }) => {
           assertSystemEntryHomeRequest(payload, event, true);

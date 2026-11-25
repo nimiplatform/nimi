@@ -79,11 +79,12 @@ type modelAssetManifest struct {
 }
 
 type modelAssetSource struct {
-	Path         string
-	DisplayName  string
-	IsDir        bool
-	SizeBytes    int64
-	FileIdentity modelAssetSourceFileIdentity
+	transferOwned bool // bytes already sealed in this transfer's exclusive quarantine
+	Path          string
+	DisplayName   string
+	IsDir         bool
+	SizeBytes     int64
+	FileIdentity  modelAssetSourceFileIdentity
 }
 
 type modelAssetSourceSafetyError struct {
@@ -655,24 +656,30 @@ func (s *Service) importModelAssetContent(ctx context.Context, transferID string
 		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 			return nil, err
 		}
-		_ = os.Remove(target)
-		fileReceived := received
-		digest, size, err := copyAndHashModelAssetFile(entry.absolute, target, entry.identity, func(delta int64) error {
-			fileReceived += delta
-			if err := checkActive(); err != nil {
-				return err
+		if source.transferOwned {
+			if entry.absolute != target {
+				return nil, errors.New("selected file is outside its own transfer staging")
 			}
-			s.updateTransferReuse(transferID, "copy", fileReceived, reusedBytes, "copying "+entry.relative)
-			return nil
-		})
-		if err != nil {
-			if errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) {
-				return nil, errLocalTransferCancelled
+		} else {
+			_ = os.Remove(target)
+			fileReceived := received
+			digest, size, err := copyAndHashModelAssetFile(entry.absolute, target, entry.identity, func(delta int64) error {
+				fileReceived += delta
+				if err := checkActive(); err != nil {
+					return err
+				}
+				s.updateTransferReuse(transferID, "copy", fileReceived, reusedBytes, "copying "+entry.relative)
+				return nil
+			})
+			if err != nil {
+				if errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) {
+					return nil, errLocalTransferCancelled
+				}
+				return nil, err
 			}
-			return nil, err
-		}
-		if digest != entry.digest || size != entry.size {
-			return nil, fmt.Errorf("ModelAsset source file %q changed after identification", entry.relative)
+			if digest != entry.digest || size != entry.size {
+				return nil, fmt.Errorf("ModelAsset source file %q changed after identification", entry.relative)
+			}
 		}
 		if _, err := normalizeModelPayloadPermissionsBeforePublish(target, entry.relative); err != nil {
 			return nil, err
@@ -681,7 +688,7 @@ func (s *Service) importModelAssetContent(ctx context.Context, transferID string
 			return nil, err
 		}
 		s.pinModelObject(entry.digest, transferID)
-		received = fileReceived
+		received += entry.size
 		s.updateTransferReuse(transferID, "copy", received, reusedBytes, "copied "+entry.relative)
 	}
 	// Every file is a published, pinned object; the exclusive staging is

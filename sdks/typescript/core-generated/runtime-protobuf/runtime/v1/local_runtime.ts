@@ -1238,6 +1238,60 @@ export interface AdmitProductControlReadyForUseRequest {
  */
 export interface ReconcileProductControlFirstRunSetupStateRequest {
 }
+/**
+ * A trusted Home opens the selected file and streams one bounded frame at a time.
+ * The seal is sent only after the host rechecks the selected file's identity.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ImportSelectedModelFileRequest
+ */
+export interface ImportSelectedModelFileRequest {
+    /**
+     * @generated from protobuf oneof: frame
+     */
+    frame: {
+        oneofKind: "header";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ImportSelectedModelFileRequest.Header header = 1
+         */
+        header: ImportSelectedModelFileRequest_Header;
+    } | {
+        oneofKind: "data";
+        /**
+         * @generated from protobuf field: bytes data = 2
+         */
+        data: Uint8Array;
+    } | {
+        oneofKind: "seal";
+        /**
+         * @generated from protobuf field: bool seal = 3
+         */
+        seal: boolean;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportSelectedModelFileRequest.Header
+ */
+export interface ImportSelectedModelFileRequest_Header {
+    /**
+     * @generated from protobuf field: string file_name = 1
+     */
+    fileName: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 2
+     */
+    sizeBytes: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportSelectedModelFileResponse
+ */
+export interface ImportSelectedModelFileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
 // === Transfers ===
 
 /**
@@ -5514,3 +5568,174 @@ class ReconcileProductControlFirstRunSetupStateRequest$Type extends MessageType<
  * @generated MessageType for protobuf message nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
  */
 export const ReconcileProductControlFirstRunSetupStateRequest = new ReconcileProductControlFirstRunSetupStateRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportSelectedModelFileRequest$Type extends MessageType<ImportSelectedModelFileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ImportSelectedModelFileRequest", [
+            { no: 1, name: "header", kind: "message", oneof: "frame", T: () => ImportSelectedModelFileRequest_Header },
+            { no: 2, name: "data", kind: "scalar", oneof: "frame", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "seal", kind: "scalar", oneof: "frame", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportSelectedModelFileRequest>): ImportSelectedModelFileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.frame = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<ImportSelectedModelFileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportSelectedModelFileRequest): ImportSelectedModelFileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ImportSelectedModelFileRequest.Header header */ 1:
+                    message.frame = {
+                        oneofKind: "header",
+                        header: ImportSelectedModelFileRequest_Header.internalBinaryRead(reader, reader.uint32(), options, (message.frame as any).header)
+                    };
+                    break;
+                case /* bytes data */ 2:
+                    message.frame = {
+                        oneofKind: "data",
+                        data: reader.bytes()
+                    };
+                    break;
+                case /* bool seal */ 3:
+                    message.frame = {
+                        oneofKind: "seal",
+                        seal: reader.bool()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportSelectedModelFileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ImportSelectedModelFileRequest.Header header = 1; */
+        if (message.frame.oneofKind === "header")
+            ImportSelectedModelFileRequest_Header.internalBinaryWrite(message.frame.header, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bytes data = 2; */
+        if (message.frame.oneofKind === "data")
+            writer.tag(2, WireType.LengthDelimited).bytes(message.frame.data);
+        /* bool seal = 3; */
+        if (message.frame.oneofKind === "seal")
+            writer.tag(3, WireType.Varint).bool(message.frame.seal);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportSelectedModelFileRequest
+ */
+export const ImportSelectedModelFileRequest = new ImportSelectedModelFileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportSelectedModelFileRequest_Header$Type extends MessageType<ImportSelectedModelFileRequest_Header> {
+    constructor() {
+        super("nimi.runtime.v1.ImportSelectedModelFileRequest.Header", [
+            { no: 1, name: "file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportSelectedModelFileRequest_Header>): ImportSelectedModelFileRequest_Header {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fileName = "";
+        message.sizeBytes = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ImportSelectedModelFileRequest_Header>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportSelectedModelFileRequest_Header): ImportSelectedModelFileRequest_Header {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string file_name */ 1:
+                    message.fileName = reader.string();
+                    break;
+                case /* int64 size_bytes */ 2:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportSelectedModelFileRequest_Header, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string file_name = 1; */
+        if (message.fileName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.fileName);
+        /* int64 size_bytes = 2; */
+        if (message.sizeBytes !== "0")
+            writer.tag(2, WireType.Varint).int64(message.sizeBytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportSelectedModelFileRequest.Header
+ */
+export const ImportSelectedModelFileRequest_Header = new ImportSelectedModelFileRequest_Header$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportSelectedModelFileResponse$Type extends MessageType<ImportSelectedModelFileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ImportSelectedModelFileResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<ImportSelectedModelFileResponse>): ImportSelectedModelFileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ImportSelectedModelFileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportSelectedModelFileResponse): ImportSelectedModelFileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportSelectedModelFileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportSelectedModelFileResponse
+ */
+export const ImportSelectedModelFileResponse = new ImportSelectedModelFileResponse$Type();

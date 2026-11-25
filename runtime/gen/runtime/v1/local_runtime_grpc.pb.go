@@ -69,6 +69,7 @@ const (
 	RuntimeLocalService_ListLocalAudits_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
 	RuntimeLocalService_AppendInferenceAudit_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
 	RuntimeLocalService_AppendRuntimeAudit_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
+	RuntimeLocalService_ImportSelectedModelFile_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile"
 )
 
 // RuntimeLocalServiceClient is the client API for RuntimeLocalService service.
@@ -134,6 +135,7 @@ type RuntimeLocalServiceClient interface {
 	ListLocalAudits(ctx context.Context, in *ListLocalAuditsRequest, opts ...grpc.CallOption) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(ctx context.Context, in *AppendInferenceAuditRequest, opts ...grpc.CallOption) (*Ack, error)
 	AppendRuntimeAudit(ctx context.Context, in *AppendRuntimeAuditRequest, opts ...grpc.CallOption) (*Ack, error)
+	ImportSelectedModelFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse], error)
 }
 
 type runtimeLocalServiceClient struct {
@@ -653,6 +655,19 @@ func (c *runtimeLocalServiceClient) AppendRuntimeAudit(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *runtimeLocalServiceClient) ImportSelectedModelFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeLocalService_ServiceDesc.Streams[1], RuntimeLocalService_ImportSelectedModelFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeLocalService_ImportSelectedModelFileClient = grpc.ClientStreamingClient[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]
+
 // RuntimeLocalServiceServer is the server API for RuntimeLocalService service.
 // All implementations should embed UnimplementedRuntimeLocalServiceServer
 // for forward compatibility.
@@ -716,6 +731,7 @@ type RuntimeLocalServiceServer interface {
 	ListLocalAudits(context.Context, *ListLocalAuditsRequest) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(context.Context, *AppendInferenceAuditRequest) (*Ack, error)
 	AppendRuntimeAudit(context.Context, *AppendRuntimeAuditRequest) (*Ack, error)
+	ImportSelectedModelFile(grpc.ClientStreamingServer[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]) error
 }
 
 // UnimplementedRuntimeLocalServiceServer should be embedded to have
@@ -874,6 +890,9 @@ func (UnimplementedRuntimeLocalServiceServer) AppendInferenceAudit(context.Conte
 }
 func (UnimplementedRuntimeLocalServiceServer) AppendRuntimeAudit(context.Context, *AppendRuntimeAuditRequest) (*Ack, error) {
 	return nil, status.Error(codes.Unimplemented, "method AppendRuntimeAudit not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ImportSelectedModelFile(grpc.ClientStreamingServer[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]) error {
+	return status.Error(codes.Unimplemented, "method ImportSelectedModelFile not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) testEmbeddedByValue() {}
 
@@ -1788,6 +1807,13 @@ func _RuntimeLocalService_AppendRuntimeAudit_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeLocalService_ImportSelectedModelFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RuntimeLocalServiceServer).ImportSelectedModelFile(&grpc.GenericServerStream[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeLocalService_ImportSelectedModelFileServer = grpc.ClientStreamingServer[ImportSelectedModelFileRequest, ImportSelectedModelFileResponse]
+
 // RuntimeLocalService_ServiceDesc is the grpc.ServiceDesc for RuntimeLocalService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1997,6 +2023,11 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "WatchLocalTransfers",
 			Handler:       _RuntimeLocalService_WatchLocalTransfers_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "ImportSelectedModelFile",
+			Handler:       _RuntimeLocalService_ImportSelectedModelFile_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "runtime/v1/local_runtime.proto",

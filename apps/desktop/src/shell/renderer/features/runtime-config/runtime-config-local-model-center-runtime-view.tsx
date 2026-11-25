@@ -16,6 +16,13 @@ import type { LocalModelAssetRemovalImpact } from './runtime-config-local-model-
 /** Model Library sub-pages: discovery catalog, downloaded inventory, transfers. */
 export type LocalModelCenterSection = 'discover' | 'downloaded' | 'transfers';
 
+const importErrorKey: Readonly<Record<string, string | undefined>> = {
+  'AI_LOCAL_MANIFEST_INVALID': 'runtimeConfig.localModelCenter.importSourceInvalid',
+  'model-import-source-unreadable': 'runtimeConfig.localModelCenter.importSelectedFileUnreadable',
+  'model-import-source-changed': 'runtimeConfig.localModelCenter.importSelectedFileChanged',
+  'model-import-storage-full': 'runtimeConfig.localModelCenter.importStorageFull',
+};
+
 type LocalAssetsRuntimeViewProps = {
   readonly activeSection: LocalModelCenterSection;
   readonly discoveryContent: ReactNode;
@@ -52,6 +59,7 @@ type LocalAssetsRuntimeViewProps = {
 export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
   const i18n = useDesktopI18nResource().instance;
   const [query, setQuery] = useState('');
+  const importMessageKey = importErrorKey[props.assetImportError];
 
   if (props.activeSection === 'discover') {
     return <>{props.discoveryContent}</>;
@@ -102,7 +110,11 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
       ) : null}
       {props.assetImportError ? (
         <div className="flex items-start justify-between gap-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
-          <span>{props.assetImportError}</span>
+          <span>
+            {importMessageKey
+              ? i18n.t(importMessageKey, { reason: props.assetImportError })
+              : props.assetImportError}
+          </span>
           <button
             type="button"
             aria-label={i18n.t('runtimeConfig.localModelCenter.dismissImportError', { defaultValue: 'Dismiss import error' })}

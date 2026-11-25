@@ -12484,6 +12484,37 @@ pub struct AdmitProductControlReadyForUseRequest {}
 /// and activation evidence, then owns the product-control record write.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReconcileProductControlFirstRunSetupStateRequest {}
+/// A trusted Home opens the selected file and streams one bounded frame at a time.
+/// The seal is sent only after the host rechecks the selected file's identity.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportSelectedModelFileRequest {
+    #[prost(oneof = "import_selected_model_file_request::Frame", tags = "1, 2, 3")]
+    pub frame: ::core::option::Option<import_selected_model_file_request::Frame>,
+}
+/// Nested message and enum types in `ImportSelectedModelFileRequest`.
+pub mod import_selected_model_file_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Header {
+        #[prost(string, tag = "1")]
+        pub file_name: ::prost::alloc::string::String,
+        #[prost(int64, tag = "2")]
+        pub size_bytes: i64,
+    }
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Frame {
+        #[prost(message, tag = "1")]
+        Header(Header),
+        #[prost(bytes, tag = "2")]
+        Data(::prost::alloc::vec::Vec<u8>),
+        #[prost(bool, tag = "3")]
+        Seal(bool),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportSelectedModelFileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
 /// Whether a completed acquisition created a new ModelAsset or committed a
 /// reuse of an existing equivalent distribution. Unspecified before commit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -14137,6 +14168,37 @@ pub mod runtime_local_service_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
+        }
+        pub async fn import_selected_model_file(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<
+                Message = super::ImportSelectedModelFileRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ImportSelectedModelFileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ImportSelectedModelFile",
+            );
+            let mut req = request.into_streaming_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ImportSelectedModelFile",
+                    ),
+                );
+            self.inner.client_streaming(req, path, codec).await
         }
     }
 }

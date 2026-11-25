@@ -4,7 +4,7 @@ import test from 'node:test';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   pickLocalRuntimeAssetDirectory,
-  pickLocalRuntimeAssetFile,
+  importPickedLocalRuntimeAssetFile,
   revealLocalRuntimeAssetsRootFolder,
 } from '../src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 
@@ -62,28 +62,13 @@ function selectedDataRootProjection(dataRoot: string) {
   };
 }
 
-test('local runtime asset file picker uses Kit standard file dialog with import filters', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  await withStandardShellInvoke(async (command, payload) => {
-    calls.push({ command, payload });
-    return { canceled: false, paths: ['D:/models/model.gguf'] };
+test('model file import invokes the trusted picker without passing a renderer path', async () => {
+  await withStandardShellInvoke(async (command) => {
+    assert.equal(command, 'desktop_import_selected_model_file');
+    return true;
   }, async () => {
-    assert.equal(await pickLocalRuntimeAssetFile(), 'D:/models/model.gguf');
+    assert.equal(await importPickedLocalRuntimeAssetFile(), true);
   });
-
-  assert.deepEqual(calls, [{
-    command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
-    payload: {
-      payload: {
-        kind: 'file',
-        title: 'Select asset file to import',
-        filters: [
-          { name: 'Asset Files', extensions: ['gguf', 'gguf_file', 'safetensors', 'bin', 'pt', 'onnx', 'pth'] },
-          { name: 'All Files', extensions: ['*'] },
-        ],
-      },
-    },
-  }]);
 });
 
 test('local runtime asset directory picker uses Kit standard directory dialog', async () => {
@@ -107,8 +92,8 @@ test('local runtime asset directory picker uses Kit standard directory dialog', 
 });
 
 test('local runtime asset pickers preserve cancel as null', async () => {
-  await withStandardShellInvoke(async () => ({ canceled: true, paths: [] }), async () => {
-    assert.equal(await pickLocalRuntimeAssetFile(), null);
+  await withStandardShellInvoke(async (command) => command === 'desktop_import_selected_model_file' ? false : ({ canceled: true, paths: [] }), async () => {
+    assert.equal(await importPickedLocalRuntimeAssetFile(), false);
     assert.equal(await pickLocalRuntimeAssetDirectory(), null);
   });
 });
