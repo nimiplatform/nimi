@@ -759,6 +759,7 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
     assert.equal(doneSnap.sessions.length, 1, 'concurrent outbox NEW_INTENT must NOT create a duplicate local session');
     assert.equal(doneSnap.sessions[0].workSessionRef, allocatedWorkSessionRef);
     assert.equal(stepRequests.length, 1, 'prompt must execute exactly once');
+    assert.equal(stepRequests[0].agentHandle, partnerBinding, 'a bound Body step uses the Runtime-issued session binding');
     const userMsg = stepRequests[0].workingMessages.find(m => m.role === 'user');
     assert.equal(userMsg?.outboxId, allocatedOutboxId, 'user BodyWorkingMessage must carry authentic Runtime outboxId');
     await waitFor(

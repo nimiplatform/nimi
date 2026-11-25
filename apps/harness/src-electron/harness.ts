@@ -1344,18 +1344,18 @@ export async function openHarness(
         let routed: Awaited<ReturnType<ReturnType<HarnessBodySymbiosisClient['getAgentSessionClient']>['routeAndSubmitInput']>>;
         let resolvedRef = '';
         try {
-          const resolvedPartner = currentRecord.agentHandle
-            ? { agentHandle: currentRecord.agentHandle, agentBinding: currentRecord.agentBinding ?? defaultAgentBinding }
+          const persisted = recordOf(id);
+          // A previously routed session has a durable selector; a new one needs this connection's handle.
+          const sessionSelector = (persisted.workSessionRef && persisted.agentBinding) || persisted.agentHandle;
+          const resolvedPartner = sessionSelector
+            ? { agentHandle: sessionSelector, agentBinding: persisted.agentBinding ?? defaultAgentBinding }
             : await resolveDefaultPartner();
           if (!resolvedPartner?.agentHandle) {
             throw new Error('No authorized Nimi Partner is available yet. Open Nimi Home to create or authorize a Partner before submitting.');
           }
-          const persisted = recordOf(id);
           const boundRef = persisted.initialRequestId === requestId ? '' : persisted.workSessionRef || '';
           routed = await symbiosisClient.getAgentSessionClient().routeAndSubmitInput({
-            // A handle is scoped to the issuing connection. An existing session has
-            // the durable agent binding returned by Runtime's routing authority.
-            agentHandle: persisted.workSessionRef && persisted.agentBinding ? persisted.agentBinding : resolvedPartner.agentHandle,
+            agentHandle: resolvedPartner.agentHandle,
             requestId,
             text,
             explicitWorkSessionRef: boundRef,
@@ -1574,7 +1574,6 @@ export async function openHarness(
         title?: string;
         workspaceRoot?: string;
         permissionMode?: string;
-        agentHandle?: string;
         handoffBriefText?: string;
         handoffHistory?: { role: 'user' | 'assistant'; text: string }[];
         attachmentPaths?: string[];
@@ -1601,7 +1600,6 @@ export async function openHarness(
             title: typeof raw.title === 'string' ? raw.title : undefined,
             workspaceRoot: typeof raw.workspaceRoot === 'string' ? raw.workspaceRoot : undefined,
             permissionMode: typeof raw.permissionMode === 'string' ? raw.permissionMode : undefined,
-            agentHandle: typeof raw.agentHandle === 'string' ? raw.agentHandle : undefined,
             handoffBriefText: typeof raw.handoffBriefText === 'string' ? raw.handoffBriefText : undefined,
             ...(handoffHistory.length > 0 ? { handoffHistory } : {}),
             ...(attachmentPaths.length > 0 ? { attachmentPaths } : {}),
@@ -1632,7 +1630,6 @@ export async function openHarness(
             title,
             workSessionRef: targetRef || newId,
             ...(env.agentBinding ? { agentBinding: env.agentBinding } : {}),
-            ...(parsed.agentHandle ? { agentHandle: parsed.agentHandle } : {}),
             ...(validatedWorkspace ? { workspaceDir: validatedWorkspace } : {}),
             permissionMode: perm,
             updatedAt: Date.now(),
@@ -1650,8 +1647,7 @@ export async function openHarness(
             ? incomingPerm
             : currentPerm;
           const needsUpdate = downgradedPerm !== currentPerm
-            || (!existing.agentBinding && Boolean(env.agentBinding))
-            || (!existing.agentHandle && Boolean(parsed.agentHandle));
+            || (!existing.agentBinding && Boolean(env.agentBinding));
           if (!needsUpdate) return;
           if (downgradedPerm !== currentPerm) {
             const active = opened.get(existing.id);
@@ -1663,7 +1659,6 @@ export async function openHarness(
               ...item,
               permissionMode: downgradedPerm,
               ...(!item.agentBinding && env.agentBinding ? { agentBinding: env.agentBinding } : {}),
-              ...(!item.agentHandle && parsed.agentHandle ? { agentHandle: parsed.agentHandle } : {}),
               updatedAt: Date.now(),
             } : item),
           });
@@ -1717,10 +1712,11 @@ export async function openHarness(
         .filter(item => Boolean(item.workSessionRef))
         .flatMap(item => {
           const meta = sessionMeta.get(item.id);
-          syncSessionActivity(item.id, meta ?? { status: 'idle', hasPendingDecision: false });
+          if (meta) syncSessionActivity(item.id, meta);
           const base = {
             workSessionRef: item.workSessionRef!,
-            status: meta?.status === 'waiting' ? 'waiting_approval' : (meta?.status ?? 'idle'),
+            // Empty preserves Runtime's last observed status while this session is unopened.
+            status: meta?.status === 'waiting' ? 'waiting_approval' : (meta?.status ?? ''),
             title: item.title,
             ...(item.workspaceDir ? { workspaceRoot: item.workspaceDir } : {}),
             permissionMode: item.permissionMode ?? 'strict',
@@ -1835,9 +1831,10 @@ type OpenSessionOptions = {
 
 async function openSession(opts: OpenSessionOptions) {
   const { folder, sessionId, services, signal, configRef, onProgress, onStatus } = opts;
-  let effectiveWorkSessionRef = opts.workSessionRef ?? sessionId;
+  let effectiveWorkSessionRef = opts.workSessionRef;
   let effectiveAgentBinding = opts.agentBinding ?? 'default';
-  let effectiveAgentHandle = opts.agentHandle ?? effectiveAgentBinding;
+  // Once bound, use the selector issued with this work session. App handles are connection-scoped.
+  let effectiveAgentHandle = (opts.workSessionRef && opts.agentBinding) || opts.agentHandle || effectiveAgentBinding;
   let effectiveAgentDisplayName = opts.agentDisplayName?.trim() || 'Nimi Partner';
   let activeSymbiosis: HarnessBodySymbiosisClient | undefined = opts.symbiosis;
   let currentWorkspace = opts.workspaceDir ?? sessionWorkspace(folder, sessionId);
@@ -1951,7 +1948,7 @@ async function openSession(opts: OpenSessionOptions) {
     integration: services.integration,
     getSymbiosis: () => activeSymbiosis,
     requireSymbiosis: opts.requireSymbiosis,
-    getWorkSessionRef: () => effectiveWorkSessionRef,
+    getWorkSessionRef: () => effectiveWorkSessionRef ?? sessionId,
     authorizedGrants,
     activeTool,
     signal,
@@ -1963,7 +1960,7 @@ async function openSession(opts: OpenSessionOptions) {
       if (!conversation) throw new Error('Compaction conversation no longer exists.');
       return conversation.context(ctx);
     },
-    getWorkSessionRef: () => effectiveWorkSessionRef,
+    getWorkSessionRef: () => effectiveWorkSessionRef ?? sessionId,
     getAgentBinding: () => effectiveAgentBinding,
     getAgentHandle: () => effectiveAgentHandle,
     getSymbiosis: () => activeSymbiosis,
@@ -2013,7 +2010,7 @@ async function openSession(opts: OpenSessionOptions) {
         symbiosis: nextSymbiosis,
         agentHandle: effectiveAgentHandle,
         agentBinding: effectiveAgentBinding,
-        workSessionRef: effectiveWorkSessionRef,
+        workSessionRef: effectiveWorkSessionRef ?? sessionId,
         label: effectiveAgentDisplayName,
         workspaceName: () => workspaceLabelOf(currentWorkspace) ?? 'workspace',
         permissionMode: () => currentPermissionMode,
@@ -2120,15 +2117,17 @@ async function openSession(opts: OpenSessionOptions) {
     return {
       reader: harness,
       async attachSymbiosis(nextSymbiosis: HarnessBodySymbiosisClient, agentBinding?: string, agentHandle?: string, agentDisplayName?: string) {
-        if (agentBinding) effectiveAgentBinding = agentBinding;
-        if (agentHandle) effectiveAgentHandle = agentHandle;
-        if (agentDisplayName && agentDisplayName.trim()) effectiveAgentDisplayName = agentDisplayName.trim();
+        if (!effectiveWorkSessionRef) {
+          if (agentBinding) effectiveAgentBinding = agentBinding;
+          if (agentHandle) effectiveAgentHandle = agentHandle;
+          if (agentDisplayName?.trim()) effectiveAgentDisplayName = agentDisplayName.trim();
+        }
         await applySymbiosisProvider(nextSymbiosis);
       },
       async bindRuntimeSession(workSessionRef: string, agentBinding?: string, agentHandle?: string) {
         effectiveWorkSessionRef = workSessionRef;
         if (agentBinding) effectiveAgentBinding = agentBinding;
-        if (agentHandle) effectiveAgentHandle = agentHandle;
+        effectiveAgentHandle = agentBinding || agentHandle || effectiveAgentHandle;
         if (activeSymbiosis) {
           await applySymbiosisProvider(activeSymbiosis);
         }

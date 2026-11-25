@@ -733,7 +733,6 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		}
 		payloadMap := map[string]any{
 			"bodyInputText":     bodyIntentText(req.GetText(), req.GetHandoffBriefText(), targetRow.Record.GetWorkspaceRoot(), req.GetAttachmentPaths(), handoffHistoryPayload),
-			"agentHandle":       req.GetAgentHandle(),
 			"requestId":         requestID,
 			"text":              req.GetText(),
 			"entrySurface":      entrySurface,
