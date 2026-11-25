@@ -78,6 +78,7 @@ export interface BodyPendingAttention {
 }
 
 export interface BodyProjectionInput {
+  readonly milestoneRef?: string;
   readonly workSessionRef: string;
   readonly status: string;
   readonly title?: string;
@@ -102,6 +103,7 @@ export interface BodyOutboxHandlers {
     payloadJson: string;
   }): Promise<void>;
   onReconcileAfterTombstones(): Promise<readonly BodyProjectionInput[]>;
+  onMilestoneAccepted?(sessionRef: string, milestoneRef: string): Promise<void>;
   onLeaseLost?: (reason: string) => void;
 }
 
@@ -229,6 +231,7 @@ export class HarnessBodySymbiosisClient {
   private readonly client: NimiLocalAppAgentSessionClient;
   private readonly handlers: BodyOutboxHandlers;
   private leaseEpoch = 0;
+  private leaseStream?: AbortController;
   private projectionSeq = 0;
   private heartbeatTimer?: ReturnType<typeof setInterval>;
   private running = false;
@@ -348,6 +351,7 @@ export class HarnessBodySymbiosisClient {
       for (const item of reconciled) {
         signal.throwIfAborted();
         await this.reportProjection(item);
+        if (item.milestoneRef) await this.handlers.onMilestoneAccepted?.(item.workSessionRef, item.milestoneRef);
       }
 
       // Step 4: Drain initial pending intents.
@@ -410,6 +414,8 @@ export class HarnessBodySymbiosisClient {
     if (this.tombstonesDrained) {
       this.readyPromise = new Promise<void>(r => { this.readyResolve = r; });
     }
+    this.leaseStream?.abort();
+    this.leaseStream = undefined;
     this.running = false;
     this.tombstonesDrained = false;
     if (this.heartbeatTimer) {
@@ -431,11 +437,13 @@ export class HarnessBodySymbiosisClient {
         if (!this.running || this.leaseEpoch <= 0) {
           await this.registerAndDrain(signal);
         }
+        this.leaseStream = new AbortController();
+        const streamSignal = AbortSignal.any([signal, this.leaseStream.signal]);
         const stream = await this.client.subscribeBodyOutbox({
           deviceId: this.deviceId,
           capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
           leaseEpoch: String(this.leaseEpoch),
-        } as never, { signal } as never);
+        } as never, { signal: streamSignal } as never);
         backoffMs = 1_000;
         for await (const env of stream as AsyncIterable<Record<string, unknown>>) {
           if (!this.running || this.stopped || signal.aborted) break;
@@ -539,12 +547,12 @@ export class HarnessBodySymbiosisClient {
   }
 
   async reportProjection(input: BodyProjectionInput): Promise<void> {
-    if (!this.isReadyForProjections() || !input.workSessionRef.trim()) return;
+    if (!this.isReadyForProjections() || !input.workSessionRef.trim()) throw new Error('Body projection is unavailable.');
     const run = this.projectionChain.then(async () => {
-      if (!this.isReadyForProjections()) return;
+      if (!this.isReadyForProjections()) throw new Error('Body lease changed before reporting projection.');
       this.projectionSeq += 1;
       const seq = this.projectionSeq;
-      await this.client.reportBodySessionProjection({
+      const receipt = await this.client.reportBodySessionProjection({
         workSessionRef: input.workSessionRef,
         deviceId: this.deviceId,
         capabilityNamespace: HARNESS_PC_CAPABILITY_NAMESPACE,
@@ -568,9 +576,15 @@ export class HarnessBodySymbiosisClient {
           },
         } : {}),
         ...(input.clearPendingAttention ? { clearPendingAttention: true } : {}),
-      } as never);
+      } as never) as { applied?: boolean };
+      if (receipt?.applied !== true) throw new Error('Runtime did not apply the Body projection.');
     });
-    this.projectionChain = run.catch(() => {});
+    const epoch = this.leaseEpoch;
+    this.projectionChain = run.catch(error => {
+      if (input.milestoneRef && this.leaseEpoch === epoch) {
+        this.handleLeaseLost(error instanceof Error ? error.message : 'Milestone projection was not confirmed.');
+      }
+    });
     return run;
   }
 

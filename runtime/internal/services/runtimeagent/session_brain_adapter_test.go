@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -16,7 +17,22 @@ func TestSessionBrainAdapterPropagatesRuntimeAccountSubjectOnDetachedContext(t *
 
 	var observedSubjects []string
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
-		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+		stream: func(ctx context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if len(observedSubjects) == 0 {
+				const marker = "offline-recall-fixture"
+				if strings.Contains(req.SystemPrompt, marker) || len(req.Messages) < 3 {
+					t.Fatalf("unexpected recall placement")
+				}
+				msgs := req.Messages[len(req.Messages)-3:]
+				if msgs[0].Role != "assistant" || msgs[1].Role != "tool" || msgs[2].Role != "user" || msgs[2].GetContent() != "hello" {
+					t.Fatalf("wrong recall exchange or changed user input")
+				}
+				call := msgs[0].GetTurnItems()[0].GetOutput().GetToolCall()
+				result := msgs[1].GetTurnItems()[0].GetToolResult()
+				if call.GetId() == "" || result.GetToolCallId() != call.GetId() || result.GetResult().GetStringValue() != marker {
+					t.Fatal("unpaired recall result")
+				}
+			}
 			subject, ok := executionintent.RuntimeAccountSubjectFromContext(ctx)
 			if !ok {
 				subject = ""
@@ -44,14 +60,15 @@ func TestSessionBrainAdapterPropagatesRuntimeAccountSubjectOnDetachedContext(t *
 
 	// 1. ExecuteBrainInlineTurn called with bare context.Background()
 	if err := svc.ExecuteBrainInlineTurn(context.Background(), BrainInlineTurnRuntimeInput{
-		AccountID:      expectedAccount,
-		CallerAppID:    "nimi.desktop",
-		LocalAgentRef:  agentRef,
-		WorkSessionRef: "ws_brain_inline_1",
-		SessionKind:    "general_inbox",
-		TrustTier:      "trusted",
-		UserText:       "hello",
-		RequestID:      "req-inline-1",
+		AccountID:            expectedAccount,
+		CallerAppID:          "nimi.desktop",
+		LocalAgentRef:        agentRef,
+		WorkSessionRef:       "ws_brain_inline_1",
+		SessionKind:          "general_inbox",
+		TrustTier:            "trusted",
+		UserText:             "hello",
+		OfflineRecallContext: "offline-recall-fixture",
+		RequestID:            "req-inline-1",
 	}, func(_, _ string, _ bool) error { return nil }); err != nil {
 		t.Fatalf("ExecuteBrainInlineTurn: %v", err)
 	}

@@ -105,10 +105,10 @@ func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func
 			// before quiescing LocalAgent and Cognition owners they depend on.
 			result.Err = errors.Join(result.Err, s.agentSessionService.QuiesceDataRootContext(ctx))
 		}
-		if result.Err == nil && s.agentService != nil {
+		if s.agentService != nil {
 			// The RPC gate is closed and any root handoff RPC has returned.
 			// Use the Agent's owner drain before waiting on other subsystems.
-			result.Err = s.agentService.QuiesceDataRootContext(ctx)
+			result.Err = errors.Join(result.Err, s.agentService.QuiesceDataRootContext(ctx))
 		}
 		select {
 		case <-remoteDone:
@@ -125,15 +125,16 @@ func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func
 			result.Err = errors.Join(result.Err, waitDependencies())
 		}
 		result.Err = errors.Join(result.Err, ctx.Err())
-		if result.Err == nil {
+		ownersIdle := result.Err == nil
+		if ownersIdle {
 			result.Err = s.releaseOwners(ctx)
 		}
 		if record != nil {
 			record(result)
 		}
 		result.Err = errors.Join(result.Err, ctx.Err())
-		if result.Err == nil && s.persistenceBackend != nil {
-			result.Err = s.persistenceBackend.Close()
+		if ownersIdle && ctx.Err() == nil && s.persistenceBackend != nil {
+			result.Err = errors.Join(result.Err, s.persistenceBackend.Close())
 		}
 		ownersDone <- result.Err
 	}(result)
@@ -146,29 +147,30 @@ func (s *Server) StopWithin(ctx, drainCtx context.Context, waitDependencies func
 }
 
 func (s *Server) releaseOwners(ctx context.Context) error {
+	var errs []error
 	if s.appService != nil {
 		s.appService.CloseLocalAppStorage()
 	}
 	if s.appInstallCoordinator != nil {
-		_ = s.appInstallCoordinator.Close()
+		errs = append(errs, s.appInstallCoordinator.Close())
 	}
 	if s.localService != nil {
 		s.localService.StopProductControlCheckSync()
 	}
 	if s.agentSessionService != nil {
-		_ = s.agentSessionService.Close()
+		errs = append(errs, s.agentSessionService.Close())
 	}
 	if s.agentService != nil {
 		s.agentService.Close()
 	}
 	if s.integrationService != nil {
-		_ = s.integrationService.Close()
+		errs = append(errs, s.integrationService.Close())
 	}
 	if s.appActivityService != nil {
-		_ = s.appActivityService.Close()
+		errs = append(errs, s.appActivityService.Close())
 	}
 	if s.cognitionV1Owner != nil {
-		_ = s.cognitionV1Owner.Close()
+		errs = append(errs, s.cognitionV1Owner.Close())
 	}
 	if s.aiSvc != nil {
 		s.aiSvc.ShutdownRealtime()
@@ -180,9 +182,8 @@ func (s *Server) releaseOwners(ctx context.Context) error {
 		s.localService.Close()
 	}
 	if err := ctx.Err(); err != nil {
-		return err
+		return errors.Join(append(errs, err)...)
 	}
-	var errs []error
 	if s.aiObservation != nil {
 		errs = append(errs, s.aiObservation.Close())
 	}

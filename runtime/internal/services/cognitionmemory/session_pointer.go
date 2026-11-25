@@ -2,7 +2,9 @@ package cognitionmemory
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -186,7 +188,7 @@ func (f *Facade) CommitSessionPointer(
 		}
 	}
 	result, err := f.processRememberLocked(ctx, localAgentRef, operationID)
-	if err != nil || result.Outcome == memoryv1.OutcomeNoEffect {
+	if err != nil || result.Outcome != memoryv1.OutcomeAdmitted {
 		return false, err
 	}
 	if seen && !committedAt.After(prev.lastCommittedAt) {
@@ -263,6 +265,25 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 		return 0, neutralized, err
 	}
 
+	// A previous attempt may already have erased the lineage while execution
+	// copies are still fenced. Finish that obligation before looking up live refs.
+	if _, _, err := f.resumeForget(ctx, localAgentRef); err != nil {
+		return 0, neutralized, err
+	}
+
+	operationID := fmt.Sprintf("cmforget_%x", sha256.Sum256([]byte(localAgentRef+"\x00"+workSessionRef)))
+	var saved []byte
+	err = f.store.backend.DB().QueryRowContext(ctx, "SELECT result_json FROM runtime_cognition_memory_forget WHERE operation_id=? AND phase='completed'", operationID).Scan(&saved)
+	if err == nil && len(saved) > 0 {
+		var result MutationOutcome
+		if err := json.Unmarshal(saved, &result); err != nil {
+			return 0, neutralized, err
+		}
+		return uint32(len(result.AffectedMemoryRefs)), neutralized, nil
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return 0, neutralized, err
+	}
 	// Step 4: Look up all committed memory_refs via memory_lineage.
 	refs, err := f.owner.FindMemoryRefsBySource(ctx, binding.BindingRef, binding.BankRef, "session", workSessionRef)
 	if err != nil {
@@ -311,7 +332,10 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 	}
 
 	// Step 5: Exact Forget through canonical Facade.forgetLocked.
-	outcome, err := f.forgetLocked(ctx, localAgentRef, refs, true)
+	if err := f.prepareForget(ctx, binding, refs, operationID); err != nil {
+		return 0, neutralized, err
+	}
+	outcome, _, err := f.resumeForget(ctx, localAgentRef)
 	if err != nil {
 		return 0, neutralized, err
 	}

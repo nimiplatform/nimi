@@ -188,6 +188,7 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
   const planTools = {
     'plan-write': { name: 'write', arguments: { path: 'blocked.txt', content: 'x' } },
     'plan-open': { name: 'open_attachment', arguments: { id: randomUUID() } },
+    'share-second': { name: 'share_result_file', arguments: { filename: 'second.txt' } },
     'plan-share': { name: 'share_result_file', arguments: { filename: 'result.txt' } },
   };
   const { services, activities } = createMockEnv(namespace, async input => {
@@ -255,6 +256,19 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
   // Thinking + toolCalls projected in snapshot
   assert.ok((await harness.snapshot()).entries.some(e => e.role === 'assistant' && e.thinking === 'Planning the requested step.' && e.toolCalls?.length === 1));
 
+  await harness.setPermissionMode('main', 'strict');
+  for (const [prompt, filename] of [['plan-share', 'result.txt'], ['share-second', 'second.txt']]) {
+    await writeFile(join(initial.workspace, filename), 'acceptance result');
+    await harness.submit('main', prompt, randomUUID());
+    const view = await waitFor(harness, v => v.decisions.length === 1);
+    const card = view.decisions[0];
+    assert.equal(card.name, 'share_result_file');
+    assert.equal(card.allowSessionPermitted, false);
+    await harness.decide('main', card.id, true, undefined, true, card.revision);
+    await waitFor(harness, v => !v.running && v.decisions.length === 0);
+    assert.deepEqual((await harness.snapshot()).sessionAllowlist, []);
+  }
+
   // 3. Workspace Auto-Edit auto-approves in-workspace write, but still asks approval for out-of-workspace write!
   await harness.setPermissionMode('main', 'workspace-edit');
   await harness.submit('main', 'write-inside', randomUUID());
@@ -313,4 +327,31 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
   const integrations = await harness.listIntegrations();
   assert.equal(integrations.length, 1);
   assert.deepEqual(integrations[0].operations.map(o => o.effect), ['read', 'write']);
+});
+
+test('agent purge waits for a pending first submission before acknowledging its catalog deletion', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'harness-purge-submit-'));
+  const { services } = createMockEnv(randomUUID(), () => { throw new Error('unexpected model call'); });
+  const started = Promise.withResolvers();
+  const reply = Promise.withResolvers();
+  const sessionClient = { async routeAndSubmitInput() { started.resolve(); return reply.promise; } };
+  const symbiosis = {
+    isRunning: () => true,
+    isReadyForProjections: () => false,
+    getEffectiveContextBudgetTokens: () => 64000,
+    getAgentSessionClient: () => sessionClient,
+  };
+  const harness = await openHarness(services, new AbortController().signal, undefined, { dataRoot: root, requireSymbiosis: true });
+  t.after(async () => { await harness.close(); await rm(root, { recursive: true, force: true }); });
+  await harness.attachSymbiosis(symbiosis, 'binding', 'partner', 'Partner');
+  const submit = harness.submit('main', 'Draft a note', randomUUID());
+  await started.promise;
+  let acknowledged = false;
+  const purge = harness.handleBodyPurgeAgent('binding').then(() => { acknowledged = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(acknowledged, false);
+  reply.resolve({ resolvedWorkSessionRef: 'ws-test', outboxId: 'intent', workSessionRecord: { agentBinding: 'binding' } });
+  await submit;
+  await purge;
+  assert.equal(await harness.selectByWorkSessionRef('ws-test'), false);
 });

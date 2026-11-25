@@ -18,7 +18,7 @@ import { integrationTools, listGrantedIntegrations, lookupIntegrationOperation }
 import { searchTools } from './search-tools.js';
 import { transcriptionTools } from './transcribe.js';
 import { progressText, textPreview } from './text-preview.js';
-import { readPendingDecision, sanitizeDecisionArgsForDisplay, type PendingDecision } from './pending-decision.js';
+import { canAllowToolForSession, readPendingDecision, sanitizeDecisionArgsForDisplay, type PendingDecision } from './pending-decision.js';
 import { needsCompaction } from './request-budget.js';
 import { HomeHistory, parseHomeHandoff } from './home-handoff.js';
 import { hashOutboxPayload, openDurableFullStorage, OutboxReceiptsDoc } from './durable-sqlite.js';
@@ -106,7 +106,24 @@ function sessionDatabase(folder: string, id: string) {
   return join(folder, id === 'main' ? 'session.sqlite' : `session-${id}.sqlite`);
 }
 
+type PendingMilestone = { ref: string; kind: 'initial_goal' | 'progress'; paths: string[] };
+
+function readPendingMilestones(value: unknown): PendingMilestone[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error('Invalid stored milestone queue.');
+  return value.map(item => {
+    if (!isJsonObject(item) || typeof item.ref !== 'string' || !item.ref ||
+        (item.kind !== 'initial_goal' && item.kind !== 'progress') ||
+        !Array.isArray(item.paths) || !item.paths.every(path => typeof path === 'string')) {
+      throw new Error('Invalid stored milestone.');
+    }
+    return { ref: item.ref, kind: item.kind, paths: item.paths as string[] };
+  });
+}
+
 type SessionRecord = {
+  pendingMilestones?: PendingMilestone[];
+  initialMilestoneQueued?: boolean;
   initialRequestId?: string;
   id: string;
   title: string;
@@ -146,8 +163,8 @@ function isPermissionMode(value: unknown): value is PermissionMode {
 }
 
 function permissionModeStrictness(mode: PermissionMode | undefined): number {
-  if (mode === 'strict') return 3;
-  if (mode === 'plan-readonly') return 2;
+  if (mode === 'plan-readonly') return 3;
+  if (mode === 'strict') return 2;
   if (mode === 'workspace-edit') return 1;
   return 3;
 }
@@ -291,7 +308,7 @@ function createApprovalsExtension(options: {
           && await isInsideWorkspace(options.getWorkspace(), targetPath);
 
         // Gate 4: Free Shell & control-plane files ALWAYS require explicit allow_once (never sessionAllowlist).
-        const autoApprovedBySession = !isFreeShell && !isControlPlane && !isOutboundNetwork && call.name !== 'invoke_nimi_integration' && options.sessionAllowlist.has(call.name);
+        const autoApprovedBySession = canAllowToolForSession(mode, call.name, isControlPlane, isFreeShell) && options.sessionAllowlist.has(call.name);
 
         if (!autoApprovedByWorkspaceEdit && !autoApprovedBySession) {
           const answer = await api.readSignal(decision, 'decision', ctx);
@@ -489,7 +506,6 @@ export async function openHarness(
   let defaultAgentBinding = options?.defaultAgentBinding;
   let defaultAgentHandle = options?.defaultAgentHandle;
   let defaultAgentDisplayName = options?.defaultAgentDisplayName;
-  const reportedInitialMilestone = new Set<string>();
   let pendingRouteSubmit: Promise<void> = Promise.resolve();
 
   const resolveDefaultPartner = async (): Promise<{ agentHandle: string; agentBinding?: string; displayName?: string } | undefined> => {
@@ -562,6 +578,8 @@ export async function openHarness(
       return {
         id: item.id,
         title: item.title,
+        pendingMilestones: readPendingMilestones(item.pendingMilestones),
+        initialMilestoneQueued: item.initialMilestoneQueued === true,
         ...(typeof item.initialRequestId === 'string' ? { initialRequestId: item.initialRequestId } : {}),
         ...(typeof item.workSessionRef === 'string' && item.workSessionRef.trim() ? { workSessionRef: item.workSessionRef.trim() } : {}),
         ...(typeof item.agentBinding === 'string' && item.agentBinding.trim() ? { agentBinding: item.agentBinding.trim() } : {}),
@@ -614,6 +632,18 @@ export async function openHarness(
     const item = recordOf(id);
     return item.workspaceDir ?? sessionWorkspace(folder, id);
   };
+
+  function projectMilestone(item: PendingMilestone, title: string) {
+    return { milestoneRef: item.ref, latestReceiptJson: JSON.stringify({ milestoneRef: item.ref }),
+      milestoneKind: item.kind, topicSummary: title, deliverablePaths: item.paths };
+  }
+  const acknowledgeMilestone = (sessionRef: string, ref: string) => mutate(async () => {
+    const session = catalog.sessions.find(item => item.workSessionRef === sessionRef);
+    if (!session?.pendingMilestones?.some(item => item.ref === ref)) return;
+    await save({ ...catalog, sessions: catalog.sessions.map(s => s !== session ? s : {
+      ...s, pendingMilestones: s.pendingMilestones?.filter(item => item.ref !== ref),
+    }) });
+  });
 
   function syncSessionActivity(id: string, meta: SessionRuntimeMeta, latestTaskId?: number, lastStepAt?: number) {
     const prevMeta = sessionMeta.get(id);
@@ -706,7 +736,7 @@ export async function openHarness(
             const currentRecord = catalog.sessions.find(s => s.id === id);
             // NEVER report an unbound local placeholder (e.g. initial 'main') to Runtime!
             const ref = currentRecord?.workSessionRef;
-            if (ref && symbiosisClient?.isReadyForProjections()) {
+            if (ref && symbiosisClient) {
               const mappedStatus = meta.status === 'waiting'
                 ? 'waiting_approval'
                 : meta.status === 'running'
@@ -740,31 +770,31 @@ export async function openHarness(
                     };
                   }
                 }
-                let milestoneKind: string | undefined;
-                let topicSummary: string | undefined;
-                let deliverablePaths: readonly string[] | undefined;
+                let milestone: PendingMilestone | undefined;
                 if (turnJustCompleted) {
-                  milestoneKind = reportedInitialMilestone.has(ref) ? 'completed' : 'initial_goal';
-                  reportedInitialMilestone.add(ref);
-                  const resolvedSess = await opened.get(id)?.catch(() => undefined);
-                  const milestoneInfo = resolvedSess?.getLatestMilestoneSummary();
-                  topicSummary = milestoneInfo?.topicSummary || currentRecord?.title || item.title;
-                  if (milestoneInfo?.deliverablePaths.length) {
-                    deliverablePaths = milestoneInfo.deliverablePaths;
-                  }
+                  const session = await opened.get(id);
+                  const paths = [...(session?.getLatestMilestoneSummary().deliverablePaths ?? [])];
+                  milestone = await mutate(async () => {
+                    const current = recordOf(id);
+                    const event: PendingMilestone = { ref: randomUUID(), kind: current.initialMilestoneQueued ? 'progress' : 'initial_goal', paths };
+                    await save({ ...catalog, sessions: catalog.sessions.map(s => s.id === id ? {
+                      ...s, initialMilestoneQueued: true, pendingMilestones: [...(s.pendingMilestones ?? []), event],
+                    } : s) });
+                    return event;
+                  });
                 }
+                if (!symbiosisClient?.isReadyForProjections()) return;
                 await symbiosisClient?.reportProjection({
                   workSessionRef: ref,
                   status: mappedStatus,
                   title: currentRecord?.title ?? item.title,
                   workspaceRoot: currentRecord?.workspaceDir,
                   permissionMode: currentRecord?.permissionMode ?? 'strict',
-                  ...(milestoneKind ? { milestoneKind } : {}),
-                  ...(topicSummary ? { topicSummary } : {}),
-                  ...(deliverablePaths ? { deliverablePaths } : {}),
+                  ...(milestone ? projectMilestone(milestone, currentRecord?.title ?? item.title) : {}),
                   ...(pendingAttention ? { pendingAttention } : {}),
                   ...(prevStatus === 'waiting' && meta.status !== 'waiting' ? { clearPendingAttention: true } : {}),
                 });
+                if (milestone) await acknowledgeMilestone(ref, milestone.ref);
               })().catch(() => {});
             }
           },
@@ -809,7 +839,7 @@ export async function openHarness(
   const waitKey = decision.key('decision');
   const pendingDecision = (id: string, taskId?: number) => readSession<PendingDecision>(id, { state: 'none' }, async reader => {
     if (!(await reader.snapshot(LiveDoc, ROOT_CONVERSATION_ID, context))?.tools?.length) return { state: 'none' };
-    return reader.commit(tx => readPendingDecision(tx, id, waitKey.signal, { workspaceRoot: workspaceOf(id), ...(taskId !== undefined ? { taskId } : {}) }), context);
+    return reader.commit(tx => readPendingDecision(tx, id, waitKey.signal, { permissionMode: recordOf(id).permissionMode, workspaceRoot: workspaceOf(id), ...(taskId !== undefined ? { taskId } : {}) }), context);
   });
 
   async function addSession(configRef?: string, creationKey?: string, workspaceDir?: string) {
@@ -1010,8 +1040,8 @@ export async function openHarness(
       }
     },
     importMaterial: async (id: string, name: string, data: Uint8Array) => (await session(id)).importMaterial(name, data),
-    listFiles: (id: string, folderName: string, offset: number) => listWorkspace(workspaceOf(id), folderName, offset, signal),
-    previewFile: (id: string, ref: string, page?: number) => previewWorkspaceFile(workspaceOf(id), ref, signal, page),
+    listFiles: async (id: string, folderName: string, offset: number) => (await session(id)).listWorkspace(folderName, offset),
+    previewFile: async (id: string, ref: string, page?: number) => (await session(id)).previewFile(ref,page),
     revealFile: async (id: string, ref: string) => (await workspaceFile(workspaceOf(id), ref, signal)).path,
     revealWorkspace: async (id: string) => {
       const dir = workspaceOf(id);
@@ -1304,12 +1334,6 @@ export async function openHarness(
         if (!symbiosisClient || !symbiosisClient.isRunning()) {
           throw new Error('Harness PC body symbiosis lease is offline. Reconnect to Nimi Runtime before submitting.');
         }
-        const resolvedPartner = currentRecord.agentHandle
-          ? { agentHandle: currentRecord.agentHandle, agentBinding: currentRecord.agentBinding ?? defaultAgentBinding }
-          : await resolveDefaultPartner();
-        if (!resolvedPartner?.agentHandle) {
-          throw new Error('No authorized Nimi Partner is available yet. Open Nimi Home to create or authorize a Partner before submitting.');
-        }
         // Hold a route-submit barrier until catalog.sessions persists workSessionRef so
         // an outbox NEW_INTENT arriving concurrently binds to this exact session (no duplicate!).
         let releaseBarrier!: () => void;
@@ -1320,6 +1344,12 @@ export async function openHarness(
         let routed: Awaited<ReturnType<ReturnType<HarnessBodySymbiosisClient['getAgentSessionClient']>['routeAndSubmitInput']>>;
         let resolvedRef = '';
         try {
+          const resolvedPartner = currentRecord.agentHandle
+            ? { agentHandle: currentRecord.agentHandle, agentBinding: currentRecord.agentBinding ?? defaultAgentBinding }
+            : await resolveDefaultPartner();
+          if (!resolvedPartner?.agentHandle) {
+            throw new Error('No authorized Nimi Partner is available yet. Open Nimi Home to create or authorize a Partner before submitting.');
+          }
           const persisted = recordOf(id);
           const boundRef = persisted.initialRequestId === requestId ? '' : persisted.workSessionRef || '';
           routed = await symbiosisClient.getAgentSessionClient().routeAndSubmitInput({
@@ -1329,7 +1359,7 @@ export async function openHarness(
             requestId,
             text,
             explicitWorkSessionRef: boundRef,
-            entrySurface: boundRef ? 'harness' : 'harness_new_session',
+            entrySurface: boundRef ? 'harness' : persisted.permissionMode === 'workspace-edit' ? 'new_session' : 'harness_new_session',
             workspaceRoot: boundRef ? '' : currentRecord.workspaceDir ?? workspaceOf(id),
             workspaceWritable: !boundRef && (currentRecord.permissionMode ?? 'strict') !== 'plan-readonly',
             attachmentPaths: [],
@@ -1374,14 +1404,14 @@ export async function openHarness(
           if (active) {
             await (await active).bindRuntimeSession(resolvedRef, resolvedBinding, resolvedHandle);
           }
+          // Runtime enqueues NEW_INTENT via outbox for this session; submit locally using outboxId
+          // if present (idempotent with handleBodyNewIntent's OutboxReceiptsDoc) so UI updates immediately.
+          const outboxId = routed.outboxId?.trim();
+          if (!outboxId) throw new Error("Runtime did not confirm delivery to this execution App.");
+          await (await session(id)).submit(text.trim(), outboxId, queue, outboxId, requestId);
         } finally {
           releaseBarrier();
         }
-        // Runtime enqueues NEW_INTENT via outbox for this session; submit locally using outboxId
-        // if present (idempotent with handleBodyNewIntent's OutboxReceiptsDoc) so UI updates immediately.
-        const outboxId = routed.outboxId?.trim();
-        if (!outboxId) throw new Error("Runtime did not confirm delivery to this execution App.");
-        await (await session(id)).submit(text.trim(), outboxId, queue, outboxId, requestId);
         return;
       }
       await (await session(id)).submit(text, requestId, queue);
@@ -1467,6 +1497,7 @@ export async function openHarness(
       });
     },
     async handleBodyPurgeAgent(agentBinding: string) {
+      await pendingRouteSubmit;
       const trimmed = agentBinding.trim();
       await mutate(async () => {
         const matches = catalog.sessions.filter(item => item.agentBinding === trimmed);
@@ -1678,20 +1709,23 @@ export async function openHarness(
         }
       }
     },
+    acknowledgeMilestone,
     listBodyProjectionsForReconcile() {
       // ONLY report sessions that hold an authoritative Runtime workSessionRef.
       // Never report unbound local placeholders (such as initial 'main') that cause 404 on startup!
       return catalog.sessions
         .filter(item => Boolean(item.workSessionRef))
-        .map(item => {
+        .flatMap(item => {
           const meta = sessionMeta.get(item.id);
-          return {
+          syncSessionActivity(item.id, meta ?? { status: 'idle', hasPendingDecision: false });
+          const base = {
             workSessionRef: item.workSessionRef!,
             status: meta?.status === 'waiting' ? 'waiting_approval' : (meta?.status ?? 'idle'),
             title: item.title,
             ...(item.workspaceDir ? { workspaceRoot: item.workspaceDir } : {}),
             permissionMode: item.permissionMode ?? 'strict',
           };
+          return item.pendingMilestones?.length ? item.pendingMilestones.map(m => ({ ...base, ...projectMilestone(m, item.title) })) : [base];
         });
     },
     async close() {
@@ -1894,6 +1928,7 @@ async function openSession(opts: OpenSessionOptions) {
     name: 'coding-tools', tools: [createReadTool(), createWriteTool(), createEditTool(), createPowerShellTool({ programs: ['powershell'] })],
   }) : CodingTools);
   registry.install(searchTools(() => currentWorkspace, signal, {
+    directoryHost: () => secureEnv.workspaceBrowsingHost(),
     readWorkspaceFile: (rel, maxBytes) => secureEnv.readWorkspaceFileSecure(rel, maxBytes),
   }));
   registry.install(sessionFileTools(services.storage.assets, sessionId, signal,
@@ -2117,6 +2152,8 @@ async function openSession(opts: OpenSessionOptions) {
         explicitDevWorkspace = isExplicitDev;
         secureEnv = buildSecureEnv(currentWorkspace, explicitDevWorkspace);
       },
+      listWorkspace: (folderName: string, offset: number) => listWorkspace(currentWorkspace,folderName,offset,signal,secureEnv.workspaceBrowsingHost()),
+      previewFile: (ref: string, page?: number) => previewWorkspaceFile(currentWorkspace,ref,signal,page,secureEnv.workspaceBrowsingHost()),
       publishFile: (ref: string) => publishWorkspaceFile(services.storage.assets, sessionId, ref, signal, (path, limit) => secureEnv.readWorkspaceFileSecure(path, limit)),
       importMaterial: (name: string, data: Uint8Array) => copyMaterial(currentWorkspace, name, data, signal, (ref, bytes) => secureEnv.createImportedFile(ref, bytes)),
       listSnapshots(): readonly PreWriteSnapshotRecord[] {
@@ -2141,21 +2178,8 @@ async function openSession(opts: OpenSessionOptions) {
         authorizedGrants.clear();
       },
       getLatestMilestoneSummary() {
-        const lastAssistant = watch.value.entries
-          .flatMap(entry => entry.model ?? [])
-          .reverse()
-          .find(msg => msg.role === 'assistant');
-        const assistantText = lastAssistant && lastAssistant.role === 'assistant'
-          ? lastAssistant.content
-            .filter(part => part.type === 'text')
-            .map(part => part.text)
-            .join(' ')
-            .replace(/\s+/gu, ' ')
-            .trim()
-          : '';
-        const topicSummary = assistantText ? assistantText.slice(0, 240) : '';
         const deliverablePaths = secureEnv.getRecentAiEditedFiles().slice(0, 12).map(f => f.relativePath);
-        return { topicSummary, deliverablePaths };
+        return { deliverablePaths };
       },
       close: () => {
         sessionAllowlist.clear();
@@ -2167,6 +2191,7 @@ async function openSession(opts: OpenSessionOptions) {
         const trimmedFeedback = !allow && typeof feedback === 'string' && feedback.trim() ? feedback.trim().slice(0, 4000) : undefined;
         const result = await harness.commit(async tx => {
           const pending = await readPendingDecision(tx, sessionId, decision.key('decision').signal, {
+            permissionMode: currentPermissionMode,
             recentAiEditedPaths: secureEnv.getRecentAiEditedFiles().map(f => f.relativePath),
             workspaceRoot: currentWorkspace,
             taskId,
@@ -2360,7 +2385,7 @@ async function openSession(opts: OpenSessionOptions) {
             name: call.name,
             args: sanitizeDecisionArgsForDisplay(argsObj),
             revision,
-            allowSessionPermitted: !isFreeShell && !isControlPlane && call.name !== 'invoke_nimi_integration' && call.name !== 'web_fetch',
+            allowSessionPermitted: canAllowToolForSession(currentPermissionMode, call.name, isControlPlane, isFreeShell),
             isControlPlane,
             isFreeShell,
             ...(isFreeShell && recentAiEditedPaths.length ? { recentAiEditedWarning: recentAiEditedPaths } : {}),
@@ -2535,6 +2560,7 @@ async function openSession(opts: OpenSessionOptions) {
         let allowedToolForSession: string | undefined;
         const result = await harness.commit(async tx => {
           const pending = await readPendingDecision(tx, sessionId, decision.key('decision').signal, {
+            permissionMode: currentPermissionMode,
             recentAiEditedPaths: secureEnv.getRecentAiEditedFiles().map(f => f.relativePath),
             allowLargeLocal: true,
             workspaceRoot: currentWorkspace,

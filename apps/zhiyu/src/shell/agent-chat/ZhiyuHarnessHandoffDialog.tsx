@@ -137,7 +137,7 @@ export function ZhiyuHarnessHandoffDialog({
         </div>
 
         {/* Zone 1: What WILL be sent to Harness (editable & opt-in) */}
-        <div className="flex flex-col gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3.5 text-xs">
+        <fieldset disabled={submitting || Boolean(receipt)} className="flex flex-col gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3.5 text-xs">
           <p className="font-semibold text-[var(--nimi-text-primary)]">
             交给电脑工作台的简报（仅发送你确认和编辑后的内容）
           </p>
@@ -193,7 +193,7 @@ export function ZhiyuHarnessHandoffDialog({
               className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs text-[var(--nimi-text-primary)]"
             />
           </label>
-        </div>
+        </fieldset>
 
         {/* Zone 2: What stays strictly inside Zhiyu */}
         <div

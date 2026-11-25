@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -41,7 +42,10 @@ const (
 
 type AgentHandleResolver func(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentHandle string) (string, error)
 
+type MemoryQualifier func(context.Context, string, cognitionmemory.MemoryReadSet) (map[string]bool, error)
+
 type Options struct {
+	QualifyMemory             MemoryQualifier
 	BodyNamespaceOwner        func(context.Context, string) (string, error)
 	Logger                    *slog.Logger
 	Now                       func() time.Time
@@ -91,18 +95,28 @@ func (sub *outboxSubscriber) close() {
 }
 
 type overviewSubscriber struct {
-	accountID string
-	decision  accountservice.LocalAppCallerDecision
-	agentRef  string
-	seq       uint64
-	ch        chan *runtimev1.SessionOverviewDelta
+	includeArchived bool
+	overflow        chan struct{}
+	accountID       string
+	decision        accountservice.LocalAppCallerDecision
+	agentRef        string
+	seq             uint64
+	ch              chan *runtimev1.SessionOverviewDelta
 }
 
 type brainEventSubscriber struct {
-	ch chan *runtimev1.BrainSessionEventEnvelope
+	catchUp chan struct{}
+	events  chan brainEventNotice
+}
+
+type brainEventNotice struct {
+	event *runtimev1.BrainSessionEventEnvelope
+	// A live fragment belongs to the durable user event that started its turn.
+	turnSeq int64
 }
 
 type Service struct {
+	qualifyMemory      MemoryQualifier
 	stepCancels        map[uint64]context.CancelFunc
 	stepSeq            uint64
 	stepWG             sync.WaitGroup
@@ -139,12 +153,12 @@ type Service struct {
 	brainTurnCancels      map[string]brainTurnCancelEntry
 	brainTurnSeq          uint64
 	brainTurnsWg          sync.WaitGroup
-	sessionStepLocks      map[string]chan struct{}
+	sessionStepLocks      map[string]*sessionLock
 	alarmTickerParent     context.Context
 	alarmTickerInterval   time.Duration
 	alarmTickerCancel     context.CancelFunc
 	alarmTickerDone       chan struct{}
-	overviewSeq           uint64
+	overviewMu            sync.Mutex
 }
 
 type brainTurnCancelEntry struct {
@@ -214,6 +228,7 @@ func Open(opts Options) (*Service, error) {
 		agentHandleResolver:       opts.AgentHandleResolver,
 		bodyStepExecutor:          opts.BodyStepExecutor,
 		readSetQualifier:          opts.ReadSetQualifier,
+		qualifyMemory:             opts.QualifyMemory,
 		milestoneHook:             opts.MilestoneHook,
 		memoryCleanupHook:         opts.MemoryCleanupHook,
 		brainTurnExecutor:         opts.BrainTurnExecutor,
@@ -227,7 +242,7 @@ func Open(opts Options) (*Service, error) {
 		overviewSubscribers:       make(map[*overviewSubscriber]struct{}),
 		brainEventSubscribers:     make(map[string]map[*brainEventSubscriber]struct{}),
 		brainTurnCancels:          make(map[string]brainTurnCancelEntry),
-		sessionStepLocks:          make(map[string]chan struct{}),
+		sessionStepLocks:          make(map[string]*sessionLock),
 	}, nil
 }
 
@@ -622,7 +637,6 @@ func (s *Service) PurgeAgent(ctx context.Context, accountID, agentBinding string
 	}
 	for _, meta := range deletedMetas {
 		s.cancelBrainTurn(meta.WorkSessionRef)
-		s.deleteSessionStepLock(meta.WorkSessionRef)
 	}
 	for _, env := range purgeEnvs {
 		s.notifyOutboxSubscribers(accountID, env.GetDeviceId(), env.GetCapabilityNamespace(), env)
@@ -642,29 +656,39 @@ func (s *Service) PurgeAgent(ctx context.Context, accountID, agentBinding string
 	return nil
 }
 
-func (s *Service) lockSessionStepContext(ctx context.Context, workSessionRef string) (func(), error) {
-	s.mu.Lock()
-	if s.sessionStepLocks == nil {
-		s.sessionStepLocks = make(map[string]chan struct{})
-	}
-	sem := s.sessionStepLocks[workSessionRef]
-	if sem == nil {
-		sem = make(chan struct{}, 1)
-		s.sessionStepLocks[workSessionRef] = sem
-	}
-	s.mu.Unlock()
-	select {
-	case sem <- struct{}{}:
-		return func() { <-sem }, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+type sessionLock struct {
+	gate  chan struct{}
+	users int
 }
 
-func (s *Service) deleteSessionStepLock(workSessionRef string) {
+// Retain the same gate until both the holder and all queued callers have left.
+func (s *Service) lockSessionStepContext(ctx context.Context, key string) (func(), error) {
 	s.mu.Lock()
-	delete(s.sessionStepLocks, workSessionRef)
+	if s.sessionStepLocks == nil {
+		s.sessionStepLocks = make(map[string]*sessionLock)
+	}
+	lock := s.sessionStepLocks[key]
+	if lock == nil {
+		lock = &sessionLock{gate: make(chan struct{}, 1)}
+		s.sessionStepLocks[key] = lock
+	}
+	lock.users++
 	s.mu.Unlock()
+	drop := func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		lock.users--
+		if lock.users == 0 {
+			delete(s.sessionStepLocks, key)
+		}
+	}
+	select {
+	case lock.gate <- struct{}{}:
+		return func() { <-lock.gate; drop() }, nil
+	case <-ctx.Done():
+		drop()
+		return nil, ctx.Err()
+	}
 }
 
 func (s *Service) resolveAgentBinding(ctx context.Context, decision accountservice.LocalAppCallerDecision, rawHandle string) (string, error) {
@@ -1141,8 +1165,10 @@ func (s *Service) notifyOutboxSubscribers(accountID, deviceID, capabilityNamespa
 }
 
 func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.WorkSessionRecord, removed []*runtimev1.WorkSessionRecord) {
-	_, activePCCarrierAppID, carrierOnline, _ := s.store.FindActiveCarrier(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
-	allAtt, _ := s.store.ListPendingAttention(context.Background(), accountID, s.now().UTC())
+	s.overviewMu.Lock()
+	defer s.overviewMu.Unlock()
+	_, activePCCarrierAppID, carrierOnline, carrierErr := s.store.FindActiveCarrier(context.Background(), accountID, DefaultPCNamespace, s.now().UTC())
+	allAtt, attentionErr := s.store.ListPendingAttention(context.Background(), accountID, s.now().UTC())
 
 	s.mu.Lock()
 	subs := make([]*overviewSubscriber, 0, len(s.overviewSubscribers))
@@ -1153,17 +1179,45 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 	}
 	s.mu.Unlock()
 
+	// Notifications can arrive after a newer transaction. Read the current record
+	// while serializing dispatch so an earlier callback cannot restore old state.
+	current := make([]*runtimev1.WorkSessionRecord, 0, len(upserted))
+	var recordErr error
+	for _, record := range upserted {
+		row, err := s.store.GetSessionIncludingDeleting(context.Background(), accountID, record.GetWorkSessionRef())
+		if err != nil {
+			recordErr = err
+			break
+		}
+		if row.DeletedAt != "" || row.Record.Status == "deleting" {
+			removed = append(removed, row.Record)
+		} else {
+			current = append(current, row.Record)
+		}
+	}
+	upserted = current
 	for _, sub := range subs {
+		if carrierErr != nil || attentionErr != nil || recordErr != nil {
+			select {
+			case sub.overflow <- struct{}{}:
+			default:
+			}
+			continue
+		}
+		var visibleRemoved []string
 		var visibleSessions []*runtimev1.WorkSessionRecord
 		for _, rec := range upserted {
 			if sub.agentRef != "" && rec.GetAgentBinding() != sub.agentRef {
 				continue
 			}
 			if readerCanAccessSession(sub.decision, rec) {
-				visibleSessions = append(visibleSessions, rec)
+				if rec.GetArchivedAt() != "" && !sub.includeArchived {
+					visibleRemoved = append(visibleRemoved, rec.GetWorkSessionRef())
+				} else {
+					visibleSessions = append(visibleSessions, rec)
+				}
 			}
 		}
-		var visibleRemoved []string
 		for _, rec := range removed {
 			if sub.agentRef != "" && rec.GetAgentBinding() != sub.agentRef {
 				continue
@@ -1179,7 +1233,7 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 		}
 		var visibleAtt []*runtimev1.PendingAttentionRecord
 		for _, att := range allAtt {
-			if readerCanAccessAttention(sub.decision, att) {
+			if (sub.agentRef == "" || sub.agentRef == att.GetAgentBinding()) && readerCanAccessAttention(sub.decision, att) {
 				visibleAtt = append(visibleAtt, att)
 			}
 		}
@@ -1199,11 +1253,15 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 		select {
 		case sub.ch <- delta:
 		default:
+			select {
+			case sub.overflow <- struct{}{}:
+			default:
+			}
 		}
 	}
 }
 
-func (s *Service) notifyBrainEventSubscribers(env *runtimev1.BrainSessionEventEnvelope) {
+func (s *Service) notifyBrainEventSubscribers(env *runtimev1.BrainSessionEventEnvelope, turnSeq int64) {
 	if env == nil {
 		return
 	}
@@ -1216,8 +1274,14 @@ func (s *Service) notifyBrainEventSubscribers(env *runtimev1.BrainSessionEventEn
 	s.mu.Unlock()
 	for _, sub := range subs {
 		select {
-		case sub.ch <- env:
+		case sub.events <- brainEventNotice{event: env, turnSeq: turnSeq}:
 		default:
+			if env.GetSeq() > 0 {
+				select {
+				case sub.catchUp <- struct{}{}:
+				default:
+				}
+			}
 		}
 	}
 }
@@ -1274,14 +1338,14 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 					EventType:      eventType,
 					PayloadJson:    payloadJSON,
 					CreatedAt:      formatRFC3339(s.now().UTC()),
-				})
+				}, session.GetHeadSeq())
 				return nil
 			}
 			env, err := s.store.AppendBrainEvent(ctx, accountID, ref, eventType, payloadJSON, s.now().UTC())
 			if err != nil {
 				return err
 			}
-			s.notifyBrainEventSubscribers(env)
+			s.notifyBrainEventSubscribers(env, 0)
 			return nil
 		})
 		if err != nil && ctx.Err() == nil {
@@ -1290,7 +1354,7 @@ func (s *Service) maybeStartBrainTurn(decision accountservice.LocalAppCallerDeci
 				"error":     err.Error(),
 			})
 			if env, appendErr := s.store.AppendBrainEvent(ctx, accountID, ref, "turn_error", errPayload, s.now().UTC()); appendErr == nil {
-				s.notifyBrainEventSubscribers(env)
+				s.notifyBrainEventSubscribers(env, 0)
 			}
 		}
 	}()

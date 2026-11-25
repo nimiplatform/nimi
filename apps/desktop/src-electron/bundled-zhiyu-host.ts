@@ -104,8 +104,8 @@ export function createDesktopBundledZhiyuHost(input: {
     record.media.invalidateAll();
     closing = (async () => {
       try {
-        await record.placement?.shutdown();
-        await record.owner.shutdown();
+        try { await record.placement?.shutdown(); }
+        finally { await record.owner.shutdown(); }
       } finally {
         record.bridge.unregister(); record.media.close(); record.chrome.dispose();
       }

@@ -354,6 +354,20 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
+	if expiry := strings.TrimSpace(req.GetExpiresAt()); expiry != "" {
+		if _, err := time.Parse(time.RFC3339, expiry); err != nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	}
+	schedules := 0
+	for _, set := range []bool{strings.TrimSpace(req.GetCronExpr()) != "", strings.TrimSpace(req.GetFireAt()) != "", req.GetDelaySeconds() > 0} {
+		if set {
+			schedules++
+		}
+	}
+	if schedules != 1 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	var nextFire time.Time
 	cronExpr := strings.TrimSpace(req.GetCronExpr())
 	sourcePublisher := ""
@@ -697,6 +711,9 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 		}
 		existing.TimeZone = tz
 	}
+	if req.FireAt != nil && req.CronExpr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	if req.FireAt != nil {
 		t, err := time.Parse(time.RFC3339, strings.TrimSpace(req.GetFireAt()))
 		if err != nil {
@@ -704,8 +721,12 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 		}
 		existing.NextFireAt = formatRFC3339(t.UTC())
 	}
-	if req.CronExpr != nil {
-		parsed, err := parseFiveFieldCron(req.GetCronExpr(), existing.GetTimeZone())
+	if req.CronExpr != nil || (req.TimeZone != nil && existing.CronExpr != "" && req.FireAt == nil) {
+		expr := existing.CronExpr
+		if req.CronExpr != nil {
+			expr = strings.TrimSpace(req.GetCronExpr())
+		}
+		parsed, err := parseFiveFieldCron(expr, existing.GetTimeZone())
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
@@ -713,7 +734,7 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		existing.CronExpr = strings.TrimSpace(req.GetCronExpr())
+		existing.CronExpr = expr
 		existing.NextFireAt = formatRFC3339(nextFire)
 	}
 	if req.SourceObjectVersion != nil {
@@ -1033,19 +1054,27 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 
 		// Atomically claim this exact occurrence via version CAS + crash-recovery lease.
 		claimedVersion, claimed, claimErr := s.store.claimAlarmOccurrence(ctx, accID, alarm.GetAlarmId(), alarm.GetNextFireAt(), alarm.GetVersion(), nowUTC)
-		if claimErr != nil || !claimed {
+		if claimErr != nil {
+			return results, claimErr
+		}
+		if !claimed {
 			continue
 		}
 
 		// Expiry check for explicit expires_at or > 24h missed one-shot alarms.
-		if exp := strings.TrimSpace(alarm.GetExpiresAt()); exp != "" && nowUTC.After(parseRFC3339(exp)) {
-			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', claim_expires_at = '', version = version + 1, updated_at = ? WHERE alarm_id = ? AND account_id = ? AND version = ?`, nowStr, alarm.GetAlarmId(), accID, claimedVersion)
-			results = append(results, AlarmFireResult{AlarmID: alarm.GetAlarmId(), StatusAfter: "expired", Expired: true, LateBy: lateBy})
-			continue
-		}
-		if !isRecurring && lateBy > alarmOneShotExpiryWindow {
-			_, _ = s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status = 'expired', claim_expires_at = '', version = version + 1, updated_at = ? WHERE alarm_id = ? AND account_id = ? AND version = ?`, nowStr, alarm.GetAlarmId(), accID, claimedVersion)
-			results = append(results, AlarmFireResult{AlarmID: alarm.GetAlarmId(), StatusAfter: "expired", Expired: true, LateBy: lateBy})
+		exp := strings.TrimSpace(alarm.GetExpiresAt())
+		if (exp != "" && !nowUTC.Before(parseRFC3339(exp))) || (!isRecurring && lateBy > alarmOneShotExpiryWindow) {
+			res, err := s.store.writeDB.ExecContext(ctx, `UPDATE runtime_session_alarm SET status='expired', claim_expires_at='', version=version+1, updated_at=? WHERE alarm_id=? AND account_id=? AND version=?`, nowStr, alarm.GetAlarmId(), accID, claimedVersion)
+			if err != nil {
+				return results, err
+			}
+			n, err := res.RowsAffected()
+			if err != nil {
+				return results, err
+			}
+			if n == 1 {
+				results = append(results, AlarmFireResult{AlarmID: alarm.GetAlarmId(), StatusAfter: "expired", Expired: true, LateBy: lateBy})
+			}
 			continue
 		}
 
@@ -1090,30 +1119,6 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 				}
 			}
 		}
-		if budgetExceeded {
-			_, _ = s.store.writeDB.ExecContext(ctx, `
-				INSERT INTO runtime_alarm_delivery(delivery_id, alarm_id, account_id, channel, receipt_state, provider_message_ref, detail, fired_at, updated_at)
-				VALUES (?, ?, ?, 'llm_budget', ?, '', 'AGENT_ALARM_BUDGET_EXCEEDED', ?, ?)`,
-				newID("dlv"), alarm.GetAlarmId(), accID,
-				int32(runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED), nowStr, nowStr,
-			)
-			nextStatus, nextFireStr := s.computePostFireSchedule(alarm, isRecurring, nowUTC, alarm.GetUnackStreak())
-			_, _ = s.store.writeDB.ExecContext(ctx, `
-				UPDATE runtime_session_alarm
-				SET status = ?, next_fire_at = ?, last_receipt_state = ?, last_delivery_at = ?, claim_expires_at = '', version = version + 1, updated_at = ?
-				WHERE alarm_id = ? AND account_id = ? AND version = ?`,
-				nextStatus, nextFireStr, int32(runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED), nowStr, nowStr, alarm.GetAlarmId(), accID, claimedVersion,
-			)
-			results = append(results, AlarmFireResult{
-				AlarmID:        alarm.GetAlarmId(),
-				StatusAfter:    nextStatus,
-				BudgetExceeded: true,
-				LateBy:         lateBy,
-				Deliveries:     []AlarmDeliveryOutcome{{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED, Detail: "AGENT_ALARM_BUDGET_EXCEEDED"}},
-			})
-			continue
-		}
-
 		if lateBy >= time.Minute {
 			renderedBody = fmt.Sprintf("%s (delayed by %dm)", renderedBody, int(lateBy.Minutes()))
 		}
@@ -1121,6 +1126,9 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		channels := alarm.GetDeliveryChannels()
 		if len(channels) == 0 {
 			channels = []string{"desktop_notification"}
+		}
+		if budgetExceeded {
+			channels = []string{"llm_budget"}
 		}
 		var deliveries []AlarmDeliveryOutcome
 		type deliveryRecord struct {
@@ -1132,7 +1140,9 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		anyDelivered := false
 		for _, ch := range channels {
 			var outcome AlarmDeliveryOutcome
-			if sender != nil {
+			if budgetExceeded {
+				outcome = AlarmDeliveryOutcome{ReceiptState: runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_REJECTED, Detail: "AGENT_ALARM_BUDGET_EXCEEDED"}
+			} else if sender != nil {
 				outcome = sender(ctx, accID, alarm, ch, renderedTitle, renderedBody, lateBy)
 				if outcome.ReceiptState == runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_UNSPECIFIED {
 					outcome.ReceiptState = runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_EFFECT_UNKNOWN
@@ -1221,13 +1231,14 @@ func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireRes
 		}
 
 		results = append(results, AlarmFireResult{
-			AlarmID:     alarm.GetAlarmId(),
-			StatusAfter: nextStatus,
-			UsedLLM:     usedLLM,
-			TokensUsed:  tokensUsed,
-			AutoSlept:   autoSlept,
-			LateBy:      lateBy,
-			Deliveries:  deliveries,
+			AlarmID:        alarm.GetAlarmId(),
+			StatusAfter:    nextStatus,
+			UsedLLM:        usedLLM,
+			TokensUsed:     tokensUsed,
+			AutoSlept:      autoSlept,
+			BudgetExceeded: budgetExceeded,
+			LateBy:         lateBy,
+			Deliveries:     deliveries,
 		})
 	}
 	return results, nil

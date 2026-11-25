@@ -226,6 +226,7 @@ void app.whenReady().then(async () => {
         if (!targetRef) return 'object-unavailable';
         const selected = await callEngine<boolean>('selectByWorkSessionRef', [targetRef]).catch(() => false);
         if (!selected) return 'object-unavailable';
+        if (BrowserWindow.getAllWindows().length === 0) await createMainWindow();
         focusMainWindow();
         notifyRendererFocusSession(targetRef);
         notifyRendererViewChanged();

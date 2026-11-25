@@ -11,13 +11,12 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/oklog/ulid/v2"
 )
 
 // @nimi-authority: rule.nimi.runtime.memory-world.r010
 // Target deletion keeps its exact owner request until both local owners have
 // confirmed. The record contains opaque targets, never their Memory content.
-func (f *Facade) prepareForget(ctx context.Context, binding Binding, targets []string) error {
+func (f *Facade) prepareForget(ctx context.Context, binding Binding, targets []string, operation string) error {
 	targets = slices.Clone(targets)
 	slices.Sort(targets)
 	targets = slices.Compact(targets)
@@ -45,7 +44,7 @@ func (f *Facade) prepareForget(ctx context.Context, binding Binding, targets []s
 		if err := fenceAgentEmbeddingPayloadsTx(tx, binding.LocalAgentRef); err != nil {
 			return err
 		}
-		_, err = tx.Exec(`INSERT INTO runtime_cognition_memory_forget(operation_id, local_agent_ref, binding_ref, bank_ref, targets_json, phase, created_at) VALUES(?, ?, ?, ?, ?, 'prepared', ?)`, "cmforget_"+ulid.Make().String(), binding.LocalAgentRef, binding.BindingRef, binding.BankRef, raw, time.Now().UTC().Format(time.RFC3339Nano))
+		_, err = tx.Exec(`INSERT INTO runtime_cognition_memory_forget(operation_id, local_agent_ref, binding_ref, bank_ref, targets_json, phase, created_at) VALUES(?, ?, ?, ?, ?, 'prepared', ?)`, operation, binding.LocalAgentRef, binding.BindingRef, binding.BankRef, raw, time.Now().UTC().Format(time.RFC3339Nano))
 		return err
 	})
 }

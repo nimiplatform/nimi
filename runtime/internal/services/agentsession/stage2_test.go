@@ -145,6 +145,57 @@ func TestMilestoneIdentitySurvivesUpgradeAndLostAcknowledgement(t *testing.T) {
 	}
 }
 
+func TestUpgradeRestoresPendingAndFutureMilestonesFromOriginalInput(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "sessions.db")
+	const goal = "Review the project notes"
+	var ref string
+	t.Run("existing session", func(t *testing.T) {
+		svc := newStage2Service(t, Options{DBPath: path})
+		route, err := svc.RouteAndSubmitInput(testCallerCtx("nimi.desktop", "home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit),
+			&runtimev1.RouteAndSubmitInputRequest{RequestId: "start", AgentHandle: "agent", Text: goal, WorkspaceRoot: "/work"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref = route.ResolvedWorkSessionRef
+		db := svc.Store().writeDB
+		if _, err := db.Exec(`INSERT INTO runtime_session_milestone(delivery_id, account_id, agent_binding, work_session_ref, body_kind, kind, summary, deliverables)
+			VALUES('milestone_old','acct-1','agent',?,?,'progress','Body summary','[]')`, ref, DefaultPCNamespace); err != nil {
+			t.Fatal(err)
+		}
+		// Earlier Body projections could overwrite both the title and topic summary.
+		if _, err := db.Exec(`DROP TRIGGER capture_session_routing_goal;
+			ALTER TABLE runtime_session DROP COLUMN routing_goal;
+			UPDATE runtime_session SET title='Edited title', topic_summary='Body summary';
+			DELETE FROM runtime_session_meta WHERE key='session_routing_goals_v1'`); err != nil {
+			t.Fatal(err)
+		}
+	})
+	var delivered []SessionMilestone
+	svc := newStage2Service(t, Options{DBPath: path, MilestoneHook: func(_ context.Context, m SessionMilestone) error {
+		delivered = append(delivered, m)
+		return nil
+	}})
+	pc := func(op localappop.Operation) context.Context {
+		return testCallerCtx("nimi.harness", "pc", DomainAgentBodyPC, op)
+	}
+	lease, err := svc.RegisterBodyCarrier(pc(localappop.OperationAgentBodyPCRegister), &runtimev1.RegisterBodyCarrierRequest{
+		DeviceId: "pc", CapabilityNamespace: DefaultPCNamespace, InstanceId: "worker",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reply, err := svc.ReportBodySessionProjection(pc(localappop.OperationAgentBodyPCProjectionReport), &runtimev1.ReportBodySessionProjectionRequest{
+		WorkSessionRef: ref, DeviceId: "pc", CapabilityNamespace: DefaultPCNamespace, LeaseEpoch: lease.LeaseEpoch,
+		ProjectionSeq: 1, MilestoneKind: "completed", TopicSummary: "New Body summary",
+	})
+	if err != nil || !reply.GetApplied() {
+		t.Fatalf("project milestone after upgrade: %v, %v", reply, err)
+	}
+	if len(delivered) != 2 || delivered[0].DeliveryID != "milestone_old" || delivered[0].TopicSummary != goal || delivered[1].TopicSummary != goal {
+		t.Fatalf("pending and new milestones must use the original goal: %+v", delivered)
+	}
+}
+
 func TestStage2StoreWALFullDurabilityAndZeroDiskHeartbeat(t *testing.T) {
 	svc := newStage2Service(t, Options{})
 	mode, syncMode, err := svc.Store().VerifyDurabilityPragmas(context.Background())

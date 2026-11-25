@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -446,7 +447,7 @@ func TestComposedReadSetInvalidationAckAdvancesEpochAndProjectionHardening(t *te
 
 	u1 := &runtimev1.BodyWorkingMessage{Role: "user", OutboxId: routed.GetOutboxId(), ContentJson: `"plan task"`}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
-		WorkSessionRef:      wsRef,
+		WorkSessionRef: wsRef, StepRequestId: "before-invalidation",
 		DeviceId:            "dev-1",
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg1.GetLeaseEpoch(),
@@ -486,6 +487,10 @@ func TestComposedReadSetInvalidationAckAdvancesEpochAndProjectionHardening(t *te
 	}); err != nil || !resp.GetAcked() {
 		t.Fatalf("AckBodyOutbox: resp=%+v err=%v", resp, err)
 	}
+	oldStep := &runtimev1.StreamLocalAgentBodyStepRequest{StepRequestId: "before-invalidation", WorkSessionRef: wsRef, DeviceId: "dev-1", CapabilityNamespace: DefaultPCNamespace, LeaseEpoch: reg1.LeaseEpoch, Purpose: runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE, WorkingMessages: []*runtimev1.BodyWorkingMessage{u1}}
+	if err := svc.StreamLocalAgentBodyStep(oldStep, &fakeBodyStepStream{ctx: stepCtx}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("old committed step after invalidation: %v", err)
+	}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      wsRef,
 		DeviceId:            "dev-1",
@@ -509,6 +514,17 @@ func TestComposedReadSetInvalidationAckAdvancesEpochAndProjectionHardening(t *te
 	}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("Body permission_mode escalation MUST fail with PermissionDenied, got %v", err)
 	}
+	// The Runtime-created goal, never Body prose or projection title, feeds Cognition.
+	var captured SessionMilestone
+	svc.SetMilestoneHook(func(_ context.Context, m SessionMilestone) error { captured = m; return nil })
+	_, err = svc.ReportBodySessionProjection(projCtx, &runtimev1.ReportBodySessionProjectionRequest{
+		WorkSessionRef: wsRef, DeviceId: "dev-1", CapabilityNamespace: DefaultPCNamespace, LeaseEpoch: reg1.GetLeaseEpoch(),
+		ProjectionSeq: 2, Title: "body title", TopicSummary: "body summary", MilestoneKind: "initial_goal",
+	})
+	if err != nil || captured.TopicSummary != "plan task" {
+		t.Fatalf("milestone source: %+v, %v", captured, err)
+	}
+
 }
 
 func TestComposedZeroPrivilegeSubjectIsolationAndPagination(t *testing.T) {
@@ -690,11 +706,12 @@ func (f *fakeOverviewStream) Send(d *runtimev1.SessionOverviewDelta) error {
 
 type fakeBrainEventStream struct {
 	grpc.ServerStream
-	ctx    context.Context
-	cancel context.CancelFunc
-	mu     sync.Mutex
-	events []*runtimev1.BrainSessionEventEnvelope
-	target int
+	ctx        context.Context
+	cancel     context.CancelFunc
+	mu         sync.Mutex
+	events     []*runtimev1.BrainSessionEventEnvelope
+	target     int
+	beforeSend func(*runtimev1.BrainSessionEventEnvelope) error
 }
 
 func (f *fakeBrainEventStream) Context() context.Context     { return f.ctx }
@@ -702,6 +719,11 @@ func (f *fakeBrainEventStream) SetHeader(metadata.MD) error  { return nil }
 func (f *fakeBrainEventStream) SendHeader(metadata.MD) error { return nil }
 func (f *fakeBrainEventStream) SetTrailer(metadata.MD)       {}
 func (f *fakeBrainEventStream) Send(ev *runtimev1.BrainSessionEventEnvelope) error {
+	if f.beforeSend != nil {
+		if err := f.beforeSend(ev); err != nil {
+			return err
+		}
+	}
 	f.mu.Lock()
 	f.events = append(f.events, ev)
 	n := len(f.events)
@@ -872,7 +894,23 @@ func TestAuditDeleteSessionCrashRecoveryAndRetry(t *testing.T) {
 
 func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 	var stepInvocations atomic.Int32
+	var corrected atomic.Bool
 	svc := newStage2Service(t, Options{
+		QualifyMemory: func(_ context.Context, _ string, read cognitionmemory.MemoryReadSet) (map[string]bool, error) {
+			if len(read.Refs) != 1 || read.Refs[0] != "fact-at-issuance" {
+				t.Fatalf("unexpected dependencies: %v", read)
+			}
+			if corrected.Load() {
+				return map[string]bool{}, nil
+			}
+			return map[string]bool{"fact-at-issuance": true}, nil
+		},
+		AgentHandleResolver: func(_ context.Context, _ accountservice.LocalAppCallerDecision, handle string) (string, error) {
+			if handle == "connection-one" || handle == "connection-two" {
+				return "agent-1", nil
+			}
+			return handle, nil
+		},
 		ReadSetQualifier: func(_ context.Context, _, _, _ string, epoch int64) (bool, int64, error) {
 			return true, epoch, nil
 		},
@@ -897,6 +935,7 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 				}
 				_ = emitter.SendToolCall(call)
 				return BodyStepExecutionResult{
+					MemoryReadSet:   cognitionmemory.MemoryReadSet{BindingRef: "binding", BankRef: "bank", LifecycleRef: "life", Refs: []string{"fact-at-issuance"}},
 					FinishReason:    "tool_calls",
 					AssistantText:   "Writing App.tsx",
 					IssuedToolCalls: []*runtimev1.BodyToolCall{call},
@@ -945,6 +984,7 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 	stream1 := &fakeBodyStepStream{ctx: stepCtx}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
 		WorkSessionRef:      ref,
+		AgentHandle:         "connection-one",
 		DeviceId:            "pc-dev-1",
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg.GetLeaseEpoch(),
@@ -968,7 +1008,7 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 	// Runtime MUST replay idempotently WITHOUT invoking bodyStepExecutor a second time!
 	streamReplay := &fakeBodyStepStream{ctx: stepCtx}
 	if err := svc.StreamLocalAgentBodyStep(&runtimev1.StreamLocalAgentBodyStepRequest{
-		WorkSessionRef:      ref,
+		WorkSessionRef: ref, AgentHandle: "connection-two",
 		DeviceId:            "pc-dev-1",
 		CapabilityNamespace: DefaultPCNamespace,
 		LeaseEpoch:          reg.GetLeaseEpoch(),
@@ -985,6 +1025,13 @@ func TestAuditToolGrantNoUnconsumeAndStepReplayAcrossStreamDrop(t *testing.T) {
 	// AuthorizeBodySideEffect with JS-style unescaped canonical JSON hash (`<div>a && b</div>`) MUST succeed!
 	jsCanonical := `{"content":"<div>a && b</div>","path":"App.tsx"}`
 	authCtx := callerCtxWithExactDomains("app.harness", "subj-harness", DomainAgentBodyPC, localappop.OperationAgentBodyPCSideEffectAuthorize, DomainAgentBodyPC)
+	corrected.Store(true)
+	denied, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{WorkSessionRef: ref, DeviceId: "pc-dev-1", CapabilityNamespace: DefaultPCNamespace, LeaseEpoch: reg.GetLeaseEpoch(), CallId: "call_html_1", ToolName: "write", ActionKind: "file_write", PayloadHash: sha256HexString(jsCanonical)})
+	if err != nil || denied.GetAuthorized() || !denied.GetMemoryInvalidated() {
+		t.Fatalf("changed consumed memory must deny: %v %v", denied, err)
+	}
+	// Independent unchanged-memory control for the rest of the once-only consumption test.
+	corrected.Store(false)
 	authResp, err := svc.AuthorizeBodySideEffect(authCtx, &runtimev1.AuthorizeBodySideEffectRequest{
 		WorkSessionRef:      ref,
 		DeviceId:            "pc-dev-1",
@@ -1463,5 +1510,52 @@ func TestHarnessNewSessionDoesNotCollideOnSharedWorkspaceRoot(t *testing.T) {
 	}
 	if second.GetResolvedWorkSessionRef() == first.GetResolvedWorkSessionRef() {
 		t.Fatalf("second unbound Harness session collided on existing work_session_ref %q", first.GetResolvedWorkSessionRef())
+	}
+}
+
+func TestInvalidationCannotRestoreAnUnconsumedWrite(t *testing.T) {
+	var epoch int64 = 1
+	call := &runtimev1.BodyToolCall{CallId: "write-1", Name: "write", ArgumentsJson: `{"path":"note.txt"}`}
+	svc := newStage2Service(t, Options{
+		ReadSetQualifier: func(_ context.Context, _, _, _ string, previous int64) (bool, int64, error) {
+			return previous == 0 || previous == epoch, epoch, nil
+		},
+		BodyStepExecutor: func(_ context.Context, _ BodyStepExecutionInput, out BodyStepEmitter) (BodyStepExecutionResult, error) {
+			return BodyStepExecutionResult{FinishReason: "tool_calls", IssuedToolCalls: []*runtimev1.BodyToolCall{call}}, out.SendToolCall(call)
+		},
+	})
+	pc := func(op localappop.Operation) context.Context {
+		return callerCtxWithExactDomains("app.writer", "writer", DomainAgentBodyPC, op, DomainAgentBodyPC)
+	}
+	lease, err := svc.RegisterBodyCarrier(pc(localappop.OperationAgentBodyPCRegister), &runtimev1.RegisterBodyCarrierRequest{DeviceId: "dev", CapabilityNamespace: DefaultPCNamespace, InstanceId: "worker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	routeCtx := callerCtxWithExactDomains("app.home", "manager", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal+","+DomainAgentSessionManage)
+	route, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{RequestId: "test-intent", Text: "write a note", AgentHandle: "agent-1", WorkspaceRoot: "/workspace", WorkspaceWritable: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := route.GetResolvedWorkSessionRef()
+	streamCtx := pc(localappop.OperationAgentBodyPCStepStream)
+	req := &runtimev1.StreamLocalAgentBodyStepRequest{StepRequestId: "step-1", WorkSessionRef: ref, LeaseEpoch: lease.LeaseEpoch, DeviceId: "dev", CapabilityNamespace: DefaultPCNamespace, Purpose: runtimev1.BodyStepPurpose_BODY_STEP_PURPOSE_INFERENCE, WorkingMessages: []*runtimev1.BodyWorkingMessage{{Role: "user", ContentJson: `"write a note"`, OutboxId: route.OutboxId}}}
+	if err := svc.StreamLocalAgentBodyStep(req, &fakeBodyStepStream{ctx: streamCtx}); err != nil {
+		t.Fatal(err)
+	}
+	epoch++
+	if err := svc.StreamLocalAgentBodyStep(req, &fakeBodyStepStream{ctx: streamCtx}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("require invalidation, got %v", err)
+	}
+	tombs, _, err := svc.store.ListPendingOutbox(context.Background(), "acct-1", "dev", DefaultPCNamespace)
+	if err != nil || len(tombs) != 1 {
+		t.Fatalf("missing invalidation: %v", err)
+	}
+	ack, err := svc.AckBodyOutbox(pc(localappop.OperationAgentBodyPCOutboxAck), &runtimev1.AckBodyOutboxRequest{DeviceId: "dev", LeaseEpoch: lease.LeaseEpoch, CapabilityNamespace: DefaultPCNamespace, OutboxId: tombs[0].OutboxId})
+	if err != nil || !ack.GetAcked() {
+		t.Fatalf("ack: %v %v", ack, err)
+	}
+	grant, err := svc.AuthorizeBodySideEffect(pc(localappop.OperationAgentBodyPCSideEffectAuthorize), &runtimev1.AuthorizeBodySideEffectRequest{WorkSessionRef: ref, DeviceId: "dev", LeaseEpoch: lease.LeaseEpoch, CapabilityNamespace: DefaultPCNamespace, CallId: call.CallId, ToolName: call.Name, ActionKind: "file_write", PayloadHash: sha256HexString(call.ArgumentsJson)})
+	if err != nil || grant.GetAuthorized() || grant.GetDenyReason() == "" {
+		t.Fatalf("old write grant after ACK: %v, %v", grant, err)
 	}
 }

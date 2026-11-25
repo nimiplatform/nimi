@@ -165,6 +165,7 @@ describe('Stage 1 Electron protected AgentSession + Rust HarnessSecurity smoke',
         relativePath: 'notes/demo.txt',
         content: Buffer.from('v2', 'utf8'),
         preconditionSha256: created.sha256,
+        snapshotRoot: snapDir,
         snapshotPath: snapFile,
       });
       assert.equal(updated.snapshotWritten, true);

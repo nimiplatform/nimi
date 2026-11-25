@@ -46,7 +46,9 @@ func buildProductionAgentSessionService(
 			return false, 0, errors.New("session memory qualification awaiting Cognition owner")
 		}
 	)
+	var qualifyMemory agentsession.MemoryQualifier
 	if memoryFacade != nil {
+		qualifyMemory = memoryFacade.QualifyReadSet
 		facadeRef := memoryFacade
 		milestoneHook = func(ctx context.Context, milestone agentsession.SessionMilestone) error {
 			effectiveBodyKind := strings.TrimSpace(milestone.BodyKind)
@@ -126,6 +128,7 @@ func buildProductionAgentSessionService(
 				return agentsession.BodyStepExecutionResult{}, err
 			}
 			return agentsession.BodyStepExecutionResult{
+				MemoryReadSet:       res.MemoryReadSet,
 				FinishReason:        res.FinishReason,
 				UsageInputTokens:    res.UsageInputTokens,
 				UsageOutputTokens:   res.UsageOutputTokens,
@@ -234,6 +237,7 @@ func buildProductionAgentSessionService(
 		AgentHandleResolver: agentHandleResolver,
 		BodyStepExecutor:    bodyStepExecutor,
 		ReadSetQualifier:    readSetQualifier,
+		QualifyMemory:       qualifyMemory,
 		MilestoneHook:       milestoneHook,
 		MemoryCleanupHook:   memoryCleanupHook,
 		BrainTurnExecutor:   brainTurnExecutor,

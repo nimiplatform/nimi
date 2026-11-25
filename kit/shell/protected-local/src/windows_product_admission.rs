@@ -386,7 +386,27 @@ mod tests {
         let fixture = Fixture::new();
         fixture.populate();
         let alias = fixture.product().join("0.2.5-rc.9");
-        std::os::windows::fs::symlink_dir(fixture.cohort(), &alias).unwrap();
+        if let Err(err) = std::os::windows::fs::symlink_dir(fixture.cohort(), &alias) {
+            use windows_sys::Win32::Foundation::ERROR_PRIVILEGE_NOT_HELD;
+            assert_eq!(
+                err.raw_os_error(),
+                Some(ERROR_PRIVILEGE_NOT_HELD as i32),
+                "{err}"
+            );
+            // A directory junction exercises the same reparse attribute under a standard token.
+            let output = std::process::Command::new("cmd.exe")
+                .current_dir(fixture.product())
+                .args(["/d", "/c", "mklink", "/J"])
+                .arg(alias.file_name().unwrap())
+                .arg(fixture.cohort().file_name().unwrap())
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         assert!(role_root(&alias.join("Nimi.exe"), &fixture.product(), "Nimi.exe").is_err());
         fs::remove_dir(alias).unwrap();
     }

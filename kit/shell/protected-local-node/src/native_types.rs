@@ -885,6 +885,7 @@ pub struct NativeHarnessVerifyPathInput {
 
 #[napi(object)]
 pub struct NativeHarnessSecureReadInput {
+    pub offset: Option<i64>,
     pub workspace_root: String,
     pub relative_path: String,
     pub max_bytes: Option<u32>,

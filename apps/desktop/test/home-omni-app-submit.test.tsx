@@ -27,11 +27,13 @@ test('Home consumes accepted and queued App submissions once and keeps an unconf
     title: 'Review', sessionKind: 'app_work', ownerBodyKind: 'app.review.tasks' } as WorkSessionRecord;
   const recentSessions = [session];
   let outcome = RouteAndSubmitOutcome.ACCEPTED;
+  let loseReply = false;
   const calls: RouteAndSubmitInputRequest[] = [];
   const sessions = {
     listSessions: async () => ({ items: recentSessions }),
     async routeAndSubmitInput(request: RouteAndSubmitInputRequest) {
       calls.push(request);
+      if (loseReply) throw new Error("response unavailable");
       return { outcome, sessionKind: session.sessionKind, ownerBodyKind: session.ownerBodyKind,
         resolvedWorkSessionRef: session.workSessionRef };
     },
@@ -77,6 +79,22 @@ test('Home consumes accepted and queued App submissions once and keeps an unconf
       'Task sent to the app handling this session.',
       'Task queued. It will be delivered when the app comes online.',
     ]);
+    const unconfirmed = calls.at(-1)!;
+    outcome = RouteAndSubmitOutcome.ACCEPTED;
+    await act(async () => submit.click());
+    assert.equal(calls.at(-1)?.requestId, unconfirmed.requestId);
+    assert.equal(input.value, '');
+    await type('Try the same operation twice');
+    outcome = RouteAndSubmitOutcome.ACCEPTED;
+    loseReply = true;
+    await act(async () => submit.click());
+    assert.equal(input.value, 'Try the same operation twice');
+    const first = calls.at(-1)!;
+    loseReply = false;
+    await act(async () => submit.click());
+    assert.equal(calls.at(-1)?.requestId, first.requestId);
+    assert.ok(first.requestId);
+    assert.equal(input.value, '');
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

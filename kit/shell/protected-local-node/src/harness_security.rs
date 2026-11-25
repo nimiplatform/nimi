@@ -6,10 +6,10 @@ use std::sync::{Arc, OnceLock};
 use base64::Engine;
 use napi_derive::napi;
 use nimi_shell_protected_local::harness_security::{
-    kill_job_process, run_job_process, secure_delete_file, secure_read_file, secure_write_file,
-    spawn_job_process, verify_workspace_path, wait_job_process, HarnessJobProcessRequest,
-    HarnessJobProcessResult, HarnessRunningJob, HarnessSecureDeleteRequest,
-    HarnessSecureWriteRequest, HarnessSecurityError,
+    kill_job_process, list_workspace_directory, run_job_process, secure_delete_file,
+    secure_read_range, secure_write_file, spawn_job_process, verify_workspace_path,
+    wait_job_process, HarnessJobProcessRequest, HarnessJobProcessResult, HarnessRunningJob,
+    HarnessSecureDeleteRequest, HarnessSecureWriteRequest, HarnessSecurityError,
 };
 use serde_json::{json, Value as JsonValue};
 use tokio::sync::Mutex;
@@ -153,7 +153,9 @@ pub async fn harness_wait_job_process(input: NativeHarnessJobWaitInput) -> Nativ
 pub async fn harness_kill_job_process(input: NativeHarnessJobKillInput) -> NativeJsonOutcome {
     let job = harness_jobs().lock().await.get(&input.job_id).cloned();
     let Some(job) = job else {
-        return NativeJsonOutcome::success(json!({ "killed": false, "activeProcessesRemaining": 0 }));
+        return NativeJsonOutcome::success(
+            json!({ "killed": false, "activeProcessesRemaining": 0 }),
+        );
     };
     match tokio::task::spawn_blocking(move || kill_job_process(&job)).await {
         Ok(Ok(remaining)) => NativeJsonOutcome::success(json!({
@@ -180,8 +182,27 @@ pub async fn harness_verify_workspace_path(
             "relativePath": verified.relative_path,
             "isDirectory": verified.is_directory,
             "sizeBytes": verified.size_bytes,
+            "objectId": verified.object_id,
             "nNumberOfLinks": verified.n_number_of_links,
         })),
+        Ok(Err(err)) => security_error_outcome(err),
+        Err(_) => NativeJsonOutcome::host_reason("host-internal-error", false),
+    }
+}
+
+#[napi(js_name = "harnessListWorkspaceDirectory")]
+pub async fn harness_list_workspace_directory(
+    input: NativeHarnessVerifyPathInput,
+) -> NativeJsonOutcome {
+    match tokio::task::spawn_blocking(move || {
+        list_workspace_directory(&PathBuf::from(input.workspace_root), &input.relative_path)
+    })
+    .await
+    {
+        Ok(Ok(entries)) => NativeJsonOutcome::success(json!(entries
+            .into_iter()
+            .map(|(name, directory, size, mtime)| json!({"name":name,"directory":directory,"size":size,"mtimeMs":mtime}))
+            .collect::<Vec<_>>())),
         Ok(Err(err)) => security_error_outcome(err),
         Err(_) => NativeJsonOutcome::host_reason("host-internal-error", false),
     }
@@ -192,12 +213,17 @@ pub async fn harness_secure_read_file(input: NativeHarnessSecureReadInput) -> Na
     let root = PathBuf::from(input.workspace_root);
     let rel = input.relative_path;
     let max_bytes = input.max_bytes.unwrap_or(16 * 1024 * 1024) as usize;
-    match tokio::task::spawn_blocking(move || secure_read_file(&root, &rel, max_bytes)).await {
+    match tokio::task::spawn_blocking(move || {
+        secure_read_range(&root, &rel, max_bytes, input.offset.map(|o| o as u64))
+    })
+    .await
+    {
         Ok(Ok(result)) => NativeJsonOutcome::success(json!({
             "finalPath": result.final_path,
             "contentBase64": base64::engine::general_purpose::STANDARD.encode(&result.content),
             "sha256": result.sha256,
             "sizeBytes": result.size_bytes,
+            "objectId": result.object_id,
             "nNumberOfLinks": result.n_number_of_links,
         })),
         Ok(Err(err)) => security_error_outcome(err),

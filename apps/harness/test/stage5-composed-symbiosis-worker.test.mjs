@@ -601,6 +601,7 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
   const routeCalls = [];
   const stepRequests = [];
   const projections = [];
+  let firstMilestone = true;
   const outboxQueue = [];
   const outboxWaiters = [];
   let outboxClosed = false;
@@ -660,6 +661,10 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
       async ackBodyOutbox() { return { acked: true }; },
       async reportBodySessionProjection(req) {
         projections.push(structuredClone(req));
+        if (firstMilestone && req.milestoneKind) {
+          firstMilestone = false;
+          throw new Error('test transport lost projection receipt');
+        }
         return { applied: true };
       },
       async routeAndSubmitInput(req) {
@@ -761,6 +766,10 @@ test('Stage 5 composed: standalone empty-dir first submit discovers Partner hand
       5000,
       'initial_goal milestone projection',
     );
+    await waitFor(() => projections.filter(p => p.milestoneKind === 'initial_goal').length >= 2, 8000, 'unconfirmed milestone recovered');
+    const retries = projections.filter(p => p.milestoneKind === 'initial_goal');
+    assert.ok(JSON.parse(retries[0].latestReceiptJson).milestoneRef);
+    assert.equal(retries[0].latestReceiptJson, retries[1].latestReceiptJson);
     // Two identical inputs are distinct Runtime deliveries and keep their identities
     // in the committed prefix and new suffix of the second provider request.
     await client.callEngine('submit', ['main', 'Inspect standalone startup flow', randomUUID(), false]);

@@ -22,8 +22,8 @@ use windows_sys::Win32::Storage::FileSystem::{
     SetFilePointerEx, WriteFile, BY_HANDLE_FILE_INFORMATION, CREATE_NEW, DELETE,
     FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT, FILE_BEGIN,
     FILE_DISPOSITION_INFO, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
-    FILE_NAME_NORMALIZED, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
-    VOLUME_NAME_DOS,
+    FILE_LIST_DIRECTORY, FILE_NAME_NORMALIZED, FILE_SHARE_DELETE, FILE_SHARE_READ,
+    FILE_SHARE_WRITE, OPEN_EXISTING, VOLUME_NAME_DOS,
 };
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, JobObjectBasicAccountingInformation,
@@ -940,7 +940,7 @@ fn pin_parent_directories(
         let handle = unsafe {
             CreateFileW(
                 wide.as_ptr(),
-                0,
+                FILE_LIST_DIRECTORY,
                 FILE_SHARE_READ,
                 std::ptr::null(),
                 OPEN_EXISTING,
@@ -1290,13 +1290,109 @@ pub fn verify_workspace_path(
         is_directory: (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0,
         size_bytes,
         n_number_of_links: info.nNumberOfLinks,
+        object_id: format!(
+            "{}:{}:{}",
+            info.dwVolumeSerialNumber, info.nFileIndexHigh, info.nFileIndexLow
+        ),
     })
+}
+
+pub fn list_workspace_directory(
+    root: &Path,
+    relative: &str,
+) -> Result<Vec<(String, bool, u64, i64)>, HarnessSecurityError> {
+    use windows_sys::Win32::Foundation::ERROR_NO_MORE_FILES;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FileIdBothDirectoryInfo, FileIdBothDirectoryRestartInfo, GetFileInformationByHandleEx,
+        FILE_ID_BOTH_DIR_INFO,
+    };
+    let segments = validate_relative_workspace_path(relative, true)?;
+    let canonical_root = canonicalize_workspace_root(root)?;
+    let pins = pin_parent_directories(&canonical_root, &segments, false)?;
+    let directory = pins.last().ok_or_else(|| {
+        HarnessSecurityError::new("invalid-workspace-root", "missing root handle")
+    })?;
+    let mut buffer = vec![0u64; 8192];
+    let mut class = FileIdBothDirectoryRestartInfo;
+    let mut entries = Vec::new();
+    loop {
+        let ok = unsafe {
+            GetFileInformationByHandleEx(
+                directory.as_raw_handle().cast(),
+                class,
+                buffer.as_mut_ptr().cast(),
+                (buffer.len() * 8) as u32,
+            )
+        };
+        if ok == 0 {
+            let code = unsafe { GetLastError() };
+            if code == ERROR_NO_MORE_FILES {
+                return Ok(entries);
+            }
+            return Err(win32_err("read-failed", "directory enumeration", code));
+        }
+        class = FileIdBothDirectoryInfo;
+        let mut offset = 0usize;
+        loop {
+            // The kernel fills aligned, variable-length FILE_ID_BOTH_DIR_INFO records.
+            let record = unsafe {
+                &*buffer
+                    .as_ptr()
+                    .cast::<u8>()
+                    .add(offset)
+                    .cast::<FILE_ID_BOTH_DIR_INFO>()
+            };
+            let name = unsafe {
+                std::slice::from_raw_parts(
+                    record.FileName.as_ptr(),
+                    record.FileNameLength as usize / 2,
+                )
+            };
+            if let Ok(name) = String::from_utf16(name) {
+                if name != "."
+                    && name != ".."
+                    && record.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == 0
+                {
+                    let directory = record.FileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0;
+                    let entry = segments
+                        .iter()
+                        .map(String::as_str)
+                        .chain(std::iter::once(name.as_str()))
+                        .collect::<Vec<_>>()
+                        .join("/");
+                    // FILE_ID_BOTH_DIR_INFO does not report the number of hard links.
+                    // Inspect the file while every ancestor is still pinned before exposing its metadata.
+                    if directory || verify_workspace_path(root, &entry, false).is_ok() {
+                        entries.push((
+                            name,
+                            directory,
+                            record.EndOfFile.max(0) as u64,
+                            (record.LastWriteTime / 10_000) - 11_644_473_600_000,
+                        ));
+                    }
+                }
+            }
+            if record.NextEntryOffset == 0 {
+                break;
+            }
+            offset += record.NextEntryOffset as usize;
+        }
+    }
 }
 
 pub fn secure_read_file(
     workspace_root: &Path,
     relative_path: &str,
     max_bytes: usize,
+) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
+    secure_read_range(workspace_root, relative_path, max_bytes, None)
+}
+
+pub fn secure_read_range(
+    workspace_root: &Path,
+    relative_path: &str,
+    max_bytes: usize,
+    offset: Option<u64>,
 ) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
     let segments = validate_relative_workspace_path(relative_path, false)?;
     let canonical_root = canonicalize_workspace_root(workspace_root)?;
@@ -1334,14 +1430,31 @@ pub fn secure_read_file(
     let raw = owned.as_raw_handle().cast();
     let (final_path, _canonical_rel, info) =
         verify_open_file_handle(raw, &canonical_root, &segments, false)?;
-    let content = read_all_from_handle(raw, max_bytes)?;
+    let total = ((info.nFileSizeHigh as u64) << 32) | info.nFileSizeLow as u64;
+    let content = if let Some(start) = offset {
+        use std::io::{Read, Seek, SeekFrom};
+        let mut file = std::fs::File::from(owned);
+        file.seek(SeekFrom::Start(start))
+            .map_err(|e| HarnessSecurityError::new("read-failed", e.to_string()))?;
+        let mut data = Vec::new();
+        file.take(max_bytes as u64)
+            .read_to_end(&mut data)
+            .map_err(|e| HarnessSecurityError::new("read-failed", e.to_string()))?;
+        data
+    } else {
+        read_all_from_handle(raw, max_bytes)?
+    };
     let sha256 = sha256_hex(&content);
     Ok(HarnessSecureReadResult {
         final_path,
-        size_bytes: content.len() as u64,
+        size_bytes: total,
         content,
         sha256,
         n_number_of_links: info.nNumberOfLinks,
+        object_id: format!(
+            "{}:{}:{}",
+            info.dwVolumeSerialNumber, info.nFileIndexHigh, info.nFileIndexLow
+        ),
     })
 }
 
@@ -1593,6 +1706,33 @@ mod tests {
         ));
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn directory_pin_lives_until_last_operation_and_reads_use_the_selected_object() {
+        let root = unique_temp_dir("pinned");
+        let folder = root.as_path().join("project");
+        std::fs::create_dir(&folder).unwrap();
+        std::fs::write(folder.join("one.txt"), b"first object").unwrap();
+        std::fs::write(root.join("original.txt"), b"another file").unwrap();
+        std::fs::hard_link(root.join("original.txt"), folder.join("alias.txt")).unwrap();
+        let canonical = canonicalize_workspace_root(root.as_path()).unwrap();
+        let pins = pin_parent_directories(&canonical, &["project".to_owned()], false).unwrap();
+        let renamed = root.as_path().join("archive");
+        assert!(std::fs::rename(&folder, &renamed).is_err());
+        let entries = list_workspace_directory(root.as_path(), "project").unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            (&entries[0].0, entries[0].1, entries[0].2),
+            (&"one.txt".to_owned(), false, 12)
+        );
+        assert!(entries[0].3 > 0);
+        let preview = secure_read_range(root.as_path(), "project/one.txt", 5, Some(6)).unwrap();
+        assert_eq!(preview.content, b"objec");
+        assert_eq!(preview.size_bytes, 12);
+        drop(pins);
+        std::fs::rename(folder, renamed).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

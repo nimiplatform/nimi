@@ -18,6 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -55,6 +56,7 @@ type BodyStepExecutionInput struct {
 
 // BodyStepExecutionResult reports model step output & usage.
 type BodyStepExecutionResult struct {
+	MemoryReadSet       cognitionmemory.MemoryReadSet
 	FinishReason        string
 	UsageInputTokens    int64
 	UsageOutputTokens   int64
@@ -680,6 +682,15 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 
+	if selector := strings.TrimSpace(req.GetAgentHandle()); selector != "" {
+		resolved, err := s.resolveAgentBinding(stepCtx, decision, selector)
+		if err != nil {
+			return err
+		}
+		if resolved != sess.Record.GetAgentBinding() {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
+	}
 	// 1. Strict role allowlist (user / assistant / tool / toolResult ONLY).
 	for _, msg := range append(append([]*runtimev1.BodyWorkingMessage(nil), req.GetWorkingMessages()...), req.GetKeptTailMessages()...) {
 		if msg == nil {
@@ -712,8 +723,11 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 	// 3. Synchronously qualify Cognition read set BEFORE inference.
 	originalReadEpoch := ledger.ReadSetEpoch
 	readSetEpoch := originalReadEpoch
-	if s.readSetQualifier != nil {
-		valid, currentEpoch, qErr := s.readSetQualifier(stepCtx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
+	s.mu.Lock()
+	qualifier, executor := s.readSetQualifier, s.bodyStepExecutor
+	s.mu.Unlock()
+	if qualifier != nil {
+		valid, currentEpoch, qErr := s.qualifyLedger(stepCtx, ledger, qualifier)
 		if qErr != nil {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
@@ -722,6 +736,7 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 				"workSessionRef": ref,
 				"epoch":          currentEpoch,
 				"previousEpoch":  ledger.ReadSetEpoch,
+				"generation":     ledger.Generation,
 			})
 			invEnv := &runtimev1.BodyOutboxEnvelope{
 				OutboxId:            newID("outbox"),
@@ -752,6 +767,7 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 	requestDigest := ""
 	if stepReqID != "" {
 		semantic := proto.Clone(req).(*runtimev1.StreamLocalAgentBodyStepRequest)
+		semantic.AgentHandle = sess.Record.GetAgentBinding()
 		semantic.LeaseEpoch = 0 // A recovering carrier has already proved its new lease.
 		encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(semantic)
 		if err != nil {
@@ -939,12 +955,12 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 	}
 
 	var execResult BodyStepExecutionResult
-	if s.bodyStepExecutor != nil {
+	if executor != nil {
 		execCtx := scheduler.WithExecutionAdmission(stepCtx, priority, stepCancel)
 		execCtx = textbehavior.WithToolCallActivityObserver(execCtx, func(act textbehavior.ToolCallActivity) error {
 			return emitter.SendToolCallActivity(act)
 		})
-		execResult, err = s.bodyStepExecutor(execCtx, execInput, emitter)
+		execResult, err = executor(execCtx, execInput, emitter)
 		if err != nil {
 			_ = emitter.send(&runtimev1.BodyStepStreamEvent{
 				Payload: &runtimev1.BodyStepStreamEvent_Failed{
@@ -1053,6 +1069,7 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 	}
 
 	commitErr := s.store.CommitStepLedger(stepCtx, commitStepLedgerInput{
+		MemoryReadSet:        execResult.MemoryReadSet,
 		Ledger:               ledger,
 		OriginalReadEpoch:    originalReadEpoch,
 		InputIDs:             inputIDs,
@@ -1219,7 +1236,10 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 			DenyReason: "missing_tool_name",
 		}, nil
 	}
-	if s.readSetQualifier == nil {
+	s.mu.Lock()
+	qualifier := s.readSetQualifier
+	s.mu.Unlock()
+	if qualifier == nil {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized: false,
 			DenyReason: "read_set_qualifier_unconfigured",
@@ -1288,7 +1308,7 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 			DenyReason: "session_ledger_uninitialized",
 		}, nil
 	}
-	valid, _, qErr := s.readSetQualifier(ctx, decision.AccountID, sess.Record.GetAgentBinding(), ref, ledger.ReadSetEpoch)
+	valid, _, qErr := s.qualifyLedger(ctx, ledger, qualifier)
 	if qErr != nil || !valid {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized:        false,
@@ -1300,6 +1320,7 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 	// Atomically verify lease, session status, tombstones, tool_name, args payload_hash,
 	// and consume call_id once-only inside a single SQLite write transaction!
 	resp, err := s.store.ConsumeAuthorizedToolCall(ctx, consumeToolCallInput{
+		Generation:     ledger.Generation,
 		AccountID:      decision.AccountID,
 		DeviceID:       deviceID,
 		Namespace:      ns,
@@ -1421,4 +1442,30 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 		}
 	}
 	return resp, nil
+}
+
+func (s *Service) qualifyLedger(ctx context.Context, ledger *ledgerRecord, qualifier ReadSetQualifier) (bool, int64, error) {
+	valid, epoch, err := qualifier(ctx, ledger.AccountID, ledger.AgentBinding, ledger.WorkSessionRef, ledger.ReadSetEpoch)
+	if !valid || err != nil {
+		return valid, epoch, err
+	}
+	reads, err := s.store.sessionMemoryReads(ctx, ledger.AccountID, ledger.WorkSessionRef)
+	if err != nil {
+		return false, epoch, err
+	}
+	for _, read := range reads {
+		if s.qualifyMemory == nil {
+			return false, epoch, nil
+		}
+		qualified, err := s.qualifyMemory(ctx, ledger.AgentBinding, read)
+		if err != nil {
+			return false, epoch, err
+		}
+		for _, ref := range read.Refs {
+			if !qualified[ref] {
+				return false, epoch, nil
+			}
+		}
+	}
+	return true, epoch, nil
 }

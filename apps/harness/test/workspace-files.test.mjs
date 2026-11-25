@@ -67,3 +67,22 @@ test('file references resolve to actual session files; separate imports never re
     await assert.rejects(listWorkspace(workspace, 'shortcut', 0, signal));
   }
 });
+
+test('Windows renderer file projection uses the native directory and range-read contracts', { skip: process.platform !== 'win32' }, async t => {
+  const { createRequire } = await import('node:module');
+  const { createNimiElectronHarnessSecurityHost } = await import('@nimiplatform/kit/shell/electron/main');
+  const require = createRequire(import.meta.url);
+  const binding = require('../../../kit/shell/protected-local-node/npm/win32-x64/nimi_shell_protected_local.node');
+  const host = createNimiElectronHarnessSecurityHost({ injectedBinding: binding });
+  const root = await mkdtemp(join(tmpdir(), 'nimi-native-preview-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const signal = new AbortController().signal;
+  const image = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+  await writeFile(join(root, 'asset.png'), image);
+  await writeFile(join(root, '.env'), 'test fixture');
+  const listing = await listWorkspace(root, '', 0, signal, host);
+  assert.deepEqual(listing.items.map(item => item.ref), ['asset.png']);
+  const preview = await previewWorkspaceFile(root, 'asset.png', signal, 0, host);
+  assert.equal(preview.format, 'image');
+  assert.deepEqual(Buffer.from(preview.bytes), image);
+});

@@ -124,6 +124,7 @@ export function HomeOmniComposer({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [disambiguation, setDisambiguation] = useState<OmniDisambiguationState | null>(null);
+  useEffect(() => { setDisambiguation(null); }, [attachments]);
   const [lightQa, setLightQa] = useState<OmniLightQaCardState | null>(null);
   const [pinnedPartnerHandle, setPinnedPartnerHandle] = useState<string | null>(() =>
     readPinnedPartnerHandle(accountKey),
@@ -135,9 +136,13 @@ export function HomeOmniComposer({
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
   const accountGenerationRef = useRef(0);
+  const pendingSubmit = useRef<{ key: string; id: string } | null>(null);
+  const submittingNow = useRef(false);
 
   useEffect(() => {
     accountGenerationRef.current += 1;
+    pendingSubmit.current = null;
+    submittingNow.current = false;
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
     setDraft('');
@@ -376,10 +381,11 @@ export function HomeOmniComposer({
         setSubmitError(t('runtimeConfig.overview.omni.routeUnconfirmed'));
         return;
       }
+      pendingSubmit.current = null;
       setDisambiguation(null);
-      setDraft('');
+      setDraft(current => current.trim() === submittedText ? '' : current);
       setCaretIndex(0);
-      setAttachments(EMPTY_OMNI_ATTACHMENTS);
+      setAttachments(current => current === attachments ? EMPTY_OMNI_ATTACHMENTS : current);
 
       if (isLightQaRouteResponse(response)) {
         const resolvedRef = response.resolvedWorkSessionRef;
@@ -430,7 +436,7 @@ export function HomeOmniComposer({
         });
       }
     },
-    [lightQa?.lastSeq, lightQa?.workSessionRef, onOpenHarness, startBrainEventStream, t],
+    [attachments, lightQa?.lastSeq, lightQa?.workSessionRef, onOpenHarness, startBrainEventStream, t],
   );
 
   const submitToRuntime = useCallback(
@@ -467,13 +473,14 @@ export function HomeOmniComposer({
         return;
       }
 
-      const requestId = options?.requestId ?? randomRequestId();
+      if (submittingNow.current) return;
+      submittingNow.current = true;
       const capturedGeneration = accountGenerationRef.current;
       setSubmitting(true);
       setSubmitError(null);
       try {
         const request = buildRouteAndSubmitRequest({
-          requestId,
+          requestId: '',
           text: trimmed,
           agentHandle: resolvedPartner.handle,
           target,
@@ -481,7 +488,10 @@ export function HomeOmniComposer({
           activeLightQa: lightQa,
           selectedCandidateRef: options?.selectedCandidateRef,
         });
-        const response = await sdk.accountProduct().sessions.routeAndSubmitInput(request);
+        const key = JSON.stringify(request);
+        const requestId = options?.requestId ?? (pendingSubmit.current?.key === key ? pendingSubmit.current.id : randomRequestId());
+        pendingSubmit.current = { key, id: requestId };
+        const response = await sdk.accountProduct().sessions.routeAndSubmitInput({ ...request, requestId });
         if (capturedGeneration !== accountGenerationRef.current) return;
         handleRouteResponse(response, trimmed, requestId, resolvedPartner.handle, resolvedPartner.name);
       } catch (error) {
@@ -492,6 +502,7 @@ export function HomeOmniComposer({
         setSubmitError(message);
       } finally {
         if (capturedGeneration === accountGenerationRef.current) {
+          submittingNow.current = false;
           setSubmitting(false);
         }
       }
@@ -560,11 +571,13 @@ export function HomeOmniComposer({
   };
 
   const handleSplitLightQaToTask = async () => {
-    if (!lightQa) return;
+    if (!lightQa || submittingNow.current) return;
+    submittingNow.current = true;
+    setSubmitting(true);
     const capturedGeneration = accountGenerationRef.current;
     setSubmitError(null);
     try {
-      const response = await sdk.accountProduct().sessions.splitOrRedirectInput({
+      const payload = {
         agentHandle: lightQa.agentHandle,
         sourceWorkSessionRef: lightQa.workSessionRef,
         sourceEventSeq: String(lightQa.lastSeq),
@@ -573,10 +586,14 @@ export function HomeOmniComposer({
         workspaceRoot: attachments.workspaceRoot ?? '',
         workspaceWritable: attachments.workspaceWritable,
         title: '',
-        requestId: randomRequestId(),
-      });
+      };
+      const key = JSON.stringify(payload);
+      const id = pendingSubmit.current?.key === key ? pendingSubmit.current.id : randomRequestId();
+      pendingSubmit.current = { key, id };
+      const response = await sdk.accountProduct().sessions.splitOrRedirectInput({ ...payload, requestId: id });
       if (capturedGeneration !== accountGenerationRef.current) return;
-      setAttachments(EMPTY_OMNI_ATTACHMENTS);
+      pendingSubmit.current = null;
+      setAttachments(current => current === attachments ? EMPTY_OMNI_ATTACHMENTS : current);
       setLightQa((current) => (current ? {
         ...current,
         streaming: false,
@@ -586,6 +603,11 @@ export function HomeOmniComposer({
     } catch (error) {
       if (capturedGeneration !== accountGenerationRef.current) return;
       setSubmitError(error instanceof Error ? error.message : t('runtimeConfig.overview.omni.submitFailed'));
+    } finally {
+      if (capturedGeneration === accountGenerationRef.current) {
+        submittingNow.current = false;
+        setSubmitting(false);
+      }
     }
   };
 
@@ -654,9 +676,9 @@ export function HomeOmniComposer({
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
-  const isAppWorkTarget = target.kind === 'session' && target.sessionKind === 'app_work';
+  const requiresSessionDraft = target.kind === 'session' && target.sessionKind !== 'pc_work';
   const dispatchEmptySubmitByTarget = () => {
-    if (isAppWorkTarget) return;
+    if (requiresSessionDraft) return;
     if (target.kind === 'human') {
       onOpenHumanChatDraft(target.contactId, '');
       return;
@@ -752,7 +774,7 @@ export function HomeOmniComposer({
 
   const submitLabel = isHumanTarget
     ? t('runtimeConfig.overview.omni.openHumanChatWithDraft')
-    : hasDraft || isAppWorkTarget
+    : hasDraft || requiresSessionDraft
       ? t('runtimeConfig.overview.quickStart.submitDraft')
       : t('runtimeConfig.overview.omni.openHarnessAction');
 
@@ -944,7 +966,7 @@ export function HomeOmniComposer({
 
           <button
             type="submit"
-            disabled={submitting || (isAppWorkTarget && !hasDraft)}
+            disabled={submitting || (requiresSessionDraft && !hasDraft)}
             aria-label={submitLabel}
             title={submitLabel}
             data-testid="home-quick-start-submit"
@@ -1175,15 +1197,15 @@ export function HomeOmniComposer({
                 <Split size={12} aria-hidden="true" className="mr-1" />
                 {t('runtimeConfig.overview.omni.splitToTask')}
               </Button>
-              <Button
+              {lightQa.promotedToSessionRef && (<Button
                 tone="ghost"
                 size="sm"
                 data-testid="home-omni-light-qa-open-harness"
-                onClick={() => onOpenHarness(lightQa.promotedToSessionRef ?? lightQa.workSessionRef)}
+                onClick={() => { if (lightQa.promotedToSessionRef) onOpenHarness(lightQa.promotedToSessionRef); }}
               >
                 <ExternalLink size={12} aria-hidden="true" className="mr-1" />
                 {t('runtimeConfig.overview.omni.openInHarness')}
-              </Button>
+              </Button>)}
               <button
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.dismissLightQa')}

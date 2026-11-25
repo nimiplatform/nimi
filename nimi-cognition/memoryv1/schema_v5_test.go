@@ -167,6 +167,10 @@ func TestSchemaV4ToV5MigrationSingleSlotSupersedeAndScopeTagRecall(t *testing.T)
 		t.Fatalf("expected only global_fact hit, got %+v err=%v", factRecall, err)
 	}
 
+	// Some older pointer producers retained only the slot identity.
+	if _, err := core.db.ExecContext(ctx, "DELETE FROM memory_lineage WHERE ref_kind='session' AND ref_value='ws_proj_alpha'"); err != nil {
+		t.Fatal(err)
+	}
 	// 5. FindMemoryRefsBySource finds ALL session-lineage memories (both current & superseded) for exact ForgetExact!
 	sessionRefs, err := core.FindMemoryRefsBySource(ctx, "bank_v4", "session", "ws_proj_alpha")
 	if err != nil {

@@ -328,11 +328,16 @@ func (c *Core) initialize() error {
 	}
 	// All content-bearing reads share the same cutoff fence, including corrected
 	// descendants while exact forgetting is still pending in a different store.
+	if _, err := conn.ExecContext(ctx, "DROP VIEW IF EXISTS visible_session_memories"); err != nil {
+		return err
+	}
 	if _, err := conn.ExecContext(ctx, `CREATE VIEW IF NOT EXISTS visible_session_memories AS
 		WITH RECURSIVE hidden(ref,bank) AS (
 			SELECT m.memory_ref,m.bank_ref FROM deleted_session_bank_cutoffs c
 			JOIN memory_lineage l ON l.ref_type='source' AND l.ref_kind='session' AND l.ref_value=c.work_session_ref
 			JOIN memories m ON m.memory_ref=l.memory_ref AND m.bank_ref=c.bank_ref
+			UNION SELECT m.memory_ref,m.bank_ref FROM memories m JOIN deleted_session_bank_cutoffs c
+			  ON m.bank_ref=c.bank_ref AND m.slot_key='session_ref:'||c.work_session_ref
 			UNION SELECT m.memory_ref,m.bank_ref FROM memories m JOIN hidden h ON m.supersedes_ref=h.ref AND m.bank_ref=h.bank
 		) SELECT m.* FROM memories m WHERE NOT EXISTS (SELECT 1 FROM hidden h WHERE h.ref=m.memory_ref AND h.bank=m.bank_ref)`); err != nil {
 		return err
@@ -364,10 +369,11 @@ func (c *Core) FindMemoryRefsBySource(ctx context.Context, bankRef, sourceKind, 
 		WITH RECURSIVE descendants(ref) AS (
 			SELECT l.memory_ref FROM memory_lineage l JOIN memories m USING(memory_ref)
 			WHERE m.bank_ref = ? AND l.ref_type = 'source' AND l.ref_kind = ? AND l.ref_value = ?
+			UNION SELECT memory_ref FROM memories WHERE bank_ref=? AND ?='session' AND slot_key='session_ref:'||?
 			UNION SELECT m.memory_ref FROM memories m JOIN descendants d ON d.ref = m.supersedes_ref WHERE m.bank_ref = ?
 		) SELECT m.memory_ref FROM descendants d JOIN memories m ON m.memory_ref = d.ref
 		WHERE m.lifecycle <> ? ORDER BY m.memory_ref`,
-		bankRef, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue), bankRef, LifecycleForgotten,
+		bankRef, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue), bankRef, strings.TrimSpace(sourceKind), strings.TrimSpace(sourceValue), bankRef, LifecycleForgotten,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("find memory refs by source: %w", err)
@@ -491,7 +497,7 @@ func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRe
 				SELECT ? UNION SELECT m.supersedes_ref FROM ancestors a JOIN memories m ON m.memory_ref = a.ref
 				WHERE m.bank_ref = ? AND m.supersedes_ref IS NOT NULL
 			) SELECT ref_value FROM memory_lineage JOIN ancestors ON ref = memory_ref
-			WHERE ref_type = 'source' AND ref_kind = 'session'`, memRef, request.BankRef)
+			WHERE ref_type = 'source' AND ref_kind = 'session' UNION SELECT substr(m.slot_key,13) FROM memories m JOIN ancestors a ON a.ref=m.memory_ref WHERE m.bank_ref=? AND substr(m.slot_key,1,12)='session_ref:'`, memRef, request.BankRef, request.BankRef)
 		if err != nil {
 			return false, err
 		}
@@ -502,6 +508,10 @@ func requestHasSessionCutoffTx(ctx context.Context, tx *sql.Tx, request CommitRe
 				return false, scanErr
 			}
 			addRef(sRef)
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return false, err
 		}
 		if err := rows.Close(); err != nil {
 			return false, err

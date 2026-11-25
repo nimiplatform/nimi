@@ -1,3 +1,4 @@
+import type { NimiElectronHarnessSecurityHost } from '@nimiplatform/kit/shell/electron/main';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readdir, realpath, rmdir, stat, unlink, type FileHandle } from 'node:fs/promises';
@@ -214,8 +215,18 @@ export async function copyMaterial(workspace: string, name: string, bytes: Uint8
   }
 }
 
-export async function listWorkspace(workspace: string, folder: string, offset: number, signal: AbortSignal) {
+export async function listWorkspace(workspace: string, folder: string, offset: number, signal: AbortSignal, host?: NimiElectronHarnessSecurityHost | null) {
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid file list position.');
+  if (host) {
+    if (folder) validateRawWorkspacePathInput(folder);
+    if (folder && isSensitivePath(folder, workspace)) throw new Error('Sensitive directory.');
+    const entries = (await host.listWorkspaceDirectory({ workspaceRoot: workspace, relativePath: folder || '.' }))
+      .map(entry => ({ ...entry, ref: folder ? folder + '/' + entry.name : entry.name }))
+      .filter(entry => !isSensitivePath(entry.ref, workspace))
+      .sort((a,b) => Number(b.directory)-Number(a.directory) || a.name.localeCompare(b.name));
+    signal.throwIfAborted();
+    return { items: entries.slice(offset, offset + 100), next: offset + 100 < entries.length ? offset + 100 : null };
+  }
   const path = await resolveItem(workspace, folder, true);
   const root = await realpath(workspace);
   const entries = (await readdir(path, { withFileTypes: true })).filter(item => {
@@ -252,31 +263,27 @@ export async function workspaceFile(workspace: string, ref: string, signal: Abor
   return { path, info };
 }
 
-export async function previewWorkspaceFile(workspace: string, ref: string, signal: AbortSignal, requestedPage = 0) {
+export async function previewWorkspaceFile(workspace: string, ref: string, signal: AbortSignal, requestedPage = 0, host?: NimiElectronHarnessSecurityHost | null) {
   if (!Number.isSafeInteger(requestedPage) || requestedPage < 0) throw new Error('Invalid preview page.');
-  const { path, info } = await workspaceFile(workspace, ref, signal);
-  const extension = extname(path).toLowerCase();
-  const meta = { name: basename(path), ref, size: info.size };
+  const extension = extname(ref).toLowerCase();
   const imageType = imageTypes.get(extension);
-  if (!imageType && !isPreviewableText(path)) return { ...meta, format: 'file' as const };
-  const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
-  try {
-    const stat = await file.stat();
-    if (!stat.isFile() || stat.nlink > 1 || stat.dev !== info.dev || stat.ino !== info.ino) throw new Error('The file changed or is a hardlink. Open it again.');
+  const render = async (size: number, read: (start: number, count: number) => Promise<Buffer<ArrayBuffer>>) => {
+    const meta = { name: basename(ref), ref, size };
+    if (!imageType && !isPreviewableText(ref)) return { ...meta, format: 'file' as const };
     if (imageType) {
-      if (stat.size > importLimit) return { ...meta, size: stat.size, format: 'file' as const, message: 'Images over 32 MiB can be opened from their folder.' };
-      const bytes = await readRange(file, 0, stat.size, signal);
-      if (bytes.length !== stat.size) throw new Error('The image changed. Refresh to read it again.');
-      return { ...meta, size: stat.size, format: 'image' as const, mimeType: imageType, bytes: bytes.buffer };
+      if (size > importLimit) return { ...meta, format: 'file' as const, message: 'Images over 32 MiB can be opened from their folder.' };
+      const bytes = await read(0, size);
+      if (bytes.length !== size) throw new Error('The image changed. Refresh to read it again.');
+      return { ...meta, format: 'image' as const, mimeType: imageType, bytes: bytes.buffer };
     }
-    const pages = Math.max(1, Math.ceil(stat.size / previewLimit));
+    const pages = Math.max(1, Math.ceil(size / previewLimit));
     const page = Math.min(requestedPage, pages - 1);
     const start = page * previewLimit;
     // Move each cut back to the start of a UTF-8 character. Even the last
     // character of a file that just crosses the limit gets a nonempty page.
     const readStart = Math.max(0, start - 3);
-    const end = Math.min(stat.size, start + previewLimit);
-    const data = await readRange(file, readStart, Math.min(stat.size, end + 1) - readStart, signal);
+    const end = Math.min(size, start + previewLimit);
+    const data = await read(readStart, Math.min(size, end + 1) - readStart);
     const length = data.length;
     const boundary = (index: number) => {
       let aligned = index;
@@ -284,7 +291,27 @@ export async function previewWorkspaceFile(workspace: string, ref: string, signa
       return aligned;
     };
     const markdown = pages === 1 && (extension === '.md' || extension === '.markdown');
-    return { ...meta, size: stat.size, format: markdown ? 'markdown' as const : 'text' as const,
+    return { ...meta, format: markdown ? 'markdown' as const : 'text' as const,
       content: data.toString('utf8', boundary(start - readStart), length <= end - readStart ? length : boundary(end - readStart)), page, pages };
+  };
+  if (host) {
+    validateRawWorkspacePathInput(ref);
+    if (isSensitivePath(ref, workspace)) throw new Error('Sensitive file.');
+    const input = {workspaceRoot: workspace, relativePath: ref};
+    const info = await host.verifyWorkspacePath(input);
+    return render(info.sizeBytes, async (offset,maxBytes) => {
+      signal.throwIfAborted();
+      const part = await host.secureReadFile({...input, offset,maxBytes});
+      signal.throwIfAborted();
+      if (!info.objectId || part.objectId !== info.objectId || part.sizeBytes !== info.sizeBytes) throw new Error('The file changed. Refresh to read it again.');
+      return Buffer.from(Uint8Array.from(Buffer.from(part.contentBase64, 'base64')).buffer);
+    });
+  }
+  const { path, info } = await workspaceFile(workspace, ref, signal);
+  const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  try {
+    const stat = await file.stat();
+    if (!stat.isFile() || stat.nlink > 1 || stat.dev !== info.dev || stat.ino !== info.ino) throw new Error('The file changed or is a hardlink. Open it again.');
+    return await render(stat.size, (offset,size) => readRange(file, offset, size, signal));
   } finally { await file.close(); }
 }

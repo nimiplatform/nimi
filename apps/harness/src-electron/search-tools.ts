@@ -1,3 +1,4 @@
+import type { NimiElectronHarnessSecurityHost } from '@nimiplatform/kit/shell/electron/main';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { constants } from 'node:fs';
 import { lstat, open, readdir, realpath } from 'node:fs/promises';
@@ -409,6 +410,7 @@ function pinnedHttpGet(
 }
 
 export type SearchToolsOptions = {
+  directoryHost?: () => NimiElectronHarnessSecurityHost | null;
   allowLoopbackFetch?: boolean;
   fetchImpl?: typeof fetch;
   dnsLookupImpl?: DnsLookupFn;
@@ -419,6 +421,13 @@ export type SearchToolsOptions = {
 export function searchTools(workspace: string | (() => string), account: AbortSignal, options: SearchToolsOptions = {}) {
   const resolveWorkspace = () => (typeof workspace === 'function' ? workspace() : workspace);
   const fetchFn = options.fetchImpl ?? globalThis.fetch;
+
+  async function readDirectory(root: string, directory: string) {
+    const host = options.directoryHost?.();
+    if (!host) return readdir(directory, { withFileTypes: true });
+    const entries = await host.listWorkspaceDirectory({workspaceRoot: root, relativePath: toPosixRelative(root,directory) || '.'});
+    return entries.map(({ name, directory }) => ({ name, isDirectory: () => directory, isFile: () => !directory, isSymbolicLink: () => false }));
+  }
 
   return defineExtension({
     name: 'nimi-harness.search-tools',
@@ -453,7 +462,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
               const current = queue.shift()!;
               let entries;
               try {
-                entries = await readdir(current, { withFileTypes: true });
+                entries = await readDirectory(root,current);
               } catch {
                 continue;
               }
@@ -533,7 +542,7 @@ export function searchTools(workspace: string | (() => string), account: AbortSi
               const current = queue.shift()!;
               let entries;
               try {
-                entries = await readdir(current, { withFileTypes: true });
+                entries = await readDirectory(root,current);
               } catch {
                 continue;
               }

@@ -317,6 +317,7 @@ function hasHarnessSecurityExports(candidate: unknown): candidate is NimiElectro
     && typeof record.harnessSpawnJobProcess === 'function'
     && typeof record.harnessWaitJobProcess === 'function'
     && typeof record.harnessKillJobProcess === 'function'
+    && typeof record.harnessListWorkspaceDirectory === 'function'
     && typeof record.harnessVerifyWorkspacePath === 'function'
     && typeof record.harnessSecureReadFile === 'function'
     && typeof record.harnessSecureWriteFile === 'function'
@@ -762,6 +763,8 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     });
   }
 
+  workspaceBrowsingHost() { return this.requireNativeHostOrFailClosed('workspace browsing'); }
+
   async readWorkspaceFileSecure(relativePath: string, maxBytes: number): Promise<Uint8Array> {
     const { absolutePath, relativePosix } = this.resolveGuardedPath(relativePath);
     const native = this.requireNativeHostOrFailClosed('readWorkspaceFileSecure');
@@ -1015,11 +1018,11 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
       const native = this.requireNativeHostOrFailClosed('listDir');
       if (native) {
-        await native.verifyWorkspacePath({
-          workspaceRoot: this.workspaceRoot,
-          relativePath: relativePosix || '.',
-          expectDirectory: true,
-        });
+        if (context.abortSignal?.aborted) return err(new FileError('aborted', 'Directory read cancelled.'));
+        const entries = await native.listWorkspaceDirectory({ workspaceRoot: this.workspaceRoot, relativePath: relativePosix || '.' });
+        return ok(entries.filter(entry => !isSensitivePath(join(relativePosix, entry.name), this.workspaceRoot))
+          .map(entry => ({ name: entry.name, path: join(absolutePath, entry.name),
+            kind: entry.directory ? 'directory' : 'file', size: entry.size, mtimeMs: entry.mtimeMs })));
       }
       const listed = await this.inner.listDir(absolutePath, context);
       if (!listed.ok) return listed;
@@ -1037,13 +1040,7 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
     try {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
       const native = this.requireNativeHostOrFailClosed('listFiles');
-      if (native) {
-        await native.verifyWorkspacePath({
-          workspaceRoot: this.workspaceRoot,
-          relativePath: relativePosix || '.',
-          expectDirectory: true,
-        });
-      }
+      if (native) return err(new FileError('not_supported', 'Use the guarded directory reader for workspace traversal.'));
       const innerEnv: ExecutionEnv = this.inner;
       if (!innerEnv.listFiles) return err(new FileError('not_supported', 'listFiles unavailable'));
       const listed = await innerEnv.listFiles(absolutePath, options, context);
@@ -1063,10 +1060,19 @@ export class SecureWorkspaceExecutionEnv implements ExecutionEnv {
       const { absolutePath, relativePosix } = this.resolveGuardedPath(path, true);
       const native = this.requireNativeHostOrFailClosed('openDirReader');
       if (native) {
-        await native.verifyWorkspacePath({
-          workspaceRoot: this.workspaceRoot,
-          relativePath: relativePosix || '.',
-          expectDirectory: true,
+        const result = await this.listDir(absolutePath, context);
+        if (!result.ok) return result;
+        let entries = result.value;
+        let offset = 0;
+        return ok({
+          async next(maxEntries, ctx) {
+            if (ctx.abortSignal?.aborted) return err(new FileError('aborted', 'Directory read cancelled.'));
+            if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) return err(new FileError('invalid', 'Invalid directory page size.'));
+            const page = entries.slice(offset, offset + maxEntries);
+            offset += page.length;
+            return ok({ entries: page, done: offset >= entries.length });
+          },
+          async close() { entries = []; },
         });
       }
       const opened = await this.inner.openDirReader(absolutePath, context);

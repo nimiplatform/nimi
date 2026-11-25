@@ -44,6 +44,7 @@ export interface NimiHarnessVerifiedPath {
   readonly relativePath: string;
   readonly isDirectory: boolean;
   readonly sizeBytes: number;
+  readonly objectId: string;
   readonly nNumberOfLinks: number;
 }
 
@@ -52,6 +53,7 @@ export interface NimiHarnessSecureReadResult {
   readonly contentBase64: string;
   readonly sha256: string;
   readonly sizeBytes: number;
+  readonly objectId: string;
   readonly nNumberOfLinks: number;
 }
 
@@ -103,6 +105,7 @@ export interface NimiElectronHarnessSecurityBinding {
   harnessSpawnJobProcess(input: Record<string, unknown>): Promise<NativeOutcome>;
   harnessWaitJobProcess(input: Record<string, unknown>): Promise<NativeOutcome>;
   harnessKillJobProcess(input: Record<string, unknown>): Promise<NativeOutcome>;
+  harnessListWorkspaceDirectory(input: Record<string, unknown>): Promise<NativeOutcome>;
   harnessVerifyWorkspacePath(input: Record<string, unknown>): Promise<NativeOutcome>;
   harnessSecureReadFile(input: Record<string, unknown>): Promise<NativeOutcome>;
   harnessSecureWriteFile(input: Record<string, unknown>): Promise<NativeOutcome>;
@@ -114,6 +117,7 @@ export interface NimiElectronHarnessSecurityHost {
   spawnJobProcess(input: NimiHarnessJobProcessInput): Promise<NimiHarnessSpawnedJob>;
   waitJobProcess(input: { readonly jobId: string; readonly timeoutMs?: number }): Promise<NimiHarnessJobProcessResult>;
   killJobProcess(input: { readonly jobId: string }): Promise<NimiHarnessKillJobResult>;
+  listWorkspaceDirectory(input: {workspaceRoot: string; relativePath: string}): Promise<{name: string; directory: boolean; size: number; mtimeMs: number}[]>;
   verifyWorkspacePath(input: {
     readonly workspaceRoot: string;
     readonly relativePath: string;
@@ -123,6 +127,7 @@ export interface NimiElectronHarnessSecurityHost {
     readonly workspaceRoot: string;
     readonly relativePath: string;
     readonly maxBytes?: number;
+    readonly offset?: number;
   }): Promise<NimiHarnessSecureReadResult>;
   secureWriteFile(input: NimiHarnessSecureWriteInput): Promise<NimiHarnessSecureWriteResult>;
   secureDeleteFile(input: NimiHarnessSecureDeleteInput): Promise<NimiHarnessSecureDeleteResult>;
@@ -134,6 +139,7 @@ const REQUIRED_METHODS = [
   'harnessWaitJobProcess',
   'harnessKillJobProcess',
   'harnessVerifyWorkspacePath',
+  'harnessListWorkspaceDirectory',
   'harnessSecureReadFile',
   'harnessSecureWriteFile',
   'harnessSecureDeleteFile',
@@ -231,6 +237,9 @@ export function createNimiElectronHarnessSecurityHost(
     async killJobProcess(input) {
       return unwrapOutcome(await resolved.harnessKillJobProcess({ jobId: input.jobId }));
     },
+    async listWorkspaceDirectory(input) {
+      return unwrapOutcome(await resolved.harnessListWorkspaceDirectory({ workspaceRoot: input.workspaceRoot, relativePath: input.relativePath }));
+    },
     async verifyWorkspacePath(input) {
       return unwrapOutcome(await resolved.harnessVerifyWorkspacePath({
         workspaceRoot: input.workspaceRoot,
@@ -242,6 +251,7 @@ export function createNimiElectronHarnessSecurityHost(
       return unwrapOutcome(await resolved.harnessSecureReadFile({
         workspaceRoot: input.workspaceRoot,
         relativePath: input.relativePath,
+        ...(input.offset !== undefined ? {offset: input.offset} : {}),
         ...(input.maxBytes !== undefined ? { maxBytes: input.maxBytes } : {}),
       }));
     },

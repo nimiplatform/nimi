@@ -164,35 +164,50 @@ export function NimiOverview() {
     if (!isOverviewActive || authStatus !== 'authenticated' || !ownerUserId) return;
     const controller = new AbortController();
     void (async () => {
-      try {
-        const stream = await sdk.accountProduct().sessions.watchSessionOverview(
-          { agentHandle: '', includeArchived: false, afterOverviewSeq: '0' },
-          { signal: controller.signal },
-        );
-        for await (const delta of stream) {
-          if (controller.signal.aborted) break;
-          setSessionOverview((prev) => {
-            const byRef = new Map<string, WorkSessionRecord>(
-              delta.fullBaseline ? [] : prev.sessions.map((item) => [item.workSessionRef, item]),
-            );
-            for (const removed of delta.removedWorkSessionRefs ?? []) {
-              byRef.delete(removed);
-            }
-            for (const upserted of delta.upsertedSessions ?? []) {
-              byRef.set(upserted.workSessionRef, upserted);
-            }
-            return {
-              sessions: [...byRef.values()],
-              attentionItems: delta.attentionItems ?? [],
-              carrierOnline: delta.carrierOnline === true,
-              activePcCarrierAppId: typeof delta.activePcCarrierAppId === 'string'
-                ? delta.activePcCarrierAppId.trim()
-                : '',
-            };
-          });
+      let retryMs = 250;
+      while (!controller.signal.aborted) {
+        try {
+          let lastSeq = 0n;
+          const stream = await sdk.accountProduct().sessions.watchSessionOverview(
+            { agentHandle: '', includeArchived: false, afterOverviewSeq: '0' },
+            { signal: controller.signal },
+          );
+          for await (const delta of stream) {
+            if (controller.signal.aborted) break;
+            const seq = BigInt(delta.overviewSeq);
+            if (!delta.fullBaseline && seq !== lastSeq + 1n) break;
+            lastSeq = seq;
+            retryMs = 250;
+            setSessionOverview((prev) => {
+              const byRef = new Map<string, WorkSessionRecord>(
+                delta.fullBaseline ? [] : prev.sessions.map((item) => [item.workSessionRef, item]),
+              );
+              for (const removed of delta.removedWorkSessionRefs ?? []) {
+                byRef.delete(removed);
+              }
+              for (const upserted of delta.upsertedSessions ?? []) {
+                byRef.set(upserted.workSessionRef, upserted);
+              }
+              return {
+                sessions: [...byRef.values()],
+                attentionItems: delta.attentionItems ?? [],
+                carrierOnline: delta.carrierOnline === true,
+                activePcCarrierAppId: typeof delta.activePcCarrierAppId === 'string'
+                  ? delta.activePcCarrierAppId.trim()
+                  : '',
+              };
+            });
+          }
+        } catch {
+          if (controller.signal.aborted) return;
         }
-      } catch {
-        // Keep last known session overview if stream is unavailable.
+        if (controller.signal.aborted) return;
+        await new Promise<void>(resolve => {
+          const done = () => { clearTimeout(timer); controller.signal.removeEventListener('abort', done); resolve(); };
+          const timer = setTimeout(done, retryMs);
+          controller.signal.addEventListener('abort', done, { once: true });
+        });
+        retryMs = Math.min(5000, retryMs * 2);
       }
     })();
     return () => {
@@ -261,6 +276,7 @@ export function NimiOverview() {
     const selection = snapshot?.effectiveSelections.find(item => item.capabilityContract === 'text.generate');
     const capabilities = snapshot?.config?.capabilities ?? [];
     const textIntent = capabilities.find((entry) => entry.capabilityContract === 'text.generate');
+    if (snapshot && !snapshot.config && snapshot.effectiveSelections.length === 0) return { active: false, unknown: false, modelLabel: null };
     if (!selection || selection.state !== 'ready') return { active: false, unknown: true, modelLabel: null };
     if (textIntent?.route?.oneofKind !== 'cloud') {
       return { active: false, modelLabel: null as string | null };

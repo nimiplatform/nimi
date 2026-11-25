@@ -287,6 +287,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
   let symbiosis: HarnessBodySymbiosisClient | undefined;
   let retiring = Promise.resolve();
   let lifecycleQueue = Promise.resolve();
+  let initialBodyDrain = Promise.resolve();
   let viewDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   const enqueueLifecycle = (op: () => Promise<void>): Promise<void> => {
@@ -595,7 +596,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
     });
 
     // 2. Start Brain-Body Symbiosis coordinator + Partner discovery inside worker.
-    void (async () => {
+    initialBodyDrain = (async () => {
       try {
         if (signal.aborted) return;
         const discoverPartners = async (): Promise<readonly { agentHandle?: string; agentBinding?: string; displayName?: string }[]> => {
@@ -639,6 +640,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
               await (await getHarness()).handleBodyNewIntent(env);
               notifyViewChanged();
             },
+            onMilestoneAccepted: async (sessionRef, ref) => (await getHarness()).acknowledgeMilestone(sessionRef, ref),
             onReconcileAfterTombstones: async () => (await getHarness()).listBodyProjectionsForReconcile(),
             onLeaseLost: (reason) => {
               log(`[nimi-harness-symbiosis] lease lost: ${reason}`);
@@ -710,6 +712,7 @@ export function attachHarnessEngineWorker(port: WorkerPortLike): { dispose(): Pr
             }
             const generation = latestRequestedGeneration;
             await lifecycleQueue;
+            if (typed.method === 'selectByWorkSessionRef') await initialBodyDrain;
             if (generation !== currentGeneration || generation !== latestRequestedGeneration) {
               throw new Error('Harness account changed.');
             }

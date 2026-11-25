@@ -40,6 +40,10 @@ const PC_ONLY_OUTBOUND_TOOLS = new Set([
   'web_fetch',
 ]);
 
+export function canAllowToolForSession(mode: string | undefined, tool: string, controlPlane: boolean, freeShell: boolean): boolean {
+  return mode === 'workspace-edit' && !controlPlane && !freeShell && !PC_ONLY_OUTBOUND_TOOLS.has(tool);
+}
+
 function buildDecisionMetadata(
   tool: string,
   args: Record<string, unknown>,
@@ -148,6 +152,7 @@ export async function readPendingDecision(
     recentAiEditedPaths?: readonly string[];
     nowMs?: number;
     allowLargeLocal?: boolean;
+    permissionMode?: string;
     workspaceRoot?: string;
   },
 ): Promise<PendingDecision> {
@@ -181,7 +186,7 @@ export async function readPendingDecision(
         ? (task as { createdAt?: number }).createdAt!
         : nowMs;
     const expiresAt = createdAt + DEFAULT_APPROVAL_TTL_MS;
-    const allowSessionPermitted = !meta.isControlPlane && !meta.isFreeShell;
+    const allowSessionPermitted = canAllowToolForSession(options?.permissionMode, call.name, meta.isControlPlane, meta.isFreeShell);
     const remoteApprovalAllowed = !exceedsRemoteCap
       && !hasHiddenBidi
       && !meta.isControlPlane

@@ -34,6 +34,7 @@
 // Request an OS-owned location on the target volume, outside the tool workspace.
 int nimi_open_delete_staging(int parent, const char *workspace, char *resolved, size_t capacity) {
     @autoreleasepool {
+        if (!workspace || !resolved || !capacity) { errno = EINVAL; return -1; }
         char parent_path[PATH_MAX];
         if (fcntl(parent, F_GETPATH, parent_path) == -1) return -1;
         NSURL *target = [NSURL fileURLWithFileSystemRepresentation:parent_path isDirectory:YES relativeToURL:nil];
@@ -41,20 +42,28 @@ int nimi_open_delete_staging(int parent, const char *workspace, char *resolved, 
         NSFileManager *manager = NSFileManager.defaultManager;
         NSURL *dir = [manager URLForDirectory:NSItemReplacementDirectory inDomain:NSUserDomainMask
                              appropriateForURL:target create:YES error:NULL];
+        if (!dir) { errno = EACCES; return -1; }
+        const char *created = dir.fileSystemRepresentation;
+        int fd = -1;
+        int failure = EACCES;
         NSURLRelationship relationship;
-        if (!dir || ![manager getRelationship:&relationship ofDirectoryAtURL:root toItemAtURL:dir error:NULL]
-            || relationship != NSURLRelationshipOther) { errno = EACCES; return -1; }
-        if (![dir.URLByResolvingSymlinksInPath getFileSystemRepresentation:resolved maxLength:capacity]) {
-            errno = ENAMETOOLONG; return -1;
-        }
-        int fd = open(resolved, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW_ANY);
-        if (fd < 0) return -1;
+        char canonical[PATH_MAX];
         struct stat owned, source;
+        if (!created || ![manager getRelationship:&relationship ofDirectoryAtURL:root toItemAtURL:dir error:NULL]
+            || relationship != NSURLRelationshipOther) goto fail;
+        if (!realpath(created, canonical)) { failure = errno; goto fail; }
+        if (strlen(canonical) >= capacity) { failure = ENAMETOOLONG; goto fail; }
+        fd = open(canonical, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW_ANY);
+        if (fd < 0) { failure = errno; goto fail; }
         if (fstat(fd, &owned) || fstat(parent, &source) || owned.st_dev != source.st_dev ||
-            owned.st_uid != geteuid() || (owned.st_mode & 077) != 0) {
-            close(fd); errno = EACCES; return -1;
-        }
+            owned.st_uid != geteuid() || (owned.st_mode & 077) != 0) goto fail;
+        strlcpy(resolved, canonical, capacity);
         return fd;
+    fail:
+        if (fd >= 0) close(fd);
+        if (created) rmdir(created);
+        errno = failure;
+        return -1;
     }
 }
 

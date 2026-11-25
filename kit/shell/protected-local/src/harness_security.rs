@@ -66,6 +66,7 @@ pub struct HarnessVerifiedPath {
     pub is_directory: bool,
     pub size_bytes: u64,
     pub n_number_of_links: u32,
+    pub object_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,6 +76,7 @@ pub struct HarnessSecureReadResult {
     pub sha256: String,
     pub size_bytes: u64,
     pub n_number_of_links: u32,
+    pub object_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -329,8 +331,9 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 
 #[cfg(target_os = "windows")]
 pub use crate::windows_harness_security::{
-    kill_job_process, run_job_process, secure_delete_file, secure_read_file, secure_write_file,
-    spawn_job_process, verify_workspace_path, wait_job_process, HarnessRunningJob,
+    kill_job_process, list_workspace_directory, run_job_process, secure_delete_file,
+    secure_read_file, secure_read_range, secure_write_file, spawn_job_process,
+    verify_workspace_path, wait_job_process, HarnessRunningJob,
 };
 
 #[cfg(not(target_os = "windows"))]
@@ -499,16 +502,48 @@ mod non_windows_fallback {
 
     pub fn kill_job_process(job: &HarnessRunningJob) -> Result<u32, HarnessSecurityError> {
         job.killed.store(true, std::sync::atomic::Ordering::SeqCst);
-        // Reap the direct child BEFORE polling kill(-pgid, 0) so a zombie leader
-        // does not keep the process group alive during the drain check!
-        if let Ok(mut guard) = job.child.lock() {
-            if let Some(mut child) = guard.take() {
-                signal_kill_process_group(job.pid);
-                let _ = child.kill();
-                let _ = child.wait();
-            }
+        let (_, remaining) = finish_process_group(job)?;
+        Ok(remaining)
+    }
+
+    fn finish_process_group(
+        job: &HarnessRunningJob,
+    ) -> Result<(Option<i32>, u32), HarnessSecurityError> {
+        let mut guard = job
+            .child
+            .lock()
+            .map_err(|_| HarnessSecurityError::new("process-lock-poisoned", "lock poisoned"))?;
+        let Some(child) = guard.as_mut() else {
+            return Ok((None, 0));
+        };
+        // The unreaped leader reserves its numeric identity through the final group signal.
+        signal_kill_process_group(job.pid);
+        let status = child
+            .wait()
+            .map_err(|err| HarnessSecurityError::new("process-wait-failed", err.to_string()))?;
+        guard.take();
+        Ok((status.code(), poll_process_group_drained(job.pid)))
+    }
+
+    #[cfg(unix)]
+    fn child_exited(child: &mut std::process::Child) -> std::io::Result<bool> {
+        let mut info = unsafe { std::mem::zeroed::<libc::siginfo_t>() };
+        let rc = unsafe {
+            libc::waitid(
+                libc::P_PID,
+                child.id(),
+                &mut info,
+                libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+            )
+        };
+        if rc == 0 {
+            return Ok(unsafe { info.si_pid() } != 0);
         }
-        Ok(poll_process_group_drained(job.pid))
+        let err = std::io::Error::last_os_error();
+        if err.kind() == std::io::ErrorKind::Interrupted {
+            return Ok(false);
+        }
+        Err(err)
     }
 
     pub fn wait_job_process(
@@ -521,7 +556,6 @@ mod non_windows_fallback {
             None
         };
         let mut timed_out = false;
-        let mut exit_code = None;
         loop {
             if job.killed.load(std::sync::atomic::Ordering::SeqCst) {
                 break;
@@ -545,29 +579,18 @@ mod non_windows_fallback {
                         "process handle already consumed",
                     ));
                 };
-                child.try_wait().map_err(|err| {
+                child_exited(child).map_err(|err| {
                     HarnessSecurityError::new("process-wait-failed", err.to_string())
                 })?
             };
-            if let Some(st) = status {
-                exit_code = st.code();
+            if status {
                 break;
             }
             std::thread::sleep(Duration::from_millis(15));
         }
 
         let killed = job.killed.load(std::sync::atomic::Ordering::SeqCst);
-        // Reap the direct child FIRST, THEN poll -pgid for remaining descendants.
-        if let Ok(mut guard) = job.child.lock() {
-            if let Some(mut child) = guard.take() {
-                signal_kill_process_group(job.pid);
-                if timed_out || killed {
-                    let _ = child.kill();
-                }
-                let _ = child.wait();
-            }
-        }
-        let active_processes_remaining = poll_process_group_drained(job.pid);
+        let (exit_code, active_processes_remaining) = finish_process_group(job)?;
 
         let drain_timeout = if active_processes_remaining > 0 {
             Duration::from_millis(500)
@@ -961,6 +984,14 @@ mod non_windows_fallback {
                     "absolute canonical workspace root required",
                 ));
             }
+            // These system-owned links are aliases of directories on the macOS data volume.
+            // Resolve only the alias, leaving every workspace-controlled component to openat.
+            for alias in ["/var", "/tmp", "/etc"] {
+                if let Ok(tail) = path.strip_prefix(alias) {
+                    let canonical = std::fs::canonicalize(alias)?;
+                    return Ok(canonical.join(tail));
+                }
+            }
             Ok(path.to_owned())
         }
         #[cfg(not(target_os = "macos"))]
@@ -1166,6 +1197,7 @@ mod non_windows_fallback {
                 relative_path: lexical_rel,
                 is_directory: meta.is_dir(),
                 size_bytes: meta.len(),
+                object_id: metadata_identity(&meta),
                 n_number_of_links,
             });
         }
@@ -1217,15 +1249,86 @@ mod non_windows_fallback {
                 relative_path: canonical_rel,
                 is_directory: meta.is_dir(),
                 size_bytes: meta.len(),
+                object_id: metadata_identity(&meta),
                 n_number_of_links,
             })
         }
+    }
+
+    #[cfg(unix)]
+    fn metadata_identity(meta: &std::fs::Metadata) -> String {
+        use std::os::unix::fs::MetadataExt;
+        format!("{}:{}", meta.dev(), meta.ino())
+    }
+
+    #[cfg(not(unix))]
+    fn metadata_identity(_: &std::fs::Metadata) -> String {
+        String::new()
+    }
+
+    #[cfg(unix)]
+    pub fn list_workspace_directory(
+        root: &Path,
+        relative: &str,
+    ) -> Result<Vec<(String, bool, u64, i64)>, HarnessSecurityError> {
+        use std::ffi::CStr;
+        use std::os::fd::{AsRawFd, IntoRawFd};
+        let segments = validate_relative_workspace_path(relative, true)?;
+        let root = anchored_root(root)
+            .map_err(|e| HarnessSecurityError::new("invalid-workspace-root", e.to_string()))?;
+        let fd = open_anchored_parent_dir_unix(&root, &segments, false)?;
+        let dir = unsafe { libc::fdopendir(fd.as_raw_fd()) };
+        if dir.is_null() {
+            return Err(HarnessSecurityError::new(
+                "open-failed",
+                std::io::Error::last_os_error().to_string(),
+            ));
+        }
+        let owned = fd.into_raw_fd();
+        let mut entries = Vec::new();
+        loop {
+            let entry = unsafe { libc::readdir(dir) };
+            if entry.is_null() {
+                break;
+            }
+            let name = unsafe { CStr::from_ptr((*entry).d_name.as_ptr()) };
+            let Ok(text) = name.to_str() else { continue };
+            if text == "." || text == ".." {
+                continue;
+            }
+            let mut st = unsafe { std::mem::zeroed::<libc::stat>() };
+            if unsafe { libc::fstatat(owned, name.as_ptr(), &mut st, libc::AT_SYMLINK_NOFOLLOW) }
+                != 0
+            {
+                continue;
+            }
+            let kind = st.st_mode & libc::S_IFMT;
+            if kind == libc::S_IFDIR || (kind == libc::S_IFREG && st.st_nlink == 1) {
+                entries.push((
+                    text.to_owned(),
+                    kind == libc::S_IFDIR,
+                    st.st_size.max(0) as u64,
+                    st.st_mtime.saturating_mul(1000),
+                ));
+            }
+        }
+        unsafe { libc::closedir(dir) };
+        Ok(entries)
     }
 
     pub fn secure_read_file(
         workspace_root: &Path,
         relative_path: &str,
         max_bytes: usize,
+    ) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
+        secure_read_range(workspace_root, relative_path, max_bytes, None)
+    }
+
+    pub fn secure_read_range(
+        workspace_root: &Path,
+        relative_path: &str,
+        max_bytes: usize,
+        offset: Option<u64>,
     ) -> Result<HarnessSecureReadResult, HarnessSecurityError> {
         let segments = validate_relative_workspace_path(relative_path, false)?;
         let root = anchored_root(workspace_root)
@@ -1239,7 +1342,7 @@ mod non_windows_fallback {
         }
 
         #[cfg(unix)]
-        let (file, final_path_str) = {
+        let (mut file, final_path_str) = {
             use std::ffi::CString;
             use std::os::unix::io::{AsRawFd, FromRawFd};
 
@@ -1279,7 +1382,7 @@ mod non_windows_fallback {
         };
 
         #[cfg(not(unix))]
-        let (file, final_path_str) = {
+        let (mut file, final_path_str) = {
             let verified = verify_workspace_path(workspace_root, relative_path, false)?;
             let f = std::fs::OpenOptions::new()
                 .read(true)
@@ -1304,14 +1407,23 @@ mod non_windows_fallback {
             ));
         }
         let nlink = check_nlink_one(&meta)?;
-        if meta.len() as usize > max_bytes {
+        if offset.is_none() && meta.len() > max_bytes as u64 {
             return Err(HarnessSecurityError::new(
                 "file-too-large",
                 "file exceeds maximum allowed read size",
             ));
         }
         let mut content = Vec::new();
-        file.take((max_bytes as u64).saturating_add(1))
+        if let Some(start) = offset {
+            file.seek(SeekFrom::Start(start))
+                .map_err(|e| HarnessSecurityError::new("read-failed", e.to_string()))?;
+        }
+        let limit = if offset.is_some() {
+            max_bytes as u64
+        } else {
+            (max_bytes as u64).saturating_add(1)
+        };
+        file.take(limit)
             .read_to_end(&mut content)
             .map_err(|err| HarnessSecurityError::new("read-failed", err.to_string()))?;
         if content.len() > max_bytes {
@@ -1323,7 +1435,8 @@ mod non_windows_fallback {
         let sha256 = sha256_hex(&content);
         Ok(HarnessSecureReadResult {
             final_path: final_path_str,
-            size_bytes: content.len() as u64,
+            size_bytes: meta.len(),
+            object_id: metadata_identity(&meta),
             content,
             sha256,
             n_number_of_links: nlink,
@@ -1866,8 +1979,9 @@ mod non_windows_fallback {
 
 #[cfg(not(target_os = "windows"))]
 pub use non_windows_fallback::{
-    kill_job_process, run_job_process, secure_delete_file, secure_read_file, secure_write_file,
-    spawn_job_process, verify_workspace_path, wait_job_process, HarnessRunningJob,
+    kill_job_process, list_workspace_directory, run_job_process, secure_delete_file,
+    secure_read_file, secure_read_range, secure_write_file, spawn_job_process,
+    verify_workspace_path, wait_job_process, HarnessRunningJob,
 };
 
 #[cfg(test)]

@@ -479,7 +479,15 @@ func (f *Facade) forgetLocked(ctx context.Context, localAgentRef string, memoryR
 	if err := f.authorize(ctx, binding); err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	if err := f.prepareForget(ctx, binding, memoryRefs); err != nil {
+	operation := "cmforget_" + ulid.Make().String()
+	err = f.prepareForget(ctx, binding, memoryRefs, operation)
+	if errors.Is(err, ErrConflict) {
+		if _, _, resumeErr := f.resumeForget(ctx, localAgentRef); resumeErr != nil {
+			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, resumeErr
+		}
+		err = f.prepareForget(ctx, binding, memoryRefs, operation)
+	}
+	if err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 	}
 	mutation, _, err := f.resumeForget(ctx, localAgentRef)

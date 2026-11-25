@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"os"
 	"path/filepath"
 	"sort"
@@ -259,6 +260,9 @@ func verifyAndInitStore(db *sql.DB) error {
 			PRIMARY KEY (account_id, work_session_ref, call_id)
 		);`,
 
+		`CREATE TABLE IF NOT EXISTS runtime_body_memory_read (
+			account_id TEXT NOT NULL, work_session_ref TEXT NOT NULL, binding TEXT NOT NULL, bank TEXT NOT NULL,
+			lifecycle TEXT NOT NULL, ref TEXT NOT NULL, PRIMARY KEY(account_id,work_session_ref,binding,bank,lifecycle,ref))`,
 		`CREATE TABLE IF NOT EXISTS runtime_body_step_journal (
 			account_id TEXT NOT NULL,
 			work_session_ref TEXT NOT NULL,
@@ -408,6 +412,9 @@ func verifyAndInitStore(db *sql.DB) error {
 		col   string
 		sql   string
 	}{
+		{"runtime_session", "routing_goal", "ALTER TABLE runtime_session ADD COLUMN routing_goal TEXT NOT NULL DEFAULT ''"},
+		{"runtime_body_issued_tool_call", "revoked", "ALTER TABLE runtime_body_issued_tool_call ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0"},
+		{"runtime_body_continuity_ledger", "generation", "ALTER TABLE runtime_body_continuity_ledger ADD COLUMN generation INTEGER NOT NULL DEFAULT 0"},
 		{"runtime_session_milestone", "delivery_id", `ALTER TABLE runtime_session_milestone ADD COLUMN delivery_id TEXT NOT NULL DEFAULT ''`},
 		{"runtime_session", "forgotten_memory_count", `ALTER TABLE runtime_session ADD COLUMN forgotten_memory_count INTEGER`},
 		{"runtime_session", "projection_lease_epoch", `ALTER TABLE runtime_session ADD COLUMN projection_lease_epoch INTEGER NOT NULL DEFAULT 0`},
@@ -457,6 +464,34 @@ func verifyAndInitStore(db *sql.DB) error {
 			  AND l.work_session_ref=o.work_session_ref AND l.last_step_mac!='' AND julianday(o.created_at)<=julianday(l.updated_at))`,
 			int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT)); err != nil {
 			return fmt.Errorf("fence pre-migration body inputs: %w", err)
+		}
+	}
+	// Only Runtime's original, user-authored goal can enter a Cognition pointer.
+	if _, err := migration.ExecContext(ctx, `CREATE TRIGGER IF NOT EXISTS capture_session_routing_goal AFTER INSERT ON runtime_session
+		BEGIN UPDATE runtime_session SET routing_goal=NEW.topic_summary WHERE account_id=NEW.account_id AND work_session_ref=NEW.work_session_ref; END`); err != nil {
+		return err
+	}
+	if err := migrateSessionRoutingGoals(ctx, migration); err != nil {
+		return fmt.Errorf("migrate session routing goals: %w", err)
+	}
+	// Earlier authorizations did not retain exact memory dependencies.
+	tag, err = migration.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('body_memory_dependencies_v1','1')")
+	if err != nil {
+		return err
+	}
+	applied, err = tag.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if applied == 1 {
+		for _, stmt := range []string{
+			"UPDATE runtime_body_issued_tool_call SET revoked=1",
+			"DELETE FROM runtime_body_step_journal",
+			"UPDATE runtime_body_continuity_ledger SET generation=generation+1,issued_tool_call_ids_json='[]',issued_tool_args_json='{}'",
+		} {
+			if _, err := migration.ExecContext(ctx, stmt); err != nil {
+				return err
+			}
 		}
 	}
 	if err := migration.Commit(); err != nil {
@@ -510,8 +545,76 @@ func verifyAndInitStore(db *sql.DB) error {
 			return fmt.Errorf("commit runtime_session_submission v1->v2: %w", err)
 		}
 	}
+	hasSnapshot, err := sqliteTableHasColumn(ctx, db, "runtime_session_submission", "split_record")
+	if err != nil {
+		return err
+	}
+	if !hasSnapshot {
+		if _, err := db.ExecContext(ctx, "ALTER TABLE runtime_session_submission ADD COLUMN split_record BLOB"); err != nil {
+			return err
+		}
+	}
 	_, _ = db.ExecContext(ctx, fmt.Sprintf(`INSERT INTO runtime_session_meta(key, value) VALUES ('schema_version', '%d') ON CONFLICT(key) DO UPDATE SET value = excluded.value`, sessionsSchemaVersion))
 	return nil
+}
+
+func migrateSessionRoutingGoals(ctx context.Context, tx *sql.Tx) error {
+	tag, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('session_routing_goals_v1','1')")
+	if err != nil {
+		return err
+	}
+	applied, err := tag.RowsAffected()
+	if err != nil || applied == 0 {
+		return err
+	}
+	// The session and its first input were committed together. Later inputs and
+	// mutable Body titles/summaries cannot establish what the original user asked.
+	rows, err := tx.QueryContext(ctx, `SELECT s.account_id, s.work_session_ref,
+		CASE WHEN s.forked_from_session_ref != '' THEN (
+			SELECT json_extract(b.payload_json,'$.text') FROM runtime_brain_event b
+			WHERE b.work_session_ref=s.forked_from_session_ref AND b.moved_to_work_session_ref=s.work_session_ref
+			  AND b.event_type='user_message' ORDER BY b.seq DESC LIMIT 1)
+		WHEN json_extract(o.payload_json,'$.routeReason')='l2_editable_brief_handoff'
+			THEN json_extract(o.payload_json,'$.handoffBriefText')
+		ELSE json_extract(o.payload_json,'$.text') END
+		FROM runtime_session s JOIN runtime_body_outbox o ON o.rowid=(
+			SELECT first.rowid FROM runtime_body_outbox first WHERE first.account_id=s.account_id
+			AND first.work_session_ref=s.work_session_ref AND first.created_at=s.created_at AND first.command_kind=?
+			ORDER BY first.rowid LIMIT 1)
+		WHERE s.routing_goal='' AND s.deleted_at='' AND s.trust_tier='trusted'`,
+		int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT))
+	if err != nil {
+		return err
+	}
+	type goal struct{ account, session, title string }
+	var goals []goal
+	defer rows.Close()
+	for rows.Next() {
+		var g goal
+		var text sql.NullString
+		if err := rows.Scan(&g.account, &g.session, &text); err != nil {
+			return err
+		}
+		if strings.TrimSpace(text.String) != "" {
+			g.title = deriveSessionTitle(text.String, "")
+			goals = append(goals, g)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	for _, g := range goals {
+		if _, err := tx.ExecContext(ctx, "UPDATE runtime_session SET routing_goal=? WHERE account_id=? AND work_session_ref=?", g.title, g.account, g.session); err != nil {
+			return err
+		}
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE runtime_session_milestone AS m SET summary=COALESCE((
+		SELECT routing_goal FROM runtime_session s WHERE s.account_id=m.account_id
+		AND s.work_session_ref=m.work_session_ref AND s.deleted_at=''), '')`)
+	return err
 }
 
 func sqliteTableHasColumn(ctx context.Context, db *sql.DB, table, column string) (bool, error) {
@@ -1313,28 +1416,39 @@ func (st *Store) FindActiveExternalChannelSession(ctx context.Context, accountID
 	return item, err
 }
 
+const lookupSubmissionSQL = `SELECT payload_hash, resolved_work_session_ref, outcome, route_reason, session_kind,
+	owner_body_kind, effective_permission_mode, outbox_id, promoted_handoff_turns, split_record
+	FROM runtime_session_submission WHERE account_id = ? AND caller_subject = ? AND client_submission_id = ?`
+
+func readSubmissionReceipt(row *sql.Row, payloadHash string) (*runtimev1.RouteAndSubmitInputResponse, error) {
+	var storedHash string
+	var outcome int32
+	var splitRecord []byte
+	resp := &runtimev1.RouteAndSubmitInputResponse{Deduplicated: true}
+	err := row.Scan(&storedHash, &resp.ResolvedWorkSessionRef, &outcome, &resp.RouteReason, &resp.SessionKind,
+		&resp.OwnerBodyKind, &resp.EffectivePermissionMode, &resp.OutboxId, &resp.PromotedHandoffTurns, &splitRecord)
+	if err != nil {
+		return nil, err
+	}
+	if storedHash != "" && payloadHash != "" && storedHash != payloadHash {
+		return nil, errSubmissionPayloadConflict
+	}
+	resp.Outcome = runtimev1.RouteAndSubmitOutcome(outcome)
+	if len(splitRecord) > 0 {
+		resp.WorkSessionRecord = &runtimev1.WorkSessionRecord{}
+		if err := json.Unmarshal(splitRecord, resp.WorkSessionRecord); err != nil {
+			return nil, err
+		}
+	}
+	return resp, nil
+}
+
 func (st *Store) LookupSubmission(ctx context.Context, accountID, callerSubject, requestID, payloadHash string) (*runtimev1.RouteAndSubmitInputResponse, error) {
 	if strings.TrimSpace(requestID) == "" {
 		return nil, nil
 	}
-	var (
-		storedHash    string
-		ref           string
-		outcome       int32
-		routeReason   string
-		sessionKind   string
-		ownerBodyKind string
-		permMode      string
-		outboxID      string
-		promotedTurns int32
-	)
-	err := st.readDB.QueryRowContext(ctx, `
-		SELECT payload_hash, resolved_work_session_ref, outcome, route_reason, session_kind,
-		       owner_body_kind, effective_permission_mode, outbox_id, promoted_handoff_turns
-		FROM runtime_session_submission
-		WHERE account_id = ? AND caller_subject = ? AND client_submission_id = ?`,
-		accountID, callerSubject, requestID,
-	).Scan(&storedHash, &ref, &outcome, &routeReason, &sessionKind, &ownerBodyKind, &permMode, &outboxID, &promotedTurns)
+	row := st.readDB.QueryRowContext(ctx, lookupSubmissionSQL, accountID, callerSubject, requestID)
+	resp, err := readSubmissionReceipt(row, payloadHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		// Fail closed on migrated v1 legacy submission tombstones (caller_subject == '')
 		// so pre-upgrade client_submission_id retries never execute a duplicate business action.
@@ -1357,22 +1471,10 @@ func (st *Store) LookupSubmission(ctx context.Context, accountID, callerSubject,
 	if err != nil {
 		return nil, err
 	}
-	if storedHash != "" && payloadHash != "" && storedHash != payloadHash {
-		return nil, errSubmissionPayloadConflict
-	}
-	resp := &runtimev1.RouteAndSubmitInputResponse{
-		Outcome:                 runtimev1.RouteAndSubmitOutcome(outcome),
-		ResolvedWorkSessionRef:  ref,
-		RouteReason:             routeReason,
-		SessionKind:             sessionKind,
-		OwnerBodyKind:           ownerBodyKind,
-		EffectivePermissionMode: permMode,
-		OutboxId:                outboxID,
-		Deduplicated:            true,
-		PromotedHandoffTurns:    promotedTurns,
-	}
-	if sess, err := st.GetSession(ctx, accountID, ref); err == nil && sess != nil {
-		resp.WorkSessionRecord = sess.Record
+	if resp.WorkSessionRecord == nil {
+		if sess, err := st.GetSession(ctx, accountID, resp.ResolvedWorkSessionRef); err == nil && sess != nil {
+			resp.WorkSessionRecord = sess.Record
+		}
 	}
 	return resp, nil
 }
@@ -1407,42 +1509,24 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 	// Atomic idempotency check inside the BEGIN IMMEDIATE transaction, scoped by
 	// (account_id, caller_subject, client_submission_id) with payload_hash conflict detection.
 	if in.ClientSubmissionID != "" {
-		var (
-			storedHash    string
-			ref           string
-			outcome       int32
-			routeReason   string
-			sessionKind   string
-			ownerBodyKind string
-			permMode      string
-			outboxID      string
-			promotedTurns int32
-		)
-		err := tx.QueryRowContext(ctx, `
-			SELECT payload_hash, resolved_work_session_ref, outcome, route_reason, session_kind,
-			       owner_body_kind, effective_permission_mode, outbox_id, promoted_handoff_turns
-			FROM runtime_session_submission
-			WHERE account_id = ? AND caller_subject = ? AND client_submission_id = ?`,
-			in.AccountID, in.CallerSubject, in.ClientSubmissionID,
-		).Scan(&storedHash, &ref, &outcome, &routeReason, &sessionKind, &ownerBodyKind, &permMode, &outboxID, &promotedTurns)
+		row := tx.QueryRowContext(ctx, lookupSubmissionSQL, in.AccountID, in.CallerSubject, in.ClientSubmissionID)
+		receipt, err := readSubmissionReceipt(row, in.SubmissionPayloadHash)
 		if err == nil {
-			if storedHash != "" && in.SubmissionPayloadHash != "" && storedHash != in.SubmissionPayloadHash {
-				return nil, false, errSubmissionPayloadConflict
-			}
-			resp := &runtimev1.RouteAndSubmitInputResponse{
-				Outcome:                 runtimev1.RouteAndSubmitOutcome(outcome),
-				ResolvedWorkSessionRef:  ref,
-				RouteReason:             routeReason,
-				SessionKind:             sessionKind,
-				OwnerBodyKind:           ownerBodyKind,
-				EffectivePermissionMode: permMode,
-				OutboxId:                outboxID,
-				Deduplicated:            true,
-				PromotedHandoffTurns:    promotedTurns,
-			}
-			return resp, true, nil
+			return receipt, true, nil
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, false, err
+		}
+	}
+
+	if in.MoveSourceEventSession != "" {
+		var live int
+		err := tx.QueryRowContext(ctx, `SELECT 1 FROM runtime_session WHERE account_id=? AND work_session_ref=?
+			AND deleted_at='' AND status NOT IN ('deleting','deleted')`, in.AccountID, in.MoveSourceEventSession).Scan(&live)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, false, errSessionNotFound
+		}
+		if err != nil {
 			return nil, false, err
 		}
 	}
@@ -1604,15 +1688,22 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 	}
 
 	if in.ClientSubmissionID != "" {
+		var splitRecord []byte
+		if in.RouteReason == "split_or_redirect" {
+			splitRecord, err = json.Marshal(rec)
+			if err != nil {
+				return nil, false, err
+			}
+		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO runtime_session_submission(
 				account_id, caller_subject, client_submission_id, payload_hash, resolved_work_session_ref, outcome,
 				route_reason, session_kind, owner_body_kind, effective_permission_mode,
-				outbox_id, promoted_handoff_turns, created_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				outbox_id, promoted_handoff_turns, created_at, split_record
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			in.AccountID, in.CallerSubject, in.ClientSubmissionID, in.SubmissionPayloadHash, rec.WorkSessionRef, int32(in.Outcome),
 			in.RouteReason, rec.SessionKind, rec.OwnerBodyKind, rec.PermissionMode,
-			outboxID, in.PromotedTurns, nowStr,
+			outboxID, in.PromotedTurns, nowStr, splitRecord,
 		); err != nil {
 			return nil, false, err
 		}
@@ -1660,6 +1751,17 @@ func (st *Store) ListBrainEvents(ctx context.Context, workSessionRef string, aft
 			workSessionRef, afterSeq, limit,
 		)
 	}
+	return scanBrainEvents(rows, err)
+}
+
+func (st *Store) listRecentBrainEvents(ctx context.Context, ref string, limit int) ([]*runtimev1.BrainSessionEventEnvelope, error) {
+	return scanBrainEvents(st.readDB.QueryContext(ctx, `SELECT * FROM (
+		SELECT work_session_ref, seq, event_id, event_type, payload_json, created_at, moved_to_work_session_ref
+		FROM runtime_brain_event WHERE work_session_ref = ? ORDER BY seq DESC LIMIT ?
+	) ORDER BY seq ASC`, ref, limit))
+}
+
+func scanBrainEvents(rows *sql.Rows, err error) ([]*runtimev1.BrainSessionEventEnvelope, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -1889,6 +1991,9 @@ func (st *Store) MarkSessionDeletedAndEnqueuePurge(ctx context.Context, accountI
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_issued_tool_call WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef); err != nil {
 		return nil, nil, err
 	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM runtime_body_memory_read WHERE account_id=? AND work_session_ref=?", accountID, workSessionRef); err != nil {
+		return nil, nil, err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_step_journal WHERE account_id = ? AND work_session_ref = ?`, accountID, workSessionRef); err != nil {
 		return nil, nil, err
 	}
@@ -2021,6 +2126,9 @@ func (st *Store) PurgeAgentSessionsAndAlarms(ctx context.Context, accountID, age
 		return nil, nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_issued_tool_call WHERE account_id = ? AND work_session_ref IN (SELECT work_session_ref FROM runtime_session WHERE account_id = ? AND agent_binding = ?)`, accountID, accountID, agentBinding); err != nil {
+		return nil, nil, err
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM runtime_body_memory_read WHERE account_id=? AND work_session_ref IN (SELECT work_session_ref FROM runtime_session WHERE account_id=? AND agent_binding=?)", accountID, accountID, agentBinding); err != nil {
 		return nil, nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_body_step_journal WHERE account_id = ? AND work_session_ref IN (SELECT work_session_ref FROM runtime_session WHERE account_id = ? AND agent_binding = ?)`, accountID, accountID, agentBinding); err != nil {
@@ -2421,22 +2529,38 @@ func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrier
 		var inv struct {
 			Epoch         int64  `json:"epoch"`
 			PreviousEpoch *int64 `json:"previousEpoch,omitempty"`
+			Generation    *int64 `json:"generation,omitempty"`
 		}
-		if json.Unmarshal([]byte(payloadJSON), &inv) == nil && inv.Epoch >= 0 && strings.TrimSpace(workSessionRef) != "" {
-			if inv.PreviousEpoch != nil {
-				_, err = tx.ExecContext(ctx, `
-					UPDATE runtime_body_continuity_ledger
-					SET read_set_epoch = ?, updated_at = ?
-					WHERE account_id = ? AND work_session_ref = ? AND read_set_epoch = ?`,
-					inv.Epoch, nowStr, accountID, workSessionRef, *inv.PreviousEpoch,
-				)
-			} else {
-				_, err = tx.ExecContext(ctx, `
-					UPDATE runtime_body_continuity_ledger
-					SET read_set_epoch = ?, updated_at = ?
-					WHERE account_id = ? AND work_session_ref = ?`,
-					inv.Epoch, nowStr, accountID, workSessionRef,
-				)
+		if err := json.Unmarshal([]byte(payloadJSON), &inv); err != nil || inv.Epoch < 0 || workSessionRef == "" {
+			return false, errSessionConflict
+		}
+		var prev, gen any
+		if inv.PreviousEpoch != nil {
+			prev = *inv.PreviousEpoch
+		}
+		if inv.Generation != nil {
+			gen = *inv.Generation
+		}
+		res, err := tx.ExecContext(ctx, `UPDATE runtime_body_continuity_ledger SET read_set_epoch=?, generation=generation+1,
+			issued_tool_call_ids_json='[]', issued_tool_args_json='{}', updated_at=?
+			WHERE account_id=? AND work_session_ref=? AND (? IS NULL OR read_set_epoch=?) AND (? IS NULL OR generation=?)`,
+			inv.Epoch, nowStr, accountID, workSessionRef, prev, prev, gen, gen)
+		if err != nil {
+			return false, err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return false, err
+		}
+		if n == 1 {
+			for _, sql := range []string{
+				"DELETE FROM runtime_body_memory_read WHERE account_id=? AND work_session_ref=?",
+				"DELETE FROM runtime_body_step_journal WHERE account_id=? AND work_session_ref=?",
+				"UPDATE runtime_body_issued_tool_call SET revoked=1 WHERE account_id=? AND work_session_ref=?",
+			} {
+				if _, err := tx.ExecContext(ctx, sql, accountID, workSessionRef); err != nil {
+					return false, err
+				}
 			}
 		}
 	}
@@ -2490,6 +2614,7 @@ func (st *Store) HasPendingTombstones(ctx context.Context, accountID, deviceID, 
 }
 
 type ledgerRecord struct {
+	Generation                   int64
 	WorkSessionRef               string
 	AccountID                    string
 	AgentBinding                 string
@@ -2508,14 +2633,14 @@ func (st *Store) GetLedger(ctx context.Context, accountID, workSessionRef string
 	rec := &ledgerRecord{}
 	err := st.readDB.QueryRowContext(ctx, `
 		SELECT work_session_ref, account_id, agent_binding, last_step_mac, last_committed_count, post_compaction_mac,
-		       issued_tool_call_ids_json, issued_tool_args_json, read_set_epoch, compaction_count, effective_context_budget_tokens, updated_at
+		       issued_tool_call_ids_json, issued_tool_args_json, read_set_epoch, compaction_count, effective_context_budget_tokens, updated_at, generation
 		FROM runtime_body_continuity_ledger
 		WHERE account_id = ? AND work_session_ref = ?`,
 		accountID, workSessionRef,
 	).Scan(
 		&rec.WorkSessionRef, &rec.AccountID, &rec.AgentBinding,
 		&rec.LastStepMAC, &rec.LastCommittedCount, &rec.PostCompactionMAC, &rec.IssuedToolCallIDsJSON,
-		&rec.IssuedToolArgsJSON, &rec.ReadSetEpoch, &rec.CompactionCount, &rec.EffectiveContextBudgetTokens, &rec.UpdatedAt,
+		&rec.IssuedToolArgsJSON, &rec.ReadSetEpoch, &rec.CompactionCount, &rec.EffectiveContextBudgetTokens, &rec.UpdatedAt, &rec.Generation,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -2651,6 +2776,7 @@ func (st *Store) IsToolResultAlreadyCommitted(ctx context.Context, accountID, wo
 }
 
 type commitStepLedgerInput struct {
+	MemoryReadSet        cognitionmemory.MemoryReadSet
 	PublicDeltas         []bodyJournalDelta
 	StreamBudget         uint32
 	InputIDs             []string
@@ -2716,12 +2842,19 @@ func (st *Store) CommitStepLedger(ctx context.Context, in commitStepLedgerInput)
 	if pending {
 		return errTombstoneFence
 	}
-	var epoch int64
-	if err := tx.QueryRowContext(ctx, "SELECT COALESCE((SELECT read_set_epoch FROM runtime_body_continuity_ledger WHERE account_id=? AND work_session_ref=?),0)", rec.AccountID, rec.WorkSessionRef).Scan(&epoch); err != nil {
+	var epoch, generation int64
+	if err := tx.QueryRowContext(ctx, "SELECT read_set_epoch, generation FROM runtime_body_continuity_ledger WHERE account_id=? AND work_session_ref=?", rec.AccountID, rec.WorkSessionRef).Scan(&epoch, &generation); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	if epoch != in.OriginalReadEpoch {
+	if epoch != in.OriginalReadEpoch || generation != rec.Generation {
 		return errTombstoneFence
+	}
+	for _, ref := range in.MemoryReadSet.Refs {
+		_, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_body_memory_read(account_id,work_session_ref,binding,bank,lifecycle,ref) VALUES(?,?,?,?,?,?)",
+			rec.AccountID, rec.WorkSessionRef, in.MemoryReadSet.BindingRef, in.MemoryReadSet.BankRef, in.MemoryReadSet.LifecycleRef, ref)
+		if err != nil {
+			return err
+		}
 	}
 	for _, id := range in.InputIDs {
 		res, err := tx.ExecContext(ctx, "UPDATE runtime_body_outbox SET input_committed=1 WHERE account_id=? AND work_session_ref=? AND outbox_id=? AND input_committed=0", rec.AccountID, rec.WorkSessionRef, id)
@@ -2924,6 +3057,7 @@ func (st *Store) UpsertLedger(ctx context.Context, rec *ledgerRecord) error {
 }
 
 type consumeToolCallInput struct {
+	Generation     int64
 	AccountID      string
 	DeviceID       string
 	Namespace      string
@@ -3031,12 +3165,13 @@ func (st *Store) ConsumeAuthorizedToolCall(ctx context.Context, in consumeToolCa
 	nowStr := formatRFC3339(in.Now)
 
 	var issuedIDsJSON, issuedArgsJSON string
+	var generation int64
 	err = tx.QueryRowContext(ctx, `
-		SELECT issued_tool_call_ids_json, issued_tool_args_json
+		SELECT issued_tool_call_ids_json, issued_tool_args_json, generation
 		FROM runtime_body_continuity_ledger
 		WHERE account_id = ? AND work_session_ref = ?`,
 		in.AccountID, in.WorkSessionRef,
-	).Scan(&issuedIDsJSON, &issuedArgsJSON)
+	).Scan(&issuedIDsJSON, &issuedArgsJSON, &generation)
 	if errors.Is(err, sql.ErrNoRows) {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized: false,
@@ -3047,6 +3182,9 @@ func (st *Store) ConsumeAuthorizedToolCall(ctx context.Context, in consumeToolCa
 		return nil, err
 	}
 
+	if generation != in.Generation {
+		return &runtimev1.AuthorizeBodySideEffectResponse{DenyReason: "memory_read_set_invalidated", MemoryInvalidated: true}, nil
+	}
 	issuedWindow := decodeIssuedWindow(issuedIDsJSON)
 	if !containsString(issuedWindow, in.CallID) {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
@@ -3062,14 +3200,18 @@ func (st *Store) ConsumeAuthorizedToolCall(ctx context.Context, in consumeToolCa
 		relRawHash    string
 		relConsumedAt string
 		relSettledAt  string
+		revoked       bool
 	)
 	relErr := tx.QueryRowContext(ctx, `
-		SELECT tool_name, args_hash, raw_args_hash, consumed_at, result_committed_at
+		SELECT tool_name, args_hash, raw_args_hash, consumed_at, result_committed_at, revoked
 		FROM runtime_body_issued_tool_call
 		WHERE account_id = ? AND work_session_ref = ? AND call_id = ?`,
 		in.AccountID, in.WorkSessionRef, in.CallID,
-	).Scan(&relToolName, &relArgsHash, &relRawHash, &relConsumedAt, &relSettledAt)
+	).Scan(&relToolName, &relArgsHash, &relRawHash, &relConsumedAt, &relSettledAt, &revoked)
 	if relErr == nil {
+		if revoked {
+			return &runtimev1.AuthorizeBodySideEffectResponse{DenyReason: "memory_read_set_invalidated", MemoryInvalidated: true}, nil
+		}
 		if strings.TrimSpace(relConsumedAt) != "" {
 			return &runtimev1.AuthorizeBodySideEffectResponse{
 				Authorized: false,
@@ -3192,7 +3334,7 @@ func permissionModeRank(mode string) (int, bool) {
 	case "strict":
 		return 3, true
 	case "workspace-edit":
-		return 3, true
+		return 4, true
 	default:
 		return -1, false
 	}
@@ -3290,11 +3432,14 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 		}
 		existing.Record.PermissionMode = pm
 	}
-	if r := strings.TrimSpace(req.GetLatestReceiptJson()); r != "" {
-		existing.Record.LatestReceiptJson = r
+	var milestoneReceipt struct {
+		MilestoneRef string `json:"milestoneRef"`
 	}
-	if ts := strings.TrimSpace(req.GetTopicSummary()); ts != "" {
-		existing.TopicSummary = ts
+	if r := strings.TrimSpace(req.GetLatestReceiptJson()); r != "" {
+		// A delivery cursor for a milestone is not a user-visible task receipt.
+		if req.GetMilestoneKind() == "" || json.Unmarshal([]byte(r), &milestoneReceipt) != nil || milestoneReceipt.MilestoneRef == "" {
+			existing.Record.LatestReceiptJson = r
+		}
 	}
 	existing.Record.UpdatedAt = nowStr
 
@@ -3360,9 +3505,17 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 		if err != nil {
 			return nil, nil, err
 		}
+		var routingGoal string
+		if err := tx.QueryRowContext(ctx, "SELECT routing_goal FROM runtime_session WHERE account_id=? AND work_session_ref=?", accountID, req.GetWorkSessionRef()).Scan(&routingGoal); err != nil {
+			return nil, nil, err
+		}
+		deliveryID := newID("milestone")
+		if milestoneReceipt.MilestoneRef != "" {
+			deliveryID = "milestone_" + sha256HexString(accountID+"\x00"+req.GetWorkSessionRef()+"\x00"+milestoneReceipt.MilestoneRef)
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO runtime_session_milestone
 			(delivery_id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables)
-			VALUES (?,?,?,?,?,?,?,?)`, newID("milestone"), accountID, existing.Record.GetAgentBinding(), req.GetWorkSessionRef(), verifiedNS, kind, req.GetTopicSummary(), string(paths)); err != nil {
+			VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(delivery_id) DO NOTHING`, deliveryID, accountID, existing.Record.GetAgentBinding(), req.GetWorkSessionRef(), verifiedNS, kind, routingGoal, string(paths)); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -3427,4 +3580,25 @@ func (st *Store) RegisterPrimaryCompanionProjection(ctx context.Context, account
 		return err
 	}
 	return tx.Commit()
+}
+
+func (st *Store) sessionMemoryReads(ctx context.Context, account, session string) ([]cognitionmemory.MemoryReadSet, error) {
+	rows, err := st.readDB.QueryContext(ctx, "SELECT binding,bank,lifecycle,ref FROM runtime_body_memory_read WHERE account_id=? AND work_session_ref=? ORDER BY binding,bank,lifecycle,ref", account, session)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sets []cognitionmemory.MemoryReadSet
+	for rows.Next() {
+		var binding, bank, lifecycle, ref string
+		if err := rows.Scan(&binding, &bank, &lifecycle, &ref); err != nil {
+			return nil, err
+		}
+		if len(sets) == 0 || sets[len(sets)-1].BindingRef != binding || sets[len(sets)-1].BankRef != bank || sets[len(sets)-1].LifecycleRef != lifecycle || len(sets[len(sets)-1].Refs) >= 512 {
+			sets = append(sets, cognitionmemory.MemoryReadSet{BindingRef: binding, BankRef: bank, LifecycleRef: lifecycle})
+		}
+		last := &sets[len(sets)-1]
+		last.Refs = append(last.Refs, ref)
+	}
+	return sets, rows.Err()
 }
