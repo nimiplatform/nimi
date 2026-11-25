@@ -22,6 +22,18 @@ import {
   type RuntimeSetupPreparationPlan,
 } from './runtime-setup-task-runner.js';
 
+export function recipeHasIncompatibleRecommendedModels(recipe: NimiLoadoutRecipe): boolean {
+  return recipe.applicability === 'unsupported'
+    && recipe.reasons.includes('AI_LOCAL_MODEL_UNAVAILABLE')
+    && recipe.reasons.every(reason => reason === 'AI_LOCAL_MODEL_UNAVAILABLE' || reason === 'AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN');
+}
+
+/** A validated saved configuration can bind files outside the catalog recommendations. */
+export function modelSetupUnavailable(recipe?: NimiLoadoutRecipe, loadout?: NimiMachineLoadout): boolean {
+  return recipe?.applicability === 'unsupported'
+    && !(loadout?.validationState === 'configured' && recipeHasIncompatibleRecommendedModels(recipe));
+}
+
 export function setupPlanNeedsPreparation(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): boolean {
   return plan.components.some(item => item.required)
     || plan.acquire.some(item => !item.offer.installedModelAssetId)

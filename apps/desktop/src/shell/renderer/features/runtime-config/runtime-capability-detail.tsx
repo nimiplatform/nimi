@@ -42,6 +42,7 @@ import {
   capabilityModelIdentity,
   modelDisplayTitle,
   modelFamilySeed,
+  modelSetupUnavailable,
   modelFeatureLocaleKeys,
   recipeOfferSummary,
   type RecipeOfferSummary,
@@ -498,7 +499,7 @@ function SavedLoadoutCard(props: {
   const unboundOptionalSlots = props.loadout.modelAxes.filter(
     (axis) => axis.presence === 'optional-conditional' && !axis.modelAssetId,
   );
-  const unsupported = props.recipe?.applicability === 'unsupported';
+  const unsupported = modelSetupUnavailable(props.recipe, props.loadout);
   const frame = props.current
     ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_7%,var(--nimi-surface-card))] ring-1 ring-inset ring-[var(--nimi-action-primary-bg)]'
     : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]';

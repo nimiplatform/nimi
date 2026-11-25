@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RuntimeCapabilityCustomize } from './runtime-capability-customize.js';
-import { capabilityModelIdentity, modelDisplayTitle } from './runtime-capability-presentation.js';
+import { capabilityModelIdentity, modelDisplayTitle, modelSetupUnavailable } from './runtime-capability-presentation.js';
 import type { RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
@@ -64,7 +64,7 @@ export function RuntimeCapabilitySettingsDialog(props: {
               {props.onRetry ? <Button tone="secondary" size="sm" onClick={props.onRetry}>{t('Common.retry')}</Button> : null}
             </InlineAlert>
           ) : <RuntimeCapabilityCustomize key={props.selected?.loadoutId ?? 'new'} selected={props.selected} recipe={props.recipe!} catalog={props.catalog} assets={props.assets}
-            disabled={props.disabled || props.recipe!.applicability === 'unsupported'} onStateChange={onStateChange} onApply={props.onApply}
+            disabled={props.disabled || modelSetupUnavailable(props.recipe, props.selected)} onStateChange={onStateChange} onApply={props.onApply}
             onCancel={props.onClose} applyLabel={t(props.current ? 'runtimeConfig.product.customization.apply' : 'runtimeConfig.product.settings.applyAndSelect')} />}
           </>}
         </ScrollShell>

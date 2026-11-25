@@ -1,4 +1,4 @@
-import { NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from '@nimiplatform/kit/shell/electron/main';
+import { NIMI_RUNTIME_STORED_DATA_UNSUPPORTED, type NimiElectronRuntimeLifecycleHost } from '@nimiplatform/kit/shell/electron/main';
 
 export { NIMI_RUNTIME_STORED_DATA_UNSUPPORTED };
 
@@ -20,4 +20,20 @@ export function runtimeStatusIsMaintenance(status: unknown): boolean {
   if (!status || typeof status !== 'object' || Array.isArray(status)) return false;
   const record = status as Readonly<Record<string, unknown>>;
   return record.running !== true && record.lastError === NIMI_RUNTIME_STORED_DATA_UNSUPPORTED;
+}
+
+// A fixed service can finish cold startup after Home's first probe. Keep the
+// main-process gate in step with later authenticated status reads by the shell.
+export function observeDesktopRuntimeMaintenance(
+  lifecycle: NimiElectronRuntimeLifecycleHost,
+  enterMaintenance: () => void,
+): NimiElectronRuntimeLifecycleHost {
+  return {
+    stop: () => lifecycle.stop(),
+    async invoke(command, names) {
+      const status = await lifecycle.invoke(command, names);
+      if (runtimeStatusIsMaintenance(status)) enterMaintenance();
+      return status;
+    },
+  };
 }

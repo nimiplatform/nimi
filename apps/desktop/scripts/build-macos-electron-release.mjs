@@ -233,12 +233,12 @@ async function buildReleaseInputs({
   sourceRoot,
   videoLibrary,
 }) {
-  runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/sdk', 'build'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/kit', 'build'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--dir', avatarRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--dir', zhiyuRoot, 'run', 'build'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--filter', '@nimiplatform/sdk', 'build'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--filter', '@nimiplatform/kit', 'build'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--dir', desktopRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--dir', avatarRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--dir', zhiyuRoot, 'run', 'build'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('pnpm', ['--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit'], { cwd: repoRoot, inherit: true });
   runReleaseCommand(process.execPath, [
     path.join(scriptRoot, 'bundle-electron-main.mjs'),
     '--release',

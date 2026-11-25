@@ -27,7 +27,7 @@ function setupFailureGuidance(failure: RuntimeSetupFailureNotice, t: TFunction):
       });
     case 'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED':
       return t('runtimeConfig.setupTask.modelStorageLinkUnsupported', {
-        defaultValue: 'The current data folder does not support the file links required for managed local models. Choose a local folder on a supported filesystem in Settings → Storage & Data, then try again.',
+        defaultValue: 'Nimi could not create file links in the model storage folder. In Settings → Storage & Data, choose a writable local data folder on a filesystem that supports hard links, then retry.',
       });
     default:
       return null;

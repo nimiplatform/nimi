@@ -989,6 +989,22 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
     assert.deepEqual(selectedLoadouts, [english, itB]);
     assert.equal(starts.length, 1);
 
+    // A saved binding remains usable when only the catalog offer is a poor fit.
+    // A Driver platform refusal still disables both entry points.
+    const recommendedEnglish = props.recipes.find(item => item.recipeId === english.recipeId)!;
+    const unavailable = { ...recommendedEnglish, applicability: 'unsupported' as const };
+    await render({ recipes: [{ ...unavailable, reasons: ['AI_LOCAL_MODEL_UNAVAILABLE'] }] });
+    await ui.click('[data-testid="capability-loadout-select:english-saved"]');
+    assert.equal(selectedLoadouts.at(-1), english);
+    await ui.click('[data-testid="capability-config-settings:english-saved"]');
+    assert.ok(ui.document.querySelector('[data-testid="capability-settings-content"][data-loadout-id="english-saved"]'));
+    await ui.click('[data-testid="capability-model-settings-close"]');
+    await render({ recipes: [{ ...unavailable, reasons: ['AI_LOADOUT_DRIVER_UNAVAILABLE'] }] });
+    for (const action of ['capability-loadout-select', 'capability-config-settings']) {
+      assert.equal(ui.document.querySelector<HTMLButtonElement>(`[data-testid="${action}:english-saved"]`)!.disabled, true);
+    }
+    await render();
+
     // No offer and nothing imported: lead to import instead of a doomed task.
     assert.match(card('face.swap').textContent ?? '', /runtimeConfig\.product\.noDirectDownload/);
     await act(async () => button('face.swap', 'runtimeConfig.product.importModel').click());

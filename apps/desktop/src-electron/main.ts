@@ -70,7 +70,7 @@ import {
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
-import { readDesktopRuntimeMaintenance, NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
+import { observeDesktopRuntimeMaintenance, readDesktopRuntimeMaintenance, NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
 import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
   DesktopSourceRuntimeUnavailableError,
@@ -621,7 +621,13 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         writeDesktopStderr(`[desktop-bootstrap] runtime-start-failed:${runtimeStartupFailure}\n`);
       }
     }
-    const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
+    const runtimeLifecycleHost = observeDesktopRuntimeMaintenance(
+      macOSProductionService ?? fixedRuntimeLifecycleHost,
+      () => {
+        runtimeMaintenance = true;
+        dataRootOperationGate.close(NIMI_RUNTIME_STORED_DATA_UNSUPPORTED);
+      },
+    );
     if (!SOURCE_PER_USER_RUNTIME_D2) stopProductRuntime = () => runtimeLifecycleHost.stop();
     const updateHealthControl = createNimiElectronDesktopControlHost();
     let activationInFlight: Promise<void> | undefined;

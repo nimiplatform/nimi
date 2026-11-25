@@ -29,6 +29,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
+import { recipeHasIncompatibleRecommendedModels } from './runtime-capability-presentation.js';
 import { RuntimeConfigurationEnvironment } from './runtime-configuration-environment.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
@@ -899,7 +900,7 @@ export function SavedConfigsView(props: {
               ) : null}
               {!props.contextual && unsupportedRecipes.length > 0 ? (
                 <CollapsibleRecipeSection
-                  title={t('runtimeConfig.loadouts.unsupportedTemplates', { defaultValue: "Plans this device can't run" })}
+                  title={t('runtimeConfig.loadouts.unsupportedTemplates', { defaultValue: 'Plans without a compatible recommendation' })}
                   count={unsupportedRecipes.length}
                 >
                   <RecipeTemplateGroup
@@ -1021,7 +1022,7 @@ export function SavedConfigsView(props: {
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{recipe.title}</span>
                           <StatusBadge tone={supported ? 'success' : 'warning'} shape="soft">
-                            {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
+                            {t(recipeFitLabelKey(recipe), { defaultValue: recipe.applicability })}
                           </StatusBadge>
                         </span>
                         <span aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)] transition group-hover:text-[var(--nimi-action-primary-bg)]">›</span>
@@ -1517,7 +1518,7 @@ function RecipeTemplateGroup(props: {
               <div className="flex flex-wrap items-center gap-2">
                 <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{recipe.title}</h4>
                 <StatusBadge tone={supported ? 'success' : 'warning'} shape="soft">
-                  {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
+                  {t(recipeFitLabelKey(recipe), { defaultValue: recipe.applicability })}
                 </StatusBadge>
               </div>
               <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
@@ -1531,9 +1532,8 @@ function RecipeTemplateGroup(props: {
               </p>
               {supported ? null : (
                 <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                  {t(recipe.applicability === 'unsupported'
-                    ? 'runtimeConfig.loadouts.unsupportedReason'
-                    : 'runtimeConfig.loadouts.unknownReason')}
+                  {t(recipeHasIncompatibleRecommendedModels(recipe) ? 'runtimeConfig.loadouts.chooseCompatibleFiles'
+                    : recipe.applicability === 'unsupported' ? 'runtimeConfig.loadouts.unsupportedReason' : 'runtimeConfig.loadouts.unknownReason')}
                 </p>
               )}
               {recipe.reasons.length > 0 ? (
@@ -2057,6 +2057,12 @@ function formatDownloadBytes(value: number | null, unknownSize: string): string 
   if (value === null) return unknownSize;
   if (value === 0) return '0 B';
   return formatBytes(value);
+}
+
+function recipeFitLabelKey(recipe: NimiLoadoutRecipe): string {
+  return recipeHasIncompatibleRecommendedModels(recipe)
+    ? 'runtimeConfig.product.modelFit.unsupported'
+    : `runtimeConfig.loadouts.hostFit.${recipe.applicability}`;
 }
 
 export function partitionRuntimeConfigRecipeTemplates(recipes: readonly NimiLoadoutRecipe[]): {
