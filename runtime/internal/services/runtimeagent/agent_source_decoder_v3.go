@@ -173,13 +173,22 @@ type realmSourceCompilerWorldIdentityV3 struct {
 
 // @nimi-authority: rule.nimi.runtime.memory-world.r019
 type realmSourceCompilerWorldPresentationV3 struct {
-	Title             *string   `json:"title,omitempty"`
-	DisplayName       *string   `json:"displayName,omitempty"`
-	Tagline           *string   `json:"tagline,omitempty"`
-	Palette           *[]string `json:"palette,omitempty"`
-	IconResourceRef   *string   `json:"iconResourceRef,omitempty"`
-	BannerResourceRef *string   `json:"bannerResourceRef,omitempty"`
-	HeroResourceRef   *string   `json:"heroResourceRef,omitempty"`
+	Title             *string                                   `json:"title,omitempty"`
+	DisplayName       *string                                   `json:"displayName,omitempty"`
+	Tagline           *string                                   `json:"tagline,omitempty"`
+	Palette           *[]string                                 `json:"palette,omitempty"`
+	VisualIdentity    *realmSourceCompilerWorldVisualIdentityV3 `json:"visualIdentity,omitempty"`
+	IconResourceRef   *string                                   `json:"iconResourceRef,omitempty"`
+	BannerResourceRef *string                                   `json:"bannerResourceRef,omitempty"`
+	HeroResourceRef   *string                                   `json:"heroResourceRef,omitempty"`
+}
+
+type realmSourceCompilerWorldVisualIdentityV3 struct {
+	ArtMedium            string   `json:"artMedium"`
+	MaterialArchitecture string   `json:"materialArchitecture"`
+	LightingAtmosphere   string   `json:"lightingAtmosphere"`
+	StyleBoundaries      []string `json:"styleBoundaries"`
+	SonicMood            *string  `json:"sonicMood,omitempty"`
 }
 
 type realmSourceCompilerWorldOntologyV3 struct {
@@ -292,11 +301,17 @@ type realmSourceCompilerWorldSystemV3 struct {
 }
 
 type realmSourceCompilerWorldSceneV3 struct {
-	SceneID    string    `json:"sceneId"`
-	Name       string    `json:"name"`
-	Summary    string    `json:"summary"`
-	EntityRefs *[]string `json:"entityRefs,omitempty"`
-	AssetRefs  *[]string `json:"assetRefs,omitempty"`
+	SceneID    string                                  `json:"sceneId"`
+	Name       string                                  `json:"name"`
+	Summary    string                                  `json:"summary"`
+	EntityRefs *[]string                               `json:"entityRefs,omitempty"`
+	AssetRefs  *[]string                               `json:"assetRefs,omitempty"`
+	Spatial    *realmSourceCompilerWorldSceneSpatialV3 `json:"spatial,omitempty"`
+}
+
+type realmSourceCompilerWorldSceneSpatialV3 struct {
+	SettingType       string   `json:"settingType"`
+	ConnectedSceneIDs []string `json:"connectedSceneIds"`
 }
 
 type realmSourceCompilerEntityCoreV3 struct {

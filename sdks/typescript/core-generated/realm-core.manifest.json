@@ -16426,10 +16426,16 @@
       "name": "WorldCoreValueDtoPresentation"
     },
     {
+      "name": "WorldCoreValueDtoPresentationVisualIdentity"
+    },
+    {
       "name": "WorldCoreValueDtoRelationshipsItem"
     },
     {
       "name": "WorldCoreValueDtoScenesItem"
+    },
+    {
+      "name": "WorldCoreValueDtoScenesItemSpatial"
     },
     {
       "name": "WorldCoreValueDtoSystemsItem"
@@ -45806,9 +45812,109 @@
               "max_length": null,
               "pattern": null
             }
+          },
+          {
+            "name": "visualIdentity",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#generated/materialization/WorldCoreValueDtoPresentationVisualIdentity",
+              "ref_name": "WorldCoreValueDtoPresentationVisualIdentity"
+            }
           }
         ],
         "required_properties": [],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldCoreValueDtoPresentationVisualIdentity",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artMedium",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "lightingAtmosphere",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "materialArchitecture",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sonicMood",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "styleBoundaries",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": 1,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "artMedium",
+          "materialArchitecture",
+          "lightingAtmosphere",
+          "styleBoundaries"
+        ],
         "closed": true,
         "additional_properties": null
       }
@@ -45984,6 +46090,15 @@
             }
           },
           {
+            "name": "spatial",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#generated/materialization/WorldCoreValueDtoScenesItemSpatial",
+              "ref_name": "WorldCoreValueDtoScenesItemSpatial"
+            }
+          },
+          {
             "name": "summary",
             "required": true,
             "schema": {
@@ -46002,6 +46117,52 @@
           "sceneId",
           "name",
           "summary"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldCoreValueDtoScenesItemSpatial",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "connectedSceneIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": 1,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "settingType",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "interior",
+                "exterior",
+                "mixed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "settingType",
+          "connectedSceneIds"
         ],
         "closed": true,
         "additional_properties": null

@@ -25197,13 +25197,14 @@ func (value *WorldCoreValueDtoOntologyConceptsItem) UnmarshalJSON(data []byte) e
 }
 
 type WorldCoreValueDtoPresentation struct {
-	BannerResourceRef string   `json:"bannerResourceRef,omitempty"`
-	DisplayName       string   `json:"displayName,omitempty"`
-	HeroResourceRef   string   `json:"heroResourceRef,omitempty"`
-	IconResourceRef   string   `json:"iconResourceRef,omitempty"`
-	Palette           []string `json:"palette,omitempty"`
-	Tagline           string   `json:"tagline,omitempty"`
-	Title             string   `json:"title,omitempty"`
+	BannerResourceRef string                                       `json:"bannerResourceRef,omitempty"`
+	DisplayName       string                                       `json:"displayName,omitempty"`
+	HeroResourceRef   string                                       `json:"heroResourceRef,omitempty"`
+	IconResourceRef   string                                       `json:"iconResourceRef,omitempty"`
+	Palette           []string                                     `json:"palette,omitempty"`
+	Tagline           string                                       `json:"tagline,omitempty"`
+	Title             string                                       `json:"title,omitempty"`
+	VisualIdentity    *WorldCoreValueDtoPresentationVisualIdentity `json:"visualIdentity,omitempty"`
 }
 
 func (value *WorldCoreValueDtoPresentation) UnmarshalJSON(data []byte) error {
@@ -25218,6 +25219,40 @@ func (value *WorldCoreValueDtoPresentation) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldCoreValueDtoPresentation: %w", err)
 	}
 	*value = WorldCoreValueDtoPresentation(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoPresentationVisualIdentity struct {
+	ArtMedium            string   `json:"artMedium"`
+	LightingAtmosphere   string   `json:"lightingAtmosphere"`
+	MaterialArchitecture string   `json:"materialArchitecture"`
+	SonicMood            string   `json:"sonicMood,omitempty"`
+	StyleBoundaries      []string `json:"styleBoundaries"`
+}
+
+func (value *WorldCoreValueDtoPresentationVisualIdentity) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "artMedium", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lightingAtmosphere", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materialArchitecture", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "styleBoundaries", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoPresentationVisualIdentity
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentationVisualIdentity: %w", err)
+	}
+	*value = WorldCoreValueDtoPresentationVisualIdentity(decoded)
 	return nil
 }
 
@@ -25257,11 +25292,12 @@ func (value *WorldCoreValueDtoRelationshipsItem) UnmarshalJSON(data []byte) erro
 }
 
 type WorldCoreValueDtoScenesItem struct {
-	AssetRefs  []string `json:"assetRefs,omitempty"`
-	EntityRefs []string `json:"entityRefs,omitempty"`
-	Name       string   `json:"name"`
-	SceneId    string   `json:"sceneId"`
-	Summary    string   `json:"summary"`
+	AssetRefs  []string                            `json:"assetRefs,omitempty"`
+	EntityRefs []string                            `json:"entityRefs,omitempty"`
+	Name       string                              `json:"name"`
+	SceneId    string                              `json:"sceneId"`
+	Spatial    *WorldCoreValueDtoScenesItemSpatial `json:"spatial,omitempty"`
+	Summary    string                              `json:"summary"`
 }
 
 func (value *WorldCoreValueDtoScenesItem) UnmarshalJSON(data []byte) error {
@@ -25284,6 +25320,31 @@ func (value *WorldCoreValueDtoScenesItem) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
 	}
 	*value = WorldCoreValueDtoScenesItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoScenesItemSpatial struct {
+	ConnectedSceneIds []string `json:"connectedSceneIds"`
+	SettingType       string   `json:"settingType"`
+}
+
+func (value *WorldCoreValueDtoScenesItemSpatial) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItemSpatial: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectedSceneIds", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItemSpatial: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "settingType", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItemSpatial: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoScenesItemSpatial
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItemSpatial: %w", err)
+	}
+	*value = WorldCoreValueDtoScenesItemSpatial(decoded)
 	return nil
 }
 

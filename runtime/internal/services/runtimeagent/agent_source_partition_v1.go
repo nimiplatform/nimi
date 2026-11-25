@@ -514,19 +514,11 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 			return err
 		}
 	}
-	worldPresentationPresent := world.Presentation.Title != nil || world.Presentation.DisplayName != nil || world.Presentation.Tagline != nil || world.Presentation.Palette != nil || world.Presentation.IconResourceRef != nil || world.Presentation.BannerResourceRef != nil || world.Presentation.HeroResourceRef != nil
-	if !worldPresentationPresent {
+	if world.Presentation == (realmSourceCompilerWorldPresentationV3{}) {
 		if err := appendLocalAgentCognitionOmissionV1(partition, seenCoverageIDs, "source.world.presentation", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.presentation", worldRef, "explicit_source_section_empty"); err != nil {
 			return err
 		}
-	} else if err := appendUnit("source.world.presentation", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.presentation", worldRef, agentTurnContextV3PriorityOptional, "Owning world presentation detail",
-		agentTurnContextTextField{Name: "title", Values: agentTurnContextOptionalString(world.Presentation.Title)},
-		agentTurnContextTextField{Name: "display_name", Values: agentTurnContextOptionalString(world.Presentation.DisplayName)},
-		agentTurnContextTextField{Name: "tagline", Values: agentTurnContextOptionalString(world.Presentation.Tagline)},
-		agentTurnContextTextField{Name: "palette", Values: agentTurnContextOptionalStrings(world.Presentation.Palette)},
-		agentTurnContextTextField{Name: "icon_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.IconResourceRef)},
-		agentTurnContextTextField{Name: "banner_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.BannerResourceRef)},
-		agentTurnContextTextField{Name: "hero_resource_ref", Values: agentTurnContextOptionalString(world.Presentation.HeroResourceRef)}); err != nil {
+	} else if err := appendUnit("source.world.presentation", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.presentation", worldRef, agentTurnContextV3PriorityOptional, "Owning world presentation detail", world.Presentation.textFields()...); err != nil {
 		return err
 	}
 	if err := appendUnit("source.world.ontology", "world_setting_detail", "semanticPayload.materializationContext.owningWorld.core.ontology", worldRef, agentTurnContextV3PriorityWorldBaseline, "Owning world ontology detail",
@@ -616,8 +608,15 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		}
 	}
 	for _, scene := range realmSourceCompilerSortedByIDV3(world.Scenes, func(value realmSourceCompilerWorldSceneV3) string { return value.SceneID }) {
-		if err := appendUnit("source.world.scene."+scene.SceneID, "world_scene", "semanticPayload.materializationContext.owningWorld.core.scenes."+scene.SceneID, worldRef, agentTurnContextV3PriorityOptional, "Canonical world scene",
-			agentTurnContextTextField{Name: "name", Values: []string{scene.Name}}, agentTurnContextTextField{Name: "summary", Values: []string{scene.Summary}}, agentTurnContextTextField{Name: "entity_refs", Values: agentTurnContextOptionalStrings(scene.EntityRefs)}, agentTurnContextTextField{Name: "asset_refs", Values: agentTurnContextOptionalStrings(scene.AssetRefs)}); err != nil {
+		fields := []agentTurnContextTextField{
+			{Name: "name", Values: []string{scene.Name}}, {Name: "summary", Values: []string{scene.Summary}},
+			{Name: "entity_refs", Values: agentTurnContextOptionalStrings(scene.EntityRefs)}, {Name: "asset_refs", Values: agentTurnContextOptionalStrings(scene.AssetRefs)},
+		}
+		if spatial := scene.Spatial; spatial != nil {
+			fields = append(fields, agentTurnContextTextField{Name: "setting_type", Values: []string{spatial.SettingType}},
+				agentTurnContextTextField{Name: "connected_scene_ids", Values: spatial.ConnectedSceneIDs})
+		}
+		if err := appendUnit("source.world.scene."+scene.SceneID, "world_scene", "semanticPayload.materializationContext.owningWorld.core.scenes."+scene.SceneID, worldRef, agentTurnContextV3PriorityOptional, "Canonical world scene", fields...); err != nil {
 			return err
 		}
 	}
@@ -640,6 +639,27 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		return err
 	}
 	return nil
+}
+
+func (presentation realmSourceCompilerWorldPresentationV3) textFields() []agentTurnContextTextField {
+	fields := []agentTurnContextTextField{
+		{Name: "title", Values: agentTurnContextOptionalString(presentation.Title)},
+		{Name: "display_name", Values: agentTurnContextOptionalString(presentation.DisplayName)},
+		{Name: "tagline", Values: agentTurnContextOptionalString(presentation.Tagline)},
+		{Name: "palette", Values: agentTurnContextOptionalStrings(presentation.Palette)},
+		{Name: "icon_resource_ref", Values: agentTurnContextOptionalString(presentation.IconResourceRef)},
+		{Name: "banner_resource_ref", Values: agentTurnContextOptionalString(presentation.BannerResourceRef)},
+		{Name: "hero_resource_ref", Values: agentTurnContextOptionalString(presentation.HeroResourceRef)},
+	}
+	if visual := presentation.VisualIdentity; visual != nil {
+		fields = append(fields,
+			agentTurnContextTextField{Name: "art_medium", Values: []string{visual.ArtMedium}},
+			agentTurnContextTextField{Name: "material_architecture", Values: []string{visual.MaterialArchitecture}},
+			agentTurnContextTextField{Name: "lighting_atmosphere", Values: []string{visual.LightingAtmosphere}},
+			agentTurnContextTextField{Name: "style_boundaries", Values: visual.StyleBoundaries},
+			agentTurnContextTextField{Name: "sonic_mood", Values: agentTurnContextOptionalString(visual.SonicMood)})
+	}
+	return fields
 }
 
 func worldIdentityTaglineV1(world realmSourceCompilerWorldCoreV3) []string {

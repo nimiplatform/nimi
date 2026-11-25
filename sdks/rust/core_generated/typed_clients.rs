@@ -22680,6 +22680,16 @@ pub struct WorldCoreValueDtoPresentation {
     pub palette: Vec<String>,
     pub tagline: String,
     pub title: String,
+    pub visual_identity: Box<WorldCoreValueDtoPresentationVisualIdentity>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreValueDtoPresentationVisualIdentity {
+    pub art_medium: String,
+    pub lighting_atmosphere: String,
+    pub material_architecture: String,
+    pub sonic_mood: String,
+    pub style_boundaries: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -22698,7 +22708,14 @@ pub struct WorldCoreValueDtoScenesItem {
     pub entity_refs: Vec<String>,
     pub name: String,
     pub scene_id: String,
+    pub spatial: Box<WorldCoreValueDtoScenesItemSpatial>,
     pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreValueDtoScenesItemSpatial {
+    pub connected_scene_ids: Vec<String>,
+    pub setting_type: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

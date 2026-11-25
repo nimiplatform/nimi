@@ -205,7 +205,49 @@ func validateSourceMaterializationWorldRecordV3(value sourceMaterializationWorld
 	if err := validateWorldLorebookDeclarationV1(value.LorebookDeclaration); err != nil {
 		return err
 	}
+	// The generated packet closure checks object keys. Check the values of
+	// these optional sections before the snapshot decoder maps null to nil.
+	if visual := value.Core.member("presentation").member("visualIdentity"); visual.Present {
+		for _, field := range []string{"artMedium", "materialArchitecture", "lightingAtmosphere", "sonicMood"} {
+			text := visual.member(field)
+			if field == "sonicMood" && !text.Present {
+				continue
+			}
+			if text.Kind != sourceMaterializationJSONString || strings.TrimSpace(text.String) == "" {
+				return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "world presentation.visualIdentity.%s must be non-empty text", field)
+			}
+		}
+		if !sourceMaterializationTextListV3(visual.member("styleBoundaries"), 1) {
+			return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "world presentation.visualIdentity.styleBoundaries must be a non-empty list of text")
+		}
+	}
+	for index, scene := range value.Core.member("scenes").Array {
+		spatial := scene.member("spatial")
+		if !spatial.Present {
+			continue
+		}
+		switch spatial.member("settingType").String {
+		case "interior", "exterior", "mixed":
+		default:
+			return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "world scenes[%d].spatial.settingType is invalid", index)
+		}
+		if !sourceMaterializationTextListV3(spatial.member("connectedSceneIds"), 0) {
+			return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "world scenes[%d].spatial.connectedSceneIds must be a list of identifiers", index)
+		}
+	}
 	return nil
+}
+
+func sourceMaterializationTextListV3(value sourceMaterializationJSONValue, minItems int) bool {
+	if value.Kind != sourceMaterializationJSONArray || len(value.Array) < minItems {
+		return false
+	}
+	for _, item := range value.Array {
+		if item.Kind != sourceMaterializationJSONString || strings.TrimSpace(item.String) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 func validateSourceMaterializationEntityRecordV3(value sourceMaterializationEntityRecordV3) error {

@@ -8102,6 +8102,33 @@ components:
               type: string
             title:
               type: string
+            visualIdentity:
+              additionalProperties: false
+              properties:
+                artMedium:
+                  minLength: 1
+                  type: string
+                lightingAtmosphere:
+                  minLength: 1
+                  type: string
+                materialArchitecture:
+                  minLength: 1
+                  type: string
+                sonicMood:
+                  minLength: 1
+                  type: string
+                styleBoundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  minItems: 1
+                  type: array
+              required:
+                - artMedium
+                - materialArchitecture
+                - lightingAtmosphere
+                - styleBoundaries
+              type: object
           type: object
         relationships:
           items:
@@ -8151,6 +8178,24 @@ components:
               sceneId:
                 minLength: 1
                 type: string
+              spatial:
+                additionalProperties: false
+                properties:
+                  connectedSceneIds:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  settingType:
+                    enum:
+                      - interior
+                      - exterior
+                      - mixed
+                    type: string
+                required:
+                  - settingType
+                  - connectedSceneIds
+                type: object
               summary:
                 minLength: 1
                 type: string

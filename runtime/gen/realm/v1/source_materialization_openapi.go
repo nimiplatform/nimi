@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "a13343e637f28d625abc9206e99c6c6b818c09a788fce5be84eae543337f1d23"
+	MaterializationSchemaClosureSHA256                              = "c3f2e419c8447deb9b8f3746d8e057f30d01d48ef3b8dadc9ccdcfc252af6358"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -394,7 +394,11 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"WorldCoreValueDtoPresentation": {
 		Required: []string{},
-		Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"},
+		Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title", "visualIdentity"},
+	},
+	"WorldCoreValueDtoPresentationVisualIdentity": {
+		Required: []string{"artMedium", "lightingAtmosphere", "materialArchitecture", "styleBoundaries"},
+		Optional: []string{"sonicMood"},
 	},
 	"WorldCoreValueDtoRelationshipsItem": {
 		Required: []string{"relationshipId", "sourceEntityId", "targetEntityId", "type"},
@@ -402,7 +406,11 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"WorldCoreValueDtoScenesItem": {
 		Required: []string{"name", "sceneId", "summary"},
-		Optional: []string{"assetRefs", "entityRefs"},
+		Optional: []string{"assetRefs", "entityRefs", "spatial"},
+	},
+	"WorldCoreValueDtoScenesItemSpatial": {
+		Required: []string{"connectedSceneIds", "settingType"},
+		Optional: []string{},
 	},
 	"WorldCoreValueDtoSystemsItem": {
 		Required: []string{"name", "summary", "systemId"},
@@ -655,9 +663,11 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.narrative":                                      {{Required: []string{"setting"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology":                                       {{Required: []string{"entityKinds", "relationshipTypes"}, Optional: []string{"concepts"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.ontology.concepts[]":                            {{Required: []string{"conceptId", "name"}, Optional: []string{"summary"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation":                                   {{Required: []string{}, Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation":                                   {{Required: []string{}, Optional: []string{"bannerResourceRef", "displayName", "heroResourceRef", "iconResourceRef", "palette", "tagline", "title", "visualIdentity"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.presentation.visualIdentity":                    {{Required: []string{"artMedium", "lightingAtmosphere", "materialArchitecture", "styleBoundaries"}, Optional: []string{"sonicMood"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.relationships[]":                                {{Required: []string{"relationshipId", "sourceEntityId", "targetEntityId", "type"}, Optional: []string{"attributes", "summary"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.scenes[]":                                       {{Required: []string{"name", "sceneId", "summary"}, Optional: []string{"assetRefs", "entityRefs"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.scenes[]":                                       {{Required: []string{"name", "sceneId", "summary"}, Optional: []string{"assetRefs", "entityRefs", "spatial"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.scenes[].spatial":                               {{Required: []string{"connectedSceneIds", "settingType"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.systems[]":                                      {{Required: []string{"name", "summary", "systemId"}, Optional: []string{"parameters", "principles"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeline":                                       {{Required: []string{"events"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeline.events[]":                              {{Required: []string{"eventId", "title"}, Optional: []string{"characterRefs", "endsAt", "entityRefs", "importance", "locationRefs", "sceneRefs", "sequence", "sourceRefs", "startsAt", "summary", "timestamp"}}},

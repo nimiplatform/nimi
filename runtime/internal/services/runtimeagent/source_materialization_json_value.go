@@ -98,6 +98,15 @@ func normalizeSourceMaterializationJSONValue(value any) (sourceMaterializationJS
 	}
 }
 
+func (value sourceMaterializationJSONValue) member(name string) sourceMaterializationJSONValue {
+	for _, member := range value.Object {
+		if member.Name == name {
+			return member.Value
+		}
+	}
+	return sourceMaterializationJSONValue{}
+}
+
 func (value sourceMaterializationJSONValue) interfaceValue() any {
 	switch value.Kind {
 	case sourceMaterializationJSONNull:

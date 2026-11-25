@@ -2740,6 +2740,15 @@ class WorldCoreValueDtoPresentation:
     palette: tuple[str, ...] = field(default_factory=tuple)
     tagline: str | None = None
     title: str | None = None
+    visualIdentity: WorldCoreValueDtoPresentationVisualIdentity | None = None
+
+@dataclass(frozen=True)
+class WorldCoreValueDtoPresentationVisualIdentity:
+    artMedium: str
+    lightingAtmosphere: str
+    materialArchitecture: str
+    styleBoundaries: tuple[str, ...]
+    sonicMood: str | None = None
 
 @dataclass(frozen=True)
 class WorldCoreValueDtoRelationshipsItem:
@@ -2757,6 +2766,12 @@ class WorldCoreValueDtoScenesItem:
     summary: str
     assetRefs: tuple[str, ...] = field(default_factory=tuple)
     entityRefs: tuple[str, ...] = field(default_factory=tuple)
+    spatial: WorldCoreValueDtoScenesItemSpatial | None = None
+
+@dataclass(frozen=True)
+class WorldCoreValueDtoScenesItemSpatial:
+    connectedSceneIds: tuple[str, ...]
+    settingType: Literal["interior", "exterior", "mixed"]
 
 @dataclass(frozen=True)
 class WorldCoreValueDtoSystemsItem:
