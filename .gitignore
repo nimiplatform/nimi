@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-electron/
+/apps/*/dist-electron-package/
 **/.dist.staging-*/
 **/.dist.previous-*/
 .next/
@@ -35,6 +36,7 @@ coverage/
 /runtime/models/
 
 # local caches
+/apps/*/.vite/
 .pnpm-store/
 .vscode/
 .idea/
@@ -60,6 +62,7 @@ reports/
 # local scratch outputs
 .tmp/
 .nimi/local/
+/apps/*/.nimi/local/
 .nimi/cache/
 # Quarantined pre-hardcut topic artifacts remain ignored until their owner
 # explicitly migrates or removes them; they are not an active workflow root.
