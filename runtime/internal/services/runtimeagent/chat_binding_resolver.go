@@ -184,7 +184,7 @@ var errPublicChatRequestExecutionBindingsNotAdmitted = status.Error(
 )
 
 func unresolvedSharedAIConfigExecutionBindingError() error {
-	return status.Error(codes.FailedPrecondition, "shared LocalAgent AIConfig does not contain an exact machine execution binding")
+	return machineExecutionProjectionError(runtimev1.ReasonCode_AI_CONFIG_INVALID, "shared LocalAgent AIConfig does not contain an exact machine execution binding", nil)
 }
 
 // validateRuntimePrivateExecutorBinding fails closed when the machine

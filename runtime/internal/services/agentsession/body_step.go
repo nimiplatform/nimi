@@ -962,10 +962,14 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 		})
 		execResult, err = executor(execCtx, execInput, emitter)
 		if err != nil {
+			reason, ok := grpcerr.ExtractReasonCode(err)
+			if !ok {
+				reason = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+			}
 			_ = emitter.send(&runtimev1.BodyStepStreamEvent{
 				Payload: &runtimev1.BodyStepStreamEvent_Failed{
 					Failed: &runtimev1.BodyStepFailure{
-						ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+						ReasonCode: reason,
 						Message:    err.Error(),
 					},
 				},

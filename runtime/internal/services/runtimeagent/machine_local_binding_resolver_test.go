@@ -18,6 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -431,5 +432,16 @@ func machineLocalExecutionProjectionForTest(configurationID, capabilityContract,
 			EntrySHA256:       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		}},
 		Configured: true,
+	}
+}
+
+func TestMissingMachineBindingReturnsConfigurationError(t *testing.T) {
+	svc := &Service{}
+	_, err := svc.machineExecutionBindings(t.Context(), "test-account")
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("missing machine binding: %v", err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+		t.Fatalf("missing configuration must remain a business error on the protected App stream: %v", err)
 	}
 }
