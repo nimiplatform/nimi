@@ -159,7 +159,7 @@ export function ZhiyuHarnessHandoffDialog({
 
           {points.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[var(--nimi-text-secondary)]">可选要点（取消勾选即不传出）</span>
+              <span className="text-[var(--nimi-text-secondary)]">勾选要随简报发送的聊天要点</span>
               {points.map((pt) => (
                 <div key={pt.id} className="flex items-center gap-2">
                   <input

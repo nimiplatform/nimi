@@ -67,7 +67,7 @@ export function buildEditableHandoffBriefDraft(input: {
     points.push({
       id: `pt-${points.length + 1}`,
       text: cleaned,
-      selected: true,
+      selected: false,
     });
     if (points.length >= 5) break;
   }

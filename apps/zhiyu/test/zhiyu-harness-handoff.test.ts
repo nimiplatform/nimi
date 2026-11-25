@@ -21,11 +21,12 @@ test('C1 editable handoff brief emits strict 4-key DTO, includes only user-check
   assert.equal(draft.partnerName, '小满');
   assert.equal(draft.goal, '把五一出行计划整理成桌面文档');
   assert.equal(draft.points.length, 3);
+  assert.ok(draft.points.every(point => !point.selected));
   assert.match(draft.stayedInZhiyuNotice, /保留在织羽/);
 
-  // User unchecks the private item and edits the remaining point.
+  // The user explicitly selects two points and edits the second.
   const editedPoints = draft.points.map((pt, idx) =>
-    idx === 2 ? { ...pt, selected: false } : idx === 1 ? { ...pt, text: '预算：4500元含机票' } : pt,
+    idx === 2 ? pt : { ...pt, selected: true, text: idx === 1 ? '预算：4500元含机票' : pt.text },
   );
 
   const payload = composeHandoffBriefPayload({
