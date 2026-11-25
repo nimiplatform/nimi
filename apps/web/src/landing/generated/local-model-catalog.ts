@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: runtime/catalog/providers/local.yaml
- *   sha256: 46ee521d5fd9b2d1676cf69df3aac8961380b35be11a8b051e28dd3b17c9811e
+ *   sha256: c8754d58a672c4433ad174b8e295dbe16607e5e60d032a7345dfe7053faaeef5
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -78,7 +78,7 @@ export const LOCAL_MODEL_CATALOG: Readonly<Record<string, readonly LocalCapabili
     {"id":"hyperswap-1a.image-face-swap.v1","label":"HyperSwap 1a","byo":true},
   ],
   "image.generate": [
-    {"id":"sdxl-base-1.0-local","label":"SDXL ControlNet Union ProMax"},
+    {"id":"sdxl-base-1.0-local","label":"Stable Diffusion XL (SDXL)"},
     {"id":"flux3-image-klein-local","label":"FLUX3 Klein"},
     {"id":"flux.1-schnell-local","label":"FLUX.1 Schnell"},
     {"id":"z-image-turbo-local","label":"Z-Image Turbo"},
@@ -125,11 +125,7 @@ export const LOCAL_MODEL_CATALOG: Readonly<Record<string, readonly LocalCapabili
     {"id":"embeddinggemma-2-text-local","label":"EmbeddingGemma 2"},
   ],
   "text.generate": [
-    {"id":"gemma-4-e2b-it-local","label":"Gemma 4 E2B IT"},
-    {"id":"gemma-4-26b-a4b-it-local","label":"Gemma 4 26B A4B IT"},
-    {"id":"qwen3.5-4b-local","label":"Qwen3.5 4B"},
-    {"id":"qwen3.8-27b-local","label":"Qwen3.8 27B"},
-    {"id":"lfm3-1.7b-local","label":"LFM3 1.7B"},
+    {"id":"gemma-4-e2b-it-local","label":"llama.cpp GGUF"},
     {"id":"gemma-4-12b-unified-local","label":"Gemma 4 12B Unified"},
   ],
   "video.face_swap": [
