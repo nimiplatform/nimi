@@ -3,11 +3,13 @@ package grpcserver
 import (
 	"context"
 	"net"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -16,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -235,5 +238,68 @@ func TestProtectedLocalAppAgentSessionCoreHarnessAndOrdinaryAppRejection(t *test
 		InstanceId:          "spoof-1",
 	}); localAppTransportReason(err) != runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT {
 		t.Fatalf("cross-subject os.pc.workspace lease preemption must fail with AGENT_BODY_LEASE_CONFLICT: reason=%v err=%v", localAppTransportReason(err), err)
+	}
+}
+
+func TestProductionDesktopAlarmChannels(t *testing.T) {
+	svc, err := buildProductionAgentSessionService(config.Config{LocalStatePath: filepath.Join(t.TempDir(), "state.json")}, nil, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { svc.Close() })
+	app := smokeLocalAppAppService{
+		appID: "example.alarm", accountID: "test-account", subject: "test-subject",
+		allowedDomains: map[localappop.Domain]bool{"agent.session.manage": true, "agent.trigger.delegate": true},
+	}
+	create, err := app.AuthorizeLocalAppIngress(t.Context(), localappop.IngressAgentTriggerAlarmCreate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	update, err := app.AuthorizeLocalAppIngress(t.Context(), localappop.IngressAgentTriggerAlarmUpdate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, channel := range []string{"desktop_notification", "desktop", "home", "local", "wechat"} {
+		req := &runtimev1.CreateAlarmRequest{AgentHandle: "test-agent", AlarmKind: runtimev1.AlarmKind_ALARM_KIND_DELAY, DelaySeconds: 60, TemplateTitle: channel, DeliveryChannels: []string{channel}}
+		response, err := svc.CreateAlarm(create, req)
+		if channel == "wechat" {
+			if status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("create external channel: %v", err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatalf("create %s: %v", channel, err)
+		}
+		_, err = svc.UpdateAlarm(update, &runtimev1.UpdateAlarmRequest{AlarmId: response.GetAlarm().GetAlarmId(), DeliveryChannels: []string{"wechat"}})
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("update %s to external channel: %v", channel, err)
+		}
+	}
+	now := time.Now().UTC().Add(2 * time.Minute)
+	fires, err := svc.TickAlarms(t.Context(), now)
+	if err != nil || len(fires) != 4 {
+		t.Fatalf("fires=%d err=%v", len(fires), err)
+	}
+	items, err := svc.Store().ListPendingAttention(t.Context(), app.accountID, now)
+	if err != nil || len(items) != 4 {
+		t.Fatalf("attention items=%d err=%v", len(items), err)
+	}
+	refs := make(map[string]bool)
+	for _, item := range items {
+		if item.GetAttentionKind() != "alarm_reminder" {
+			t.Fatalf("unexpected attention kind %q", item.GetAttentionKind())
+		}
+		refs["desktop-attention:"+item.GetAttentionId()] = true
+	}
+	for _, fire := range fires {
+		if len(fire.Deliveries) != 1 {
+			t.Fatalf("delivery count %d", len(fire.Deliveries))
+		}
+		delivery := fire.Deliveries[0]
+		if delivery.ReceiptState != runtimev1.AlarmDeliveryReceiptState_ALARM_DELIVERY_RECEIPT_STATE_PROVIDER_ACCEPTED || !refs[delivery.ProviderMessageRef] {
+			t.Fatalf("receipt has no matching attention item: %+v", delivery)
+		}
+		delete(refs, delivery.ProviderMessageRef)
 	}
 }
