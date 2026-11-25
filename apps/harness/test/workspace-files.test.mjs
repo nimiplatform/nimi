@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rename, writeFile, truncate, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { copyMaterial, listWorkspace, previewWorkspaceFile, resultReference } from '../dist-electron/workspace-files.js';
 
 test('image preview returns only the selected original bytes and keeps larger files accessible in their folder', async t => {
@@ -69,12 +70,11 @@ test('file references resolve to actual session files; separate imports never re
 });
 
 test('Desktop renderer file projection uses the native directory and range-read contracts', { skip: !['win32', 'darwin'].includes(process.platform) }, async t => {
-  const { createRequire } = await import('node:module');
   const { createNimiElectronHarnessSecurityHost } = await import('@nimiplatform/kit/shell/electron/main');
-  const require = createRequire(import.meta.url);
-  const target = process.platform === 'darwin' ? 'darwin-arm64' : 'win32-x64';
-  const binding = require(`../../../kit/shell/protected-local-node/npm/${target}/nimi_shell_protected_local.node`);
-  const host = createNimiElectronHarnessSecurityHost({ injectedBinding: binding });
+  const library = process.platform === 'darwin' ? 'libnimi_shell_protected_local_node.dylib' : 'nimi_shell_protected_local_node.dll';
+  const addon = { exports: {} };
+  process.dlopen(addon, fileURLToPath(new URL(`../../../kit/shell/protected-local-node/target/debug/${library}`, import.meta.url)));
+  const host = createNimiElectronHarnessSecurityHost({ injectedBinding: addon.exports });
   const root = await mkdtemp(join(tmpdir(), 'nimi-native-preview-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const signal = new AbortController().signal;
