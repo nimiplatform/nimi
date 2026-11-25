@@ -337,6 +337,7 @@ pub use crate::windows_harness_security::{
 };
 
 #[cfg(not(target_os = "windows"))]
+#[cfg_attr(unix, allow(unsafe_code))] // POSIX descriptor and process-group operations call libc.
 mod non_windows_fallback {
     use super::*;
     use std::io::{Read, Seek, SeekFrom, Write};
@@ -875,17 +876,20 @@ mod non_windows_fallback {
         use std::os::unix::ffi::OsStrExt;
         use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
 
+        #[cfg(target_os = "macos")]
+        let root = anchored_root(root)
+            .map_err(|err| HarnessSecurityError::new("invalid-workspace-root", err.to_string()))?;
         let root_c = CString::new(root.as_os_str().as_bytes()).map_err(|_| {
             HarnessSecurityError::new("invalid-workspace-root", "root path contains NUL")
         })?;
         #[cfg(target_os = "macos")]
         let no_links = libc::O_NOFOLLOW_ANY;
         #[cfg(not(target_os = "macos"))]
-        let no_links = 0;
+        let no_links = libc::O_NOFOLLOW;
         let root_fd = unsafe {
             libc::open(
                 root_c.as_ptr(),
-                no_links | libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                no_links | libc::O_RDONLY | libc::O_DIRECTORY | libc::O_CLOEXEC,
             )
         };
         if root_fd < 0 {

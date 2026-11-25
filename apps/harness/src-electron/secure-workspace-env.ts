@@ -339,14 +339,15 @@ function tryLoadNativeSecurityHost(
       allowSourceLocalDevFromMain: allowSourceLocalDev,
     });
   } catch {
-    if (!allowSourceLocalDev && process.versions.electron) return null;
+    if (process.versions.electron && (process.platform === 'darwin' || !allowSourceLocalDev)) return null;
     // Standalone Node tests may load the workspace build.
   }
 
+  const isNodeTest = !process.versions.electron && Boolean(process.env.NODE_TEST_CONTEXT);
   const packageName = process.platform === 'win32'
     ? '@nimiplatform/kit-protected-local-win32-x64'
     : '@nimiplatform/kit-protected-local-darwin-arm64';
-  if (!allowSourceLocalDev && process.platform === 'darwin') {
+  if (!allowSourceLocalDev && process.platform === 'darwin' && !isNodeTest) {
     // Never bypass macOS Resources/nimi-native/protected-local integrity verification in packaged mode.
     return null;
   }
@@ -373,8 +374,8 @@ function tryLoadNativeSecurityHost(
   const moduleDir = dirname(fileURLToPath(import.meta.url));
   const candidateDirs = [
     resolve(moduleDir, '../../../kit/shell/protected-local-node/target/windows-production/release'),
-    resolve(moduleDir, '../../../kit/shell/protected-local-node/target/release'),
     resolve(moduleDir, '../../../kit/shell/protected-local-node/target/debug'),
+    resolve(moduleDir, '../../../kit/shell/protected-local-node/target/release'),
   ];
   for (const dir of candidateDirs) {
     const addonPath = join(dir, artifact);

@@ -296,12 +296,16 @@ test('permission modes (strict, workspace-edit, plan-readonly), session allowlis
   // 4. v2.1 Gate 4: Free Shell (bash) is NEVER permitted in sessionAllowlist (always allow_once)!
   if (process.platform !== 'win32') {
     await harness.setPermissionMode('main', 'strict');
+    const devWorkspace = await mkdtemp(join(tmpdir(), 'harness-shell-'));
+    t.after(() => rm(devWorkspace, { recursive: true, force: true }));
+    await harness.setWorkspace('main', devWorkspace);
     await harness.submit('main', 'bash-echo', randomUUID());
     const bashPrompt = await waitFor(harness, v => v.decisions.length === 1);
     assert.equal(bashPrompt.decisions[0].allowSessionPermitted, false);
     await harness.decide('main', bashPrompt.decisions[0].id, true, undefined, true, bashPrompt.decisions[0].revision);
     await waitFor(harness, v => !v.running && v.entries.filter(e => e.text === 'Finished bash-echo').length === 1);
     assert.deepEqual((await harness.snapshot()).sessionAllowlist, []);
+    await harness.setWorkspace('main', null);
   }
 
   // 5. Remote protocol helpers: getHistory pagination, listDetailed, outgoingWorkspaceFile, exportMarkdown, listIntegrations

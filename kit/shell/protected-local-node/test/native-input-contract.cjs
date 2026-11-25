@@ -393,6 +393,9 @@ async function main() {
   });
   assert.equal(goodPath?.status, 'ok', 'harnessVerifyWorkspacePath must accept workspace Cargo.toml');
   assert.equal(goodPath?.value?.nNumberOfLinks, 1);
+  if (process.platform === 'darwin') {
+    await require('./darwin-workspace.cjs').checkDarwinWorkspace(addon);
+  }
 }
 
 main().catch((error) => {

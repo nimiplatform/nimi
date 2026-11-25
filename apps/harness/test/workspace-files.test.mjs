@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, truncate, symlink, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, rename, writeFile, truncate, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { copyMaterial, listWorkspace, previewWorkspaceFile, resultReference } from '../dist-electron/workspace-files.js';
@@ -68,11 +68,12 @@ test('file references resolve to actual session files; separate imports never re
   }
 });
 
-test('Windows renderer file projection uses the native directory and range-read contracts', { skip: process.platform !== 'win32' }, async t => {
+test('Desktop renderer file projection uses the native directory and range-read contracts', { skip: !['win32', 'darwin'].includes(process.platform) }, async t => {
   const { createRequire } = await import('node:module');
   const { createNimiElectronHarnessSecurityHost } = await import('@nimiplatform/kit/shell/electron/main');
   const require = createRequire(import.meta.url);
-  const binding = require('../../../kit/shell/protected-local-node/npm/win32-x64/nimi_shell_protected_local.node');
+  const target = process.platform === 'darwin' ? 'darwin-arm64' : 'win32-x64';
+  const binding = require(`../../../kit/shell/protected-local-node/npm/${target}/nimi_shell_protected_local.node`);
   const host = createNimiElectronHarnessSecurityHost({ injectedBinding: binding });
   const root = await mkdtemp(join(tmpdir(), 'nimi-native-preview-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -85,4 +86,14 @@ test('Windows renderer file projection uses the native directory and range-read 
   const preview = await previewWorkspaceFile(root, 'asset.png', signal, 0, host);
   assert.equal(preview.format, 'image');
   assert.deepEqual(Buffer.from(preview.bytes), image);
+  // A user can save a same-size replacement between selection and preview.
+  const replacingHost = {
+    ...host,
+    async secureReadFile(input) {
+      await rename(join(root, 'asset.png'), join(root, 'previous.png'));
+      await writeFile(join(root, 'asset.png'), image);
+      return host.secureReadFile(input);
+    },
+  };
+  await assert.rejects(previewWorkspaceFile(root, 'asset.png', signal, 0, replacingHost), /file changed/i);
 });
