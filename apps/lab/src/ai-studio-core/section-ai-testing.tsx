@@ -303,23 +303,27 @@ function TextStudioShell({
     submittingRef.current = true;
     const preRefreshSeq = runSeqRef.current;
     try {
-      const refresh = await runTarget.waitForTargetRefresh();
+      const refresh = await runTarget.waitForTargetRefresh(
+        runTarget.effectiveSelection?.resource?.oneofKind === 'local',
+      );
       if (runSeqRef.current !== preRefreshSeq || abortControllerRef.current) return;
       if (refresh.waited) {
-        if (!refresh.snapshot || refresh.snapshot.revision !== runTarget.snapshot?.revision) return;
+        if (!refresh.snapshot) return;
+        if (refresh.snapshot.revision !== runTarget.snapshot?.revision) {
+          setDraftError(t('Studio.run.targetChanged'));
+          return;
+        }
         if (runTarget.capabilityContract) {
           const refreshedSelection = refresh.snapshot.effectiveSelections.find(
             (item) => item.capabilityContract === runTarget.capabilityContract,
           );
           if (!refreshedSelection || refreshedSelection.state !== 'ready') return;
-          if (refreshedSelection.localLoadoutRevision !== runTarget.effectiveSelection?.localLoadoutRevision) return;
           const refreshedResource = refreshedSelection.resource;
           const refreshedSource = refreshedResource?.oneofKind === 'local'
             ? 'local'
             : refreshedResource?.oneofKind === 'cloud'
               ? 'cloud'
               : 'unknown';
-          if (refreshedSource !== 'unknown' && refreshedSource !== runTarget.source) return;
           const refreshedTargetRef = refreshedResource?.oneofKind === 'local'
             ? refreshedResource.local.loadoutRef
             : refreshedResource?.oneofKind === 'cloud'
@@ -327,7 +331,10 @@ function TextStudioShell({
                   ? refreshedResource.cloud.target.providerModelTarget.providerModelId
                   : undefined)
               : undefined;
-          if (runTarget.targetRef && refreshedTargetRef && refreshedTargetRef !== runTarget.targetRef) {
+          if (refreshedSelection.localLoadoutRevision !== runTarget.effectiveSelection?.localLoadoutRevision
+            || (refreshedSource !== 'unknown' && refreshedSource !== runTarget.source)
+            || (runTarget.targetRef && refreshedTargetRef && refreshedTargetRef !== runTarget.targetRef)) {
+            setDraftError(t('Studio.run.targetChanged'));
             return;
           }
         }
@@ -335,6 +342,7 @@ function TextStudioShell({
     } finally {
       submittingRef.current = false;
     }
+    if (draftError === t('Studio.run.targetChanged')) setDraftError(null);
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
     const abortController = new AbortController();

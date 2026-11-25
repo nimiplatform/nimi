@@ -111,7 +111,7 @@ export function useStudioRunTargetSummary(
   readonly snapshot: NimiAIConfigSnapshot | null;
   readonly effectiveSelection: NimiAIConfigEffectiveSelection | undefined;
   readonly configReadFailed: boolean;
-  readonly waitForTargetRefresh: () => Promise<StudioTargetRefreshWaitResult>;
+  readonly waitForTargetRefresh: (verifyLocalSelection: boolean) => Promise<StudioTargetRefreshWaitResult>;
 } {
   const host = useAIStudioHost();
   const hostRef = useRef(host);
@@ -126,41 +126,42 @@ export function useStudioRunTargetSummary(
     error: string | null;
   }>({ scopeKey, state: 'loading', snapshot: null, error: null });
 
-  useEffect(() => {
-    const refresh = (preserveSnapshot: boolean) => {
-      let release!: () => void;
-      const settled = new Promise<void>(resolve => { release = resolve; });
-      const pending = { settled, release };
-      const previous = inFlightRefreshRef.current;
-      inFlightRefreshRef.current = pending;
-      // A submission waiting on a superseded refresh can now await the latest one.
-      previous?.release();
-      if (!preserveSnapshot) {
-        setConfigProjection({ scopeKey, state: 'loading', snapshot: null, error: null });
-      }
-      void hostRef.current.sdk.aiConfig.getSnapshot()
-        .then((next) => {
-          if (inFlightRefreshRef.current !== pending) return;
-          lastRefresh.current = { scopeKey, snapshot: next };
-          setConfigProjection({ scopeKey, state: 'loaded', snapshot: next, error: null });
-        })
-        .catch((cause) => {
-          if (inFlightRefreshRef.current !== pending) return;
-          lastRefresh.current = { scopeKey, snapshot: null };
-          setConfigProjection({
-            scopeKey,
-            state: 'failed',
-            snapshot: null,
-            error: cause instanceof Error ? cause.message : String(cause || hostRef.current.translate('Studio.run.aiConfigLoadFailed')),
-          });
-        })
-        .finally(() => {
-          if (inFlightRefreshRef.current === pending) {
-            inFlightRefreshRef.current = null;
-          }
-          pending.release();
+  const refresh = useCallback((preserveSnapshot: boolean) => {
+    let release!: () => void;
+    const settled = new Promise<void>(resolve => { release = resolve; });
+    const pending = { settled, release };
+    const previous = inFlightRefreshRef.current;
+    inFlightRefreshRef.current = pending;
+    // A submission waiting on a superseded refresh can now await the latest one.
+    previous?.release();
+    if (!preserveSnapshot) {
+      setConfigProjection({ scopeKey, state: 'loading', snapshot: null, error: null });
+    }
+    void hostRef.current.sdk.aiConfig.getSnapshot()
+      .then((next) => {
+        if (inFlightRefreshRef.current !== pending) return;
+        lastRefresh.current = { scopeKey, snapshot: next };
+        setConfigProjection({ scopeKey, state: 'loaded', snapshot: next, error: null });
+      })
+      .catch((cause) => {
+        if (inFlightRefreshRef.current !== pending) return;
+        lastRefresh.current = { scopeKey, snapshot: null };
+        setConfigProjection({
+          scopeKey,
+          state: 'failed',
+          snapshot: null,
+          error: cause instanceof Error ? cause.message : String(cause || hostRef.current.translate('Studio.run.aiConfigLoadFailed')),
         });
-    };
+      })
+      .finally(() => {
+        if (inFlightRefreshRef.current === pending) {
+          inFlightRefreshRef.current = null;
+        }
+        pending.release();
+      });
+  }, [scopeKey]);
+
+  useEffect(() => {
     refresh(false);
     const unsubscribe = hostRef.current.app.events.subscribeAIConfigRefresh(() => refresh(true));
     return () => {
@@ -169,15 +170,17 @@ export function useStudioRunTargetSummary(
       lastRefresh.current = null;
       unsubscribe();
     };
-  }, [scopeKey]);
+  }, [scopeKey, refresh]);
 
-  const waitForTargetRefresh = useCallback(async (): Promise<StudioTargetRefreshWaitResult> => {
+  const waitForTargetRefresh = useCallback(async (verifyLocalSelection: boolean): Promise<StudioTargetRefreshWaitResult> => {
+    // A machine selection can change without this App receiving a window-focus event.
+    if (verifyLocalSelection && !inFlightRefreshRef.current) refresh(true);
     if (!inFlightRefreshRef.current) return { waited: false };
     while (inFlightRefreshRef.current) {
       await inFlightRefreshRef.current.settled;
     }
     return { waited: true, snapshot: lastRefresh.current?.scopeKey === scopeKey ? lastRefresh.current.snapshot : null };
-  }, [scopeKey]);
+  }, [scopeKey, refresh]);
 
   return useMemo(() => {
     const scopeMatches = configProjection.scopeKey === scopeKey;

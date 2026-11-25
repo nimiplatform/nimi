@@ -360,6 +360,7 @@
       "runtimeConnected": "Runtime connected",
       "runtimeChecking": "Checking Runtime",
       "runtimeUnavailable": "Runtime unavailable",
+      "targetChanged": "The model configuration changed. Review the current model, then run again.",
       "effectiveTargetUnavailable": "The configured target is unavailable. Check the selected model or Loadout.",
       "retryPreparation": "Check again"
     },

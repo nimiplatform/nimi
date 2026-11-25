@@ -988,6 +988,15 @@ test('SectionAITesting sessionScopeKey preserves snapshot on focus refresh and w
     await act(async () => { olderRefresh.resolve(readySnapshotA); await new Promise((r) => setTimeout(r, 0)); });
     assert.equal(runCalls, 0, 'target loadoutRef changed during focus refresh so dispatch must abort cleanly');
 
+    // Home can switch machine selections while Lab stays focused. An explicit run
+    // must re-read the selection before recording the displayed Loadout.
+    const readsBeforeSubmit = snapshotCalls;
+    refreshDeferred = null;
+    await act(async () => { submitButton().click(); await new Promise((r) => setTimeout(r, 0)); });
+    assert.equal(runCalls, 0, 'a stale Model B request must not dispatch against Model A');
+    assert.match(container.textContent, /Studio\.run\.targetChanged/);
+    assert.equal(snapshotCalls, readsBeforeSubmit + 1, 'submit checked the machine selection without waiting for a focus event');
+
     // Switching sessionScopeKey clears previous snapshot immediately while loading the new scope
     refreshDeferred = Promise.withResolvers();
     await act(async () => { renderSection(makeHost('zh', 'scope-2')); });

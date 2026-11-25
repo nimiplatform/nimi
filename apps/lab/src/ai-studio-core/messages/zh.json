@@ -360,6 +360,7 @@
       "runtimeConnected": "Runtime 已连接",
       "runtimeChecking": "正在检查 Runtime",
       "runtimeUnavailable": "Runtime 不可用",
+      "targetChanged": "模型配置已更新。请确认当前模型，然后重新运行。",
       "effectiveTargetUnavailable": "已配置的目标不可用。请检查所选模型或 Loadout。",
       "retryPreparation": "重新检查"
     },
